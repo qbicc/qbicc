@@ -39,6 +39,7 @@ import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
 import org.qbicc.graph.FunctionDeclarationHandle;
 import org.qbicc.graph.FunctionHandle;
+import org.qbicc.graph.GetAndAdd;
 import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
@@ -100,6 +101,7 @@ import org.qbicc.machine.llvm.ParameterAttributes;
 import org.qbicc.machine.llvm.Values;
 import org.qbicc.machine.llvm.debuginfo.MetadataNode;
 import org.qbicc.machine.llvm.impl.LLVM;
+import org.qbicc.machine.llvm.op.AtomicRmw;
 import org.qbicc.machine.llvm.op.Call;
 import org.qbicc.machine.llvm.op.GetElementPtr;
 import org.qbicc.machine.llvm.op.Instruction;
@@ -575,6 +577,22 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             loadInsn.atomic(OrderingConstraint.unordered);
         }
         return loadInsn.asLocal();
+    }
+
+    public LLValue visit(Void param, GetAndAdd node) {
+        map(node.getDependency());
+        ValueHandle valueHandle = node.getValueHandle();
+        LLValue ptr;
+        if (valueHandle instanceof PointerHandle) {
+            // plain pointer; no GEP needed
+            ptr = map(((PointerHandle) valueHandle).getPointerValue());
+        } else {
+            ptr = valueHandle.accept(this, null).asLocal();
+        }
+        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).add();
+        insn.align(valueHandle.getValueType().getAlign());
+        insn.ordering(getOC(node.getAtomicityMode()));
+        return insn.asLocal();
     }
 
     public LLValue visit(final Void param, final Neg node) {

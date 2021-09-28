@@ -22,6 +22,9 @@ public final class MemberOf extends AbstractValueHandle {
 
         pointerType = member.getType().getPointer().withQualifiersFrom(structureHandle.getPointerType());
         structType = (CompoundType) structureHandle.getValueType();
+        if (! structType.getMembers().contains(member)) {
+            throw new IllegalStateException(String.format("Compound %s does not contain %s", structType, member));
+        }
     }
 
     public CompoundType getStructType() {

@@ -14,11 +14,13 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.ConstantLiteral;
+import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceArrayObjectType;
@@ -170,6 +172,15 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 return super.truncate(value, toType);
             } else {
                 return super.bitCast(value, (WordType) castType);
+            }
+        } else if (castType instanceof CompoundType) {
+            // A checkcast in the bytecodes but it's really casting to a structure or compound type;
+            // we can't just bitcast it really, in fact it's an error unless the actual value is zero
+            if (value instanceof Literal && ((Literal) value).isZero()) {
+                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(castType);
+            } else {
+                ctxt.error(getLocation(), "Disallowed cast of value from %s to %s", value.getType(), castType);
+                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(castType);
             }
         } else if (value.getType() instanceof PointerType && castType instanceof ArrayType) {
             // narrowing a pointer to an array is actually an array view of a pointer

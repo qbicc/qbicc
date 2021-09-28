@@ -19,6 +19,9 @@ public final class ExtractMember extends AbstractValue implements Unschedulable 
         this.compoundValue = compoundValue;
         compoundType = (CompoundType) compoundValue.getType();
         this.member = member;
+        if (! compoundType.getMembers().contains(member)) {
+            throw new IllegalStateException(String.format("Compound %s does not contain %s", compoundType, member));
+        }
     }
 
     @Override

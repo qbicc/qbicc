@@ -14,8 +14,8 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.machine.arch.Cpu;
-import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
+import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.unwind.UnwindHelper;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
@@ -27,7 +27,7 @@ import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.VoidType;
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder {
@@ -114,6 +114,16 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
+    public Value offsetOfField(FieldElement fieldElement) {
+        if (fieldElement.isStatic()) {
+            return ctxt.getLiteralFactory().literalOf(-1L);
+        } else {
+            Layout.LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(fieldElement.getEnclosingType());
+            return ctxt.getLiteralFactory().literalOf((long) layoutInfo.getMember(fieldElement).getOffset());
+        }
+    }
+
+    @Override
     public Value load(ValueHandle handle, MemoryAtomicityMode mode) {
         if (mode == MemoryAtomicityMode.VOLATILE) {
             Value loaded = super.load(handle, MemoryAtomicityMode.ACQUIRE);
@@ -137,6 +147,21 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             return super.store(handle, value, MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
         } else {
             return super.store(handle, value, mode);
+        }
+    }
+
+    @Override
+    public Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
+            Value result = super.getAndAdd(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
+            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
+            return result;
+        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
+            Value result = super.add(super.load(target, atomicityMode), update);
+            super.store(target, result, atomicityMode);
+            return result;
+        } else {
+            return super.getAndAdd(target, update, atomicityMode);
         }
     }
 

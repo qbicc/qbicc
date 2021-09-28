@@ -12,22 +12,31 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEarlyTermination;
+import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.Load;
+import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.OffsetOfField;
+import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.Store;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Variable;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
+import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmString;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables;
@@ -43,6 +52,7 @@ import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.InterfaceObjectType;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.ReferenceType;
@@ -70,6 +80,7 @@ import org.qbicc.type.descriptor.MethodDescriptor;
  */
 public final class CoreIntrinsics {
     public static void register(CompilationContext ctxt) {
+        registerOrgQbiccRuntimeCNativeIntrinsics(ctxt);
         registerJavaLangClassIntrinsics(ctxt);
         registerJavaLangStringUTF16Intrinsics(ctxt);
         registerJavaLangClassLoaderIntrinsics(ctxt);
@@ -80,13 +91,15 @@ public final class CoreIntrinsics {
         registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
         registerJavaLangRuntimeIntrinsics(ctxt);
-        registerOrgQbiccRuntimeCNativeIntrinsics(ctxt);
         registerOrgQbiccObjectModelIntrinsics(ctxt);
         registerOrgQbiccRuntimeMainIntrinsics(ctxt);
         registerOrgQbiccRuntimeValuesIntrinsics(ctxt);
         registerJavaLangMathIntrinsics(ctxt);
         registerOrgQbiccRuntimePosixPthreadCastPtr(ctxt);
         registerJdkInternalMiscUnsafeIntrinsics(ctxt);
+        registerJdkInternalMiscVMIntrinsics(ctxt);
+        registerJavaNetInet4AddressIntrinsics(ctxt);
+        registerJavaNetInet6AddressIntrinsics(ctxt);
     }
 
     private static StaticIntrinsic setVolatile(CompilationContext ctxt, FieldElement field) {
@@ -102,6 +115,7 @@ public final class CoreIntrinsics {
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
         ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+        ClassTypeDescriptor jlclDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ClassLoader");
         ClassTypeDescriptor jlsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor jloDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
 
@@ -111,6 +125,7 @@ public final class CoreIntrinsics {
         MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
         MethodDescriptor stringToClass = MethodDescriptor.synthesize(classContext, jlcDesc, List.of(jlsDesc));
         MethodDescriptor objToObj = MethodDescriptor.synthesize(classContext, jloDesc, List.of(jloDesc));
+        MethodDescriptor stringBoolLoaderClassToClass = MethodDescriptor.synthesize(classContext, jlcDesc, List.of(jlsDesc, BaseTypeDescriptor.Z, jlclDesc, jlcDesc));
 
         // Assertion status
 
@@ -159,6 +174,14 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(jlcDesc, "registerNatives", emptyToVoid, registerNatives);
         intrinsics.registerIntrinsic(jlcDesc, "initClassName", emptyToString, initClassName);
         intrinsics.registerIntrinsic(jlcDesc, "getPrimitiveClass", stringToClass, getPrimitiveClass);
+
+        StaticIntrinsic classForName0 = (builder, target, arguments) -> {
+            // ignore fourth argument
+            MethodElement vmhForName = ctxt.getVMHelperMethod("classForName");
+            return builder.call(builder.staticMethod(vmhForName), arguments.subList(0, 3));
+        };
+
+        intrinsics.registerIntrinsic(jlcDesc, "forName0", stringBoolLoaderClassToClass, classForName0);
     }
 
     public static void registerJavaLangStringUTF16Intrinsics(CompilationContext ctxt) {
@@ -731,6 +754,9 @@ public final class CoreIntrinsics {
             ctxt.getLiteralFactory().literalOf(0);
 
         intrinsics.registerIntrinsic(cNativeDesc, "zero", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), zero);
+
+        // todo: implement an "uninitialized" constant similar to zero
+        intrinsics.registerIntrinsic(cNativeDesc, "auto", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), zero);
 
         StaticIntrinsic constant = (builder, target, arguments) ->
             ctxt.getLiteralFactory().constantLiteralOfType(ctxt.getTypeSystem().getPoisonType());
@@ -1448,12 +1474,16 @@ public final class CoreIntrinsics {
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
         ClassTypeDescriptor unsafeDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Unsafe");
+        ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+        ClassTypeDescriptor stringDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
 
         MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
         MethodDescriptor classToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(classDesc));
         MethodDescriptor emptyToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
         MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
+        MethodDescriptor classStringToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(classDesc, stringDesc));
+        MethodDescriptor objLongIntToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(objDesc, BaseTypeDescriptor.J, BaseTypeDescriptor.I));
 
         Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
 
@@ -1552,7 +1582,7 @@ public final class CoreIntrinsics {
                     checkFailed = new BlockLabel()
                 );
                 builder.begin(checkPassed);
-                builder.return_(lf.literalOf(((ArrayType)arrayLayout.getMember(contentField).getType()).getElementSize()));
+                builder.return_(lf.literalOf((int) ((ArrayType)arrayLayout.getMember(contentField).getType()).getElementSize()));
 
                 builder.begin(checkFailed);
             }
@@ -1571,7 +1601,7 @@ public final class CoreIntrinsics {
             return voidLiteral;
         };
 
-        intrinsics.registerIntrinsic(unsafeDesc, "arrayIndexScale0", classToInt, arrayBaseOffset0);
+        intrinsics.registerIntrinsic(unsafeDesc, "arrayIndexScale0", classToInt, arrayIndexScale0);
 
         InstanceIntrinsic addressSize0 = (builder, instance, target, arguments) -> {
             ClassContext c = builder.getCurrentElement().getEnclosingType().getContext();
@@ -1596,5 +1626,151 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "unalignedAccess0", emptyToBool, unalignedAccess0);
+
+        InstanceIntrinsic objectFieldOffset1 = (builder, instance, target, arguments) -> {
+            Value clazz = traverseLoads(arguments.get(0));
+            Value string = traverseLoads(arguments.get(1));
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            ObjectType objectType;
+            if (clazz instanceof ClassOf) {
+                ClassOf classOf = (ClassOf) clazz;
+                Value typeId = classOf.getInput();
+                if (typeId instanceof TypeLiteral) {
+                    ValueType valueType = ((TypeLiteral) typeId).getValue();
+                    if (valueType instanceof ObjectType) {
+                        objectType = (ObjectType) valueType;
+                    } else {
+                        ctxt.error(builder.getLocation(), "objectFieldOffset type argument must be a literal of an object type");
+                        return lf.literalOf(0L);
+                    }
+                } else {
+                    ctxt.error(builder.getLocation(), "objectFieldOffset type argument must be a literal of an object type");
+                    return lf.literalOf(0L);
+                }
+            } else {
+                ctxt.error(builder.getLocation(), "objectFieldOffset type argument must be a literal of an object type");
+                return lf.literalOf(0L);
+            }
+            String fieldName;
+            if (string instanceof StringLiteral) {
+                fieldName = ((StringLiteral) string).getValue();
+            } else if (string instanceof ObjectLiteral) {
+                VmObject vmObject = ((ObjectLiteral) string).getValue();
+                if (! (vmObject instanceof VmString)) {
+                    ctxt.error(builder.getLocation(), "objectFieldOffset string argument must be a literal string");
+                    return lf.literalOf(0L);
+                }
+                fieldName = ((VmString) vmObject).getContent();
+            } else {
+                ctxt.error(builder.getLocation(), "objectFieldOffset string argument must be a literal string");
+                return lf.literalOf(0L);
+            }
+            LoadedTypeDefinition ltd = objectType.getDefinition().load();
+            FieldElement field = ltd.findField(fieldName);
+            if (field == null) {
+                ctxt.error(builder.getLocation(), "No such field \"%s\" on class \"%s\"", fieldName, ltd.getVmClass().getName());
+                return lf.literalOf(0L);
+            }
+            return builder.offsetOfField(field);
+        };
+
+        intrinsics.registerIntrinsic(unsafeDesc, "objectFieldOffset", classStringToLong, objectFieldOffset1);
+
+        // atomics
+
+        InstanceIntrinsic getAndAddInt = (builder, instance, target, arguments) -> {
+            Value obj = arguments.get(0);
+            Value offset = arguments.get(1);
+            Value incr = arguments.get(2);
+
+            FieldElement fieldElement;
+            if (offset instanceof OffsetOfField) {
+                fieldElement = ((OffsetOfField) offset).getFieldElement();
+            } else {
+                ctxt.error(builder.getLocation(), "Invalid offset argument to %s", target);
+                return ctxt.getLiteralFactory().literalOf(0);
+            }
+            if (fieldElement.isStatic()) {
+                return builder.getAndAdd(builder.staticField(fieldElement), incr, MemoryAtomicityMode.VOLATILE);
+            } else {
+                return builder.getAndAdd(builder.instanceFieldOf(builder.referenceHandle(obj), fieldElement), incr, MemoryAtomicityMode.VOLATILE);
+            }
+        };
+
+        intrinsics.registerIntrinsic(unsafeDesc, "getAndAddInt", objLongIntToInt, getAndAddInt);
+    }
+
+    private static Value traverseLoads(Value value) {
+        // todo: modify Load to carry a "known value"?
+        if (value instanceof Load) {
+            ValueHandle valueHandle = value.getValueHandle();
+            if (valueHandle instanceof LocalVariable || valueHandle instanceof Variable && ((Variable) valueHandle).getVariableElement().isFinal()) {
+                Node dependency = value;
+                while (dependency instanceof OrderedNode) {
+                    dependency = ((OrderedNode) dependency).getDependency();
+                    if (dependency instanceof Store) {
+                        if (dependency.getValueHandle().equals(valueHandle)) {
+                            return ((Store) dependency).getValue();
+                        }
+                    }
+                    if (dependency instanceof BlockEntry) {
+                        // not resolvable
+                        break;
+                    }
+                }
+            }
+        }
+        return value;
+    }
+
+    private static void registerJdkInternalMiscVMIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/VM");
+        ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+
+        MethodDescriptor classToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(classDesc));
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
+
+        Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
+
+        StaticIntrinsic initializeFromArchive = (builder, target, arguments) -> voidLiteral;
+
+        intrinsics.registerIntrinsic(vmDesc, "initializeFromArchive", classToVoid, initializeFromArchive);
+
+        StaticIntrinsic initialize = (builder, target, arguments) -> voidLiteral;
+
+        intrinsics.registerIntrinsic(vmDesc, "initialize", emptyToVoid, initialize);
+    }
+
+    private static void registerJavaNetInet4AddressIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor i4aDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/Inet4Address");
+
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
+
+        Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
+
+        StaticIntrinsic init = (builder, target, arguments) -> voidLiteral;
+
+        intrinsics.registerIntrinsic(i4aDesc, "init", emptyToVoid, init);
+    }
+
+    private static void registerJavaNetInet6AddressIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor i6aDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/Inet6Address");
+
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
+
+        Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
+
+        StaticIntrinsic init = (builder, target, arguments) -> voidLiteral;
+
+        intrinsics.registerIntrinsic(i6aDesc, "init", emptyToVoid, init);
     }
 }

@@ -77,6 +77,7 @@ import org.qbicc.graph.New;
 import org.qbicc.graph.NewArray;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NotNull;
+import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
@@ -1514,6 +1515,19 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
     }
 
+    @Override
+    public Object visit(VmThreadImpl param, OffsetOfField node) {
+        FieldElement fieldElement = node.getFieldElement();
+        CompilationContext ctxt = element.getEnclosingType().getContext().getCompilationContext();
+        Layout layout = Layout.getForInterpreter(ctxt);
+        Layout.LayoutInfo layoutInfo;
+        if (fieldElement.isStatic()) {
+            layoutInfo = layout.getInterpreterStaticLayoutInfo(fieldElement.getEnclosingType());
+        } else {
+            layoutInfo = layout.getInstanceLayoutInfo(fieldElement.getEnclosingType());
+        }
+        return Long.valueOf(layoutInfo == null ? 0 : layoutInfo.getMember(fieldElement).getOffset());
+    }
 
     @Override
     public Object visit(VmThreadImpl thread, StackAllocation node) {
@@ -1609,9 +1623,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isInt64(type)) {
             memory.store64(offset, unboxLong(value), mode);
         } else if (isFloat32(type)) {
-            memory.store32(offset, Float.floatToRawIntBits(unboxInt(value)), mode);
+            memory.store32(offset, Float.floatToRawIntBits(unboxFloat(value)), mode);
         } else if (isFloat64(type)) {
-            memory.store64(offset, Double.doubleToRawLongBits(unboxInt(value)), mode);
+            memory.store64(offset, Double.doubleToRawLongBits(unboxDouble(value)), mode);
         } else if (isBool(type)) {
             memory.store8(offset, unboxBool(value) ? 1 : 0, mode);
         } else if (isRef(type)) {

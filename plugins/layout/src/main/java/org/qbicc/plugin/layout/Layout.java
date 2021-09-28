@@ -28,6 +28,7 @@ public final class Layout {
     private static final AttachmentKey<Layout> I_KEY = new AttachmentKey<>();
 
     private final Map<LoadedTypeDefinition, LayoutInfo> instanceLayouts = new ConcurrentHashMap<>();
+    private final Map<LoadedTypeDefinition, LayoutInfo> staticLayouts = new ConcurrentHashMap<>();
     private final CompilationContext ctxt;
 
     private Layout(final CompilationContext ctxt) {
@@ -218,6 +219,10 @@ public final class Layout {
      */
     public LayoutInfo getInterpreterStaticLayoutInfo(DefinedTypeDefinition type) {
         LoadedTypeDefinition loaded = type.load();
+        LayoutInfo layoutInfo = staticLayouts.get(loaded);
+        if (layoutInfo != null) {
+            return layoutInfo;
+        }
         int cnt = loaded.getFieldCount();
         if (cnt == 0) {
             return null;
@@ -236,7 +241,9 @@ public final class Layout {
         Arrays.sort(membersArray);
         List<CompoundType.Member> membersList = List.of(membersArray);
         CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.NONE, type.getInternalName().replace('/', '.'), size, 1, () -> membersList);
-        return new LayoutInfo(allocated, compoundType, fieldToMember);
+        layoutInfo = new LayoutInfo(allocated, compoundType, fieldToMember);
+        LayoutInfo appearing = staticLayouts.putIfAbsent(loaded, layoutInfo);
+        return appearing != null ? appearing : layoutInfo;
     }
 
     private ValueType widenBoolean(ValueType type) {

@@ -247,6 +247,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().currentThread();
     }
 
+    public Value offsetOfField(final FieldElement fieldElement) {
+        return getDelegate().offsetOfField(fieldElement);
+    }
+
     public Value extractElement(final Value array, final Value index) {
         return getDelegate().extractElement(array, index);
     }

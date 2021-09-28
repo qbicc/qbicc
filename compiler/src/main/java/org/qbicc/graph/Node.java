@@ -759,6 +759,10 @@ public interface Node {
                 return node;
             }
 
+            public Value visit(final Copier param, final OffsetOfField node) {
+                return param.getBlockBuilder().offsetOfField(node.getFieldElement());
+            }
+
             public Value visit(final Copier param, final Or node) {
                 return param.getBlockBuilder().or(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }

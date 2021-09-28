@@ -8,7 +8,7 @@ import org.qbicc.machine.llvm.LLValue;
 import org.qbicc.machine.llvm.Metable;
 import org.qbicc.machine.llvm.op.Alloca;
 import org.qbicc.machine.llvm.op.Assignment;
-import org.qbicc.machine.llvm.op.AtomicRmwInstruction;
+import org.qbicc.machine.llvm.op.AtomicRmw;
 import org.qbicc.machine.llvm.op.Binary;
 import org.qbicc.machine.llvm.op.Branch;
 import org.qbicc.machine.llvm.op.Call;
@@ -417,8 +417,12 @@ final class BuilderImpl implements LLBuilder {
         return append(new FenceImpl(ordering));
     }
 
-    public AtomicRmwInstruction atomicrmw() {
-        throw Assert.unsupported();
+    public AtomicRmw atomicrmw(LLValue type, LLValue value, LLValue pointeeType, LLValue pointer) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("value", value);
+        Assert.checkNotNullParam("pointeeType", pointeeType);
+        Assert.checkNotNullParam("pointer", pointer);
+        return append(new AtomicRmwImpl(block, (AbstractValue) type, (AbstractValue) value, (AbstractValue) pointeeType, (AbstractValue) pointer));
     }
 
     public GetElementPtr getelementptr(final LLValue type, final LLValue ptrType, final LLValue pointer) {
