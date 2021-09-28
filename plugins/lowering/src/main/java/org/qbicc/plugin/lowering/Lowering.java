@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
@@ -14,6 +15,7 @@ import org.qbicc.object.Data;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
 import org.qbicc.plugin.constants.Constants;
+import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ReferenceType;
@@ -84,6 +86,16 @@ public class Lowering {
                     linkage = Linkage.COMMON;
                     initialValue = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(varType);
                 }
+            }
+        }
+        if (initialValue instanceof OffsetOfField) {
+            // special case: the field holds an offset which is really an integer
+            FieldElement offsetField = ((OffsetOfField) initialValue).getFieldElement();
+            Layout.LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(offsetField.getEnclosingType());
+            if (offsetField.isStatic()) {
+                initialValue = ctxt.getLiteralFactory().literalOf(-1L);
+            } else {
+                initialValue = ctxt.getLiteralFactory().literalOf((long) layoutInfo.getMember(offsetField).getOffset());
             }
         }
         if (initialValue.getType() instanceof BooleanType) {

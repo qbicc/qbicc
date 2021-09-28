@@ -14,8 +14,8 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.machine.arch.Cpu;
-import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
+import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.unwind.UnwindHelper;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
@@ -27,7 +27,7 @@ import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.VoidType;
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder {
@@ -111,6 +111,16 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             ctxt.error(getLocation(), "Index of ExtractElement must be constant");
         }
         return super.extractElement(array, index);
+    }
+
+    @Override
+    public Value offsetOfField(FieldElement fieldElement) {
+        if (fieldElement.isStatic()) {
+            return ctxt.getLiteralFactory().literalOf(-1L);
+        } else {
+            Layout.LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(fieldElement.getEnclosingType());
+            return ctxt.getLiteralFactory().literalOf((long) layoutInfo.getMember(fieldElement).getOffset());
+        }
     }
 
     @Override
