@@ -106,6 +106,8 @@ public final class CoreIntrinsics {
 
         StaticIntrinsic emptyInit = (builder, target, arguments) -> voidLiteral;
 
+        ClassTypeDescriptor fileInputStreamDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileInputStream");
+        ClassTypeDescriptor fileDescriptorDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileDescriptor");
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor classLoaderDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ClassLoader");
         ClassTypeDescriptor threadDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
@@ -118,6 +120,8 @@ public final class CoreIntrinsics {
         MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
         MethodDescriptor classToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(classDesc));
 
+        intrinsics.registerIntrinsic(fileInputStreamDesc, "initIDs", emptyToVoid, emptyInit);
+        intrinsics.registerIntrinsic(fileDescriptorDesc, "initIDs", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(classDesc, "registerNatives", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(classLoaderDesc, "registerNatives", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(threadDesc, "registerNatives", emptyToVoid, emptyInit);
@@ -125,8 +129,10 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(i4aDesc, "init", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(i6aDesc, "init", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(unsafeDesc, "registerNatives", emptyToVoid, emptyInit);
+        intrinsics.registerIntrinsic(Phase.ANALYZE, unsafeDesc, "ensureClassInitialized", classToVoid, emptyInit);
         intrinsics.registerIntrinsic(vmDesc, "initialize", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(vmDesc, "initializeFromArchive", classToVoid, emptyInit);
+
     }
 
     private static StaticIntrinsic setVolatile(CompilationContext ctxt, FieldElement field) {
