@@ -108,6 +108,7 @@ public final class CoreIntrinsics {
 
         ClassTypeDescriptor fileInputStreamDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileInputStream");
         ClassTypeDescriptor fileDescriptorDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileDescriptor");
+        ClassTypeDescriptor winNtFileSystem = ClassTypeDescriptor.synthesize(classContext, "java/io/WinNTFileSystem");
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor classLoaderDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ClassLoader");
         ClassTypeDescriptor threadDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
@@ -116,12 +117,19 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor i6aDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/Inet6Address");
         ClassTypeDescriptor unsafeDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Unsafe");
         ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/VM");
+        ClassTypeDescriptor perfDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/perf/Perf");
+        ClassTypeDescriptor aixNativeDispatcherDesc = ClassTypeDescriptor.synthesize(classContext, "sun/nio/fs/AixNativeDispatcher");
+        ClassTypeDescriptor bsdNativeDispatcherDesc = ClassTypeDescriptor.synthesize(classContext, "sun/nio/fs/BsdNativeDispatcher");
+        ClassTypeDescriptor linuxNativeDispatcherDesc = ClassTypeDescriptor.synthesize(classContext, "sun/nio/fs/LinuxNativeDispatcher");
+        ClassTypeDescriptor solarisNativeDispatcherDesc = ClassTypeDescriptor.synthesize(classContext, "sun/nio/fs/SolarisNativeDispatcher");
+        ClassTypeDescriptor windowsNativeDispatcherDesc = ClassTypeDescriptor.synthesize(classContext, "sun/nio/fs/WindowsNativeDispatcher");
 
         MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
         MethodDescriptor classToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(classDesc));
 
         intrinsics.registerIntrinsic(fileInputStreamDesc, "initIDs", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(fileDescriptorDesc, "initIDs", emptyToVoid, emptyInit);
+        intrinsics.registerIntrinsic(winNtFileSystem, "initIDs", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(classDesc, "registerNatives", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(classLoaderDesc, "registerNatives", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(threadDesc, "registerNatives", emptyToVoid, emptyInit);
@@ -132,7 +140,12 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.ANALYZE, unsafeDesc, "ensureClassInitialized", classToVoid, emptyInit);
         intrinsics.registerIntrinsic(vmDesc, "initialize", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(vmDesc, "initializeFromArchive", classToVoid, emptyInit);
-
+        intrinsics.registerIntrinsic(perfDesc, "registerNatives", emptyToVoid, emptyInit);
+        intrinsics.registerIntrinsic(aixNativeDispatcherDesc, "init", emptyToVoid, emptyInit);
+        intrinsics.registerIntrinsic(bsdNativeDispatcherDesc, "initIDs", emptyToVoid, emptyInit);
+        intrinsics.registerIntrinsic(linuxNativeDispatcherDesc, "init", emptyToVoid, emptyInit);
+        intrinsics.registerIntrinsic(solarisNativeDispatcherDesc, "init", emptyToVoid, emptyInit);
+        intrinsics.registerIntrinsic(windowsNativeDispatcherDesc, "initIDs", emptyToVoid, emptyInit);
     }
 
     private static StaticIntrinsic setVolatile(CompilationContext ctxt, FieldElement field) {
