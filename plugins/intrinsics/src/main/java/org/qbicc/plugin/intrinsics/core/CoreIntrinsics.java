@@ -83,6 +83,7 @@ public final class CoreIntrinsics {
         registerOrgQbiccRuntimeCNativeIntrinsics(ctxt);
         registerEmptyNativeInitMethods(ctxt);
         registerJavaLangClassIntrinsics(ctxt);
+        registerJavaLangStringIntrinsics(ctxt);
         registerJavaLangStringUTF16Intrinsics(ctxt);
         registerJavaLangSystemIntrinsics(ctxt);
         registerJavaLangThreadIntrinsics(ctxt);
@@ -222,6 +223,21 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(jlcDesc, "forName0", stringBoolLoaderClassToClass, classForName0);
+    }
+
+    public static void registerJavaLangStringIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor stringDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
+
+        MethodDescriptor emptyToString = MethodDescriptor.synthesize(classContext, stringDesc, List.of());
+
+        InstanceIntrinsic intern = (builder, instance, target, arguments) ->
+            // todo: implement a proper interning table, intercept in interpreter
+            instance;
+
+        intrinsics.registerIntrinsic(stringDesc, "intern", emptyToString, intern);
     }
 
     public static void registerJavaLangStringUTF16Intrinsics(CompilationContext ctxt) {
