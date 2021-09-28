@@ -1582,7 +1582,7 @@ public final class CoreIntrinsics {
                     checkFailed = new BlockLabel()
                 );
                 builder.begin(checkPassed);
-                builder.return_(lf.literalOf(((ArrayType)arrayLayout.getMember(contentField).getType()).getElementSize()));
+                builder.return_(lf.literalOf((int) ((ArrayType)arrayLayout.getMember(contentField).getType()).getElementSize()));
 
                 builder.begin(checkFailed);
             }
