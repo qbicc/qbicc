@@ -318,7 +318,11 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (nogc) {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
                                 }
-                                builder.addPreHook(Phase.ADD, RTAInfo::forceCoreClassesReachable);
+                                if (initBuildTime) {
+                                    builder.addPreHook(Phase.ADD, RTAInfo::forceCoreClassesReachableBuildTimeInit);
+                                } else {
+                                    builder.addPreHook(Phase.ADD, RTAInfo::forceCoreClassesReachableRunTimeInit);
+                                }
                                 builder.addElementHandler(Phase.ADD, new ElementBodyCreator());
                                 builder.addElementHandler(Phase.ADD, new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig)));
                                 if (initBuildTime) {
@@ -348,11 +352,19 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, RuntimeChecksBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, LocalThrowHandlingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
+                                if (initBuildTime) {
+                                    builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::initForBuildTimeInit);
+                                } else {
+                                    builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::initForRunTimeInit);
+                                }
                                 builder.addPostHook(Phase.ADD, RTAInfo::reportStats);
                                 builder.addPostHook(Phase.ADD, RTAInfo::clear);
 
-                                builder.addPreHook(Phase.ANALYZE, RTAInfo::forceCoreClassesReachable);
+                                if (initBuildTime) {
+                                    builder.addPreHook(Phase.ANALYZE, RTAInfo::forceCoreClassesReachableBuildTimeInit);
+                                } else {
+                                    builder.addPreHook(Phase.ANALYZE, RTAInfo::forceCoreClassesReachableRunTimeInit);
+                                }
                                 builder.addElementHandler(Phase.ANALYZE, new ElementBodyCopier());
                                 builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new DotGenerator(Phase.ANALYZE, graphGenConfig)));
                                 if (optGotos) {
@@ -371,7 +383,11 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (optInlining) {
                                     builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::new);
                                 }
-                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
+                                if (initBuildTime) {
+                                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::initForBuildTimeInit);
+                                } else {
+                                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::initForRunTimeInit);
+                                }
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, LocalVariableFindingBasicBlockBuilder::new);
                                 builder.addPostHook(Phase.ANALYZE, RTAInfo::reportStats);
                                 if (! initBuildTime) {

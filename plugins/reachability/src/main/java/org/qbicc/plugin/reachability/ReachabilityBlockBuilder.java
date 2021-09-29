@@ -39,12 +39,22 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     private final CompilationContext ctxt;
     private final ExecutableElement originalElement;
     private final RTAInfo info;
+    private final boolean buildTimeInit;
 
-    public ReachabilityBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    private ReachabilityBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate, final boolean buildTimeInit) {
         super(delegate);
         this.ctxt = ctxt;
         this.originalElement = delegate.getCurrentElement();
         this.info = RTAInfo.get(ctxt);
+        this.buildTimeInit = buildTimeInit;
+    }
+
+    public static ReachabilityBlockBuilder initForBuildTimeInit(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+        return new ReachabilityBlockBuilder(ctxt, delegate, true);
+    }
+
+    public static ReachabilityBlockBuilder initForRunTimeInit(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+        return new ReachabilityBlockBuilder(ctxt, delegate, false);
     }
 
     @Override
@@ -93,7 +103,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     public Void visit(Void param, ConstructorElementHandle node) {
         ConstructorElement target = node.getExecutable();
         LoadedTypeDefinition ltd = target.getEnclosingType().load();
-        info.processReachableConstructorInvoke(ltd, target, originalElement);
+        info.processReachableConstructorInvoke(ltd, target, buildTimeInit, originalElement);
         return null;
     }
 
@@ -125,7 +135,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     @Override
     public Void visit(Void param, StaticMethodElementHandle node) {
         MethodElement target = node.getExecutable();
-        info.processStaticElementInitialization(target.getEnclosingType().load(), target, originalElement);
+        info.processStaticElementInitialization(target.getEnclosingType().load(), target, buildTimeInit, originalElement);
         info.processReachableStaticInvoke(target, originalElement);
         return null;
     }
@@ -149,7 +159,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     // TODO: only initialize the enclosing type if the static field is actually used for something
     @Override
     public ValueHandle staticField(FieldElement field) {
-        info.processStaticElementInitialization(field.getEnclosingType().load(), field, originalElement);
+        info.processStaticElementInitialization(field.getEnclosingType().load(), field, buildTimeInit, originalElement);
         return super.staticField(field);
     }
 
@@ -160,7 +170,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         Assert.assertTrue(typeId instanceof TypeLiteral);
         TypeLiteral typeLiteral = (TypeLiteral)typeId;
         if (typeLiteral.getValue() instanceof ClassObjectType) {
-            info.processClassInitialization(((ClassObjectType)typeLiteral.getValue()).getDefinition().load());
+            info.processClassInitialization(((ClassObjectType)typeLiteral.getValue()).getDefinition().load(), buildTimeInit);
         }
         return super.classOf(typeId, dimensions);
     }
