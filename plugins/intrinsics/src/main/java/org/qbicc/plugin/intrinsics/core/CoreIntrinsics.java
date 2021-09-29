@@ -1540,10 +1540,12 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor stringDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
 
         MethodDescriptor classToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(classDesc));
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
         MethodDescriptor emptyToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
         MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
         MethodDescriptor classStringToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(classDesc, stringDesc));
         MethodDescriptor objLongIntToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(objDesc, BaseTypeDescriptor.J, BaseTypeDescriptor.I));
+        MethodDescriptor objLongIntIntToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc, BaseTypeDescriptor.J, BaseTypeDescriptor.I, BaseTypeDescriptor.I));
 
         Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
 
@@ -1754,6 +1756,44 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "getAndAddInt", objLongIntToInt, getAndAddInt);
+
+        InstanceIntrinsic compareAndSetInt = (builder, instance, target, arguments) -> {
+            Value obj = arguments.get(0);
+            Value offset = arguments.get(1);
+            Value expect = arguments.get(2);
+            Value update = arguments.get(3);
+
+            FieldElement fieldElement;
+            if (offset instanceof OffsetOfField) {
+                fieldElement = ((OffsetOfField) offset).getFieldElement();
+            } else {
+                ctxt.error(builder.getLocation(), "Invalid offset argument to %s", target);
+                return ctxt.getLiteralFactory().literalOf(false);
+            }
+            ValueHandle handle;
+            if (fieldElement.isStatic()) {
+                handle = builder.staticField(fieldElement);
+            } else {
+                handle = builder.instanceFieldOf(builder.referenceHandle(obj), fieldElement);
+            }
+            Value result = builder.cmpAndSwap(handle, expect, update, MemoryAtomicityMode.ACQUIRE_RELEASE, MemoryAtomicityMode.MONOTONIC);
+            // simulate volatile
+            builder.fence(MemoryAtomicityMode.ACQUIRE_RELEASE);
+            // result is a compound structure; extract the flag
+            CompoundType resultType = CmpAndSwap.getResultType(ctxt, ctxt.getTypeSystem().getSignedInteger32Type());
+            return builder.extractMember(result, resultType.getMember(1));
+        };
+
+        intrinsics.registerIntrinsic(unsafeDesc, "compareAndSetInt", objLongIntIntToBool, compareAndSetInt);
+
+        // fences
+
+        InstanceIntrinsic storeFence = (builder, instance, target, arguments) -> {
+            builder.fence(MemoryAtomicityMode.RELEASE);
+            return voidLiteral;
+        };
+
+        intrinsics.registerIntrinsic(unsafeDesc, "storeFence", emptyToVoid, storeFence);
     }
 
     private static Value traverseLoads(Value value) {
