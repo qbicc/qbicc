@@ -23,6 +23,7 @@ import org.qbicc.object.Section;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.NativeMethodConfigurator;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MemberElement;
@@ -58,6 +59,8 @@ public interface CompilationContext extends DiagnosticContext {
     void enqueue(ExecutableElement element);
 
     boolean wasEnqueued(ExecutableElement element);
+
+    NativeMethodConfigurator getNativeMethodConfigurator();
 
     ExecutableElement dequeue();
 

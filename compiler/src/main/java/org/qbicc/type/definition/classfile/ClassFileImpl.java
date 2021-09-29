@@ -864,8 +864,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         builder.setEnclosingType(enclosing);
         int methodModifiers = getShort(methodOffsets[index]);
         builder.setModifiers(methodModifiers);
-        builder.setName(getUtf8Constant(getShort(methodOffsets[index] + 2)));
-        boolean mayHaveBody = (methodModifiers & ACC_ABSTRACT) == 0;
+        String name = getUtf8Constant(getShort(methodOffsets[index] + 2));
+        builder.setName(name);
+        boolean isNative = (methodModifiers & ACC_NATIVE) != 0;
+        boolean mayHaveBody = (methodModifiers & ACC_ABSTRACT) == 0 && ! isNative;
         if (mayHaveBody) {
             int attrCount = getMethodAttributeCount(index);
             for (int i = 0; i < attrCount; i ++) {
@@ -879,6 +881,11 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                     break;
                 }
             }
+        } else if (isNative) {
+            int base = methodOffsets[index];
+            int descIdx = getShort(base + 4);
+            MethodDescriptor methodDescriptor = (MethodDescriptor) getDescriptorConstant(descIdx);
+            ctxt.getCompilationContext().getNativeMethodConfigurator().configureNativeMethod(builder, enclosing, name, methodDescriptor);
         }
         addParameters(builder, index, enclosing);
         addMethodAnnotations(index, builder);

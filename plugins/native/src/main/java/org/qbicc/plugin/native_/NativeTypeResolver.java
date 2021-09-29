@@ -26,21 +26,22 @@ public class NativeTypeResolver implements DescriptorTypeResolver.Delegating {
     }
 
     public ValueType resolveTypeFromClassName(final String packageName, final String internalName) {
+        String rewrittenName = internalName.endsWith("$_native") ? internalName.substring(0, "$_native".length()) : internalName;
         if (packageName.equals(Native.NATIVE_PKG)) {
-            if (internalName.equals(Native.TYPE_ID)) {
+            if (rewrittenName.equals(Native.TYPE_ID)) {
                 return classCtxt.findDefinedType("java/lang/Object").load().getClassType().getReference().getTypeType();
-            } else if (internalName.equals(Native.VOID)) {
+            } else if (rewrittenName.equals(Native.VOID)) {
                 return ctxt.getTypeSystem().getVoidType();
-            } else if (internalName.equals(Native.PTR)) {
+            } else if (rewrittenName.equals(Native.PTR)) {
                 return ctxt.getTypeSystem().getVoidType().getPointer();
             }
         }
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
-        DefinedTypeDefinition definedType = classCtxt.findDefinedType(packageName + "/" + internalName);
+        DefinedTypeDefinition definedType = classCtxt.findDefinedType(packageName + "/" + rewrittenName);
         if (definedType == null) {
-            return delegate.resolveTypeFromClassName(packageName, internalName);
+            return delegate.resolveTypeFromClassName(packageName, rewrittenName);
         }
         ValueType valueType = nativeInfo.resolveNativeType(definedType);
-        return valueType == null ? delegate.resolveTypeFromClassName(packageName, internalName) : valueType;
+        return valueType == null ? delegate.resolveTypeFromClassName(packageName, rewrittenName) : valueType;
     }
 }

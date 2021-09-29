@@ -44,6 +44,7 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.ModuleDefinition;
+import org.qbicc.type.definition.NativeMethodConfigurator;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -190,12 +191,23 @@ public class Driver implements Closeable {
         Collections.reverse(resolverFactories);
 
         java.util.function.Function<CompilationContext, Vm> vmFactory = Assert.checkNotNullParam("builder.vmFactory", builder.vmFactory);
-        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, this::defaultFinder, vmFactory, outputDir, resolverFactories, typeBuilderFactories);
+        NativeMethodConfigurator nativeMethodConfigurator = constructNativeMethodConfigurator(builder);
+        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, this::defaultFinder, vmFactory, outputDir, resolverFactories, typeBuilderFactories, nativeMethodConfigurator);
         // start with ADD
         compilationContext.setBlockFactory(addBuilderFactory);
 
         threadsPerCpu = builder.threadsPerCpu;
         stackSize = builder.stackSize;
+    }
+
+    private NativeMethodConfigurator constructNativeMethodConfigurator(final Builder builder) {
+        List<UnaryOperator<NativeMethodConfigurator>> list = new ArrayList<>(builder.nativeMethodConfiguratorFactories);
+        Collections.reverse(list);
+        NativeMethodConfigurator result = (bbb, enclosing, name, methodDescriptor) -> {};
+        for (UnaryOperator<NativeMethodConfigurator> item : list) {
+            result = item.apply(result);
+        }
+        return result;
     }
 
     private static BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> constructCopiers(final Builder builder, final Phase phase) {
@@ -611,6 +623,7 @@ public class Driver implements Closeable {
         final Map<Phase, List<Consumer<? super CompilationContext>>> postHooks = new EnumMap<>(Phase.class);
         final Map<Phase, List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>>> taskWrapperFactories = new EnumMap<>(Phase.class);
         final Map<Phase, List<Consumer<ExecutableElement>>> elementHandlers = new EnumMap<>(Phase.class);
+        final List<UnaryOperator<NativeMethodConfigurator>> nativeMethodConfiguratorFactories = new ArrayList<>();
 
         Path outputDirectory = Path.of(".");
         BaseDiagnosticContext initialContext;
@@ -801,6 +814,12 @@ public class Driver implements Closeable {
             // 1 MB
             Assert.checkMinimumParameter("stackSize", 0x100000L, stackSize);
             this.stackSize = stackSize;
+            return this;
+        }
+
+        public Builder addNativeMethodConfiguratorFactory(UnaryOperator<NativeMethodConfigurator> factory) {
+            Assert.checkNotNullParam("factory", factory);
+            nativeMethodConfiguratorFactories.add(factory);
             return this;
         }
 

@@ -315,11 +315,10 @@ public final class VmImpl implements Vm {
 
             // System
             VmClassImpl systemClass = bootstrapClassLoader.loadClass("java/lang/System");
-            VmClassImpl systemNativeClass = bootstrapClassLoader.loadClass("java/lang/System$_native");
 
-            systemNativeClass.registerInvokable("nanoTime", (thread, target, args) -> Long.valueOf(System.nanoTime()));
-            systemNativeClass.registerInvokable("currentTimeMillis", (thread, target, args) -> Long.valueOf(System.currentTimeMillis()));
-            systemNativeClass.registerInvokable("initProperties", this::initProperties);
+            systemClass.registerInvokable("nanoTime", (thread, target, args) -> Long.valueOf(System.nanoTime()));
+            systemClass.registerInvokable("currentTimeMillis", (thread, target, args) -> Long.valueOf(System.currentTimeMillis()));
+            systemClass.registerInvokable("initProperties", this::initProperties);
 
             //    private static native void initStackTraceElements(StackTraceElement[] elements,
             //                                                      Throwable x);
