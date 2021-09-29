@@ -540,6 +540,7 @@ public final class VMHelpers {
     public static Class<?> classForName(String name, boolean initialize, ClassLoader loader) throws ClassNotFoundException {
         // TODO: keep a map of run time loadable classes per class loader
         throw new ClassNotFoundException("Run time class loading not yet supported");
+    }
 
     /**
      * This intrinsic sets up and executes the `public void run()` of threadParam.
