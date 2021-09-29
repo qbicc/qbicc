@@ -365,12 +365,6 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(systemDesc, "loadLibrary", stringToVoidDesc, loadLibrary);
-
-        // currentTimeMillis - TODO get real time
-        MethodDescriptor currentTimeMillisDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of());
-        StaticIntrinsic currentTimeMillis = (builder, target, arguments) ->
-            ctxt.getLiteralFactory().literalOf(0L);
-        intrinsics.registerIntrinsic(systemDesc, "currentTimeMillis", currentTimeMillisDesc, currentTimeMillis);
     }
 
     public static void registerJavaLangThreadIntrinsics(CompilationContext ctxt) {
