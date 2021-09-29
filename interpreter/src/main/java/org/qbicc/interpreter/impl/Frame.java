@@ -130,6 +130,7 @@ import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
@@ -1478,6 +1479,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         for (int i = 0; i < dimensions.length; i++) {
             dimensions[i] = unboxInt(dimList.get(i));
         }
+        if (node.getArrayType() instanceof ReferenceArrayObjectType) {
+            RTAInfo info = RTAInfo.get(node.getElement().getEnclosingType().getContext().getCompilationContext());
+            info.logBuildTimeInstantiatedArrayElement(((ReferenceArrayObjectType)node.getArrayType()).getLeafElementType());
+        }
         return multiNewArray(thread, node.getArrayType(), 0, dimensions);
     }
 
@@ -1498,11 +1503,17 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     public Object visit(VmThreadImpl thread, New node) {
         DefinedTypeDefinition enclosingType = node.getElement().getEnclosingType();
         VmClassLoaderImpl cl = thread.vm.getClassLoaderForContext(enclosingType.getContext());
+        RTAInfo info = RTAInfo.get(enclosingType.getContext().getCompilationContext());
+        info.logBuildTimeInstantiatedClass(node.getClassObjectType().getDefinition());
         return cl.loadClass(node.getClassObjectType().getDefinition().getInternalName()).newInstance();
     }
 
     @Override
     public Object visit(VmThreadImpl thread, NewArray node) {
+        if (node.getArrayType() instanceof ReferenceArrayObjectType) {
+            RTAInfo info = RTAInfo.get(node.getElement().getEnclosingType().getContext().getCompilationContext());
+            info.logBuildTimeInstantiatedArrayElement(((ReferenceArrayObjectType)node.getArrayType()).getLeafElementType());
+        }
         return newArray(thread, node.getArrayType(), unboxInt(node.getSize()));
     }
 

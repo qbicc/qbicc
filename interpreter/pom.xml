@@ -32,6 +32,11 @@
         </dependency>
 
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-reachability</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>io.smallrye.common</groupId>
             <artifactId>smallrye-common-constraint</artifactId>
         </dependency>

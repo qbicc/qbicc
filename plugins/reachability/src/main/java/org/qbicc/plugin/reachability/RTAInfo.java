@@ -16,6 +16,7 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.BasicElement;
 import org.qbicc.type.definition.element.ConstructorElement;
@@ -87,6 +88,10 @@ public class RTAInfo {
     // Set of reachable, but not yet invokable, instance methods
     private final Set<MethodElement> deferredInstanceMethods = ConcurrentHashMap.newKeySet();
 
+    // Summary of the types instantiated in the build time heap
+    private final Set<DefinedTypeDefinition> buildTimeInstantiatedClasses = ConcurrentHashMap.newKeySet();
+    private final Set<ObjectType> buildTimeInstantiatedArrayElements = ConcurrentHashMap.newKeySet();
+
     private final CompilationContext ctxt;
 
     private RTAInfo(final CompilationContext ctxt) {
@@ -128,7 +133,15 @@ public class RTAInfo {
 
     // We force some fundamental types to be considered reachable even if the program doesn't use them.
     // This simplifies the implementation of the core runtime.
-    public static void forceCoreClassesReachable(CompilationContext ctxt) {
+    public static void forceCoreClassesReachableBuildTimeInit(CompilationContext ctxt) {
+        forceCoreClassesReachable(ctxt, true);
+    }
+
+    public static void forceCoreClassesReachableRunTimeInit(CompilationContext ctxt) {
+        forceCoreClassesReachable(ctxt, false);
+    }
+
+    private static void forceCoreClassesReachable(CompilationContext ctxt, boolean buildTimeInit) {
         RTAInfo info = get(ctxt);
         CoreClasses cc = CoreClasses.get(ctxt);
         rtaLog.debugf("Forcing all array types reachable/instantiated");
@@ -137,7 +150,7 @@ public class RTAInfo {
         LoadedTypeDefinition cloneable = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Cloneable").load();
         LoadedTypeDefinition serializable = ctxt.getBootstrapClassContext().findDefinedType("java/io/Serializable").load();
         info.processInstantiatedClass(obj, true, null);
-        info.processClassInitialization(obj);
+        info.processClassInitialization(obj, buildTimeInit);
         info.addReachableInterface(cloneable);
         info.addReachableInterface(serializable);
         for (String d : desc) {
@@ -151,17 +164,30 @@ public class RTAInfo {
         rtaLog.debugf("Forcing java.lang.Class reachable/instantiated");
         LoadedTypeDefinition clz = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
         info.processInstantiatedClass(clz, true, null);
-        info.processClassInitialization(clz);
+        info.processClassInitialization(clz, buildTimeInit);
 
         rtaLog.debugf("Forcing jdk.internal.misc.Unsafe reachable/instantiated");
         LoadedTypeDefinition unsafe = ctxt.getBootstrapClassContext().findDefinedType("jdk/internal/misc/Unsafe").load();
         info.processInstantiatedClass(unsafe, true, null);
-        info.processClassInitialization(unsafe);
+        info.processClassInitialization(unsafe, buildTimeInit);
 
         // Hack around the way NoGC entrypoints are registered and then not used until LOWERING PHASE...
         rtaLog.debugf("Forcing org.qbicc.runtime.gc.nogc.NoGcHelpers reachable");
         LoadedTypeDefinition nogc = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/gc/nogc/NoGcHelpers").load();
-        info.processClassInitialization(nogc);
+        info.processClassInitialization(nogc, buildTimeInit);
+
+        // Account for types instantiated by the interpreter into the build time heap.
+        if (buildTimeInit) {
+            for (DefinedTypeDefinition dtd : info.buildTimeInstantiatedClasses) {
+                rtaLog.debugf("Marking build time instantiated  class "+dtd+" reachable");
+                info.processInstantiatedClass(dtd.load(), true, null);
+                info.processClassInitialization(dtd.load(), buildTimeInit);
+            }
+            for (ObjectType ot: info.buildTimeInstantiatedArrayElements) {
+                rtaLog.debugf("Marking build time instantiated  array element "+ot+" reachable");
+                info.processArrayElementType(ot);
+            }
+        }
     }
 
     public boolean isDeferredInstanceMethod(MethodElement meth) {
@@ -242,6 +268,18 @@ public class RTAInfo {
     }
 
     /*
+     * Entrypoints to record types that were instantiated by the interpreter into the build time heap
+     */
+
+    public void logBuildTimeInstantiatedClass(DefinedTypeDefinition ltd) {
+        buildTimeInstantiatedClasses.add(ltd);
+    }
+
+    public void logBuildTimeInstantiatedArrayElement(ObjectType ot) {
+        buildTimeInstantiatedArrayElements.add(ot);
+    }
+
+    /*
      * Entrypoints for Rapid Type Analysis algorithm, only meant to be invoked from ReachabilityBlockBuilder
      */
     synchronized void processArrayElementType(ObjectType elemType) {
@@ -259,9 +297,9 @@ public class RTAInfo {
         }
     }
 
-    synchronized void processReachableConstructorInvoke(LoadedTypeDefinition ltd, ConstructorElement target, ExecutableElement originalElement) {
+    synchronized void processReachableConstructorInvoke(LoadedTypeDefinition ltd, ConstructorElement target, boolean buildTimeInit, ExecutableElement originalElement) {
         processInstantiatedClass(ltd, true, originalElement);
-        processClassInitialization(ltd);
+        processClassInitialization(ltd, buildTimeInit);
         if (!ctxt.wasEnqueued(target)) {
             rtaLog.debugf("Adding <init> %s (invoked in %s)", target, originalElement);
             ctxt.enqueue(target);
@@ -286,14 +324,14 @@ public class RTAInfo {
         }
     }
 
-    synchronized void processStaticElementInitialization(final LoadedTypeDefinition ltd, BasicElement cause, ExecutableElement originalElement) {
+    synchronized void processStaticElementInitialization(final LoadedTypeDefinition ltd, BasicElement cause, boolean buildTimeInit, ExecutableElement originalElement) {
         if (isInitializedType(ltd)) return;
         rtaLog.debugf("Initializing %s (static access to %s in %s)", ltd.getInternalName(), cause, originalElement);
         if (ltd.isInterface()) {
             addReachableInterface(ltd);
             // JLS: accessing a static field/method of an interface only causes local <clinit> execution
             addInitializedType(ltd);
-            if (ltd.getInitializer() != null) {
+            if (!buildTimeInit && ltd.getInitializer() != null) {
                 if (!ctxt.wasEnqueued(ltd.getInitializer())) {
                     rtaLog.debugf("\tadding <clinit> %s (interface static member)", ltd.getInitializer());
                     ctxt.enqueue(ltd.getInitializer());
@@ -301,22 +339,22 @@ public class RTAInfo {
             }
         } else {
             // JLS: accessing a static field/method of a class <clinit> all the way up the class/interface hierarchy
-            processClassInitialization(ltd);
+            processClassInitialization(ltd, buildTimeInit);
         }
     }
 
-    synchronized void processClassInitialization(final LoadedTypeDefinition ltd) {
+    synchronized void processClassInitialization(final LoadedTypeDefinition ltd, boolean buildTimeInit) {
         Assert.assertFalse(ltd.isInterface());
         if (isInitializedType(ltd)) return;
         addReachableClass(ltd);
 
         if (ltd.hasSuperClass()) {
             // force superclass initialization
-            processClassInitialization(ltd.getSuperClass());
+            processClassInitialization(ltd.getSuperClass(), buildTimeInit);
         }
         addInitializedType(ltd);
 
-        if (ltd.getInitializer() != null) {
+        if (!buildTimeInit && ltd.getInitializer() != null) {
             if (!ctxt.wasEnqueued(ltd.getInitializer())) {
                 rtaLog.debugf("\tadding <clinit> %s (class initialization)", ltd.getInitializer());
                 ctxt.enqueue(ltd.getInitializer());
@@ -331,7 +369,7 @@ public class RTAInfo {
             LoadedTypeDefinition i = worklist.pop();
             if (i.declaresDefaultMethods() && !isInitializedType(i)) {
                 addInitializedType(i);
-                if (i.getInitializer() != null) {
+                if (!buildTimeInit && i.getInitializer() != null) {
                     if (!ctxt.wasEnqueued(i.getInitializer())) {
                         rtaLog.debugf("\tadding <clinit> %s (class initialization)", i.getInitializer());
                         ctxt.enqueue(i.getInitializer());
