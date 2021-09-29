@@ -36,6 +36,7 @@ import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.Extend;
+import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
 import org.qbicc.graph.GetAndAdd;
 import org.qbicc.graph.GetAndBitwiseAnd;
@@ -691,6 +692,14 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return box(unboxBool(input) ? 1 : 0, outputType);
         }
         throw new IllegalStateException("Invalid extend");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Object visit(VmThreadImpl param, ExtractMember node) {
+        Value input = node.getCompoundValue();
+        Map<CompoundType.Member, Object> compound = (Map<CompoundType.Member, Object>) require(input);
+        return compound.get(node.getMember());
     }
 
     @Override
