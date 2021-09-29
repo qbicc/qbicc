@@ -1359,35 +1359,58 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         Value update = node.getUpdateValue();
         MemoryAtomicityMode mode = MemoryAtomicityMode.max(node.getFailureAtomicityMode(), node.getSuccessAtomicityMode());
         Object resultVal;
+        boolean updated;
         if (type instanceof ReferenceType) {
-            resultVal = memory.compareAndExchangeRef(offset, (VmObject) require(expect), (VmObject) require(update), mode);
+            VmObject expected = (VmObject) require(expect);
+            resultVal = memory.compareAndExchangeRef(offset, expected, (VmObject) require(update), mode);
+            updated = expected == resultVal;
         } else if (type instanceof IntegerType) {
             int bits = ((IntegerType) type).getMinBits();
             if (bits == 8) {
-                resultVal = Byte.valueOf((byte) memory.compareAndExchange8(offset, unboxInt(expect), unboxInt(update), mode));
+                int expected = unboxInt(expect);
+                int unboxedResult = memory.compareAndExchange8(offset, expected, unboxInt(update), mode);
+                resultVal = Byte.valueOf((byte) unboxedResult);
+                updated = expected == unboxedResult;
             } else if (bits == 16) {
-                resultVal = Short.valueOf((short) memory.compareAndExchange16(offset, unboxInt(expect), unboxInt(update), mode));
+                int expected = unboxInt(expect);
+                int unboxedResult = memory.compareAndExchange16(offset, expected, unboxInt(update), mode);
+                resultVal = Short.valueOf((short) unboxedResult);
+                updated = expected == unboxedResult;
             } else if (bits == 32) {
-                resultVal = Integer.valueOf(memory.compareAndExchange32(offset, unboxInt(expect), unboxInt(update), mode));
+                int expected = unboxInt(expect);
+                int unboxedResult = memory.compareAndExchange32(offset, expected, unboxInt(update), mode);
+                resultVal = Integer.valueOf(unboxedResult);
+                updated = expected == unboxedResult;
             } else {
                 assert bits == 64;
-                resultVal = Long.valueOf(memory.compareAndExchange64(offset, unboxLong(expect), unboxLong(update), mode));
+                long expected = unboxLong(expect);
+                long unboxedResult = memory.compareAndExchange64(offset, expected, unboxLong(update), mode);
+                resultVal = Long.valueOf(unboxedResult);
+                updated = expected == unboxedResult;
             }
         } else if (type instanceof FloatType) {
             int bits = ((FloatType) type).getMinBits();
             if (bits == 32) {
-                resultVal = Float.valueOf(Float.intBitsToFloat(memory.compareAndExchange32(offset, Float.floatToRawIntBits(unboxFloat(expect)), Float.floatToRawIntBits(unboxInt(update)), mode)));
+                int expected = Float.floatToRawIntBits(unboxFloat(expect));
+                int unboxedResult = memory.compareAndExchange32(offset, expected, Float.floatToRawIntBits(unboxInt(update)), mode);
+                resultVal = Float.valueOf(Float.intBitsToFloat(unboxedResult));
+                updated = expected == unboxedResult;
             } else {
                 assert bits == 64;
-                resultVal = Double.valueOf(Double.longBitsToDouble(memory.compareAndExchange64(offset, Double.doubleToRawLongBits(unboxDouble(expect)), Double.doubleToRawLongBits(unboxDouble(update)), mode)));
+                long expected = Double.doubleToRawLongBits(unboxDouble(expect));
+                long unboxedResult = memory.compareAndExchange64(offset, expected, Double.doubleToRawLongBits(unboxDouble(update)), mode);
+                resultVal = Double.valueOf(Double.longBitsToDouble(unboxedResult));
+                updated = expected == unboxedResult;
             }
         } else if (type instanceof BooleanType) {
-            resultVal = Boolean.valueOf(memory.compareAndExchange8(offset, unboxBool(expect) ? 1 : 0, unboxBool(update) ? 1 : 0, mode) != 0);
+            int expected = unboxBool(expect) ? 1 : 0;
+            int unboxedResult = memory.compareAndExchange8(offset, expected, unboxBool(update) ? 1 : 0, mode);
+            resultVal = Boolean.valueOf(unboxedResult != 0);
+            updated = expected == unboxedResult;
         } else {
             throw unsupportedType();
         }
         CompoundType resultType = node.getType();
-        boolean updated = resultVal == update;
         return Map.of(resultType.getMember(0), resultVal, resultType.getMember(1), Boolean.valueOf(updated));
     }
 
