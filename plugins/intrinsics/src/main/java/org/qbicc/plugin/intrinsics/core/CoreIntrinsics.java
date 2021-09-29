@@ -1742,18 +1742,11 @@ public final class CoreIntrinsics {
             Value offset = arguments.get(1);
             Value incr = arguments.get(2);
 
-            FieldElement fieldElement;
-            if (offset instanceof OffsetOfField) {
-                fieldElement = ((OffsetOfField) offset).getFieldElement();
-            } else {
-                ctxt.error(builder.getLocation(), "Invalid offset argument to %s", target);
-                return ctxt.getLiteralFactory().literalOf(0);
+            ValueHandle handle = computeUnsafeHandle(ctxt, builder, target, obj, offset);
+            if (handle == null) {
+                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(obj.getType());
             }
-            if (fieldElement.isStatic()) {
-                return builder.getAndAdd(builder.staticField(fieldElement), incr, MemoryAtomicityMode.VOLATILE);
-            } else {
-                return builder.getAndAdd(builder.instanceFieldOf(builder.referenceHandle(obj), fieldElement), incr, MemoryAtomicityMode.VOLATILE);
-            }
+            return builder.getAndAdd(handle, incr, MemoryAtomicityMode.VOLATILE);
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "getAndAddInt", objLongIntToInt, getAndAddInt);
@@ -1764,24 +1757,15 @@ public final class CoreIntrinsics {
             Value expect = arguments.get(2);
             Value update = arguments.get(3);
 
-            FieldElement fieldElement;
-            if (offset instanceof OffsetOfField) {
-                fieldElement = ((OffsetOfField) offset).getFieldElement();
-            } else {
-                ctxt.error(builder.getLocation(), "Invalid offset argument to %s", target);
-                return ctxt.getLiteralFactory().literalOf(false);
-            }
-            ValueHandle handle;
-            if (fieldElement.isStatic()) {
-                handle = builder.staticField(fieldElement);
-            } else {
-                handle = builder.instanceFieldOf(builder.referenceHandle(obj), fieldElement);
+            ValueHandle handle = computeUnsafeHandle(ctxt, builder, target, obj, offset);
+            if (handle == null) {
+                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(obj.getType());
             }
             Value result = builder.cmpAndSwap(handle, expect, update, MemoryAtomicityMode.ACQUIRE_RELEASE, MemoryAtomicityMode.MONOTONIC);
             // simulate volatile
             builder.fence(MemoryAtomicityMode.ACQUIRE_RELEASE);
             // result is a compound structure; extract the flag
-            CompoundType resultType = CmpAndSwap.getResultType(ctxt, ctxt.getTypeSystem().getSignedInteger32Type());
+            CompoundType resultType = CmpAndSwap.getResultType(ctxt, expect.getType());
             return builder.extractMember(result, resultType.getMember(1));
         };
 
@@ -1790,18 +1774,9 @@ public final class CoreIntrinsics {
         InstanceIntrinsic getObjectAcquire = (builder, instance, target, arguments) -> {
             Value obj = arguments.get(0);
             Value offset = arguments.get(1);
-            FieldElement fieldElement;
-            if (offset instanceof OffsetOfField) {
-                fieldElement = ((OffsetOfField) offset).getFieldElement();
-            } else {
-                ctxt.error(builder.getLocation(), "Invalid offset argument to %s", target);
-                return ctxt.getLiteralFactory().literalOf(false);
-            }
-            ValueHandle handle;
-            if (fieldElement.isStatic()) {
-                handle = builder.staticField(fieldElement);
-            } else {
-                handle = builder.instanceFieldOf(builder.referenceHandle(obj), fieldElement);
+            ValueHandle handle = computeUnsafeHandle(ctxt, builder, target, obj, offset);
+            if (handle == null) {
+                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(obj.getType());
             }
             return builder.load(handle, MemoryAtomicityMode.ACQUIRE);
         };
@@ -1816,6 +1791,20 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "storeFence", emptyToVoid, storeFence);
+    }
+
+    private static ValueHandle computeUnsafeHandle(final CompilationContext ctxt, final BasicBlockBuilder builder, final MethodElement target, final Value obj, final Value offset) {
+        if (offset instanceof OffsetOfField) {
+            FieldElement fieldElement = ((OffsetOfField) offset).getFieldElement();
+            if (fieldElement.isStatic()) {
+                return builder.staticField(fieldElement);
+            } else {
+                return builder.instanceFieldOf(builder.referenceHandle(obj), fieldElement);
+            }
+        } else {
+            ctxt.error(builder.getLocation(), "Invalid offset argument to %s", target);
+            return null;
+        }
     }
 
     private static Value traverseLoads(Value value) {
