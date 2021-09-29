@@ -16,21 +16,23 @@ class VmThrowableClassImpl extends VmClassImpl implements VmThrowableClass {
     @Override
     VmThrowableImpl newInstance() {
         VmThrowableImpl throwable = new VmThrowableImpl(this);
-        throwable.fillInStackTrace();
+        throwable.initializeDepth();
         return throwable;
     }
 
     @Override
     public VmThrowable newInstance(String message) {
-        VmThrowableImpl vmThrowable = new VmThrowableImpl(this);
+        VmThrowableImpl throwable = new VmThrowableImpl(this);
+        throwable.initializeDepth();
         // todo: call ctor
-        return vmThrowable;
+        return throwable;
     }
 
     @Override
     public VmThrowable newInstance(String message, VmThrowable cause) {
-        VmThrowableImpl vmThrowable = new VmThrowableImpl(this);
+        VmThrowableImpl throwable = new VmThrowableImpl(this);
+        throwable.initializeDepth();
         // todo: call ctor
-        return vmThrowable;
+        return throwable;
     }
 }

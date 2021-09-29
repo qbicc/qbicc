@@ -321,6 +321,19 @@ public final class VmImpl implements Vm {
             systemNativeClass.registerInvokable("currentTimeMillis", (thread, target, args) -> Long.valueOf(System.currentTimeMillis()));
             systemNativeClass.registerInvokable("initProperties", this::initProperties);
 
+            //    private static native void initStackTraceElements(StackTraceElement[] elements,
+            //                                                      Throwable x);
+
+            // StackTraceElement
+            VmClassImpl stackTraceElementClass = bootstrapClassLoader.loadClass("java/lang/StackTraceElement");
+
+            stackTraceElementClass.registerInvokable("initStackTraceElements", (thread, target, args) -> {
+                VmArrayImpl stackTrace = (VmArrayImpl) args.get(0);
+                VmThrowableImpl throwable = (VmThrowableImpl) args.get(1);
+                throwable.initStackTraceElements(stackTrace);
+                return null;
+            });
+
             // String
             VmClassImpl stringClass = bootstrapClassLoader.loadClass("java/lang/String");
 
@@ -331,6 +344,15 @@ public final class VmImpl implements Vm {
 
             threadNativeClass.registerInvokable("yield", (thread, target, args) -> {
                 Thread.yield();
+                return null;
+            });
+
+            // Throwable
+            VmClassImpl throwableClass = bootstrapClassLoader.loadClass("java/lang/Throwable");
+
+            idx = throwableClass.getTypeDefinition().findSingleMethodIndex(me -> me.nameEquals("fillInStackTrace") && me.getParameters().size() == 1);
+            threadNativeClass.registerInvokable(throwableClass.getTypeDefinition().getMethod(idx), (thread, target, args) -> {
+                ((VmThrowableImpl)target).fillInStackTrace();
                 return null;
             });
 

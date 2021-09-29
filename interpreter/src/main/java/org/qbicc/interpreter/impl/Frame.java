@@ -151,6 +151,7 @@ import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -226,6 +227,39 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     private static IllegalStateException badInputType() {
         return new IllegalStateException("Bad input type");
+    }
+
+    ////////
+    // Stack
+    ////////
+
+    public Node[] getBackTrace() {
+        int depth = 0;
+        Frame frame = this;
+        while (frame != null) {
+            Node ip = frame.ip;
+            while (ip != null) {
+                if (ip.getElement().hasNoModifiersOf(ClassFile.I_ACC_HIDDEN)) {
+                    depth++;
+                }
+                ip = ip.getCallSite();
+            }
+            frame = frame.enclosing;
+        }
+        frame = this;
+        Node[] backTrace = new Node[depth];
+        depth = 0;
+        while (frame != null) {
+            Node ip = frame.ip;
+            while (ip != null) {
+                if (ip.getElement().hasNoModifiersOf(ClassFile.I_ACC_HIDDEN)) {
+                    backTrace[depth++] = ip;
+                }
+                ip = ip.getCallSite();
+            }
+            frame = frame.enclosing;
+        }
+        return backTrace;
     }
 
     //////////
