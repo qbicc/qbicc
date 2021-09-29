@@ -12,7 +12,21 @@
 
     <artifactId>qbicc-main</artifactId>
 
+    <properties>
+        <!-- These properties get set in the final application -->
+        <maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
+        <qbicc.class.version>55.0</qbicc.class.version>
+        <qbicc.jdk.version>11</qbicc.jdk.version>
+        <qbicc.timestamp>${maven.build.timestamp}</qbicc.timestamp>
+    </properties>
+
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
