@@ -1546,6 +1546,7 @@ public final class CoreIntrinsics {
         MethodDescriptor classStringToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(classDesc, stringDesc));
         MethodDescriptor objLongIntToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(objDesc, BaseTypeDescriptor.J, BaseTypeDescriptor.I));
         MethodDescriptor objLongIntIntToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc, BaseTypeDescriptor.J, BaseTypeDescriptor.I, BaseTypeDescriptor.I));
+        MethodDescriptor objLongToObj = MethodDescriptor.synthesize(classContext, objDesc, List.of(objDesc, BaseTypeDescriptor.J));
 
         Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
 
@@ -1785,6 +1786,27 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndSetInt", objLongIntIntToBool, compareAndSetInt);
+
+        InstanceIntrinsic getObjectAcquire = (builder, instance, target, arguments) -> {
+            Value obj = arguments.get(0);
+            Value offset = arguments.get(1);
+            FieldElement fieldElement;
+            if (offset instanceof OffsetOfField) {
+                fieldElement = ((OffsetOfField) offset).getFieldElement();
+            } else {
+                ctxt.error(builder.getLocation(), "Invalid offset argument to %s", target);
+                return ctxt.getLiteralFactory().literalOf(false);
+            }
+            ValueHandle handle;
+            if (fieldElement.isStatic()) {
+                handle = builder.staticField(fieldElement);
+            } else {
+                handle = builder.instanceFieldOf(builder.referenceHandle(obj), fieldElement);
+            }
+            return builder.load(handle, MemoryAtomicityMode.ACQUIRE);
+        };
+
+        intrinsics.registerIntrinsic(unsafeDesc, "getObjectAcquire", objLongToObj, getObjectAcquire);
 
         // fences
 
