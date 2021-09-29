@@ -23,6 +23,7 @@ import org.qbicc.interpreter.VmThread;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 
@@ -109,7 +110,9 @@ final class VmInvokableImpl implements VmInvokable {
     }
 
     Object run(VmThreadImpl thread, VmObject target, List<Object> args) {
-        ((VmClassImpl)element.getEnclosingType().load().getVmClass()).initialize(thread);
+        if (! (element instanceof InitializerElement)) {
+            ((VmClassImpl)element.getEnclosingType().load().getVmClass()).initialize(thread);
+        }
         Frame caller = thread.currentFrame;
         Memory memory = thread.getVM().allocate(memorySize);
         Frame frame = new Frame(caller, element, memory);
