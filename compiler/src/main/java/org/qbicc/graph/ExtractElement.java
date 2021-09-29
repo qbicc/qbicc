@@ -9,7 +9,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 /**
  * An extracted element of an array value.
  */
-public final class ExtractElement extends AbstractValue implements Unschedulable {
+public final class ExtractElement extends AbstractValue {
     private final Value arrayValue;
     private final ArrayType arrayType;
     private final Value index;

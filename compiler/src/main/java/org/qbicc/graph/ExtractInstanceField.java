@@ -10,7 +10,7 @@ import org.qbicc.type.definition.element.FieldElement;
 /**
  * An extracted field value of an object value (not a reference).
  */
-public final class ExtractInstanceField extends AbstractValue implements Unschedulable {
+public final class ExtractInstanceField extends AbstractValue {
     private final Value objectValue;
     private final PhysicalObjectType objectType;
     private final FieldElement fieldElement;

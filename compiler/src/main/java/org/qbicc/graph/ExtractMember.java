@@ -9,7 +9,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 /**
  * An extracted member of a compound (structure) value.
  */
-public final class ExtractMember extends AbstractValue implements Unschedulable {
+public final class ExtractMember extends AbstractValue {
     private final Value compoundValue;
     private final CompoundType compoundType;
     private final CompoundType.Member member;
