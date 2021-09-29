@@ -404,6 +404,16 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         }
     }
 
+    void registerInvokable(final String methodName, final VmInvokable invokable) {
+        Assert.checkNotNullParam("invokable", invokable);
+        LoadedTypeDefinition td = getTypeDefinition();
+        int idx = td.findSingleMethodIndex(me -> me.nameEquals(methodName));
+        if (idx == -1) {
+            throw new IllegalArgumentException("No method named " + methodName + " found on " + this);
+        }
+        registerInvokable(td.getMethod(idx), invokable);
+    }
+
     private VmInvokable compile(ExecutableElement element) {
         return new VmInvokableImpl(element);
     }
