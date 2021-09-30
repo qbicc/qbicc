@@ -67,4 +67,8 @@ public final class InsertMember extends AbstractValue implements Unschedulable {
     public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
+
+    public boolean isConstant() {
+        return compoundValue.isConstant() && insertedValue.isConstant();
+    }
 }

@@ -45,6 +45,10 @@ public abstract class Literal implements Unschedulable, Value {
         return Value.super.isNullable();
     }
 
+    public boolean isConstant() {
+        return true;
+    }
+
     public final boolean equals(final Object obj) {
         return obj instanceof Literal && equals((Literal) obj);
     }

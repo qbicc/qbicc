@@ -125,6 +125,11 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
         return visitor.visit(param, this);
     }
 
+    public boolean isConstant() {
+        // we could possibly make this more exact in the future
+        return false;
+    }
+
     public static CompoundType getResultType(CompilationContext ctxt, ValueType valueType) {
         Map<ValueType, CompoundType> map = ctxt.getAttachment(RESULT_TYPE_MAP_KEY);
         if (map == null) {

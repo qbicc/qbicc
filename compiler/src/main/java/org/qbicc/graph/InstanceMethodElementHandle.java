@@ -45,4 +45,13 @@ public abstract class InstanceMethodElementHandle extends Executable {
     public boolean equals(final InstanceMethodElementHandle other) {
         return super.equals(this) && instance.equals(other.instance);
     }
+
+    @Override
+    public boolean isConstantLocation() {
+        return false;
+    }
+
+    public boolean isValueConstant() {
+        return instance.isConstant();
+    }
 }

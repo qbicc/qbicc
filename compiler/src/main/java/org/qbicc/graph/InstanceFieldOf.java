@@ -44,6 +44,15 @@ public final class InstanceFieldOf extends Field {
         return this == other || other != null && getVariableElement().equals(other.getVariableElement()) && instance.equals(other.instance);
     }
 
+    public boolean isConstantLocation() {
+        return false;
+    }
+
+    @Override
+    public boolean isValueConstant() {
+        return false;
+    }
+
     @Override
     public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);

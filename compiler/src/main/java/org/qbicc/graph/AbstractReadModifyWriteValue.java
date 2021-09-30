@@ -29,6 +29,11 @@ abstract class AbstractReadModifyWriteValue extends AbstractValue implements Rea
         return updateValue.getType();
     }
 
+    public boolean isConstant() {
+        // we could possibly make this more exact in the future
+        return false;
+    }
+
     public Node getDependency() {
         return dependency;
     }

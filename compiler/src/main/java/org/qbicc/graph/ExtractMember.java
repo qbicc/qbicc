@@ -69,4 +69,9 @@ public final class ExtractMember extends AbstractValue {
     public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
+
+    @Override
+    public boolean isConstant() {
+        return compoundValue.isConstant();
+    }
 }

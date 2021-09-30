@@ -26,6 +26,16 @@ public final class GlobalVariable extends Variable {
         return this == other || other != null && getVariableElement().equals(other.getVariableElement());
     }
 
+    public boolean isConstantLocation() {
+        return true;
+    }
+
+    @Override
+    public boolean isValueConstant() {
+        // todo: detect constant global variables
+        return false;
+    }
+
     @Override
     public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);

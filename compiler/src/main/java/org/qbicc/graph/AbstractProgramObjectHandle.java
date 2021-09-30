@@ -40,6 +40,15 @@ public abstract class AbstractProgramObjectHandle extends AbstractValueHandle {
         return programObject.getType();
     }
 
+    public boolean isConstantLocation() {
+        return true;
+    }
+
+    @Override
+    public boolean isValueConstant() {
+        return true;
+    }
+
     public ProgramObject getProgramObject() {
         return programObject;
     }

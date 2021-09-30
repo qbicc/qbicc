@@ -25,6 +25,10 @@ public final class ExactMethodElementHandle extends InstanceMethodElementHandle 
         return super.equals(other);
     }
 
+    public boolean isConstantLocation() {
+        return true;
+    }
+
     @Override
     public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);

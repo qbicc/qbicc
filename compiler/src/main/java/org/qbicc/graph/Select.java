@@ -48,6 +48,10 @@ public final class Select extends AbstractValue {
         return visitor.visit(param, this);
     }
 
+    public boolean isConstant() {
+        return condition.isConstant() && trueValue.isConstant() && falseValue.isConstant();
+    }
+
     int calcHashCode() {
         return Objects.hash(Select.class, condition, trueValue, falseValue);
     }

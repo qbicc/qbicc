@@ -23,4 +23,8 @@ public interface CastValue extends Value {
         // no cast can introduce or discard nullability
         return getInput().isNullable();
     }
+
+    default boolean isConstant() {
+        return getInput().isConstant();
+    }
 }
