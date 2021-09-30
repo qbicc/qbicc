@@ -1559,7 +1559,6 @@ public final class CoreIntrinsics {
             Value clazzTypeId = builder.load(builder.instanceFieldOf(builder.referenceHandle(clazz), classTypeIdField), MemoryAtomicityMode.UNORDERED);
             // if the class type ID equals the ref array type ID, then the array base offset is the ref array content field
             LiteralFactory lf = ctxt.getLiteralFactory();
-            Layout layout = Layout.get(ctxt);
 
             BlockLabel checkPassed;
             BlockLabel checkFailed;
@@ -1577,7 +1576,6 @@ public final class CoreIntrinsics {
             )) {
                 DefinedTypeDefinition arrayTypeDef = contentField.getEnclosingType();
                 TypeLiteral arrayTypeLit = lf.literalOfType(arrayTypeDef.load().getType());
-                Layout.LayoutInfo arrayLayout = layout.getInstanceLayoutInfo(arrayTypeDef);
 
                 builder.if_(
                     builder.isEq(clazzTypeId, arrayTypeLit),
@@ -1585,7 +1583,7 @@ public final class CoreIntrinsics {
                     checkFailed = new BlockLabel()
                 );
                 builder.begin(checkPassed);
-                builder.return_(lf.literalOf(arrayLayout.getMember(contentField).getOffset()));
+                builder.return_(builder.offsetOfField(contentField));
 
                 builder.begin(checkFailed);
             }
