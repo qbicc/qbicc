@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.graph.Value;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.type.InterfaceObjectType;
@@ -172,6 +173,10 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
             throw new IllegalArgumentException("Injected fields must be unresolvable");
         }
         fields.add(field);
+    }
+
+    public Value getInitialValue(FieldElement field) {
+        return vmClass == null ? field.getInitialValue() : vmClass.getValueForStaticField(field);
     }
 
     public int getMethodCount() {

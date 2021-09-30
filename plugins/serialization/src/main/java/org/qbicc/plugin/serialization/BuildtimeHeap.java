@@ -18,6 +18,7 @@ import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmArrayClass;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.object.Data;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
@@ -46,6 +47,7 @@ public class BuildtimeHeap {
 
     private final CompilationContext ctxt;
     private final Layout layout;
+    private final Layout interpreterLayout;
     private final CoreClasses coreClasses;
     /**
      * For lazy definition of native array types for literals
@@ -73,6 +75,7 @@ public class BuildtimeHeap {
     private BuildtimeHeap(CompilationContext ctxt) {
         this.ctxt = ctxt;
         this.layout = Layout.get(ctxt);
+        this.interpreterLayout = Layout.getForInterpreter(ctxt);
         this.coreClasses = CoreClasses.get(ctxt);
 
         LoadedTypeDefinition ih = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap").load();
@@ -108,6 +111,8 @@ public class BuildtimeHeap {
         if (vmObjects.containsKey(value)) {
             return vmObjects.get(value);
         }
+        // Cyclic structures: allocate symbol for this object before we serialize it.
+
         PhysicalObjectType ot = value.getObjectType();
         Data sl;
         if (ot instanceof ClassObjectType) {
@@ -116,6 +121,9 @@ public class BuildtimeHeap {
                     if (((VmArrayClass)value).getInstanceObjectType().getElementType() instanceof ReferenceArrayObjectType) {
                         ctxt.error("Serialization of reference array class objects not supported: "+((VmArrayClass)value).getInstanceObjectType());
                     }
+                }
+                if (value instanceof VmPrimitiveClass) {
+                    ctxt.error("Serialization of primitive class objects not supported: "+((VmPrimitiveClass) value).getSimpleName());
                 }
                 // Redirect to the class objects already serialized by the ANALYZE post hook ClassObjectSerializer.
                 sl = classObjects.get(((VmClass)value).getTypeDefinition());
@@ -234,42 +242,49 @@ public class BuildtimeHeap {
         LiteralFactory lf = ctxt.getLiteralFactory();
         LoadedTypeDefinition concreteType = ct.getDefinition().load();
         Layout.LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
+        Layout.LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
         CompoundType objType = objLayout.getCompoundType();
         HashMap<CompoundType.Member, Literal> memberMap = new HashMap<>();
 
-        // Iterate over instance fields and get their values from value's backing Memory
-        CompoundType.Member typeIdMember = objLayout.getMember(coreClasses.getObjectTypeIdField());
-        for (CompoundType.Member member : objType.getMembers()) {
-            if (member.equals(typeIdMember)) {
-                // Handle specially; not set by the interpreter because typeIds are assigned in postHook of Phase.ANALYZE.
-                memberMap.put(typeIdMember, lf.literalOf(concreteType.getTypeId()));
-            } else if (member.getType() instanceof IntegerType) {
-                IntegerType it = (IntegerType)member.getType();
-                if (it.getSize() == 8L) {
-                    memberMap.put(member, lf.literalOf(it, memory.load8(member.getOffset(), MemoryAtomicityMode.UNORDERED)));
-                } else if (it.getSize() == 16L) {
-                    memberMap.put(member, lf.literalOf(it, memory.load16(member.getOffset(), MemoryAtomicityMode.UNORDERED)));
-                } else if (it.getSize() == 32L) {
-                    memberMap.put(member, lf.literalOf(it, memory.load32(member.getOffset(), MemoryAtomicityMode.UNORDERED)));
+        // Start by zero-initializing all members
+        for (CompoundType.Member m : objType.getMembers()) {
+            memberMap.put(m, lf.zeroInitializerLiteralOfType(m.getType()));
+        }
+
+        // Next, iterate over the interpreters view of the object's fields and copy values from the backing Memory to the memberMap
+        // Note: although they are often the same, in some cases im.getOffset() != om.getOffset()
+        for (CompoundType.Member im : memLayout.getCompoundType().getMembers()) {
+            CompoundType.Member om = objType.getMember(im.getName());
+            if (im.getType() instanceof IntegerType) {
+                IntegerType it = (IntegerType)im.getType();
+                if (it.getSize() == 1) {
+                    memberMap.put(om, lf.literalOf(it, memory.load8(im.getOffset(), MemoryAtomicityMode.UNORDERED)));
+                } else if (it.getSize() == 2) {
+                    memberMap.put(om, lf.literalOf(it, memory.load16(im.getOffset(), MemoryAtomicityMode.UNORDERED)));
+                } else if (it.getSize() == 4) {
+                    memberMap.put(om, lf.literalOf(it, memory.load32(im.getOffset(), MemoryAtomicityMode.UNORDERED)));
                 } else {
-                    memberMap.put(member, lf.literalOf(it, memory.load64(member.getOffset(), MemoryAtomicityMode.UNORDERED)));
+                    memberMap.put(om, lf.literalOf(it, memory.load64(im.getOffset(), MemoryAtomicityMode.UNORDERED)));
                 }
-            } else if (member.getType() instanceof FloatType) {
-                FloatType ft = (FloatType)member.getType();
-                if (ft.getSize() == 32L) {
-                    memberMap.put(member, lf.literalOf(ft, memory.loadFloat(member.getOffset(), MemoryAtomicityMode.UNORDERED)));
+            } else if (im.getType() instanceof FloatType) {
+                FloatType ft = (FloatType)im.getType();
+                if (ft.getSize() == 4) {
+                    memberMap.put(om, lf.literalOf(ft, memory.loadFloat(im.getOffset(), MemoryAtomicityMode.UNORDERED)));
                 } else {
-                    memberMap.put(member, lf.literalOf(ft, memory.loadDouble(member.getOffset(), MemoryAtomicityMode.UNORDERED)));
+                    memberMap.put(om, lf.literalOf(ft, memory.loadDouble(im.getOffset(), MemoryAtomicityMode.UNORDERED)));
                 }
             } else {
-                VmObject contents = memory.loadRef(member.getOffset(), MemoryAtomicityMode.UNORDERED);
+                VmObject contents = memory.loadRef(im.getOffset(), MemoryAtomicityMode.UNORDERED);
                 if (contents == null) {
-                    memberMap.put(member, lf.zeroInitializerLiteralOfType(member.getType()));
+                    memberMap.put(om, lf.zeroInitializerLiteralOfType(om.getType()));
                 } else {
-                    memberMap.put(member, dataToLiteral(lf, serializeVmObject(contents), (WordType) member.getType()));
+                    memberMap.put(om, dataToLiteral(lf, serializeVmObject(contents), (WordType) om.getType()));
                 }
             }
         }
+
+        // Finally set the object header fields that the interpreter does not know about.
+        memberMap.put(objLayout.getMember(coreClasses.getObjectTypeIdField()), lf.literalOf(concreteType.getTypeId()));
 
         return defineData(nextLiteralName(), ctxt.getLiteralFactory().literalOf(objType, memberMap));
     }

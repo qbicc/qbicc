@@ -3,6 +3,7 @@ package org.qbicc.type.definition;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import org.qbicc.graph.Value;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
@@ -143,6 +144,18 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
     }
 
     void injectField(FieldElement field);
+
+    /**
+     * Return the initial value for the given static field.
+     * This value will be either derived from build-time interpretation of
+     * class initializers, or if build-time interpretation was not done for
+     * this class from any Constant attributes found in the classfile.
+     * If the field was not initialized in any of these ways this method will return null.
+     *
+     * @param field the static field whose initial value is desired.
+     * @return The initial value of the field, or null if there is no non-default initial value.
+     */
+    Value getInitialValue(FieldElement field);
 
     MethodElement getMethod(int index);
 
