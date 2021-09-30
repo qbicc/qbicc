@@ -5,9 +5,11 @@ import java.nio.ByteOrder;
 import java.util.Collections;
 import java.util.List;
 
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Driver;
 import org.qbicc.driver.Phase;
+import org.qbicc.graph.Add;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BitCast;
@@ -45,14 +47,17 @@ import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.plugin.intrinsics.StaticIntrinsic;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
-import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
+import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.CompoundType;
+import org.qbicc.type.CompoundType.Member;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.ReferenceType;
@@ -61,9 +66,7 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
-import org.qbicc.context.ClassContext;
 import org.qbicc.type.WordType;
-import org.qbicc.type.CompoundType.Member;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -1792,6 +1795,42 @@ public final class CoreIntrinsics {
     }
 
     private static ValueHandle computeUnsafeHandle(final CompilationContext ctxt, final BasicBlockBuilder builder, final MethodElement target, final Value obj, final Value offset) {
+        // detect an offset from an array-typed field
+        if (offset instanceof Add) {
+            // an value has been added to the base offset
+            Add add = (Add) offset;
+            Value addend;
+            OffsetOfField base;
+            Value leftInput = traverseLoads(add.getLeftInput());
+            while (leftInput instanceof Extend) {
+                leftInput = traverseLoads(((Extend) leftInput).getInput());
+            }
+            Value rightInput = traverseLoads(add.getRightInput());
+            while (rightInput instanceof Extend) {
+                rightInput = traverseLoads(((Extend) rightInput).getInput());
+            }
+            if (leftInput instanceof OffsetOfField) {
+                base = (OffsetOfField) leftInput;
+                addend = rightInput;
+            } else if (rightInput instanceof OffsetOfField) {
+                base = (OffsetOfField) rightInput;
+                addend = leftInput;
+            } else {
+                ctxt.error(builder.getLocation(), "Invalid offset argument to %s", target);
+                return null;
+            }
+            FieldElement fieldElement = base.getFieldElement();
+            ValueType fieldType = fieldElement.getType();
+            if (fieldType instanceof ReferenceType) {
+                PhysicalObjectType upperBound = ((ReferenceType) fieldType).getUpperBound();
+                if (upperBound instanceof ArrayObjectType) {
+                    ValueType elementType = ((ArrayObjectType) upperBound).getElementType();
+                    int elementSize = (int)elementType.getSize();
+                    Value index = elementSize == 1 ? addend : builder.shr(addend, ctxt.getLiteralFactory().literalOf(Integer.numberOfTrailingZeros(elementSize)));
+                    return builder.elementOf(builder.instanceFieldOf(builder.referenceHandle(obj), fieldElement), index);
+                }
+            }
+        }
         if (offset instanceof OffsetOfField) {
             FieldElement fieldElement = ((OffsetOfField) offset).getFieldElement();
             if (fieldElement.isStatic()) {
