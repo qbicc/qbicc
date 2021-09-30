@@ -106,7 +106,7 @@ public class Lowering {
             }
         }
         if (initialValue instanceof ObjectLiteral) {
-            Data objLit = BuildtimeHeap.get(ctxt).serializeVmObject(((ObjectLiteral) initialValue).getValue());
+            SymbolLiteral objLit = BuildtimeHeap.get(ctxt).serializeVmObject(((ObjectLiteral) initialValue).getValue());
             section.declareData(null, objLit.getName(), objLit.getType()).setAddrspace(1);
             SymbolLiteral refToLiteral = ctxt.getLiteralFactory().literalOfSymbol(objLit.getName(), objLit.getType().getPointer().asCollected());
             initialValue = ctxt.getLiteralFactory().bitcastLiteral(refToLiteral, ((ObjectLiteral) initialValue).getType());

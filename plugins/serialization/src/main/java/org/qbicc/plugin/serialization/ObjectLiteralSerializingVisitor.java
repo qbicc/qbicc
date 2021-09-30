@@ -34,7 +34,7 @@ public class ObjectLiteralSerializingVisitor implements NodeVisitor.Delegating<N
 
     public Value visit(final Node.Copier param, final StringLiteral node) {
         VmString vString = ctxt.getVm().intern(node.getValue());
-        Data literal = BuildtimeHeap.get(ctxt).serializeVmObject(vString);
+        SymbolLiteral literal = BuildtimeHeap.get(ctxt).serializeVmObject(vString);
 
         Section section = ctxt.getImplicitSection(param.getBlockBuilder().getRootElement());
         section.declareData(null, literal.getName(), literal.getType()).setAddrspace(1);
@@ -44,7 +44,7 @@ public class ObjectLiteralSerializingVisitor implements NodeVisitor.Delegating<N
     }
 
     public Value visit(final Node.Copier param, final ObjectLiteral node) {
-        Data literal = BuildtimeHeap.get(ctxt).serializeVmObject(node.getValue());
+        SymbolLiteral literal = BuildtimeHeap.get(ctxt).serializeVmObject(node.getValue());
 
         Section section = ctxt.getImplicitSection(param.getBlockBuilder().getRootElement());
         section.declareData(null, literal.getName(), literal.getType()).setAddrspace(1);
