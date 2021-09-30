@@ -31,6 +31,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Variable;
 import org.qbicc.graph.literal.BooleanLiteral;
+import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
@@ -1553,115 +1554,102 @@ public final class CoreIntrinsics {
 
         Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
 
-        InstanceIntrinsic arrayBaseOffset0 = (builder, instance, target, arguments) -> {
-            // this method is only called from one place, so we're inlining into that place
-            Value clazz = arguments.get(0);
+        InstanceIntrinsic arrayBaseOffset = (builder, instance, target, arguments) -> {
+            Value clazz = traverseLoads(arguments.get(0));
             CoreClasses coreClasses = CoreClasses.get(ctxt);
-            // first, read the type ID to see whether it's a reference array
-            FieldElement classTypeIdField = coreClasses.getClassTypeIdField();
-            Value clazzTypeId = builder.load(builder.instanceFieldOf(builder.referenceHandle(clazz), classTypeIdField), MemoryAtomicityMode.UNORDERED);
-            // if the class type ID equals the ref array type ID, then the array base offset is the ref array content field
             LiteralFactory lf = ctxt.getLiteralFactory();
-
-            BlockLabel checkPassed;
-            BlockLabel checkFailed;
-
-            for (FieldElement contentField : List.of(
-                coreClasses.getRefArrayContentField(),
-                coreClasses.getCharArrayContentField(),
-                coreClasses.getByteArrayContentField(),
-                coreClasses.getShortArrayContentField(),
-                coreClasses.getIntArrayContentField(),
-                coreClasses.getLongArrayContentField(),
-                coreClasses.getFloatArrayContentField(),
-                coreClasses.getDoubleArrayContentField(),
-                coreClasses.getBooleanArrayContentField()
-            )) {
-                DefinedTypeDefinition arrayTypeDef = contentField.getEnclosingType();
-                TypeLiteral arrayTypeLit = lf.literalOfType(arrayTypeDef.load().getType());
-
-                builder.if_(
-                    builder.isEq(clazzTypeId, arrayTypeLit),
-                    checkPassed = new BlockLabel(),
-                    checkFailed = new BlockLabel()
-                );
-                builder.begin(checkPassed);
-                builder.return_(builder.offsetOfField(contentField));
-
-                builder.begin(checkFailed);
+            ArrayObjectType objectType;
+            if (clazz instanceof ClassOf) {
+                ClassOf classOf = (ClassOf) clazz;
+                Value typeId = classOf.getInput();
+                Value dimensions = classOf.getDimensions();
+                if (typeId instanceof TypeLiteral) {
+                    ObjectType valueType = (ObjectType) ((TypeLiteral) typeId).getValue();
+                    if (dimensions instanceof IntegerLiteral) {
+                        int dimensionsValue = ((IntegerLiteral) dimensions).intValue();
+                        if (dimensionsValue > 0) {
+                            // it's a reference array
+                            return builder.offsetOfField(coreClasses.getRefArrayContentField());
+                        }
+                    }
+                    if (valueType instanceof ArrayObjectType) {
+                        objectType = (ArrayObjectType) valueType;
+                        ValueType elementType = objectType.getElementType();
+                        if (elementType instanceof WordType) {
+                            switch (((WordType) elementType).asPrimitive()) {
+                                case BOOLEAN: return builder.offsetOfField(coreClasses.getBooleanArrayContentField());
+                                case BYTE: return builder.offsetOfField(coreClasses.getByteArrayContentField());
+                                case SHORT: return builder.offsetOfField(coreClasses.getShortArrayContentField());
+                                case CHAR: return builder.offsetOfField(coreClasses.getCharArrayContentField());
+                                case INT: return builder.offsetOfField(coreClasses.getIntArrayContentField());
+                                case FLOAT: return builder.offsetOfField(coreClasses.getFloatArrayContentField());
+                                case LONG: return builder.offsetOfField(coreClasses.getLongArrayContentField());
+                                case DOUBLE: return builder.offsetOfField(coreClasses.getDoubleArrayContentField());
+                                default: {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
             }
-
-            // no class matched!
-            LoadedTypeDefinition iaeTypeDef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/IllegalArgumentException").load();
-            ClassObjectType iaeType = iaeTypeDef.getClassType();
-            Value iae = builder.new_(iaeType);
-            int idx = iaeTypeDef.findConstructorIndex(MethodDescriptor.VOID_METHOD_DESCRIPTOR);
-            if (idx < 0) {
-                throw new IllegalStateException("Unexpected missing constructor");
-            }
-            builder.call(builder.constructorOf(iae, iaeTypeDef.getConstructor(idx)), List.of());
-            builder.throw_(iae);
-            builder.begin(new BlockLabel());
-            return voidLiteral;
+            ctxt.error(builder.getLocation(), "arrayBaseOffset type argument must be a literal of an array object type");
+            return lf.literalOf(0);
         };
 
-        intrinsics.registerIntrinsic(unsafeDesc, "arrayBaseOffset0", classToInt, arrayBaseOffset0);
+        intrinsics.registerIntrinsic(unsafeDesc, "arrayBaseOffset", classToInt, arrayBaseOffset);
 
-        InstanceIntrinsic arrayIndexScale0 = (builder, instance, target, arguments) -> {
-            // this method is only called from one place, so we're inlining into that place
-            Value clazz = arguments.get(0);
+        InstanceIntrinsic arrayIndexScale = (builder, instance, target, arguments) -> {
+            Value clazz = traverseLoads(arguments.get(0));
             CoreClasses coreClasses = CoreClasses.get(ctxt);
-            // first, read the type ID to see whether it's a reference array
-            FieldElement classTypeIdField = coreClasses.getClassTypeIdField();
-            Value clazzTypeId = builder.load(builder.instanceFieldOf(builder.referenceHandle(clazz), classTypeIdField), MemoryAtomicityMode.UNORDERED);
-            // if the class type ID equals the ref array type ID, then the array base offset is the ref array content field
             LiteralFactory lf = ctxt.getLiteralFactory();
-            Layout layout = Layout.get(ctxt);
-
-            BlockLabel checkPassed;
-            BlockLabel checkFailed;
-
-            for (FieldElement contentField : List.of(
-                coreClasses.getRefArrayContentField(),
-                coreClasses.getCharArrayContentField(),
-                coreClasses.getByteArrayContentField(),
-                coreClasses.getShortArrayContentField(),
-                coreClasses.getIntArrayContentField(),
-                coreClasses.getLongArrayContentField(),
-                coreClasses.getFloatArrayContentField(),
-                coreClasses.getDoubleArrayContentField(),
-                coreClasses.getBooleanArrayContentField()
-            )) {
-                DefinedTypeDefinition arrayTypeDef = contentField.getEnclosingType();
-                TypeLiteral arrayTypeLit = lf.literalOfType(arrayTypeDef.load().getType());
-                Layout.LayoutInfo arrayLayout = layout.getInstanceLayoutInfo(arrayTypeDef);
-
-                builder.if_(
-                    builder.isEq(clazzTypeId, arrayTypeLit),
-                    checkPassed = new BlockLabel(),
-                    checkFailed = new BlockLabel()
-                );
-                builder.begin(checkPassed);
-                builder.return_(lf.literalOf((int) ((ArrayType)arrayLayout.getMember(contentField).getType()).getElementSize()));
-
-                builder.begin(checkFailed);
+            if (clazz instanceof ClassOf) {
+                ClassOf classOf = (ClassOf) clazz;
+                Value typeId = classOf.getInput();
+                Value dimensions = classOf.getDimensions();
+                if (typeId instanceof TypeLiteral) {
+                    ObjectType valueType = (ObjectType) ((TypeLiteral) typeId).getValue();
+                    if (dimensions instanceof IntegerLiteral) {
+                        int dimensionsValue = ((IntegerLiteral) dimensions).intValue();
+                        if (dimensionsValue > 0) {
+                            // it's a reference array
+                            FieldElement contentField = coreClasses.getRefArrayContentField();
+                            DefinedTypeDefinition arrayTypeDef = contentField.getEnclosingType();
+                            Layout.LayoutInfo arrayLayout = Layout.get(ctxt).getInstanceLayoutInfo(arrayTypeDef);
+                            return lf.literalOf((int) ((ArrayType)arrayLayout.getMember(contentField).getType()).getElementSize());
+                        }
+                    }
+                    if (valueType instanceof ArrayObjectType) {
+                        ArrayObjectType objectType = (ArrayObjectType) valueType;
+                        FieldElement contentField;
+                        ValueType elementType = objectType.getElementType();
+                        if (elementType instanceof WordType) {
+                            switch (((WordType) elementType).asPrimitive()) {
+                                case BOOLEAN: contentField = coreClasses.getBooleanArrayContentField(); break;
+                                case BYTE: contentField = coreClasses.getByteArrayContentField(); break;
+                                case SHORT: contentField = coreClasses.getShortArrayContentField(); break;
+                                case CHAR: contentField = coreClasses.getCharArrayContentField(); break;
+                                case INT: contentField = coreClasses.getIntArrayContentField(); break;
+                                case FLOAT: contentField = coreClasses.getFloatArrayContentField(); break;
+                                case LONG: contentField = coreClasses.getLongArrayContentField(); break;
+                                case DOUBLE: contentField = coreClasses.getDoubleArrayContentField(); break;
+                                default: {
+                                    ctxt.error(builder.getLocation(), "arrayIndexScale type argument must be a literal of an array object type");
+                                    return lf.literalOf(0);
+                                }
+                            }
+                            DefinedTypeDefinition arrayTypeDef = contentField.getEnclosingType();
+                            Layout.LayoutInfo arrayLayout = Layout.get(ctxt).getInstanceLayoutInfo(arrayTypeDef);
+                            return lf.literalOf((int) ((ArrayType)arrayLayout.getMember(contentField).getType()).getElementSize());
+                        }
+                    }
+                }
             }
-
-            // no class matched!
-            LoadedTypeDefinition iaeTypeDef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/IllegalArgumentException").load();
-            ClassObjectType iaeType = iaeTypeDef.getClassType();
-            Value iae = builder.new_(iaeType);
-            int idx = iaeTypeDef.findConstructorIndex(MethodDescriptor.VOID_METHOD_DESCRIPTOR);
-            if (idx < 0) {
-                throw new IllegalStateException("Unexpected missing constructor");
-            }
-            builder.call(builder.constructorOf(iae, iaeTypeDef.getConstructor(idx)), List.of());
-            builder.throw_(iae);
-            builder.begin(new BlockLabel());
-            return voidLiteral;
+            ctxt.error(builder.getLocation(), "arrayIndexScale type argument must be a literal of an array object type");
+            return lf.literalOf(0);
         };
 
-        intrinsics.registerIntrinsic(unsafeDesc, "arrayIndexScale0", classToInt, arrayIndexScale0);
+        intrinsics.registerIntrinsic(unsafeDesc, "arrayIndexScale", classToInt, arrayIndexScale);
 
         InstanceIntrinsic addressSize0 = (builder, instance, target, arguments) -> {
             ClassContext c = builder.getCurrentElement().getEnclosingType().getContext();
@@ -1820,16 +1808,10 @@ public final class CoreIntrinsics {
                 return null;
             }
             FieldElement fieldElement = base.getFieldElement();
-            ValueType fieldType = fieldElement.getType();
-            if (fieldType instanceof ReferenceType) {
-                PhysicalObjectType upperBound = ((ReferenceType) fieldType).getUpperBound();
-                if (upperBound instanceof ArrayObjectType) {
-                    ValueType elementType = ((ArrayObjectType) upperBound).getElementType();
-                    int elementSize = (int)elementType.getSize();
-                    Value index = elementSize == 1 ? addend : builder.shr(addend, ctxt.getLiteralFactory().literalOf(Integer.numberOfTrailingZeros(elementSize)));
-                    return builder.elementOf(builder.instanceFieldOf(builder.referenceHandle(obj), fieldElement), index);
-                }
-            }
+            ValueType elementType = ((ArrayType)fieldElement.getType()).getElementType();
+            int elementSize = (int)elementType.getSize();
+            Value index = elementSize == 1 ? addend : builder.shr(addend, ctxt.getLiteralFactory().literalOf(Integer.numberOfTrailingZeros(elementSize)));
+            return builder.elementOf(builder.instanceFieldOf(builder.referenceHandle(obj), fieldElement), index);
         }
         if (offset instanceof OffsetOfField) {
             FieldElement fieldElement = ((OffsetOfField) offset).getFieldElement();
@@ -1838,10 +1820,9 @@ public final class CoreIntrinsics {
             } else {
                 return builder.instanceFieldOf(builder.referenceHandle(obj), fieldElement);
             }
-        } else {
-            ctxt.error(builder.getLocation(), "Invalid offset argument to %s", target);
-            return null;
         }
+        ctxt.error(builder.getLocation(), "Invalid offset argument to %s", target);
+        return null;
     }
 
     private static Value traverseLoads(Value value) {
