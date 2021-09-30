@@ -1550,6 +1550,7 @@ public final class CoreIntrinsics {
         MethodDescriptor classStringToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(classDesc, stringDesc));
         MethodDescriptor objLongIntToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(objDesc, BaseTypeDescriptor.J, BaseTypeDescriptor.I));
         MethodDescriptor objLongIntIntToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc, BaseTypeDescriptor.J, BaseTypeDescriptor.I, BaseTypeDescriptor.I));
+        MethodDescriptor objLongObjObjToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc, BaseTypeDescriptor.J, objDesc, objDesc));
         MethodDescriptor objLongToObj = MethodDescriptor.synthesize(classContext, objDesc, List.of(objDesc, BaseTypeDescriptor.J));
 
         Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
@@ -1740,7 +1741,7 @@ public final class CoreIntrinsics {
 
         intrinsics.registerIntrinsic(unsafeDesc, "getAndAddInt", objLongIntToInt, getAndAddInt);
 
-        InstanceIntrinsic compareAndSetInt = (builder, instance, target, arguments) -> {
+        InstanceIntrinsic compareAndSet = (builder, instance, target, arguments) -> {
             Value obj = arguments.get(0);
             Value offset = arguments.get(1);
             Value expect = arguments.get(2);
@@ -1758,7 +1759,8 @@ public final class CoreIntrinsics {
             return builder.extractMember(result, resultType.getMember(1));
         };
 
-        intrinsics.registerIntrinsic(unsafeDesc, "compareAndSetInt", objLongIntIntToBool, compareAndSetInt);
+        intrinsics.registerIntrinsic(unsafeDesc, "compareAndSetInt", objLongIntIntToBool, compareAndSet);
+        intrinsics.registerIntrinsic(unsafeDesc, "compareAndSetObject", objLongObjObjToBool, compareAndSet);
 
         InstanceIntrinsic getObjectAcquire = (builder, instance, target, arguments) -> {
             Value obj = arguments.get(0);
