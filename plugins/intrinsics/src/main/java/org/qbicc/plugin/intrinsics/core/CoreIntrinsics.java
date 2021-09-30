@@ -1550,6 +1550,7 @@ public final class CoreIntrinsics {
         MethodDescriptor classStringToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(classDesc, stringDesc));
         MethodDescriptor objLongIntToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(objDesc, BaseTypeDescriptor.J, BaseTypeDescriptor.I));
         MethodDescriptor objLongIntIntToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc, BaseTypeDescriptor.J, BaseTypeDescriptor.I, BaseTypeDescriptor.I));
+        MethodDescriptor objLongLongLongToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc, BaseTypeDescriptor.J, BaseTypeDescriptor.J, BaseTypeDescriptor.J));
         MethodDescriptor objLongObjObjToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc, BaseTypeDescriptor.J, objDesc, objDesc));
         MethodDescriptor objLongToObj = MethodDescriptor.synthesize(classContext, objDesc, List.of(objDesc, BaseTypeDescriptor.J));
 
@@ -1760,6 +1761,7 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndSetInt", objLongIntIntToBool, compareAndSet);
+        intrinsics.registerIntrinsic(unsafeDesc, "compareAndSetLong", objLongLongLongToBool, compareAndSet);
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndSetObject", objLongObjObjToBool, compareAndSet);
 
         InstanceIntrinsic getObjectAcquire = (builder, instance, target, arguments) -> {
