@@ -5,6 +5,7 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
+import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -48,7 +49,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             if (handle instanceof StaticField) {
                 final FieldElement fieldElement = ((StaticField) handle).getVariableElement();
                 if (fieldElement.isReallyFinal()) {
-                    if (value.isConstant() && ! (value instanceof ConstantLiteral)) {
+                    if (value instanceof Literal && ! (value instanceof ConstantLiteral) || value instanceof OffsetOfField) {
                         Constants.get(ctxt).registerConstant(fieldElement, value);
                     }
                 }
