@@ -9,7 +9,6 @@ import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Driver;
 import org.qbicc.driver.Phase;
-import org.qbicc.graph.Add;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BitCast;
@@ -23,7 +22,6 @@ import org.qbicc.graph.Load;
 import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.Store;
@@ -58,7 +56,6 @@ import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
-import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.ReferenceType;
@@ -1743,7 +1740,7 @@ public final class CoreIntrinsics {
             Value offset = arguments.get(1);
             Value incr = arguments.get(2);
 
-            ValueHandle handle = computeUnsafeHandle(ctxt, builder, target, obj, offset);
+            ValueHandle handle = computeUnsafeHandle(ctxt, builder, obj, offset, ctxt.getTypeSystem().getSignedInteger32Type());
             if (handle == null) {
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(obj.getType());
             }
@@ -1758,7 +1755,12 @@ public final class CoreIntrinsics {
             Value expect = arguments.get(2);
             Value update = arguments.get(3);
 
-            ValueHandle handle = computeUnsafeHandle(ctxt, builder, target, obj, offset);
+            ValueType expectType = expect.getType();
+            if (expectType instanceof ReferenceType) {
+                ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getType();
+                expectType = objectType.getReference();
+            }
+            ValueHandle handle = computeUnsafeHandle(ctxt, builder, obj, offset, expectType);
             if (handle == null) {
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(obj.getType());
             }
@@ -1766,7 +1768,7 @@ public final class CoreIntrinsics {
             // simulate volatile
             builder.fence(MemoryAtomicityMode.ACQUIRE_RELEASE);
             // result is a compound structure; extract the flag
-            CompoundType resultType = CmpAndSwap.getResultType(ctxt, expect.getType());
+            CompoundType resultType = CmpAndSwap.getResultType(ctxt, expectType);
             return builder.extractMember(result, resultType.getMember(1));
         };
 
@@ -1777,7 +1779,9 @@ public final class CoreIntrinsics {
         InstanceIntrinsic getObjectAcquire = (builder, instance, target, arguments) -> {
             Value obj = arguments.get(0);
             Value offset = arguments.get(1);
-            ValueHandle handle = computeUnsafeHandle(ctxt, builder, target, obj, offset);
+            CoreClasses coreClasses = CoreClasses.get(ctxt);
+            ObjectType objectType = coreClasses.getObjectTypeIdField().getEnclosingType().load().getType();
+            ValueHandle handle = computeUnsafeHandle(ctxt, builder, obj, offset, objectType.getReference());
             if (handle == null) {
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(obj.getType());
             }
@@ -1796,47 +1800,12 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(unsafeDesc, "storeFence", emptyToVoid, storeFence);
     }
 
-    private static ValueHandle computeUnsafeHandle(final CompilationContext ctxt, final BasicBlockBuilder builder, final MethodElement target, final Value obj, final Value offset) {
+    private static ValueHandle computeUnsafeHandle(final CompilationContext ctxt, final BasicBlockBuilder builder, final Value obj, final Value offset, ValueType outputType) {
         // detect an offset from an array-typed field
-        if (offset instanceof Add) {
-            // an value has been added to the base offset
-            Add add = (Add) offset;
-            Value addend;
-            OffsetOfField base;
-            Value leftInput = traverseLoads(add.getLeftInput());
-            while (leftInput instanceof Extend) {
-                leftInput = traverseLoads(((Extend) leftInput).getInput());
-            }
-            Value rightInput = traverseLoads(add.getRightInput());
-            while (rightInput instanceof Extend) {
-                rightInput = traverseLoads(((Extend) rightInput).getInput());
-            }
-            if (leftInput instanceof OffsetOfField) {
-                base = (OffsetOfField) leftInput;
-                addend = rightInput;
-            } else if (rightInput instanceof OffsetOfField) {
-                base = (OffsetOfField) rightInput;
-                addend = leftInput;
-            } else {
-                ctxt.error(builder.getLocation(), "Invalid offset argument to %s", target);
-                return null;
-            }
-            FieldElement fieldElement = base.getFieldElement();
-            ValueType elementType = ((ArrayType)fieldElement.getType()).getElementType();
-            int elementSize = (int)elementType.getSize();
-            Value index = elementSize == 1 ? addend : builder.shr(addend, ctxt.getLiteralFactory().literalOf(Integer.numberOfTrailingZeros(elementSize)));
-            return builder.elementOf(builder.instanceFieldOf(builder.referenceHandle(obj), fieldElement), index);
-        }
-        if (offset instanceof OffsetOfField) {
-            FieldElement fieldElement = ((OffsetOfField) offset).getFieldElement();
-            if (fieldElement.isStatic()) {
-                return builder.staticField(fieldElement);
-            } else {
-                return builder.instanceFieldOf(builder.referenceHandle(obj), fieldElement);
-            }
-        }
-        ctxt.error(builder.getLocation(), "Invalid offset argument to %s", target);
-        return null;
+        // todo: introduce better optimizations in later stages
+        UnsignedIntegerType u8 = ctxt.getTypeSystem().getUnsignedInteger8Type();
+        ValueHandle valueHandle = builder.elementOf(builder.pointerHandle(builder.bitCast(obj, u8.getPointer())), offset);
+        return builder.pointerHandle(builder.bitCast(builder.addressOf(valueHandle), outputType.getPointer()));
     }
 
     private static Value traverseLoads(Value value) {
