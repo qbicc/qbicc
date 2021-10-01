@@ -987,6 +987,7 @@ public final class CoreIntrinsics {
             BlockLabel fallThrough = new BlockLabel();
 
             GlobalVariableElement classArrayGlobal = buildtimeHeap.getAndRegisterGlobalClassArray(builder.getCurrentElement());
+            // todo: if this is changed from load to referenceTo, also delete isConstant from ClassOf and fix it in getClassFromTypeIdSimple
             Value componentClass = builder.load(builder.elementOf(builder.globalVariable(classArrayGlobal), typeId), MemoryAtomicityMode.UNORDERED);
             Value result = componentClass;
             PhiValue phi = builder.phi(result.getType(), fallThrough);
@@ -1005,6 +1006,7 @@ public final class CoreIntrinsics {
 
         StaticIntrinsic getClassFromTypeIdSimple = (builder, target, arguments) -> {
             GlobalVariableElement classArrayGlobal = buildtimeHeap.getAndRegisterGlobalClassArray(builder.getCurrentElement());
+            // todo: if this is changed from load to referenceTo, also delete isConstant from ClassOf and fix it in getClassFromTypeId
             return builder.load(builder.elementOf(builder.globalVariable(classArrayGlobal), arguments.get(0)), MemoryAtomicityMode.UNORDERED);
         };
 
