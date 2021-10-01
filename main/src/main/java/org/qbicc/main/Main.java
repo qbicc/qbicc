@@ -315,11 +315,13 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, CoreClasses::get);
                                 builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);
                                 builder.addPreHook(Phase.ADD, new VMHelpersSetupHook());
-                                builder.addPreHook(Phase.ADD, compilationContext -> {
-                                    Vm vm = compilationContext.getVm();
-                                    VmThread initThread = vm.newThread("initialization", null, false);
-                                    vm.doAttached(initThread, vm::initialize);
-                                });
+                                if (initBuildTime) {
+                                    builder.addPreHook(Phase.ADD, compilationContext -> {
+                                        Vm vm = compilationContext.getVm();
+                                        VmThread initThread = vm.newThread("initialization", null, false);
+                                        vm.doAttached(initThread, vm::initialize);
+                                    });
+                                }
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
                                 if (nogc) {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
