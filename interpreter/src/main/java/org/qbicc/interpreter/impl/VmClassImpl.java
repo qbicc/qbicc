@@ -140,7 +140,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             FieldElement field = typeDefinition.getField(i);
             if (field.isStatic()) {
                 Literal initValue = field.getInitialValue();
-                if (initValue instanceof ZeroInitializerLiteral) {
+                if (initValue == null || initValue instanceof ZeroInitializerLiteral) {
                     // Nothing to do;  memory starts zeroed.
                     continue;
                 }
