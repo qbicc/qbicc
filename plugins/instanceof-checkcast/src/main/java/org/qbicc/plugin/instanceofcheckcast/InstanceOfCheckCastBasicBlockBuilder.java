@@ -188,8 +188,15 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     public Value classOf(final Value typeId, final Value dimensions) {
-        MethodElement methodElement = ctxt.getVMHelperMethod("classof_from_typeid");
-        return notNull(getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement), List.of(typeId, dimensions)));
+        MethodElement methodElement;
+        if (dimensions.isDefEq(ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), 0))) {
+            // call the intrinsic directly, inlining the calculation
+            methodElement = ctxt.getOMHelperMethod("get_class_from_type_id_simple");
+            return notNull(getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement), List.of(typeId)));
+        } else {
+            methodElement = ctxt.getVMHelperMethod("classof_from_typeid");
+            return notNull(getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement), List.of(typeId, dimensions)));
+        }
     }
 
     // Used when we know the exact type we are testing for at compile time (checkcast and instanceof bytecodes)
