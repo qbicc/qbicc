@@ -13,7 +13,6 @@ import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
-import org.qbicc.interpreter.Memory;
 import org.qbicc.object.Data;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;

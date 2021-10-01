@@ -16,7 +16,6 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
-import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.BasicElement;
 import org.qbicc.type.definition.element.ConstructorElement;
@@ -88,9 +87,7 @@ public class RTAInfo {
     // Set of reachable, but not yet invokable, instance methods
     private final Set<MethodElement> deferredInstanceMethods = ConcurrentHashMap.newKeySet();
 
-    // Summary of the types instantiated in the build time heap
-    private final Set<DefinedTypeDefinition> buildTimeInstantiatedClasses = ConcurrentHashMap.newKeySet();
-    private final Set<ObjectType> buildTimeInstantiatedArrayElements = ConcurrentHashMap.newKeySet();
+    private final BuildtimeHeapAnalyzer heapAnalyzer = new BuildtimeHeapAnalyzer();
 
     private final CompilationContext ctxt;
 
@@ -118,6 +115,7 @@ public class RTAInfo {
         info.initializedTypes.clear();
         info.invokableMethods.clear();
         info.deferredInstanceMethods.clear();
+        info.heapAnalyzer.clear();
     }
 
     public static void reportStats(CompilationContext ctxt) {
@@ -149,7 +147,7 @@ public class RTAInfo {
         LoadedTypeDefinition obj = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load();
         LoadedTypeDefinition cloneable = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Cloneable").load();
         LoadedTypeDefinition serializable = ctxt.getBootstrapClassContext().findDefinedType("java/io/Serializable").load();
-        info.processInstantiatedClass(obj, true, null);
+        info.processInstantiatedClass(obj, true, false,null);
         info.processClassInitialization(obj, buildTimeInit);
         info.addReachableInterface(cloneable);
         info.addReachableInterface(serializable);
@@ -158,36 +156,23 @@ public class RTAInfo {
             info.addInterfaceEdge(at, cloneable);
             info.addInterfaceEdge(at, serializable);
             info.addInitializedType(at);
-            info.processInstantiatedClass(at, true, null);
+            info.processInstantiatedClass(at, true, false,null);
         }
 
         rtaLog.debugf("Forcing java.lang.Class reachable/instantiated");
         LoadedTypeDefinition clz = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
-        info.processInstantiatedClass(clz, true, null);
+        info.processInstantiatedClass(clz, true, false,null);
         info.processClassInitialization(clz, buildTimeInit);
 
         rtaLog.debugf("Forcing jdk.internal.misc.Unsafe reachable/instantiated");
         LoadedTypeDefinition unsafe = ctxt.getBootstrapClassContext().findDefinedType("jdk/internal/misc/Unsafe").load();
-        info.processInstantiatedClass(unsafe, true, null);
+        info.processInstantiatedClass(unsafe, true, false,null);
         info.processClassInitialization(unsafe, buildTimeInit);
 
         // Hack around the way NoGC entrypoints are registered and then not used until LOWERING PHASE...
         rtaLog.debugf("Forcing org.qbicc.runtime.gc.nogc.NoGcHelpers reachable");
         LoadedTypeDefinition nogc = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/gc/nogc/NoGcHelpers").load();
         info.processClassInitialization(nogc, buildTimeInit);
-
-        // Account for types instantiated by the interpreter into the build time heap.
-        if (buildTimeInit) {
-            for (DefinedTypeDefinition dtd : info.buildTimeInstantiatedClasses) {
-                rtaLog.debugf("Marking build time instantiated  class "+dtd+" reachable");
-                info.processInstantiatedClass(dtd.load(), true, null);
-                info.processClassInitialization(dtd.load(), buildTimeInit);
-            }
-            for (ObjectType ot: info.buildTimeInstantiatedArrayElements) {
-                rtaLog.debugf("Marking build time instantiated  array element "+ot+" reachable");
-                info.processArrayElementType(ot);
-            }
-        }
     }
 
     public boolean isDeferredInstanceMethod(MethodElement meth) {
@@ -268,18 +253,6 @@ public class RTAInfo {
     }
 
     /*
-     * Entrypoints to record types that were instantiated by the interpreter into the build time heap
-     */
-
-    public void logBuildTimeInstantiatedClass(DefinedTypeDefinition ltd) {
-        buildTimeInstantiatedClasses.add(ltd);
-    }
-
-    public void logBuildTimeInstantiatedArrayElement(ObjectType ot) {
-        buildTimeInstantiatedArrayElements.add(ot);
-    }
-
-    /*
      * Entrypoints for Rapid Type Analysis algorithm, only meant to be invoked from ReachabilityBlockBuilder
      */
     synchronized void processArrayElementType(ObjectType elemType) {
@@ -290,6 +263,11 @@ public class RTAInfo {
         }
     }
 
+    synchronized void processBuildtimeInstantiatedObjectType(LoadedTypeDefinition ltd, LoadedTypeDefinition staticRootType) {
+        processInstantiatedClass(ltd, true, true, staticRootType.getInitializer());
+        processClassInitialization(ltd, true);
+    }
+
     synchronized void processReachableStaticInvoke(final InvokableElement target, ExecutableElement originalElement) {
         if (!ctxt.wasEnqueued(target)) {
             rtaLog.debugf("Adding method %s (statically invoked in %s)", target, originalElement);
@@ -298,7 +276,7 @@ public class RTAInfo {
     }
 
     synchronized void processReachableConstructorInvoke(LoadedTypeDefinition ltd, ConstructorElement target, boolean buildTimeInit, ExecutableElement originalElement) {
-        processInstantiatedClass(ltd, true, originalElement);
+        processInstantiatedClass(ltd, true, false, originalElement);
         processClassInitialization(ltd, buildTimeInit);
         if (!ctxt.wasEnqueued(target)) {
             rtaLog.debugf("Adding <init> %s (invoked in %s)", target, originalElement);
@@ -361,6 +339,10 @@ public class RTAInfo {
             }
         }
 
+        if (buildTimeInit) {
+            heapAnalyzer.traceHeap(ctxt, this, ltd);
+        }
+
         // Annoyingly, because an intermediate interface could be marked initialized due to a static field
         // access which doesn't cause the initialization of its superinterfaces, we can't short-circuit
         // this walk up the entire interface hierarchy when we hit an already initialized interfaces.
@@ -380,10 +362,12 @@ public class RTAInfo {
         }
     }
 
-    synchronized void processInstantiatedClass(final LoadedTypeDefinition type, boolean directlyInstantiated, ExecutableElement originalElement) {
+    synchronized void processInstantiatedClass(final LoadedTypeDefinition type, boolean directlyInstantiated, boolean onHeapType, ExecutableElement originalElement) {
         if (isInstantiatedClass(type)) return;
 
-        if (directlyInstantiated) {
+        if (onHeapType) {
+            rtaLog.debugf("Adding class %s (heap reachable from static of %s)", type.getDescriptor().getClassName(), originalElement.getEnclosingType().getDescriptor().getClassName());
+        } else if (directlyInstantiated) {
             rtaLog.debugf("Adding class %s (instantiated in %s)", type.getDescriptor().getClassName(), originalElement);
         } else {
             rtaLog.debugf("\tadding ancestor class: %s", type.getDescriptor().getClassName());
@@ -394,11 +378,11 @@ public class RTAInfo {
         // It's critical that we recur to handle our superclass first.  That means all of its invokable/deferred methods
         // that we override will be processed before we process our own defined instance methods below.
         if (type.hasSuperClass()) {
-            processInstantiatedClass(type.getSuperClass(), false, originalElement);
+            processInstantiatedClass(type.getSuperClass(), false, false, originalElement);
         }
 
         // TODO: Now that we are explicitly tracking directly invoked deferred methods, we might be able to
-        //       replace the checks below for overridding an invokable method with logic that instead
+        //       replace the checks below for overriding an invokable method with logic that instead
         //       adds overridden invoked methods to the deferred set in addReachableClass and processInvokableInstanceMethod
         //       It's not clear yet which of these options is simpler/more efficient/more maintainable...
 
