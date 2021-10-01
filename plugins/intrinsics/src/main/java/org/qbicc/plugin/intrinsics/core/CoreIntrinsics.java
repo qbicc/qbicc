@@ -1677,7 +1677,7 @@ public final class CoreIntrinsics {
 
         intrinsics.registerIntrinsic(unsafeDesc, "unalignedAccess0", emptyToBool, unalignedAccess0);
 
-        InstanceIntrinsic objectFieldOffset1 = (builder, instance, target, arguments) -> {
+        InstanceIntrinsic objectFieldOffset = (builder, instance, target, arguments) -> {
             Value clazz = traverseLoads(arguments.get(0));
             Value string = traverseLoads(arguments.get(1));
             LiteralFactory lf = ctxt.getLiteralFactory();
@@ -1691,15 +1691,15 @@ public final class CoreIntrinsics {
                         objectType = (ObjectType) valueType;
                     } else {
                         ctxt.error(builder.getLocation(), "objectFieldOffset type argument must be a literal of an object type");
-                        return lf.literalOf(0L);
+                        return lf.literalOf(0);
                     }
                 } else {
                     ctxt.error(builder.getLocation(), "objectFieldOffset type argument must be a literal of an object type");
-                    return lf.literalOf(0L);
+                    return lf.literalOf(0);
                 }
             } else {
                 ctxt.error(builder.getLocation(), "objectFieldOffset type argument must be a literal of an object type");
-                return lf.literalOf(0L);
+                return lf.literalOf(0);
             }
             String fieldName;
             if (string instanceof StringLiteral) {
@@ -1708,23 +1708,23 @@ public final class CoreIntrinsics {
                 VmObject vmObject = ((ObjectLiteral) string).getValue();
                 if (! (vmObject instanceof VmString)) {
                     ctxt.error(builder.getLocation(), "objectFieldOffset string argument must be a literal string");
-                    return lf.literalOf(0L);
+                    return lf.literalOf(0);
                 }
                 fieldName = ((VmString) vmObject).getContent();
             } else {
                 ctxt.error(builder.getLocation(), "objectFieldOffset string argument must be a literal string");
-                return lf.literalOf(0L);
+                return lf.literalOf(0);
             }
             LoadedTypeDefinition ltd = objectType.getDefinition().load();
             FieldElement field = ltd.findField(fieldName);
             if (field == null) {
                 ctxt.error(builder.getLocation(), "No such field \"%s\" on class \"%s\"", fieldName, ltd.getVmClass().getName());
-                return lf.literalOf(0L);
+                return lf.literalOf(0);
             }
             return builder.offsetOfField(field);
         };
 
-        intrinsics.registerIntrinsic(unsafeDesc, "objectFieldOffset", classStringToLong, objectFieldOffset1);
+        intrinsics.registerIntrinsic(unsafeDesc, "objectFieldOffset", classStringToLong, objectFieldOffset);
 
         // atomics
 

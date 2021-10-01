@@ -500,7 +500,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value offsetOfField(FieldElement fieldElement) {
-        return new OffsetOfField(callSite, element, line, bci, fieldElement, typeSystem.getSignedInteger64Type());
+        return new OffsetOfField(callSite, element, line, bci, fieldElement, typeSystem.getSignedInteger32Type());
     }
 
     public Value extractElement(Value array, Value index) {
