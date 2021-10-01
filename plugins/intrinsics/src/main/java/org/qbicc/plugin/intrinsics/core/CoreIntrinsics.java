@@ -1698,15 +1698,15 @@ public final class CoreIntrinsics {
                         objectType = (ObjectType) valueType;
                     } else {
                         ctxt.error(builder.getLocation(), "objectFieldOffset type argument must be a literal of an object type");
-                        return lf.literalOf(0);
+                        return lf.literalOf(0L);
                     }
                 } else {
                     ctxt.error(builder.getLocation(), "objectFieldOffset type argument must be a literal of an object type");
-                    return lf.literalOf(0);
+                    return lf.literalOf(0L);
                 }
             } else {
                 ctxt.error(builder.getLocation(), "objectFieldOffset type argument must be a literal of an object type");
-                return lf.literalOf(0);
+                return lf.literalOf(0L);
             }
             String fieldName;
             if (string instanceof StringLiteral) {
@@ -1715,20 +1715,21 @@ public final class CoreIntrinsics {
                 VmObject vmObject = ((ObjectLiteral) string).getValue();
                 if (! (vmObject instanceof VmString)) {
                     ctxt.error(builder.getLocation(), "objectFieldOffset string argument must be a literal string");
-                    return lf.literalOf(0);
+                    return lf.literalOf(0L);
                 }
                 fieldName = ((VmString) vmObject).getContent();
             } else {
                 ctxt.error(builder.getLocation(), "objectFieldOffset string argument must be a literal string");
-                return lf.literalOf(0);
+                return lf.literalOf(0L);
             }
             LoadedTypeDefinition ltd = objectType.getDefinition().load();
             FieldElement field = ltd.findField(fieldName);
             if (field == null) {
                 ctxt.error(builder.getLocation(), "No such field \"%s\" on class \"%s\"", fieldName, ltd.getVmClass().getName());
-                return lf.literalOf(0);
+                return lf.literalOf(0L);
             }
-            return builder.offsetOfField(field);
+            // cast to long to fit method contract
+            return builder.extend(builder.offsetOfField(field), (WordType) target.getType().getReturnType());
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "objectFieldOffset", classStringToLong, objectFieldOffset);
