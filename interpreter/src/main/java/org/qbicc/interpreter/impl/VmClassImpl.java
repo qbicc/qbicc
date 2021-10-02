@@ -11,22 +11,31 @@ import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.literal.IntegerLiteral;
+import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.StringLiteral;
+import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 class VmClassImpl extends VmObjectImpl implements VmClass {
     private static final VarHandle interfacesHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "interfaces", VarHandle.class, VmClassImpl.class, List.class);
@@ -93,6 +102,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         layoutInfo = typeDefinition.isInterface() ? null : Layout.getForInterpreter(ctxt).getInstanceLayoutInfo(typeDefinition);
         staticLayoutInfo = Layout.getForInterpreter(ctxt).getInterpreterStaticLayoutInfo(typeDefinition);
         staticMemory = staticLayoutInfo == null ? vmImpl.allocate(0) : vmImpl.allocate((int) staticLayoutInfo.getCompoundType().getSize());
+        initializeConstantStaticFields();
     }
 
     VmClassImpl(VmImpl vmImpl, VmClassClassImpl classClass, @SuppressWarnings("unused") int primitivesOnly) {
@@ -121,6 +131,49 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         staticLayoutInfo = Layout.getForInterpreter(ctxt).getInterpreterStaticLayoutInfo(typeDefinition);
         staticMemory = staticLayoutInfo == null ? vm.allocate(0) : vm.allocate((int) staticLayoutInfo.getCompoundType().getSize());
         superClass = new VmClassImpl(vm, (VmClassClassImpl) this, classContext.findDefinedType("java/lang/Object").load(), null);
+        initializeConstantStaticFields();
+    }
+
+    void initializeConstantStaticFields() {
+        int cnt = typeDefinition.getFieldCount();
+        for (int i = 0; i < cnt; i ++) {
+            FieldElement field = typeDefinition.getField(i);
+            if (field.isStatic()) {
+                Literal initValue = field.getInitialValue();
+                if (initValue == null || initValue instanceof ZeroInitializerLiteral) {
+                    // Nothing to do;  memory starts zeroed.
+                    continue;
+                }
+                CompoundType.Member member = staticLayoutInfo.getMember(field);
+                if (initValue instanceof IntegerLiteral) {
+                    IntegerLiteral val = (IntegerLiteral) initValue;
+                    if (val.getType().getSize() == 1) {
+                        staticMemory.store8(member.getOffset(), val.byteValue(), MemoryAtomicityMode.UNORDERED);
+                    } else if (val.getType().getSize() == 2) {
+                        staticMemory.store16(member.getOffset(), val.shortValue(), MemoryAtomicityMode.UNORDERED);
+                    } else if (val.getType().getSize() == 4) {
+                        staticMemory.store32(member.getOffset(), val.intValue(), MemoryAtomicityMode.UNORDERED);
+                    } else {
+                        staticMemory.store64(member.getOffset(), val.longValue(), MemoryAtomicityMode.UNORDERED);
+                    }
+                } else if (initValue instanceof FloatLiteral) {
+                    FloatLiteral val = (FloatLiteral) initValue;
+                    if (val.getType().getSize() == 4) {
+                        staticMemory.store32(member.getOffset(), val.floatValue(), MemoryAtomicityMode.UNORDERED);
+                    } else {
+                        staticMemory.store64(member.getOffset(), val.doubleValue(), MemoryAtomicityMode.UNORDERED);
+                    }
+                } else if (initValue instanceof StringLiteral) {
+                    if (vm.bootstrapComplete) {
+                        VmString sv = vm.intern(((StringLiteral) initValue).getValue());
+                        staticMemory.storeRef(member.getOffset(), sv, MemoryAtomicityMode.UNORDERED);
+                    }
+                } else {
+                    // CONSTANT_Class, CONSTANT_MethodHandle, CONSTANT_MethodType
+                    vm.getCompilationContext().warning("Did not properly initialize interpreter memory for constant static field "+field);
+                }
+            }
+        }
     }
 
     VmArrayClassImpl getArrayClass() {
@@ -242,6 +295,42 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     Layout.LayoutInfo getLayoutInfo() {
         return layoutInfo;
+    }
+
+    public Literal getValueForStaticField(FieldElement field) {
+        if (staticLayoutInfo == null || staticLayoutInfo.getMember(field) == null) {
+            // TODO: This should become a hard error at some point, but make it a warning while we are bringing interpreter online.
+            //       It seems to mostly be happening with callsites associated with invokedynamic.
+            vm.getCompilationContext().warning("No interpreter layout for static "+field+". Using zero initializer as value");
+            return vm.getCompilationContext().getLiteralFactory().zeroInitializerLiteralOfType(field.getType());
+        }
+        int offset = staticLayoutInfo.getMember(field).getOffset();
+        TypeDescriptor desc = field.getTypeDescriptor();
+        if (desc.equals(BaseTypeDescriptor.Z)) {
+            int val = staticMemory.load8(offset, MemoryAtomicityMode.UNORDERED);
+            return vm.getCompilationContext().getLiteralFactory().literalOf(val != 0);
+        } else if (desc.equals(BaseTypeDescriptor.B)) {
+            return vm.getCompilationContext().getLiteralFactory().literalOf((byte) staticMemory.load8(offset, MemoryAtomicityMode.UNORDERED));
+        } else if (desc.equals(BaseTypeDescriptor.S)) {
+            return vm.getCompilationContext().getLiteralFactory().literalOf((short) staticMemory.load16(offset, MemoryAtomicityMode.UNORDERED));
+        } else if (desc.equals(BaseTypeDescriptor.C)) {
+            return vm.getCompilationContext().getLiteralFactory().literalOf((char) staticMemory.load16(offset, MemoryAtomicityMode.UNORDERED));
+        } else if (desc.equals(BaseTypeDescriptor.I)) {
+            return vm.getCompilationContext().getLiteralFactory().literalOf(staticMemory.load32(offset, MemoryAtomicityMode.UNORDERED));
+        } else if (desc.equals(BaseTypeDescriptor.F)) {
+            return vm.getCompilationContext().getLiteralFactory().literalOf(staticMemory.loadFloat(offset, MemoryAtomicityMode.UNORDERED));
+        } else if (desc.equals(BaseTypeDescriptor.J)) {
+            return vm.getCompilationContext().getLiteralFactory().literalOf(staticMemory.load64(offset, MemoryAtomicityMode.UNORDERED));
+        } else if (desc.equals(BaseTypeDescriptor.D)) {
+            return vm.getCompilationContext().getLiteralFactory().literalOf(staticMemory.loadDouble(offset, MemoryAtomicityMode.UNORDERED));
+        } else {
+            VmObject value = staticMemory.loadRef(offset, MemoryAtomicityMode.UNORDERED);
+            if (value == null) {
+                return vm.getCompilationContext().getLiteralFactory().zeroInitializerLiteralOfType(field.getType());
+            } else {
+                return vm.getCompilationContext().getLiteralFactory().literalOf(value);
+            }
+        }
     }
 
     void initialize(VmThreadImpl thread) throws Thrown {

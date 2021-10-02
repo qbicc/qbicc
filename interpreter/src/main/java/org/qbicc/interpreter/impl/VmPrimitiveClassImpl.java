@@ -1,12 +1,13 @@
 package org.qbicc.interpreter.impl;
 
+import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 
 /**
  *
  */
-class VmPrimitiveClassImpl extends VmClassImpl {
+class VmPrimitiveClassImpl extends VmClassImpl implements VmPrimitiveClass {
     private final LoadedTypeDefinition arrayTypeDefinition;
     private final String simpleName;
 

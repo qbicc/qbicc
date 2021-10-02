@@ -10,12 +10,16 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.BooleanLiteral;
+import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
+import org.qbicc.interpreter.Memory;
 import org.qbicc.object.Data;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
 import org.qbicc.plugin.constants.Constants;
 import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ReferenceType;
@@ -61,7 +65,7 @@ public class Lowering {
         builder.setEnclosingType(enclosingType);
         final String sectionName;
         if (fieldElement.getType() instanceof ReferenceType) {
-            sectionName = GLOBAL_REFERENCES;
+            sectionName = CompilationContext.IMPLICIT_SECTION_NAME; // TODO: GLOBAL_REFERENCES;
         } else {
             sectionName = CompilationContext.IMPLICIT_SECTION_NAME;
         }
@@ -73,20 +77,12 @@ public class Lowering {
         }
 
         Section section = ctxt.getOrAddProgramModule(enclosingType).getOrAddSection(sectionName);
-        Value initialValue = fieldElement.getInitialValue();
-        Linkage linkage = Linkage.EXTERNAL;
-        if (fieldType instanceof ReferenceType) {
-            // Reference-typed field values must always be deserialized.
-            linkage = Linkage.COMMON;
+        Value initialValue = enclosingType.load().getInitialValue(fieldElement);
+        if (initialValue == null) {
+            initialValue = Constants.get(ctxt).getConstantValue(fieldElement);
+        }
+        if (initialValue == null) {
             initialValue = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(varType);
-        } else {
-            if (initialValue == null || initialValue instanceof ZeroInitializerLiteral) {
-                initialValue = Constants.get(ctxt).getConstantValue(fieldElement);
-                if (initialValue == null || initialValue instanceof ZeroInitializerLiteral) {
-                    linkage = Linkage.COMMON;
-                    initialValue = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(varType);
-                }
-            }
         }
         if (initialValue instanceof OffsetOfField) {
             // special case: the field holds an offset which is really an integer
@@ -109,8 +105,15 @@ public class Lowering {
                 throw new IllegalArgumentException("Cannot initialize boolean field");
             }
         }
+        if (initialValue instanceof ObjectLiteral) {
+            SymbolLiteral objLit = BuildtimeHeap.get(ctxt).serializeVmObject(((ObjectLiteral) initialValue).getValue());
+            section.declareData(null, objLit.getName(), objLit.getType()).setAddrspace(1);
+            SymbolLiteral refToLiteral = ctxt.getLiteralFactory().literalOfSymbol(objLit.getName(), objLit.getType().getPointer().asCollected());
+            initialValue = ctxt.getLiteralFactory().bitcastLiteral(refToLiteral, ((ObjectLiteral) initialValue).getType());
+        }
+
         final Data data = section.addData(fieldElement, itemName, initialValue);
-        data.setLinkage(linkage);
+        data.setLinkage(initialValue instanceof ZeroInitializerLiteral ? Linkage.COMMON : Linkage.EXTERNAL);
         data.setDsoLocal();
         return global;
     }

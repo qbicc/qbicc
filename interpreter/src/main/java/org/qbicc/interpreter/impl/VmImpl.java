@@ -37,6 +37,8 @@ public final class VmImpl implements Vm {
     final boolean wideRefs;
     final MemoryImpl emptyMemory;
 
+    boolean bootstrapComplete;
+
     // core classes
     final VmClassImpl objectClass;
     final VmClassClassImpl classClass;
@@ -94,6 +96,7 @@ public final class VmImpl implements Vm {
 
     VmImpl(final CompilationContext ctxt) {
         this.ctxt = ctxt;
+        bootstrapComplete = false;
         // force all fields to be populated so the injections are visible to us
         CoreClasses coreClasses = CoreClasses.get(ctxt);
         ctxt.getExceptionField();
@@ -266,6 +269,9 @@ public final class VmImpl implements Vm {
             }
             return clazz;
         });
+
+        bootstrapComplete = true;
+        throwableClass.initializeConstantStaticFields(); // Has constant String fields that can't be initialized when we first process the class
     }
 
     VmClassLoaderImpl getBootstrapClassLoader() {

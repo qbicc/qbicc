@@ -48,14 +48,14 @@ public class ClassObjectSerializer implements Consumer<CompilationContext> {
         Literal[] rootTable = new Literal[tables.get_number_of_typeids()];
         Arrays.fill(rootTable, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(jlcRef));
         rtaInfo.visitInitializedTypes( ltd -> {
-            Data cls = bth.serializeClassObject(ltd);
+            SymbolLiteral cls = bth.serializeClassObject(ltd);
             section.declareData(null, cls.getName(), cls.getType()).setAddrspace(1);
             SymbolLiteral refToClass = ctxt.getLiteralFactory().literalOfSymbol(cls.getName(), cls.getType().getPointer().asCollected());
             rootTable[ltd.getTypeId()] = ctxt.getLiteralFactory().bitcastLiteral(refToClass, jlcRef);
         });
 
         Primitive.forEach(type -> {
-            Data cls = bth.serializeClassObject(type);
+            SymbolLiteral cls = bth.serializeClassObject(type);
             section.declareData(null, cls.getName(), cls.getType()).setAddrspace(1);
             SymbolLiteral refToClass = ctxt.getLiteralFactory().literalOfSymbol(cls.getName(), cls.getType().getPointer().asCollected());
             rootTable[type.getTypeId()] = ctxt.getLiteralFactory().bitcastLiteral(refToClass, jlcRef);
