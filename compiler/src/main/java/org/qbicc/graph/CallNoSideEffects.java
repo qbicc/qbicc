@@ -77,4 +77,13 @@ public final class CallNoSideEffects extends AbstractValue {
     public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
+
+    public boolean isConstant() {
+        for (Value argument : arguments) {
+            if (! argument.isConstant()) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

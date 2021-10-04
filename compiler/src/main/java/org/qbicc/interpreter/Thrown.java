@@ -6,6 +6,7 @@ public final class Thrown extends RuntimeException {
 
     public Thrown(final VmThrowable throwable) {
         this.throwable = throwable;
+        setStackTrace(throwable.getStackTrace());
     }
 
     public VmThrowable getThrowable() {

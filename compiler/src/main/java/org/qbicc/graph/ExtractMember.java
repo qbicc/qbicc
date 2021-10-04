@@ -9,7 +9,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 /**
  * An extracted member of a compound (structure) value.
  */
-public final class ExtractMember extends AbstractValue implements Unschedulable {
+public final class ExtractMember extends AbstractValue {
     private final Value compoundValue;
     private final CompoundType compoundType;
     private final CompoundType.Member member;
@@ -68,5 +68,10 @@ public final class ExtractMember extends AbstractValue implements Unschedulable 
     @Override
     public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
+    }
+
+    @Override
+    public boolean isConstant() {
+        return compoundValue.isConstant();
     }
 }

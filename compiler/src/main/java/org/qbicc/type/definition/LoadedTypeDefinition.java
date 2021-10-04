@@ -209,6 +209,21 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         return -1;
     }
 
+    default int findSingleMethodIndex(Predicate<MethodElement> predicate) {
+        int cnt = getMethodCount();
+        int idx = -1;
+        for (int i = 0; i < cnt; i ++) {
+            MethodElement method = getMethod(i);
+            if (predicate.test(method)) {
+                if (idx != -1) {
+                    throw new IllegalArgumentException("Predicate matched more than one method element");
+                }
+                idx = i;
+            }
+        }
+        return idx;
+    }
+
     default MethodElement resolveMethodElementExact(String name, MethodDescriptor descriptor) {
         int idx = findMethodIndex(name, descriptor);
         return idx == -1 ? null : getMethod(idx);

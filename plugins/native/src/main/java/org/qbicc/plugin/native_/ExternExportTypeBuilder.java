@@ -2,6 +2,8 @@ package org.qbicc.plugin.native_;
 
 import java.util.List;
 
+import org.jboss.logging.Logger;
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.object.Data;
 import org.qbicc.object.Linkage;
@@ -14,19 +16,14 @@ import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.annotation.ArrayAnnotationValue;
 import org.qbicc.type.annotation.StringAnnotationValue;
-import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.MethodResolver;
-import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
-import org.qbicc.type.descriptor.MethodDescriptor;
-import org.qbicc.type.descriptor.TypeDescriptor;
-import org.jboss.logging.Logger;
 
 /**
  * A delegating type builder which handles interactions with {@code @extern} and {@code @export} methods and fields.
@@ -162,45 +159,9 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                     }
                 }
                 boolean isNative = origMethod.hasAllModifiersOf(ClassFile.ACC_NATIVE);
-                if (isNative) {
-                    if (hasInclude) {
-                        // treat it as extern with the default name
-                        addExtern(nativeInfo, origMethod, origMethod.getName());
-                    } else {
-                        // check to see there are native bindings for it
-                        DefinedTypeDefinition enclosingType = origMethod.getEnclosingType();
-                        String internalName = enclosingType.getInternalName();
-                        DefinedTypeDefinition nativeType = classCtxt.findDefinedType(internalName + "$_native");
-                        if (nativeType != null) {
-                            // found it
-                            LoadedTypeDefinition loadedNativeType = nativeType.load();
-                            boolean isStatic = origMethod.hasAllModifiersOf(ClassFile.ACC_STATIC);
-                            // bound native methods are always static, but bindings for instance methods take
-                            //   the receiver as the first argument
-                            MethodElement nativeMethod;
-                            if (isStatic) {
-                                nativeMethod = loadedNativeType.resolveMethodElementExact(origMethod.getName(), origMethod.getDescriptor());
-                            } else {
-                                // munge the descriptor
-                                MethodDescriptor origDescriptor = origMethod.getDescriptor();
-                                List<TypeDescriptor> parameterTypes = origDescriptor.getParameterTypes();
-                                nativeMethod = loadedNativeType.resolveMethodElementExact(origMethod.getName(),
-                                    MethodDescriptor.synthesize(classCtxt,
-                                        origMethod.getDescriptor().getReturnType(),
-                                        Native.copyWithPrefix(parameterTypes, enclosingType.getDescriptor(), TypeDescriptor[]::new)));
-                            }
-                            if (nativeMethod != null) {
-                                // there's a match
-                                if (nativeMethod.hasAllModifiersOf(ClassFile.ACC_STATIC)) {
-                                    nativeInfo.registerNativeBinding(origMethod, nativeMethod);
-                                } else {
-                                    classCtxt.getCompilationContext().error(nativeMethod, "Native bound methods must be declared `static`");
-                                }
-                            } else {
-                                log.debugf("No match found for native method %s in bindings class %s", origMethod, nativeType.getInternalName());
-                            }
-                        }
-                    }
+                if (isNative && hasInclude) {
+                    // treat it as extern with the default name
+                    addExtern(nativeInfo, origMethod, origMethod.getName());
                 }
                 return origMethod;
             }

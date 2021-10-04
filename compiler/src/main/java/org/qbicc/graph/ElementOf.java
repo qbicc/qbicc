@@ -42,6 +42,15 @@ public final class ElementOf extends AbstractValueHandle {
         return pointerType;
     }
 
+    public boolean isConstantLocation() {
+        return index.isConstant() && inputHandle.isConstantLocation();
+    }
+
+    @Override
+    public boolean isValueConstant() {
+        return index.isConstant() && inputHandle.isValueConstant();
+    }
+
     public Value getIndex() {
         return index;
     }

@@ -27,6 +27,16 @@ public final class LocalVariable extends Variable {
     }
 
     @Override
+    public boolean isConstantLocation() {
+        return true;
+    }
+
+    @Override
+    public boolean isValueConstant() {
+        return false;
+    }
+
+    @Override
     public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }

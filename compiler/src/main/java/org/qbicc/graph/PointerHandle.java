@@ -34,6 +34,16 @@ public final class PointerHandle extends AbstractValueHandle {
     }
 
     @Override
+    public boolean isConstantLocation() {
+        return pointerValue.isConstant();
+    }
+
+    @Override
+    public boolean isValueConstant() {
+        return pointerValue.isConstant();
+    }
+
+    @Override
     public MemoryAtomicityMode getDetectedMode() {
         return MemoryAtomicityMode.UNORDERED;
     }

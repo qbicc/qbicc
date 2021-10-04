@@ -80,6 +80,10 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
         return visitor.visit(param, this);
     }
 
+    public boolean isConstant() {
+        return input.isConstant();
+    }
+
     @Override
     public Node getDependency() {
         return dependency;

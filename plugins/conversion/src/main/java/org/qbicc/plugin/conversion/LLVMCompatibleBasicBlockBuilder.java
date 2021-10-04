@@ -116,10 +116,10 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     @Override
     public Value offsetOfField(FieldElement fieldElement) {
         if (fieldElement.isStatic()) {
-            return ctxt.getLiteralFactory().literalOf(-1L);
+            return ctxt.getLiteralFactory().literalOf(-1);
         } else {
             Layout.LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(fieldElement.getEnclosingType());
-            return ctxt.getLiteralFactory().literalOf((long) layoutInfo.getMember(fieldElement).getOffset());
+            return ctxt.getLiteralFactory().literalOf(layoutInfo.getMember(fieldElement).getOffset());
         }
     }
 

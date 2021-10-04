@@ -38,6 +38,10 @@ public final class TypeIdOf extends AbstractValue {
         return visitor.visit(param, this);
     }
 
+    public boolean isConstant() {
+        return instance.isValueConstant();
+    }
+
     int calcHashCode() {
         return Objects.hash(TypeIdOf.class, instance);
     }

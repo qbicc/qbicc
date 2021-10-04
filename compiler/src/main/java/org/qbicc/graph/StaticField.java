@@ -21,6 +21,15 @@ public final class StaticField extends Field {
         return this == other || other != null && getVariableElement().equals(other.getVariableElement());
     }
 
+    public boolean isConstantLocation() {
+        return true;
+    }
+
+    @Override
+    public boolean isValueConstant() {
+        return getVariableElement().getInitialValue() != null || getVariableElement().isReallyFinal();
+    }
+
     @Override
     public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);

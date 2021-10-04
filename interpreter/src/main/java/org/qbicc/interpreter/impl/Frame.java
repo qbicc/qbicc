@@ -36,6 +36,7 @@ import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.Extend;
+import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
 import org.qbicc.graph.GetAndAdd;
 import org.qbicc.graph.GetAndBitwiseAnd;
@@ -150,6 +151,7 @@ import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -225,6 +227,39 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     private static IllegalStateException badInputType() {
         return new IllegalStateException("Bad input type");
+    }
+
+    ////////
+    // Stack
+    ////////
+
+    public Node[] getBackTrace() {
+        int depth = 0;
+        Frame frame = this;
+        while (frame != null) {
+            Node ip = frame.ip;
+            while (ip != null) {
+                if (ip.getElement().hasNoModifiersOf(ClassFile.I_ACC_HIDDEN)) {
+                    depth++;
+                }
+                ip = ip.getCallSite();
+            }
+            frame = frame.enclosing;
+        }
+        frame = this;
+        Node[] backTrace = new Node[depth];
+        depth = 0;
+        while (frame != null) {
+            Node ip = frame.ip;
+            while (ip != null) {
+                if (ip.getElement().hasNoModifiersOf(ClassFile.I_ACC_HIDDEN)) {
+                    backTrace[depth++] = ip;
+                }
+                ip = ip.getCallSite();
+            }
+            frame = frame.enclosing;
+        }
+        return backTrace;
     }
 
     //////////
@@ -691,6 +726,33 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return box(unboxBool(input) ? 1 : 0, outputType);
         }
         throw new IllegalStateException("Invalid extend");
+    }
+
+    @Override
+    public Object visit(VmThreadImpl param, ExtractMember node) {
+        Value input = node.getCompoundValue();
+        Memory compound = (Memory) require(input);
+        ValueType resultType = node.getType();
+        int offset = node.getMember().getOffset();
+        if (isInt8(resultType)) {
+            return box(compound.load8(offset, MemoryAtomicityMode.UNORDERED), resultType);
+        } else if (isInt16(resultType)) {
+            return box(compound.load16(offset, MemoryAtomicityMode.UNORDERED), resultType);
+        } else if (isInt32(resultType)) {
+            return box(compound.load32(offset, MemoryAtomicityMode.UNORDERED), resultType);
+        } else if (isInt64(resultType)) {
+            return box(compound.load64(offset, MemoryAtomicityMode.UNORDERED), resultType);
+        } else if (isFloat32(resultType)) {
+            return box(Float.intBitsToFloat(compound.load32(offset, MemoryAtomicityMode.UNORDERED)), resultType);
+        } else if (isFloat64(resultType)) {
+            return box(Double.longBitsToDouble(compound.load64(offset, MemoryAtomicityMode.UNORDERED)), resultType);
+        } else if (isBool(resultType)) {
+            return Boolean.valueOf((compound.load8(offset, MemoryAtomicityMode.UNORDERED) & 1) != 0);
+        } else if (isRef(resultType)) {
+            return compound.loadRef(offset, MemoryAtomicityMode.UNORDERED);
+        } else {
+            throw new IllegalStateException("Invalid type for extract");
+        }
     }
 
     @Override
@@ -1315,37 +1377,62 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         Value expect = node.getExpectedValue();
         Value update = node.getUpdateValue();
         MemoryAtomicityMode mode = MemoryAtomicityMode.max(node.getFailureAtomicityMode(), node.getSuccessAtomicityMode());
-        Object resultVal;
+        boolean updated;
+        CompoundType resultType = node.getType();
+        Memory result = thread.getVM().allocate((int) resultType.getSize());
         if (type instanceof ReferenceType) {
-            resultVal = memory.compareAndExchangeRef(offset, (VmObject) require(expect), (VmObject) require(update), mode);
+            VmObject expected = (VmObject) require(expect);
+            VmObject resultVal = memory.compareAndExchangeRef(offset, expected, (VmObject) require(update), mode);
+            updated = expected == resultVal;
+            result.storeRef(resultType.getMember(0).getOffset(), resultVal, MemoryAtomicityMode.UNORDERED);
         } else if (type instanceof IntegerType) {
             int bits = ((IntegerType) type).getMinBits();
             if (bits == 8) {
-                resultVal = Byte.valueOf((byte) memory.compareAndExchange8(offset, unboxInt(expect), unboxInt(update), mode));
+                int expected = unboxInt(expect);
+                int unboxedResult = memory.compareAndExchange8(offset, expected, unboxInt(update), mode);
+                updated = expected == unboxedResult;
+                result.store8(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
             } else if (bits == 16) {
-                resultVal = Short.valueOf((short) memory.compareAndExchange16(offset, unboxInt(expect), unboxInt(update), mode));
+                int expected = unboxInt(expect);
+                int unboxedResult = memory.compareAndExchange16(offset, expected, unboxInt(update), mode);
+                updated = expected == unboxedResult;
+                result.store16(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
             } else if (bits == 32) {
-                resultVal = Integer.valueOf(memory.compareAndExchange32(offset, unboxInt(expect), unboxInt(update), mode));
+                int expected = unboxInt(expect);
+                int unboxedResult = memory.compareAndExchange32(offset, expected, unboxInt(update), mode);
+                updated = expected == unboxedResult;
+                result.store32(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
             } else {
                 assert bits == 64;
-                resultVal = Long.valueOf(memory.compareAndExchange64(offset, unboxLong(expect), unboxLong(update), mode));
+                long expected = unboxLong(expect);
+                long unboxedResult = memory.compareAndExchange64(offset, expected, unboxLong(update), mode);
+                updated = expected == unboxedResult;
+                result.store64(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
             }
         } else if (type instanceof FloatType) {
             int bits = ((FloatType) type).getMinBits();
             if (bits == 32) {
-                resultVal = Float.valueOf(Float.intBitsToFloat(memory.compareAndExchange32(offset, Float.floatToRawIntBits(unboxFloat(expect)), Float.floatToRawIntBits(unboxInt(update)), mode)));
+                int expected = Float.floatToRawIntBits(unboxFloat(expect));
+                int unboxedResult = memory.compareAndExchange32(offset, expected, Float.floatToRawIntBits(unboxInt(update)), mode);
+                updated = expected == unboxedResult;
+                result.store32(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
             } else {
                 assert bits == 64;
-                resultVal = Double.valueOf(Double.longBitsToDouble(memory.compareAndExchange64(offset, Double.doubleToRawLongBits(unboxDouble(expect)), Double.doubleToRawLongBits(unboxDouble(update)), mode)));
+                long expected = Double.doubleToRawLongBits(unboxDouble(expect));
+                long unboxedResult = memory.compareAndExchange64(offset, expected, Double.doubleToRawLongBits(unboxDouble(update)), mode);
+                updated = expected == unboxedResult;
+                result.store64(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
             }
         } else if (type instanceof BooleanType) {
-            resultVal = Boolean.valueOf(memory.compareAndExchange8(offset, unboxBool(expect) ? 1 : 0, unboxBool(update) ? 1 : 0, mode) != 0);
+            int expected = unboxBool(expect) ? 1 : 0;
+            int unboxedResult = memory.compareAndExchange8(offset, expected, unboxBool(update) ? 1 : 0, mode);
+            updated = expected == unboxedResult;
+            result.store8(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
         } else {
             throw unsupportedType();
         }
-        CompoundType resultType = node.getType();
-        boolean updated = resultVal == update;
-        return Map.of(resultType.getMember(0), resultVal, resultType.getMember(1), Boolean.valueOf(updated));
+        result.store8(resultType.getMember(1).getOffset(), updated ? 1 : 0, MemoryAtomicityMode.UNORDERED);
+        return result;
     }
 
     @Override

@@ -25,6 +25,15 @@ public final class StaticMethodElementHandle extends Executable {
         return super.equals(other);
     }
 
+    public boolean isConstantLocation() {
+        return true;
+    }
+
+    @Override
+    public boolean isValueConstant() {
+        return true;
+    }
+
     @Override
     public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);

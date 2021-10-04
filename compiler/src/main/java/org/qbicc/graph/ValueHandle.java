@@ -42,6 +42,20 @@ public interface ValueHandle extends Unschedulable {
     }
 
     /**
+     * Determine whether the value handle is always in the same location.
+     *
+     * @return {@code true} if the handle is always in the same location, or {@code false} otherwise
+     */
+    boolean isConstantLocation();
+
+    /**
+     * Determine whether the value handle eventually refers to a value which is constant.
+     *
+     * @return {@code true} if the handle is always in the same location, or {@code false} otherwise
+     */
+    boolean isValueConstant();
+
+    /**
      * Get the detected access mode for this handle.
      *
      * @return the detected access mode for this handle (must not be {@code null})
@@ -51,4 +65,5 @@ public interface ValueHandle extends Unschedulable {
     <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param);
 
     <T> long accept(ValueHandleVisitorLong<T> visitor, T param);
+
 }

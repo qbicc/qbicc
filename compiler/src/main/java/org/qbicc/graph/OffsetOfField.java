@@ -40,6 +40,11 @@ public final class OffsetOfField extends AbstractValue {
         return false;
     }
 
+    @Override
+    public boolean isConstant() {
+        return true;
+    }
+
     public boolean equals(final Object other) {
         return other instanceof OffsetOfField && equals((OffsetOfField) other);
     }

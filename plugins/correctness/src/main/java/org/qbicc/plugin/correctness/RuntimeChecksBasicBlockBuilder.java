@@ -298,7 +298,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
             private Value visit(InstanceMethodElementHandle node) {
                 MethodElement target = node.getExecutable();
-                if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
+                if (! target.hasMethodBodyFactory() && target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
                     null == Intrinsics.get(ctxt).getInstanceIntrinsic(Phase.ANALYZE, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor()) &&
                     null == Intrinsics.get(ctxt).getInstanceIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
                     throwUnsatisfiedLinkError();
@@ -316,7 +316,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             @Override
             public Value visit(Void param, StaticMethodElementHandle node) {
                 MethodElement target = node.getExecutable();
-                if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) && !target.getEnclosingType().internalPackageAndNameEquals("org/qbicc/runtime", "CNative") &&
+                if (! target.hasMethodBodyFactory() && target.hasAllModifiersOf(ClassFile.ACC_NATIVE) && !target.getEnclosingType().internalPackageAndNameEquals("org/qbicc/runtime", "CNative") &&
                     null == Intrinsics.get(ctxt).getStaticIntrinsic(Phase.ANALYZE, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor()) &&
                     null == Intrinsics.get(ctxt).getStaticIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
                     throwUnsatisfiedLinkError();

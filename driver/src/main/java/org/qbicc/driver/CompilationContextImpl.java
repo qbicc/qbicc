@@ -43,6 +43,7 @@ import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.NativeMethodConfigurator;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.Element;
@@ -84,8 +85,9 @@ final class CompilationContextImpl implements CompilationContext {
     private volatile BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
     private volatile BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> copier;
     private final Vm vm;
+    private final NativeMethodConfigurator nativeMethodConfigurator;
 
-    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory, BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder, Function<CompilationContext, Vm> vmFactory, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories, List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories) {
+    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory, BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder, Function<CompilationContext, Vm> vmFactory, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories, List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories, NativeMethodConfigurator nativeMethodConfigurator) {
         this.baseDiagnosticContext = baseDiagnosticContext;
         this.platform = platform;
         this.typeSystem = typeSystem;
@@ -94,6 +96,7 @@ final class CompilationContextImpl implements CompilationContext {
         this.resolverFactories = resolverFactories;
         bootstrapClassContext = new ClassContextImpl(this, null, bootstrapFinder);
         this.typeBuilderFactories = typeBuilderFactories;
+        this.nativeMethodConfigurator = nativeMethodConfigurator;
         qbiccBoundThread = getLiteralFactory().literalOfSymbol("_qbicc_bound_thread", getTypeSystem().getVoidType().getPointer().asCollected().getPointer());
         // last!
         this.vm = vmFactory.apply(this);
@@ -240,6 +243,11 @@ final class CompilationContextImpl implements CompilationContext {
         return queued.contains(element);
     }
 
+    @Override
+    public NativeMethodConfigurator getNativeMethodConfigurator() {
+        return nativeMethodConfigurator;
+    }
+
     public ExecutableElement dequeue() {
         synchronized (queue) {
             return queue.poll();
@@ -340,9 +348,6 @@ final class CompilationContextImpl implements CompilationContext {
 
     @Override
     public org.qbicc.object.Function getExactFunctionIfExists(final ExecutableElement element) {
-        if (element.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
-            throw new IllegalArgumentException("Cannot get function of native method");
-        }
         return exactFunctions.get(element);
     }
 

@@ -13,6 +13,10 @@ public interface BinaryValue extends Value {
         return getLeftInput().getType();
     }
 
+    default boolean isConstant() {
+        return getLeftInput().isConstant() && getRightInput().isConstant();
+    }
+
     default int getValueDependencyCount() {
         return 2;
     }

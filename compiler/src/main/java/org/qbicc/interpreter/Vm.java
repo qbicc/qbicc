@@ -25,6 +25,11 @@ public interface Vm {
     CompilationContext getCompilationContext();
 
     /**
+     * Perform VM initialization in the currently attached thread.
+     */
+    void initialize();
+
+    /**
      * Create a new thread.
      *
      * @param threadName the thread name

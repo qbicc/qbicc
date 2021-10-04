@@ -38,6 +38,7 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.NativeMethodConfigurator;
 import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -83,6 +84,10 @@ public class TestClassContext implements ClassContext {
 
         public boolean wasEnqueued(final ExecutableElement element) {
             return false;
+        }
+
+        public NativeMethodConfigurator getNativeMethodConfigurator() {
+            return null;
         }
 
         public ExecutableElement dequeue() {

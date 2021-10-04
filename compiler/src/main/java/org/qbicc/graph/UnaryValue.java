@@ -12,6 +12,10 @@ public interface UnaryValue extends Value {
         return getInput().getType();
     }
 
+    default boolean isConstant() {
+        return getInput().isConstant();
+    }
+
     default int getValueDependencyCount() {
         return 1;
     }

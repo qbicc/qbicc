@@ -54,4 +54,14 @@ public interface Value extends Node {
     default boolean isNullable() {
         return true;
     }
+
+    /**
+     * Determine whether this value is definitely constant. Constants are defined as literals or pure expressions whose
+     * inputs are definitely constant.
+     *
+     * @return {@code true} if this value is definitely constant, or {@code false} if it is not definitely constant
+     */
+    default boolean isConstant() {
+        return false;
+    }
 }

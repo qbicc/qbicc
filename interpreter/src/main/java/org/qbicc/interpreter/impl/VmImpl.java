@@ -1,9 +1,19 @@
 package org.qbicc.interpreter.impl;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
@@ -17,6 +27,7 @@ import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
+import org.qbicc.machine.arch.Platform;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ClassObjectType;
@@ -33,6 +44,7 @@ public final class VmImpl implements Vm {
     private final Map<GlobalVariableElement, Memory64Impl> globals = new ConcurrentHashMap<>();
     private final Map<String, VmStringImpl> interned = new ConcurrentHashMap<>();
     private final VmClassLoaderImpl bootstrapClassLoader;
+    private final AtomicBoolean initialized = new AtomicBoolean();
 
     final boolean wideRefs;
     final MemoryImpl emptyMemory;
@@ -93,6 +105,11 @@ public final class VmImpl implements Vm {
     final VmThrowableClassImpl noSuchMethodErrorClass;
 
     final VmClassImpl stackTraceElementClass;
+
+    // regular classes
+    volatile VmClassImpl propertiesClass;
+
+    volatile MethodElement setPropertyMethod;
 
     VmImpl(final CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -173,11 +190,6 @@ public final class VmImpl implements Vm {
 
         refArrayContentOffset = layout.getInstanceLayoutInfo(coreClasses.getReferenceArrayTypeDefinition()).getMember(coreClasses.getRefArrayContentField()).getOffset();
 
-        LoadedTypeDefinition vmHelpersType = bcc.findDefinedType("org/qbicc/runtime/main/VMHelpers").load();
-        VmClassImpl vmHelpersClass = new VmClassImpl(this, classClass, vmHelpersType, null);
-        LoadedTypeDefinition objectModelType = bcc.findDefinedType("org/qbicc/runtime/main/ObjectModel").load();
-        VmClassImpl objectModelClass = new VmClassImpl(this, classClass, objectModelType, null);
-
         classClass.setName(this);
         objectClass.setName(this);
         classLoaderClass.setName(this);
@@ -202,9 +214,6 @@ public final class VmImpl implements Vm {
         doubleArrayClass.setName(this);
         charArrayClass.setName(this);
         booleanArrayClass.setName(this);
-
-        vmHelpersClass.setName(this);
-        objectModelClass.setName(this);
 
         // throwables
         errorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/Error").load(), null);
@@ -244,33 +253,8 @@ public final class VmImpl implements Vm {
         bootstrapClassLoader.registerClass("java/lang/NoClassDefFoundError", noClassDefFoundErrorClass);
         bootstrapClassLoader.registerClass("java/lang/NoSuchMethodError", noSuchMethodErrorClass);
 
-        bootstrapClassLoader.registerClass("org/qbicc/runtime/main/VMHelpers", vmHelpersClass);
-        bootstrapClassLoader.registerClass("org/qbicc/runtime/main/ObjectModel", objectModelClass);
+        bootstrapClassLoader.registerClass("java/lang/StackTraceElement", stackTraceElementClass);
 
-        // hooks
-        int get_classIdx = vmHelpersType.findMethodIndex(me -> me.nameEquals("get_class"));
-        MethodElement get_classElement = vmHelpersType.getMethod(get_classIdx);
-        vmHelpersClass.registerInvokable(get_classElement, (thread, target, args) -> ((VmObjectImpl) args.get(0)).getVmClass());
-
-        int type_id_ofIdx = objectModelType.findMethodIndex(me -> me.nameEquals("type_id_of"));
-        MethodElement type_id_ofElement = objectModelType.getMethod(type_id_ofIdx);
-        objectModelClass.registerInvokable(type_id_ofElement, (thread, target, args) -> ((VmObjectImpl) args.get(0)).getObjectTypeId());
-
-        int classForNameIdx = vmHelpersType.findMethodIndex(me -> me.nameEquals("classForName"));
-        MethodElement classForNameElement = vmHelpersType.getMethod(classForNameIdx);
-        vmHelpersClass.registerInvokable(classForNameElement, (thread, target, args) -> {
-            VmClassLoaderImpl classLoader = (VmClassLoaderImpl) args.get(2);
-            if (classLoader == null) {
-                classLoader = bootstrapClassLoader;
-            }
-            VmClassImpl clazz = classLoader.loadClass(((VmStringImpl) args.get(0)).getContent().replace('.', '/'));
-            if (((Boolean) args.get(1)).booleanValue()) {
-                clazz.initialize((VmThreadImpl) thread);
-            }
-            return clazz;
-        });
-
-        bootstrapComplete = true;
         throwableClass.initializeConstantStaticFields(); // Has constant String fields that can't be initialized when we first process the class
     }
 
@@ -280,6 +264,158 @@ public final class VmImpl implements Vm {
 
     public CompilationContext getCompilationContext() {
         return ctxt;
+    }
+
+    @Override
+    public void initialize() {
+        VmThreadImpl vmThread = (VmThreadImpl) Vm.requireCurrentThread();
+        if (initialized.compareAndSet(false, true)) {
+
+            propertiesClass = bootstrapClassLoader.loadClass("java/util/Properties");
+
+            LoadedTypeDefinition propertiesTypeDef = propertiesClass.getTypeDefinition();
+            int idx = propertiesTypeDef.findSingleMethodIndex(me -> me.nameEquals("setProperty"));
+            if (idx == -1) {
+                throw new IllegalStateException("Missing required method in VM");
+            }
+            setPropertyMethod = propertiesTypeDef.getMethod(idx);
+
+
+            // Register all hooks
+            VmClassLoaderImpl bootstrapClassLoader = this.bootstrapClassLoader;
+
+            // VMHelpers
+            VmClassImpl vmHelpersClass = bootstrapClassLoader.loadClass("org/qbicc/runtime/main/VMHelpers");
+
+            vmHelpersClass.registerInvokable("get_class", (thread, target, args) -> ((VmObjectImpl) args.get(0)).getVmClass());
+            vmHelpersClass.registerInvokable("classForName", (thread, target, args) -> {
+                VmClassLoaderImpl classLoader = (VmClassLoaderImpl) args.get(2);
+                if (classLoader == null) {
+                    classLoader = bootstrapClassLoader;
+                }
+                VmClassImpl clazz = classLoader.loadClass(((VmStringImpl) args.get(0)).getContent().replace('.', '/'));
+                if (((Boolean) args.get(1)).booleanValue()) {
+                    clazz.initialize((VmThreadImpl) thread);
+                }
+                return clazz;
+            });
+
+            // ObjectModel
+            VmClassImpl objectModelClass = bootstrapClassLoader.loadClass("org/qbicc/runtime/main/ObjectModel");
+
+            objectModelClass.registerInvokable("type_id_of", (thread, target, args) -> ((VmObjectImpl) args.get(0)).getObjectTypeId());
+
+            // Unsafe
+            VmClassImpl unsafeClass = bootstrapClassLoader.loadClass("jdk/internal/misc/Unsafe");
+
+            unsafeClass.registerInvokable("ensureClassInitialized", (thread, target, args) -> {
+                ((VmClassImpl) args.get(0)).initialize((VmThreadImpl) thread);
+                return null;
+            });
+
+            // System
+            VmClassImpl systemClass = bootstrapClassLoader.loadClass("java/lang/System");
+
+            systemClass.registerInvokable("nanoTime", (thread, target, args) -> Long.valueOf(System.nanoTime()));
+            systemClass.registerInvokable("currentTimeMillis", (thread, target, args) -> Long.valueOf(System.currentTimeMillis()));
+            systemClass.registerInvokable("initProperties", this::initProperties);
+
+            //    private static native void initStackTraceElements(StackTraceElement[] elements,
+            //                                                      Throwable x);
+
+            // StackTraceElement
+            VmClassImpl stackTraceElementClass = bootstrapClassLoader.loadClass("java/lang/StackTraceElement");
+
+            stackTraceElementClass.registerInvokable("initStackTraceElements", (thread, target, args) -> {
+                VmArrayImpl stackTrace = (VmArrayImpl) args.get(0);
+                VmThrowableImpl throwable = (VmThrowableImpl) args.get(1);
+                throwable.initStackTraceElements(stackTrace);
+                return null;
+            });
+
+            // String
+            VmClassImpl stringClass = bootstrapClassLoader.loadClass("java/lang/String");
+
+            stringClass.registerInvokable("intern", (thread, target, args) -> intern((VmStringImpl) target));
+
+            // Thread
+            VmClassImpl threadNativeClass = bootstrapClassLoader.loadClass("java/lang/Thread");
+
+            threadNativeClass.registerInvokable("yield", (thread, target, args) -> {
+                Thread.yield();
+                return null;
+            });
+
+            // Throwable
+            VmClassImpl throwableClass = bootstrapClassLoader.loadClass("java/lang/Throwable");
+
+            idx = throwableClass.getTypeDefinition().findSingleMethodIndex(me -> me.nameEquals("fillInStackTrace") && me.getParameters().size() == 1);
+            threadNativeClass.registerInvokable(throwableClass.getTypeDefinition().getMethod(idx), (thread, target, args) -> {
+                ((VmThrowableImpl)target).fillInStackTrace();
+                return null;
+            });
+
+            // Now execute system initialization
+            LoadedTypeDefinition systemType = systemClass.getTypeDefinition();
+            // phase 1
+            invokeExact(systemType.getMethod(systemType.findSingleMethodIndex(me -> me.nameEquals("initPhase1"))), null, List.of());
+        }
+    }
+
+    private Object initProperties(final VmThread thread, final VmObject target, final List<Object> args) {
+        VmObjectImpl props = (VmObjectImpl) args.get(0);
+        URL propsResource = VmImpl.class.getClassLoader().getResource("system.properties");
+        Properties properties = new Properties();
+        if (propsResource != null) {
+            try (InputStream is = propsResource.openStream()) {
+                try (InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+                    try (BufferedReader br = new BufferedReader(isr)) {
+                        properties.load(br);
+                    }
+                }
+            } catch (IOException e) {
+                throw new IllegalStateException("Initial system properties could not be loaded");
+            }
+        } else {
+            throw new IllegalStateException("Initial system properties could not be loaded");
+        }
+        // qbicc global fixed properties
+        for (String name : properties.stringPropertyNames()) {
+            setProperty(props, name, properties.getProperty(name));
+        }
+        // environment-specific properties
+        Platform platform = ctxt.getPlatform();
+        setProperty(props, "file.encoding", "UTF-8"); // only UTF-8
+        setProperty(props, "file.separator", platform.getOs().getFileSeparator());
+
+        // todo: java.class.path composed from command line
+        setProperty(props, "java.home", System.getProperty("java.home")); // todo: spec must allow this to be undef
+        setProperty(props, "java.io.tmpdir", System.getProperty("java.io.tmpdir")); // todo: reset at run time
+        setProperty(props, "java.library.path", ""); // todo: JNI
+        setProperty(props, "line.separator", platform.getOs().getLineSeparator());
+        setProperty(props, "os.name", platform.getOs().getName());
+        setProperty(props, "os.arch", platform.getCpu().getName());
+        // todo: os.version
+        setProperty(props, "path.separator", platform.getOs().getPathSeparator());
+
+        setProperty(props, "user.country", Locale.getDefault().getCountry()); // todo: user-set locale on command line
+        // todo: user.dir as a virtual directory, reset at run time
+        // todo: user.home as a virtual directory, reset at run time
+        setProperty(props, "user.language", Locale.getDefault().getLanguage()); // todo: user-set locale on command line
+        // todo: user.name as temp user, reset at run time
+        setProperty(props, "user.timezone", ""); // todo: reset at run time
+
+        // these are non-spec but used by the JDK or other things
+        setProperty(props, "sun.arch.data.model", String.valueOf(platform.getCpu().getCpuWordSize() << 3));
+        // todo: sun.boot.library.path from command line
+        setProperty(props, "sun.cpu.endian", ctxt.getTypeSystem().getEndianness() == ByteOrder.BIG_ENDIAN ? "big" : "little");
+        setProperty(props, "sun.jnu.encoding", "UTF-8");
+
+        return props;
+    }
+
+    void setProperty(VmObjectImpl properties, String key, String value) {
+        invokeVirtual(setPropertyMethod, properties, List.of(intern(key), intern(value)));
     }
 
     public VmThread newThread(final String threadName, final VmObject threadGroup, final boolean daemon) {

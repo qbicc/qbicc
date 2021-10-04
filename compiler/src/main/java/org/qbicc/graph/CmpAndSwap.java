@@ -42,12 +42,13 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
             throw new IllegalArgumentException("Handle is not readable");
         }
 
-        /* expected and update value must have the same type, target must be a pointer to that type. */
-        if (!expectedValue.getType().equals(updateValue.getType())
-             || !expectedValue.getType().equals(target.getPointerType().getPointeeType())
+        ValueType targetType = target.getValueType();
+        /* expected and update value both be assignable to the handle. */
+        if (! targetType.isImplicitlyConvertibleFrom(expectedValue.getType())
+             || !targetType.isImplicitlyConvertibleFrom(updateValue.getType())
         ) {
             throw new IllegalArgumentException("The target, expected and new value types must agree.");
-        };
+        }
 
         /* ordering params must be at least MONOTONIC */
         if ((0 > successAtomicityMode.compareTo(MemoryAtomicityMode.MONOTONIC))
@@ -123,6 +124,11 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    public boolean isConstant() {
+        // we could possibly make this more exact in the future
+        return false;
     }
 
     public static CompoundType getResultType(CompilationContext ctxt, ValueType valueType) {

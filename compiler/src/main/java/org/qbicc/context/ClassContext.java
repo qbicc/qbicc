@@ -28,6 +28,7 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.MethodSignature;

@@ -84,4 +84,8 @@ public final class Call extends AbstractValue implements OrderedNode {
     public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
+
+    public boolean isConstant() {
+        return false;
+    }
 }

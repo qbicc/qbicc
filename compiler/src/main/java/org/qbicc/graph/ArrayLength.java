@@ -36,6 +36,11 @@ public final class ArrayLength extends AbstractValue implements OrderedNode {
         return visitor.visit(param, this);
     }
 
+    public boolean isConstant() {
+        // todo: fix this; it's not strictly correct, the array length is also constant any time just the length is a constant.
+        return instance.isValueConstant();
+    }
+
     @Override
     public boolean hasValueHandleDependency() {
         return true;

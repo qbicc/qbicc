@@ -9,7 +9,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 /**
  * An extracted element of an array value.
  */
-public final class ExtractElement extends AbstractValue implements Unschedulable {
+public final class ExtractElement extends AbstractValue {
     private final Value arrayValue;
     private final ArrayType arrayType;
     private final Value index;
@@ -65,5 +65,9 @@ public final class ExtractElement extends AbstractValue implements Unschedulable
     @Override
     public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
+    }
+
+    public boolean isConstant() {
+        return arrayValue.isConstant() && index.isConstant();
     }
 }

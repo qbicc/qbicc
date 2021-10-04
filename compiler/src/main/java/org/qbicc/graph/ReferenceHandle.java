@@ -64,6 +64,15 @@ public final class ReferenceHandle extends AbstractValueHandle {
         return false;
     }
 
+    public boolean isConstantLocation() {
+        return false;
+    }
+
+    @Override
+    public boolean isValueConstant() {
+        return referenceValue.isConstant();
+    }
+
     @Override
     public MemoryAtomicityMode getDetectedMode() {
         return MemoryAtomicityMode.UNORDERED;

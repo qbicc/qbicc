@@ -37,6 +37,16 @@ public final class MemberOf extends AbstractValueHandle {
     }
 
     @Override
+    public boolean isConstantLocation() {
+        return structureHandle.isConstantLocation();
+    }
+
+    @Override
+    public boolean isValueConstant() {
+        return structureHandle.isValueConstant();
+    }
+
+    @Override
     public MemoryAtomicityMode getDetectedMode() {
         return structureHandle.getDetectedMode();
     }
