@@ -3,6 +3,7 @@ package org.qbicc.interpreter.impl;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
@@ -31,7 +32,11 @@ final class VmStringImpl extends VmObjectImpl implements VmString {
         if (latin1) {
             bytes = content.getBytes(StandardCharsets.ISO_8859_1);
         } else {
-            bytes = content.getBytes(StandardCharsets.UTF_16BE);
+            if (vm.getCompilationContext().getTypeSystem().getEndianness() == ByteOrder.BIG_ENDIAN) {
+                bytes = content.getBytes(StandardCharsets.UTF_16BE);
+            } else {
+                bytes = content.getBytes(StandardCharsets.UTF_16LE);
+            }
         }
         VmArray byteArray = vm.allocateArray(bytes);
         MemoryImpl memory = getMemory();
