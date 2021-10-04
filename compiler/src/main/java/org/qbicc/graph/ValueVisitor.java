@@ -417,7 +417,7 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, CallNoSideEffects node) {
-            return ValueVisitor.super.visit(param, node);
+            return getDelegateValueVisitor().visit(param, node);
         }
 
         default R visit(T param, CheckCast node) {
