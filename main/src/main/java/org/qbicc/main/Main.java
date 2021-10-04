@@ -85,6 +85,7 @@ import org.qbicc.plugin.native_.PointerTypeResolver;
 import org.qbicc.plugin.native_.StructMemberAccessBasicBlockBuilder;
 import org.qbicc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
 import org.qbicc.plugin.opt.GotoRemovingVisitor;
+import org.qbicc.plugin.opt.InitializedStaticFieldBasicBlockBuilder;
 import org.qbicc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
 import org.qbicc.plugin.opt.InliningBasicBlockBuilder;
 import org.qbicc.plugin.opt.PhiOptimizerVisitor;
@@ -379,6 +380,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 if (optPhis) {
                                     builder.addCopyFactory(Phase.ANALYZE, PhiOptimizerVisitor::new);
+                                }
+                                if (initBuildTime) {
+                                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, InitializedStaticFieldBasicBlockBuilder::new);
                                 }
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, ThreadLocalBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
