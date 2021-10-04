@@ -19,3 +19,4 @@ a.out
 *.class
 *.jar
 *.versionsBackup
+hs_err*.log
