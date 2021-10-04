@@ -2,6 +2,8 @@
 
 This is the `README` for qbicc.  There's not much here yet but be sure to read link:Overview.adoc[the overview].
 
+Our https://qbicc.zulipchat.com[`Zulip`] chat is a great place to ask questions and get started.
+
 == Building
 
 To build the project, execute `mvn install` in the root.
