@@ -25,6 +25,7 @@
         <version.org.jboss.logging>3.4.2.Final</version.org.jboss.logging>
         <version.org.jboss.logmanager>2.1.18.Final</version.org.jboss.logmanager>
         <version.org.ow2.asm>9.2</version.org.ow2.asm>
+        <version.compiler.plugin>3.8.1</version.compiler.plugin>
     </properties>
 
     <packaging>pom</packaging>
