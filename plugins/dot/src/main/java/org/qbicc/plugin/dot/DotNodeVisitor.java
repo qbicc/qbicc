@@ -20,6 +20,7 @@ import org.qbicc.graph.ArrayLength;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEntry;
+import org.qbicc.graph.ByteSwap;
 import org.qbicc.graph.Call;
 import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
@@ -827,6 +828,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final BooleanLiteral node) {
         return literal(param, String.valueOf(node.booleanValue()));
+    }
+
+    public String visit(final Appendable param, final ByteSwap node) {
+        return node(param, "byte swap", node);
     }
 
     public String visit(final Appendable param, final Call node) {

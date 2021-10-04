@@ -26,7 +26,9 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
+import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 
@@ -93,6 +95,20 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         FunctionType functionType = tps.getFunctionType(numericType, numericType, numericType);
         FunctionDeclaration declaration = ctxt.getImplicitSection(getRootElement()).declareFunction(null, funcName, functionType);
         return getFirstBuilder().callNoSideEffects(functionOf(declaration), List.of(v1, v2));
+    }
+
+    @Override
+    public Value byteSwap(Value v) {
+        TypeSystem tps = ctxt.getTypeSystem();
+        IntegerType inputType = (IntegerType) v.getType();
+        FunctionType functionType = tps.getFunctionType(inputType, inputType);
+        int minBits = inputType.getMinBits();
+        if ((minBits & 0xF) != 0) {
+            throw new IllegalArgumentException("Invalid integer type " + inputType + " for byte swap (must be a multiple of 16 bits)");
+        }
+        String functionName = "llvm.bswap.i" + minBits;
+        FunctionDeclaration declaration = ctxt.getImplicitSection(getRootElement()).declareFunction(null, functionName, functionType);
+        return getFirstBuilder().callNoSideEffects(functionOf(declaration), List.of(v));
     }
 
     @Override

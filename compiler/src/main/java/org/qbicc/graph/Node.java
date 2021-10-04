@@ -482,6 +482,10 @@ public interface Node {
                 return node;
             }
 
+            public Value visit(final Copier param, final ByteSwap node) {
+                return param.getBlockBuilder().byteSwap(param.copyValue(node.getInput()));
+            }
+
             public Value visit(final Copier param, final Call node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().call(param.copyValueHandle(node.getValueHandle()), param.copyValues(node.getArguments()));
