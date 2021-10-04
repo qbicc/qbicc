@@ -1,6 +1,5 @@
 package org.qbicc.graph;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,8 +24,9 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
     private final CompoundType resultType;
     private final MemoryAtomicityMode successAtomicityMode;
     private final MemoryAtomicityMode failureAtomicityMode;
+    private final Strength strength;
 
-    CmpAndSwap(final Node callSite, final ExecutableElement element, final int line, final int bci, final CompoundType resultType, final Node dependency, final ValueHandle target, final Value expectedValue, final Value updateValue, final MemoryAtomicityMode successAtomicityMode, final MemoryAtomicityMode failureAtomicityMode) {
+    CmpAndSwap(final Node callSite, final ExecutableElement element, final int line, final int bci, final CompoundType resultType, final Node dependency, final ValueHandle target, final Value expectedValue, final Value updateValue, final MemoryAtomicityMode successAtomicityMode, final MemoryAtomicityMode failureAtomicityMode, Strength strength) {
         super(callSite, element, line, bci);
         this.resultType = resultType;
         this.dependency = dependency;
@@ -35,6 +35,7 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
         this.updateValue = updateValue;
         this.successAtomicityMode = successAtomicityMode;
         this.failureAtomicityMode = failureAtomicityMode;
+        this.strength = strength;
         if (! target.isWritable()) {
             throw new IllegalArgumentException("Handle is not writable");
         }
@@ -103,6 +104,10 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
         return failureAtomicityMode;
     }
 
+    public Strength getStrength() {
+        return strength;
+    }
+
     public boolean equals(final Object other) {
         return other instanceof CmpAndSwap && equals((CmpAndSwap) other);
     }
@@ -111,7 +116,7 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
         return this == other || other != null && dependency.equals(other.dependency) && target.equals(other.target)
             && expectedValue.equals(other.expectedValue) && updateValue.equals(other.updateValue)
             && resultType.equals(other.resultType) && successAtomicityMode == other.successAtomicityMode
-            && failureAtomicityMode == other.failureAtomicityMode;
+            && failureAtomicityMode == other.failureAtomicityMode && strength == other.strength;
     }
 
     public int getValueDependencyCount() {
@@ -172,5 +177,11 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
      */
     public CompoundType.Member getResultFlagType() {
         return this.resultType.getMember(1);
+    }
+
+    public enum Strength {
+        WEAK,
+        STRONG,
+        ;
     }
 }

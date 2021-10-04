@@ -1,6 +1,5 @@
 package org.qbicc.machine.llvm.impl;
 
-import io.smallrye.common.constraint.Assert;
 import org.qbicc.machine.llvm.LLValue;
 import org.qbicc.machine.llvm.op.CmpAndSwap;
 import org.qbicc.machine.llvm.op.OrderingConstraint;
@@ -41,6 +40,11 @@ final class CmpAndSwapImpl extends AbstractYieldingInstruction implements CmpAnd
 
     public CmpAndSwap meta(final String name, final LLValue data) {
         return (CmpAndSwap)super.meta(name, data);
+    }
+
+    public CmpAndSwap weak() {
+        weak = true;
+        return this;
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {

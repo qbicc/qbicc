@@ -1194,6 +1194,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         OrderingConstraint failureOrdering = getOC(node.getFailureAtomicityMode());
         org.qbicc.machine.llvm.op.CmpAndSwap cmpAndSwapBuilder = builder.cmpAndSwap(
             ptrType, type, ptr, expect, update, successOrdering, failureOrdering);
+        if (node.getStrength() == CmpAndSwap.Strength.WEAK) {
+            cmpAndSwapBuilder.weak();
+        }
         return cmpAndSwapBuilder.asLocal();
     }
 
