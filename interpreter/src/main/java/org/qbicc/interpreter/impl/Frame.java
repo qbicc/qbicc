@@ -86,6 +86,7 @@ import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
+import org.qbicc.graph.PopCount;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Ret;
 import org.qbicc.graph.Return;
@@ -1082,6 +1083,22 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return box(unboxInt(left) | unboxInt(right), node.getType());
         } else if (isBool(inputType)) {
             return Boolean.valueOf(unboxBool(left) | unboxBool(right));
+        }
+        throw badInputType();
+    }
+
+    @Override
+    public Object visit(VmThreadImpl param, PopCount node) {
+        Value input = node.getInput();
+        ValueType inputType = input.getType();
+        if (isInt64(inputType)) {
+            return box(Long.bitCount(unboxLong(input)), node.getType());
+        } else if (isInt32(inputType)) {
+            return box(Integer.bitCount(unboxInt(input)), node.getType());
+        } else if (isInt16(inputType)) {
+            return box(Integer.bitCount(unboxInt(input) & 0x0000ffff), node.getType());
+        } else if (isInt8(inputType)) {
+            return box(Integer.bitCount(unboxInt(input) & 0x000000ff), node.getType());
         }
         throw badInputType();
     }

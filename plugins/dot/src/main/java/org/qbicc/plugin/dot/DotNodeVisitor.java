@@ -98,6 +98,7 @@ import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
+import org.qbicc.graph.PopCount;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Ret;
 import org.qbicc.graph.Return;
@@ -1156,6 +1157,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         phiQueue.add(node);
         return name;
+    }
+
+    public String visit(final Appendable param, final PopCount node) {
+        return node(param, "pop count", node);
     }
 
     public String visit(final Appendable param, final Rol node) {

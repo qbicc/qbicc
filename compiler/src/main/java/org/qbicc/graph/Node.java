@@ -795,6 +795,10 @@ public interface Node {
                 return param.getBlockBuilder().phi(node.getType(), param.copyBlock(node.getPinnedBlock()), node.possibleValuesAreNullable() ? NO_FLAGS : NOT_NULL_FLAGS);
             }
 
+            public Value visit(final Copier param, final PopCount node) {
+                return param.getBlockBuilder().populationCount(param.copyValue(node.getInput()));
+            }
+
             public Value visit(Copier param, ReferenceTo node) {
                 return param.getBlockBuilder().referenceTo(param.copyValueHandle(node.getValueHandle()));
             }

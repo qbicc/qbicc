@@ -317,6 +317,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, PopCount node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, ReferenceTo node) {
         return visitUnknown(param, node);
     }
@@ -669,6 +673,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, PhiValue node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, PopCount node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
