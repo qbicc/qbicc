@@ -324,11 +324,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value countLeadingZeros(final Value v) {
-        throw Assert.unsupported();
+        return new CountLeadingZeros(callSite, element, line, bci, v, typeSystem.getSignedInteger32Type());
     }
 
     public Value countTrailingZeros(final Value v) {
-        throw Assert.unsupported();
+        return new CountTrailingZeros(callSite, element, line, bci, v, typeSystem.getSignedInteger32Type());
     }
 
     public Value populationCount(final Value v) {

@@ -514,6 +514,14 @@ public interface Node {
                 return param.getBlockBuilder().clone(param.copyValue(node.getInput()));
             }
 
+            public Value visit(final Copier param, final CountLeadingZeros node) {
+                return param.getBlockBuilder().countLeadingZeros(param.copyValue(node.getInput()));
+            }
+
+            public Value visit(final Copier param, final CountTrailingZeros node) {
+                return param.getBlockBuilder().countTrailingZeros(param.copyValue(node.getInput()));
+            }
+
             public Value visit(Copier param, Cmp node) {
                 return param.getBlockBuilder().cmp(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }

@@ -36,6 +36,8 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
 import org.qbicc.graph.ConstructorElementHandle;
+import org.qbicc.graph.CountLeadingZeros;
+import org.qbicc.graph.CountTrailingZeros;
 import org.qbicc.graph.DataDeclarationHandle;
 import org.qbicc.graph.DataHandle;
 import org.qbicc.graph.DebugAddressDeclaration;
@@ -889,6 +891,14 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         dependencyList.add(name);
         processDependency(param, node.getDependency());
         return name;
+    }
+
+    public String visit(final Appendable param, final CountLeadingZeros node) {
+        return node(param, "clz", node);
+    }
+
+    public String visit(final Appendable param, final CountTrailingZeros node) {
+        return node(param, "ctz", node);
     }
 
     public String visit(final Appendable param, final Convert node) {
