@@ -72,6 +72,10 @@ public interface ValueHandleVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, UnsafeHandle node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, PointerHandle node) {
         return visitUnknown(param, node);
     }
@@ -165,6 +169,11 @@ public interface ValueHandleVisitor<T, R> {
 
         @Override
         default R visit(T param, StaticMethodElementHandle node) {
+            return getDelegateValueHandleVisitor().visit(param, node);
+        }
+
+        @Override
+        default R visit(T param, UnsafeHandle node) {
             return getDelegateValueHandleVisitor().visit(param, node);
         }
 

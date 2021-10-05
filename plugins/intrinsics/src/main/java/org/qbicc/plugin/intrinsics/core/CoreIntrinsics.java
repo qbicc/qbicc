@@ -1741,7 +1741,7 @@ public final class CoreIntrinsics {
             Value offset = arguments.get(1);
             Value incr = arguments.get(2);
 
-            ValueHandle handle = computeUnsafeHandle(ctxt, builder, obj, offset, ctxt.getTypeSystem().getSignedInteger32Type());
+            ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, ctxt.getTypeSystem().getSignedInteger32Type());
             if (handle == null) {
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(obj.getType());
             }
@@ -1761,10 +1761,7 @@ public final class CoreIntrinsics {
                 ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getType();
                 expectType = objectType.getReference();
             }
-            ValueHandle handle = computeUnsafeHandle(ctxt, builder, obj, offset, expectType);
-            if (handle == null) {
-                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(obj.getType());
-            }
+            ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, expectType);
             Value result = builder.cmpAndSwap(handle, expect, update, MemoryAtomicityMode.ACQUIRE_RELEASE, MemoryAtomicityMode.MONOTONIC, CmpAndSwap.Strength.STRONG);
             // simulate volatile
             builder.fence(MemoryAtomicityMode.ACQUIRE_RELEASE);
@@ -1782,10 +1779,7 @@ public final class CoreIntrinsics {
             Value offset = arguments.get(1);
             CoreClasses coreClasses = CoreClasses.get(ctxt);
             ObjectType objectType = coreClasses.getObjectTypeIdField().getEnclosingType().load().getType();
-            ValueHandle handle = computeUnsafeHandle(ctxt, builder, obj, offset, objectType.getReference());
-            if (handle == null) {
-                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(obj.getType());
-            }
+            ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, objectType.getReference());
             return builder.load(handle, MemoryAtomicityMode.ACQUIRE);
         };
 
@@ -1799,14 +1793,6 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "storeFence", emptyToVoid, storeFence);
-    }
-
-    private static ValueHandle computeUnsafeHandle(final CompilationContext ctxt, final BasicBlockBuilder builder, final Value obj, final Value offset, ValueType outputType) {
-        // detect an offset from an array-typed field
-        // todo: introduce better optimizations in later stages
-        UnsignedIntegerType u8 = ctxt.getTypeSystem().getUnsignedInteger8Type();
-        ValueHandle valueHandle = builder.elementOf(builder.pointerHandle(builder.bitCast(obj, u8.getPointer())), offset);
-        return builder.pointerHandle(builder.bitCast(builder.addressOf(valueHandle), outputType.getPointer()));
     }
 
     private static Value traverseLoads(Value value) {

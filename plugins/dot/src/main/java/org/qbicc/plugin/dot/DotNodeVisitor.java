@@ -117,6 +117,7 @@ import org.qbicc.graph.Truncate;
 import org.qbicc.graph.TypeIdOf;
 import org.qbicc.graph.UnaryValue;
 import org.qbicc.graph.Unreachable;
+import org.qbicc.graph.UnsafeHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueReturn;
@@ -435,6 +436,17 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         attr(param, "label", "method (static)\\n" + node.getExecutable());
         nl(param);
+        return name;
+    }
+
+    public String visit(final Appendable param, final UnsafeHandle node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "unsafeHandle");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getOffset(), EdgeType.VALUE_DEPENDENCY);
         return name;
     }
 

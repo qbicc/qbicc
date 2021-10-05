@@ -123,6 +123,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().elementOf(array, index);
     }
 
+    public ValueHandle unsafeHandle(final ValueHandle base, final Value offset, final ValueType outputType) {
+        return getDelegate().unsafeHandle(base, offset, outputType);
+    }
+
     public ValueHandle pointerHandle(Value pointer) {
         return getDelegate().pointerHandle(pointer);
     }
