@@ -316,7 +316,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value byteSwap(final Value v) {
-        throw Assert.unsupported();
+        return new ByteSwap(callSite, element, line, bci, v);
     }
 
     public Value bitReverse(final Value v) {
