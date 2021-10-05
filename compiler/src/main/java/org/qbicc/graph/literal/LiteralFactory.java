@@ -48,8 +48,6 @@ public interface LiteralFactory {
 
     ObjectLiteral literalOf(VmObject value);
 
-    FunctionParameterLiteral functionLiteralOf(String name, ValueType type);
-
     MethodHandleLiteral literalOfMethodHandle(int referenceKind, int referenceIndex);
 
     MethodDescriptorLiteral literalOfMethodDescriptor(String descriptor);
@@ -221,12 +219,6 @@ public interface LiteralFactory {
                     }
                 }
                 return zeroInitializerLiteralOfType(type);
-            }
-
-            public FunctionParameterLiteral functionLiteralOf(String name, ValueType type) {
-                Assert.checkNotNullParam("name", name);
-                Assert.checkNotNullParam("type", type);
-                return new FunctionParameterLiteral(name, type);
             }
 
             public Literal literalOf(final CompoundType type, final Map<CompoundType.Member, Literal> values) {

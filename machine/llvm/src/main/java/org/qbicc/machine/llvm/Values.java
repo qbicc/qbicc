@@ -38,10 +38,6 @@ public final class Values {
         return LLVM.ptrtointConstant(value, fromType, toType);
     }
 
-    public static LLValue functionParameterConstant(String name) {
-        return LLVM.functionParameterConstant(name);
-    }
-
     public static DIExpression diExpression() {
         return LLVM.diExpression();
     }

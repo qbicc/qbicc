@@ -127,7 +127,6 @@ import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
-import org.qbicc.graph.literal.FunctionParameterLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.MethodDescriptorLiteral;
 import org.qbicc.graph.literal.MethodHandleLiteral;
@@ -814,10 +813,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final BitCastLiteral node) {
         return literal(param, "bit cast →" + node.getType().toString());
-    }
-
-    public String visit(final Appendable param, final FunctionParameterLiteral node) {
-        return literal(param, node.getType().toString() + " @" + node.getName());
     }
 
     public String visit(final Appendable param, final BlockLiteral node) {
