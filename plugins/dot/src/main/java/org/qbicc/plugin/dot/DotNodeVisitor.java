@@ -19,6 +19,7 @@ import org.qbicc.graph.And;
 import org.qbicc.graph.ArrayLength;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BitCast;
+import org.qbicc.graph.BitReverse;
 import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.ByteSwap;
 import org.qbicc.graph.Call;
@@ -813,6 +814,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final BitCastLiteral node) {
         return literal(param, "bit cast →" + node.getType().toString());
+    }
+
+    public String visit(final Appendable param, final BitReverse node) {
+        return node(param, "bit reverse", node);
     }
 
     public String visit(final Appendable param, final BlockLiteral node) {

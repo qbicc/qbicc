@@ -320,7 +320,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value bitReverse(final Value v) {
-        throw Assert.unsupported();
+        return new BitReverse(callSite, element, line, bci, v);
     }
 
     public Value countLeadingZeros(final Value v) {

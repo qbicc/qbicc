@@ -17,6 +17,7 @@ import org.qbicc.graph.ArrayLength;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BinaryValue;
 import org.qbicc.graph.BitCast;
+import org.qbicc.graph.BitReverse;
 import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.ByteSwap;
 import org.qbicc.graph.Call;
@@ -339,6 +340,22 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return require(input);
         }
         throw new IllegalStateException("Invalid cast");
+    }
+
+    @Override
+    public Object visit(VmThreadImpl param, BitReverse node) {
+        Value input = node.getInput();
+        ValueType inputType = input.getType();
+        if (isInt64(inputType)) {
+            return box(Long.reverse(unboxLong(input)), inputType);
+        } else if (isInt32(inputType)) {
+            return box(Integer.reverse(unboxInt(input)), inputType);
+        } else if (isInt16(inputType)) {
+            return box(Integer.reverse(unboxInt(input)) >>> 16, inputType);
+        } else if (isInt8(inputType)) {
+            return box(Integer.reverse(unboxInt(input)) >>> 24, inputType);
+        }
+        throw badInputType();
     }
 
     @Override

@@ -474,6 +474,10 @@ public interface Node {
                 return param.getBlockBuilder().bitCast(param.copyValue(node.getInput()), node.getType());
             }
 
+            public Value visit(final Copier param, final BitReverse node) {
+                return param.getBlockBuilder().bitReverse(param.copyValue(node.getInput()));
+            }
+
             public Value visit(final Copier param, final BlockLiteral node) {
                 return param.ctxt.getLiteralFactory().literalOf(param.copyBlock(BlockLabel.getTargetOf(node.getBlockLabel())));
             }

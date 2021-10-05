@@ -112,6 +112,17 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
+    public Value bitReverse(Value v) {
+        TypeSystem tps = ctxt.getTypeSystem();
+        IntegerType inputType = (IntegerType) v.getType();
+        FunctionType functionType = tps.getFunctionType(inputType, inputType);
+        int minBits = inputType.getMinBits();
+        String functionName = "llvm.bitreverse.i" + minBits;
+        FunctionDeclaration declaration = ctxt.getImplicitSection(getRootElement()).declareFunction(null, functionName, functionType);
+        return getFirstBuilder().callNoSideEffects(functionOf(declaration), List.of(v));
+    }
+
+    @Override
     public Value negate(Value v) {
         if (v.getType() instanceof IntegerType) {
             final IntegerLiteral zero = ctxt.getLiteralFactory().literalOf((IntegerType) v.getType(), 0);
