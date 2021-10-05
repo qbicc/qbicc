@@ -13,7 +13,6 @@ import java.util.Set;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
-import org.qbicc.graph.AbstractProgramObjectHandle;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.AddressOf;
@@ -23,6 +22,7 @@ import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
+import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.Cmp;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.CmpG;
@@ -58,7 +58,6 @@ import org.qbicc.graph.MemberOf;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Mod;
 import org.qbicc.graph.Multiply;
-import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.Neg;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
@@ -84,6 +83,7 @@ import org.qbicc.graph.Unreachable;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.ValueReturn;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.literal.SymbolLiteral;
@@ -128,7 +128,7 @@ import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 
-final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, Instruction, GetElementPtr> {
+final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, Instruction, Void> {
     final CompilationContext ctxt;
     final Module module;
     final LLVMModuleDebugInfo debugInfo;
@@ -239,13 +239,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     public Instruction visit(final Void param, final Store node) {
         map(node.getDependency());
         ValueHandle valueHandle = node.getValueHandle();
-        LLValue ptr;
-        if (valueHandle instanceof PointerHandle) {
-            // plain pointer; no GEP needed
-            ptr = map(((PointerHandle) valueHandle).getPointerValue());
-        } else {
-            ptr = valueHandle.accept(this, null).asLocal();
-        }
+        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         org.qbicc.machine.llvm.op.Store storeInsn = builder.store(map(valueHandle.getPointerType()), map(node.getValue()), map(node.getValue().getType()), ptr);
         storeInsn.align(valueHandle.getValueType().getAlign());
         if (node.getMode() == MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT) {
@@ -352,7 +346,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     }
 
     public LLValue visit(final Void param, final AddressOf node) {
-        return node.getValueHandle().accept(this, null).asLocal();
+        return node.getValueHandle().accept(GET_HANDLE_POINTER_VALUE, this);
     }
 
     public LLValue visit(final Void param, final And node) {
@@ -562,13 +556,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     public LLValue visit(final Void param, final Load node) {
         map(node.getDependency());
         ValueHandle valueHandle = node.getValueHandle();
-        LLValue ptr;
-        if (valueHandle instanceof PointerHandle) {
-            // plain pointer; no GEP needed
-            ptr = map(((PointerHandle) valueHandle).getPointerValue());
-        } else {
-            ptr = valueHandle.accept(this, null).asLocal();
-        }
+        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         org.qbicc.machine.llvm.op.Load loadInsn = builder.load(map(valueHandle.getPointerType()), map(valueHandle.getValueType()), ptr);
         loadInsn.align(node.getType().getAlign());
         if (node.getMode() == MemoryAtomicityMode.ACQUIRE) {
@@ -582,13 +570,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     public LLValue visit(Void param, GetAndAdd node) {
         map(node.getDependency());
         ValueHandle valueHandle = node.getValueHandle();
-        LLValue ptr;
-        if (valueHandle instanceof PointerHandle) {
-            // plain pointer; no GEP needed
-            ptr = map(((PointerHandle) valueHandle).getPointerValue());
-        } else {
-            ptr = valueHandle.accept(this, null).asLocal();
-        }
+        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).add();
         insn.align(valueHandle.getValueType().getAlign());
         insn.ordering(getOC(node.getAtomicityMode()));
@@ -860,7 +842,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
         ValueHandle valueHandle = node.getValueHandle();
-        LLValue llTarget = getCallTarget(valueHandle);
+        LLValue llTarget = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
         Call call = builder.call(llType, llTarget).noTail();
@@ -877,7 +859,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue llType = map(functionType);
         ValueHandle valueHandle = node.getValueHandle();
         LLValue llTarget;
-        llTarget = getCallTarget(valueHandle);
+        llTarget = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
         Call call = builder.call(llType, llTarget).noTail();
@@ -895,7 +877,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue llType = map(functionType);
         ValueHandle valueHandle = node.getValueHandle();
         LLValue llTarget;
-        llTarget = getCallTarget(valueHandle);
+        llTarget = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
         Call call = builder.call(llType, llTarget).noTail().attribute(FunctionAttributes.noreturn);
@@ -914,7 +896,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue llType = map(functionType);
         ValueHandle valueHandle = node.getValueHandle();
         LLValue llTarget;
-        llTarget = getCallTarget(valueHandle);
+        llTarget = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
         Call call = builder.call(llType, llTarget).tail(); // hint only
@@ -936,7 +918,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
         ValueHandle valueHandle = node.getValueHandle();
-        LLValue llTarget = getCallTarget(valueHandle);
+        LLValue llTarget = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
         if (mappedValues.containsKey(node.getReturnValue())) {
@@ -975,7 +957,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
         ValueHandle valueHandle = node.getValueHandle();
-        LLValue llTarget = getCallTarget(valueHandle);
+        LLValue llTarget = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
         LLBasicBlock unreachableTarget = func.createBlock();
@@ -1003,7 +985,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
         ValueHandle valueHandle = node.getValueHandle();
-        LLValue llTarget = getCallTarget(valueHandle);
+        LLValue llTarget = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
         LLBasicBlock catch_ = checkMap(node.getCatchBlock());
@@ -1066,19 +1048,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         }
     }
 
-    private LLValue getCallTarget(final ValueHandle valueHandle) {
-        LLValue llTarget;
-        if (valueHandle instanceof PointerHandle) {
-            // plain pointer; no GEP needed
-            llTarget = map(((PointerHandle) valueHandle).getPointerValue());
-        } else if (valueHandle instanceof FunctionHandle || valueHandle instanceof FunctionDeclarationHandle) {
-            llTarget = Values.global(((AbstractProgramObjectHandle) valueHandle).getProgramObject().getName());
-        } else {
-            llTarget = valueHandle.accept(this, null).asLocal();
-        }
-        return llTarget;
-    }
-
     private void addPersonalityIfNeeded() {
         if (!personalityAdded) {
             MethodElement personalityFunction = UnwindHelper.get(ctxt).getPersonalityMethod();
@@ -1101,62 +1070,112 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
     // GEP
 
-    @Override
-    public GetElementPtr visit(Void param, DataDeclarationHandle node) {
-        return gep(Values.global(node.getProgramObject().getName()), node).arg(false, i32, ZERO);
-    }
-
-    @Override
-    public GetElementPtr visit(Void param, DataHandle node) {
-        return gep(Values.global(node.getProgramObject().getName()), node).arg(false, i32, ZERO);
-    }
-
-    @Override
-    public GetElementPtr visit(Void param, ElementOf node) {
-        ValueHandle nextHandle = node.getValueHandle();
-        LLValue index = map(node.getIndex());
-        LLValue indexType = map(node.getIndex().getType());
-        if (nextHandle instanceof PointerHandle) {
-            PointerHandle ptrHandle = (PointerHandle) nextHandle;
-            // special case: element-of-pointer
-            GetElementPtr gep = gep(map(ptrHandle.getPointerValue()), ptrHandle);
-            gep.comment("index [" + node.getIndex() + "]");
-            return gep.arg(false, indexType, index);
+    private static final ValueHandleVisitor<LLVMNodeVisitor, GetElementPtr> GET_HANDLE_ELEMENT_POINTER = new ValueHandleVisitor<LLVMNodeVisitor, GetElementPtr>() {
+        @Override
+        public GetElementPtr visitUnknown(LLVMNodeVisitor param, ValueHandle node) {
+            throw new IllegalStateException("Unexpected handle " + node);
         }
-        return nextHandle.accept(this, param).arg(false, indexType, index);
-    }
 
-    @Override
-    public GetElementPtr visit(Void param, MemberOf node) {
-        LLValue index = map(node.getStructType(), node.getMember());
-        GetElementPtr gep = node.getValueHandle().accept(this, param);
-        gep.comment("member " + node.getMember().getName());
-        return gep.arg(false, i32, index);
-    }
+        @Override
+        public GetElementPtr visit(LLVMNodeVisitor param, DataDeclarationHandle node) {
+            return param.gep(Values.global(node.getProgramObject().getName()), node).arg(false, i32, ZERO);
+        }
 
-    @Override
-    public GetElementPtr visit(Void param, GlobalVariable node) {
-        GlobalVariableElement gv = node.getVariableElement();
-        return gep(Values.global(gv.getName()), node).arg(false, i32, ZERO);
-    }
+        @Override
+        public GetElementPtr visit(LLVMNodeVisitor param, DataHandle node) {
+            return param.gep(Values.global(node.getProgramObject().getName()), node).arg(false, i32, ZERO);
+        }
 
-    @Override
-    public GetElementPtr visit(Void param, PointerHandle node) {
-        return gep(map(node.getPointerValue()), node).arg(false, i32, ZERO);
-    }
+        @Override
+        public GetElementPtr visit(LLVMNodeVisitor param, ElementOf node) {
+            ValueHandle nextHandle = node.getValueHandle();
+            LLValue index = param.map(node.getIndex());
+            LLValue indexType = param.map(node.getIndex().getType());
+            if (nextHandle instanceof PointerHandle) {
+                PointerHandle ptrHandle = (PointerHandle) nextHandle;
+                // special case: element-of-pointer
+                GetElementPtr gep = param.gep(param.map(ptrHandle.getPointerValue()), ptrHandle);
+                gep.comment("index [" + node.getIndex() + "]");
+                return gep.arg(false, indexType, index);
+            }
+            return nextHandle.accept(this, param).arg(false, indexType, index);
+        }
 
-    @Override
-    public GetElementPtr visit(Void param, ReferenceHandle node) {
-        return gep(map(node.getReferenceValue()), node).arg(false, i32, ZERO);
-    }
+        @Override
+        public GetElementPtr visit(LLVMNodeVisitor param, GlobalVariable node) {
+            GlobalVariableElement gv = node.getVariableElement();
+            return param.gep(Values.global(gv.getName()), node).arg(false, i32, ZERO);
+        }
+
+        @Override
+        public GetElementPtr visit(LLVMNodeVisitor param, MemberOf node) {
+            LLValue index = param.map(node.getStructType(), node.getMember());
+            GetElementPtr gep = node.getValueHandle().accept(this, param);
+            gep.comment("member " + node.getMember().getName());
+            return gep.arg(false, i32, index);
+        }
+
+        @Override
+        public GetElementPtr visit(LLVMNodeVisitor param, PointerHandle node) {
+            return param.gep(param.map(node.getPointerValue()), node).arg(false, i32, ZERO);
+        }
+
+        @Override
+        public GetElementPtr visit(LLVMNodeVisitor param, ReferenceHandle node) {
+            return param.gep(param.map(node.getReferenceValue()), node).arg(false, i32, ZERO);
+        }
+    };
+
+    private static final ValueHandleVisitor<LLVMNodeVisitor, LLValue> GET_HANDLE_POINTER_VALUE = new ValueHandleVisitor<LLVMNodeVisitor, LLValue>() {
+        @Override
+        public LLValue visitUnknown(LLVMNodeVisitor param, ValueHandle node) {
+            throw new IllegalStateException("Unexpected handle " + node);
+        }
+
+        @Override
+        public LLValue visit(LLVMNodeVisitor param, DataDeclarationHandle node) {
+            return Values.global(node.getProgramObject().getName());
+        }
+
+        @Override
+        public LLValue visit(LLVMNodeVisitor param, DataHandle node) {
+            return Values.global(node.getProgramObject().getName());
+        }
+
+        @Override
+        public LLValue visit(LLVMNodeVisitor param, ElementOf node) {
+            return node.accept(GET_HANDLE_ELEMENT_POINTER, param).asLocal();
+        }
+
+        @Override
+        public LLValue visit(LLVMNodeVisitor param, FunctionDeclarationHandle node) {
+            return Values.global(node.getProgramObject().getName());
+        }
+
+        @Override
+        public LLValue visit(LLVMNodeVisitor param, FunctionHandle node) {
+            return Values.global(node.getProgramObject().getName());
+        }
+
+        @Override
+        public LLValue visit(LLVMNodeVisitor param, GlobalVariable node) {
+            return Values.global(node.getVariableElement().getName());
+        }
+
+        @Override
+        public LLValue visit(LLVMNodeVisitor param, MemberOf node) {
+            return node.accept(GET_HANDLE_ELEMENT_POINTER, param).asLocal();
+        }
+
+        @Override
+        public LLValue visit(LLVMNodeVisitor param, PointerHandle node) {
+            return param.map(node.getPointerValue());
+        }
+    };
 
     GetElementPtr gep(LLValue ptr, ValueHandle handle) {
         PointerType pointerType = handle.getPointerType();
-        return builder.getelementptr(
-            pointerType.getPointeeType() instanceof VoidType ? i8 : map(pointerType.getPointeeType()),
-            map(pointerType),
-            ptr
-        );
+        return builder.getelementptr(map(pointerType.getPointeeType()), map(pointerType), ptr);
     }
 
     private OrderingConstraint getOC(MemoryAtomicityMode mode) {
@@ -1181,13 +1200,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         ValueHandle valueHandle = node.getValueHandle();
         LLValue ptrType = map(valueHandle.getPointerType());
         LLValue type = map(valueHandle.getValueType());
-        LLValue ptr;
-        if (valueHandle instanceof PointerHandle) {
-            // plain pointer; no GEP needed
-            ptr = map(((PointerHandle) valueHandle).getPointerValue());
-        } else {
-            ptr = valueHandle.accept(this, null).asLocal();
-        }
+        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         LLValue expect = map(node.getExpectedValue());
         LLValue update = map(node.getUpdateValue());
         OrderingConstraint successOrdering = getOC(node.getSuccessAtomicityMode());
@@ -1211,10 +1224,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     public Instruction visitUnknown(final Void param, final Terminator node) {
         ctxt.error(functionObj.getOriginalElement(), node, "llvm: Unrecognized terminator %s", node.getClass());
         return null;
-    }
-
-    public GetElementPtr visitUnknown(Void param, ValueHandle node) {
-        throw new IllegalStateException("Unexpected handle " + node);
     }
 
     // mapping
