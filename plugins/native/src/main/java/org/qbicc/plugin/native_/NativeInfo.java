@@ -309,7 +309,7 @@ final class NativeInfo {
         return false;
     }
 
-    public class FunctionalInterfaceData {
+    static final class FunctionalInterfaceData {
         MethodElement me;
         ClassTypeSignature signature;
 
