@@ -273,10 +273,15 @@ public class BuildtimeHeap {
             memberMap.put(m, lf.zeroInitializerLiteralOfType(m.getType()));
         }
 
-        // Next, iterate over the interpreters view of the object's fields and copy values from the backing Memory to the memberMap
-        // Note: although they are often the same, in some cases im.getOffset() != om.getOffset()
-        for (CompoundType.Member im : memLayout.getCompoundType().getMembers()) {
-            CompoundType.Member om = objType.getMember(im.getName());
+        // Next, iterate over object's instance fields and copy values from the backing Memory to the memberMap
+        int fc = concreteType.getFieldCount();
+        for (int i=0; i<fc; i++) {
+            FieldElement f = concreteType.getField(i);
+            if (f.isStatic()) {
+                continue;
+            }
+            CompoundType.Member im = memLayout.getMember(f);
+            CompoundType.Member om = objLayout.getMember(f);
             if (im.getType() instanceof IntegerType) {
                 IntegerType it = (IntegerType)im.getType();
                 if (it.getSize() == 1) {
