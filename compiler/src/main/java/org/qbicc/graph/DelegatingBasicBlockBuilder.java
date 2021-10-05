@@ -359,8 +359,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().getAndSub(target, update, atomicityMode);
     }
 
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode) {
-        return getDelegate().cmpAndSwap(target, expect, update, successMode, failureMode);
+    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode, CmpAndSwap.Strength strength) {
+        return getDelegate().cmpAndSwap(target, expect, update, successMode, failureMode, strength);
     }
 
     public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {

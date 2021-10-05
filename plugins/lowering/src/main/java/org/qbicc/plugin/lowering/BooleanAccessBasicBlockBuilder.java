@@ -38,8 +38,8 @@ public final class BooleanAccessBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode) {
-        Value result = super.cmpAndSwap(target, boolToInt(target, expect), boolToInt(target, update), successMode, failureMode);
+    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode, CmpAndSwap.Strength strength) {
+        Value result = super.cmpAndSwap(target, boolToInt(target, expect), boolToInt(target, update), successMode, failureMode, strength);
         // the result is a { i8, i1 } if the field is boolean
         if (target.getValueType() instanceof BooleanType) {
             // we need to change to a { i1, i1 }

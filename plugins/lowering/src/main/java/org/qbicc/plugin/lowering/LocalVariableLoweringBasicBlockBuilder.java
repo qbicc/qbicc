@@ -8,6 +8,7 @@ import java.util.NoSuchElementException;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.InstanceFieldOf;
@@ -126,8 +127,8 @@ public final class LocalVariableLoweringBasicBlockBuilder extends DelegatingBasi
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode) {
-        return super.cmpAndSwap(transform(target), expect, update, successMode, failureMode);
+    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode, CmpAndSwap.Strength strength) {
+        return super.cmpAndSwap(transform(target), expect, update, successMode, failureMode, strength);
     }
 
     @Override

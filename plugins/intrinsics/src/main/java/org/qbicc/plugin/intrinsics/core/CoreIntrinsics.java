@@ -1235,7 +1235,7 @@ public final class CoreIntrinsics {
                 }
                 Value expect = arguments.get(1);
                 Value update = arguments.get(2);
-                Value result = builder.cmpAndSwap(target, expect, update, successMode, failureMode);
+                Value result = builder.cmpAndSwap(target, expect, update, successMode, failureMode, CmpAndSwap.Strength.STRONG);
                 Value resultValue = builder.extractMember(result, ((CmpAndSwap)result).getResultValueType());
                 /* set was successful when expected value is returned */
                 return builder.isEq(resultValue, expect);
@@ -1765,7 +1765,7 @@ public final class CoreIntrinsics {
             if (handle == null) {
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(obj.getType());
             }
-            Value result = builder.cmpAndSwap(handle, expect, update, MemoryAtomicityMode.ACQUIRE_RELEASE, MemoryAtomicityMode.MONOTONIC);
+            Value result = builder.cmpAndSwap(handle, expect, update, MemoryAtomicityMode.ACQUIRE_RELEASE, MemoryAtomicityMode.MONOTONIC, CmpAndSwap.Strength.STRONG);
             // simulate volatile
             builder.fence(MemoryAtomicityMode.ACQUIRE_RELEASE);
             // result is a compound structure; extract the flag
