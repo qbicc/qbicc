@@ -290,6 +290,8 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle elementOf(ValueHandle array, Value index);
 
+    ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType);
+
     ValueHandle pointerHandle(Value pointer);
 
     ValueHandle referenceHandle(Value reference);

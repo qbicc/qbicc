@@ -861,6 +861,10 @@ public interface Node {
                 return node;
             }
 
+            public ValueHandle visit(final Copier param, final UnsafeHandle node) {
+                return param.getBlockBuilder().unsafeHandle(param.copyValueHandle(node.getBase()), param.copyValue(node.getOffset()), node.getOutputType());
+            }
+
             public Value visit(final Copier param, final Xor node) {
                 return param.getBlockBuilder().xor(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }

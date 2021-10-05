@@ -9,6 +9,7 @@ import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.ReferenceHandle;
+import org.qbicc.graph.UnsafeHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
@@ -17,6 +18,7 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
+import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.FieldElement;
 
@@ -158,6 +160,13 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
         Layout layout = Layout.get(ctxt);
         FieldElement element = node.getVariableElement();
         return memberOf(transform(node.getValueHandle()), layout.getInstanceLayoutInfo(element.getEnclosingType()).getMember(element));
+    }
+
+    @Override
+    public ValueHandle visit(Void param, UnsafeHandle node) {
+        UnsignedIntegerType u8 = ctxt.getTypeSystem().getUnsignedInteger8Type();
+        ValueHandle valueHandle = elementOf(pointerHandle(bitCast(addressOf(node.getBase()), u8.getPointer())), node.getOffset());
+        return pointerHandle(bitCast(addressOf(valueHandle), node.getOutputType().getPointer()));
     }
 
     @Override

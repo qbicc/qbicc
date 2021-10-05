@@ -390,6 +390,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new ElementOf(callSite, element, line, bci, array, index);
     }
 
+    public ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType) {
+        return new UnsafeHandle(callSite, element, line, bci, base, offset, outputType);
+    }
+
     public ValueHandle pointerHandle(Value pointer) {
         return new PointerHandle(callSite, element, line, bci, pointer);
     }
