@@ -69,6 +69,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, ByteSwap node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, Call node) {
         return visitUnknown(param, node);
     }
@@ -412,12 +416,16 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
+        default R visit(T param, ByteSwap node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
         default R visit(T param, Call node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
         default R visit(T param, CallNoSideEffects node) {
-            return ValueVisitor.super.visit(param, node);
+            return getDelegateValueVisitor().visit(param, node);
         }
 
         default R visit(T param, CheckCast node) {
