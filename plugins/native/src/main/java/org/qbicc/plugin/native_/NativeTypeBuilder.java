@@ -47,7 +47,7 @@ public class NativeTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
         }
     }
 
-    public void setVisibleAnnotations(final List<Annotation> annotations) {
+    public void setInvisibleAnnotations(final List<Annotation> annotations) {
         for (Annotation annotation : annotations) {
             ClassTypeDescriptor desc = annotation.getDescriptor();
             if (desc.getPackageName().equals(Native.NATIVE_PKG)) {
@@ -58,7 +58,7 @@ public class NativeTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
                 }
             }
         }
-        getDelegate().setVisibleAnnotations(annotations);
+        getDelegate().setInvisibleAnnotations(annotations);
     }
 
 
