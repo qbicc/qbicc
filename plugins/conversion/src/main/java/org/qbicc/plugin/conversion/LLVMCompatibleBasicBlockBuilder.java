@@ -6,6 +6,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
@@ -244,6 +245,38 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
+    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode, CmpAndSwap.Strength strength) {
+        boolean volatileSuccess = false, volatileFailure = false;
+        if (successMode == MemoryAtomicityMode.VOLATILE) {
+            volatileSuccess = true;
+            successMode = MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT;
+        }
+        if (failureMode == MemoryAtomicityMode.VOLATILE) {
+            volatileFailure = true;
+            failureMode = MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT;
+        }
+        if (successMode == MemoryAtomicityMode.NONE || successMode == MemoryAtomicityMode.UNORDERED) {
+            successMode = MemoryAtomicityMode.MONOTONIC;
+        }
+        if (failureMode == MemoryAtomicityMode.NONE || failureMode == MemoryAtomicityMode.UNORDERED) {
+            failureMode = MemoryAtomicityMode.MONOTONIC;
+        }
+        Value result = super.cmpAndSwap(target, expect, update, successMode, failureMode, strength);
+        if (volatileSuccess) {
+            if (volatileFailure) {
+                fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
+            } else {
+                // todo: only fence on success
+                fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
+            }
+        } else {
+            // todo: only fence on error
+            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
+        }
+        return result;
+    }
+
+    @Override
     public Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
         if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
             Value result = super.getAndAdd(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
@@ -255,6 +288,111 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             return result;
         } else {
             return super.getAndAdd(target, update, atomicityMode);
+        }
+    }
+
+    @Override
+    public Value getAndBitwiseAnd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
+            Value result = super.getAndBitwiseAnd(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
+            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
+            return result;
+        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
+            Value result = super.and(super.load(target, atomicityMode), update);
+            super.store(target, result, atomicityMode);
+            return result;
+        } else {
+            return super.getAndBitwiseAnd(target, update, atomicityMode);
+        }
+    }
+
+    @Override
+    public Value getAndBitwiseOr(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
+            Value result = super.getAndBitwiseOr(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
+            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
+            return result;
+        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
+            Value result = super.or(super.load(target, atomicityMode), update);
+            super.store(target, result, atomicityMode);
+            return result;
+        } else {
+            return super.getAndBitwiseOr(target, update, atomicityMode);
+        }
+    }
+
+    @Override
+    public Value getAndBitwiseXor(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
+            Value result = super.getAndBitwiseXor(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
+            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
+            return result;
+        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
+            Value result = super.xor(super.load(target, atomicityMode), update);
+            super.store(target, result, atomicityMode);
+            return result;
+        } else {
+            return super.getAndBitwiseXor(target, update, atomicityMode);
+        }
+    }
+
+    @Override
+    public Value getAndSet(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
+            Value result = super.getAndSet(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
+            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
+            return result;
+        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
+            Value result = super.load(target, atomicityMode);
+            super.store(target, update, atomicityMode);
+            return result;
+        } else {
+            return super.getAndSet(target, update, atomicityMode);
+        }
+    }
+
+    @Override
+    public Value getAndSetMax(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
+            Value result = super.getAndSetMax(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
+            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
+            return result;
+        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
+            Value result = super.max(super.load(target, atomicityMode), update);
+            super.store(target, result, atomicityMode);
+            return result;
+        } else {
+            return super.getAndSetMax(target, update, atomicityMode);
+        }
+    }
+
+    @Override
+    public Value getAndSetMin(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
+            Value result = super.getAndSetMin(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
+            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
+            return result;
+        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
+            Value result = super.min(super.load(target, atomicityMode), update);
+            super.store(target, result, atomicityMode);
+            return result;
+        } else {
+            return super.getAndSetMin(target, update, atomicityMode);
+        }
+    }
+
+    @Override
+    public Value getAndSub(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
+            Value result = super.getAndSub(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
+            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
+            return result;
+        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
+            Value result = super.sub(super.load(target, atomicityMode), update);
+            super.store(target, result, atomicityMode);
+            return result;
+        } else {
+            return super.getAndSub(target, update, atomicityMode);
         }
     }
 
