@@ -5,32 +5,27 @@ public class Synchronized {
     public static native int putchar(int arg);
 
     public static void main(String[] args) throws InterruptedException {
-        /* TODO java.lang.Thread is not yet usable, just call synchronized methods on a single thread for now. */
-        CountTest countTest = new CountTest();
-        countTest.synchInstance();
-        //countTest.synchStatic(); // TODO this will require a working VMHelpers.classof_from_typeid
-        countTest.segment();
-        countTest.reentrant();
-        countTest.embedded();
-
         /* Pattern for commented tests is: ^01234567#01234567#01234567#01234567#01234567# */
-//        for (TestThread.TestVariation var: TestThread.TestVariation.values()) {
-//            CountTest countTest = new CountTest();
-//            TestThread  t1 = new TestThread(countTest, var);
-//            TestThread  t2 = new TestThread(countTest, var);
-//            t1.start();
-//            t2.start();
-//            t1.join();
-//            t2.join();
-//            putchar('#');
-//        }
+        for (TestThread.TestVariation var: TestThread.TestVariation.values()) {
+            // TODO limit to two variations - will run out of memory without a GC
+            if (var.equals(TestThread.TestVariation.METHOD_INST) || var.equals(TestThread.TestVariation.EMBEDDED)) {
+                CountTest countTest = new CountTest();
+                TestThread t1 = new TestThread(countTest, var);
+                TestThread t2 = new TestThread(countTest, var);
+                t1.start();
+                t2.start();
+                t1.join();
+                t2.join();
+                putchar('#');
+            }
+        }
     }
 }
 
 class TestThread extends Thread {
     CountTest countTest;
     TestVariation variation;
-    int n = 2; // count per thread
+    int n = 4; // count per thread
 
     enum TestVariation {
         METHOD_INST,
@@ -47,22 +42,16 @@ class TestThread extends Thread {
 
     public void run() {
         for (int i = 0; i < n; i++) {
-            switch(variation) {
-                case METHOD_INST:
-                    countTest.synchInstance();
-                    break;
-                case METHOD_STATIC:
-                    countTest.synchStatic();
-                    break;
-                case SEGMENT:
-                    countTest.segment();
-                    break;
-                case REENTRANT:
-                    countTest.reentrant();
-                    break;
-                case EMBEDDED:
-                    countTest.embedded();
-                    break;
+            if (variation.equals(TestVariation.METHOD_INST)) {
+                countTest.synchInstance();
+            } else if (variation.equals(TestVariation.METHOD_STATIC)) {
+                countTest.synchStatic();
+            } else if (variation.equals(TestVariation.SEGMENT)) {
+                countTest.segment();
+            } else if (variation.equals(TestVariation.REENTRANT)) {
+                countTest.reentrant();
+            } else if (variation.equals(TestVariation.EMBEDDED)) {
+                countTest.embedded();
             }
         }
     }
