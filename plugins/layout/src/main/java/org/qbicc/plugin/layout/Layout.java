@@ -9,11 +9,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.ObjectType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -57,101 +55,6 @@ public final class Layout {
             }
         }
         return layout;
-    }
-
-    @Deprecated
-    public FieldElement getArrayContentField(final ObjectType arrayObjType) {
-        return CoreClasses.get(ctxt).getArrayContentField(arrayObjType);
-    }
-
-    @Deprecated
-    public LoadedTypeDefinition getArrayLoadedTypeDefinition(String arrayType) {
-        return CoreClasses.get(ctxt).getArrayLoadedTypeDefinition(arrayType);
-    }
-
-    /**
-     * Get the object field which holds the run time type identifier.
-     *
-     * @return the type identifier field
-     */
-    @Deprecated
-    public FieldElement getObjectTypeIdField() {
-        return CoreClasses.get(ctxt).getObjectTypeIdField();
-    }
-
-    /**
-     * Get the field on {@code Class} which holds the type identifier of its corresponding instance type.
-     *
-     * @return the class type identifier field
-     */
-    @Deprecated
-    public FieldElement getClassTypeIdField() {
-        return CoreClasses.get(ctxt).getClassTypeIdField();
-    }
-
-    @Deprecated
-    public FieldElement getClassDimensionField() {
-        return CoreClasses.get(ctxt).getClassDimensionField();
-    }
-
-    @Deprecated
-    public FieldElement getArrayLengthField() {
-        return CoreClasses.get(ctxt).getArrayLengthField();
-    }
-
-    @Deprecated
-    public FieldElement getRefArrayElementTypeIdField() {
-        return CoreClasses.get(ctxt).getRefArrayElementTypeIdField();
-    }
-
-    @Deprecated
-    public FieldElement getRefArrayDimensionsField() {
-        return CoreClasses.get(ctxt).getRefArrayDimensionsField();
-    }
-
-    @Deprecated
-    public FieldElement getRefArrayContentField() {
-        return CoreClasses.get(ctxt).getRefArrayContentField();
-    }
-
-    @Deprecated
-    public FieldElement getBooleanArrayContentField() {
-        return CoreClasses.get(ctxt).getBooleanArrayContentField();
-    }
-
-    @Deprecated
-    public FieldElement getByteArrayContentField() {
-        return CoreClasses.get(ctxt).getByteArrayContentField();
-    }
-
-    @Deprecated
-    public FieldElement getShortArrayContentField() {
-        return CoreClasses.get(ctxt).getShortArrayContentField();
-    }
-
-    @Deprecated
-    public FieldElement getIntArrayContentField() {
-        return CoreClasses.get(ctxt).getIntArrayContentField();
-    }
-
-    @Deprecated
-    public FieldElement getLongArrayContentField() {
-        return CoreClasses.get(ctxt).getLongArrayContentField();
-    }
-
-    @Deprecated
-    public FieldElement getCharArrayContentField() {
-        return CoreClasses.get(ctxt).getCharArrayContentField();
-    }
-
-    @Deprecated
-    public FieldElement getFloatArrayContentField() {
-        return CoreClasses.get(ctxt).getFloatArrayContentField();
-    }
-
-    @Deprecated
-    public FieldElement getDoubleArrayContentField() {
-        return CoreClasses.get(ctxt).getDoubleArrayContentField();
     }
 
     public LayoutInfo getInstanceLayoutInfo(DefinedTypeDefinition type) {

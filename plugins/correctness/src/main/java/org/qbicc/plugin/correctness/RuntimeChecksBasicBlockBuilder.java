@@ -28,8 +28,8 @@ import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.intrinsics.Intrinsics;
-import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
@@ -223,7 +223,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                 if (arrayType instanceof ArrayObjectType) {
                     indexOutOfBoundsCheck(arrayHandle, node.getIndex());
                     if (arrayType instanceof ReferenceArrayObjectType && storedValue != null) {
-                        Value toTypeId = load(instanceFieldOf(arrayHandle, Layout.get(ctxt).getRefArrayElementTypeIdField()), MemoryAtomicityMode.UNORDERED);
+                        Value toTypeId = load(instanceFieldOf(arrayHandle, CoreClasses.get(ctxt).getRefArrayElementTypeIdField()), MemoryAtomicityMode.UNORDERED);
                         Value toDimensions = ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), ((ReferenceArrayObjectType) arrayType).getDimensionCount() - 1);
                         return checkcast(storedValue, toTypeId, toDimensions, CheckCast.CastType.ArrayStore, ((ReferenceArrayObjectType) arrayType).getElementType());
                     }
