@@ -1849,9 +1849,6 @@ public final class CoreIntrinsics {
             Value incr = arguments.get(2);
 
             ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, ctxt.getTypeSystem().getSignedInteger32Type());
-            if (handle == null) {
-                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(obj.getType());
-            }
             return builder.getAndAdd(handle, incr, MemoryAtomicityMode.VOLATILE);
         };
 

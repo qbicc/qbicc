@@ -104,6 +104,7 @@ import org.qbicc.graph.TerminatorVisitor;
 import org.qbicc.graph.Throw;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Unreachable;
+import org.qbicc.graph.UnsafeHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
@@ -1946,6 +1947,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             VmObjectImpl refVal = (VmObjectImpl) frame.require(referenceValue);
             return refVal.getMemory();
         }
+
+        @Override
+        public Memory visit(Frame frame, UnsafeHandle node) {
+            return node.getValueHandle().accept(this, frame);
+        }
     };
 
     static final ValueHandleVisitor<Frame, VmObjectImpl> GET_OBJECT = new ValueHandleVisitor<Frame, VmObjectImpl>() {
@@ -1973,6 +1979,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         public VmObjectImpl visit(Frame frame, ReferenceHandle node) {
             Value referenceValue = node.getReferenceValue();
             return (VmObjectImpl) frame.require(referenceValue);
+        }
+
+        @Override
+        public VmObjectImpl visit(Frame frame, UnsafeHandle node) {
+            return node.getValueHandle().accept(this, frame);
         }
     };
 
@@ -2064,6 +2075,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 throw new IllegalStateException("No static fields found");
             }
             return layoutInfo.getMember(field).getOffset();
+        }
+
+        @Override
+        public long visit(Frame frame, UnsafeHandle node) {
+            return frame.unboxLong(node.getOffset());
         }
     };
 

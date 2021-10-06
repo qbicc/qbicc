@@ -18,6 +18,7 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.Ret;
@@ -30,7 +31,6 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
@@ -119,9 +119,11 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 builder.setBci(startPc);
                 builder.setLine(info.getLineNumber(startPc));
                 int cons = info.getLocalVarNameIndex(slot, entry);
+                boolean realName = false;
                 if (cons == 0) {
                     builder.setName("var" + slot + "_" + entry);
                 } else {
+                    realName = true;
                     builder.setName(info.getClassFile().getUtf8Constant(cons));
                 }
                 builder.setIndex(slot);
@@ -139,7 +141,18 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 } else {
                     builder.setSignature(TypeSignature.parse(ctxt, info.getClassFile().getUtf8ConstantAsBuffer(cons)));
                 }
-                varsByTableEntry[slot][entry] = builder.build();
+
+                // Heuristically merge type compatible entries with the same name.
+                // TODO: This might not be conservative enough...but it is enough to hack by some known problems
+                LocalVariableElement cand = builder.build();
+                for (int j=0; j<entry; j++) {
+                    LocalVariableElement prior = varsByTableEntry[slot][j];
+                    if (prior.getTypeDescriptor().equals(cand.getTypeDescriptor()) && (!realName || prior.getName().equals(cand.getName()))){
+                        cand = prior;
+                        break;
+                    }
+                }
+                varsByTableEntry[slot][entry] = cand;
             }
         }
         this.varsByTableEntry = varsByTableEntry;
