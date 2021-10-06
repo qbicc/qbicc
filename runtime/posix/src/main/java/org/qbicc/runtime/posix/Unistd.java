@@ -60,4 +60,17 @@ public final class Unistd {
     public static native c_int fcntl(c_int fd, c_int cmd);
 
     public static native c_int fcntl(c_int fd, c_int cmd, object... arg);
+
+    public static final c_int _SC_ARG_MAX = constant();
+    public static final c_int _SC_CHILD_MAX = constant();
+    public static final c_int _SC_HOST_NAME_MAX = constant();
+    public static final c_int _SC_LOGIN_NAME_MAX = constant();
+    public static final c_int _SC_NGROUPS_MAX = constant();
+    public static final c_int _SC_OPEN_MAX = constant();
+    public static final c_int _SC_PAGE_SIZE = constant();
+    public static final c_int _SC_SYMLOOP_MAX = constant();
+    public static final c_int _SC_TTY_NAME_MAX = constant();
+    public static final c_int _SC_TZNAME_MAX = constant();
+
+    public static native c_long sysconf(c_int name);
 }

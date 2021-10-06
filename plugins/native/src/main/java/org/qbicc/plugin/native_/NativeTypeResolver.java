@@ -26,7 +26,7 @@ public class NativeTypeResolver implements DescriptorTypeResolver.Delegating {
     }
 
     public ValueType resolveTypeFromClassName(final String packageName, final String internalName) {
-        String rewrittenName = internalName.endsWith("$_native") ? internalName.substring(0, "$_native".length()) : internalName;
+        String rewrittenName = internalName.endsWith("$_native") ? internalName.substring(0, internalName.length() - "$_native".length()) : internalName;
         if (packageName.equals(Native.NATIVE_PKG)) {
             if (rewrittenName.equals(Native.TYPE_ID)) {
                 return classCtxt.findDefinedType("java/lang/Object").load().getClassType().getReference().getTypeType();

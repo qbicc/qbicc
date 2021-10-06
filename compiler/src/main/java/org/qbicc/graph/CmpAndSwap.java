@@ -52,16 +52,6 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
             throw new IllegalArgumentException("The target, expected and new value types must agree.");
         }
 
-        /* ordering params must be at least MONOTONIC */
-        if ((0 > successAtomicityMode.compareTo(MemoryAtomicityMode.MONOTONIC))
-            || (0 > failureAtomicityMode.compareTo(MemoryAtomicityMode.MONOTONIC))
-        ) {
-            throw new IllegalArgumentException("Mode must be at least monotonic");
-        }
-        /* volatile does not map to an ordering constraint */
-        if (successAtomicityMode.equals(MemoryAtomicityMode.VOLATILE) || failureAtomicityMode.equals(MemoryAtomicityMode.VOLATILE)) {
-            throw new IllegalArgumentException("volatile does not map to a LLVM ordering constraint");
-        }
         /* failure ordering must not be RELEASE or ACQUIRE_RELEASE */
         if (failureAtomicityMode.equals(MemoryAtomicityMode.RELEASE) || failureAtomicityMode.equals(MemoryAtomicityMode.ACQUIRE_RELEASE)) {
             throw new IllegalArgumentException("Failure mode cannot be release or acquire_release");
