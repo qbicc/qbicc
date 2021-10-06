@@ -13,6 +13,7 @@ import org.qbicc.graph.UnsafeHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PrimitiveArrayObjectType;
@@ -34,15 +35,15 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     }
 
     public Value typeIdOf(final ValueHandle valueHandle) {
-        Layout layout = Layout.get(ctxt);
-        return load(instanceFieldOf(valueHandle, layout.getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
+        CoreClasses coreClasses = CoreClasses.get(ctxt);
+        return load(instanceFieldOf(valueHandle, coreClasses.getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
     }
 
     public Value arrayLength(final ValueHandle arrayHandle) {
         ValueType arrayType = arrayHandle.getValueType();
         if (arrayType instanceof ArrayObjectType) {
-            Layout layout = Layout.get(ctxt);
-            return load(instanceFieldOf(arrayHandle, layout.getArrayLengthField()), MemoryAtomicityMode.UNORDERED);
+            CoreClasses coreClasses = CoreClasses.get(ctxt);
+            return load(instanceFieldOf(arrayHandle, coreClasses.getArrayLengthField()), MemoryAtomicityMode.UNORDERED);
         }
         // something non-reference-ish
         return super.arrayLength(transform(arrayHandle));
@@ -122,10 +123,10 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
         ValueHandle inputHandle = node.getValueHandle();
         if (inputHandle instanceof ReferenceHandle) {
             // Transform array object element handles
-            Layout layout = Layout.get(ctxt);
+            CoreClasses coreClasses = CoreClasses.get(ctxt);
             ObjectType upperBound = (ObjectType) inputHandle.getValueType();
             if (upperBound instanceof ArrayObjectType) {
-                FieldElement contentField = layout.getArrayContentField(upperBound);
+                FieldElement contentField = coreClasses.getArrayContentField(upperBound);
                 if (upperBound instanceof ReferenceArrayObjectType) {
                     ValueHandle elementHandle = elementOf(transform(instanceFieldOf(inputHandle, contentField)), node.getIndex());
                     Value addr = addressOf(elementHandle);
@@ -148,7 +149,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
         ObjectType upperBound = node.getValueType();
         Layout.LayoutInfo info;
         if (upperBound instanceof ArrayObjectType) {
-            info = layout.getInstanceLayoutInfo(layout.getArrayContentField(upperBound).getEnclosingType());
+            info = layout.getInstanceLayoutInfo(CoreClasses.get(ctxt).getArrayContentField(upperBound).getEnclosingType());
         } else {
             info = layout.getInstanceLayoutInfo(upperBound.getDefinition());
         }

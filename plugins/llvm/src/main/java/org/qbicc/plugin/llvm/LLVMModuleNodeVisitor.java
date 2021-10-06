@@ -39,6 +39,7 @@ import org.qbicc.machine.llvm.StructType;
 import org.qbicc.machine.llvm.Types;
 import org.qbicc.machine.llvm.Values;
 import org.qbicc.machine.llvm.impl.LLVM;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
@@ -366,7 +367,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
         ValueType type = node.getValue();
         // common cases first
         if (type instanceof ArrayObjectType) {
-            return Values.intConstant(Layout.get(ctxt).getArrayContentField((ArrayObjectType) type).getEnclosingType().load().getTypeId());
+            return Values.intConstant(CoreClasses.get(ctxt).getArrayContentField((ArrayObjectType) type).getEnclosingType().load().getTypeId());
         } else if (type instanceof ObjectType) {
             return Values.intConstant(((ObjectType) type).getDefinition().load().getTypeId());
         }

@@ -29,10 +29,12 @@ import org.qbicc.type.definition.element.FieldElement;
  */
 public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
+    private final CoreClasses coreClasses;
 
     public NoGcBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
+        this.coreClasses = CoreClasses.get(ctxt);
     }
 
     public Value new_(final ClassObjectType type) {
@@ -73,7 +75,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public Value newArray(final ArrayObjectType arrayType, Value size) {
         NoGc noGc = NoGc.get(ctxt);
         Layout layout = Layout.get(ctxt);
-        FieldElement arrayContentField = layout.getArrayContentField(arrayType);
+        FieldElement arrayContentField = coreClasses.getArrayContentField(arrayType);
         Layout.LayoutInfo info = layout.getInstanceLayoutInfo(arrayContentField.getEnclosingType());
         CompoundType compoundType = info.getCompoundType();
         LiteralFactory lf = ctxt.getLiteralFactory();
@@ -92,11 +94,11 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
         initializeObjectHeader(arrayHandle, layout, arrayContentField.getEnclosingType().load().getType());
 
-        store(instanceFieldOf(arrayHandle, layout.getArrayLengthField()), truncate(size, ctxt.getTypeSystem().getSignedInteger32Type()), MemoryAtomicityMode.NONE);
+        store(instanceFieldOf(arrayHandle, coreClasses.getArrayLengthField()), truncate(size, ctxt.getTypeSystem().getSignedInteger32Type()), MemoryAtomicityMode.NONE);
         if (arrayType instanceof ReferenceArrayObjectType) {
             ReferenceArrayObjectType refArrayType = (ReferenceArrayObjectType)arrayType;
-            store(instanceFieldOf(arrayHandle, layout.getRefArrayDimensionsField()), lf.literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), refArrayType.getDimensionCount()), MemoryAtomicityMode.NONE);
-            store(instanceFieldOf(arrayHandle, layout.getRefArrayElementTypeIdField()), lf.literalOfType(refArrayType.getLeafElementType()), MemoryAtomicityMode.NONE);
+            store(instanceFieldOf(arrayHandle, coreClasses.getRefArrayDimensionsField()), lf.literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), refArrayType.getDimensionCount()), MemoryAtomicityMode.NONE);
+            store(instanceFieldOf(arrayHandle, coreClasses.getRefArrayElementTypeIdField()), lf.literalOfType(refArrayType.getLeafElementType()), MemoryAtomicityMode.NONE);
         }
 
         fence(MemoryAtomicityMode.RELEASE);
@@ -135,7 +137,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     // Currently there is only one header field, but abstract into a helper method so we only have one place to update later!
     private void initializeObjectHeader(ValueHandle oopHandle, Layout layout, ObjectType objType) {
-        FieldElement typeId = layout.getObjectTypeIdField();
+        FieldElement typeId = coreClasses.getObjectTypeIdField();
         store(instanceFieldOf(oopHandle, typeId),  ctxt.getLiteralFactory().literalOfType(objType), MemoryAtomicityMode.NONE);
         FieldElement nativeObjectMonitor = CoreClasses.get(ctxt).getObjectNativeObjectMonitorField();
         store(instanceFieldOf(oopHandle, nativeObjectMonitor), ctxt.getLiteralFactory().literalOf(0L), MemoryAtomicityMode.NONE);

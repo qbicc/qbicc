@@ -16,6 +16,7 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.UndefinedLiteral;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
@@ -269,31 +270,31 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             }
             return getClassContext().findDefinedType(typeName);
         } else if (owner instanceof ArrayTypeDescriptor) {
-            Layout layout = Layout.get(ctxt);
+            CoreClasses coreClasses = CoreClasses.get(ctxt);
             ArrayTypeDescriptor atd = (ArrayTypeDescriptor) owner;
             TypeDescriptor elementDesc = atd.getElementTypeDescriptor();
             if (elementDesc instanceof BaseTypeDescriptor) {
                 // find out which one it belongs to
                 if (elementDesc == BaseTypeDescriptor.B) {
-                    return layout.getByteArrayContentField().getEnclosingType();
+                    return coreClasses.getByteArrayContentField().getEnclosingType();
                 } else if (elementDesc == BaseTypeDescriptor.C) {
-                    return layout.getCharArrayContentField().getEnclosingType();
+                    return coreClasses.getCharArrayContentField().getEnclosingType();
                 } else if (elementDesc == BaseTypeDescriptor.D) {
-                    return layout.getDoubleArrayContentField().getEnclosingType();
+                    return coreClasses.getDoubleArrayContentField().getEnclosingType();
                 } else if (elementDesc == BaseTypeDescriptor.F) {
-                    return layout.getFloatArrayContentField().getEnclosingType();
+                    return coreClasses.getFloatArrayContentField().getEnclosingType();
                 } else if (elementDesc == BaseTypeDescriptor.I) {
-                    return layout.getIntArrayContentField().getEnclosingType();
+                    return coreClasses.getIntArrayContentField().getEnclosingType();
                 } else if (elementDesc == BaseTypeDescriptor.J) {
-                    return layout.getLongArrayContentField().getEnclosingType();
+                    return coreClasses.getLongArrayContentField().getEnclosingType();
                 } else if (elementDesc == BaseTypeDescriptor.S) {
-                    return layout.getShortArrayContentField().getEnclosingType();
+                    return coreClasses.getShortArrayContentField().getEnclosingType();
                 } else {
                     assert elementDesc == BaseTypeDescriptor.Z;
-                    return layout.getShortArrayContentField().getEnclosingType();
+                    return coreClasses.getShortArrayContentField().getEnclosingType();
                 }
             } else if (elementDesc instanceof ClassTypeDescriptor || elementDesc instanceof ArrayTypeDescriptor) {
-                return layout.getRefArrayContentField().getEnclosingType();
+                return coreClasses.getRefArrayContentField().getEnclosingType();
             }
         }
         return null;

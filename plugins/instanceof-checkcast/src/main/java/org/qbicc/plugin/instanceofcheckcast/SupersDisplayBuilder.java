@@ -3,7 +3,7 @@ package org.qbicc.plugin.instanceofcheckcast;
 import java.util.function.Consumer;
 
 import org.qbicc.context.CompilationContext;
-import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -40,25 +40,25 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         // object
         tables.assignTypeID(jlo);
         // arrays, including reference array
-        Layout layout = Layout.get(ctxt);
+        CoreClasses coreClasses = CoreClasses.get(ctxt);
         // [Object + 1] boolean[].class
-        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[Z"));
+        tables.assignTypeID(coreClasses.getArrayLoadedTypeDefinition("[Z"));
         // [Object + 2] byte[].class
-        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[B"));
+        tables.assignTypeID(coreClasses.getArrayLoadedTypeDefinition("[B"));
         // [Object + 3] short[].class
-        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[S"));
+        tables.assignTypeID(coreClasses.getArrayLoadedTypeDefinition("[S"));
         // [Object + 4] char[].class
-        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[C"));
+        tables.assignTypeID(coreClasses.getArrayLoadedTypeDefinition("[C"));
         // [Object + 5] int[].class
-        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[I"));
+        tables.assignTypeID(coreClasses.getArrayLoadedTypeDefinition("[I"));
         // [Object + 6] float[].class
-        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[F"));
+        tables.assignTypeID(coreClasses.getArrayLoadedTypeDefinition("[F"));
         // [Object + 7] long[].class
-        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[J"));
+        tables.assignTypeID(coreClasses.getArrayLoadedTypeDefinition("[J"));
         // [Object + 8] double[].class
-        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[D"));
+        tables.assignTypeID(coreClasses.getArrayLoadedTypeDefinition("[D"));
         // [Object + 9] Reference[]
-        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[ref"));
+        tables.assignTypeID(coreClasses.getArrayLoadedTypeDefinition("[ref"));
 
         // subclasses of object
         info.visitReachableSubclassesPreOrder(jlo, tables::assignTypeID);

@@ -17,6 +17,7 @@ import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.type.ClassObjectType;
@@ -206,7 +207,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         LiteralFactory lf = ctxt.getLiteralFactory();
 
         if (toType instanceof PrimitiveArrayObjectType) {
-            DefinedTypeDefinition dtd = Layout.get(ctxt).getArrayContentField(toType).getEnclosingType();
+            DefinedTypeDefinition dtd = CoreClasses.get(ctxt).getArrayContentField(toType).getEnclosingType();
             LoadedTypeDefinition arrayVTD = dtd.load();
             final int primArrayTypeId = arrayVTD.getTypeId();
             Value inputTypeId = typeIdOf(referenceHandle(input));

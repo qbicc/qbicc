@@ -16,6 +16,7 @@ import org.qbicc.machine.llvm.debuginfo.DebugEmissionKind;
 import org.qbicc.machine.llvm.debuginfo.MetadataNode;
 import org.qbicc.machine.llvm.debuginfo.MetadataTuple;
 import org.qbicc.object.Function;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
@@ -253,7 +254,7 @@ final class LLVMModuleDebugInfo {
     }
 
     private LLValue createArrayObjectType(final ArrayObjectType type) {
-        CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(Layout.get(ctxt).getArrayContentField(type).getEnclosingType()).getCompoundType();
+        CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(CoreClasses.get(ctxt).getArrayContentField(type).getEnclosingType()).getCompoundType();
         return createPhysicalObjectType(type, compoundType);
     }
 
