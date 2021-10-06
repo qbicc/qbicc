@@ -17,6 +17,7 @@ import org.qbicc.graph.ArrayLength;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BinaryValue;
 import org.qbicc.graph.BitCast;
+import org.qbicc.graph.BitReverse;
 import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.ByteSwap;
 import org.qbicc.graph.Call;
@@ -32,6 +33,8 @@ import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
 import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.Convert;
+import org.qbicc.graph.CountLeadingZeros;
+import org.qbicc.graph.CountTrailingZeros;
 import org.qbicc.graph.CurrentThreadRead;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
@@ -83,6 +86,7 @@ import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
+import org.qbicc.graph.PopCount;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Ret;
 import org.qbicc.graph.Return;
@@ -340,6 +344,22 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return require(input);
         }
         throw new IllegalStateException("Invalid cast");
+    }
+
+    @Override
+    public Object visit(VmThreadImpl param, BitReverse node) {
+        Value input = node.getInput();
+        ValueType inputType = input.getType();
+        if (isInt64(inputType)) {
+            return box(Long.reverse(unboxLong(input)), inputType);
+        } else if (isInt32(inputType)) {
+            return box(Integer.reverse(unboxInt(input)), inputType);
+        } else if (isInt16(inputType)) {
+            return box(Integer.reverse(unboxInt(input)) >>> 16, inputType);
+        } else if (isInt8(inputType)) {
+            return box(Integer.reverse(unboxInt(input)) >>> 24, inputType);
+        }
+        throw badInputType();
     }
 
     @Override
@@ -674,6 +694,38 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return require(node.getInput());
         }
         throw new IllegalStateException("Invalid cast");
+    }
+
+    @Override
+    public Object visit(VmThreadImpl param, CountLeadingZeros node) {
+        Value input = node.getInput();
+        ValueType inputType = input.getType();
+        if (isInt64(inputType)) {
+            return box(Long.numberOfLeadingZeros(unboxLong(input)), node.getType());
+        } else if (isInt32(inputType)) {
+            return box(Integer.numberOfLeadingZeros(unboxInt(input)), node.getType());
+        } else if (isInt16(inputType)) {
+            return box(Integer.numberOfLeadingZeros(unboxInt(input) << 16 | 0x0000ffff), node.getType());
+        } else if (isInt8(inputType)) {
+            return box(Integer.numberOfLeadingZeros(unboxInt(input) << 24 | 0x00ffffff), node.getType());
+        }
+        throw badInputType();
+    }
+
+    @Override
+    public Object visit(VmThreadImpl param, CountTrailingZeros node) {
+        Value input = node.getInput();
+        ValueType inputType = input.getType();
+        if (isInt64(inputType)) {
+            return box(Long.numberOfTrailingZeros(unboxLong(input)), node.getType());
+        } else if (isInt32(inputType)) {
+            return box(Integer.numberOfTrailingZeros(unboxInt(input)), node.getType());
+        } else if (isInt16(inputType)) {
+            return box(Integer.numberOfTrailingZeros(unboxInt(input) | 0xffff0000), node.getType());
+        } else if (isInt8(inputType)) {
+            return box(Integer.numberOfTrailingZeros(unboxInt(input) | 0xffffff00), node.getType());
+        }
+        throw badInputType();
     }
 
     @Override
@@ -1037,6 +1089,22 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
+    public Object visit(VmThreadImpl param, PopCount node) {
+        Value input = node.getInput();
+        ValueType inputType = input.getType();
+        if (isInt64(inputType)) {
+            return box(Long.bitCount(unboxLong(input)), node.getType());
+        } else if (isInt32(inputType)) {
+            return box(Integer.bitCount(unboxInt(input)), node.getType());
+        } else if (isInt16(inputType)) {
+            return box(Integer.bitCount(unboxInt(input) & 0x0000ffff), node.getType());
+        } else if (isInt8(inputType)) {
+            return box(Integer.bitCount(unboxInt(input) & 0x000000ff), node.getType());
+        }
+        throw badInputType();
+    }
+
+    @Override
     public Object visit(VmThreadImpl thread, Rol node) {
         Value left = node.getLeftInput();
         Value right = node.getRightInput();
@@ -1383,7 +1451,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     public Object visit(VmThreadImpl thread, Clone node) {
         return null;
     }
-
     @Override
     public Object visit(VmThreadImpl thread, CmpAndSwap node) {
         ValueHandle valueHandle = node.getValueHandle();

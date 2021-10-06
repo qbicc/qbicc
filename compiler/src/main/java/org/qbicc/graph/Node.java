@@ -474,6 +474,10 @@ public interface Node {
                 return param.getBlockBuilder().bitCast(param.copyValue(node.getInput()), node.getType());
             }
 
+            public Value visit(final Copier param, final BitReverse node) {
+                return param.getBlockBuilder().bitReverse(param.copyValue(node.getInput()));
+            }
+
             public Value visit(final Copier param, final BlockLiteral node) {
                 return param.ctxt.getLiteralFactory().literalOf(param.copyBlock(BlockLabel.getTargetOf(node.getBlockLabel())));
             }
@@ -508,6 +512,14 @@ public interface Node {
             public Value visit(final Copier param, final Clone node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().clone(param.copyValue(node.getInput()));
+            }
+
+            public Value visit(final Copier param, final CountLeadingZeros node) {
+                return param.getBlockBuilder().countLeadingZeros(param.copyValue(node.getInput()));
+            }
+
+            public Value visit(final Copier param, final CountTrailingZeros node) {
+                return param.getBlockBuilder().countTrailingZeros(param.copyValue(node.getInput()));
             }
 
             public Value visit(Copier param, Cmp node) {
@@ -781,6 +793,10 @@ public interface Node {
             public Value visit(final Copier param, final PhiValue node) {
                 param.enqueue(node);
                 return param.getBlockBuilder().phi(node.getType(), param.copyBlock(node.getPinnedBlock()), node.possibleValuesAreNullable() ? NO_FLAGS : NOT_NULL_FLAGS);
+            }
+
+            public Value visit(final Copier param, final PopCount node) {
+                return param.getBlockBuilder().populationCount(param.copyValue(node.getInput()));
             }
 
             public Value visit(Copier param, ReferenceTo node) {

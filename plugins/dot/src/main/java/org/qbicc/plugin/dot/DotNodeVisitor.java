@@ -19,6 +19,7 @@ import org.qbicc.graph.And;
 import org.qbicc.graph.ArrayLength;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BitCast;
+import org.qbicc.graph.BitReverse;
 import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.ByteSwap;
 import org.qbicc.graph.Call;
@@ -35,6 +36,8 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
 import org.qbicc.graph.ConstructorElementHandle;
+import org.qbicc.graph.CountLeadingZeros;
+import org.qbicc.graph.CountTrailingZeros;
 import org.qbicc.graph.DataDeclarationHandle;
 import org.qbicc.graph.DataHandle;
 import org.qbicc.graph.DebugAddressDeclaration;
@@ -95,6 +98,7 @@ import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
+import org.qbicc.graph.PopCount;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Ret;
 import org.qbicc.graph.Return;
@@ -827,6 +831,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return literal(param, "bit cast →" + node.getType().toString());
     }
 
+    public String visit(final Appendable param, final BitReverse node) {
+        return node(param, "bit reverse", node);
+    }
+
     public String visit(final Appendable param, final BlockLiteral node) {
         String name = register(node);
         appendTo(param, name);
@@ -896,6 +904,14 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         dependencyList.add(name);
         processDependency(param, node.getDependency());
         return name;
+    }
+
+    public String visit(final Appendable param, final CountLeadingZeros node) {
+        return node(param, "clz", node);
+    }
+
+    public String visit(final Appendable param, final CountTrailingZeros node) {
+        return node(param, "ctz", node);
     }
 
     public String visit(final Appendable param, final Convert node) {
@@ -1153,6 +1169,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         phiQueue.add(node);
         return name;
+    }
+
+    public String visit(final Appendable param, final PopCount node) {
+        return node(param, "pop count", node);
     }
 
     public String visit(final Appendable param, final Rol node) {
