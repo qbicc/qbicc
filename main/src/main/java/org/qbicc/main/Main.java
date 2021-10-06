@@ -86,6 +86,7 @@ import org.qbicc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
 import org.qbicc.plugin.opt.InliningBasicBlockBuilder;
 import org.qbicc.plugin.opt.PhiOptimizerVisitor;
 import org.qbicc.plugin.opt.SimpleOptBasicBlockBuilder;
+import org.qbicc.plugin.opt.ea.EscapeAnalysisInterMethodAnalysis;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisIntraMethodBuilder;
 import org.qbicc.plugin.opt.ea.ConnectionGraphDotGenerator;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisOptimizeVisitor;
@@ -344,7 +345,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ANALYZE, RTAInfo::forceCoreClassesReachable);
                                 builder.addElementHandler(Phase.ANALYZE, new ElementBodyCopier());
                                 builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new DotGenerator(Phase.ANALYZE, graphGenConfig)));
-                                builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new ConnectionGraphDotGenerator()));
+                                builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new ConnectionGraphDotGenerator("intra")));
                                 if (optGotos) {
                                     builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
                                 }
@@ -363,12 +364,13 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, EscapeAnalysisIntraMethodBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, LocalVariableFindingBasicBlockBuilder::new);
+                                builder.addPostHook(Phase.ANALYZE, new EscapeAnalysisInterMethodAnalysis());
+                                builder.addPostHook(Phase.ANALYZE, new ConnectionGraphDotGenerator("inter"));
                                 builder.addPostHook(Phase.ANALYZE, RTAInfo::reportStats);
                                 builder.addPostHook(Phase.ANALYZE, new ClassInitializerRegister());
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new ClassObjectSerializer());
-                                builder.addPostHook(Phase.ANALYZE, EscapeAnalysisState::interMethodAnalysis);
 
                                 builder.addCopyFactory(Phase.LOWER, EscapeAnalysisOptimizeVisitor::new);
                                 builder.addElementHandler(Phase.LOWER, new FunctionLoweringElementHandler());

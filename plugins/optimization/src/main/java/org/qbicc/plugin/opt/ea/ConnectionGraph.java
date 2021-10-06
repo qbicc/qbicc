@@ -30,9 +30,10 @@ import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
 
 final class ConnectionGraph {
-    private final Map<Node, New> pointsToEdges = new HashMap<>(); // solid (P) edges
+    // TODO Handle situations where a node has multiple points-to
+    private final Map<Node, Node> pointsToEdges = new HashMap<>(); // solid (P) edges
     private final Map<Node, ValueHandle> deferredEdges = new HashMap<>(); // dashed (D) edges
-    private final Map<Value, Collection<InstanceFieldOf>> fieldEdges = new HashMap<>(); // solid (F) edges
+    private final Map<Node, Collection<InstanceFieldOf>> fieldEdges = new HashMap<>(); // solid (F) edges
 
     private final Map<Node, EscapeValue> escapeValues = new HashMap<>();
     private final Map<ValueHandle, New> localNewNodes = new HashMap<>();
@@ -60,7 +61,6 @@ final class ConnectionGraph {
 
     void trackParameters(List<ParameterValue> args) {
         parameters.addAll(args);
-        parameters.forEach(arg -> setEscapeValue(arg, EscapeValue.ARG_ESCAPE));
     }
 
     void trackReturn(Value value) {
@@ -75,8 +75,9 @@ final class ConnectionGraph {
         setEscapeValue(value, EscapeValue.ARG_ESCAPE);
     }
 
-    void trackStoreStaticField(Value value) {
-        setEscapeValue(value, EscapeValue.GLOBAL_ESCAPE);
+    void trackStoreStaticField(ValueHandle handle, Value value) {
+        addPointsToEdgeIfAbsent(handle, value);
+        setEscapeValue(handle, EscapeValue.GLOBAL_ESCAPE);
     }
 
     void trackThrowNew(New value) {
@@ -98,12 +99,20 @@ final class ConnectionGraph {
         addDeferredEdgeIfAbsent(from, to);
     }
 
+    /**
+     * Returns the escape value associated with the given node.
+     * If the node is not found, its escape value is unknown.
+     */
     EscapeValue getEscapeValue(Node node) {
-        return escapeValues.get(node);
+        return EscapeValue.of(escapeValues.get(node));
     }
 
-     Collection<InstanceFieldOf> getFields(New new_) {
-         final Collection<InstanceFieldOf> fields = fieldEdges.get(new_);
+    /**
+     * Returns the field nodes associated with the give node.
+     * If the node is not found, an empty collection is returned.
+     */
+    Collection<InstanceFieldOf> getFields(Node node) {
+         final Collection<InstanceFieldOf> fields = fieldEdges.get(node);
          return Objects.isNull(fields) ? Collections.emptyList() : fields;
     }
 
@@ -111,7 +120,111 @@ final class ConnectionGraph {
         return deferredEdges.get(node);
     }
 
-    void propagateArgEscape() {
+    void updateAtMethodEntry() {
+        // Set all parameters as arg escape
+        parameters.forEach(arg -> setEscapeValue(arg, EscapeValue.ARG_ESCAPE));
+    }
+
+    void updateAfterInvokingMethod(Call callee, ConnectionGraph calleeCG) {
+        final List<Value> arguments = callee.getArguments();
+        for (int i = 0; i < arguments.size(); i++) {
+            final Value outsideArg = arguments.get(i);
+            final ParameterValue insideArg = calleeCG.parameters.get(i);
+            updateCallerNodes(insideArg, List.of(outsideArg), calleeCG, new ArrayList<>());
+        }
+    }
+
+    private void updateCallerNodes(Node calleeNode, Collection<Node> mapsToField, ConnectionGraph calleeCG, Collection<Node> mapsToObj) {
+        for (Node calleePointed : calleeCG.getPointsTo(calleeNode)) {
+            for (Node callerNode : mapsToField) {
+                // Update caller node state based on callee
+                updateCallerNode(calleeCG, calleePointed, callerNode, mapsToObj);
+
+                // Update nodes pointed by caller node based on callee
+                for (Node callerPointed : getPointsTo(callerNode)) {
+                    updateCallerNode(calleeCG, calleePointed, callerPointed, mapsToObj);
+                }
+            }
+        }
+    }
+
+    private void updateCallerNode(ConnectionGraph calleeCG, Node calleePointed, Node callerPointed, Collection<Node> mapsToObj) {
+        if (mapsToObj.add(calleePointed)) {
+            // The escape state of caller nodes is marked GlobalEscape,
+            // if the escape state of the callee node is GlobalEscape.
+            if (calleeCG.getEscapeValue(calleePointed).isGlobalEscape()) {
+                escapeValues.replace(callerPointed, EscapeValue.GLOBAL_ESCAPE);
+            }
+
+            for (InstanceFieldOf calleeField : calleeCG.getFields(calleePointed)) {
+                final String calleeFieldName = calleeField.getVariableElement().getName();
+                final Collection<Node> callerFields = getFields(callerPointed).stream()
+                    .filter(field -> Objects.equals(field.getVariableElement().getName(), calleeFieldName))
+                    .collect(Collectors.toList());
+
+                updateCallerNodes(calleeField, callerFields, calleeCG, mapsToObj);
+            }
+        }
+    }
+
+    void updateAtMethodExit() {
+        // Use by pass function to eliminate all deferred edges in the CG
+        bypassAllDeferredEdges(deferredEdges);
+
+        // Mark all nodes reachable from a global escape nodes as global escape.
+        propagateGlobalEscape();
+
+        // Mark all nodes reachable from arg escape nodes, but not global escape, as arg escape.
+        propagateArgEscapeOnly();
+    }
+
+    private void bypassAllDeferredEdges(Map<Node, ValueHandle> oldDeferredEdges) {
+        if (oldDeferredEdges.isEmpty()) {
+            deferredEdges.clear();
+            return;
+        }
+
+        Map<Node, ValueHandle> newDeferredEdges = new HashMap<>();
+        for (ValueHandle node : oldDeferredEdges.values()) {
+            final ValueHandle defersTo = oldDeferredEdges.get(node);
+            final Node pointsTo = pointsToEdges.get(node);
+            if (defersTo != null || pointsTo != null) {
+                for (Map.Entry<Node, ValueHandle> incoming : oldDeferredEdges.entrySet()) {
+                    if (incoming.getValue().equals(node)) {
+                        if (defersTo != null) {
+                            newDeferredEdges.put(incoming.getKey(), defersTo);
+                        }
+                        if (pointsTo != null) {
+                            addPointsToEdgeIfAbsent(incoming.getKey(), pointsTo);
+                        }
+                    }
+                }
+            }
+        }
+
+        bypassAllDeferredEdges(newDeferredEdges);
+    }
+
+    private void propagateGlobalEscape() {
+        final List<Node> argEscapeOnly = escapeValues.entrySet().stream()
+            .filter(e -> e.getValue().isGlobalEscape())
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toList());
+
+        // Separate computing from filtering since it modifies the collection itself
+        argEscapeOnly.forEach(this::computeGlobalEscape);
+    }
+
+    private void computeGlobalEscape(Node from) {
+        final Node to = pointsToEdges.get(from);
+
+        if (to != null) {
+            setEscapeValue(to, EscapeValue.GLOBAL_ESCAPE);
+            computeGlobalEscape(to);
+        }
+    }
+
+    void propagateArgEscapeOnly() {
         final List<Node> argEscapeOnly = escapeValues.entrySet().stream()
             .filter(e -> e.getValue().isArgEscape())
             .map(Map.Entry::getKey)
@@ -121,85 +234,21 @@ final class ConnectionGraph {
         argEscapeOnly.forEach(this::computeArgEscapeOnly);
     }
 
-    void update(Call callee, ConnectionGraph calleeCG) {
-        final List<Value> arguments = callee.getArguments();
-        for (int i = 0; i < arguments.size(); i++) {
-            final Value outsideArg = arguments.get(i);
-            final ParameterValue insideArg = calleeCG.parameters.get(i);
+    private void computeArgEscapeOnly(Node from) {
+        final Node to = pointsToEdges.get(from);
 
-            final Collection<Node> mapsToNode = new ArrayList<>();
-            mapsToNode.add(outsideArg);
-
-            updateNodes(insideArg, mapsToNode, calleeCG);
-        }
-    }
-
-    private void updateNodes(Node calleeNode, Collection<Node> mapsToNode, ConnectionGraph calleeCG) {
-        for (Value calleePointed : calleeCG.getPointsTo(calleeNode)) {
-            for (Node callerNode : mapsToNode) {
-                final Collection<New> allCallerPointed = getPointsTo(callerNode);
-                if (allCallerPointed.isEmpty()) {
-                    // TODO do I need to insert a new node as the target for callerNode?
-                }
-
-                for (Value callerPointed : allCallerPointed) {
-                    if (mapsToNode.add(calleePointed)) {
-                        // The escape state of caller nodes is marked GlobalEscape,
-                        // if the escape state of the callee node is GlobalEscape.
-                        mergeEscapeValue(callerPointed, calleeCG, calleePointed);
-
-                        for (InstanceFieldOf calleeField : calleeCG.fieldEdges.get(calleePointed)) {
-                            final String calleeFieldName = calleeField.getVariableElement().getName();
-                            final Collection<Node> callerField = fieldEdges.get(callerPointed).stream()
-                                .filter(field -> Objects.equals(field.getVariableElement().getName(), calleeFieldName))
-                                .collect(Collectors.toList());
-
-                            updateNodes(calleeField, callerField, calleeCG);
-                        }
-                    }
-                }
-            }
+        if (to != null && getEscapeValue(to).notGlobalEscape()) {
+            setEscapeValue(to, EscapeValue.ARG_ESCAPE);
+            computeArgEscapeOnly(to);
         }
     }
 
     /**
      * PointsTo(p) returns the set of of nodes that are immediately pointed by p.
      */
-    Collection<New> getPointsTo(Node node) {
-        // TODO do deferred need to be taken into account? Shouldn't ByPass have removed them?
-
-        final ValueHandle deferredEdge = deferredEdges.get(node);
-        if (deferredEdge != null) {
-            final New pointedByDeferred = pointsToEdges.get(deferredEdge);
-            if (pointedByDeferred != null)
-                return List.of(pointedByDeferred);
-        }
-
-        final New pointedDirectly = pointsToEdges.get(node);
-        if (pointedDirectly != null) {
-            return List.of(pointedDirectly);
-        }
-
-        return Collections.emptyList();
-    }
-
-    private boolean mergeEscapeValue(Node node, ConnectionGraph otherCG, Value otherNode) {
-        final EscapeValue escapeValue = escapeValues.get(node);
-        final EscapeValue mergedEscapeValue = escapeValue.merge(otherCG.escapeValues.get(otherNode));
-        return escapeValues.replace(node, escapeValue, mergedEscapeValue);
-    }
-
-    private void computeArgEscapeOnly(Node from) {
-        // TODO filter that not global reachable
-
-        final Node to = deferredEdges.get(from) != null
-            ? deferredEdges.get(from)
-            : pointsToEdges.get(from);
-
-        if (to != null) {
-            setEscapeValue(to, EscapeValue.ARG_ESCAPE);
-            computeArgEscapeOnly(to);
-        }
+    Collection<Node> getPointsTo(Node node) {
+        final Node pointsTo = pointsToEdges.get(node);
+        return pointsTo != null ? List.of(pointsTo) : List.of();
     }
 
     private boolean addFieldEdgeIfAbsent(New from, InstanceFieldOf to) {
@@ -208,7 +257,7 @@ final class ConnectionGraph {
             .add(to);
     }
 
-    private boolean addPointsToEdgeIfAbsent(ValueHandle from, New to) {
+    private boolean addPointsToEdgeIfAbsent(Node from, Node to) {
         return pointsToEdges.putIfAbsent(from, to) == null;
     }
 

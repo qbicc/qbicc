@@ -1,8 +1,9 @@
 package org.qbicc.plugin.opt.ea;
 
-enum EscapeValue {
+import java.util.Objects;
 
-    GLOBAL_ESCAPE, ARG_ESCAPE, NO_ESCAPE;
+enum EscapeValue {
+    GLOBAL_ESCAPE, ARG_ESCAPE, NO_ESCAPE, UNKNOWN;
 
     boolean isArgEscape() {
         return this == ARG_ESCAPE;
@@ -12,22 +13,15 @@ enum EscapeValue {
         return this == GLOBAL_ESCAPE;
     }
 
+    boolean notGlobalEscape() {
+        return !isGlobalEscape();
+    }
+
     boolean isNoEscape() {
         return this == NO_ESCAPE;
     }
 
-    EscapeValue merge(EscapeValue other) {
-        if (other.isGlobalEscape())
-            return GLOBAL_ESCAPE;
-
-        if (this.isNoEscape())
-            return other;
-
-        return this;
+    static EscapeValue of(EscapeValue escapeValue) {
+        return Objects.isNull(escapeValue) ? EscapeValue.UNKNOWN : escapeValue;
     }
-
-    static boolean isNoEscape(EscapeValue escapeState) {
-        return escapeState != null && escapeState.isNoEscape();
-    }
-
 }

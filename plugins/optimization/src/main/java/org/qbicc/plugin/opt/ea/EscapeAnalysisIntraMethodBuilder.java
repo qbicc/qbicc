@@ -63,7 +63,7 @@ public final class EscapeAnalysisIntraMethodBuilder extends DelegatingBasicBlock
 
         if (handle instanceof StaticField) {
             // static T a = new T();
-            connectionGraph.trackStoreStaticField(value);
+            connectionGraph.trackStoreStaticField(handle, value);
         } else if (handle instanceof InstanceFieldOf && value instanceof New) {
             // p.f = new T(); // where p is a parameter
             connectionGraph.fixEdgesNew(handle, (New) value);
@@ -114,23 +114,10 @@ public final class EscapeAnalysisIntraMethodBuilder extends DelegatingBasicBlock
         return result;
     }
 
+    // TODO remove
     @Override
     public void finish() {
-        doReachabilityAnalysis();
         super.finish();
-    }
-
-    void doReachabilityAnalysis() {
-        // TODO: Use ByPass function to eliminate all deferred edges in the CG
-
-        // TODO: 1. compute set of nodes reachable from GlobalEscape node(s)
-
-        // TODO 2. Compute set of nodes reachable from ArgEscape (nodes), but not any GlobalEscape node
-
-        // TODO: 3. compute set of nodes not reachable from GlobalEscape or ArgEscape
-
-        // TODO double check if propagating arg escape should happen here or in inter analysis
-        connectionGraph.propagateArgEscape();
     }
 
     private void handleInstanceFieldOf(InstanceFieldOf result, ValueHandle handle, Node target) {

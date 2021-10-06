@@ -1,16 +1,5 @@
 package org.qbicc.plugin.opt.ea;
 
-import org.qbicc.context.CompilationContext;
-import org.qbicc.context.Diagnostic;
-import org.qbicc.graph.BasicBlock;
-import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.MethodBody;
-import org.qbicc.type.definition.classfile.ClassFile;
-import org.qbicc.type.definition.element.BasicElement;
-import org.qbicc.type.definition.element.ElementVisitor;
-import org.qbicc.type.definition.element.ExecutableElement;
-import org.qbicc.type.definition.element.MemberElement;
-
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -20,23 +9,42 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.function.Consumer;
 
-// TODO vastly copied from DotGenerator, could some code be shared?
-public class ConnectionGraphDotGenerator implements ElementVisitor<CompilationContext, Void>, Consumer<CompilationContext> {
+import org.qbicc.context.CompilationContext;
+import org.qbicc.context.Diagnostic;
+import org.qbicc.graph.BasicBlock;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.MethodBody;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.BasicElement;
+import org.qbicc.type.definition.element.ElementVisitor;
+import org.qbicc.type.definition.element.ExecutableElement;
+
+public final class ConnectionGraphDotGenerator implements ElementVisitor<CompilationContext, Void>, Consumer<CompilationContext> {
+    final String phase;
+
+    public ConnectionGraphDotGenerator(String phase) {
+        this.phase = phase;
+    }
 
     @Override
-    public void accept(CompilationContext compilationContext) {
-        // TODO: register and implement for inter-method analysis
+    public void accept(CompilationContext ctxt) {
+        EscapeAnalysisState state = EscapeAnalysisState.get(ctxt);
+        state.getMethodsVisited().forEach(this::process);
     }
 
     public Void visitUnknown(final CompilationContext ctxt, final BasicElement basicElement) {
         if (basicElement instanceof ExecutableElement) {
-            ExecutableElement element = (ExecutableElement) basicElement;
-            if (element.hasMethodBody()) {
-                MethodBody methodBody = element.getMethodBody();
-                process(element, methodBody);
-            }
+            process((ExecutableElement) basicElement);
         }
         return null;
+    }
+
+    private void process(ExecutableElement basicElement) {
+        ExecutableElement element = basicElement;
+        if (element.hasMethodBody()) {
+            MethodBody methodBody = element.getMethodBody();
+            process(element, methodBody);
+        }
     }
 
     private void process(final ExecutableElement element, final MethodBody methodBody) {
@@ -51,7 +59,7 @@ public class ConnectionGraphDotGenerator implements ElementVisitor<CompilationCo
             failedToWrite(ctxt, dir, e);
             return;
         }
-        Path path = dir.resolve("ea-intra.dot");
+        Path path = dir.resolve("ea-" + phase + ".dot");
         try (BufferedWriter bw = Files.newBufferedWriter(path, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
             bw.write("digraph {");
             bw.newLine();

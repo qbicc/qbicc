@@ -1,17 +1,15 @@
 package org.qbicc.plugin.opt.ea;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Call;
-import org.qbicc.graph.Executable;
 import org.qbicc.graph.New;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -24,6 +22,19 @@ public final class EscapeAnalysisState {
         return connectionGraphs.get(element);
     }
 
+    Collection<ExecutableElement> getMethodsVisited() {
+        return connectionGraphs.keySet();
+    }
+
+    /**
+     * Returns the list of callees called from the given method.
+     * If method not found in the call graph, an empty list is returned.
+     */
+    List<Call> getCallees(ExecutableElement element) {
+        final List<Call> callees = callGraph.get(element);
+        return callees != null ? callees : Collections.emptyList();
+    }
+
     void trackMethod(ExecutableElement element, ConnectionGraph connectionGraph) {
         connectionGraphs.put(element, connectionGraph);
     }
@@ -34,7 +45,7 @@ public final class EscapeAnalysisState {
 
     boolean isNotEscapingMethod(New new_, ExecutableElement element) {
         final ConnectionGraph connectionGraph = connectionGraphs.get(element);
-        return connectionGraph != null && EscapeValue.isNoEscape(connectionGraph.getEscapeValue(new_));
+        return connectionGraph != null && connectionGraph.getEscapeValue(new_).isNoEscape();
     }
 
     static EscapeAnalysisState get(CompilationContext ctxt) {
@@ -47,46 +58,5 @@ public final class EscapeAnalysisState {
             }
         }
         return escapeAnalysisState;
-    }
-
-    public static void interMethodAnalysis(CompilationContext ctxt) {
-        EscapeAnalysisState state = EscapeAnalysisState.get(ctxt);
-        final Set<ExecutableElement> visited = new HashSet<>();
-        state.connectionGraphs.keySet().forEach(element -> updateConnectionGraphIfNotVisited(element, visited, state));
-    }
-
-    /**
-     * Traversal reverse topological order over the program control flow.
-     * A bottom-up traversal in which the connection graph of a callee
-     * is used to update the connection graph of the caller.
-     */
-    private static ConnectionGraph updateConnectionGraphIfNotVisited(ExecutableElement caller, Set<ExecutableElement> visited, EscapeAnalysisState state) {
-        if (!visited.add(caller)) {
-            return state.connectionGraphs.get(caller);
-        }
-
-        return updateConnectionGraph(caller, visited, state);
-    }
-
-    private static ConnectionGraph updateConnectionGraph(ExecutableElement caller, Set<ExecutableElement> visited, EscapeAnalysisState state) {
-        final ConnectionGraph callerCG = state.connectionGraphs.get(caller);
-        if (callerCG == null) {
-            return null;
-        }
-
-        final List<Call> callees = state.callGraph.get(caller);
-        if (callees == null) {
-            return callerCG;
-        }
-
-        for (Call callee : callees) {
-            final ExecutableElement calleeElement = ((Executable) callee.getValueHandle()).getExecutable();
-            final ConnectionGraph calleeCG = updateConnectionGraphIfNotVisited(calleeElement, visited, state);
-            if (calleeCG != null) {
-                callerCG.update(callee, calleeCG);
-            }
-        }
-
-        return callerCG;
     }
 }

@@ -1,5 +1,15 @@
 package org.qbicc.plugin.opt.ea;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.AddressOf;
@@ -121,16 +131,6 @@ import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 public class ConnectionGraphDotVisitor implements NodeVisitor<Appendable, String, String, String, String> {
 
     private final ConnectionGraph connectionGraph;
@@ -200,9 +200,9 @@ public class ConnectionGraphDotVisitor implements NodeVisitor<Appendable, String
         attr(param, "style", "filled");
         attr(param, "fillcolor", String.valueOf(nodeType(connectionGraph.getEscapeValue(node)).fillColor));
         nl(param);
-        final Collection<New> pointsTo = connectionGraph.getPointsTo(node);
-        for (New new_ : pointsTo) {
-            String valueName = getNodeName(param, new_);
+        final Collection<Node> pointsTo = connectionGraph.getPointsTo(node);
+        for (Node pointsToNode : pointsTo) {
+            String valueName = getNodeName(param, pointsToNode);
             addEdge(param, name, valueName, EdgeType.POINTS_TO);
         }
 
@@ -248,7 +248,19 @@ public class ConnectionGraphDotVisitor implements NodeVisitor<Appendable, String
 
     @Override
     public String visit(final Appendable param, final StaticField node) {
-        return register(node);
+        String name = register(node);
+        appendTo(param, name);
+        nl(param);
+        attr(param, "label", "static field\\n" + node.getVariableElement().toString());
+        attr(param, "style", "filled");
+        attr(param, "fillcolor", String.valueOf(nodeType(connectionGraph.getEscapeValue(node)).fillColor));
+        nl(param);
+        final Collection<Node> pointsTo = connectionGraph.getPointsTo(node);
+        for (Node pointsToNode : pointsTo) {
+            String valueName = getNodeName(param, pointsToNode);
+            addEdge(param, name, valueName, EdgeType.POINTS_TO);
+        }
+        return name;
     }
 
     // value handles
@@ -775,7 +787,30 @@ public class ConnectionGraphDotVisitor implements NodeVisitor<Appendable, String
 
             String deferredName = getNodeName(param, deferred);
             addEdge(param, name, deferredName, EdgeType.DEFERRED);
+        } else {
+            final Collection<Node> pointsTo = connectionGraph.getPointsTo(node);
+            for (Node pointedTo : pointsTo) {
+                appendTo(param, name);
+
+                // TODO copied from DotNodeVisitor
+                int index = node.getIndex();
+                StringBuilder b = new StringBuilder();
+                b.append(node.getType()).append(' ').append("param").append('[').append(node.getLabel());
+                if (index > 0) {
+                    b.append(index);
+                }
+                b.append(']');
+
+                attr(param, "label", b.toString());
+                attr(param, "style", "filled");
+                attr(param, "fillcolor", String.valueOf(nodeType(connectionGraph.getEscapeValue(node)).fillColor));
+                nl(param);
+
+                String pointedToName = getNodeName(param, pointedTo);
+                addEdge(param, name, pointedToName, EdgeType.POINTS_TO);
+            }
         }
+
         return name;
     }
 
@@ -1092,9 +1127,6 @@ public class ConnectionGraphDotVisitor implements NodeVisitor<Appendable, String
     }
 
     private NodeType nodeType(EscapeValue value) {
-        if (value == null)
-            return NodeType.UNKNOWN;
-
         switch (value) {
             case GLOBAL_ESCAPE:
                 return NodeType.GLOBAL_ESCAPE;
@@ -1102,6 +1134,8 @@ public class ConnectionGraphDotVisitor implements NodeVisitor<Appendable, String
                 return NodeType.ARG_ESCAPE;
             case NO_ESCAPE:
                 return NodeType.NO_ESCAPE;
+            case UNKNOWN:
+                return NodeType.UNKNOWN;
             default:
                 throw new IllegalStateException("Unknown escape value: " + value);
         }
