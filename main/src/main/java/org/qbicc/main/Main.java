@@ -131,6 +131,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean optInlining;
     private final boolean initBuildTime;
     private final Platform platform;
+    private final boolean smallTypeIds;
 
     Main(Builder builder) {
         bootModulePath = List.copyOf(builder.bootModulePath);
@@ -147,6 +148,7 @@ public class Main implements Callable<DiagnosticContext> {
         optGotos = builder.optGotos;
         platform = builder.platform;
         initBuildTime = builder.initBuildTime;
+        smallTypeIds = builder.smallTypeIds;
     }
 
     public DiagnosticContext call() {
@@ -249,9 +251,9 @@ public class Main implements Callable<DiagnosticContext> {
                             // for now, references == pointers
                             tsBuilder.setReferenceSize((int) probeResult.getTypeInfo(void_p).getSize());
                             tsBuilder.setReferenceAlignment((int) probeResult.getTypeInfo(void_p).getAlign());
-                            // for now, type IDs == int32
-                            tsBuilder.setTypeIdSize((int) probeResult.getTypeInfo(int32_t).getSize());
-                            tsBuilder.setTypeIdAlignment((int) probeResult.getTypeInfo(int32_t).getAlign());
+                            CProbe.Type type_id_type = smallTypeIds ? int16_t : int32_t;
+                            tsBuilder.setTypeIdSize((int) probeResult.getTypeInfo(type_id_type).getSize());
+                            tsBuilder.setTypeIdAlignment((int) probeResult.getTypeInfo(type_id_type).getAlign());
                             tsBuilder.setEndianness(probeResult.getByteOrder());
                             if (nogc) {
                                 new NoGcTypeSystemConfigurator().accept(tsBuilder);
@@ -572,6 +574,9 @@ public class Main implements Callable<DiagnosticContext> {
         @CommandLine.Option(names = "--init-build-time", negatable = true, defaultValue = "false", description = "Initialize all classes at build time")
         private boolean initBuildTime;
 
+        @CommandLine.Option(names = "--small-type-ids", negatable = true, defaultValue = "false", description = "Use narrow (16-bit) type ID values if true, wide (32-bit) type ID values if false")
+        private boolean smallTypeIds;
+
         @CommandLine.Parameters(index="0", arity="1", description = "Application main class")
         private String mainClass;
 
@@ -686,6 +691,7 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean optGotos = true;
         private GraphGenConfig graphGenConfig;
         private boolean initBuildTime = false;
+        private boolean smallTypeIds = false;
 
         Builder() {}
 
@@ -773,6 +779,11 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Builder setInitBuildTime(boolean initBuildTime) {
             this.initBuildTime = initBuildTime;
+            return this;
+        }
+
+        public Builder setSmallTypeIds(boolean smallTypeIds) {
+            this.smallTypeIds = smallTypeIds;
             return this;
         }
 
