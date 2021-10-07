@@ -165,6 +165,8 @@ public final class CoreIntrinsics {
     public static void registerJavaLangClassIntrinsics(CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
+        CoreClasses coreClasses = CoreClasses.get(ctxt);
+        SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
 
         ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor jlclDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ClassLoader");
@@ -204,6 +206,22 @@ public final class CoreIntrinsics {
             throw new BlockEarlyTermination(builder.unreachable());
         };
 
+        InstanceIntrinsic isArray = (builder, instance, target, arguments) -> {
+            ValueType firstPrimArray = coreClasses.getArrayLoadedTypeDefinition("[Z").getType();
+            ValueType lastPrimArray = coreClasses.getArrayLoadedTypeDefinition("[D").getType();
+            ValueType refArray = coreClasses.getArrayLoadedTypeDefinition("[ref").getType();
+            Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance),  coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            return builder.or(builder.isEq(id, lf.literalOfType(refArray)),
+                builder.and(builder.isGe(id, lf.literalOfType(firstPrimArray)), builder.isLe(id, lf.literalOfType(lastPrimArray))));
+        };
+
+        InstanceIntrinsic isInterface = (builder, instance, target, arguments) -> {
+            Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance),  coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            return builder.isLe(lf.literalOf(tables.getFirstInterfaceTypeId()), id);
+        };
+
         StaticIntrinsic getPrimitiveClass = (builder, target, arguments) -> {
             // always called with a string literal
             StringLiteral lit = (StringLiteral) arguments.get(0);
@@ -220,6 +238,8 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus", emptyToBool, desiredAssertionStatus);
         intrinsics.registerIntrinsic(jlcDesc, "initClassName", emptyToString, initClassName);
         intrinsics.registerIntrinsic(jlcDesc, "getPrimitiveClass", stringToClass, getPrimitiveClass);
+        intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isArray", emptyToBool, isArray);
+        intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isInterface", emptyToBool, isInterface);
 
         StaticIntrinsic classForName0 = (builder, target, arguments) -> {
             // ignore fourth argument
