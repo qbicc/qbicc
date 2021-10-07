@@ -18,7 +18,6 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.plugin.coreclasses.CoreClasses;
-import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
