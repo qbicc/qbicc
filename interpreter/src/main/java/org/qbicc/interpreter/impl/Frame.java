@@ -1618,8 +1618,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Boolean.valueOf(memory.load8(offset, mode) != 0);
         } else if (isRef(type)) {
             return memory.loadRef(offset, mode);
-        } else if (type instanceof TypeType) {
+        } else if (isTypeId(type)) {
             // special case; it must be a type ID field
+            // todo: remove once these fields are initialized naturally
             if (valueHandle instanceof InstanceFieldOf) {
                 FieldElement elem = ((InstanceFieldOf) valueHandle).getVariableElement();
                 CompilationContext ctxt = thread.getVM().getCompilationContext();
@@ -1635,7 +1636,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                     return ((ReferenceArrayObjectType)getObject(valueHandle).getObjectType()).getElementObjectType();
                 }
             }
-            throw new IllegalStateException("Unknown type ID field");
+            return memory.loadType(offset, mode);
         } else {
             throw unsupportedType();
         }
@@ -1800,6 +1801,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             memory.store8(offset, unboxBool(value) ? 1 : 0, mode);
         } else if (isRef(type)) {
             memory.storeRef(offset, (VmObject) require(value), mode);
+        } else if (isTypeId(type)) {
+            memory.storeType(offset, (ValueType) require(value), mode);
         } else {
             throw unsupportedType();
         }
