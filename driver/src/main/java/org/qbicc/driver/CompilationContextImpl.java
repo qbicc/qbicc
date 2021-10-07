@@ -21,6 +21,7 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Diagnostic;
 import org.qbicc.context.Location;
+import org.qbicc.context.PhaseAttachmentKey;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.Node;
@@ -144,6 +145,71 @@ final class CompilationContextImpl implements CompilationContext {
 
     public <T> T computeAttachment(final AttachmentKey<T> key, final Function<T, T> function) {
         return baseDiagnosticContext.computeAttachment(key, function);
+    }
+
+    @Override
+    public <T> T getAttachment(PhaseAttachmentKey<T> key) {
+        return baseDiagnosticContext.getAttachment(key);
+    }
+
+    @Override
+    public <T> T getAttachmentOrDefault(PhaseAttachmentKey<T> key, T defVal) {
+        return baseDiagnosticContext.getAttachmentOrDefault(key, defVal);
+    }
+
+    @Override
+    public <T> T putAttachment(PhaseAttachmentKey<T> key, T value) {
+        return baseDiagnosticContext.putAttachment(key, value);
+    }
+
+    @Override
+    public <T> T putAttachmentIfAbsent(PhaseAttachmentKey<T> key, T value) {
+        return baseDiagnosticContext.putAttachmentIfAbsent(key, value);
+    }
+
+    @Override
+    public <T> T removeAttachment(PhaseAttachmentKey<T> key) {
+        return baseDiagnosticContext.removeAttachment(key);
+    }
+
+    @Override
+    public <T> boolean removeAttachment(PhaseAttachmentKey<T> key, T expect) {
+        return baseDiagnosticContext.removeAttachment(key, expect);
+    }
+
+    @Override
+    public <T> T replaceAttachment(PhaseAttachmentKey<T> key, T update) {
+        return baseDiagnosticContext.replaceAttachment(key, update);
+    }
+
+    @Override
+    public <T> boolean replaceAttachment(PhaseAttachmentKey<T> key, T expect, T update) {
+        return baseDiagnosticContext.replaceAttachment(key, expect, update);
+    }
+
+    @Override
+    public <T> T computeAttachmentIfAbsent(PhaseAttachmentKey<T> key, Supplier<T> function) {
+        return baseDiagnosticContext.computeAttachmentIfAbsent(key, function);
+    }
+
+    @Override
+    public <T> T computeAttachmentIfPresent(PhaseAttachmentKey<T> key, Function<T, T> function) {
+        return baseDiagnosticContext.computeAttachmentIfPresent(key, function);
+    }
+
+    @Override
+    public <T> T computeAttachment(PhaseAttachmentKey<T> key, Function<T, T> function) {
+        return baseDiagnosticContext.computeAttachment(key, function);
+    }
+
+    @Override
+    public void cyclePhaseAttachments() {
+        baseDiagnosticContext.cyclePhaseAttachments();
+    }
+
+    @Override
+    public <T> T getPreviousPhaseAttachment(PhaseAttachmentKey<T> key) {
+        return baseDiagnosticContext.getPreviousPhaseAttachment(key);
     }
 
     public int errors() {

@@ -420,6 +420,7 @@ public class Driver implements Closeable {
         }
 
         compilationContext.clearEnqueuedSet();
+        compilationContext.cyclePhaseAttachments();
 
         // ANALYZE phase
 
@@ -484,6 +485,7 @@ public class Driver implements Closeable {
         }
 
         compilationContext.clearEnqueuedSet();
+        compilationContext.cyclePhaseAttachments();
 
         // LOWER phase
 
@@ -546,6 +548,8 @@ public class Driver implements Closeable {
                 return false;
             }
         }
+
+        compilationContext.cyclePhaseAttachments();
 
         // GENERATE phase
 
