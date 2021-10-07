@@ -42,12 +42,11 @@ import org.qbicc.type.definition.element.MethodElement;
 
 public final class VmImpl implements Vm {
     private final CompilationContext ctxt;
-    private final Map<GlobalVariableElement, Memory64Impl> globals = new ConcurrentHashMap<>();
+    private final Map<GlobalVariableElement, MemoryImpl> globals = new ConcurrentHashMap<>();
     private final Map<String, VmStringImpl> interned = new ConcurrentHashMap<>();
     private final VmClassLoaderImpl bootstrapClassLoader;
     private final AtomicBoolean initialized = new AtomicBoolean();
 
-    final boolean wideRefs;
     final MemoryImpl emptyMemory;
 
     boolean bootstrapComplete;
@@ -118,8 +117,8 @@ public final class VmImpl implements Vm {
         // force all fields to be populated so the injections are visible to us
         CoreClasses coreClasses = CoreClasses.get(ctxt);
         ctxt.getExceptionField();
-        wideRefs = ctxt.getTypeSystem().getReferenceSize() == 8;
-        emptyMemory = wideRefs ? Memory64Impl.EMPTY : Memory32Impl.EMPTY;
+        boolean be = ctxt.getTypeSystem().getEndianness() == ByteOrder.BIG_ENDIAN;
+        emptyMemory = be ? BigEndianMemoryImpl.EMPTY : LittleEndianMemoryImpl.EMPTY;
         ClassContext bcc = ctxt.getBootstrapClassContext();
         classClass = new VmClassClassImpl(this);
         objectClass = classClass.getSuperClass();
@@ -485,13 +484,7 @@ public final class VmImpl implements Vm {
 
     @Override
     public MemoryImpl allocate(int size) {
-        if (size == 0) {
-            return emptyMemory;
-        } else if (wideRefs) {
-            return new Memory64Impl(size);
-        } else {
-            return new Memory32Impl(size);
-        }
+        return emptyMemory.copy(size);
     }
 
     @Override
@@ -541,10 +534,10 @@ public final class VmImpl implements Vm {
     }
 
     public Memory getGlobal(final GlobalVariableElement variableElement) {
-        Memory64Impl memory = globals.get(variableElement);
+        MemoryImpl memory = globals.get(variableElement);
         if (memory == null) {
-            memory = new Memory64Impl((int) variableElement.getType().getSize());
-            Memory64Impl appearing = globals.putIfAbsent(variableElement, memory);
+            memory = allocate((int) variableElement.getType().getSize());
+            MemoryImpl appearing = globals.putIfAbsent(variableElement, memory);
             if (appearing != null) {
                 memory = appearing;
             }

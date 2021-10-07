@@ -45,7 +45,7 @@ class VmObjectImpl implements VmObject, Referenceable {
      */
     VmObjectImpl(final VmClassImpl clazz) {
         this.clazz = clazz;
-        memory = new Memory64Impl((int) clazz.getLayoutInfo().getCompoundType().getSize());
+        memory = clazz.getVmClass().getVm().allocate((int) clazz.getLayoutInfo().getCompoundType().getSize());
     }
 
     /**
@@ -56,7 +56,7 @@ class VmObjectImpl implements VmObject, Referenceable {
     VmObjectImpl(final VmArrayClassImpl clazz, final int arraySize) {
         this.clazz = clazz;
         ArrayObjectType arrayType = clazz.getInstanceObjectType();
-        memory = new Memory64Impl((int) (clazz.getLayoutInfo().getCompoundType().getSize() + arraySize * arrayType.getElementType().getSize()));
+        memory = clazz.getVm().allocate((int) (clazz.getLayoutInfo().getCompoundType().getSize() + arraySize * arrayType.getElementType().getSize()));
     }
 
     /**

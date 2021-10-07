@@ -2,6 +2,7 @@ package org.qbicc.interpreter;
 
 
 import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.type.ValueType;
 
 /**
  * A base for a relatively-indexed piece of memory.
@@ -20,6 +21,8 @@ public interface Memory {
     long load64(int index, MemoryAtomicityMode mode);
 
     VmObject loadRef(int index, MemoryAtomicityMode mode);
+
+    ValueType loadType(int index, MemoryAtomicityMode mode);
 
     default double loadDouble(int index, MemoryAtomicityMode mode) {
         return Double.longBitsToDouble(load64(index, mode));
@@ -43,6 +46,8 @@ public interface Memory {
 
     void storeRef(int index, VmObject value, MemoryAtomicityMode mode);
 
+    void storeType(int index, ValueType value, MemoryAtomicityMode mode);
+
     void storeMemory(int destIndex, Memory src, int srcIndex, int size);
 
     void storeMemory(int destIndex, byte[] src, int srcIndex, int size);
@@ -57,6 +62,8 @@ public interface Memory {
 
     VmObject compareAndExchangeRef(int index, VmObject expect, VmObject update, MemoryAtomicityMode mode);
 
+    ValueType compareAndExchangeType(int index, ValueType expect, ValueType update, MemoryAtomicityMode mode);
+
     int getAndSet8(int index, int value, MemoryAtomicityMode mode);
 
     int getAndSet16(int index, int value, MemoryAtomicityMode mode);
@@ -67,6 +74,8 @@ public interface Memory {
 
     VmObject getAndSetRef(int index, VmObject value, MemoryAtomicityMode mode);
 
+    ValueType getAndSetType(int index, ValueType value, MemoryAtomicityMode mode);
+
     int getAndAdd8(int index, int value, MemoryAtomicityMode mode);
 
     int getAndAdd16(int index, int value, MemoryAtomicityMode mode);
@@ -74,4 +83,6 @@ public interface Memory {
     int getAndAdd32(int index, int value, MemoryAtomicityMode mode);
 
     long getAndAdd64(int index, long value, MemoryAtomicityMode mode);
+
+    Memory copy(int newSize);
 }
