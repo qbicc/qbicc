@@ -14,6 +14,11 @@
 
     <packaging>pom</packaging>
 
+    <properties>
+        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+    </properties>
+
     <modules>
         <!-- API module -->
         <module>api</module>
@@ -41,6 +46,7 @@
                             <goal>compile</goal>
                         </goals>
                         <configuration>
+                            <release>11</release>
                             <compilerArgs>
                                 <arg>-XDstringConcat=inline</arg>
                             </compilerArgs>
