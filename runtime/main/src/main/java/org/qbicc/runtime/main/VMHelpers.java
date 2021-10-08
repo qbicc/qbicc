@@ -327,10 +327,10 @@ public final class VMHelpers {
 
     static void ensureClinitStatesArray() {
         if (clinitStates == null) {
-            int size = ObjectModel.get_number_of_typeids();
+            type_id size = ObjectModel.get_number_of_typeids();
             synchronized(ClinitState.class) {
                 if (clinitStates == null) {
-                    clinitStates = new ClinitState[size];
+                    clinitStates = new ClinitState[size.intValue()];
                 }
             }
         }

@@ -207,7 +207,7 @@ public class ObjectModel {
      * Get the number of typeIds in the system.
      * This will be 1 higher than the highest typeid
      */
-    public static native int get_number_of_typeids();
+    public static native type_id get_number_of_typeids();
 
     /**
      * Call the class initializer for this class if it hasn't already been
