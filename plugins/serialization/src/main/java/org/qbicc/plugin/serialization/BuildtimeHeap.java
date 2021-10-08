@@ -35,6 +35,7 @@ import org.qbicc.type.Primitive;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.TypeSystem;
+import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -263,11 +264,21 @@ public class BuildtimeHeap {
 
     private void serializeVmObject(LoadedTypeDefinition concreteType, Layout.LayoutInfo objLayout, SymbolLiteral sl, VmObject value) {
         Memory memory = value.getMemory();
-        LiteralFactory lf = ctxt.getLiteralFactory();
         Layout.LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
         CompoundType objType = objLayout.getCompoundType();
         HashMap<CompoundType.Member, Literal> memberMap = new HashMap<>();
 
+        populateMemberMap(concreteType, objType, objLayout, memLayout, memory, memberMap);
+
+        // Finally set the object header fields that the interpreter does not know about.
+        memberMap.put(objLayout.getMember(coreClasses.getObjectTypeIdField()), lf.literalOf(concreteType.getTypeId()));
+
+        // Define it!
+        defineData(sl.getName(), ctxt.getLiteralFactory().literalOf(objType, memberMap));
+    }
+
+    private void populateMemberMap(final LoadedTypeDefinition concreteType, final CompoundType objType, final Layout.LayoutInfo objLayout, final Layout.LayoutInfo memLayout, final Memory memory, final HashMap<CompoundType.Member, Literal> memberMap) {
+        LiteralFactory lf = ctxt.getLiteralFactory();
         // Start by zero-initializing all members
         for (CompoundType.Member m : objType.getMembers()) {
             memberMap.put(m, lf.zeroInitializerLiteralOfType(m.getType()));
@@ -300,6 +311,8 @@ public class BuildtimeHeap {
                 } else {
                     memberMap.put(om, lf.literalOf(ft, memory.loadDouble(im.getOffset(), MemoryAtomicityMode.UNORDERED)));
                 }
+            } else if (im.getType() instanceof TypeType) {
+                memberMap.put(om, lf.literalOfType(memory.loadType(im.getOffset(), MemoryAtomicityMode.UNORDERED)));
             } else {
                 VmObject contents = memory.loadRef(im.getOffset(), MemoryAtomicityMode.UNORDERED);
                 if (contents == null) {
@@ -309,12 +322,6 @@ public class BuildtimeHeap {
                 }
             }
         }
-
-        // Finally set the object header fields that the interpreter does not know about.
-        memberMap.put(objLayout.getMember(coreClasses.getObjectTypeIdField()), lf.literalOf(concreteType.getTypeId()));
-
-        // Define it!
-        defineData(sl.getName(), ctxt.getLiteralFactory().literalOf(objType, memberMap));
     }
 
     private void serializeRefArray(ReferenceArrayObjectType at, CompoundType literalCT, int length, SymbolLiteral sl, VmArray value) {
