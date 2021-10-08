@@ -51,6 +51,12 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                     return truncate(bitCast(from, ((SignedIntegerType) fromType).asUnsigned()), toType);
                 } else if (toType instanceof BooleanType) {
                     return super.truncate(from, toType);
+                } else if (toType instanceof TypeType) {
+                    if (fromType.getMinBits() > toType.getMinBits()) {
+                        return super.truncate(from, toType);
+                    } else {
+                        return from;
+                    }
                 }
                 // otherwise not OK (fall out)
             } else if (fromType instanceof UnsignedIntegerType) {
@@ -131,6 +137,15 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                 if (toType instanceof FloatType) {
                     if (fromType.getMinBits() < toType.getMinBits()) {
                         // OK
+                        return super.extend(from, toType);
+                    } else if (fromType.getMinBits() >= toType.getMinBits()) {
+                        // no actual extension needed
+                        return from;
+                    }
+                }
+            } else if (fromType instanceof TypeType) {
+                if (toType instanceof IntegerType) {
+                    if (fromType.getMinBits() < toType.getMinBits()) {
                         return super.extend(from, toType);
                     } else if (fromType.getMinBits() >= toType.getMinBits()) {
                         // no actual extension needed
@@ -237,6 +252,8 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
             if (toTypeRaw instanceof IntegerType) {
                 if (fromTypeRaw.getSize() > toTypeRaw.getSize()) {
                     ctxt.error(getLocation(), "Invalid typeid conversion to narrower type %s", fromTypeRaw);
+                } else if (fromTypeRaw.getSize() < toTypeRaw.getSize()) {
+                    return extend(from, toTypeRaw);
                 }
                 return super.valueConvert(from, toTypeRaw);
             }
