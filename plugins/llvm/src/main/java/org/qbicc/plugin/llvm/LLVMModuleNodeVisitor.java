@@ -366,20 +366,24 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
     public LLValue visit(Void param, TypeLiteral node) {
         ValueType type = node.getValue();
         // common cases first
+        int typeId;
         if (type instanceof ArrayObjectType) {
-            return Values.intConstant(CoreClasses.get(ctxt).getArrayContentField((ArrayObjectType) type).getEnclosingType().load().getTypeId());
+            typeId = CoreClasses.get(ctxt).getArrayContentField((ArrayObjectType) type).getEnclosingType().load().getTypeId();
         } else if (type instanceof ObjectType) {
-            return Values.intConstant(((ObjectType) type).getDefinition().load().getTypeId());
+            typeId = ((ObjectType) type).getDefinition().load().getTypeId();
+        } else if (type instanceof WordType) {
+            typeId = ((WordType) type).asPrimitive().getTypeId();
+        } else if (type instanceof VoidType) {
+            typeId = ((VoidType) type).asPrimitive().getTypeId();
+        } else {
+            // not a valid type literal
+            ctxt.error("llvm: cannot lower type literal %s", node);
+            return Values.intConstant(0);
         }
-        if (type instanceof WordType) {
-            return Values.intConstant(((WordType)type).asPrimitive().getTypeId());
+        if (typeId == 0) {
+            ctxt.error("llvm: type %s does not have a valid type ID", type);
         }
-        else if (type instanceof VoidType) {
-            return Values.intConstant(((VoidType)type).asPrimitive().getTypeId());
-        }
-        // not a valid type literal
-        ctxt.error("llvm: cannot lower type literal %s", node);
-        return Values.intConstant(0);
+        return Values.intConstant(typeId);
     }
 
     public LLValue visitUnknown(final Void param, final Value node) {
