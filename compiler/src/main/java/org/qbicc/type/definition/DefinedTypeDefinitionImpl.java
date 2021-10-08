@@ -351,7 +351,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
         // Construct instanceMethods -- the ordered list of all instance methods inherited and directly implemented.
         ArrayList<MethodElement> instanceMethods = new ArrayList<>();
-        if (superType != null) {
+        if (superType != null && !isInterface()) {
             // (i) all instance methods of my superclass
             instanceMethods.addAll(List.of(superType.getInstanceMethods()));
         }
