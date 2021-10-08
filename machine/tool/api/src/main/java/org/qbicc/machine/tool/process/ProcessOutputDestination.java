@@ -17,7 +17,9 @@ import io.smallrye.common.function.ExceptionUnaryOperator;
 final class ProcessOutputDestination<T> extends OutputDestination {
     static final Function<Process, InputSource> DEFAULT_CHAIN_SOURCE = process -> new InputStreamSupplierInputSource<>(ExceptionUnaryOperator.identity(), process.getInputStream());
     static final ExceptionConsumer<Process, IOException> DEFAULT_CHECKER = p -> {
-        if (p.exitValue() != 0) throw new IOException("Process returned exit code " + p.exitValue());
+        if (p.exitValue() != 0) {
+            throw new IOException("Process returned exit code " + p.exitValue());
+        }
     };
 
     private final OutputDestination output;
