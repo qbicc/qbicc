@@ -219,7 +219,7 @@ public final class CoreIntrinsics {
         InstanceIntrinsic isInterface = (builder, instance, target, arguments) -> {
             Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance),  coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
             LiteralFactory lf = ctxt.getLiteralFactory();
-            return builder.isLe(lf.literalOf(tables.getFirstInterfaceTypeId()), id);
+            return builder.isLe(lf.literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), tables.getFirstInterfaceTypeId()), id);
         };
 
         StaticIntrinsic getPrimitiveClass = (builder, target, arguments) -> {
@@ -1039,13 +1039,13 @@ public final class CoreIntrinsics {
             ValueType refArray = coreClasses.getArrayLoadedTypeDefinition("[ref").getType();
             Value isObj = builder.isEq(arguments.get(0), lf.literalOfType(jlo.getType()));
             Value isAboveRef = builder.isLt(lf.literalOfType(refArray), arguments.get(0));
-            Value isNotInterface = builder.isLt(arguments.get(0), lf.literalOf(tables.getFirstInterfaceTypeId()));
+            Value isNotInterface = builder.isLt(arguments.get(0), lf.literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), tables.getFirstInterfaceTypeId()));
             return builder.or(isObj, builder.and(isAboveRef, isNotInterface));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_class", typeIdBooleanDesc, isClass);
 
         StaticIntrinsic isInterface = (builder, target, arguments) ->
-            builder.isLe(lf.literalOf(tables.getFirstInterfaceTypeId()), arguments.get(0));
+            builder.isLe(lf.literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), tables.getFirstInterfaceTypeId()), arguments.get(0));
 
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_interface", typeIdBooleanDesc, isInterface);
 
@@ -1065,20 +1065,21 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_reference_array", typeIdBooleanDesc, isRefArray);
 
         StaticIntrinsic getRefArrayTypeId = (builder, target, arguments) ->
-            ctxt.getLiteralFactory().literalOf(coreClasses.getRefArrayContentField().getEnclosingType().load().getTypeId());
+            ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), coreClasses.getRefArrayContentField().getEnclosingType().load().getTypeId());
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_reference_array_typeid", emptyTotypeIdDesc, getRefArrayTypeId);
 
         StaticIntrinsic doesImplement = (builder, target, arguments) -> {
+            IntegerType typeIdLiteralType = ctxt.getTypeSystem().getTypeIdLiteralType();
             Value objTypeId = arguments.get(0);
             Value interfaceTypeId = arguments.get(1);
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
             ValueHandle typeIdStruct = builder.elementOf(builder.globalVariable(typeIdGlobal), objTypeId);
             ValueHandle bits = builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("interfaceBits"));
-            Value adjustedInterfaceTypeId = builder.sub(interfaceTypeId, lf.literalOf(tables.getFirstInterfaceTypeId()));
-            Value implementsIdx = builder.shr(builder.bitCast(adjustedInterfaceTypeId, ctxt.getTypeSystem().getUnsignedInteger32Type()), lf.literalOf(3));
-            Value implementsBit = builder.and(adjustedInterfaceTypeId, lf.literalOf(7));
-            Value dataByte = builder.load(builder.elementOf(bits, implementsIdx), MemoryAtomicityMode.UNORDERED);
-            Value mask = builder.truncate(builder.shl(lf.literalOf(1), implementsBit), ctxt.getTypeSystem().getSignedInteger8Type());
+            Value adjustedInterfaceTypeId = builder.sub(interfaceTypeId, lf.literalOf(typeIdLiteralType, tables.getFirstInterfaceTypeId()));
+            Value implementsIdx = builder.shr(builder.bitCast(adjustedInterfaceTypeId, typeIdLiteralType.asUnsigned()), lf.literalOf(typeIdLiteralType, 3));
+            Value implementsBit = builder.and(adjustedInterfaceTypeId, lf.literalOf(typeIdLiteralType, 7));
+            Value dataByte = builder.load(builder.elementOf(bits, builder.extend(implementsIdx, ctxt.getTypeSystem().getSignedInteger32Type())), MemoryAtomicityMode.UNORDERED);
+            Value mask = builder.truncate(builder.shl(lf.literalOf(typeIdLiteralType, 1), implementsBit), ctxt.getTypeSystem().getSignedInteger8Type());
             return builder.isEq(mask, builder.and(mask, dataByte));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "does_implement", typeIdTypeIdBooleanDesc, doesImplement);
@@ -1163,8 +1164,8 @@ public final class CoreIntrinsics {
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "create_class", createClassDesc, createClass);
 
-        StaticIntrinsic getNumberOfTypeIds = (builder, target, arguments) -> lf.literalOf(tables.get_number_of_typeids());
-        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_number_of_typeids", IntDesc, getNumberOfTypeIds);
+        StaticIntrinsic getNumberOfTypeIds = (builder, target, arguments) -> lf.literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), tables.get_number_of_typeids());
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_number_of_typeids", emptyTotypeIdDesc, getNumberOfTypeIds);
 
         StaticIntrinsic callClassInitializer = (builder, target, arguments) -> {
             Value typeId = arguments.get(0);
@@ -1210,7 +1211,7 @@ public final class CoreIntrinsics {
 
         // public static native CNative.type_id get_first_interface_typeid();
         StaticIntrinsic get_first_interface_typeid = (builder, target, arguments) -> {
-            return lf.literalOf(tables.getFirstInterfaceTypeId());
+            return lf.literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), tables.getFirstInterfaceTypeId());
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_first_interface_typeid", emptyTotypeIdDesc, get_first_interface_typeid);
 

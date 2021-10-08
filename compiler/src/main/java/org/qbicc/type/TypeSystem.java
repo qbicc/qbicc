@@ -185,6 +185,18 @@ public final class TypeSystem {
     }
 
     /**
+     * Get the integer type to use when creating typeId literals.
+     */
+    public IntegerType getTypeIdLiteralType() {
+        switch (getTypeIdSize()) {
+            case 1: return getUnsignedInteger8Type();
+            case 2: return getUnsignedInteger16Type();
+            case 4: return getUnsignedInteger32Type();
+            default: throw new IllegalStateException("Unsupported size for type IDs: " + getTypeIdSize());
+        }
+    }
+
+    /**
      * Get the alignment of type ID values for this type system.
      *
      * @return the alignment of type ID values for this type system
