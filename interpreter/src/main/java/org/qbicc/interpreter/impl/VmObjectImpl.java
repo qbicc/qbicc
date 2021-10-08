@@ -8,11 +8,15 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.qbicc.context.CompilationContext;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.PhysicalObjectType;
+import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.element.FieldElement;
 
 class VmObjectImpl implements VmObject, Referenceable {
     private static final VarHandle lockHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "lock", VarHandle.class, VmObjectImpl.class, Lock.class);
@@ -93,6 +97,18 @@ class VmObjectImpl implements VmObject, Referenceable {
     }
 
     @Override
+    public int indexOf(FieldElement field) throws IllegalArgumentException {
+        LoadedTypeDefinition loaded = field.getEnclosingType().load();
+        CompilationContext ctxt = loaded.getContext().getCompilationContext();
+        Layout.LayoutInfo layoutInfo = Layout.getForInterpreter(ctxt).getInstanceLayoutInfo(loaded);
+        CompoundType.Member member = layoutInfo.getMember(field);
+        if (member == null) {
+            throw new IllegalArgumentException("Field " + field + " is not present on " + this);
+        }
+        return member.getOffset();
+    }
+
+    @Override
     public void vmWait() throws InterruptedException {
         getCondition().await();
     }
@@ -124,7 +140,7 @@ class VmObjectImpl implements VmObject, Referenceable {
 
     @Override
     public ClassObjectType getObjectTypeId() {
-        return clazz.getInstanceObjectTypeId();
+        return (ClassObjectType) clazz.getInstanceObjectTypeId();
     }
 
     Lock getLock() {

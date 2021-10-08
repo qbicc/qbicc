@@ -130,7 +130,7 @@ final class VmInvokableImpl implements VmInvokable {
                 Object arg = args.get(i);
                 // convenience
                 if (arg instanceof String) {
-                    arg = new VmStringImpl(thread.getVM(), thread.vm.stringClass, (String) arg);
+                    arg = thread.getVM().manuallyInitialize(new VmStringImpl(thread.getVM(), thread.vm.stringClass, (String) arg));
                 }
                 try {
                     frame.values.put(body.getParameterValue(i), arg);

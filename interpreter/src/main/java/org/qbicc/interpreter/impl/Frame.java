@@ -1928,8 +1928,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 MethodElement methodElement = node.getExecutable();
                 MethodElement result = object.getVmClass().getTypeDefinition().resolveMethodElementVirtual(methodElement.getName(), methodElement.getDescriptor());
                 if (result == null) {
-                    VmClassImpl nsme = VmImpl.require().noSuchMethodErrorClass;
-                    throw new Thrown((VmThrowable) nsme.newInstance());
+                    VmImpl vm = VmImpl.require();
+                    VmClassImpl nsme = vm.noSuchMethodErrorClass;
+                    throw new Thrown(vm.manuallyInitialize((VmThrowable) nsme.newInstance()));
                 }
                 return result;
             } else {
@@ -1945,8 +1946,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 MethodElement methodElement = node.getExecutable();
                 MethodElement result = object.getVmClass().getTypeDefinition().resolveMethodElementVirtual(methodElement.getName(), methodElement.getDescriptor());
                 if (result == null) {
-                    VmClassImpl nsme = VmImpl.require().noSuchMethodErrorClass;
-                    throw new Thrown((VmThrowable) nsme.newInstance());
+                    VmImpl vm = VmImpl.require();
+                    VmClassImpl nsme = vm.noSuchMethodErrorClass;
+                    throw new Thrown(vm.manuallyInitialize((VmThrowable) nsme.newInstance()));
                 }
                 return result;
             } else {

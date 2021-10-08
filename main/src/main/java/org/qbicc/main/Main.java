@@ -33,6 +33,7 @@ import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.tool.CToolChain;
 import org.qbicc.plugin.coreclasses.BasicInitializationBasicBlockBuilder;
+import org.qbicc.plugin.coreclasses.BasicInitializationManualInitializer;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.constants.ConstantBasicBlockBuilder;
 import org.qbicc.plugin.conversion.LLVMCompatibleBasicBlockBuilder;
@@ -260,7 +261,10 @@ public class Main implements Callable<DiagnosticContext> {
                                 new NoGcTypeSystemConfigurator().accept(tsBuilder);
                             }
                             builder.setTypeSystem(tsBuilder.build());
-                            builder.setVmFactory(VmImpl::create);
+                            // add additional manual initializers by chaining `.andThen(...)`
+                            builder.setVmFactory(cc -> VmImpl.create(cc,
+                                new BasicInitializationManualInitializer(cc)
+                            ));
                             builder.setObjectFileProvider(objectFileProvider);
                             ServiceLoader<DriverPlugin> loader = ServiceLoader.load(DriverPlugin.class);
                             Iterator<DriverPlugin> iterator = loader.iterator();

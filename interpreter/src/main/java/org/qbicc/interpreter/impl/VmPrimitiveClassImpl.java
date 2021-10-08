@@ -33,8 +33,8 @@ class VmPrimitiveClassImpl extends VmClassImpl implements VmPrimitiveClass {
     }
 
     @Override
-    void setName(VmImpl vm) {
-        setName(simpleName, vm);
+    void postConstruct(VmImpl vm) {
+        postConstruct(simpleName, vm);
     }
 
     public ObjectType getInstanceObjectType() {

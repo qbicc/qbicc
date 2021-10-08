@@ -127,7 +127,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         } else {
             vmClass = new VmClassImpl(vm, loaded, protectionDomain);
         }
-        vmClass.setName(vm);
+        vmClass.postConstruct(vm);
         return vmClass;
     }
 

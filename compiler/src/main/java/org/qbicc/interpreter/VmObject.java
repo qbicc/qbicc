@@ -2,6 +2,7 @@ package org.qbicc.interpreter;
 
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.PhysicalObjectType;
+import org.qbicc.type.definition.element.FieldElement;
 
 /**
  * A Java object handle.
@@ -38,4 +39,13 @@ public interface VmObject {
     void vmNotify();
 
     void vmNotifyAll();
+
+    /**
+     * Get the known index of the given field on this object.
+     *
+     * @param field the field (must not be {@code null})
+     * @return the index
+     * @throws IllegalArgumentException if the field does not belong on this instance
+     */
+    int indexOf(FieldElement field) throws IllegalArgumentException;
 }

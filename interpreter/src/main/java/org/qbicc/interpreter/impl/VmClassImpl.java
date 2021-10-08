@@ -194,23 +194,27 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         return (VmClassClassImpl) super.getVmClass();
     }
 
-    void setName(VmImpl vm) {
-        setName(typeDefinition.getInternalName().replace('/', '.'), vm);
+    void postConstruct(VmImpl vm) {
+        postConstruct(typeDefinition.getInternalName().replace('/', '.'), vm);
     }
 
-    void setName(final String name, VmImpl vm) {
+    void postConstruct(final String name, VmImpl vm) {
+        // todo: Base JDK equivalent core classes with appropriate manual initializer
         try {
             memory.storeRef(getVmClass().getLayoutInfo().getMember(getVmClass().getTypeDefinition().findField("name")).getOffset(), vm.intern(name), MemoryAtomicityMode.UNORDERED);
         } catch (Exception e) {
             // for breakpoints
             throw e;
         }
+        vm.manuallyInitialize(this);
     }
 
     VmArrayClassImpl constructArrayClass() {
         // assume reference array by default
         LoadedTypeDefinition arrayDef = CoreClasses.get(typeDefinition.getContext().getCompilationContext()).getRefArrayContentField().getEnclosingType().load();
-        return new VmRefArrayClassImpl(getVm(), getVmClass(), arrayDef, this);
+        VmRefArrayClassImpl clazz = new VmRefArrayClassImpl(getVm(), getVmClass(), arrayDef, this);
+        getVm().manuallyInitialize(clazz);
+        return clazz;
     }
 
     VmImpl getVm() {
@@ -237,8 +241,8 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     }
 
     @Override
-    public ClassObjectType getInstanceObjectTypeId() {
-        return (ClassObjectType) getInstanceObjectType();
+    public ObjectType getInstanceObjectTypeId() {
+        return getInstanceObjectType();
     }
 
     @Override
@@ -370,7 +374,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             ClassContext bcc = vm.getCompilationContext().getBootstrapClassContext();
             LoadedTypeDefinition errorType = bcc.findDefinedType("java/lang/ExceptionInInitializerError").load();
             ClassObjectType exType = errorType.getClassType();
-            VmThrowable obj = (VmThrowable) vm.allocateObject(exType);
+            VmThrowable obj = vm.manuallyInitialize((VmThrowable) vm.allocateObject(exType));
             if (initException != null) {
                 MethodDescriptor causeMethodDesc = MethodDescriptor.synthesize(bcc, BaseTypeDescriptor.V, List.of(ClassTypeDescriptor.synthesize(bcc, "java/lang/Throwable")));
                 vm.invokeExact(errorType.resolveConstructorElement(causeMethodDesc), obj, List.of(initException));
