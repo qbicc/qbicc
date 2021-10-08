@@ -501,6 +501,7 @@ public class Main implements Callable<DiagnosticContext> {
             .setOptGotos(optionsProcessor.optArgs.optGotos)
             .setOptPhis(optionsProcessor.optArgs.optPhis)
             .setInitBuildTime(optionsProcessor.initBuildTime)
+            .setSmallTypeIds(optionsProcessor.smallTypeIds)
             .setGraphGenConfig(optionsProcessor.graphGenConfig);
         Platform platform = optionsProcessor.platform;
         if (platform != null) {
