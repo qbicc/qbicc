@@ -286,6 +286,15 @@ public class BuildtimeHeap {
             memberMap.put(m, lf.zeroInitializerLiteralOfType(m.getType()));
         }
 
+        populateClearedMemberMap(concreteType, objType, objLayout, memLayout, memory, memberMap);
+    }
+
+    private void populateClearedMemberMap(final LoadedTypeDefinition concreteType, final CompoundType objType, final Layout.LayoutInfo objLayout, final Layout.LayoutInfo memLayout, final Memory memory, final HashMap<CompoundType.Member, Literal> memberMap) {
+        if (concreteType.hasSuperClass()) {
+            populateClearedMemberMap(concreteType.getSuperClass(), objType, objLayout, memLayout, memory, memberMap);
+        }
+
+        LiteralFactory lf = ctxt.getLiteralFactory();
         // Next, iterate over object's instance fields and copy values from the backing Memory to the memberMap
         int fc = concreteType.getFieldCount();
         for (int i=0; i<fc; i++) {
