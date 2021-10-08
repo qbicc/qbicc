@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.type.ArrayType;
@@ -91,17 +92,30 @@ public final class Layout {
         }
         int cnt = validated.getFieldCount();
         Map<FieldElement, CompoundType.Member> fieldToMember = superLayout == null ? new HashMap<>(cnt) : new HashMap<>(superLayout.fieldToMember);
+        FieldElement trailingArray = null;
         for (int i = 0; i < cnt; i ++) {
             // todo: skip unused fields?
             FieldElement field = validated.getField(i);
             if (field.isStatic()) {
                 continue;
             }
-            CompoundType.Member member = computeMember(allocated, field);
+            if (field.getType().getSize() == 0) {
+                Assert.assertTrue(trailingArray == null); // At most one trailing array per type!
+                trailingArray = field; // defer until all other fields are allocated
+            } else {
+                CompoundType.Member member = computeMember(allocated, field);
+                if (member.getAlign() > minAlignment) {
+                    minAlignment = member.getAlign();
+                }
+                fieldToMember.put(field, member);
+            }
+        }
+        if (trailingArray != null) {
+            CompoundType.Member member = computeMember(allocated, trailingArray);
             if (member.getAlign() > minAlignment) {
                 minAlignment = member.getAlign();
             }
-            fieldToMember.put(field, member);
+            fieldToMember.put(trailingArray, member);
         }
         int size = allocated.length();
         CompoundType.Member[] membersArray = fieldToMember.values().toArray(CompoundType.Member[]::new);
@@ -171,8 +185,13 @@ public final class Layout {
         }
         int size = (int) fieldType.getSize();
         int align = fieldType.getAlign();
-        int idx = find(allocated, align, size);
-        allocated.set(idx, idx + size);
+        int idx;
+        if (size != 0) {
+            idx = find(allocated, align, size);
+            allocated.set(idx, idx + size);
+        } else {
+            idx = find(allocated, align, ts.getMaxAlignment());
+        }
         return ts.getCompoundTypeMember(field.getName(), fieldType, idx, align);
     }
 
