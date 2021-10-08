@@ -32,6 +32,39 @@ public interface DiagnosticContext {
 
     <T> T computeAttachment(AttachmentKey<T> key, Function<T, T> function);
 
+    <T> T getAttachment(PhaseAttachmentKey<T> key);
+
+    <T> T getAttachmentOrDefault(PhaseAttachmentKey<T> key, T defVal);
+
+    <T> T putAttachment(PhaseAttachmentKey<T> key, T value);
+
+    <T> T putAttachmentIfAbsent(PhaseAttachmentKey<T> key, T value);
+
+    <T> T removeAttachment(PhaseAttachmentKey<T> key);
+
+    <T> boolean removeAttachment(PhaseAttachmentKey<T> key, T expect);
+
+    <T> T replaceAttachment(PhaseAttachmentKey<T> key, T update);
+
+    <T> boolean replaceAttachment(PhaseAttachmentKey<T> key, T expect, T update);
+
+    <T> T computeAttachmentIfAbsent(PhaseAttachmentKey<T> key, Supplier<T> function);
+
+    <T> T computeAttachmentIfPresent(PhaseAttachmentKey<T> key, Function<T, T> function);
+
+    <T> T computeAttachment(PhaseAttachmentKey<T> key, Function<T, T> function);
+
+    void cyclePhaseAttachments();
+
+    /**
+     * Get an attachment from the previous phase.
+     *
+     * @param key the attachment key
+     * @param <T> the attachment type
+     * @return the attachment, or {@code null} if it was not created in the previous phase
+     */
+    <T> T getPreviousPhaseAttachment(final PhaseAttachmentKey<T> key);
+
     int errors();
 
     int warnings();

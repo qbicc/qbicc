@@ -12,11 +12,14 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.Diagnostic;
 import org.qbicc.context.DiagnosticContext;
 import org.qbicc.context.Location;
+import org.qbicc.context.PhaseAttachmentKey;
 import org.qbicc.graph.Node;
 import org.qbicc.type.definition.element.Element;
 
 public final class BaseDiagnosticContext implements DiagnosticContext  {
     final ConcurrentHashMap<AttachmentKey<?>, Object> attachmentsMap = new ConcurrentHashMap<AttachmentKey<?>, Object>();
+    volatile ConcurrentHashMap<PhaseAttachmentKey<?>, Object> phaseAttachmentsMap = new ConcurrentHashMap<PhaseAttachmentKey<?>, Object>(0);
+    volatile ConcurrentHashMap<PhaseAttachmentKey<?>, Object> prevPhaseAttachmentsMap = new ConcurrentHashMap<PhaseAttachmentKey<?>, Object>();
     final ConcurrentLinkedDeque<Diagnostic> diagnostics = new ConcurrentLinkedDeque<Diagnostic>();
     final ConcurrentHashMap<String, String> stringCache = new ConcurrentHashMap<String, String>();
     final AtomicInteger errorCnt = new AtomicInteger(0);
@@ -76,6 +79,69 @@ public final class BaseDiagnosticContext implements DiagnosticContext  {
     @SuppressWarnings("unchecked")
     public <T> T computeAttachment(final AttachmentKey<T> key, final Function<T, T> function) {
         return (T) attachmentsMap.compute(key, (k, v) -> function.apply((T) v));
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T getAttachment(final PhaseAttachmentKey<T> key) {
+        return (T) phaseAttachmentsMap.get(key);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T getAttachmentOrDefault(final PhaseAttachmentKey<T> key, final T defVal) {
+        return (T) phaseAttachmentsMap.getOrDefault(key, defVal);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T putAttachment(final PhaseAttachmentKey<T> key, final T value) {
+        return (T) phaseAttachmentsMap.put(key, value);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T putAttachmentIfAbsent(final PhaseAttachmentKey<T> key, final T value) {
+        return (T) phaseAttachmentsMap.putIfAbsent(key, value);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T removeAttachment(final PhaseAttachmentKey<T> key) {
+        return (T) phaseAttachmentsMap.remove(key);
+    }
+
+    public <T> boolean removeAttachment(final PhaseAttachmentKey<T> key, final T expect) {
+        return phaseAttachmentsMap.remove(key, expect);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T replaceAttachment(final PhaseAttachmentKey<T> key, final T update) {
+        return (T) phaseAttachmentsMap.replace(key, update);
+    }
+
+    public <T> boolean replaceAttachment(final PhaseAttachmentKey<T> key, final T expect, final T update) {
+        return phaseAttachmentsMap.replace(key, expect, update);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T computeAttachmentIfAbsent(final PhaseAttachmentKey<T> key, final Supplier<T> function) {
+        return (T) phaseAttachmentsMap.computeIfAbsent(key, k -> function.get());
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T computeAttachmentIfPresent(final PhaseAttachmentKey<T> key, final Function<T, T> function) {
+        return (T) phaseAttachmentsMap.computeIfPresent(key, (k, v) -> function.apply((T) v));
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T computeAttachment(final PhaseAttachmentKey<T> key, final Function<T, T> function) {
+        return (T) phaseAttachmentsMap.compute(key, (k, v) -> function.apply((T) v));
+    }
+
+    public void cyclePhaseAttachments() {
+        prevPhaseAttachmentsMap = phaseAttachmentsMap;
+        phaseAttachmentsMap = new ConcurrentHashMap<>();
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T getPreviousPhaseAttachment(final PhaseAttachmentKey<T> key) {
+        return (T) prevPhaseAttachmentsMap.get(key);
     }
 
     public int errors() {
