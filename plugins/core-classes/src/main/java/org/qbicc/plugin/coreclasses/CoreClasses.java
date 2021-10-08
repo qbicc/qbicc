@@ -215,7 +215,6 @@ public final class CoreClasses {
     private static FieldElement makeDimensionsField(final int index, final DefinedTypeDefinition enclosing) {
         FieldElement.Builder fieldBuilder = FieldElement.builder();
         fieldBuilder.setEnclosingType(enclosing);
-        // TODO: This should be a 8 bit unsigned field. (max dimensions is 255 from multianewarray)
         fieldBuilder.setDescriptor(BaseTypeDescriptor.V);
         fieldBuilder.setSignature(BaseTypeSignature.V);
         fieldBuilder.setIndex(index);
@@ -240,7 +239,6 @@ public final class CoreClasses {
     private static FieldElement makeElementTypeIdField(final int index, final DefinedTypeDefinition jlo, final DefinedTypeDefinition enclosing) {
         FieldElement.Builder fieldBuilder = FieldElement.builder();
         fieldBuilder.setEnclosingType(enclosing);
-        // TODO: This should be a 16 bit unsigned field.  It is being generated as an i32 currently.
         fieldBuilder.setDescriptor(BaseTypeDescriptor.V);
         fieldBuilder.setSignature(BaseTypeSignature.V);
         fieldBuilder.setIndex(index);
