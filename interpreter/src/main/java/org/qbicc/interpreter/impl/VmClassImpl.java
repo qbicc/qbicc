@@ -184,6 +184,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 if (arrayClazz == null) {
                     arrayClazz = this.arrayClass = constructArrayClass();
                 }
+                memory.storeRef(indexOf(CoreClasses.get(vm.getCompilationContext()).getArrayClassField()), arrayClazz, MemoryAtomicityMode.VOLATILE);
             }
         }
         return arrayClazz;
