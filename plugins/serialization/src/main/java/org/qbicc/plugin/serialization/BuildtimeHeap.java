@@ -1,10 +1,10 @@
 package org.qbicc.plugin.serialization;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 
 import io.smallrye.common.constraint.Assert;
@@ -34,10 +34,12 @@ import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -249,12 +251,15 @@ public class BuildtimeHeap {
             ArrayType sizedContentMem = ts.getArrayType(((ArrayType) contents.getType()).getElementType(), length);
             CompoundType.Member realContentMem = ts.getCompoundTypeMember(contentMem.getName(), sizedContentMem, contentMem.getOffset(), contentMem.getAlign());
 
-            Supplier<List<CompoundType.Member>> thunk;
-            if (contents.equals(coreClasses.getRefArrayContentField())) {
-                thunk = () -> List.of(arrayCT.getMember(0), arrayCT.getMember(1), arrayCT.getMember(2), arrayCT.getMember(3), realContentMem);
-            } else {
-                thunk = () -> List.of(arrayCT.getMember(0), arrayCT.getMember(1), realContentMem);
-            }
+            Supplier<List<CompoundType.Member>> thunk = () -> {
+                CompoundType.Member[] items = arrayCT.getMembers().toArray(CompoundType.Member[]::new);
+                for (int i = 0; i < items.length; i++) {
+                    if (items[i] == contentMem) {
+                        items[i] = realContentMem;
+                    }
+                }
+                return Arrays.asList(items);
+            };
 
             sizedArrayType = ts.getCompoundType(CompoundType.Tag.STRUCT, typeName, arrayCT.getSize() + sizedContentMem.getSize(), arrayCT.getAlign(), thunk);
             arrayTypes.put(typeName, sizedArrayType);
@@ -269,9 +274,6 @@ public class BuildtimeHeap {
         HashMap<CompoundType.Member, Literal> memberMap = new HashMap<>();
 
         populateMemberMap(concreteType, objType, objLayout, memLayout, memory, memberMap);
-
-        // Finally set the object header fields that the interpreter does not know about.
-        memberMap.put(objLayout.getMember(coreClasses.getObjectTypeIdField()), lf.literalOf(concreteType.getTypeId()));
 
         // Define it!
         defineData(sl.getName(), ctxt.getLiteralFactory().literalOf(objType, memberMap));
@@ -313,13 +315,19 @@ public class BuildtimeHeap {
                 }
             } else if (im.getType() instanceof TypeType) {
                 memberMap.put(om, lf.literalOfType(memory.loadType(im.getOffset(), MemoryAtomicityMode.UNORDERED)));
-            } else {
+            } else if (im.getType() instanceof ArrayType) {
+                if (im.getType().getSize() > 0) {
+                    throw new UnsupportedOperationException("Copying array data is not yet supported");
+                }
+            } else if (im.getType() instanceof ReferenceType) {
                 VmObject contents = memory.loadRef(im.getOffset(), MemoryAtomicityMode.UNORDERED);
                 if (contents == null) {
                     memberMap.put(om, lf.zeroInitializerLiteralOfType(om.getType()));
                 } else {
                     memberMap.put(om, castLiteral(lf, serializeVmObject(contents), (WordType) om.getType()));
                 }
+            } else {
+                throw new UnsupportedOperationException("Serialization of unsupported member type: " + im.getType());
             }
         }
     }
@@ -329,6 +337,15 @@ public class BuildtimeHeap {
         LiteralFactory lf = ctxt.getLiteralFactory();
 
         Memory memory = value.getMemory();
+        FieldElement contentField = coreClasses.getRefArrayContentField();
+        DefinedTypeDefinition concreteType = contentField.getEnclosingType();
+        Layout.LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
+        Layout.LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
+        CompoundType objType = objLayout.getCompoundType();
+        HashMap<CompoundType.Member, Literal> memberMap = new HashMap<>();
+
+        populateMemberMap(concreteType.load(), objType, objLayout, memLayout, memory, memberMap);
+
         List<Literal> elements = new ArrayList<>(length);
         for (int i=0; i<length; i++) {
             VmObject e = memory.loadRef(value.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED);
@@ -340,26 +357,26 @@ public class BuildtimeHeap {
             }
         }
 
-        Literal al = lf.literalOf(literalCT, Map.of(
-            literalCT.getMember(0), lf.literalOf( coreClasses.getRefArrayContentField().getEnclosingType().load().getTypeId()),
-            literalCT.getMember(1), lf.literalOf(length),
-            literalCT.getMember(2), lf.literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), at.getDimensionCount()),
-            literalCT.getMember(3), lf.literalOfType(at.getLeafElementType()),
-            literalCT.getMember(4), ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getArrayType(jlo.getClassType().getReference(), length), elements)
-        ));
+        ArrayType arrayType = ctxt.getTypeSystem().getArrayType(jlo.getClassType().getReference(), length);
 
-        // Define it!
-        defineData(sl.getName(), al);
+        // add the actual array contents
+        memberMap.put(literalCT.getMember(literalCT.getMemberCount() - 1), lf.literalOf(arrayType, elements));
+
+        // Define it with the literal type we generated above
+        defineData(sl.getName(), ctxt.getLiteralFactory().literalOf(literalCT, memberMap));
     }
 
     private SymbolLiteral serializePrimArray(PrimitiveArrayObjectType at, VmArray value) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         TypeSystem ts = ctxt.getTypeSystem();
         FieldElement contentsField = coreClasses.getArrayContentField(at);
-        Layout.LayoutInfo info = layout.getInstanceLayoutInfo(contentsField.getEnclosingType());
+        DefinedTypeDefinition concreteType = contentsField.getEnclosingType();
+        Layout.LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
+        Layout.LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
+        CompoundType objType = objLayout.getCompoundType();
 
         Memory memory = value.getMemory();
-        int length = memory.load32(info.getMember(coreClasses.getArrayLengthField()).getOffset(), MemoryAtomicityMode.UNORDERED);
+        int length = memory.load32(objLayout.getMember(coreClasses.getArrayLengthField()).getOffset(), MemoryAtomicityMode.UNORDERED);
         CompoundType literalCT = arrayLiteralType(contentsField, length);
 
         Literal arrayContentsLiteral;
@@ -373,7 +390,7 @@ public class BuildtimeHeap {
             List<Literal> elements = new ArrayList<>(length);
             if (contentsField.equals(coreClasses.getBooleanArrayContentField())) {
                 for (int i=0; i<length; i++) {
-                    elements.add(lf.literalOf(memory.load8(value.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED) > 0));
+                    elements.add(lf.literalOf(memory.load8(value.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED) != 0));
                 }
             } else if (contentsField.equals(coreClasses.getShortArrayContentField())) {
                 for (int i=0; i<length; i++) {
@@ -404,13 +421,14 @@ public class BuildtimeHeap {
             arrayContentsLiteral = lf.literalOf(ctxt.getTypeSystem().getArrayType(at.getElementType(), length), elements);
         }
 
-        Literal arrayLiteral = lf.literalOf(literalCT, Map.of(
-            literalCT.getMember(0), lf.literalOf(contentsField.getEnclosingType().load().getTypeId()),
-            literalCT.getMember(1), lf.literalOf(length),
-            literalCT.getMember(2), arrayContentsLiteral
-        ));
+        HashMap<CompoundType.Member, Literal> memberMap = new HashMap<>();
 
-        Data arrayData = defineData(nextLiteralName(), arrayLiteral);
+        populateMemberMap(concreteType.load(), objType, objLayout, memLayout, memory, memberMap);
+
+        // add the actual array contents
+        memberMap.put(literalCT.getMember(literalCT.getMemberCount() - 1), arrayContentsLiteral);
+
+        Data arrayData = defineData(nextLiteralName(), ctxt.getLiteralFactory().literalOf(literalCT, memberMap));
         return lf.literalOfSymbol(arrayData.getName(), literalCT);
     }
 }
