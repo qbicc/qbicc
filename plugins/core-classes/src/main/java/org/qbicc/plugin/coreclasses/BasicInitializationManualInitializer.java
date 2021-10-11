@@ -10,8 +10,8 @@ import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.interpreter.VmReferenceArray;
+import org.qbicc.interpreter.VmReferenceArrayClass;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.element.FieldElement;
 
@@ -48,12 +48,12 @@ public class BasicInitializationManualInitializer implements Consumer<VmObject> 
         } else if (vmObject instanceof VmClass) {
             if (! (vmObject instanceof VmPrimitiveClass)) {
                 FieldElement instanceTypeIdField = coreClasses.getClassTypeIdField();
-                ObjectType objectType = ((VmClass) vmObject).getInstanceObjectType();
-                if (objectType instanceof ReferenceArrayObjectType) {
-                    ReferenceArrayObjectType arrayType = (ReferenceArrayObjectType) objectType;
+                if (vmObject instanceof VmReferenceArrayClass) {
+                    VmReferenceArrayClass vmArray = (VmReferenceArrayClass) vmObject;
+                    ReferenceArrayObjectType arrayType = vmArray.getInstanceObjectType();
                     FieldElement dimsField = coreClasses.getClassDimensionField();
                     memory.store8(vmObject.indexOf(dimsField), arrayType.getDimensionCount(), MemoryAtomicityMode.UNORDERED);
-                    memory.storeType(vmObject.indexOf(instanceTypeIdField), arrayType.getLeafElementType(), MemoryAtomicityMode.UNORDERED);
+                    memory.storeType(vmObject.indexOf(instanceTypeIdField), vmArray.getLeafTypeId(), MemoryAtomicityMode.UNORDERED);
                 } else {
                     memory.storeType(vmObject.indexOf(instanceTypeIdField), ((VmClass) vmObject).getInstanceObjectTypeId(), MemoryAtomicityMode.UNORDERED);
                 }
