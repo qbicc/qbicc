@@ -28,11 +28,13 @@ import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.Primitive;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
@@ -217,6 +219,15 @@ public final class VmImpl implements Vm {
         doubleArrayClass.postConstruct(this);
         charArrayClass.postConstruct(this);
         booleanArrayClass.postConstruct(this);
+
+        byteClass.setArrayClass(ctxt, byteArrayClass);
+        shortClass.setArrayClass(ctxt, shortArrayClass);
+        intClass.setArrayClass(ctxt, intArrayClass);
+        longClass.setArrayClass(ctxt, longArrayClass);
+        floatClass.setArrayClass(ctxt, floatArrayClass);
+        doubleClass.setArrayClass(ctxt, doubleArrayClass);
+        charClass.setArrayClass(ctxt, charArrayClass);
+        booleanClass.setArrayClass(ctxt, booleanArrayClass);
 
         // throwables
         errorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/Error").load(), null);
@@ -505,6 +516,22 @@ public final class VmImpl implements Vm {
         VmClassLoaderImpl loader = getClassLoaderForContext(classContext);
         VmClassImpl vmClass = loader.getOrDefineClass(enclosingType.load());
         vmClass.registerInvokable(element, invokable);
+    }
+
+    @Override
+    public VmPrimitiveClass getPrimitiveClass(Primitive primitive) {
+        switch (primitive) {
+            case BOOLEAN: return booleanClass;
+            case BYTE: return byteClass;
+            case SHORT: return shortClass;
+            case CHAR: return charClass;
+            case INT: return intClass;
+            case FLOAT: return floatClass;
+            case LONG: return longClass;
+            case DOUBLE: return doubleClass;
+            case VOID: return voidClass;
+            default: throw Assert.impossibleSwitchCase(primitive);
+        }
     }
 
     VmStringImpl intern(VmStringImpl vmString) {

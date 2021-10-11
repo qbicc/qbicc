@@ -468,6 +468,8 @@ public class RTAInfo {
             addReachableInterface(i);
             addInterfaceEdge(type, i);
         }
+        // force class to be loaded (will fail if new reachable classes are discovered after ADD)
+        type.getVmClass();
     }
 
     private void addInitializedType(LoadedTypeDefinition type) {

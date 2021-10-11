@@ -238,7 +238,7 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
     public VmClass getVmClass() {
         VmClass vmClass = this.vmClass;
         if (vmClass == null) {
-            Vm vm = Vm.requireCurrent();
+            Vm vm = getContext().getCompilationContext().getVm();
             vmClass = this.vmClass = vm.getClassLoaderForContext(getContext()).getOrDefineClass(this);
         }
         return vmClass;

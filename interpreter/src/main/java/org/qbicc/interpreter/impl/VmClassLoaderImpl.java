@@ -101,7 +101,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         String internalName = loaded.getInternalName();
         VmClassImpl vmClass = defined.get(internalName);
         if (vmClass == null) {
-            VmImpl vm = VmImpl.require();
+            VmImpl vm = getVmClass().getVm();
             vmClass = createVmClass(null, vm, loaded);
             VmClassImpl appearing = defined.putIfAbsent(internalName, vmClass);
             if (appearing != null) {

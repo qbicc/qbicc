@@ -138,7 +138,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         int cnt = typeDefinition.getFieldCount();
         for (int i = 0; i < cnt; i ++) {
             FieldElement field = typeDefinition.getField(i);
-            if (field.isStatic()) {
+            if (field.isStatic()) try {
                 Literal initValue = field.getInitialValue();
                 if (initValue == null || initValue instanceof ZeroInitializerLiteral) {
                     // Nothing to do;  memory starts zeroed.
@@ -147,18 +147,18 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 CompoundType.Member member = staticLayoutInfo.getMember(field);
                 if (initValue instanceof IntegerLiteral) {
                     IntegerLiteral val = (IntegerLiteral) initValue;
-                    if (val.getType().getSize() == 1) {
+                    if (field.getType().getSize() == 1) {
                         staticMemory.store8(member.getOffset(), val.byteValue(), MemoryAtomicityMode.UNORDERED);
-                    } else if (val.getType().getSize() == 2) {
+                    } else if (field.getType().getSize() == 2) {
                         staticMemory.store16(member.getOffset(), val.shortValue(), MemoryAtomicityMode.UNORDERED);
-                    } else if (val.getType().getSize() == 4) {
+                    } else if (field.getType().getSize() == 4) {
                         staticMemory.store32(member.getOffset(), val.intValue(), MemoryAtomicityMode.UNORDERED);
                     } else {
                         staticMemory.store64(member.getOffset(), val.longValue(), MemoryAtomicityMode.UNORDERED);
                     }
                 } else if (initValue instanceof FloatLiteral) {
                     FloatLiteral val = (FloatLiteral) initValue;
-                    if (val.getType().getSize() == 4) {
+                    if (field.getType().getSize() == 4) {
                         staticMemory.store32(member.getOffset(), val.floatValue(), MemoryAtomicityMode.UNORDERED);
                     } else {
                         staticMemory.store64(member.getOffset(), val.doubleValue(), MemoryAtomicityMode.UNORDERED);
@@ -172,6 +172,8 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                     // CONSTANT_Class, CONSTANT_MethodHandle, CONSTANT_MethodType
                     vm.getCompilationContext().warning("Did not properly initialize interpreter memory for constant static field "+field);
                 }
+            } catch (IndexOutOfBoundsException e) {
+                throw e; // breakpoint
             }
         }
     }

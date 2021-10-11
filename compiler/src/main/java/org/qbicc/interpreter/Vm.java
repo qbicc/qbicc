@@ -6,6 +6,7 @@ import java.util.List;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.Primitive;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -201,4 +202,12 @@ public interface Vm {
      * @param invokable the invokable (must not be {@code null})
      */
     void registerInvokable(ExecutableElement element, VmInvokable invokable);
+
+    /**
+     * Get the primitive class for the given primitive identifier.
+     *
+     * @param primitive the primitive identifier (must not be {@code null})
+     * @return the primitive class (not {@code null})
+     */
+    VmPrimitiveClass getPrimitiveClass(Primitive primitive);
 }

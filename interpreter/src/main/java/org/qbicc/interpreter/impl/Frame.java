@@ -1619,17 +1619,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isRef(type)) {
             return memory.loadRef(offset, mode);
         } else if (isTypeId(type)) {
-            // special case; it must be a type ID field
-            // todo: remove once these fields are initialized naturally
-            if (valueHandle instanceof InstanceFieldOf) {
-                FieldElement elem = ((InstanceFieldOf) valueHandle).getVariableElement();
-                CompilationContext ctxt = thread.getVM().getCompilationContext();
-                CoreClasses coreClasses = CoreClasses.get(ctxt);
-                if (elem == coreClasses.getClassTypeIdField()) {
-                    // the type ID of a class (next most likely)
-                    return ((VmClassImpl)getObject(valueHandle)).getInstanceObjectTypeId();
-                }
-            }
             return memory.loadType(offset, mode);
         } else {
             throw unsupportedType();
