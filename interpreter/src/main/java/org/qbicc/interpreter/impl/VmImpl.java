@@ -23,6 +23,7 @@ import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Signal;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmArrayClass;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
@@ -383,6 +384,14 @@ public final class VmImpl implements Vm {
             classClass.registerInvokable("isArray", (thread, target, args) -> {
                 VmClassImpl clazz = (VmClassImpl) target;
                 return clazz instanceof VmArrayClass;
+            });
+
+            // Array
+            VmClassImpl arrayClass = bootstrapClassLoader.loadClass("java/lang/reflect/Array");
+            arrayClass.registerInvokable("newArray", (thread, target, args) -> {
+                VmClassImpl componentType = (VmClassImpl)args.get(0);
+                int length = (Integer)args.get(1);
+                return manuallyInitialize(componentType.getArrayClass().newInstance(length));
             });
 
             // Now execute system initialization

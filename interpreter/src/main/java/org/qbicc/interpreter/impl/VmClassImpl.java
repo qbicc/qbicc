@@ -16,6 +16,7 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
+import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
@@ -216,6 +217,9 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         // assume reference array by default
         LoadedTypeDefinition arrayDef = CoreClasses.get(typeDefinition.getContext().getCompilationContext()).getRefArrayContentField().getEnclosingType().load();
         VmRefArrayClassImpl clazz = new VmRefArrayClassImpl(getVm(), getVmClass(), arrayDef, this);
+        VmClassImpl jlcClass = clazz.clazz;
+        Memory memory = clazz.getMemory();
+        memory.storeRef(jlcClass.layoutInfo.getMember(jlcClass.typeDefinition.findField("componentType")).getOffset(), this, MemoryAtomicityMode.UNORDERED);
         getVm().manuallyInitialize(clazz);
         return clazz;
     }
