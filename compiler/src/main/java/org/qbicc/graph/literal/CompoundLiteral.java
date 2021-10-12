@@ -50,10 +50,6 @@ public final class CompoundLiteral extends Literal {
         return hashCode;
     }
 
-    public String toString() {
-        return toString(new StringBuilder()).toString();
-    }
-
     public StringBuilder toString(StringBuilder builder) {
         builder.append('{');
         Iterator<Map.Entry<CompoundType.Member, Literal>> iterator = values.entrySet().iterator();

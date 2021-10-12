@@ -36,6 +36,11 @@ public final class OffsetOfField extends AbstractValue {
     }
 
     @Override
+    String getNodeName() {
+        return "OffsetOfField";
+    }
+
+    @Override
     public boolean isNullable() {
         return false;
     }
@@ -47,6 +52,15 @@ public final class OffsetOfField extends AbstractValue {
 
     public boolean equals(final Object other) {
         return other instanceof OffsetOfField && equals((OffsetOfField) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('{');
+        b.append(fieldElement);
+        b.append('}');
+        return b;
     }
 
     public boolean equals(final OffsetOfField other) {

@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -32,8 +33,29 @@ public final class CallNoSideEffects extends AbstractValue {
     }
 
     @Override
+    String getNodeName() {
+        return "CallNoSideEffects";
+    }
+
+    @Override
     public boolean equals(Object other) {
         return other instanceof CallNoSideEffects && equals((CallNoSideEffects) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        Iterator<Value> itr = arguments.iterator();
+        if (itr.hasNext()) {
+            itr.next().toString(b);
+            while (itr.hasNext()) {
+                b.append(',');
+                itr.next().toString(b);
+            }
+        }
+        b.append(')');
+        return b;
     }
 
     public boolean equals(CallNoSideEffects other) {

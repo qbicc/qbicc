@@ -54,6 +54,11 @@ public final class NoSuchMethodErrorNode extends AbstractTerminator implements E
         return Objects.hash(dependency, owner, desc, name);
     }
 
+    @Override
+    String getNodeName() {
+        return "NoSuchMethod";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof NoSuchMethodErrorNode && equals((NoSuchMethodErrorNode) other);
     }

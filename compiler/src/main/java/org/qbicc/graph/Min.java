@@ -18,4 +18,9 @@ public final class Min extends AbstractBinaryValue implements CommutativeBinaryV
     public boolean isDefLe(Value other) {
         return other.equals(getLeftInput()) || other.equals(getRightInput()) || super.isDefLe(other);
     }
+
+    @Override
+    String getNodeName() {
+        return "Min";
+    }
 }

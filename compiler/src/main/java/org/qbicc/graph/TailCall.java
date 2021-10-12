@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -38,8 +39,29 @@ public final class TailCall extends AbstractTerminator {
     }
 
     @Override
+    String getNodeName() {
+        return "TailCall";
+    }
+
+    @Override
     public boolean equals(Object other) {
         return other instanceof TailCall && equals((TailCall) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        Iterator<Value> itr = arguments.iterator();
+        if (itr.hasNext()) {
+            itr.next().toString(b);
+            while (itr.hasNext()) {
+                b.append(',');
+                itr.next().toString(b);
+            }
+        }
+        b.append(')');
+        return b;
     }
 
     public boolean equals(TailCall other) {

@@ -36,6 +36,11 @@ public final class InstanceFieldOf extends Field {
         return super.calcHashCode() * 19 + instance.hashCode();
     }
 
+    @Override
+    String getNodeName() {
+        return "InstanceFieldOf";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof InstanceFieldOf && equals((InstanceFieldOf) other);
     }

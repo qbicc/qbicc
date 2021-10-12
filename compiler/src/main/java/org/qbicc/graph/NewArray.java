@@ -56,8 +56,24 @@ public final class NewArray extends AbstractValue implements OrderedNode {
         return System.identityHashCode(this);
     }
 
+    @Override
+    String getNodeName() {
+        return "NewArray";
+    }
+
     public boolean equals(final Object other) {
         return this == other;
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        type.toString(b);
+        b.append(',');
+        b.append(size);
+        b.append(')');
+        return b;
     }
 
     @Override

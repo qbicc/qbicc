@@ -34,8 +34,22 @@ public class MonitorExit extends AbstractNode implements Action, InstanceOperati
         return Objects.hash(MonitorExit.class, dependency, instance);
     }
 
+    @Override
+    String getNodeName() {
+        return "MonitorExit";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof MonitorExit && equals((MonitorExit) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        instance.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final MonitorExit other) {

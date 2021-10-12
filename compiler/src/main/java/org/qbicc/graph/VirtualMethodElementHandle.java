@@ -20,6 +20,11 @@ public final class VirtualMethodElementHandle extends InstanceMethodElementHandl
     }
 
     @Override
+    String getNodeName() {
+        return "VirtualMethod";
+    }
+
+    @Override
     public boolean equals(InstanceMethodElementHandle other) {
         return other instanceof VirtualMethodElementHandle && equals((VirtualMethodElementHandle) other);
     }

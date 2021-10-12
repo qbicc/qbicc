@@ -20,6 +20,11 @@ public class Clone extends AbstractValue implements UnaryValue, OrderedNode {
         return dependency.hashCode() * 19 + original.hashCode();
     }
 
+    @Override
+    String getNodeName() {
+        return "Clone";
+    }
+
     public ValueType getType() {
         return original.getType();
     }

@@ -25,6 +25,11 @@ public final class BlockEntry extends AbstractNode implements PinnedNode, Action
         return blockLabel.hashCode();
     }
 
+    @Override
+    String getNodeName() {
+        return "BlockEntry";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof BlockEntry && equals((BlockEntry) other);
     }

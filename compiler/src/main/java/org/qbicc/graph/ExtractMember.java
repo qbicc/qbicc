@@ -30,8 +30,24 @@ public final class ExtractMember extends AbstractValue {
     }
 
     @Override
+    String getNodeName() {
+        return "ExtractMember";
+    }
+
+    @Override
     public boolean equals(Object other) {
         return other instanceof ExtractMember && equals((ExtractMember) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        b.append(compoundValue);
+        b.append(',');
+        member.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(ExtractMember other) {

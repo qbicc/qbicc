@@ -46,6 +46,11 @@ public final class TypeIdOf extends AbstractValue {
         return Objects.hash(TypeIdOf.class, instance);
     }
 
+    @Override
+    String getNodeName() {
+        return "TypeIdOf";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof TypeIdOf && equals((TypeIdOf) other);
     }

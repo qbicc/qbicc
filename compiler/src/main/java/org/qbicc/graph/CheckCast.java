@@ -99,8 +99,26 @@ public final class CheckCast extends AbstractValue implements CastValue, Ordered
         return Objects.hash(CheckCast.class, dependency, input, toType, toDimensions, kind, type);
     }
 
+    @Override
+    String getNodeName() {
+        return "CheckCast";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof CheckCast && equals((CheckCast) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append(':');
+        b.append(kind);
+        b.append('(');
+        getInput().toString(b);
+        b.append(')');
+        b.append(" to ");
+        toType.toString(b);
+        return b;
     }
 
     public boolean equals(final CheckCast other) {

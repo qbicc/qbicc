@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -45,8 +46,29 @@ public final class Invoke extends AbstractTerminator implements Resume {
     }
 
     @Override
+    String getNodeName() {
+        return "Invoke";
+    }
+
+    @Override
     public boolean equals(Object other) {
         return other instanceof Invoke && equals((Invoke) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        Iterator<Value> itr = arguments.iterator();
+        if (itr.hasNext()) {
+            itr.next().toString(b);
+            while (itr.hasNext()) {
+                b.append(',');
+                itr.next().toString(b);
+            }
+        }
+        b.append(')');
+        return b;
     }
 
     public boolean equals(Invoke other) {
@@ -137,6 +159,11 @@ public final class Invoke extends AbstractTerminator implements Resume {
             return Invoke.this.hashCode();
         }
 
+        @Override
+        String getNodeName() {
+            return "ReturnValue";
+        }
+
         public Invoke getInvoke() {
             return Invoke.this;
         }
@@ -159,6 +186,14 @@ public final class Invoke extends AbstractTerminator implements Resume {
         @Override
         public boolean equals(Object other) {
             return other instanceof ReturnValue && equals((ReturnValue) other);
+        }
+
+        @Override
+        public StringBuilder toString(StringBuilder b) {
+            super.toString(b);
+            b.append(" of ");
+            Invoke.this.toString(b);
+            return b;
         }
 
         public boolean equals(ReturnValue other) {

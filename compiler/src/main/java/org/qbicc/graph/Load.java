@@ -32,8 +32,18 @@ public class Load extends AbstractValue implements OrderedNode {
         return Objects.hash(dependency, handle, mode);
     }
 
+    @Override
+    String getNodeName() {
+        return "Load";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof Load && equals((Load) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return super.toString(b).append('(').append(mode).append(')');
     }
 
     public boolean equals(final Load other) {

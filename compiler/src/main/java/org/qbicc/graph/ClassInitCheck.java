@@ -24,12 +24,26 @@ public class ClassInitCheck extends AbstractNode implements Action, OrderedNode 
     }
 
     @Override
+    String getNodeName() {
+        return "ClassInitCheck";
+    }
+
+    @Override
     public Node getDependency() {
         return dependency;
     }
 
     public boolean equals(Object other) {
         return other instanceof ClassInitCheck && equals((ClassInitCheck) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        objectType.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final ClassInitCheck other) {

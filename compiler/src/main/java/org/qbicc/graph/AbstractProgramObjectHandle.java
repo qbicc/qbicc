@@ -31,6 +31,19 @@ public abstract class AbstractProgramObjectHandle extends AbstractValueHandle {
         return other instanceof AbstractProgramObjectHandle && equals((AbstractProgramObjectHandle) other);
     }
 
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        programObject.getType().toString(b);
+        b.append(' ');
+        b.append('"');
+        b.append(programObject.getName());
+        b.append('"');
+        b.append(')');
+        return b;
+    }
+
     public boolean equals(AbstractProgramObjectHandle other) {
         return this == other || other != null && programObject.equals(other.programObject);
     }

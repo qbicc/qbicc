@@ -41,8 +41,24 @@ public class Store extends AbstractNode implements Action, OrderedNode {
         return Objects.hash(dependency, handle, mode);
     }
 
+    @Override
+    String getNodeName() {
+        return "Store";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof Store && equals((Store) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        value.toString(b);
+        b.append(',');
+        b.append(mode);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final Store other) {

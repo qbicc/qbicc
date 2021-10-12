@@ -62,8 +62,9 @@ public final class StringLiteral extends WordLiteral {
         return value.hashCode();
     }
 
-    public String toString() {
-        return "\"" + value + "\"";
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return b.append('"').append(value).append('"');
     }
 
     @Override

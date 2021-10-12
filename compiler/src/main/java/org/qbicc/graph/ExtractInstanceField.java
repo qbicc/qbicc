@@ -30,8 +30,25 @@ public final class ExtractInstanceField extends AbstractValue {
     }
 
     @Override
+    String getNodeName() {
+        return "ExtractInstanceField";
+    }
+
+    @Override
     public boolean equals(Object other) {
         return other instanceof ExtractInstanceField && equals((ExtractInstanceField) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        objectValue.toString(b);
+        b.append(',');
+        // todo: fieldElement.toString(b)
+        b.append(fieldElement);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(ExtractInstanceField other) {

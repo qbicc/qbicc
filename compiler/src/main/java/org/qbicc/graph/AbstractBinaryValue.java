@@ -36,4 +36,15 @@ abstract class AbstractBinaryValue extends AbstractValue implements BinaryValue 
     boolean equals(final AbstractBinaryValue other) {
         return this == other || getClass() == other.getClass() && left.equals(other.left) && right.equals(other.right);
     }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        getLeftInput().toString(b);
+        b.append(',');
+        getRightInput().toString(b);
+        b.append(')');
+        return b;
+    }
 }

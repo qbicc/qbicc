@@ -69,8 +69,21 @@ public final class MemberOf extends AbstractValueHandle {
         return Objects.hash(structureHandle, member);
     }
 
+    @Override
+    String getNodeName() {
+        return "MemberOf";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof MemberOf && equals((MemberOf) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b).append('(');
+        member.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final MemberOf other) {

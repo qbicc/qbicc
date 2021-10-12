@@ -16,6 +16,11 @@ public final class InterfaceMethodElementHandle extends InstanceMethodElementHan
     }
 
     @Override
+    String getNodeName() {
+        return "InterfaceMethod";
+    }
+
+    @Override
     public boolean equals(InstanceMethodElementHandle other) {
         return other instanceof VirtualMethodElementHandle && equals((VirtualMethodElementHandle) other);
     }

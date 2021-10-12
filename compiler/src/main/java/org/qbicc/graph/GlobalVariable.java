@@ -18,6 +18,11 @@ public final class GlobalVariable extends Variable {
     }
 
     @Override
+    String getNodeName() {
+        return "GlobalVariable";
+    }
+
+    @Override
     public boolean equals(Object other) {
         return other instanceof GlobalVariable && equals((GlobalVariable) other);
     }

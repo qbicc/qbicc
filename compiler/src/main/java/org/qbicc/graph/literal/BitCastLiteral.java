@@ -46,7 +46,13 @@ public class BitCastLiteral extends Literal {
         return value.isNullable();
     }
 
-    public String toString() {
-        return "bitcast ("+value+" to "+toType+")";
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        b.append("bitcast").append('(');
+        value.toString(b);
+        b.append(" to ");
+        toType.toString(b);
+        b.append(')');
+        return b;
     }
 }

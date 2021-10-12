@@ -26,4 +26,9 @@ public final class IsEq extends AbstractBooleanCompare implements CommutativeBin
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
+
+    @Override
+    String getNodeName() {
+        return "IsEq";
+    }
 }

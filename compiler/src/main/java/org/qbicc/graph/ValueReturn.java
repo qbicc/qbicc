@@ -49,8 +49,22 @@ public final class ValueReturn extends AbstractTerminator implements Terminator 
         return Objects.hash(ValueReturn.class, dependency, returnValue);
     }
 
+    @Override
+    String getNodeName() {
+        return "ValueReturn";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof ValueReturn && equals((ValueReturn) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        returnValue.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final ValueReturn other) {

@@ -22,4 +22,9 @@ public final class CountLeadingZeros extends AbstractUnaryValue {
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
+
+    @Override
+    String getNodeName() {
+        return "CountLeadingZeros";
+    }
 }

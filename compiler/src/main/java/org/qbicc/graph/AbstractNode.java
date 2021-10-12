@@ -34,7 +34,24 @@ abstract class AbstractNode implements Node {
 
     abstract int calcHashCode();
 
+    abstract String getNodeName();
+
     public abstract boolean equals(Object other);
+
+    public final String toString() {
+        return toString(new StringBuilder()).toString();
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        b.append(getNodeName());
+        if (hasValueHandleDependency()) {
+            b.append('[');
+            getValueHandle().toString(b);
+            b.append(']');
+        }
+        return b;
+    }
 
     public final int hashCode() {
         int hashCode = this.hashCode;

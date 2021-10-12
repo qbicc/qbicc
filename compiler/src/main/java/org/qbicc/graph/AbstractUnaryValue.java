@@ -27,4 +27,13 @@ abstract class AbstractUnaryValue extends AbstractValue implements UnaryValue {
     boolean equals(final AbstractUnaryValue other) {
         return this == other || other != null && input.equals(other.input);
     }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        getInput().toString(b);
+        b.append(')');
+        return b;
+    }
 }

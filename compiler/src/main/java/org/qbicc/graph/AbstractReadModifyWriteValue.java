@@ -58,6 +58,17 @@ abstract class AbstractReadModifyWriteValue extends AbstractValue implements Rea
         return other instanceof AbstractReadModifyWriteValue && equals((AbstractReadModifyWriteValue) other);
     }
 
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        b.append(updateValue);
+        b.append(',');
+        b.append(atomicityMode);
+        b.append(')');
+        return b;
+    }
+
     private boolean equals(final AbstractReadModifyWriteValue other) {
         return this == other || other.getClass() == getClass() && dependency.equals(other.dependency) && target.equals(other.target)
             && updateValue.equals(other.updateValue) && atomicityMode == other.atomicityMode;

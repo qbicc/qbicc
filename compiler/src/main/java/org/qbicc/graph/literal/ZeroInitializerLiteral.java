@@ -38,7 +38,12 @@ public final class ZeroInitializerLiteral extends Literal {
         return ZeroInitializerLiteral.class.hashCode();
     }
 
-    public String toString() {
-        return "{0}";
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        b.append('(');
+        type.toString(b);
+        b.append(')');
+        b.append("{0}");
+        return b;
     }
 }

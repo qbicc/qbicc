@@ -46,8 +46,22 @@ public final class ReferenceHandle extends AbstractValueHandle {
     }
 
     @Override
+    String getNodeName() {
+        return "Reference";
+    }
+
+    @Override
     public boolean equals(Object other) {
         return other instanceof ReferenceHandle && equals((ReferenceHandle) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        referenceValue.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(ReferenceHandle other) {

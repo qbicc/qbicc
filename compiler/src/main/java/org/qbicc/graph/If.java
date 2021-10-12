@@ -90,8 +90,22 @@ public final class If extends AbstractTerminator implements Terminator {
         return Objects.hash(If.class, dependency, condition, trueBranchLabel, falseBranchLabel);
     }
 
+    @Override
+    String getNodeName() {
+        return "If";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof If && equals((If) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        condition.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final If other) {

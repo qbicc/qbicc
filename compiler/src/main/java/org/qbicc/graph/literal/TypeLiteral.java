@@ -39,8 +39,9 @@ public final class TypeLiteral extends Literal {
         return value.hashCode();
     }
 
-    public String toString() {
-        return value.toString();
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return value.toString(b);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

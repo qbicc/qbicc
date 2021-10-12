@@ -24,6 +24,16 @@ public abstract class Variable extends AbstractValueHandle {
         return Objects.hash(getClass(), variableElement);
     }
 
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('{');
+        // todo: replace with variableElement.toString(b)
+        b.append(variableElement);
+        b.append('}');
+        return b;
+    }
+
     public VariableElement getVariableElement() {
         return variableElement;
     }

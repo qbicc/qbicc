@@ -13,6 +13,11 @@ public final class StaticField extends Field {
         super(element, line, bci, fieldElement, valueType.getPointer());
     }
 
+    @Override
+    String getNodeName() {
+        return "StaticField";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof StaticField && equals((StaticField) other);
     }

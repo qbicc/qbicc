@@ -41,4 +41,9 @@ public final class DataHandle extends AbstractProgramObjectHandle {
     public <T> long accept(ValueHandleVisitorLong<T> visitor, T param) {
         return visitor.visit(param, this);
     }
+
+    @Override
+    String getNodeName() {
+        return "Data";
+    }
 }

@@ -96,9 +96,9 @@ public final class FloatLiteral extends WordLiteral {
     }
 
     @Override
-    public String toString() {
-        return type.toString(new StringBuilder()).append(' ').append(value).append(' ')
-            .append('(').append(Double.toHexString(value)).append(')').toString();
+    public StringBuilder toString(StringBuilder b) {
+        return type.toString(b).append(' ').append(value).append(' ')
+            .append('(').append(Double.toHexString(value)).append(')');
     }
 
     @Override

@@ -17,6 +17,11 @@ public final class ExactMethodElementHandle extends InstanceMethodElementHandle 
     }
 
     @Override
+    String getNodeName() {
+        return "ExactMethod";
+    }
+
+    @Override
     public boolean equals(InstanceMethodElementHandle other) {
         return other instanceof ExactMethodElementHandle && equals((ExactMethodElementHandle) other);
     }

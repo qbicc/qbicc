@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -31,6 +32,27 @@ public final class Call extends AbstractValue implements OrderedNode {
     @Override
     int calcHashCode() {
         return Objects.hash(Call.class, dependency, target, arguments);
+    }
+
+    @Override
+    String getNodeName() {
+        return "Call";
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        Iterator<Value> itr = arguments.iterator();
+        if (itr.hasNext()) {
+            itr.next().toString(b);
+            while (itr.hasNext()) {
+                b.append(',');
+                itr.next().toString(b);
+            }
+        }
+        b.append(')');
+        return b;
     }
 
     @Override

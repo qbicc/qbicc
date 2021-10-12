@@ -18,4 +18,9 @@ public class CmpG extends AbstractBinaryValue implements NonCommutativeBinaryVal
     public SignedIntegerType getType() {
         return integerType;
     }
+
+    @Override
+    String getNodeName() {
+        return "CmpG";
+    }
 }

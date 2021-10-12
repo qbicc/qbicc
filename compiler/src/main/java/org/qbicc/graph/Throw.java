@@ -49,8 +49,22 @@ public final class Throw extends AbstractTerminator implements Terminator {
         return Objects.hash(Throw.class, dependency, thrownValue);
     }
 
+    @Override
+    String getNodeName() {
+        return "Throw";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof Throw && equals((Throw) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        thrownValue.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final Throw other) {

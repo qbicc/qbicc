@@ -34,6 +34,11 @@ public final class Return extends AbstractTerminator implements Terminator {
         return Objects.hash(Return.class, dependency);
     }
 
+    @Override
+    String getNodeName() {
+        return "Return";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof Return && equals((Return) other);
     }

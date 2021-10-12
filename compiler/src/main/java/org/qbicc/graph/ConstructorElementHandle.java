@@ -42,6 +42,20 @@ public final class ConstructorElementHandle extends Executable {
         return super.calcHashCode() * 19 + instance.hashCode();
     }
 
+    @Override
+    String getNodeName() {
+        return "Constructor";
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        instance.toString(b);
+        b.append(')');
+        return b;
+    }
+
     public boolean equals(final Executable other) {
         return other instanceof ConstructorElementHandle && equals((ConstructorElementHandle) other);
     }

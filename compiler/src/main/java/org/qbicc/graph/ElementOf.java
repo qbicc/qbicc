@@ -84,8 +84,22 @@ public final class ElementOf extends AbstractValueHandle {
         return Objects.hash(inputHandle, index);
     }
 
+    @Override
+    String getNodeName() {
+        return "ElementOf";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof ElementOf && equals((ElementOf) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        index.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final ElementOf other) {

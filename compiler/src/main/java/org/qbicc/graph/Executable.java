@@ -39,6 +39,16 @@ public abstract class Executable extends AbstractValueHandle {
         return other instanceof Executable && equals((Executable) other);
     }
 
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('{');
+        // todo: replace with executable.toString(b)
+        b.append(executable);
+        b.append('}');
+        return b;
+    }
+
     public boolean equals(Executable other) {
         return this == other || other != null && executable.equals(other.executable);
     }

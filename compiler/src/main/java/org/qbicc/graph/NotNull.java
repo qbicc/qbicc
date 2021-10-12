@@ -19,4 +19,9 @@ public final class NotNull extends AbstractUnaryValue {
     public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
+
+    @Override
+    String getNodeName() {
+        return "NotNull";
+    }
 }

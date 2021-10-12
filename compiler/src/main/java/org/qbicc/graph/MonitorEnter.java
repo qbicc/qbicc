@@ -34,8 +34,22 @@ public class MonitorEnter extends AbstractNode implements Action, InstanceOperat
         return Objects.hash(MonitorEnter.class, dependency, instance);
     }
 
+    @Override
+    String getNodeName() {
+        return "MonitorEnter";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof MonitorEnter && equals((MonitorEnter) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        instance.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final MonitorEnter other) {

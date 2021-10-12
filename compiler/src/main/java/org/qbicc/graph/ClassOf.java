@@ -39,6 +39,11 @@ public final class ClassOf extends AbstractValue implements UnaryValue {
     }
 
     @Override
+    String getNodeName() {
+        return "ClassOf";
+    }
+
+    @Override
     public boolean isConstant() {
         // TODO: Delete this once the class array is an array of objects instead of references.
         return false;
@@ -51,6 +56,17 @@ public final class ClassOf extends AbstractValue implements UnaryValue {
 
     public boolean equals(final Object other) {
         return other instanceof ClassOf && equals((ClassOf) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        b.append(input);
+        b.append(',');
+        b.append(dimensions);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final ClassOf other) {

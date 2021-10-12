@@ -114,6 +114,11 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         return System.identityHashCode(this);
     }
 
+    @Override
+    String getNodeName() {
+        return "Phi";
+    }
+
     public boolean equals(final Object other) {
         // every phi is globally unique
         return this == other;
