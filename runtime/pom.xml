@@ -28,6 +28,7 @@
 
         <!-- Plugin implementation modules -->
         <module>gc</module>
+        <module>methoddata</module>
     </modules>
 
     <build>

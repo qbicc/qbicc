@@ -87,6 +87,12 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-runtime-methoddata</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-runtime-posix</artifactId>
                 <version>${project.version}</version>
             </dependency>
