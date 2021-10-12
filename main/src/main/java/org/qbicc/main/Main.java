@@ -56,6 +56,7 @@ import org.qbicc.plugin.instanceofcheckcast.SupersDisplayBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayEmitter;
 import org.qbicc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
 import org.qbicc.plugin.intrinsics.core.CoreIntrinsics;
+import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.llvm.LLVMDefaultModuleCompileStage;
 import org.qbicc.plugin.lowering.LocalVariableFindingBasicBlockBuilder;
 import org.qbicc.plugin.lowering.LocalVariableLoweringBasicBlockBuilder;
@@ -414,8 +415,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
-                                builder.addPostHook(Phase.ANALYZE, new ClassObjectSerializer());
 
+                                builder.addPreHook(Phase.LOWER, Layout::unlock);
+                                builder.addPreHook(Phase.LOWER, new ClassObjectSerializer());
                                 builder.addElementHandler(Phase.LOWER, new FunctionLoweringElementHandler());
                                 builder.addElementHandler(Phase.LOWER, new ElementVisitorAdapter(new DotGenerator(Phase.LOWER, graphGenConfig)));
                                 if (optGotos) {

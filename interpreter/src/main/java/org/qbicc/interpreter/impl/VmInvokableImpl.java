@@ -143,7 +143,8 @@ final class VmInvokableImpl implements VmInvokable {
         try {
             frame.block = body.getEntryBlock();
             for (;;) {
-                for (Node node : scheduled.getOrDefault(frame.block, List.of())) {
+                List<Node> nodes = scheduled.getOrDefault(frame.block, List.of());
+                for (Node node : nodes) {
                     frame.ip = node;
                     if (frame.ip instanceof Value) {
                         Value value = (Value) frame.ip;

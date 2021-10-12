@@ -34,14 +34,14 @@ public final class Layout {
         this.ctxt = ctxt;
     }
 
+    public static void unlock(CompilationContext ctxt) {
+        ctxt.putAttachmentIfAbsent(KEY, new Layout(ctxt));
+    }
+
     public static Layout get(CompilationContext ctxt) {
         Layout layout = ctxt.getAttachment(KEY);
         if (layout == null) {
-            layout = new Layout(ctxt);
-            Layout appearing = ctxt.putAttachmentIfAbsent(KEY, layout);
-            if (appearing != null) {
-                layout = appearing;
-            }
+            throw new IllegalStateException("Layout is not yet available");
         }
         return layout;
     }
