@@ -34,15 +34,12 @@ import org.qbicc.interpreter.VmString;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.intrinsics.InstanceIntrinsic;
 import org.qbicc.plugin.intrinsics.Intrinsics;
-import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
-import org.qbicc.type.ArrayType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
@@ -524,7 +521,6 @@ public class UnsafeIntrinsics {
         //arrayIndexScale0
         InstanceIntrinsic arrayIndexScale = (builder, instance, target, arguments) -> {
             Value clazz = traverseLoads(arguments.get(0));
-            CoreClasses coreClasses = CoreClasses.get(ctxt);
             LiteralFactory lf = ctxt.getLiteralFactory();
             if (clazz instanceof ClassOf) {
                 ClassOf classOf = (ClassOf) clazz;
@@ -536,34 +532,14 @@ public class UnsafeIntrinsics {
                         int dimensionsValue = ((IntegerLiteral) dimensions).intValue();
                         if (dimensionsValue > 0) {
                             // it's a reference array
-                            FieldElement contentField = coreClasses.getRefArrayContentField();
-                            DefinedTypeDefinition arrayTypeDef = contentField.getEnclosingType();
-                            Layout.LayoutInfo arrayLayout = Layout.get(ctxt).getInstanceLayoutInfo(arrayTypeDef);
-                            return lf.literalOf((int) ((ArrayType)arrayLayout.getMember(contentField).getType()).getElementSize());
+                            return lf.literalOf(ctxt.getTypeSystem().getReferenceSize());
                         }
                     }
                     if (valueType instanceof ArrayObjectType) {
                         ArrayObjectType objectType = (ArrayObjectType) valueType;
-                        FieldElement contentField;
                         ValueType elementType = objectType.getElementType();
                         if (elementType instanceof WordType) {
-                            switch (((WordType) elementType).asPrimitive()) {
-                                case BOOLEAN: contentField = coreClasses.getBooleanArrayContentField(); break;
-                                case BYTE: contentField = coreClasses.getByteArrayContentField(); break;
-                                case SHORT: contentField = coreClasses.getShortArrayContentField(); break;
-                                case CHAR: contentField = coreClasses.getCharArrayContentField(); break;
-                                case INT: contentField = coreClasses.getIntArrayContentField(); break;
-                                case FLOAT: contentField = coreClasses.getFloatArrayContentField(); break;
-                                case LONG: contentField = coreClasses.getLongArrayContentField(); break;
-                                case DOUBLE: contentField = coreClasses.getDoubleArrayContentField(); break;
-                                default: {
-                                    ctxt.error(builder.getLocation(), "arrayIndexScale type argument must be a literal of an array object type");
-                                    return lf.literalOf(0);
-                                }
-                            }
-                            DefinedTypeDefinition arrayTypeDef = contentField.getEnclosingType();
-                            Layout.LayoutInfo arrayLayout = Layout.get(ctxt).getInstanceLayoutInfo(arrayTypeDef);
-                            return lf.literalOf((int) ((ArrayType)arrayLayout.getMember(contentField).getType()).getElementSize());
+                            return lf.literalOf((int) elementType.getSize());
                         }
                     }
                 }

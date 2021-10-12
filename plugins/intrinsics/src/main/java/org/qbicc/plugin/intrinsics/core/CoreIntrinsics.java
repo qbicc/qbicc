@@ -958,7 +958,6 @@ public final class CoreIntrinsics {
         ClassContext classContext = ctxt.getBootstrapClassContext();
         CoreClasses coreClasses = CoreClasses.get(ctxt);
         SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
-        BuildtimeHeap buildtimeHeap = BuildtimeHeap.get(ctxt);
         LiteralFactory lf = ctxt.getLiteralFactory();
 
         ClassTypeDescriptor objModDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/ObjectModel");
@@ -1106,6 +1105,7 @@ public final class CoreIntrinsics {
             BlockLabel trueBranch = new BlockLabel();
             BlockLabel fallThrough = new BlockLabel();
 
+            BuildtimeHeap buildtimeHeap = BuildtimeHeap.get(ctxt);
             GlobalVariableElement classArrayGlobal = buildtimeHeap.getAndRegisterGlobalClassArray(builder.getCurrentElement());
             // todo: if this is changed from load to referenceTo, also delete isConstant from ClassOf and fix it in getClassFromTypeIdSimple
             Value componentClass = builder.load(builder.elementOf(builder.globalVariable(classArrayGlobal), typeId), MemoryAtomicityMode.UNORDERED);
@@ -1125,6 +1125,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_class_from_type_id", typeIdClsDesc, getClassFromTypeId);
 
         StaticIntrinsic getClassFromTypeIdSimple = (builder, target, arguments) -> {
+            BuildtimeHeap buildtimeHeap = BuildtimeHeap.get(ctxt);
             GlobalVariableElement classArrayGlobal = buildtimeHeap.getAndRegisterGlobalClassArray(builder.getCurrentElement());
             // todo: if this is changed from load to referenceTo, also delete isConstant from ClassOf and fix it in getClassFromTypeId
             return builder.load(builder.elementOf(builder.globalVariable(classArrayGlobal), arguments.get(0)), MemoryAtomicityMode.UNORDERED);

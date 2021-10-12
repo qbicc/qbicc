@@ -18,7 +18,6 @@ import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
-import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.object.Data;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
@@ -49,7 +48,6 @@ public class BuildtimeHeap {
     private static final String prefix = "qbicc_initial_heap_obj_";
 
     private final CompilationContext ctxt;
-    private final Layout layout;
     private final Layout interpreterLayout;
     private final CoreClasses coreClasses;
     /**
@@ -81,7 +79,6 @@ public class BuildtimeHeap {
 
     private BuildtimeHeap(CompilationContext ctxt) {
         this.ctxt = ctxt;
-        this.layout = Layout.get(ctxt);
         this.interpreterLayout = Layout.getForInterpreter(ctxt);
         this.coreClasses = CoreClasses.get(ctxt);
 
@@ -118,6 +115,7 @@ public class BuildtimeHeap {
         if (vmObjects.containsKey(value)) {
             return vmObjects.get(value);
         }
+        Layout layout = Layout.get(ctxt);
         PhysicalObjectType ot = value.getObjectType();
         SymbolLiteral sl;
         if (ot instanceof ClassObjectType) {
@@ -190,6 +188,7 @@ public class BuildtimeHeap {
         LoadedTypeDefinition ltd = contents.getEnclosingType().load();
         String typeName = ltd.getInternalName() + "_" + length;
         CompoundType sizedArrayType = arrayTypes.get(typeName);
+        Layout layout = Layout.get(ctxt);
         if (sizedArrayType == null) {
             TypeSystem ts = ctxt.getTypeSystem();
             Layout.LayoutInfo objLayout = layout.getInstanceLayoutInfo(ltd);
@@ -294,6 +293,7 @@ public class BuildtimeHeap {
         LoadedTypeDefinition jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load();
         LiteralFactory lf = ctxt.getLiteralFactory();
 
+        Layout layout = Layout.get(ctxt);
         Memory memory = value.getMemory();
         FieldElement contentField = coreClasses.getRefArrayContentField();
         DefinedTypeDefinition concreteType = contentField.getEnclosingType();
@@ -327,6 +327,7 @@ public class BuildtimeHeap {
     private SymbolLiteral serializePrimArray(PrimitiveArrayObjectType at, VmArray value) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         TypeSystem ts = ctxt.getTypeSystem();
+        Layout layout = Layout.get(ctxt);
         FieldElement contentsField = coreClasses.getArrayContentField(at);
         DefinedTypeDefinition concreteType = contentsField.getEnclosingType();
         Layout.LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
