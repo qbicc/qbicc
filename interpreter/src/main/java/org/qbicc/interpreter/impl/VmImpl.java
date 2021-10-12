@@ -269,6 +269,15 @@ public final class VmImpl implements Vm {
 
         bootstrapClassLoader.registerClass("java/lang/StackTraceElement", stackTraceElementClass);
 
+        bootstrapClassLoader.registerClass("internal_array_B", byteArrayClass);
+        bootstrapClassLoader.registerClass("internal_array_S", shortArrayClass);
+        bootstrapClassLoader.registerClass("internal_array_I", intArrayClass);
+        bootstrapClassLoader.registerClass("internal_array_J", longArrayClass);
+        bootstrapClassLoader.registerClass("internal_array_F", floatArrayClass);
+        bootstrapClassLoader.registerClass("internal_array_D", doubleArrayClass);
+        bootstrapClassLoader.registerClass("internal_array_C", charArrayClass);
+        bootstrapClassLoader.registerClass("internal_array_Z", booleanArrayClass);
+
         throwableClass.initializeConstantStaticFields(); // Has constant String fields that can't be initialized when we first process the class
     }
 
