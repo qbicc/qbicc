@@ -45,6 +45,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 final class LLVMModuleDebugInfo {
     private final Module module;
@@ -178,19 +179,21 @@ final class LLVMModuleDebugInfo {
         );
     }
 
-    private MetadataTuple populateCompoundType(final CompoundType type, final DICompositeType diType) {
+    private MetadataTuple populateCompoundType(final CompoundType type, final DICompositeType diType, Set<CompoundType.Member> excludeMembers) {
         MetadataTuple elements = module.metadataTuple();
         diType.elements(elements.asRef());
 
         for (CompoundType.Member m : type.getMembers()) {
-            ValueType mt = m.getType();
-            elements.elem(null,
-                module.diDerivedType(DITag.Member, mt.getSize() * 8, mt.getAlign() * 8)
-                    .name(m.getName())
-                    .baseType(getType(mt))
-                    .offset((long)m.getOffset() * 8)
-                    .asRef()
-            );
+            if (! excludeMembers.contains(m)) {
+                ValueType mt = m.getType();
+                elements.elem(null,
+                    module.diDerivedType(DITag.Member, mt.getSize() * 8, mt.getAlign() * 8)
+                        .name(m.getName())
+                        .baseType(getType(mt))
+                        .offset((long)m.getOffset() * 8)
+                        .asRef()
+                );
+            }
         }
 
         return elements;
@@ -201,7 +204,7 @@ final class LLVMModuleDebugInfo {
             .name(type.toFriendlyString());
         LLValue result = registerType(type, diType);
 
-        populateCompoundType(type, diType);
+        populateCompoundType(type, diType, Set.of());
         return result;
     }
 
@@ -230,7 +233,17 @@ final class LLVMModuleDebugInfo {
             .name(type.toFriendlyString());
         LLValue result = registerType(type, diType);
 
-        MetadataTuple elements = populateCompoundType(compoundType, diType);
+        Set<CompoundType.Member> exclude;
+        if (type.hasSuperClass()) {
+            // the supertype's fields are going to be included in the derived type part
+            ClassObjectType superType = type.getSuperClassType();
+            CompoundType superCompoundType = Layout.get(ctxt).getInstanceLayoutInfo(superType.getDefinition()).getCompoundType();
+            exclude = Set.of(superCompoundType.getMembers().toArray(CompoundType.Member[]::new));
+        } else {
+            exclude = Set.of();
+        }
+
+        MetadataTuple elements = populateCompoundType(compoundType, diType, exclude);
 
         if (type.hasSuperClass()) {
             ClassObjectType superType = type.getSuperClassType();
