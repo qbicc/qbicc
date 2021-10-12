@@ -39,8 +39,26 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
         return Objects.hash(dependency, input, checkType, checkDimensions);
     }
 
+    @Override
+    String getNodeName() {
+        return "InstanceOf";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof InstanceOf && equals((InstanceOf) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        input.toString(b);
+        b.append(',');
+        checkType.toString(b);
+        b.append(',');
+        b.append(checkDimensions);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final InstanceOf other) {

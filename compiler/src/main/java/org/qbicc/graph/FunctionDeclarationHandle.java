@@ -39,4 +39,9 @@ public final class FunctionDeclarationHandle extends AbstractProgramObjectHandle
     public <T> long accept(final ValueHandleVisitorLong<T> visitor, final T param) {
         return visitor.visit(param, this);
     }
+
+    @Override
+    String getNodeName() {
+        return "FunctionDeclaration";
+    }
 }

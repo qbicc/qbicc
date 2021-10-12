@@ -49,10 +49,6 @@ public final class ArrayLiteral extends Literal {
         return hashCode;
     }
 
-    public String toString() {
-        return toString(new StringBuilder()).toString();
-    }
-
     public StringBuilder toString(StringBuilder target) {
         target.append('[');
         Iterator<Literal> iterator = values.iterator();

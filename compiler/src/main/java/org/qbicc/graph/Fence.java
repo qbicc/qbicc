@@ -23,12 +23,26 @@ public class Fence extends AbstractNode implements Action, OrderedNode {
     }
 
     @Override
+    String getNodeName() {
+        return "Fence";
+    }
+
+    @Override
     public Node getDependency() {
         return dependency;
     }
 
     public boolean equals(Object other) {
         return other instanceof Fence && equals((Fence) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        b.append(atomicityMode);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final Fence other) {

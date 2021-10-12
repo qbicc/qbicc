@@ -39,6 +39,11 @@ public final class DebugAddressDeclaration extends AbstractNode implements Actio
     }
 
     @Override
+    String getNodeName() {
+        return "DebugAddress";
+    }
+
+    @Override
     public int getValueDependencyCount() {
         return 1;
     }
@@ -51,6 +56,19 @@ public final class DebugAddressDeclaration extends AbstractNode implements Actio
     @Override
     public boolean equals(Object other) {
         return other instanceof DebugAddressDeclaration && equals((DebugAddressDeclaration) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        variable.getType().toString(b);
+        b.append(' ');
+        b.append(variable.getName());
+        b.append(')');
+        b.append('@');
+        b.append(address);
+        return b;
     }
 
     public boolean equals(DebugAddressDeclaration other) {

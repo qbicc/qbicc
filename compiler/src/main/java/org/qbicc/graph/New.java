@@ -39,8 +39,22 @@ public final class New extends AbstractValue implements OrderedNode {
         return System.identityHashCode(this);
     }
 
+    @Override
+    String getNodeName() {
+        return "New";
+    }
+
     public boolean equals(final Object other) {
         return this == other;
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        type.toString(b);
+        b.append(')');
+        return b;
     }
 
     @Override

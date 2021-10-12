@@ -128,8 +128,22 @@ public final class Switch extends AbstractTerminator implements Terminator {
         return (Objects.hash(dependency, defaultTargetLabel, switchValue) * 19 + Arrays.hashCode(values)) * 19 + Arrays.hashCode(targetLabels);
     }
 
+    @Override
+    String getNodeName() {
+        return "Switch";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof Switch && equals((Switch) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        switchValue.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final Switch other) {

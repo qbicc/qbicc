@@ -54,6 +54,11 @@ public final class ClassCastErrorNode extends AbstractTerminator implements Erro
         return Objects.hash(dependency, fromType, toType);
     }
 
+    @Override
+    String getNodeName() {
+        return "ClassCastError";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof ClassCastErrorNode && equals((ClassCastErrorNode) other);
     }

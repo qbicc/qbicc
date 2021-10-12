@@ -28,8 +28,26 @@ public final class InsertMember extends AbstractValue implements Unschedulable {
     }
 
     @Override
+    String getNodeName() {
+        return "InsertMember";
+    }
+
+    @Override
     public boolean equals(Object other) {
         return other instanceof InsertMember && equals((InsertMember) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        compoundValue.toString(b);
+        b.append(',');
+        member.toString(b);
+        b.append(',');
+        insertedValue.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(InsertMember other) {

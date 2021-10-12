@@ -95,6 +95,12 @@ public final class IntegerLiteral extends WordLiteral {
         return type.toString(this);
     }
 
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        b.append(type.toString(this));
+        return b;
+    }
+
     public boolean isZero() {
         return value == 0;
     }

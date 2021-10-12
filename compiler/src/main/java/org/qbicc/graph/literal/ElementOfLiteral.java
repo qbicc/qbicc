@@ -44,7 +44,13 @@ public class ElementOfLiteral extends Literal {
         return index;
     }
 
-    public String toString() {
-        return "element_of ("+value+", "+index+")";
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        b.append("element_of").append('(');
+        value.toString(b);
+        b.append(',');
+        index.toString(b);
+        b.append(')');
+        return b;
     }
 }

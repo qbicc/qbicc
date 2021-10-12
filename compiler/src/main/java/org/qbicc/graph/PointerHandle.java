@@ -56,6 +56,11 @@ public final class PointerHandle extends AbstractValueHandle {
         return pointerValue.hashCode();
     }
 
+    @Override
+    String getNodeName() {
+        return "Pointer";
+    }
+
     public Value getPointerValue() {
         return pointerValue;
     }
@@ -63,6 +68,15 @@ public final class PointerHandle extends AbstractValueHandle {
     @Override
     public boolean equals(Object other) {
         return other instanceof PointerHandle && equals((PointerHandle) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        pointerValue.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(PointerHandle other) {

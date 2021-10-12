@@ -70,6 +70,8 @@ public interface Node {
         throw new NoSuchElementException();
     }
 
+    StringBuilder toString(StringBuilder b);
+
     /**
      * A node copier, which uses a visitor chain to allow observation and transformation of the graph nodes as they
      * are copied.

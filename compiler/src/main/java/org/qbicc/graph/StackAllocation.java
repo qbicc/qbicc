@@ -26,8 +26,26 @@ public final class StackAllocation extends AbstractValue implements OrderedNode 
         return System.identityHashCode(this);
     }
 
+    @Override
+    String getNodeName() {
+        return "StackAllocation";
+    }
+
     public boolean equals(final Object other) {
         return other == this;
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        type.toString(b);
+        b.append(',');
+        count.toString(b);
+        b.append(',');
+        align.toString(b);
+        b.append(')');
+        return b;
     }
 
     public PointerType getType() {

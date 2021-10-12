@@ -40,4 +40,9 @@ public final class DataDeclarationHandle extends AbstractProgramObjectHandle {
     public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
+
+    @Override
+    String getNodeName() {
+        return "DataDeclaration";
+    }
 }

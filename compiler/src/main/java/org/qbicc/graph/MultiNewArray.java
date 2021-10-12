@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import java.util.Iterator;
 import java.util.List;
 
 import org.qbicc.type.ArrayObjectType;
@@ -62,7 +63,25 @@ public final class MultiNewArray extends AbstractValue implements OrderedNode {
         return System.identityHashCode(this);
     }
 
+    @Override
+    String getNodeName() {
+        return "MultiNewArray";
+    }
+
     public boolean equals(final Object other) {
         return this == other;
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        type.toString(b);
+        for (Value dimension : dimensions) {
+            b.append(',');
+            dimension.toString(b);
+        }
+        b.append(')');
+        return b;
     }
 }

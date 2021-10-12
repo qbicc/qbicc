@@ -38,6 +38,15 @@ public abstract class InstanceMethodElementHandle extends Executable {
         return super.calcHashCode() * 19 + instance.hashCode();
     }
 
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        instance.toString(b);
+        b.append(')');
+        return b;
+    }
+
     public final boolean equals(final Executable other) {
         return other instanceof InstanceMethodElementHandle && equals((InstanceMethodElementHandle) other);
     }

@@ -41,7 +41,13 @@ public class ValueConvertLiteral extends Literal {
         return value.isNullable();
     }
 
-    public String toString() {
-        return "convert ("+value+" to "+toType+")";
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        b.append("convert").append("(");
+        value.toString(b);
+        b.append(" to ");
+        toType.toString(b);
+        b.append(')');
+        return b;
     }
 }

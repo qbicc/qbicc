@@ -40,6 +40,11 @@ public final class ClassNotFoundErrorNode extends AbstractTerminator implements 
         return Objects.hash(dependency, name);
     }
 
+    @Override
+    String getNodeName() {
+        return "ClassNotFoundError";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof ClassNotFoundErrorNode && equals((ClassNotFoundErrorNode) other);
     }

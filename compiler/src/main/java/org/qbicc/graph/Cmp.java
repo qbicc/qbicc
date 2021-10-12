@@ -18,4 +18,9 @@ public final class Cmp extends AbstractBinaryValue implements CommutativeBinaryV
     public SignedIntegerType getType() {
         return integerType;
     }
+
+    @Override
+    String getNodeName() {
+        return "Cmp";
+    }
 }

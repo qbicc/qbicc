@@ -38,4 +38,9 @@ public final class UndefinedLiteral extends Literal {
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return b.append("undef");
+    }
 }

@@ -63,6 +63,11 @@ public final class Jsr extends AbstractTerminator implements Resume, Terminator 
         return Objects.hash(dependency, jsrTargetLabel, returnAddress);
     }
 
+    @Override
+    String getNodeName() {
+        return "Jsr";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof Jsr && equals((Jsr) other);
     }

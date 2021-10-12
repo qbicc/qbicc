@@ -27,8 +27,24 @@ public final class ExtractElement extends AbstractValue {
     }
 
     @Override
+    String getNodeName() {
+        return "ExtractElement";
+    }
+
+    @Override
     public boolean equals(Object other) {
         return other instanceof ExtractElement && equals((ExtractElement) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        arrayValue.toString(b);
+        b.append(',');
+        index.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(ExtractElement other) {

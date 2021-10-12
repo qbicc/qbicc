@@ -49,8 +49,23 @@ public final class ParameterValue extends AbstractValue implements Unschedulable
         return Objects.hash(ParameterValue.class, type, label) * 19 + index;
     }
 
+    @Override
+    String getNodeName() {
+        return "Parameter";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof ParameterValue && equals((ParameterValue) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        b.append(label);
+        b.append(index);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final ParameterValue other) {

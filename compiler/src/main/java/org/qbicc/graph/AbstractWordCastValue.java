@@ -34,4 +34,15 @@ abstract class AbstractWordCastValue extends AbstractValue implements WordCastVa
     boolean equals(AbstractWordCastValue other) {
         return this == other || value.equals(other.value) && toType.equals(other.toType);
     }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        getInput().toString(b);
+        b.append(')');
+        b.append(" to ");
+        toType.toString(b);
+        return b;
+    }
 }

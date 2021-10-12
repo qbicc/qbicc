@@ -34,6 +34,11 @@ public final class ReferenceTo extends AbstractValue {
     }
 
     @Override
+    String getNodeName() {
+        return "ReferenceTo";
+    }
+
+    @Override
     public boolean equals(Object other) {
         return other instanceof ReferenceTo && equals((ReferenceTo) other);
     }

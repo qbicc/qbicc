@@ -61,6 +61,11 @@ public final class NullLiteral extends WordLiteral {
         return NullLiteral.class.hashCode();
     }
 
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return b.append("null");
+    }
+
     public String toString() {
         return "null";
     }

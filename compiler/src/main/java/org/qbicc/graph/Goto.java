@@ -48,6 +48,11 @@ public final class Goto extends AbstractTerminator implements Resume {
         return Objects.hash(Goto.class, dependency, targetLabel);
     }
 
+    @Override
+    String getNodeName() {
+        return "Goto";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof Goto && equals((Goto) other);
     }

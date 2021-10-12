@@ -30,6 +30,11 @@ public final class AddressOf extends AbstractValue {
     }
 
     @Override
+    String getNodeName() {
+        return "AddressOf";
+    }
+
+    @Override
     public boolean equals(Object other) {
         return other instanceof AddressOf && equals((AddressOf) other);
     }

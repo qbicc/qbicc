@@ -63,6 +63,11 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
         return Objects.hash(CmpAndSwap.class, dependency, target, expectedValue, updateValue, resultType, successAtomicityMode, failureAtomicityMode);
     }
 
+    @Override
+    String getNodeName() {
+        return "CmpAndSwap";
+    }
+
     public CompoundType getType() {
         return resultType;
     }
@@ -101,6 +106,23 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
 
     public boolean equals(final Object other) {
         return other instanceof CmpAndSwap && equals((CmpAndSwap) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        b.append(expectedValue);
+        b.append(',');
+        b.append(updateValue);
+        b.append(',');
+        b.append(strength);
+        b.append(',');
+        b.append(successAtomicityMode);
+        b.append(',');
+        b.append(failureAtomicityMode);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final CmpAndSwap other) {

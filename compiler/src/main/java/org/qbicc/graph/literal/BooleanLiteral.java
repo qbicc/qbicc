@@ -51,8 +51,9 @@ public final class BooleanLiteral extends WordLiteral {
         return Boolean.hashCode(value);
     }
 
-    public String toString() {
-        return Boolean.toString(value);
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return b.append(value);
     }
 
     @Override

@@ -55,6 +55,11 @@ public final class ArrayLength extends AbstractValue implements OrderedNode {
         return Objects.hash(ArrayLength.class, instance, dependency);
     }
 
+    @Override
+    String getNodeName() {
+        return "ArrayLength";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof ArrayLength && equals((ArrayLength) other);
     }

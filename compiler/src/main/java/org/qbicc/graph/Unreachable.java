@@ -31,6 +31,11 @@ public class Unreachable extends AbstractTerminator implements Terminator {
         return Objects.hash(Unreachable.class, dependency);
     }
 
+    @Override
+    String getNodeName() {
+        return "Unreachable";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof Unreachable && equals((Unreachable) other);
     }

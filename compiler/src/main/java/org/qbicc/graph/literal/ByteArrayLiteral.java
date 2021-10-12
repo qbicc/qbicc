@@ -53,10 +53,6 @@ public final class ByteArrayLiteral extends Literal {
         return false;
     }
 
-    public String toString() {
-        return toString(new StringBuilder()).toString();
-    }
-
     public StringBuilder toString(StringBuilder target) {
         target.append('[');
         if (values.length > 0) {

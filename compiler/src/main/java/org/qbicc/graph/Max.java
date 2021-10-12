@@ -18,4 +18,9 @@ public final class Max extends AbstractBinaryValue implements CommutativeBinaryV
     public boolean isDefGe(Value other) {
         return other.equals(getLeftInput()) || other.equals(getRightInput()) || super.isDefGe(other);
     }
+
+    @Override
+    String getNodeName() {
+        return "Max";
+    }
 }

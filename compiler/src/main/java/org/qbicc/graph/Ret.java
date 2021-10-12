@@ -48,6 +48,11 @@ public final class Ret extends AbstractTerminator implements Terminator {
         return Objects.hash(dependency, returnAddressValue);
     }
 
+    @Override
+    String getNodeName() {
+        return "Ret";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof Ret && equals((Ret) other);
     }

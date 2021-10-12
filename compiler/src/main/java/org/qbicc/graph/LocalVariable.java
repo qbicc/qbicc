@@ -18,6 +18,11 @@ public final class LocalVariable extends Variable {
     }
 
     @Override
+    String getNodeName() {
+        return "LocalVariable";
+    }
+
+    @Override
     public boolean equals(Object other) {
         return other instanceof LocalVariable && equals((LocalVariable) other);
     }

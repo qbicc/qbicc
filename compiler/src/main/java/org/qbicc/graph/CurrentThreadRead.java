@@ -24,6 +24,11 @@ public final class CurrentThreadRead extends AbstractValue implements OrderedNod
     }
 
     @Override
+    String getNodeName() {
+        return "CurrentThread";
+    }
+
+    @Override
     public boolean equals(Object other) {
         return other instanceof CurrentThreadRead && equals((CurrentThreadRead) other);
     }

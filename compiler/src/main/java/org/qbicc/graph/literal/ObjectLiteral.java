@@ -56,4 +56,9 @@ public final class ObjectLiteral extends WordLiteral {
     public int hashCode() {
         return hashCode;
     }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return b.append("object").append('(').append(value).append(')');
+    }
 }

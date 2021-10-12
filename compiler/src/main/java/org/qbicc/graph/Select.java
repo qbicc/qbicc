@@ -56,8 +56,26 @@ public final class Select extends AbstractValue {
         return Objects.hash(Select.class, condition, trueValue, falseValue);
     }
 
+    @Override
+    String getNodeName() {
+        return "Select";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof Select && equals((Select) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        condition.toString(b);
+        b.append(',');
+        trueValue.toString(b);
+        b.append(',');
+        falseValue.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final Select other) {

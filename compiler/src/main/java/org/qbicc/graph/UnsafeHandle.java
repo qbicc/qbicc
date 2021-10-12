@@ -77,8 +77,22 @@ public class UnsafeHandle extends AbstractValueHandle {
         return Objects.hash(base, offset, outputType);
     }
 
+    @Override
+    String getNodeName() {
+        return "Unsafe";
+    }
+
     public boolean equals(final Object other) {
         return other instanceof UnsafeHandle && equals((UnsafeHandle) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        offset.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(final UnsafeHandle other) {

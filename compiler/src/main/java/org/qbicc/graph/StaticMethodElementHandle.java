@@ -42,4 +42,9 @@ public final class StaticMethodElementHandle extends Executable {
     public <T> long accept(final ValueHandleVisitorLong<T> visitor, final T param) {
         return visitor.visit(param, this);
     }
+
+    @Override
+    String getNodeName() {
+        return "StaticMethod";
+    }
 }

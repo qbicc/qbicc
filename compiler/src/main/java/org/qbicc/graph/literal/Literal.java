@@ -53,6 +53,11 @@ public abstract class Literal implements Unschedulable, Value {
         return obj instanceof Literal && equals((Literal) obj);
     }
 
+    @Override
+    public String toString() {
+        return toString(new StringBuilder()).toString();
+    }
+
     public abstract boolean equals(Literal other);
 
     public abstract int hashCode();

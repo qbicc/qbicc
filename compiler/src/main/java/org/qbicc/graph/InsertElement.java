@@ -28,8 +28,26 @@ public final class InsertElement extends AbstractValue implements Unschedulable 
     }
 
     @Override
+    String getNodeName() {
+        return "InsertElement";
+    }
+
+    @Override
     public boolean equals(Object other) {
         return other instanceof InsertElement && equals((InsertElement) other);
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        arrayValue.toString(b);
+        b.append(',');
+        index.toString(b);
+        b.append(',');
+        insertedValue.toString(b);
+        b.append(')');
+        return b;
     }
 
     public boolean equals(InsertElement other) {
