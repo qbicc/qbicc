@@ -105,6 +105,12 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-runtime-stackwalker</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-runtime-unwind</artifactId>
                 <version>${project.version}</version>
             </dependency>
