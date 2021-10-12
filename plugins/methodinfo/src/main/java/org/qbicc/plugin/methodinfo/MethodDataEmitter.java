@@ -281,11 +281,13 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
 
     private static class StackMapRecord implements Comparable {
         private final int objectFileIndex;
+        private final int functionIndex;
         private final int offset;
         private final long statepoindId;
 
-        StackMapRecord(final int objectFileIndex, final int offset, final long statepoindId) {
+        StackMapRecord(final int objectFileIndex, final int functionIndex, final int offset, final long statepoindId) {
             this.objectFileIndex = objectFileIndex;
+            this.functionIndex = functionIndex;
             this.offset = offset;
             this.statepoindId = statepoindId;
         }
@@ -317,15 +319,14 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
             if (equals(other)) {
                 return 0;
             }
-            if (objectFileIndex < other.objectFileIndex) {
-                return -1;
-            } else if (objectFileIndex > other.objectFileIndex) {
-                return 1;
-            } else if (offset < other.offset) { // if same objectFileIndex then order by offset
-                return -1;
-            } else {
-                return 1;
+            int diff = Integer.compareUnsigned(objectFileIndex, other.objectFileIndex);
+            if (diff == 0) {
+                diff = Integer.compareUnsigned(functionIndex, other.functionIndex);
             }
+            if (diff == 0) {
+                diff = Integer.compareUnsigned(offset, other.offset);
+            }
+            return diff;
         }
     }
 
@@ -340,12 +341,12 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
             List<StackMapRecord> recordList = new ArrayList<>();
             ObjectFileProvider objFileProvider = context.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY);
             Iterator<Path> objFileIterator = linker.getObjectFilePaths().iterator();
-            final Integer[] index = { 0 };
+            final int[] index = { 0 };
 
             context.runParallelTask(ctxt -> {
                 Path objFile;
                 for (;;) {
-                    Integer objFileIndex;
+                    int objFileIndex;
                     synchronized (objFileIterator) {
                         if (!objFileIterator.hasNext()) {
                             return;
@@ -359,9 +360,13 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
                         if (stackMapSection != null) {
                             ByteBuffer stackMapData = stackMapSection.getSectionContent();
                             StackMap.parse(stackMapData, new StackMapVisitor() {
+                                private long currentFnIndex;
+                                public void startFunction(long fnIndex, long address, long stackSize, long recordCount) {
+                                    currentFnIndex = fnIndex;
+                                }
                                 public void startRecord(long recIndex, long patchPointId, long offset, int locCnt, int liveOutCnt) {
                                     synchronized (recordList) {
-                                        recordList.add(new StackMapRecord(objFileIndex, (int) offset, patchPointId));
+                                        recordList.add(new StackMapRecord(objFileIndex, (int)currentFnIndex, (int) offset, patchPointId));
                                     }
                                 }
                             });
@@ -371,7 +376,7 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
                     }
                 }
             });
-            // sort the list based on the object file index and the instruction offset
+            // sort the list based on the object file index, function index and the instruction offset
             recordList.sort(StackMapRecord::compareTo);
             return recordList;
         }
