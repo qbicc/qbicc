@@ -156,11 +156,11 @@ abstract class MemoryImpl implements Memory {
     public VmObject compareAndExchangeRef(int index, VmObject expect, VmObject update, MemoryAtomicityMode mode) {
         checkAlign(index, 2);
         if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (VmObject) ht.compareAndExchangeAcquire(things, index, expect, update);
+            return (VmObject) ht.compareAndExchangeAcquire(things, index >> 1, expect, update);
         } else if (mode == MemoryAtomicityMode.RELEASE) {
-            return (VmObject) ht.compareAndExchangeRelease(things, index, expect, update);
+            return (VmObject) ht.compareAndExchangeRelease(things, index >> 1, expect, update);
         } else {
-            return (VmObject) ht.compareAndExchange(things, index, expect, update);
+            return (VmObject) ht.compareAndExchange(things, index >> 1, expect, update);
         }
     }
 
@@ -168,11 +168,11 @@ abstract class MemoryImpl implements Memory {
     public ValueType compareAndExchangeType(int index, ValueType expect, ValueType update, MemoryAtomicityMode mode) {
         checkAlign(index, 2);
         if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (ValueType) ht.compareAndExchangeAcquire(things, index, expect, update);
+            return (ValueType) ht.compareAndExchangeAcquire(things, index >> 1, expect, update);
         } else if (mode == MemoryAtomicityMode.RELEASE) {
-            return (ValueType) ht.compareAndExchangeRelease(things, index, expect, update);
+            return (ValueType) ht.compareAndExchangeRelease(things, index >> 1, expect, update);
         } else {
-            return (ValueType) ht.compareAndExchange(things, index, expect, update);
+            return (ValueType) ht.compareAndExchange(things, index >> 1, expect, update);
         }
     }
 
@@ -199,22 +199,22 @@ abstract class MemoryImpl implements Memory {
     @Override
     public VmObject getAndSetRef(int index, VmObject value, MemoryAtomicityMode mode) {
         if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (VmObject) ht.getAndSetAcquire(things, index, value);
+            return (VmObject) ht.getAndSetAcquire(things, index >> 1, value);
         } else if (mode == MemoryAtomicityMode.RELEASE) {
-            return (VmObject) ht.getAndSetRelease(things, index, value);
+            return (VmObject) ht.getAndSetRelease(things, index >> 1, value);
         } else {
-            return (VmObject) ht.getAndSet(things, index, value);
+            return (VmObject) ht.getAndSet(things, index >> 1, value);
         }
     }
 
     @Override
     public ValueType getAndSetType(int index, ValueType value, MemoryAtomicityMode mode) {
         if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (ValueType) ht.getAndSetAcquire(things, index, value);
+            return (ValueType) ht.getAndSetAcquire(things, index >> 1, value);
         } else if (mode == MemoryAtomicityMode.RELEASE) {
-            return (ValueType) ht.getAndSetRelease(things, index, value);
+            return (ValueType) ht.getAndSetRelease(things, index >> 1, value);
         } else {
-            return (ValueType) ht.getAndSet(things, index, value);
+            return (ValueType) ht.getAndSet(things, index >> 1, value);
         }
     }
 
