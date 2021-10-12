@@ -1,10 +1,10 @@
 package org.qbicc.plugin.serialization;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 
 import io.smallrye.common.constraint.Assert;
@@ -16,7 +16,6 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmArray;
-import org.qbicc.interpreter.VmArrayClass;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmPrimitiveClass;
@@ -34,9 +33,12 @@ import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
+import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -116,34 +118,16 @@ public class BuildtimeHeap {
         if (vmObjects.containsKey(value)) {
             return vmObjects.get(value);
         }
-
         PhysicalObjectType ot = value.getObjectType();
         SymbolLiteral sl;
         if (ot instanceof ClassObjectType) {
-             if (value instanceof VmClass) {
-                if (value instanceof VmArrayClass) {
-                    if (((VmArrayClass)value).getInstanceObjectType().getElementType() instanceof ReferenceArrayObjectType) {
-                        ctxt.error("Serialization of reference array class objects not supported: "+((VmArrayClass)value).getInstanceObjectType());
-                    }
-                }
-                // All reachable Class objects have already been serialized by the ANALYZE post hook ClassObjectSerializer.
-                if (value instanceof VmPrimitiveClass) {
-                    return primitiveClassObjects.get(((VmPrimitiveClass) value).getSimpleName());
-                } else {
-                    sl = classObjects.get(((VmClass) value).getTypeDefinition());
-                    if (sl == null) {
-                        ctxt.error("Serializing java.lang.Class instance for unreachable class: " + ((VmClass) value).getTypeDefinition());
-                    }
-                }
-            } else {
-                 // Could be part of a cyclic object graph; must record the symbol for this object before we serialize its fields
-                 LoadedTypeDefinition concreteType = ot.getDefinition().load();
-                 Layout.LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
-                 sl = ctxt.getLiteralFactory().literalOfSymbol(nextLiteralName(), objLayout.getCompoundType());
-                 vmObjects.put(value, sl);
+            // Could be part of a cyclic object graph; must record the symbol for this object before we serialize its fields
+            LoadedTypeDefinition concreteType = ot.getDefinition().load();
+            Layout.LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
+            sl = ctxt.getLiteralFactory().literalOfSymbol(nextLiteralName(), objLayout.getCompoundType());
+            vmObjects.put(value, sl);
 
-                 serializeVmObject(concreteType, objLayout, sl, value);
-            }
+            serializeVmObject(concreteType, objLayout, sl, value);
         } else if (ot instanceof ReferenceArrayObjectType) {
             // Could be part of a cyclic object graph; must record the symbol for this array before we serialize its elements
             FieldElement contentsField = coreClasses.getRefArrayContentField();
@@ -168,9 +152,10 @@ public class BuildtimeHeap {
         if (primitiveClassObjects.containsKey(primitive.getName())) {
             return primitiveClassObjects.get(primitive.getName());
         }
-
-        SymbolLiteral sl = defineClassObjectLiteral(primitive.getName(), primitive.getType(), null);
-        primitiveClassObjects.put(primitive.getName(), sl);
+        SymbolLiteral sl = serializeVmObject(ctxt.getVm().getPrimitiveClass(primitive));
+        if (sl != null) {
+            primitiveClassObjects.put(primitive.getName(), sl);
+        }
         return sl;
     }
 
@@ -178,46 +163,12 @@ public class BuildtimeHeap {
         if (classObjects.containsKey(type)) {
             return classObjects.get(type);
         }
-
-        String externalName = type.getInternalName().replace('/', '.');
-        if (externalName.startsWith("internal_array_")) {
-            externalName = externalName.replaceFirst("internal_array_", "[");
+        VmClass vmClass = type.load().getVmClass();
+        SymbolLiteral sl = serializeVmObject(vmClass);
+        if (sl != null) {
+            classObjects.put(type, sl);
         }
-        SymbolLiteral sl = defineClassObjectLiteral(externalName, type.getType(), null);
-        classObjects.put(type, sl);
         return sl;
-    }
-
-    private SymbolLiteral defineClassObjectLiteral(String className, ValueType type, LoadedTypeDefinition ltd) {
-        LoadedTypeDefinition jlc = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
-        LiteralFactory lf = ctxt.getLiteralFactory();
-        Layout.LayoutInfo jlcLayout = layout.getInstanceLayoutInfo(jlc);
-        CompoundType jlcType = jlcLayout.getCompoundType();
-        HashMap<CompoundType.Member, Literal> memberMap = new HashMap<>();
-
-        // First default to a zero initializer for all the instance fields
-        for (CompoundType.Member m : jlcType.getMembers()) {
-            memberMap.put(m, lf.zeroInitializerLiteralOfType(m.getType()));
-        }
-
-        // Object header
-        memberMap.put(jlcLayout.getMember(coreClasses.getObjectTypeIdField()), lf.literalOf(jlc.getTypeId()));
-
-        // Next, initialize instance fields of the qbicc jlc type that we can/want to set at build time.
-        CompoundType.Member name = jlcType.getMember("name");
-        memberMap.put(name, castLiteral(lf, serializeVmObject(ctxt.getVm().intern(className)), (WordType) name.getType()));
-
-        CompoundType.Member id = jlcType.getMember("id");
-        memberMap.put(id, lf.literalOfType(type));
-
-        //
-        // TODO: Figure out what information we need to support reflection and serialize it too
-        // This is where we would check for ltd != null, and selectively serialize the class-specific info it contains.
-        //
-
-        // Define it!
-        Data cld = defineData(nextLiteralName(), ctxt.getLiteralFactory().literalOf(jlcType, memberMap));
-        return lf.literalOfSymbol(cld.getName(), cld.getType());
     }
 
     private String nextLiteralName() {
@@ -248,12 +199,15 @@ public class BuildtimeHeap {
             ArrayType sizedContentMem = ts.getArrayType(((ArrayType) contents.getType()).getElementType(), length);
             CompoundType.Member realContentMem = ts.getCompoundTypeMember(contentMem.getName(), sizedContentMem, contentMem.getOffset(), contentMem.getAlign());
 
-            Supplier<List<CompoundType.Member>> thunk;
-            if (contents.equals(coreClasses.getRefArrayContentField())) {
-                thunk = () -> List.of(arrayCT.getMember(0), arrayCT.getMember(1), arrayCT.getMember(2), arrayCT.getMember(3), realContentMem);
-            } else {
-                thunk = () -> List.of(arrayCT.getMember(0), arrayCT.getMember(1), realContentMem);
-            }
+            Supplier<List<CompoundType.Member>> thunk = () -> {
+                CompoundType.Member[] items = arrayCT.getMembers().toArray(CompoundType.Member[]::new);
+                for (int i = 0; i < items.length; i++) {
+                    if (items[i] == contentMem) {
+                        items[i] = realContentMem;
+                    }
+                }
+                return Arrays.asList(items);
+            };
 
             sizedArrayType = ts.getCompoundType(CompoundType.Tag.STRUCT, typeName, arrayCT.getSize() + sizedContentMem.getSize(), arrayCT.getAlign(), thunk);
             arrayTypes.put(typeName, sizedArrayType);
@@ -263,16 +217,32 @@ public class BuildtimeHeap {
 
     private void serializeVmObject(LoadedTypeDefinition concreteType, Layout.LayoutInfo objLayout, SymbolLiteral sl, VmObject value) {
         Memory memory = value.getMemory();
-        LiteralFactory lf = ctxt.getLiteralFactory();
         Layout.LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
         CompoundType objType = objLayout.getCompoundType();
         HashMap<CompoundType.Member, Literal> memberMap = new HashMap<>();
 
+        populateMemberMap(concreteType, objType, objLayout, memLayout, memory, memberMap);
+
+        // Define it!
+        defineData(sl.getName(), ctxt.getLiteralFactory().literalOf(objType, memberMap));
+    }
+
+    private void populateMemberMap(final LoadedTypeDefinition concreteType, final CompoundType objType, final Layout.LayoutInfo objLayout, final Layout.LayoutInfo memLayout, final Memory memory, final HashMap<CompoundType.Member, Literal> memberMap) {
+        LiteralFactory lf = ctxt.getLiteralFactory();
         // Start by zero-initializing all members
         for (CompoundType.Member m : objType.getMembers()) {
             memberMap.put(m, lf.zeroInitializerLiteralOfType(m.getType()));
         }
 
+        populateClearedMemberMap(concreteType, objType, objLayout, memLayout, memory, memberMap);
+    }
+
+    private void populateClearedMemberMap(final LoadedTypeDefinition concreteType, final CompoundType objType, final Layout.LayoutInfo objLayout, final Layout.LayoutInfo memLayout, final Memory memory, final HashMap<CompoundType.Member, Literal> memberMap) {
+        if (concreteType.hasSuperClass()) {
+            populateClearedMemberMap(concreteType.getSuperClass(), objType, objLayout, memLayout, memory, memberMap);
+        }
+
+        LiteralFactory lf = ctxt.getLiteralFactory();
         // Next, iterate over object's instance fields and copy values from the backing Memory to the memberMap
         int fc = concreteType.getFieldCount();
         for (int i=0; i<fc; i++) {
@@ -300,21 +270,24 @@ public class BuildtimeHeap {
                 } else {
                     memberMap.put(om, lf.literalOf(ft, memory.loadDouble(im.getOffset(), MemoryAtomicityMode.UNORDERED)));
                 }
-            } else {
+            } else if (im.getType() instanceof TypeType) {
+                ValueType type = memory.loadType(im.getOffset(), MemoryAtomicityMode.UNORDERED);
+                memberMap.put(om, type == null ? lf.zeroInitializerLiteralOfType(im.getType()) : lf.literalOfType(type));
+            } else if (im.getType() instanceof ArrayType) {
+                if (im.getType().getSize() > 0) {
+                    throw new UnsupportedOperationException("Copying array data is not yet supported");
+                }
+            } else if (im.getType() instanceof ReferenceType) {
                 VmObject contents = memory.loadRef(im.getOffset(), MemoryAtomicityMode.UNORDERED);
                 if (contents == null) {
                     memberMap.put(om, lf.zeroInitializerLiteralOfType(om.getType()));
                 } else {
                     memberMap.put(om, castLiteral(lf, serializeVmObject(contents), (WordType) om.getType()));
                 }
+            } else {
+                throw new UnsupportedOperationException("Serialization of unsupported member type: " + im.getType());
             }
         }
-
-        // Finally set the object header fields that the interpreter does not know about.
-        memberMap.put(objLayout.getMember(coreClasses.getObjectTypeIdField()), lf.literalOf(concreteType.getTypeId()));
-
-        // Define it!
-        defineData(sl.getName(), ctxt.getLiteralFactory().literalOf(objType, memberMap));
     }
 
     private void serializeRefArray(ReferenceArrayObjectType at, CompoundType literalCT, int length, SymbolLiteral sl, VmArray value) {
@@ -322,6 +295,15 @@ public class BuildtimeHeap {
         LiteralFactory lf = ctxt.getLiteralFactory();
 
         Memory memory = value.getMemory();
+        FieldElement contentField = coreClasses.getRefArrayContentField();
+        DefinedTypeDefinition concreteType = contentField.getEnclosingType();
+        Layout.LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
+        Layout.LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
+        CompoundType objType = objLayout.getCompoundType();
+        HashMap<CompoundType.Member, Literal> memberMap = new HashMap<>();
+
+        populateMemberMap(concreteType.load(), objType, objLayout, memLayout, memory, memberMap);
+
         List<Literal> elements = new ArrayList<>(length);
         for (int i=0; i<length; i++) {
             VmObject e = memory.loadRef(value.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED);
@@ -333,26 +315,26 @@ public class BuildtimeHeap {
             }
         }
 
-        Literal al = lf.literalOf(literalCT, Map.of(
-            literalCT.getMember(0), lf.literalOf( coreClasses.getRefArrayContentField().getEnclosingType().load().getTypeId()),
-            literalCT.getMember(1), lf.literalOf(length),
-            literalCT.getMember(2), lf.literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), at.getDimensionCount()),
-            literalCT.getMember(3), lf.literalOfType(at.getLeafElementType()),
-            literalCT.getMember(4), ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getArrayType(jlo.getClassType().getReference(), length), elements)
-        ));
+        ArrayType arrayType = ctxt.getTypeSystem().getArrayType(jlo.getClassType().getReference(), length);
 
-        // Define it!
-        defineData(sl.getName(), al);
+        // add the actual array contents
+        memberMap.put(literalCT.getMember(literalCT.getMemberCount() - 1), lf.literalOf(arrayType, elements));
+
+        // Define it with the literal type we generated above
+        defineData(sl.getName(), ctxt.getLiteralFactory().literalOf(literalCT, memberMap));
     }
 
     private SymbolLiteral serializePrimArray(PrimitiveArrayObjectType at, VmArray value) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         TypeSystem ts = ctxt.getTypeSystem();
         FieldElement contentsField = coreClasses.getArrayContentField(at);
-        Layout.LayoutInfo info = layout.getInstanceLayoutInfo(contentsField.getEnclosingType());
+        DefinedTypeDefinition concreteType = contentsField.getEnclosingType();
+        Layout.LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
+        Layout.LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
+        CompoundType objType = objLayout.getCompoundType();
 
         Memory memory = value.getMemory();
-        int length = memory.load32(info.getMember(coreClasses.getArrayLengthField()).getOffset(), MemoryAtomicityMode.UNORDERED);
+        int length = memory.load32(objLayout.getMember(coreClasses.getArrayLengthField()).getOffset(), MemoryAtomicityMode.UNORDERED);
         CompoundType literalCT = arrayLiteralType(contentsField, length);
 
         Literal arrayContentsLiteral;
@@ -366,7 +348,7 @@ public class BuildtimeHeap {
             List<Literal> elements = new ArrayList<>(length);
             if (contentsField.equals(coreClasses.getBooleanArrayContentField())) {
                 for (int i=0; i<length; i++) {
-                    elements.add(lf.literalOf(memory.load8(value.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED) > 0));
+                    elements.add(lf.literalOf(memory.load8(value.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED) != 0));
                 }
             } else if (contentsField.equals(coreClasses.getShortArrayContentField())) {
                 for (int i=0; i<length; i++) {
@@ -397,13 +379,14 @@ public class BuildtimeHeap {
             arrayContentsLiteral = lf.literalOf(ctxt.getTypeSystem().getArrayType(at.getElementType(), length), elements);
         }
 
-        Literal arrayLiteral = lf.literalOf(literalCT, Map.of(
-            literalCT.getMember(0), lf.literalOf(contentsField.getEnclosingType().load().getTypeId()),
-            literalCT.getMember(1), lf.literalOf(length),
-            literalCT.getMember(2), arrayContentsLiteral
-        ));
+        HashMap<CompoundType.Member, Literal> memberMap = new HashMap<>();
 
-        Data arrayData = defineData(nextLiteralName(), arrayLiteral);
+        populateMemberMap(concreteType.load(), objType, objLayout, memLayout, memory, memberMap);
+
+        // add the actual array contents
+        memberMap.put(literalCT.getMember(literalCT.getMemberCount() - 1), arrayContentsLiteral);
+
+        Data arrayData = defineData(nextLiteralName(), ctxt.getLiteralFactory().literalOf(literalCT, memberMap));
         return lf.literalOfSymbol(arrayData.getName(), literalCT);
     }
 }

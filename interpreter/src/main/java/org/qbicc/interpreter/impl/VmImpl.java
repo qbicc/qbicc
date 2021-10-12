@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
@@ -27,11 +28,13 @@ import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.Primitive;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
@@ -42,12 +45,12 @@ import org.qbicc.type.definition.element.MethodElement;
 
 public final class VmImpl implements Vm {
     private final CompilationContext ctxt;
-    private final Map<GlobalVariableElement, Memory64Impl> globals = new ConcurrentHashMap<>();
+    private final Map<GlobalVariableElement, MemoryImpl> globals = new ConcurrentHashMap<>();
     private final Map<String, VmStringImpl> interned = new ConcurrentHashMap<>();
     private final VmClassLoaderImpl bootstrapClassLoader;
     private final AtomicBoolean initialized = new AtomicBoolean();
+    private final Consumer<VmObject> manualInitializers;
 
-    final boolean wideRefs;
     final MemoryImpl emptyMemory;
 
     boolean bootstrapComplete;
@@ -112,14 +115,15 @@ public final class VmImpl implements Vm {
 
     volatile MethodElement setPropertyMethod;
 
-    VmImpl(final CompilationContext ctxt) {
+    VmImpl(final CompilationContext ctxt, Consumer<VmObject> manualInitializers) {
         this.ctxt = ctxt;
+        this.manualInitializers = manualInitializers;
         bootstrapComplete = false;
         // force all fields to be populated so the injections are visible to us
         CoreClasses coreClasses = CoreClasses.get(ctxt);
         ctxt.getExceptionField();
-        wideRefs = ctxt.getTypeSystem().getReferenceSize() == 8;
-        emptyMemory = wideRefs ? Memory64Impl.EMPTY : Memory32Impl.EMPTY;
+        boolean be = ctxt.getTypeSystem().getEndianness() == ByteOrder.BIG_ENDIAN;
+        emptyMemory = be ? BigEndianMemoryImpl.EMPTY : LittleEndianMemoryImpl.EMPTY;
         ClassContext bcc = ctxt.getBootstrapClassContext();
         classClass = new VmClassClassImpl(this);
         objectClass = classClass.getSuperClass();
@@ -191,51 +195,60 @@ public final class VmImpl implements Vm {
 
         refArrayContentOffset = layout.getInstanceLayoutInfo(coreClasses.getReferenceArrayTypeDefinition()).getMember(coreClasses.getRefArrayContentField()).getOffset();
 
-        classClass.setName(this);
-        objectClass.setName(this);
-        classLoaderClass.setName(this);
-        stringClass.setName(this);
-        threadClass.setName(this);
-        throwableClass.setName(this);
-        byteClass.setName(this);
-        shortClass.setName(this);
-        intClass.setName(this);
-        longClass.setName(this);
-        floatClass.setName(this);
-        doubleClass.setName(this);
-        charClass.setName(this);
-        booleanClass.setName(this);
-        voidClass.setName(this);
+        classClass.postConstruct(this);
+        objectClass.postConstruct(this);
+        classLoaderClass.postConstruct(this);
+        stringClass.postConstruct(this);
+        threadClass.postConstruct(this);
+        throwableClass.postConstruct(this);
+        byteClass.postConstruct(this);
+        shortClass.postConstruct(this);
+        intClass.postConstruct(this);
+        longClass.postConstruct(this);
+        floatClass.postConstruct(this);
+        doubleClass.postConstruct(this);
+        charClass.postConstruct(this);
+        booleanClass.postConstruct(this);
+        voidClass.postConstruct(this);
 
-        byteArrayClass.setName(this);
-        shortArrayClass.setName(this);
-        intArrayClass.setName(this);
-        longArrayClass.setName(this);
-        floatArrayClass.setName(this);
-        doubleArrayClass.setName(this);
-        charArrayClass.setName(this);
-        booleanArrayClass.setName(this);
+        byteArrayClass.postConstruct(this);
+        shortArrayClass.postConstruct(this);
+        intArrayClass.postConstruct(this);
+        longArrayClass.postConstruct(this);
+        floatArrayClass.postConstruct(this);
+        doubleArrayClass.postConstruct(this);
+        charArrayClass.postConstruct(this);
+        booleanArrayClass.postConstruct(this);
+
+        byteClass.setArrayClass(ctxt, byteArrayClass);
+        shortClass.setArrayClass(ctxt, shortArrayClass);
+        intClass.setArrayClass(ctxt, intArrayClass);
+        longClass.setArrayClass(ctxt, longArrayClass);
+        floatClass.setArrayClass(ctxt, floatArrayClass);
+        doubleClass.setArrayClass(ctxt, doubleArrayClass);
+        charClass.setArrayClass(ctxt, charArrayClass);
+        booleanClass.setArrayClass(ctxt, booleanArrayClass);
 
         // throwables
         errorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/Error").load(), null);
-        errorClass.setName(this);
+        errorClass.postConstruct(this);
 
         // errors
         linkageErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/LinkageError").load(), null);
-        linkageErrorClass.setName(this);
+        linkageErrorClass.postConstruct(this);
 
         // linkage errors
         incompatibleClassChangeErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/IncompatibleClassChangeError").load(), null);
-        incompatibleClassChangeErrorClass.setName(this);
+        incompatibleClassChangeErrorClass.postConstruct(this);
         noClassDefFoundErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/NoClassDefFoundError").load(), null);
-        noClassDefFoundErrorClass.setName(this);
+        noClassDefFoundErrorClass.postConstruct(this);
 
         // incompatible class change errors
         noSuchMethodErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/NoSuchMethodError").load(), null);
-        noSuchMethodErrorClass.setName(this);
+        noSuchMethodErrorClass.postConstruct(this);
 
         stackTraceElementClass = new VmClassImpl(this, bcc.findDefinedType("java/lang/StackTraceElement").load(), null);
-        stackTraceElementClass.setName(this);
+        stackTraceElementClass.postConstruct(this);
 
         // set up the bootstrap class loader *last*
         bootstrapClassLoader = new VmClassLoaderImpl(classLoaderClass, this);
@@ -255,6 +268,15 @@ public final class VmImpl implements Vm {
         bootstrapClassLoader.registerClass("java/lang/NoSuchMethodError", noSuchMethodErrorClass);
 
         bootstrapClassLoader.registerClass("java/lang/StackTraceElement", stackTraceElementClass);
+
+        bootstrapClassLoader.registerClass("internal_array_B", byteArrayClass);
+        bootstrapClassLoader.registerClass("internal_array_S", shortArrayClass);
+        bootstrapClassLoader.registerClass("internal_array_I", intArrayClass);
+        bootstrapClassLoader.registerClass("internal_array_J", longArrayClass);
+        bootstrapClassLoader.registerClass("internal_array_F", floatArrayClass);
+        bootstrapClassLoader.registerClass("internal_array_D", doubleArrayClass);
+        bootstrapClassLoader.registerClass("internal_array_C", charArrayClass);
+        bootstrapClassLoader.registerClass("internal_array_Z", booleanArrayClass);
 
         throwableClass.initializeConstantStaticFields(); // Has constant String fields that can't be initialized when we first process the class
     }
@@ -427,7 +449,9 @@ public final class VmImpl implements Vm {
     }
 
     public VmThread newThread(final String threadName, final VmObject threadGroup, final boolean daemon) {
-        return new VmThreadImpl(threadClass, this);
+        VmThreadImpl vmThread = new VmThreadImpl(threadClass, this);
+        manuallyInitialize(vmThread);
+        return vmThread;
     }
 
     public DefinedTypeDefinition loadClass(ClassContext classContext, final String name) throws Thrown {
@@ -447,7 +471,7 @@ public final class VmImpl implements Vm {
     }
 
     public VmByteArrayImpl allocateArray(byte[] bytes) {
-        return new VmByteArrayImpl(this, bytes);
+        return manuallyInitialize(new VmByteArrayImpl(this, bytes));
     }
 
     public void invokeExact(final ConstructorElement method, final VmObject instance, final List<Object> args) {
@@ -485,13 +509,7 @@ public final class VmImpl implements Vm {
 
     @Override
     public MemoryImpl allocate(int size) {
-        if (size == 0) {
-            return emptyMemory;
-        } else if (wideRefs) {
-            return new Memory64Impl(size);
-        } else {
-            return new Memory32Impl(size);
-        }
+        return emptyMemory.copy(size);
     }
 
     @Override
@@ -509,6 +527,22 @@ public final class VmImpl implements Vm {
         vmClass.registerInvokable(element, invokable);
     }
 
+    @Override
+    public VmPrimitiveClass getPrimitiveClass(Primitive primitive) {
+        switch (primitive) {
+            case BOOLEAN: return booleanClass;
+            case BYTE: return byteClass;
+            case SHORT: return shortClass;
+            case CHAR: return charClass;
+            case INT: return intClass;
+            case FLOAT: return floatClass;
+            case LONG: return longClass;
+            case DOUBLE: return doubleClass;
+            case VOID: return voidClass;
+            default: throw Assert.impossibleSwitchCase(primitive);
+        }
+    }
+
     VmStringImpl intern(VmStringImpl vmString) {
         return intern(vmString.getContent());
     }
@@ -517,6 +551,7 @@ public final class VmImpl implements Vm {
         VmStringImpl vmString = interned.get(string);
         if (vmString == null) {
             vmString = new VmStringImpl(this, stringClass, string);
+            manuallyInitialize(vmString);
             VmStringImpl appearing = interned.putIfAbsent(string, vmString);
             if (appearing != null) {
                 vmString = appearing;
@@ -525,8 +560,8 @@ public final class VmImpl implements Vm {
         return vmString;
     }
 
-    public static VmImpl create(CompilationContext ctxt) {
-        return new VmImpl(Assert.checkNotNullParam("ctxt", ctxt));
+    public static VmImpl create(CompilationContext ctxt, Consumer<VmObject> manualInitializer) {
+        return new VmImpl(Assert.checkNotNullParam("ctxt", ctxt), manualInitializer);
     }
 
     static VmImpl require() {
@@ -541,14 +576,19 @@ public final class VmImpl implements Vm {
     }
 
     public Memory getGlobal(final GlobalVariableElement variableElement) {
-        Memory64Impl memory = globals.get(variableElement);
+        MemoryImpl memory = globals.get(variableElement);
         if (memory == null) {
-            memory = new Memory64Impl((int) variableElement.getType().getSize());
-            Memory64Impl appearing = globals.putIfAbsent(variableElement, memory);
+            memory = allocate((int) variableElement.getType().getSize());
+            MemoryImpl appearing = globals.putIfAbsent(variableElement, memory);
             if (appearing != null) {
                 memory = appearing;
             }
         }
         return memory;
+    }
+
+    <T extends VmObject> T manuallyInitialize(final T object) {
+        manualInitializers.accept(object);
+        return object;
     }
 }

@@ -1,6 +1,9 @@
 package org.qbicc.interpreter.impl;
 
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.interpreter.VmPrimitiveClass;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 
@@ -33,8 +36,14 @@ class VmPrimitiveClassImpl extends VmClassImpl implements VmPrimitiveClass {
     }
 
     @Override
-    void setName(VmImpl vm) {
-        setName(simpleName, vm);
+    void postConstruct(VmImpl vm) {
+        postConstruct(simpleName, vm);
+    }
+
+    void setArrayClass(CompilationContext ctxt, VmArrayClassImpl arrayClazz) {
+        // post-construct array type def
+        int acfIdx = indexOf(CoreClasses.get(ctxt).getArrayClassField());
+        getMemory().storeRef(acfIdx, arrayClazz, MemoryAtomicityMode.VOLATILE);
     }
 
     public ObjectType getInstanceObjectType() {

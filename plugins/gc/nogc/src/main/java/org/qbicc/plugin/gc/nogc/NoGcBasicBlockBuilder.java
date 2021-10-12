@@ -8,7 +8,6 @@ import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -17,11 +16,8 @@ import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.IntegerType;
-import org.qbicc.type.ObjectType;
-import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 
 /**
@@ -52,23 +48,10 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             ptrVal = notNull(call(staticMethod(noGc.getAllocateMethod()), List.of(lf.literalOf(size), align)));
         }
         Value oop = valueConvert(ptrVal, type.getReference());
-        ValueHandle oopHandle = referenceHandle(oop);
 
-        // zero initialize the object's instance fields (but not the header fields that are defined in java.lang.Object)
-        LoadedTypeDefinition curClass = type.getDefinition().load();
-        while (curClass.hasSuperClass()) {
-            curClass.eachField(f -> {
-                if (!f.isStatic()) {
-                    store(instanceFieldOf(oopHandle, f), lf.zeroInitializerLiteralOfType(f.getType()), MemoryAtomicityMode.NONE);
-                }
-            });
-            curClass = curClass.getSuperClass();
-        }
+        // zero initialize the object's instance fields
+        call(staticMethod(noGc.getZeroMethod()), List.of(ptrVal, lf.literalOf(info.getCompoundType().getSize())));
 
-        // now initialize the object header (aka fields of java.lang.Object)
-        initializeObjectHeader(oopHandle, layout, type.getDefinition().load().getType());
-
-        fence(MemoryAtomicityMode.RELEASE);
         return oop;
     }
 
@@ -85,24 +68,15 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (sizeType.getMinBits() < 64) {
             size = extend(size, ctxt.getTypeSystem().getSignedInteger64Type());
         }
-        Value realSize = add(baseSize, multiply(lf.literalOf(arrayType.getElementType().getSize()), size));
+        long elementSize = arrayType.getElementType().getSize();
+        assert Long.bitCount(elementSize) == 1;
+        int elementShift = Long.numberOfTrailingZeros(elementSize);
+        Value realSize = add(baseSize, elementShift == 0 ? size : shl(size, lf.literalOf((IntegerType)size.getType(), elementShift)));
         Value ptrVal = notNull(call(staticMethod(noGc.getAllocateMethod()), List.of(realSize, align)));
 
         call(staticMethod(noGc.getZeroMethod()), List.of(ptrVal, realSize));
-        Value arrayPtr = valueConvert(ptrVal, arrayType.getReference());
-        ValueHandle arrayHandle = referenceHandle(arrayPtr);
 
-        initializeObjectHeader(arrayHandle, layout, arrayContentField.getEnclosingType().load().getType());
-
-        store(instanceFieldOf(arrayHandle, coreClasses.getArrayLengthField()), truncate(size, ctxt.getTypeSystem().getSignedInteger32Type()), MemoryAtomicityMode.NONE);
-        if (arrayType instanceof ReferenceArrayObjectType) {
-            ReferenceArrayObjectType refArrayType = (ReferenceArrayObjectType)arrayType;
-            store(instanceFieldOf(arrayHandle, coreClasses.getRefArrayDimensionsField()), lf.literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), refArrayType.getDimensionCount()), MemoryAtomicityMode.NONE);
-            store(instanceFieldOf(arrayHandle, coreClasses.getRefArrayElementTypeIdField()), lf.literalOfType(refArrayType.getLeafElementType()), MemoryAtomicityMode.NONE);
-        }
-
-        fence(MemoryAtomicityMode.RELEASE);
-        return arrayPtr;
+        return valueConvert(ptrVal, arrayType.getReference());
     }
 
     public Value clone(final Value object) {
@@ -133,13 +107,5 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         } else {
             return super.clone(object);
         }
-    }
-
-    // Currently there is only one header field, but abstract into a helper method so we only have one place to update later!
-    private void initializeObjectHeader(ValueHandle oopHandle, Layout layout, ObjectType objType) {
-        FieldElement typeId = coreClasses.getObjectTypeIdField();
-        store(instanceFieldOf(oopHandle, typeId),  ctxt.getLiteralFactory().literalOfType(objType), MemoryAtomicityMode.NONE);
-        FieldElement nativeObjectMonitor = CoreClasses.get(ctxt).getObjectNativeObjectMonitorField();
-        store(instanceFieldOf(oopHandle, nativeObjectMonitor), ctxt.getLiteralFactory().literalOf(0L), MemoryAtomicityMode.NONE);
     }
 }

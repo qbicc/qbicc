@@ -46,6 +46,7 @@ public final class CoreClasses {
 
     private final CompilationContext ctxt;
 
+    private final FieldElement objectHeaderField;
     private final FieldElement objectTypeIdField;
     private final FieldElement objectNativeObjectMonitorField;
     private final FieldElement classTypeIdField;
@@ -80,15 +81,27 @@ public final class CoreClasses {
         LoadedTypeDefinition jlc = jlcDef.load();
         final TypeSystem ts = ctxt.getTypeSystem();
 
-        // inject a field to hold the object typeId
+        // inject a field to hold the object header bits
         FieldElement.Builder builder = FieldElement.builder();
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_VOLATILE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+        builder.setName("header");
+        builder.setEnclosingType(jloDef);
+        builder.setDescriptor(BaseTypeDescriptor.V);
+        builder.setSignature(BaseTypeSignature.V);
+        builder.setType(HeaderBits.get(ctxt).getHeaderType());
+        FieldElement field = builder.build();
+        jlo.injectField(field);
+        objectHeaderField = field;
+
+        // inject a field to hold the object typeId
+        builder = FieldElement.builder();
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         builder.setName("typeId");
         builder.setEnclosingType(jloDef);
         builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
         builder.setType(jlo.getClassType().getTypeType());
-        FieldElement field = builder.build();
+        field = builder.build();
         jlo.injectField(field);
         objectTypeIdField = field;
 
@@ -346,6 +359,15 @@ public final class CoreClasses {
         default:
             throw Assert.impossibleSwitchCase("arrayType");
         }
+    }
+
+    /**
+     * Get the object header field.
+     *
+     * @return the object header field
+     */
+    public FieldElement getObjectHeaderField() {
+        return objectHeaderField;
     }
 
     /**

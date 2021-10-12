@@ -1,16 +1,22 @@
 package org.qbicc.interpreter.impl;
 
+import org.qbicc.interpreter.VmPrimitiveArrayClass;
 import org.qbicc.plugin.coreclasses.CoreClasses;
-import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 
 /**
  *
  */
-final class VmLongArrayClassImpl extends VmArrayClassImpl {
+final class VmLongArrayClassImpl extends VmArrayClassImpl implements VmPrimitiveArrayClass {
     VmLongArrayClassImpl(VmImpl vm, VmClassClassImpl classClass, LoadedTypeDefinition classDef, VmClassImpl elementType) {
         super(vm, classClass, classDef, elementType, null);
+    }
+
+    @Override
+    void postConstruct(VmImpl vm) {
+        postConstruct(getName(), vm);
     }
 
     @Override
@@ -29,7 +35,7 @@ final class VmLongArrayClassImpl extends VmArrayClassImpl {
     }
 
     @Override
-    public ClassObjectType getInstanceObjectTypeId() {
+    public ObjectType getInstanceObjectTypeId() {
         return CoreClasses.get(getVmClass().getVm().getCompilationContext()).getLongArrayTypeDefinition().getClassType();
     }
 }

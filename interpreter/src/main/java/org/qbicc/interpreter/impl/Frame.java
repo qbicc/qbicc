@@ -1618,24 +1618,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Boolean.valueOf(memory.load8(offset, mode) != 0);
         } else if (isRef(type)) {
             return memory.loadRef(offset, mode);
-        } else if (type instanceof TypeType) {
-            // special case; it must be a type ID field
-            if (valueHandle instanceof InstanceFieldOf) {
-                FieldElement elem = ((InstanceFieldOf) valueHandle).getVariableElement();
-                CompilationContext ctxt = thread.getVM().getCompilationContext();
-                CoreClasses coreClasses = CoreClasses.get(ctxt);
-                if (elem == coreClasses.getObjectTypeIdField()) {
-                    // the type ID of the object (most likely case)
-                    return getObject(valueHandle).getObjectTypeId();
-                } else if (elem == coreClasses.getClassTypeIdField()) {
-                    // the type ID of a class (next most likely)
-                    return ((VmClassImpl)getObject(valueHandle)).getInstanceObjectTypeId();
-                } else if (elem == coreClasses.getRefArrayElementTypeIdField()) {
-                    // the type ID of leaf elements of this array
-                    return ((ReferenceArrayObjectType)getObject(valueHandle).getObjectType()).getElementObjectType();
-                }
-            }
-            throw new IllegalStateException("Unknown type ID field");
+        } else if (isTypeId(type)) {
+            return memory.loadType(offset, mode);
         } else {
             throw unsupportedType();
         }
@@ -1800,6 +1784,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             memory.store8(offset, unboxBool(value) ? 1 : 0, mode);
         } else if (isRef(type)) {
             memory.storeRef(offset, (VmObject) require(value), mode);
+        } else if (isTypeId(type)) {
+            memory.storeType(offset, (ValueType) require(value), mode);
         } else {
             throw unsupportedType();
         }
@@ -1931,8 +1917,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 MethodElement methodElement = node.getExecutable();
                 MethodElement result = object.getVmClass().getTypeDefinition().resolveMethodElementVirtual(methodElement.getName(), methodElement.getDescriptor());
                 if (result == null) {
-                    VmClassImpl nsme = VmImpl.require().noSuchMethodErrorClass;
-                    throw new Thrown((VmThrowable) nsme.newInstance());
+                    VmImpl vm = VmImpl.require();
+                    VmClassImpl nsme = vm.noSuchMethodErrorClass;
+                    throw new Thrown(vm.manuallyInitialize((VmThrowable) nsme.newInstance()));
                 }
                 return result;
             } else {
@@ -1948,8 +1935,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 MethodElement methodElement = node.getExecutable();
                 MethodElement result = object.getVmClass().getTypeDefinition().resolveMethodElementVirtual(methodElement.getName(), methodElement.getDescriptor());
                 if (result == null) {
-                    VmClassImpl nsme = VmImpl.require().noSuchMethodErrorClass;
-                    throw new Thrown((VmThrowable) nsme.newInstance());
+                    VmImpl vm = VmImpl.require();
+                    VmClassImpl nsme = vm.noSuchMethodErrorClass;
+                    throw new Thrown(vm.manuallyInitialize((VmThrowable) nsme.newInstance()));
                 }
                 return result;
             } else {

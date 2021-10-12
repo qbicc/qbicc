@@ -2,34 +2,34 @@ package org.qbicc.interpreter.impl;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
-import java.nio.ByteOrder;
 import java.util.Arrays;
 
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.type.ValueType;
 
 /**
  *
  */
 abstract class MemoryImpl implements Memory {
     private static final byte[] NO_DATA = new byte[0];
-    private static final Referenceable[] NO_REFS = new Referenceable[0];
+    private static final Object[] NO_THINGS = new Object[0];
 
-    private static final VarHandle hr = MethodHandles.arrayElementVarHandle(Referenceable[].class);
+    private static final VarHandle ht = MethodHandles.arrayElementVarHandle(Object[].class);
     private static final VarHandle h8 = MethodHandles.arrayElementVarHandle(byte[].class);
-    private static final VarHandle h16 = MethodHandles.byteArrayViewVarHandle(short[].class, ByteOrder.nativeOrder());
-    private static final VarHandle h32 = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.nativeOrder());
-    private static final VarHandle h64 = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.nativeOrder());
-    private final byte[] data;
-    private final Referenceable[] refs;
 
-    MemoryImpl(int dataSize, int refShift) {
-        int mask = (1 << refShift) - 1;
-        dataSize = (dataSize + mask) & ~mask;
-        int refSize = dataSize >> refShift;
+    // Data are items that can be represented directly as bytes and have a minimum alignment of 1
+    final byte[] data;
+    // Things are items that must be represented as references and have a minimum alignment of 2
+    final Object[] things;
+
+    MemoryImpl(int dataSize) {
+        // round up to hold one whole Thing
+        int thingSize = (dataSize + 1) >> 1;
+        dataSize = thingSize << 1;
         data = dataSize == 0 ? NO_DATA : new byte[dataSize];
-        refs = dataSize == 0 ? NO_REFS : new Referenceable[refSize];
+        things = dataSize == 0 ? NO_THINGS : new Object[thingSize];
     }
 
     static int alignGap(final int align, final int offset) {
@@ -45,7 +45,7 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int load8(int index, MemoryAtomicityMode mode) {
+    public final int load8(int index, MemoryAtomicityMode mode) {
         if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
             return (int) h8.get(data, index);
         } else if (mode == MemoryAtomicityMode.ACQUIRE) {
@@ -56,40 +56,40 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int load16(int index, MemoryAtomicityMode mode) {
+    public abstract int load16(int index, MemoryAtomicityMode mode);
+
+    @Override
+    public abstract int load32(int index, MemoryAtomicityMode mode);
+
+    @Override
+    public abstract long load64(int index, MemoryAtomicityMode mode);
+
+    @Override
+    public VmObject loadRef(int index, MemoryAtomicityMode mode) {
+        checkAlign(index, 2);
         if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
-            return (int) h16.get(data, index);
+            return (VmObject) ht.get(things, index >> 1);
         } else if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (int) h16.getAcquire(data, index);
+            return (VmObject) ht.getAcquire(things, index >> 1);
         } else {
-            return (int) h16.getVolatile(data, index);
+            return (VmObject) ht.getVolatile(things, index >> 1);
         }
     }
 
     @Override
-    public int load32(int index, MemoryAtomicityMode mode) {
+    public ValueType loadType(int index, MemoryAtomicityMode mode) {
+        checkAlign(index, 2);
         if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
-            return (int) h32.get(data, index);
+            return (ValueType) ht.get(things, index >> 1);
         } else if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (int) h32.getAcquire(data, index);
+            return (ValueType) ht.getAcquire(things, index >> 1);
         } else {
-            return (int) h32.getVolatile(data, index);
+            return (ValueType) ht.getVolatile(things, index >> 1);
         }
     }
 
     @Override
-    public long load64(int index, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
-            return (long) h64.get(data, index);
-        } else if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (long) h64.getAcquire(data, index);
-        } else {
-            return (long) h64.getVolatile(data, index);
-        }
-    }
-
-    @Override
-    public void store8(int index, int value, MemoryAtomicityMode mode) {
+    public final void store8(int index, int value, MemoryAtomicityMode mode) {
         if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
             h8.set(data, index, (byte) value);
         } else if (mode == MemoryAtomicityMode.RELEASE) {
@@ -100,40 +100,40 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public void store16(int index, int value, MemoryAtomicityMode mode) {
+    public abstract void store16(int index, int value, MemoryAtomicityMode mode);
+
+    @Override
+    public abstract void store32(int index, int value, MemoryAtomicityMode mode);
+
+    @Override
+    public abstract void store64(int index, long value, MemoryAtomicityMode mode);
+
+    @Override
+    public void storeRef(int index, VmObject value, MemoryAtomicityMode mode) {
+        checkAlign(index, 2);
         if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
-            h16.set(data, index, (short) value);
+            ht.set(things, index >> 1, value);
         } else if (mode == MemoryAtomicityMode.RELEASE) {
-            h16.setRelease(data, index, (short) value);
+            ht.setRelease(things, index >> 1, value);
         } else {
-            h16.setVolatile(data, index, (short) value);
+            ht.setVolatile(things, index >> 1, value);
         }
     }
 
     @Override
-    public void store32(int index, int value, MemoryAtomicityMode mode) {
+    public void storeType(int index, ValueType value, MemoryAtomicityMode mode) {
+        checkAlign(index, 2);
         if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
-            h32.set(data, index, value);
+            ht.set(things, index >> 1, value);
         } else if (mode == MemoryAtomicityMode.RELEASE) {
-            h32.setRelease(data, index, value);
+            ht.setRelease(things, index >> 1, value);
         } else {
-            h32.setVolatile(data, index, value);
+            ht.setVolatile(things, index >> 1, value);
         }
     }
 
     @Override
-    public void store64(int index, long value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
-            h64.set(data, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
-            h64.setRelease(data, index, value);
-        } else {
-            h64.setVolatile(data, index, value);
-        }
-    }
-
-    @Override
-    public int compareAndExchange8(int index, int expect, int update, MemoryAtomicityMode mode) {
+    public final int compareAndExchange8(int index, int expect, int update, MemoryAtomicityMode mode) {
         if (mode == MemoryAtomicityMode.ACQUIRE) {
             return (int) h8.compareAndExchangeAcquire(data, index, (byte) expect, (byte) update);
         } else if (mode == MemoryAtomicityMode.RELEASE) {
@@ -144,50 +144,40 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int compareAndExchange16(int index, int expect, int update, MemoryAtomicityMode mode) {
+    public abstract int compareAndExchange16(int index, int expect, int update, MemoryAtomicityMode mode);
+
+    @Override
+    public abstract int compareAndExchange32(int index, int expect, int update, MemoryAtomicityMode mode);
+
+    @Override
+    public abstract long compareAndExchange64(int index, long expect, long update, MemoryAtomicityMode mode);
+
+    @Override
+    public VmObject compareAndExchangeRef(int index, VmObject expect, VmObject update, MemoryAtomicityMode mode) {
+        checkAlign(index, 2);
         if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (int) h16.compareAndExchangeAcquire(data, index, (short) expect, (short) update);
+            return (VmObject) ht.compareAndExchangeAcquire(things, index, expect, update);
         } else if (mode == MemoryAtomicityMode.RELEASE) {
-            return (int) h16.compareAndExchangeRelease(data, index, (short) expect, (short) update);
+            return (VmObject) ht.compareAndExchangeRelease(things, index, expect, update);
         } else {
-            return (int) h16.compareAndExchange(data, index, (short) expect, (short) update);
+            return (VmObject) ht.compareAndExchange(things, index, expect, update);
         }
     }
 
     @Override
-    public int compareAndExchange32(int index, int expect, int update, MemoryAtomicityMode mode) {
+    public ValueType compareAndExchangeType(int index, ValueType expect, ValueType update, MemoryAtomicityMode mode) {
+        checkAlign(index, 2);
         if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (int) h32.compareAndExchangeAcquire(data, index, expect, update);
+            return (ValueType) ht.compareAndExchangeAcquire(things, index, expect, update);
         } else if (mode == MemoryAtomicityMode.RELEASE) {
-            return (int) h32.compareAndExchangeRelease(data, index, expect, update);
+            return (ValueType) ht.compareAndExchangeRelease(things, index, expect, update);
         } else {
-            return (int) h32.compareAndExchange(data, index, expect, update);
+            return (ValueType) ht.compareAndExchange(things, index, expect, update);
         }
     }
 
     @Override
-    public long compareAndExchange64(int index, long expect, long update, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (long) h64.compareAndExchangeAcquire(data, index, expect, update);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
-            return (long) h64.compareAndExchangeRelease(data, index, expect, update);
-        } else {
-            return (long) h64.compareAndExchange(data, index, expect, update);
-        }
-    }
-
-    Referenceable compareAndExchangeRefAligned(int index, Referenceable expect, Referenceable update, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (Referenceable) hr.compareAndExchangeAcquire(refs, index, expect, update);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
-            return (Referenceable) hr.compareAndExchangeRelease(refs, index, expect, update);
-        } else {
-            return (Referenceable) hr.compareAndExchange(refs, index, expect, update);
-        }
-    }
-
-    @Override
-    public int getAndSet8(int index, int value, MemoryAtomicityMode mode) {
+    public final int getAndSet8(int index, int value, MemoryAtomicityMode mode) {
         if (mode == MemoryAtomicityMode.ACQUIRE) {
             return (int) h8.getAndSetAcquire(data, index, (byte) value);
         } else if (mode == MemoryAtomicityMode.RELEASE) {
@@ -198,50 +188,38 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndSet16(int index, int value, MemoryAtomicityMode mode) {
+    public abstract int getAndSet16(int index, int value, MemoryAtomicityMode mode);
+
+    @Override
+    public abstract int getAndSet32(int index, int value, MemoryAtomicityMode mode);
+
+    @Override
+    public abstract long getAndSet64(int index, long value, MemoryAtomicityMode mode);
+
+    @Override
+    public VmObject getAndSetRef(int index, VmObject value, MemoryAtomicityMode mode) {
         if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (int) h16.getAndSetAcquire(data, index, (short) value);
+            return (VmObject) ht.getAndSetAcquire(things, index, value);
         } else if (mode == MemoryAtomicityMode.RELEASE) {
-            return (int) h16.getAndSetRelease(data, index, (short) value);
+            return (VmObject) ht.getAndSetRelease(things, index, value);
         } else {
-            return (int) h16.getAndSet(data, index, (short) value);
+            return (VmObject) ht.getAndSet(things, index, value);
         }
     }
 
     @Override
-    public int getAndSet32(int index, int value, MemoryAtomicityMode mode) {
+    public ValueType getAndSetType(int index, ValueType value, MemoryAtomicityMode mode) {
         if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (int) h32.getAndSetAcquire(data, index, value);
+            return (ValueType) ht.getAndSetAcquire(things, index, value);
         } else if (mode == MemoryAtomicityMode.RELEASE) {
-            return (int) h32.getAndSetRelease(data, index, value);
+            return (ValueType) ht.getAndSetRelease(things, index, value);
         } else {
-            return (int) h32.getAndSet(data, index, value);
+            return (ValueType) ht.getAndSet(things, index, value);
         }
     }
 
     @Override
-    public long getAndSet64(int index, long value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (long) h64.getAndSetAcquire(data, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
-            return (long) h64.getAndSetRelease(data, index, value);
-        } else {
-            return (long) h64.getAndSet(data, index, value);
-        }
-    }
-
-    Referenceable getAndSetRefAligned(int index, Referenceable value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (Referenceable) hr.getAndSetAcquire(refs, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
-            return (Referenceable) hr.getAndSetRelease(refs, index, value);
-        } else {
-            return (Referenceable) hr.getAndSet(refs, index, value);
-        }
-    }
-
-    @Override
-    public int getAndAdd8(int index, int value, MemoryAtomicityMode mode) {
+    public final int getAndAdd8(int index, int value, MemoryAtomicityMode mode) {
         if (mode == MemoryAtomicityMode.ACQUIRE) {
             return (int) h8.getAndAddAcquire(data, index, (byte) value);
         } else if (mode == MemoryAtomicityMode.RELEASE) {
@@ -252,80 +230,36 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndAdd16(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (int) h16.getAndAddAcquire(data, index, (short) value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
-            return (int) h16.getAndAddRelease(data, index, (short) value);
-        } else {
-            return (int) h16.getAndAdd(data, index, (short) value);
-        }
-    }
+    public abstract int getAndAdd16(int index, int value, MemoryAtomicityMode mode);
 
     @Override
-    public int getAndAdd32(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (int) h32.getAndAddAcquire(data, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
-            return (int) h32.getAndAddRelease(data, index, value);
-        } else {
-            return (int) h32.getAndAdd(data, index, value);
-        }
-    }
+    public abstract int getAndAdd32(int index, int value, MemoryAtomicityMode mode);
 
     @Override
-    public long getAndAdd64(int index, long value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (long) h64.getAndAddAcquire(data, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
-            return (long) h64.getAndAddRelease(data, index, value);
-        } else {
-            return (long) h64.getAndAdd(data, index, value);
-        }
-    }
+    public abstract long getAndAdd64(int index, long value, MemoryAtomicityMode mode);
 
     @Override
     public void storeMemory(int destIndex, Memory src, int srcIndex, int size) {
-        MemoryImpl srcImpl = (MemoryImpl) src;
-        System.arraycopy(srcImpl.data, srcIndex, data, destIndex, size);
-    }
-
-    void storeMemoryAligned(int destIndex, MemoryImpl srcImpl, int srcIndex, int size) {
-        System.arraycopy(srcImpl.refs, srcIndex, refs, destIndex, size);
+        if (size > 0) {
+            MemoryImpl srcImpl = (MemoryImpl) src;
+            System.arraycopy(srcImpl.data, srcIndex, data, destIndex, size);
+            // misaligned copies of things will get weird results
+            System.arraycopy(srcImpl.things, (srcIndex + 1) >> 1, things, (destIndex + 1) >> 1, (size + 1) >> 1);
+        }
     }
 
     @Override
     public void storeMemory(int destIndex, byte[] src, int srcIndex, int size) {
-        // just data
-        System.arraycopy(src, srcIndex, data, destIndex, size);
-        clearRefs(destIndex, size);
-    }
-
-    abstract void clearRefs(int startIdx, int byteSize);
-
-    void clearRefsAligned(int refIdx, int refSize) {
-        Arrays.fill(refs, refIdx, refIdx + refSize, null);
-    }
-
-    VmObject loadRefAligned(int index, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
-            return (VmObject) (Referenceable) hr.get(refs, index);
-        } else if (mode == MemoryAtomicityMode.ACQUIRE) {
-            return (VmObject) (Referenceable) hr.getAcquire(refs, index);
-        } else {
-            return (VmObject) (Referenceable) hr.getVolatile(refs, index);
+        if (size > 0) {
+            // just data
+            System.arraycopy(src, srcIndex, data, destIndex, size);
+            // clear corresponding things
+            Arrays.fill(things, destIndex >> 1, (destIndex + size + 1) >> 1, null);
         }
     }
 
-    void storeRefAligned(int index, VmObject value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
-            hr.set(refs, index, (Referenceable) value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
-            hr.setRelease(refs, index, (Referenceable) value);
-        } else {
-            hr.setVolatile(refs, index, (Referenceable) value);
-        }
-    }
+    @Override
+    public abstract MemoryImpl copy(int newSize);
 
     byte[] getArray() {
         return data;

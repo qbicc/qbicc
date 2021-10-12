@@ -1162,7 +1162,7 @@ public final class CoreIntrinsics {
             builder.store(handle, arguments.get(2), handle.getDetectedMode());
             return instance;
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "create_class", createClassDesc, createClass);
+        intrinsics.registerIntrinsic(Phase.ADD, objModDesc, "create_class", createClassDesc, createClass);
 
         StaticIntrinsic getNumberOfTypeIds = (builder, target, arguments) -> lf.literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), tables.get_number_of_typeids());
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_number_of_typeids", emptyTotypeIdDesc, getNumberOfTypeIds);

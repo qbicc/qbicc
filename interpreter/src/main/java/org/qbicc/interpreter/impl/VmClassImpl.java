@@ -138,7 +138,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         int cnt = typeDefinition.getFieldCount();
         for (int i = 0; i < cnt; i ++) {
             FieldElement field = typeDefinition.getField(i);
-            if (field.isStatic()) {
+            if (field.isStatic()) try {
                 Literal initValue = field.getInitialValue();
                 if (initValue == null || initValue instanceof ZeroInitializerLiteral) {
                     // Nothing to do;  memory starts zeroed.
@@ -147,18 +147,18 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 CompoundType.Member member = staticLayoutInfo.getMember(field);
                 if (initValue instanceof IntegerLiteral) {
                     IntegerLiteral val = (IntegerLiteral) initValue;
-                    if (val.getType().getSize() == 1) {
+                    if (field.getType().getSize() == 1) {
                         staticMemory.store8(member.getOffset(), val.byteValue(), MemoryAtomicityMode.UNORDERED);
-                    } else if (val.getType().getSize() == 2) {
+                    } else if (field.getType().getSize() == 2) {
                         staticMemory.store16(member.getOffset(), val.shortValue(), MemoryAtomicityMode.UNORDERED);
-                    } else if (val.getType().getSize() == 4) {
+                    } else if (field.getType().getSize() == 4) {
                         staticMemory.store32(member.getOffset(), val.intValue(), MemoryAtomicityMode.UNORDERED);
                     } else {
                         staticMemory.store64(member.getOffset(), val.longValue(), MemoryAtomicityMode.UNORDERED);
                     }
                 } else if (initValue instanceof FloatLiteral) {
                     FloatLiteral val = (FloatLiteral) initValue;
-                    if (val.getType().getSize() == 4) {
+                    if (field.getType().getSize() == 4) {
                         staticMemory.store32(member.getOffset(), val.floatValue(), MemoryAtomicityMode.UNORDERED);
                     } else {
                         staticMemory.store64(member.getOffset(), val.doubleValue(), MemoryAtomicityMode.UNORDERED);
@@ -172,6 +172,8 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                     // CONSTANT_Class, CONSTANT_MethodHandle, CONSTANT_MethodType
                     vm.getCompilationContext().warning("Did not properly initialize interpreter memory for constant static field "+field);
                 }
+            } catch (IndexOutOfBoundsException e) {
+                throw e; // breakpoint
             }
         }
     }
@@ -184,6 +186,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 if (arrayClazz == null) {
                     arrayClazz = this.arrayClass = constructArrayClass();
                 }
+                memory.storeRef(indexOf(CoreClasses.get(vm.getCompilationContext()).getArrayClassField()), arrayClazz, MemoryAtomicityMode.VOLATILE);
             }
         }
         return arrayClazz;
@@ -194,23 +197,27 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         return (VmClassClassImpl) super.getVmClass();
     }
 
-    void setName(VmImpl vm) {
-        setName(typeDefinition.getInternalName().replace('/', '.'), vm);
+    void postConstruct(VmImpl vm) {
+        postConstruct(typeDefinition.getInternalName().replace('/', '.'), vm);
     }
 
-    void setName(final String name, VmImpl vm) {
+    void postConstruct(final String name, VmImpl vm) {
+        // todo: Base JDK equivalent core classes with appropriate manual initializer
         try {
             memory.storeRef(getVmClass().getLayoutInfo().getMember(getVmClass().getTypeDefinition().findField("name")).getOffset(), vm.intern(name), MemoryAtomicityMode.UNORDERED);
         } catch (Exception e) {
             // for breakpoints
             throw e;
         }
+        vm.manuallyInitialize(this);
     }
 
     VmArrayClassImpl constructArrayClass() {
         // assume reference array by default
         LoadedTypeDefinition arrayDef = CoreClasses.get(typeDefinition.getContext().getCompilationContext()).getRefArrayContentField().getEnclosingType().load();
-        return new VmRefArrayClassImpl(getVm(), getVmClass(), arrayDef, this);
+        VmRefArrayClassImpl clazz = new VmRefArrayClassImpl(getVm(), getVmClass(), arrayDef, this);
+        getVm().manuallyInitialize(clazz);
+        return clazz;
     }
 
     VmImpl getVm() {
@@ -237,8 +244,8 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     }
 
     @Override
-    public ClassObjectType getInstanceObjectTypeId() {
-        return (ClassObjectType) getInstanceObjectType();
+    public ObjectType getInstanceObjectTypeId() {
+        return getInstanceObjectType();
     }
 
     @Override
@@ -370,7 +377,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             ClassContext bcc = vm.getCompilationContext().getBootstrapClassContext();
             LoadedTypeDefinition errorType = bcc.findDefinedType("java/lang/ExceptionInInitializerError").load();
             ClassObjectType exType = errorType.getClassType();
-            VmThrowable obj = (VmThrowable) vm.allocateObject(exType);
+            VmThrowable obj = vm.manuallyInitialize((VmThrowable) vm.allocateObject(exType));
             if (initException != null) {
                 MethodDescriptor causeMethodDesc = MethodDescriptor.synthesize(bcc, BaseTypeDescriptor.V, List.of(ClassTypeDescriptor.synthesize(bcc, "java/lang/Throwable")));
                 vm.invokeExact(errorType.resolveConstructorElement(causeMethodDesc), obj, List.of(initException));

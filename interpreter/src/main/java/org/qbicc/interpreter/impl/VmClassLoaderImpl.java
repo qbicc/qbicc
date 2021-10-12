@@ -82,7 +82,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         if (defined.containsKey(internalName)) {
             throw duplicateClass(vm);
         }
-        Memory64Impl memory = (Memory64Impl) content.getMemory();
+        MemoryImpl memory = (MemoryImpl) content.getMemory();
         ClassFile classFile = ClassFile.of(classContext, ByteBuffer.wrap(memory.getArray()));
         // todo: proper verification...
         DefinedTypeDefinition.Builder builder = classContext.newTypeBuilder();
@@ -101,7 +101,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         String internalName = loaded.getInternalName();
         VmClassImpl vmClass = defined.get(internalName);
         if (vmClass == null) {
-            VmImpl vm = VmImpl.require();
+            VmImpl vm = getVmClass().getVm();
             vmClass = createVmClass(null, vm, loaded);
             VmClassImpl appearing = defined.putIfAbsent(internalName, vmClass);
             if (appearing != null) {
@@ -127,7 +127,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         } else {
             vmClass = new VmClassImpl(vm, loaded, protectionDomain);
         }
-        vmClass.setName(vm);
+        vmClass.postConstruct(vm);
         return vmClass;
     }
 

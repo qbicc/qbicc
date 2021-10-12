@@ -48,6 +48,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
             Node ip = backTrace[i];
             ExecutableElement frameElement = ip.getElement();
             VmObjectImpl ste = vm.stackTraceElementClass.newInstance();
+            vm.manuallyInitialize(ste);
             MemoryImpl steMemory = ste.getMemory();
             // initialize the stack trace element
             DefinedTypeDefinition frameClassDef = frameElement.getEnclosingType();
