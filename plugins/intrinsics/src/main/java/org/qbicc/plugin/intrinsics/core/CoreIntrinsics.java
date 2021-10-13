@@ -348,13 +348,16 @@ public final class CoreIntrinsics {
 
         // Setters
 
+        MethodDescriptor setInputStreamDesc =
+            MethodDescriptor.synthesize(classContext,
+                BaseTypeDescriptor.V, List.of(ClassTypeDescriptor.synthesize(classContext, "java/io/InputStream")));
         MethodDescriptor setPrintStreamDesc =
             MethodDescriptor.synthesize(classContext,
                 BaseTypeDescriptor.V, List.of(ClassTypeDescriptor.synthesize(classContext, "java/io/PrintStream")));
 
-        intrinsics.registerIntrinsic(systemDesc, "setIn", setPrintStreamDesc, setVolatile(ctxt, in));
-        intrinsics.registerIntrinsic(systemDesc, "setOut", setPrintStreamDesc, setVolatile(ctxt, out));
-        intrinsics.registerIntrinsic(systemDesc, "setErr", setPrintStreamDesc, setVolatile(ctxt, err));
+        intrinsics.registerIntrinsic(systemDesc, "setIn0", setInputStreamDesc, setVolatile(ctxt, in));
+        intrinsics.registerIntrinsic(systemDesc, "setOut0", setPrintStreamDesc, setVolatile(ctxt, out));
+        intrinsics.registerIntrinsic(systemDesc, "setErr0", setPrintStreamDesc, setVolatile(ctxt, err));
 
         // arraycopy
 
