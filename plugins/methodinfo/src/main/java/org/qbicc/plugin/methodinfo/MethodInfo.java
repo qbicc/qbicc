@@ -1,52 +1,52 @@
 package org.qbicc.plugin.methodinfo;
 
-import org.qbicc.plugin.stringpool.StringId;
+import org.qbicc.graph.literal.SymbolLiteral;
 
 final class MethodInfo {
-    private StringId fileNameStringId;
-    private StringId classNameStringId;
-    private StringId methodNameStringId;
-    private StringId methodDescStringId;
+    private SymbolLiteral fileNameSymbolLiteral;
+    private SymbolLiteral classNameSymbolLiteral;
+    private SymbolLiteral methodNameSymbolLiteral;
+    private SymbolLiteral methodDescSymbolLiteral;
 
-    MethodInfo(StringId fileStringId, StringId classStringId, StringId methodStringId, StringId methodDescStringId) {
-        this.fileNameStringId = fileStringId;
-        this.classNameStringId = classStringId;
-        this.methodNameStringId = methodStringId;
-        this.methodDescStringId = methodDescStringId;
+    MethodInfo(SymbolLiteral fileSymbolLiteral, SymbolLiteral classSymbolLiteral, SymbolLiteral methodSymbolLiteral, SymbolLiteral methodDescSymbolLiteral) {
+        this.fileNameSymbolLiteral = fileSymbolLiteral;
+        this.classNameSymbolLiteral = classSymbolLiteral;
+        this.methodNameSymbolLiteral = methodSymbolLiteral;
+        this.methodDescSymbolLiteral = methodDescSymbolLiteral;
     }
 
     public boolean equals(Object other) {
         if (this == other) return true;
         if (other == null || getClass() != other.getClass()) return false;
         MethodInfo that = (MethodInfo) other;
-        return fileNameStringId == that.fileNameStringId
-            && classNameStringId == that.classNameStringId
-            && methodNameStringId == that.methodNameStringId
-            && methodDescStringId == that.methodDescStringId;
+        return fileNameSymbolLiteral == that.fileNameSymbolLiteral
+            && classNameSymbolLiteral == that.classNameSymbolLiteral
+            && methodNameSymbolLiteral == that.methodNameSymbolLiteral
+            && methodDescSymbolLiteral == that.methodDescSymbolLiteral;
     }
 
-    StringId getFileNameStringId() {
-        return fileNameStringId;
+    SymbolLiteral getFileNameSymbolLiteral() {
+        return fileNameSymbolLiteral;
     }
 
-    StringId getClassNameStringId() {
-        return classNameStringId;
+    SymbolLiteral getClassNameSymbolLiteral() {
+        return classNameSymbolLiteral;
     }
 
-    StringId getMethodNameStringId() {
-        return methodNameStringId;
+    SymbolLiteral getMethodNameSymbolLiteral() {
+        return methodNameSymbolLiteral;
     }
 
-    StringId getMethodDescStringId() {
-        return methodDescStringId;
+    SymbolLiteral getMethodDescSymbolLiteral() {
+        return methodDescSymbolLiteral;
     }
 
     @Override
     public int hashCode() {
-        int result = fileNameStringId != null ? fileNameStringId.hashCode() : 0;
-        result = 31 * result + (classNameStringId != null ? classNameStringId.hashCode() : 0);
-        result = 31 * result + (methodNameStringId != null ? methodNameStringId.hashCode() : 0);
-        result = 31 * result + (methodDescStringId != null ? methodDescStringId.hashCode() : 0);
+        int result = fileNameSymbolLiteral != null ? fileNameSymbolLiteral.hashCode() : 0;
+        result = 31 * result + (classNameSymbolLiteral != null ? classNameSymbolLiteral.hashCode() : 0);
+        result = 31 * result + (methodNameSymbolLiteral != null ? methodNameSymbolLiteral.hashCode() : 0);
+        result = 31 * result + (methodDescSymbolLiteral != null ? methodDescSymbolLiteral.hashCode() : 0);
         return result;
     }
 }

@@ -112,6 +112,10 @@ public class BuildtimeHeap {
         return classArrayGlobal;
     }
 
+    public SymbolLiteral getSerializedVmObject(VmObject value) {
+        return vmObjects.get(value);
+    }
+
     public synchronized SymbolLiteral serializeVmObject(VmObject value) {
         if (vmObjects.containsKey(value)) {
             return vmObjects.get(value);
