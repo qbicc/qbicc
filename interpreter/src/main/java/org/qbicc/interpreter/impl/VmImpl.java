@@ -19,6 +19,7 @@ import java.util.function.Consumer;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Signal;
 import org.qbicc.interpreter.Thrown;
@@ -411,6 +412,8 @@ public final class VmImpl implements Vm {
             VmClassImpl osEnvClass = bootstrapClassLoader.loadClass("jdk/internal/misc/OSEnvironment");
             osEnvClass.registerInvokable("initialize", (thread, target, args) -> null); // Skip this for build-time init.
 
+            initializeSystemThreadGroup(vmThread);
+
             // Now execute system initialization
             LoadedTypeDefinition systemType = systemClass.getTypeDefinition();
             // phase 1
@@ -531,6 +534,20 @@ public final class VmImpl implements Vm {
 
     public VmObject getMainThreadGroup() {
         return null;
+    }
+
+    private void initializeSystemThreadGroup(VmThreadImpl vmThread) {
+        // Create the System ThreadGroup
+        VmClassImpl threadGroupClass = bootstrapClassLoader.loadClass("java/lang/ThreadGroup");
+        VmObject systemThreadGroup = manuallyInitialize(threadGroupClass.newInstance());
+        LoadedTypeDefinition sgDef = threadGroupClass.getTypeDefinition();
+        // Simulate the private constructor that is invoked by native code during VM startup at runtime
+        systemThreadGroup.getMemory().storeRef(systemThreadGroup.indexOf(sgDef.findField("name")), intern("system"), MemoryAtomicityMode.UNORDERED);
+        systemThreadGroup.getMemory().store32(systemThreadGroup.indexOf(sgDef.findField("maxPriority")), 10 /* Thread.MAX_PRIORITY */, MemoryAtomicityMode.UNORDERED);
+
+        // Store it as the group of the argument thread
+        int offset = vmThread.indexOf(vmThread.getVmClass().getTypeDefinition().findField("group"));
+        vmThread.getMemory().storeRef(offset, systemThreadGroup, MemoryAtomicityMode.UNORDERED);
     }
 
     @Override
