@@ -23,13 +23,13 @@ import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Signal;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
-import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmArrayClass;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmPrimitiveClass;
+import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -393,6 +393,23 @@ public final class VmImpl implements Vm {
                 int length = (Integer)args.get(1);
                 return manuallyInitialize(componentType.getArrayClass().newInstance(length));
             });
+
+            // Signal
+            VmClassImpl signalClass = bootstrapClassLoader.loadClass("jdk/internal/misc/Signal");
+            signalClass.registerInvokable("findSignal0", (thread, target, args) -> {
+                VmString sigName = (VmString) args.get(0);
+                if (sigName.contentEquals("INT")) {
+                    return 2;
+                } else if (sigName.contentEquals("TERM")) {
+                    return 15;
+                } else {
+                    return -1;
+                }
+            });
+
+            // OSEnvironment
+            VmClassImpl osEnvClass = bootstrapClassLoader.loadClass("jdk/internal/misc/OSEnvironment");
+            osEnvClass.registerInvokable("initialize", (thread, target, args) -> null); // Skip this for build-time init.
 
             // Now execute system initialization
             LoadedTypeDefinition systemType = systemClass.getTypeDefinition();

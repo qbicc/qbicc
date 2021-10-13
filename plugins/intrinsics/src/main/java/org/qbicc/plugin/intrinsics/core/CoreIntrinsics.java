@@ -100,6 +100,7 @@ public final class CoreIntrinsics {
         registerJavaUtilConcurrentAtomicLongIntrinsics(ctxt);
         registerOrgQbiccRuntimePosixPthreadCastPtr(ctxt);
         UnsafeIntrinsics.register(ctxt);
+        registerJDKInternalIntrinsics(ctxt);
     }
 
     private static void registerEmptyNativeInitMethods(final CompilationContext ctxt) {
@@ -1753,5 +1754,24 @@ public final class CoreIntrinsics {
         StaticIntrinsic VMSupportsCS8 = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(true);
 
         intrinsics.registerIntrinsic(atomicLongDesc, "VMSupportsCS8", emptyToBool, VMSupportsCS8);
+    }
+
+    private static void registerJDKInternalIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor signalDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Signal");
+        ClassTypeDescriptor jls = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
+
+        MethodDescriptor stringToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(jls));
+        MethodDescriptor intLongToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.I, BaseTypeDescriptor.J));
+
+        StaticIntrinsic findSignal = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(-1); // TODO: real implementation
+        StaticIntrinsic handle = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(0L); // TODO: real implementation
+
+        intrinsics.registerIntrinsic(Phase.LOWER, signalDesc, "findSignal0", stringToInt, findSignal);
+        intrinsics.registerIntrinsic(signalDesc, "handle0", intLongToLong, handle);
+
+
     }
 }
