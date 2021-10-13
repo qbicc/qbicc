@@ -12,6 +12,7 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -36,7 +37,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public Value new_(final ClassObjectType type) {
         NoGc noGc = NoGc.get(ctxt);
         Layout layout = Layout.get(ctxt);
-        Layout.LayoutInfo info = layout.getInstanceLayoutInfo(type.getDefinition());
+        LayoutInfo info = layout.getInstanceLayoutInfo(type.getDefinition());
         CompoundType compoundType = info.getCompoundType();
         LiteralFactory lf = ctxt.getLiteralFactory();
         IntegerLiteral align = lf.literalOf(compoundType.getAlign());
@@ -59,7 +60,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         NoGc noGc = NoGc.get(ctxt);
         Layout layout = Layout.get(ctxt);
         FieldElement arrayContentField = coreClasses.getArrayContentField(arrayType);
-        Layout.LayoutInfo info = layout.getInstanceLayoutInfo(arrayContentField.getEnclosingType());
+        LayoutInfo info = layout.getInstanceLayoutInfo(arrayContentField.getEnclosingType());
         CompoundType compoundType = info.getCompoundType();
         LiteralFactory lf = ctxt.getLiteralFactory();
         IntegerLiteral align = lf.literalOf(compoundType.getAlign());
@@ -85,7 +86,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         Layout layout = Layout.get(ctxt);
         if (objType instanceof ClassObjectType) {
             ClassObjectType type = (ClassObjectType) objType;
-            Layout.LayoutInfo info = layout.getInstanceLayoutInfo(type.getDefinition());
+            LayoutInfo info = layout.getInstanceLayoutInfo(type.getDefinition());
             LiteralFactory lf = ctxt.getLiteralFactory();
             CompoundType compoundType = info.getCompoundType();
             IntegerLiteral size = lf.literalOf(compoundType.getSize());

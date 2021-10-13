@@ -147,7 +147,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
         // convert reference to pointer
         Layout layout = Layout.get(ctxt);
         ObjectType upperBound = node.getValueType();
-        Layout.LayoutInfo info;
+        LayoutInfo info;
         if (upperBound instanceof ArrayObjectType) {
             info = layout.getInstanceLayoutInfo(CoreClasses.get(ctxt).getArrayContentField(upperBound).getEnclosingType());
         } else {

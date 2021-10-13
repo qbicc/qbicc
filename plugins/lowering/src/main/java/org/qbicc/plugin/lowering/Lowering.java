@@ -18,6 +18,7 @@ import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
 import org.qbicc.plugin.constants.Constants;
 import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.IntegerType;
@@ -86,7 +87,7 @@ public class Lowering {
         if (initialValue instanceof OffsetOfField) {
             // special case: the field holds an offset which is really an integer
             FieldElement offsetField = ((OffsetOfField) initialValue).getFieldElement();
-            Layout.LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(offsetField.getEnclosingType());
+            LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(offsetField.getEnclosingType());
             if (offsetField.isStatic()) {
                 initialValue = ctxt.getLiteralFactory().literalOf(-1);
             } else {

@@ -137,6 +137,7 @@ import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
@@ -1674,7 +1675,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         FieldElement fieldElement = node.getFieldElement();
         CompilationContext ctxt = element.getEnclosingType().getContext().getCompilationContext();
         Layout layout = Layout.getForInterpreter(ctxt);
-        Layout.LayoutInfo layoutInfo;
+        LayoutInfo layoutInfo;
         if (fieldElement.isStatic()) {
             layoutInfo = layout.getInterpreterStaticLayoutInfo(fieldElement.getEnclosingType());
         } else {
@@ -2091,7 +2092,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
             Layout layout = Layout.getForInterpreter(ctxt);
             FieldElement field = node.getVariableElement();
-            Layout.LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(field.getEnclosingType());
+            LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(field.getEnclosingType());
             try {
                 return node.getValueHandle().accept(this, frame) + layoutInfo.getMember(field).getOffset();
             } catch (NullPointerException e) {
@@ -2125,7 +2126,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
             Layout layout = Layout.getForInterpreter(ctxt);
             FieldElement field = node.getVariableElement();
-            Layout.LayoutInfo layoutInfo = layout.getInterpreterStaticLayoutInfo(field.getEnclosingType());
+            LayoutInfo layoutInfo = layout.getInterpreterStaticLayoutInfo(field.getEnclosingType());
             if (layoutInfo == null) {
                 throw new IllegalStateException("No static fields found");
             }

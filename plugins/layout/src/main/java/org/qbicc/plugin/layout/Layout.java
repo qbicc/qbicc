@@ -59,14 +59,6 @@ public final class Layout {
     }
 
     public LayoutInfo getInstanceLayoutInfo(DefinedTypeDefinition type) {
-        return getInstanceLayoutInfoHelper(type, false);
-    }
-
-    public LayoutInfo getInstanceLayoutInfoForNativeType(DefinedTypeDefinition type) {
-        return getInstanceLayoutInfoHelper(type, true);
-    }
-
-    private LayoutInfo getInstanceLayoutInfoHelper(DefinedTypeDefinition type, boolean isNativeType) {
         if (type.isInterface()) {
             throw new IllegalArgumentException("Interfaces have no instance layout");
         }
@@ -76,7 +68,7 @@ public final class Layout {
             return layoutInfo;
         }
         // ignore super class layout for native types
-        LoadedTypeDefinition superClass = isNativeType ? null : validated.getSuperClass();
+        LoadedTypeDefinition superClass = validated.getSuperClass();
         LayoutInfo superLayout;
         int minAlignment;
         if (superClass != null) {
@@ -88,10 +80,10 @@ public final class Layout {
         }
         BitSet allocated = new BitSet();
         if (superLayout != null) {
-            allocated.or(superLayout.allocated);
+            allocated.or(superLayout.getAllocatedBits());
         }
         int cnt = validated.getFieldCount();
-        Map<FieldElement, CompoundType.Member> fieldToMember = superLayout == null ? new HashMap<>(cnt) : new HashMap<>(superLayout.fieldToMember);
+        Map<FieldElement, CompoundType.Member> fieldToMember = superLayout == null ? new HashMap<>(cnt) : new HashMap<>(superLayout.getFieldsMap());
         FieldElement trailingArray = null;
         for (int i = 0; i < cnt; i ++) {
             // todo: skip unused fields?
@@ -179,10 +171,6 @@ public final class Layout {
     private CompoundType.Member computeMember(final BitSet allocated, final FieldElement field) {
         TypeSystem ts = ctxt.getTypeSystem();
         ValueType fieldType = widenBoolean(field.getType());
-        if (fieldType instanceof BooleanType) {
-            // widen booleans to 8 bits
-            fieldType = ts.getUnsignedInteger8Type();
-        }
         int size = (int) fieldType.getSize();
         int align = fieldType.getAlign();
         int idx;
@@ -224,26 +212,6 @@ public final class Layout {
             }
             // try the next spot
             i = bitSet.nextClearBit(n);
-        }
-    }
-
-    public static final class LayoutInfo {
-        private final BitSet allocated;
-        private final CompoundType compoundType;
-        private final Map<FieldElement, CompoundType.Member> fieldToMember;
-
-        LayoutInfo(final BitSet allocated, final CompoundType compoundType, final Map<FieldElement, CompoundType.Member> fieldToMember) {
-            this.allocated = allocated;
-            this.compoundType = compoundType;
-            this.fieldToMember = fieldToMember;
-        }
-
-        public CompoundType getCompoundType() {
-            return compoundType;
-        }
-
-        public CompoundType.Member getMember(FieldElement element) {
-            return fieldToMember.get(element);
         }
     }
 }

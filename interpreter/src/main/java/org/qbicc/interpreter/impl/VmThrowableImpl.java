@@ -6,6 +6,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
@@ -24,7 +25,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
         MemoryImpl memory = getMemory();
         LoadedTypeDefinition throwableClassDef = ((VmImpl)Vm.requireCurrent()).throwableClass.getTypeDefinition();
         Layout interpLayout = Layout.getForInterpreter(throwableClassDef.getContext().getCompilationContext());
-        Layout.LayoutInfo layout = interpLayout.getInstanceLayoutInfo(throwableClassDef);
+        LayoutInfo layout = interpLayout.getInstanceLayoutInfo(throwableClassDef);
         int depthIdx = layout.getMember(throwableClassDef.findField("depth")).getOffset();
         memory.store32(depthIdx, backTrace.length, MemoryAtomicityMode.UNORDERED);
     }
@@ -38,7 +39,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
         Layout interpLayout = Layout.getForInterpreter(vm.getCompilationContext());
         // create the stack trace directly
         LoadedTypeDefinition steClassDef = vm.stackTraceElementClass.getTypeDefinition();
-        Layout.LayoutInfo layout = interpLayout.getInstanceLayoutInfo(steClassDef);
+        LayoutInfo layout = interpLayout.getInstanceLayoutInfo(steClassDef);
         int declaringClassObjectIdx = layout.getMember(steClassDef.findField("declaringClassObject")).getOffset();
         int lineNumberIdx = layout.getMember(steClassDef.findField("lineNumber")).getOffset();
         int declaringClassIdx = layout.getMember(steClassDef.findField("declaringClass")).getOffset();
@@ -90,7 +91,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
         MemoryImpl memory = getMemory();
         LoadedTypeDefinition throwableClassDef = vm.throwableClass.getTypeDefinition();
         Layout interpLayout = Layout.getForInterpreter(vm.getCompilationContext());
-        Layout.LayoutInfo layout = interpLayout.getInstanceLayoutInfo(throwableClassDef);
+        LayoutInfo layout = interpLayout.getInstanceLayoutInfo(throwableClassDef);
         int stackTraceIdx = layout.getMember(throwableClassDef.findField("stackTrace")).getOffset();
         LoadedTypeDefinition steClassDef = vm.stackTraceElementClass.getTypeDefinition();
         layout = interpLayout.getInstanceLayoutInfo(steClassDef);

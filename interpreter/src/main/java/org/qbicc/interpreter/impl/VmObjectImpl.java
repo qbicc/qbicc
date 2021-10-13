@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -66,7 +67,7 @@ class VmObjectImpl implements VmObject, Referenceable {
     /**
      * Special ctor for Class.class, whose clazz instance is itself.
      */
-    VmObjectImpl(VmImpl vm, @SuppressWarnings("unused") Class<?> unused, Layout.LayoutInfo instanceLayoutInfo) {
+    VmObjectImpl(VmImpl vm, @SuppressWarnings("unused") Class<?> unused, LayoutInfo instanceLayoutInfo) {
         this.clazz = (VmClassImpl) this;
         memory = vm.allocate((int) instanceLayoutInfo.getCompoundType().getSize());
     }
@@ -100,7 +101,7 @@ class VmObjectImpl implements VmObject, Referenceable {
     public int indexOf(FieldElement field) throws IllegalArgumentException {
         LoadedTypeDefinition loaded = field.getEnclosingType().load();
         CompilationContext ctxt = loaded.getContext().getCompilationContext();
-        Layout.LayoutInfo layoutInfo = Layout.getForInterpreter(ctxt).getInstanceLayoutInfo(loaded);
+        LayoutInfo layoutInfo = Layout.getForInterpreter(ctxt).getInstanceLayoutInfo(loaded);
         CompoundType.Member member = layoutInfo.getMember(field);
         if (member == null) {
             throw new IllegalArgumentException("Field " + field + " is not present on " + this);

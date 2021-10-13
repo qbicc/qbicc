@@ -11,6 +11,7 @@ import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.PhysicalObjectType;
@@ -73,7 +74,7 @@ class BuildtimeHeapAnalyzer {
                 LoadedTypeDefinition concreteType = cur.getObjectType().getDefinition().load();
                 rtaInfo.processBuildtimeInstantiatedObjectType(concreteType, ltd);
 
-                Layout.LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
+                LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
                 for (CompoundType.Member im : memLayout.getCompoundType().getMembers()) {
                     if (im.getType() instanceof ReferenceType) {
                         VmObject child = cur.getMemory().loadRef(im.getOffset(), MemoryAtomicityMode.UNORDERED);
@@ -87,7 +88,7 @@ class BuildtimeHeapAnalyzer {
                 rtaInfo.processArrayElementType(((ReferenceArrayObjectType) ot).getLeafElementType());
 
                 FieldElement contentsField = coreClasses.getRefArrayContentField();
-                Layout.LayoutInfo info = interpreterLayout.getInstanceLayoutInfo(contentsField.getEnclosingType());
+                LayoutInfo info = interpreterLayout.getInstanceLayoutInfo(contentsField.getEnclosingType());
                 Memory memory = cur.getMemory();
                 int length = memory.load32(info.getMember(coreClasses.getArrayLengthField()).getOffset(), MemoryAtomicityMode.UNORDERED);
                 for (int i=0; i<length; i++) {

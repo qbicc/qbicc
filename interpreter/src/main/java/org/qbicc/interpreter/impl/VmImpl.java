@@ -33,6 +33,7 @@ import org.qbicc.interpreter.VmThread;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -133,7 +134,7 @@ public final class VmImpl implements Vm {
         FieldElement coderField = stringDef.findField("coder");
         FieldElement valueField = stringDef.findField("value");
         Layout layout = Layout.getForInterpreter(ctxt);
-        Layout.LayoutInfo stringLayout = layout.getInstanceLayoutInfo(stringDef);
+        LayoutInfo stringLayout = layout.getInstanceLayoutInfo(stringDef);
         stringCoderOffset = stringLayout.getMember(coderField).getOffset();
         stringValueOffset = stringLayout.getMember(valueField).getOffset();
         threadClass = new VmThreadClassImpl(this, bcc.findDefinedType("java/lang/Thread").load(), null);

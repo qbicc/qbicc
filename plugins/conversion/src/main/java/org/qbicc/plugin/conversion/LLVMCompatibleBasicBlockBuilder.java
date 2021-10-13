@@ -17,6 +17,7 @@ import org.qbicc.graph.literal.Literal;
 import org.qbicc.machine.arch.Cpu;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.unwind.UnwindHelper;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
@@ -212,7 +213,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         if (fieldElement.isStatic()) {
             return ctxt.getLiteralFactory().literalOf(-1);
         } else {
-            Layout.LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(fieldElement.getEnclosingType());
+            LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(fieldElement.getEnclosingType());
             return ctxt.getLiteralFactory().literalOf(layoutInfo.getMember(fieldElement).getOffset());
         }
     }
