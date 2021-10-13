@@ -438,10 +438,10 @@ public final class VmImpl implements Vm {
         setProperty(props, "path.separator", platform.getOs().getPathSeparator());
 
         setProperty(props, "user.country", Locale.getDefault().getCountry()); // todo: user-set locale on command line
-        // todo: user.dir as a virtual directory, reset at run time
-        // todo: user.home as a virtual directory, reset at run time
+        setProperty(props, "user.dir", System.getProperty("user.dir")); // todo: user.dir as a virtual directory, reset at run time
+        setProperty(props, "user.home", System.getProperty("user.home")); // todo: user.home as a virtual directory, reset at run time
         setProperty(props, "user.language", Locale.getDefault().getLanguage()); // todo: user-set locale on command line
-        // todo: user.name as temp user, reset at run time
+        setProperty(props, "user.name", System.getProperty("user.name")); // todo: user.name as temp user, reset at run time
         setProperty(props, "user.timezone", ""); // todo: reset at run time
 
         // these are non-spec but used by the JDK or other things
