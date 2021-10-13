@@ -2077,8 +2077,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                     FieldElement field = coreClasses.getArrayContentField(physicalBound);
                     Layout interpLayout = Layout.getForInterpreter(ctxt);
                     int fieldOffset = interpLayout.getInstanceLayoutInfo(field.getEnclosingType()).getMember(field).getOffset();
-                    ValueType contentType = field.getType();
-                    return node.getValueHandle().accept(this, frame) + fieldOffset + index * contentType.getSize();
+                    ArrayType contentType = (ArrayType)field.getType();
+                    return node.getValueHandle().accept(this, frame) + fieldOffset + index * contentType.getElementSize();
                 } else {
                     throw unsupportedType();
                 }
