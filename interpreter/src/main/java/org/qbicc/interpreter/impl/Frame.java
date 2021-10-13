@@ -134,6 +134,7 @@ import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
@@ -830,7 +831,15 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         if (value instanceof VmObject) {
             VmObject obj = (VmObject) value;
             ObjectType checkType = node.getCheckType();
-            return Boolean.valueOf(obj.getObjectType().isSubtypeOf(checkType));
+            ObjectType objType = obj.getObjectType();
+            for (int dims = node.getCheckDimensions(); dims > 0; dims --) {
+                if (objType instanceof ReferenceArrayObjectType) {
+                    objType = ((ReferenceArrayObjectType) objType).getElementObjectType();
+                } else {
+                    return false;
+                }
+            }
+            return Boolean.valueOf(objType.isSubtypeOf(checkType));
         }
         return Boolean.FALSE;
     }
