@@ -1,6 +1,7 @@
 package org.qbicc.plugin.intrinsics.core;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.ByteOrder;
 import java.util.Collections;
 import java.util.List;
@@ -80,6 +81,7 @@ public final class CoreIntrinsics {
     public static void register(CompilationContext ctxt) {
         registerOrgQbiccRuntimeCNativeIntrinsics(ctxt);
         registerEmptyNativeInitMethods(ctxt);
+        registerJavaIoFileDescriptorIntrinsics(ctxt);
         registerJavaLangClassIntrinsics(ctxt);
         registerJavaLangStringIntrinsics(ctxt);
         registerJavaLangStringUTF16Intrinsics(ctxt);
@@ -108,6 +110,7 @@ public final class CoreIntrinsics {
         StaticIntrinsic emptyInit = (builder, target, arguments) -> voidLiteral;
 
         ClassTypeDescriptor fileInputStreamDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileInputStream");
+        ClassTypeDescriptor fileOutputStreamDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileOutputStream");
         ClassTypeDescriptor fileDescriptorDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileDescriptor");
         ClassTypeDescriptor randomAccessFileDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/RandomAccessFile");
         ClassTypeDescriptor winNtFileSystem = ClassTypeDescriptor.synthesize(classContext, "java/io/WinNTFileSystem");
@@ -132,6 +135,7 @@ public final class CoreIntrinsics {
         MethodDescriptor classToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(classDesc));
 
         intrinsics.registerIntrinsic(fileInputStreamDesc, "initIDs", emptyToVoid, emptyInit);
+        intrinsics.registerIntrinsic(fileOutputStreamDesc, "initIDs", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(fileDescriptorDesc, "initIDs", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(randomAccessFileDesc, "initIDs", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(winNtFileSystem, "initIDs", emptyToVoid, emptyInit);
@@ -161,6 +165,26 @@ public final class CoreIntrinsics {
             builder.store(builder.staticField(field), arguments.get(0), MemoryAtomicityMode.VOLATILE);
             return voidLiteral;
         };
+    }
+
+    private static void registerJavaIoFileDescriptorIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+        ClassTypeDescriptor fileDescriptorDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileDescriptor");
+
+        MethodDescriptor intToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.I));
+        MethodDescriptor intToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(BaseTypeDescriptor.I));
+
+        StaticIntrinsic getHandle = (builder, target, arguments) -> {
+            return ctxt.getLiteralFactory().literalOf(-1L); // TODO: real implementation (for Windows)
+        };
+
+        StaticIntrinsic getAppend = (builder, target, arguments) -> {
+            return ctxt.getLiteralFactory().literalOf(false); // TODO: real implementation
+        };
+
+        intrinsics.registerIntrinsic(fileDescriptorDesc, "getHandle", intToLong, getHandle);
+        intrinsics.registerIntrinsic(fileDescriptorDesc, "getAppend", intToBool, getAppend);
     }
 
     public static void registerJavaLangClassIntrinsics(CompilationContext ctxt) {
