@@ -317,7 +317,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (initBuildTime) {
                                     builder.addTaskWrapperFactory(Phase.ADD, next -> (wrapper, ctxt) -> {
                                         Vm vm = ctxt.getVm();
-                                        vm.doAttached(vm.newThread(Thread.currentThread().getName(), null, false), () -> wrapper.accept(ctxt));
+                                        vm.doAttached(vm.newThread(Thread.currentThread().getName(), vm.getMainThreadGroup(), false), () -> wrapper.accept(ctxt));
                                     });
                                 }
                                 builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
@@ -327,7 +327,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (initBuildTime) {
                                     builder.addPreHook(Phase.ADD, compilationContext -> {
                                         Vm vm = compilationContext.getVm();
-                                        VmThread initThread = vm.newThread("initialization", null, false);
+                                        VmThread initThread = vm.newThread("initialization", vm.getMainThreadGroup(), false);
                                         vm.doAttached(initThread, vm::initialize);
                                     });
                                 }

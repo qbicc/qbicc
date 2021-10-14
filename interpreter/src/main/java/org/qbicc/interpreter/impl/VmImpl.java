@@ -118,6 +118,8 @@ public final class VmImpl implements Vm {
 
     volatile MethodElement setPropertyMethod;
 
+    volatile VmObject mainThreadGroup;
+
     VmImpl(final CompilationContext ctxt, Consumer<VmObject> manualInitializers) {
         this.ctxt = ctxt;
         this.manualInitializers = manualInitializers;
@@ -306,6 +308,9 @@ public final class VmImpl implements Vm {
             }
             setPropertyMethod = propertiesTypeDef.getMethod(idx);
 
+            // Create System ThreadGroup and set the initializing Thread's group to be it
+            mainThreadGroup = createMainThreadGroup();
+            vmThread.setThreadGroup(mainThreadGroup);
 
             // Register all hooks
             VmClassLoaderImpl bootstrapClassLoader = this.bootstrapClassLoader;
@@ -413,8 +418,6 @@ public final class VmImpl implements Vm {
             VmClassImpl osEnvClass = bootstrapClassLoader.loadClass("jdk/internal/misc/OSEnvironment");
             osEnvClass.registerInvokable("initialize", (thread, target, args) -> null); // Skip this for build-time init.
 
-            initializeSystemThreadGroup(vmThread);
-
             // Now execute system initialization
             LoadedTypeDefinition systemType = systemClass.getTypeDefinition();
             // phase 1
@@ -481,6 +484,9 @@ public final class VmImpl implements Vm {
     public VmThread newThread(final String threadName, final VmObject threadGroup, final boolean daemon) {
         VmThreadImpl vmThread = new VmThreadImpl(threadClass, this);
         manuallyInitialize(vmThread);
+        if (threadGroup != null) {
+            vmThread.setThreadGroup(threadGroup);
+        }
         return vmThread;
     }
 
@@ -534,21 +540,18 @@ public final class VmImpl implements Vm {
     }
 
     public VmObject getMainThreadGroup() {
-        return null;
+        return mainThreadGroup;
     }
 
-    private void initializeSystemThreadGroup(VmThreadImpl vmThread) {
+    private VmObject createMainThreadGroup() {
         // Create the System ThreadGroup
         VmClassImpl threadGroupClass = bootstrapClassLoader.loadClass("java/lang/ThreadGroup");
-        VmObject systemThreadGroup = manuallyInitialize(threadGroupClass.newInstance());
+        VmObject mtg = manuallyInitialize(threadGroupClass.newInstance());
         LoadedTypeDefinition sgDef = threadGroupClass.getTypeDefinition();
         // Simulate the private constructor that is invoked by native code during VM startup at runtime
-        systemThreadGroup.getMemory().storeRef(systemThreadGroup.indexOf(sgDef.findField("name")), intern("system"), MemoryAtomicityMode.UNORDERED);
-        systemThreadGroup.getMemory().store32(systemThreadGroup.indexOf(sgDef.findField("maxPriority")), 10 /* Thread.MAX_PRIORITY */, MemoryAtomicityMode.UNORDERED);
-
-        // Store it as the group of the argument thread
-        int offset = vmThread.indexOf(vmThread.getVmClass().getTypeDefinition().findField("group"));
-        vmThread.getMemory().storeRef(offset, systemThreadGroup, MemoryAtomicityMode.UNORDERED);
+        mtg.getMemory().storeRef(mtg.indexOf(sgDef.findField("name")), intern("system"), MemoryAtomicityMode.UNORDERED);
+        mtg.getMemory().store32(mtg.indexOf(sgDef.findField("maxPriority")), 10 /* Thread.MAX_PRIORITY */, MemoryAtomicityMode.UNORDERED);
+        return mtg;
     }
 
     @Override
