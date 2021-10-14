@@ -20,6 +20,8 @@ import org.qbicc.driver.Driver;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.probe.Qualifier;
 import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.layout.LayoutInfo;
+import org.qbicc.plugin.layout.NativeLayout;
 import org.qbicc.plugin.linker.Linker;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.TypeSystem;
@@ -107,7 +109,7 @@ final class NativeInfo {
                 resolved = ref.get();
                 if (resolved == null) {
                     LoadedTypeDefinition validated = definedType.load();
-                    Layout.LayoutInfo layout = Layout.get(ctxt).getInstanceLayoutInfoForNativeType(validated);
+                    LayoutInfo layout = NativeLayout.get(ctxt).getLayoutInfo(validated);
                     resolved = layout.getCompoundType();
                     ref.set(resolved);
                 }

@@ -23,6 +23,7 @@ import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -121,7 +122,7 @@ public class BuildtimeHeap {
         if (ot instanceof ClassObjectType) {
             // Could be part of a cyclic object graph; must record the symbol for this object before we serialize its fields
             LoadedTypeDefinition concreteType = ot.getDefinition().load();
-            Layout.LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
+            LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
             sl = ctxt.getLiteralFactory().literalOfSymbol(nextLiteralName(), objLayout.getCompoundType());
             vmObjects.put(value, sl);
 
@@ -129,7 +130,7 @@ public class BuildtimeHeap {
         } else if (ot instanceof ReferenceArrayObjectType) {
             // Could be part of a cyclic object graph; must record the symbol for this array before we serialize its elements
             FieldElement contentsField = coreClasses.getRefArrayContentField();
-            Layout.LayoutInfo info = layout.getInstanceLayoutInfo(contentsField.getEnclosingType());
+            LayoutInfo info = layout.getInstanceLayoutInfo(contentsField.getEnclosingType());
             Memory memory = value.getMemory();
             int length = memory.load32(info.getMember(coreClasses.getArrayLengthField()).getOffset(), MemoryAtomicityMode.UNORDERED);
             CompoundType literalCT = arrayLiteralType(contentsField, length);
@@ -191,7 +192,7 @@ public class BuildtimeHeap {
         Layout layout = Layout.get(ctxt);
         if (sizedArrayType == null) {
             TypeSystem ts = ctxt.getTypeSystem();
-            Layout.LayoutInfo objLayout = layout.getInstanceLayoutInfo(ltd);
+            LayoutInfo objLayout = layout.getInstanceLayoutInfo(ltd);
             CompoundType arrayCT = objLayout.getCompoundType();
 
             CompoundType.Member contentMem = objLayout.getMember(contents);
@@ -214,9 +215,9 @@ public class BuildtimeHeap {
         return sizedArrayType;
     }
 
-    private void serializeVmObject(LoadedTypeDefinition concreteType, Layout.LayoutInfo objLayout, SymbolLiteral sl, VmObject value) {
+    private void serializeVmObject(LoadedTypeDefinition concreteType, LayoutInfo objLayout, SymbolLiteral sl, VmObject value) {
         Memory memory = value.getMemory();
-        Layout.LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
+        LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
         CompoundType objType = objLayout.getCompoundType();
         HashMap<CompoundType.Member, Literal> memberMap = new HashMap<>();
 
@@ -226,7 +227,7 @@ public class BuildtimeHeap {
         defineData(sl.getName(), ctxt.getLiteralFactory().literalOf(objType, memberMap));
     }
 
-    private void populateMemberMap(final LoadedTypeDefinition concreteType, final CompoundType objType, final Layout.LayoutInfo objLayout, final Layout.LayoutInfo memLayout, final Memory memory, final HashMap<CompoundType.Member, Literal> memberMap) {
+    private void populateMemberMap(final LoadedTypeDefinition concreteType, final CompoundType objType, final LayoutInfo objLayout, final LayoutInfo memLayout, final Memory memory, final HashMap<CompoundType.Member, Literal> memberMap) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         // Start by zero-initializing all members
         for (CompoundType.Member m : objType.getMembers()) {
@@ -236,7 +237,7 @@ public class BuildtimeHeap {
         populateClearedMemberMap(concreteType, objType, objLayout, memLayout, memory, memberMap);
     }
 
-    private void populateClearedMemberMap(final LoadedTypeDefinition concreteType, final CompoundType objType, final Layout.LayoutInfo objLayout, final Layout.LayoutInfo memLayout, final Memory memory, final HashMap<CompoundType.Member, Literal> memberMap) {
+    private void populateClearedMemberMap(final LoadedTypeDefinition concreteType, final CompoundType objType, final LayoutInfo objLayout, final LayoutInfo memLayout, final Memory memory, final HashMap<CompoundType.Member, Literal> memberMap) {
         if (concreteType.hasSuperClass()) {
             populateClearedMemberMap(concreteType.getSuperClass(), objType, objLayout, memLayout, memory, memberMap);
         }
@@ -297,8 +298,8 @@ public class BuildtimeHeap {
         Memory memory = value.getMemory();
         FieldElement contentField = coreClasses.getRefArrayContentField();
         DefinedTypeDefinition concreteType = contentField.getEnclosingType();
-        Layout.LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
-        Layout.LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
+        LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
+        LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
         CompoundType objType = objLayout.getCompoundType();
         HashMap<CompoundType.Member, Literal> memberMap = new HashMap<>();
 
@@ -330,8 +331,8 @@ public class BuildtimeHeap {
         Layout layout = Layout.get(ctxt);
         FieldElement contentsField = coreClasses.getArrayContentField(at);
         DefinedTypeDefinition concreteType = contentsField.getEnclosingType();
-        Layout.LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
-        Layout.LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
+        LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
+        LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
         CompoundType objType = objLayout.getCompoundType();
 
         Memory memory = value.getMemory();

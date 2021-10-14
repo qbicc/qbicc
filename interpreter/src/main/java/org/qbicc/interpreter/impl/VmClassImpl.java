@@ -26,6 +26,7 @@ import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
@@ -57,11 +58,11 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     /**
      * This is the layout of instances of this class.
      */
-    private final Layout.LayoutInfo layoutInfo;
+    private final LayoutInfo layoutInfo;
     /**
      * This is the singleton layout for the static fields of this class.
      */
-    private final Layout.LayoutInfo staticLayoutInfo;
+    private final LayoutInfo staticLayoutInfo;
 
     // memory
 
@@ -304,7 +305,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         return staticMemory;
     }
 
-    Layout.LayoutInfo getLayoutInfo() {
+    LayoutInfo getLayoutInfo() {
         return layoutInfo;
     }
 
