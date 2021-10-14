@@ -19,17 +19,18 @@ import java.util.function.Consumer;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Signal;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
-import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmArrayClass;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmPrimitiveClass;
+import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -394,6 +395,25 @@ public final class VmImpl implements Vm {
                 return manuallyInitialize(componentType.getArrayClass().newInstance(length));
             });
 
+            // Signal
+            VmClassImpl signalClass = bootstrapClassLoader.loadClass("jdk/internal/misc/Signal");
+            signalClass.registerInvokable("findSignal0", (thread, target, args) -> {
+                VmString sigName = (VmString) args.get(0);
+                if (sigName.contentEquals("INT")) {
+                    return 2;
+                } else if (sigName.contentEquals("TERM")) {
+                    return 15;
+                } else {
+                    return -1;
+                }
+            });
+
+            // OSEnvironment
+            VmClassImpl osEnvClass = bootstrapClassLoader.loadClass("jdk/internal/misc/OSEnvironment");
+            osEnvClass.registerInvokable("initialize", (thread, target, args) -> null); // Skip this for build-time init.
+
+            initializeSystemThreadGroup(vmThread);
+
             // Now execute system initialization
             LoadedTypeDefinition systemType = systemClass.getTypeDefinition();
             // phase 1
@@ -438,10 +458,10 @@ public final class VmImpl implements Vm {
         setProperty(props, "path.separator", platform.getOs().getPathSeparator());
 
         setProperty(props, "user.country", Locale.getDefault().getCountry()); // todo: user-set locale on command line
-        // todo: user.dir as a virtual directory, reset at run time
-        // todo: user.home as a virtual directory, reset at run time
+        setProperty(props, "user.dir", System.getProperty("user.dir")); // todo: user.dir as a virtual directory, reset at run time
+        setProperty(props, "user.home", System.getProperty("user.home")); // todo: user.home as a virtual directory, reset at run time
         setProperty(props, "user.language", Locale.getDefault().getLanguage()); // todo: user-set locale on command line
-        // todo: user.name as temp user, reset at run time
+        setProperty(props, "user.name", System.getProperty("user.name")); // todo: user.name as temp user, reset at run time
         setProperty(props, "user.timezone", ""); // todo: reset at run time
 
         // these are non-spec but used by the JDK or other things
@@ -514,6 +534,20 @@ public final class VmImpl implements Vm {
 
     public VmObject getMainThreadGroup() {
         return null;
+    }
+
+    private void initializeSystemThreadGroup(VmThreadImpl vmThread) {
+        // Create the System ThreadGroup
+        VmClassImpl threadGroupClass = bootstrapClassLoader.loadClass("java/lang/ThreadGroup");
+        VmObject systemThreadGroup = manuallyInitialize(threadGroupClass.newInstance());
+        LoadedTypeDefinition sgDef = threadGroupClass.getTypeDefinition();
+        // Simulate the private constructor that is invoked by native code during VM startup at runtime
+        systemThreadGroup.getMemory().storeRef(systemThreadGroup.indexOf(sgDef.findField("name")), intern("system"), MemoryAtomicityMode.UNORDERED);
+        systemThreadGroup.getMemory().store32(systemThreadGroup.indexOf(sgDef.findField("maxPriority")), 10 /* Thread.MAX_PRIORITY */, MemoryAtomicityMode.UNORDERED);
+
+        // Store it as the group of the argument thread
+        int offset = vmThread.indexOf(vmThread.getVmClass().getTypeDefinition().findField("group"));
+        vmThread.getMemory().storeRef(offset, systemThreadGroup, MemoryAtomicityMode.UNORDERED);
     }
 
     @Override

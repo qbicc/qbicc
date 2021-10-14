@@ -1,6 +1,7 @@
 package org.qbicc.plugin.intrinsics.core;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.ByteOrder;
 import java.util.Collections;
 import java.util.List;
@@ -80,6 +81,7 @@ public final class CoreIntrinsics {
     public static void register(CompilationContext ctxt) {
         registerOrgQbiccRuntimeCNativeIntrinsics(ctxt);
         registerEmptyNativeInitMethods(ctxt);
+        registerJavaIoFileDescriptorIntrinsics(ctxt);
         registerJavaLangClassIntrinsics(ctxt);
         registerJavaLangStringIntrinsics(ctxt);
         registerJavaLangStringUTF16Intrinsics(ctxt);
@@ -98,6 +100,7 @@ public final class CoreIntrinsics {
         registerJavaUtilConcurrentAtomicLongIntrinsics(ctxt);
         registerOrgQbiccRuntimePosixPthreadCastPtr(ctxt);
         UnsafeIntrinsics.register(ctxt);
+        registerJDKInternalIntrinsics(ctxt);
     }
 
     private static void registerEmptyNativeInitMethods(final CompilationContext ctxt) {
@@ -108,6 +111,7 @@ public final class CoreIntrinsics {
         StaticIntrinsic emptyInit = (builder, target, arguments) -> voidLiteral;
 
         ClassTypeDescriptor fileInputStreamDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileInputStream");
+        ClassTypeDescriptor fileOutputStreamDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileOutputStream");
         ClassTypeDescriptor fileDescriptorDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileDescriptor");
         ClassTypeDescriptor randomAccessFileDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/RandomAccessFile");
         ClassTypeDescriptor winNtFileSystem = ClassTypeDescriptor.synthesize(classContext, "java/io/WinNTFileSystem");
@@ -132,6 +136,7 @@ public final class CoreIntrinsics {
         MethodDescriptor classToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(classDesc));
 
         intrinsics.registerIntrinsic(fileInputStreamDesc, "initIDs", emptyToVoid, emptyInit);
+        intrinsics.registerIntrinsic(fileOutputStreamDesc, "initIDs", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(fileDescriptorDesc, "initIDs", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(randomAccessFileDesc, "initIDs", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(winNtFileSystem, "initIDs", emptyToVoid, emptyInit);
@@ -161,6 +166,26 @@ public final class CoreIntrinsics {
             builder.store(builder.staticField(field), arguments.get(0), MemoryAtomicityMode.VOLATILE);
             return voidLiteral;
         };
+    }
+
+    private static void registerJavaIoFileDescriptorIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+        ClassTypeDescriptor fileDescriptorDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileDescriptor");
+
+        MethodDescriptor intToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.I));
+        MethodDescriptor intToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(BaseTypeDescriptor.I));
+
+        StaticIntrinsic getHandle = (builder, target, arguments) -> {
+            return ctxt.getLiteralFactory().literalOf(-1L); // TODO: real implementation (for Windows)
+        };
+
+        StaticIntrinsic getAppend = (builder, target, arguments) -> {
+            return ctxt.getLiteralFactory().literalOf(false); // TODO: real implementation
+        };
+
+        intrinsics.registerIntrinsic(fileDescriptorDesc, "getHandle", intToLong, getHandle);
+        intrinsics.registerIntrinsic(fileDescriptorDesc, "getAppend", intToBool, getAppend);
     }
 
     public static void registerJavaLangClassIntrinsics(CompilationContext ctxt) {
@@ -324,13 +349,16 @@ public final class CoreIntrinsics {
 
         // Setters
 
+        MethodDescriptor setInputStreamDesc =
+            MethodDescriptor.synthesize(classContext,
+                BaseTypeDescriptor.V, List.of(ClassTypeDescriptor.synthesize(classContext, "java/io/InputStream")));
         MethodDescriptor setPrintStreamDesc =
             MethodDescriptor.synthesize(classContext,
                 BaseTypeDescriptor.V, List.of(ClassTypeDescriptor.synthesize(classContext, "java/io/PrintStream")));
 
-        intrinsics.registerIntrinsic(systemDesc, "setIn", setPrintStreamDesc, setVolatile(ctxt, in));
-        intrinsics.registerIntrinsic(systemDesc, "setOut", setPrintStreamDesc, setVolatile(ctxt, out));
-        intrinsics.registerIntrinsic(systemDesc, "setErr", setPrintStreamDesc, setVolatile(ctxt, err));
+        intrinsics.registerIntrinsic(systemDesc, "setIn0", setInputStreamDesc, setVolatile(ctxt, in));
+        intrinsics.registerIntrinsic(systemDesc, "setOut0", setPrintStreamDesc, setVolatile(ctxt, out));
+        intrinsics.registerIntrinsic(systemDesc, "setErr0", setPrintStreamDesc, setVolatile(ctxt, err));
 
         // arraycopy
 
@@ -1726,5 +1754,24 @@ public final class CoreIntrinsics {
         StaticIntrinsic VMSupportsCS8 = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(true);
 
         intrinsics.registerIntrinsic(atomicLongDesc, "VMSupportsCS8", emptyToBool, VMSupportsCS8);
+    }
+
+    private static void registerJDKInternalIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor signalDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Signal");
+        ClassTypeDescriptor jls = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
+
+        MethodDescriptor stringToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(jls));
+        MethodDescriptor intLongToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.I, BaseTypeDescriptor.J));
+
+        StaticIntrinsic findSignal = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(-1); // TODO: real implementation
+        StaticIntrinsic handle = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(0L); // TODO: real implementation
+
+        intrinsics.registerIntrinsic(Phase.LOWER, signalDesc, "findSignal0", stringToInt, findSignal);
+        intrinsics.registerIntrinsic(signalDesc, "handle0", intLongToLong, handle);
+
+
     }
 }
