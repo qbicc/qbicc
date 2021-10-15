@@ -650,12 +650,6 @@ public final class CoreIntrinsics {
 
         intrinsics.registerIntrinsic(Phase.ADD, objDesc, "getClass", getClassDesc, getClassIntrinsic);
 
-        // Object#hashCode TODO redo when object headers are set
-        MethodDescriptor hashCodeDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
-        InstanceIntrinsic hashCodeIntrinsic = (builder, instance, target, arguments)->
-            ctxt.getLiteralFactory().literalOf(0);
-        intrinsics.registerIntrinsic(objDesc, "hashCode", hashCodeDesc, hashCodeIntrinsic);
-
         // TODO: replace this do nothing stub of notifyAll with real implementation
         MethodDescriptor notifyAllDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
         InstanceIntrinsic notifyAllIntrinsic = (builder, instance, target, arguments) -> 
