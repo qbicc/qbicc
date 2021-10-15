@@ -378,6 +378,8 @@ public final class VmImpl implements Vm {
                 return null;
             });
 
+            threadNativeClass.registerInvokable("start0", (thread, target, args) -> null); // Don't let normal threads actually start
+
             // Throwable
             VmClassImpl throwableClass = bootstrapClassLoader.loadClass("java/lang/Throwable");
 
