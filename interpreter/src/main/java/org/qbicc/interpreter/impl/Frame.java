@@ -1056,9 +1056,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             // truncated integer math
             return box(unboxInt(node.getLeftInput()) * unboxInt(node.getRightInput()), node.getType());
         } else if (isFloat32(inputType)) {
-            return box(unboxFloat(node.getLeftInput()) / unboxFloat(node.getRightInput()), node.getType());
+            return box(unboxFloat(node.getLeftInput()) * unboxFloat(node.getRightInput()), node.getType());
         } else if (isFloat64(inputType)) {
-            return box(unboxDouble(node.getLeftInput()) / unboxDouble(node.getRightInput()), node.getType());
+            return box(unboxDouble(node.getLeftInput()) * unboxDouble(node.getRightInput()), node.getType());
         }
         throw badInputType();
     }
