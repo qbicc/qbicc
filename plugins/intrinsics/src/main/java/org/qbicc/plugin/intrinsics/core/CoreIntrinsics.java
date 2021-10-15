@@ -499,7 +499,7 @@ public final class CoreIntrinsics {
 
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, jltDesc, "start0", voidDesc, start0);
+        intrinsics.registerIntrinsic(jltDesc, "start0", voidDesc, start0);
 
         /* public final native boolean isAlive(); */
         InstanceIntrinsic isAlive = (builder, instance, target, arguments) -> {
