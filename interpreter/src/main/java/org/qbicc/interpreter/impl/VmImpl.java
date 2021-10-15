@@ -436,9 +436,11 @@ public final class VmImpl implements Vm {
             // phase 1
             invokeExact(systemType.getMethod(systemType.findSingleMethodIndex(me -> me.nameEquals("initPhase1"))), null, List.of());
             // phase 2
-            invokeExact(systemType.getMethod(systemType.findSingleMethodIndex(me -> me.nameEquals("initPhase2"))), null, List.of(false, false));
+            // TODO: Not working yet; gets part way through and crashes.
+            // invokeExact(systemType.getMethod(systemType.findSingleMethodIndex(me -> me.nameEquals("initPhase2"))), null, List.of(false, false));
             // phase 3
-            invokeExact(systemType.getMethod(systemType.findSingleMethodIndex(me -> me.nameEquals("initPhase3"))), null, List.of());
+            // TODO: Haven't tried yet...still working on phase2
+            // invokeExact(systemType.getMethod(systemType.findSingleMethodIndex(me -> me.nameEquals("initPhase3"))), null, List.of());
         }
     }
 
