@@ -1,6 +1,7 @@
 package org.qbicc.interpreter.impl;
 
 import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.type.definition.element.FieldElement;
@@ -38,5 +39,10 @@ final class VmThreadImpl extends VmObjectImpl implements VmThread {
         FieldElement thrownField = vm.getCompilationContext().getExceptionField();
         int offset = getVmClass().getLayoutInfo().getMember(thrownField).getOffset();
         getMemory().storeRef(offset, throwable, MemoryAtomicityMode.NONE);
+    }
+
+    void setThreadGroup(final VmObject threadGroup) {
+        int offset = indexOf(clazz.getTypeDefinition().findField("group"));
+        memory.storeRef(offset, threadGroup, MemoryAtomicityMode.UNORDERED);
     }
 }

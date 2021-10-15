@@ -1,7 +1,6 @@
 package org.qbicc.plugin.intrinsics.core;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.nio.ByteOrder;
 import java.util.Collections;
 import java.util.List;
@@ -1762,9 +1761,12 @@ public final class CoreIntrinsics {
 
         ClassTypeDescriptor signalDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Signal");
         ClassTypeDescriptor jls = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
+        ClassTypeDescriptor jlo = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
+        ClassTypeDescriptor classloader = ClassTypeDescriptor.synthesize(classContext, "java/lang/ClassLoader");
 
         MethodDescriptor stringToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(jls));
         MethodDescriptor intLongToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.I, BaseTypeDescriptor.J));
+        MethodDescriptor boolStringObj = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(jls, jlo));
 
         StaticIntrinsic findSignal = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(-1); // TODO: real implementation
         StaticIntrinsic handle = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(0L); // TODO: real implementation
@@ -1772,6 +1774,39 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, signalDesc, "findSignal0", stringToInt, findSignal);
         intrinsics.registerIntrinsic(signalDesc, "handle0", intLongToLong, handle);
 
+        // ClassLoader.trySetObjectField; to avoid problem with non-literal string to objectFieldOffset in a helper method
+        InstanceIntrinsic trySetObjectField = (builder, input, target, arguments) -> {
+            Value string = arguments.get(0);
+            Value newValue = arguments.get(1);
+            LiteralFactory lf = ctxt.getLiteralFactory();
 
+            String fieldName = null;
+            if (string instanceof StringLiteral) {
+                fieldName = ((StringLiteral) string).getValue();
+            } else if (string instanceof ObjectLiteral) {
+                VmObject vmObject = ((ObjectLiteral) string).getValue();
+                if (vmObject instanceof VmString) {
+                    fieldName = ((VmString) vmObject).getContent();
+                }
+            }
+            if (fieldName == null) {
+                ctxt.error(builder.getLocation(), "trySetObjectField string argument must be a literal string");
+                return lf.literalOf(false);
+            }
+            LoadedTypeDefinition ltd = ctxt.getBootstrapClassContext().findDefinedType("java/lang/ClassLoader").load();
+            FieldElement field = ltd.findField(fieldName);
+            if (field == null) {
+                ctxt.error(builder.getLocation(), "No such field \"%s\" on class \"%s\"", fieldName, ltd.getVmClass().getName());
+                return lf.literalOf(false);
+            }
+
+            ValueType expectType = newValue.getType();
+            Value result = builder.cmpAndSwap(builder.instanceFieldOf(builder.referenceHandle(input), field), lf.zeroInitializerLiteralOfType(expectType),
+                newValue, MemoryAtomicityMode.VOLATILE, MemoryAtomicityMode.MONOTONIC, CmpAndSwap.Strength.STRONG);
+            // result is a compound structure; extract the success flag
+            return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, expectType).getMember(1));
+        };
+
+        intrinsics.registerIntrinsic(classloader, "trySetObjectField", boolStringObj, trySetObjectField);
     }
 }
