@@ -45,4 +45,9 @@ final class VmThreadImpl extends VmObjectImpl implements VmThread {
         int offset = indexOf(clazz.getTypeDefinition().findField("group"));
         memory.storeRef(offset, threadGroup, MemoryAtomicityMode.UNORDERED);
     }
+
+    void setPriority(final int priority) {
+        int offset = indexOf(clazz.getTypeDefinition().findField("priority"));
+        memory.store32(offset, priority, MemoryAtomicityMode.UNORDERED);
+    }
 }
