@@ -2,6 +2,8 @@ package org.qbicc.plugin.methodinfo;
 
 import org.qbicc.graph.literal.SymbolLiteral;
 
+import java.util.Objects;
+
 final class MethodInfo {
     private SymbolLiteral fileNameSymbolLiteral;
     private SymbolLiteral classNameSymbolLiteral;
@@ -19,10 +21,10 @@ final class MethodInfo {
         if (this == other) return true;
         if (other == null || getClass() != other.getClass()) return false;
         MethodInfo that = (MethodInfo) other;
-        return fileNameSymbolLiteral == that.fileNameSymbolLiteral
-            && classNameSymbolLiteral == that.classNameSymbolLiteral
-            && methodNameSymbolLiteral == that.methodNameSymbolLiteral
-            && methodDescSymbolLiteral == that.methodDescSymbolLiteral;
+        return Objects.equals(fileNameSymbolLiteral, that.fileNameSymbolLiteral) // fileNameSymbolLiteral can be null, avoid using equals() on it
+            && classNameSymbolLiteral.equals(that.classNameSymbolLiteral)
+            && methodNameSymbolLiteral.equals(that.methodNameSymbolLiteral)
+            && methodDescSymbolLiteral.equals(that.methodDescSymbolLiteral);
     }
 
     SymbolLiteral getFileNameSymbolLiteral() {
