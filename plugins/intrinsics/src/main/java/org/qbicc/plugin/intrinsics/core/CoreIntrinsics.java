@@ -570,6 +570,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(integerDesc, "remainderUnsigned", binaryIntDesc, remainderUnsigned);
         intrinsics.registerIntrinsic(longDesc, "remainderUnsigned", binaryLongDesc, remainderUnsigned);
 
+        /* LLVM backend doesn't understand ror and rol, so avoid generating them
         StaticIntrinsic ror = (builder, target, arguments) ->
             builder.ror(arguments.get(0), arguments.get(1));
 
@@ -581,6 +582,7 @@ public final class CoreIntrinsics {
 
         intrinsics.registerIntrinsic(integerDesc, "rotateLeft", binaryIntDesc, rol);
         intrinsics.registerIntrinsic(longDesc, "rotateLeft", longIntDesc, rol);
+        */
 
         StaticIntrinsic compare = (builder, target, arguments) ->
             builder.cmp(arguments.get(0), arguments.get(1));
