@@ -41,6 +41,5 @@
         <module>verification</module>
         <module>unwind</module>
         <module>serialization</module>
-        <module>stringpool</module>
     </modules>
 </project>
