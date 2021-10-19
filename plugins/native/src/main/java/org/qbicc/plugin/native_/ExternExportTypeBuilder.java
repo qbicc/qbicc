@@ -1,10 +1,13 @@
 package org.qbicc.plugin.native_;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.jboss.logging.Logger;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.driver.Driver;
+import org.qbicc.machine.probe.CProbe;
 import org.qbicc.object.Data;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
@@ -137,13 +140,16 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
             public MethodElement resolveMethod(final int index, final DefinedTypeDefinition enclosing) {
                 NativeInfo nativeInfo = NativeInfo.get(ctxt);
                 MethodElement origMethod = resolver.resolveMethod(index, enclosing);
+                String name = origMethod.getName();
                 // look for annotations that indicate that this method requires special handling
                 for (Annotation annotation : origMethod.getInvisibleAnnotations()) {
                     ClassTypeDescriptor desc = annotation.getDescriptor();
                     if (desc.getPackageName().equals(Native.NATIVE_PKG)) {
                         if (desc.getClassName().equals(Native.ANN_EXTERN)) {
                             AnnotationValue nameVal = annotation.getValue("withName");
-                            String name = nameVal == null ? origMethod.getName() : ((StringAnnotationValue) nameVal).getString();
+                            if (nameVal != null) {
+                                name = ((StringAnnotationValue) nameVal).getString();
+                            }
                             // register as a function
                             addExtern(nativeInfo, origMethod, name);
                             // all done
@@ -151,17 +157,21 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                         } else if (desc.getClassName().equals(Native.ANN_EXPORT)) {
                             // immediately generate the call-in stub
                             AnnotationValue nameVal = annotation.getValue("withName");
-                            String name = nameVal == null ? origMethod.getName() : ((StringAnnotationValue) nameVal).getString();
+                            if (nameVal != null) {
+                                name = ((StringAnnotationValue) nameVal).getString();
+                            }
                             addExport(nativeInfo, origMethod, name);
                             // all done
                             return origMethod;
+                        } else if (desc.getClassName().equals(Native.ANN_MACRO)) {
+                            name = getFunctionNameFromMacro(origMethod);
                         }
                     }
                 }
                 boolean isNative = origMethod.hasAllModifiersOf(ClassFile.ACC_NATIVE);
                 if (isNative && hasInclude) {
                     // treat it as extern with the default name
-                    addExtern(nativeInfo, origMethod, origMethod.getName());
+                    addExtern(nativeInfo, origMethod, name);
                 }
                 return origMethod;
             }
@@ -215,6 +225,26 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                     new ExportedFunctionInfo(function)
                 );
                 ctxt.registerEntryPoint(function);
+            }
+
+            private String getFunctionNameFromMacro(final MethodElement origMethod) {
+                CProbe.Builder builder = CProbe.builder();
+                for (Annotation annotation : origMethod.getEnclosingType().getInvisibleAnnotations()) {
+                    ProbeUtils.processCommonAnnotation(builder, annotation);
+                }
+                builder.probeMacroFunctionName(origMethod.getName(), origMethod.getSourceFileName(), 0);
+                CProbe probe = builder.build();
+                CProbe.Result result;
+                try {
+                    result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), null);
+                    if (result == null) {
+                        return null;
+                    }
+                } catch (IOException e) {
+                    return null;
+                }
+                CProbe.FunctionInfo functionInfo = result.getFunctionInfo(origMethod.getName());
+                return functionInfo.getResolvedName();
             }
         }, index);
     }

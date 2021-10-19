@@ -24,6 +24,7 @@ final class Native {
     static final String ANN_INTERNAL = className(internal.class);
     static final String ANN_LIB = className(lib.class);
     static final String ANN_LIB_LIST = className(lib.List.class);
+    static final String ANN_MACRO = className(macro.class);
     static final String ANN_NAME = className(name.class);
     static final String ANN_SIZE = className(size.class);
     static final String ANN_SIZE_LIST = className(size.List.class);

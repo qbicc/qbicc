@@ -3,6 +3,7 @@ package org.qbicc.machine.file.elf;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.NoSuchElementException;
 
@@ -89,8 +90,18 @@ public class ElfObjectFileProvider implements ObjectFileProvider {
                 }
             }
 
-            public String getSymbolValueAsUtfString(final String name) {
-                throw Assert.unsupported();
+            public String getSymbolValueAsUtfString(final String name, int nbytes) {
+                final ElfSymbolTableEntry symbol = findSymbol(name);
+                final int linkedSection = symbol.getLinkedSectionIndex();
+                final ElfSectionHeaderEntry codeSection = elfHeader.getSectionHeaderTableEntry(linkedSection);
+                if (codeSection.getType() == Elf.Section.Type.Std.NO_BITS) {
+                    // bss
+                    return "";
+                } else {
+                    final byte[] bytes = new byte[nbytes];
+                    elfHeader.getBackingBuffer().getBytes(codeSection.getOffset() + symbol.getValue(), bytes);
+                    return new String(bytes, StandardCharsets.UTF_8);
+                }
             }
 
             public long getSymbolSize(final String name) {
