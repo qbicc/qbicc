@@ -570,6 +570,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(integerDesc, "remainderUnsigned", binaryIntDesc, remainderUnsigned);
         intrinsics.registerIntrinsic(longDesc, "remainderUnsigned", binaryLongDesc, remainderUnsigned);
 
+        /* LLVM backend doesn't understand ror and rol, so avoid generating them
         StaticIntrinsic ror = (builder, target, arguments) ->
             builder.ror(arguments.get(0), arguments.get(1));
 
@@ -581,6 +582,7 @@ public final class CoreIntrinsics {
 
         intrinsics.registerIntrinsic(integerDesc, "rotateLeft", binaryIntDesc, rol);
         intrinsics.registerIntrinsic(longDesc, "rotateLeft", longIntDesc, rol);
+        */
 
         StaticIntrinsic compare = (builder, target, arguments) ->
             builder.cmp(arguments.get(0), arguments.get(1));
@@ -649,12 +651,6 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(Phase.ADD, objDesc, "getClass", getClassDesc, getClassIntrinsic);
-
-        // Object#hashCode TODO redo when object headers are set
-        MethodDescriptor hashCodeDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
-        InstanceIntrinsic hashCodeIntrinsic = (builder, instance, target, arguments)->
-            ctxt.getLiteralFactory().literalOf(0);
-        intrinsics.registerIntrinsic(objDesc, "hashCode", hashCodeDesc, hashCodeIntrinsic);
 
         // TODO: replace this do nothing stub of notifyAll with real implementation
         MethodDescriptor notifyAllDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
@@ -1763,16 +1759,25 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor jls = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor jlo = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor classloader = ClassTypeDescriptor.synthesize(classContext, "java/lang/ClassLoader");
+        ClassTypeDescriptor unixDispatcher = ClassTypeDescriptor.synthesize(classContext, "sun/nio/fs/UnixNativeDispatcher");
 
         MethodDescriptor stringToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(jls));
         MethodDescriptor intLongToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.I, BaseTypeDescriptor.J));
         MethodDescriptor boolStringObj = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(jls, jlo));
+        MethodDescriptor emptyToByteArray = MethodDescriptor.synthesize(classContext, ArrayTypeDescriptor.of(classContext, BaseTypeDescriptor.B), List.of());
+        MethodDescriptor emptyToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
 
         StaticIntrinsic findSignal = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(-1); // TODO: real implementation
         StaticIntrinsic handle = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(0L); // TODO: real implementation
 
         intrinsics.registerIntrinsic(Phase.LOWER, signalDesc, "findSignal0", stringToInt, findSignal);
         intrinsics.registerIntrinsic(signalDesc, "handle0", intLongToLong, handle);
+
+        StaticIntrinsic getcwd = (builder, target, arguments) -> ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getSignedInteger8Type().getPrimitiveArrayObjectType().getReference()); // TODO: real implementation
+        StaticIntrinsic init = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(0); // TODO: real implementation
+
+        intrinsics.registerIntrinsic(Phase.LOWER, unixDispatcher, "getcwd", emptyToByteArray, getcwd);
+        intrinsics.registerIntrinsic(unixDispatcher, "init", emptyToInt, init);
 
         // ClassLoader.trySetObjectField; to avoid problem with non-literal string to objectFieldOffset in a helper method
         InstanceIntrinsic trySetObjectField = (builder, input, target, arguments) -> {
@@ -1806,6 +1811,8 @@ public final class CoreIntrinsics {
             // result is a compound structure; extract the success flag
             return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, expectType).getMember(1));
         };
+
+
 
         intrinsics.registerIntrinsic(classloader, "trySetObjectField", boolStringObj, trySetObjectField);
     }

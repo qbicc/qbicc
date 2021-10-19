@@ -311,6 +311,7 @@ public final class VmImpl implements Vm {
             // Create System ThreadGroup and set the initializing Thread's group to be it
             mainThreadGroup = createMainThreadGroup();
             vmThread.setThreadGroup(mainThreadGroup);
+            vmThread.setPriority(1); // Thread.MIN_PRIORITY -- is this the right value to use for the init thread?
 
             // Register all hooks
             VmClassLoaderImpl bootstrapClassLoader = this.bootstrapClassLoader;
@@ -377,6 +378,8 @@ public final class VmImpl implements Vm {
                 return null;
             });
 
+            threadNativeClass.registerInvokable("start0", (thread, target, args) -> null); // Don't let normal threads actually start
+
             // Throwable
             VmClassImpl throwableClass = bootstrapClassLoader.loadClass("java/lang/Throwable");
 
@@ -418,10 +421,26 @@ public final class VmImpl implements Vm {
             VmClassImpl osEnvClass = bootstrapClassLoader.loadClass("jdk/internal/misc/OSEnvironment");
             osEnvClass.registerInvokable("initialize", (thread, target, args) -> null); // Skip this for build-time init.
 
+            VmClassImpl unixDispatcher = bootstrapClassLoader.loadClass("sun/nio/fs/UnixNativeDispatcher");
+            unixDispatcher.registerInvokable("getcwd", (thread, target, args) -> {
+                byte[] cwd = System.getProperty("user.dir").getBytes();
+                VmByteArrayImpl bytes = manuallyInitialize(byteArrayClass.newInstance(cwd.length));
+                for (int i=0; i<cwd.length; i++) {
+                    bytes.getMemory().store8(bytes.getArrayElementOffset(i), cwd[i], MemoryAtomicityMode.UNORDERED);
+                }
+                return bytes;
+            });
+
             // Now execute system initialization
             LoadedTypeDefinition systemType = systemClass.getTypeDefinition();
             // phase 1
             invokeExact(systemType.getMethod(systemType.findSingleMethodIndex(me -> me.nameEquals("initPhase1"))), null, List.of());
+            // phase 2
+            // TODO: Not working yet; gets part way through and crashes.
+            // invokeExact(systemType.getMethod(systemType.findSingleMethodIndex(me -> me.nameEquals("initPhase2"))), null, List.of(false, false));
+            // phase 3
+            // TODO: Haven't tried yet...still working on phase2
+            // invokeExact(systemType.getMethod(systemType.findSingleMethodIndex(me -> me.nameEquals("initPhase3"))), null, List.of());
         }
     }
 

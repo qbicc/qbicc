@@ -28,6 +28,7 @@ import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.type.ArrayObjectType;
@@ -199,9 +200,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         return super.divide(v1, v2);
     }
 
-    private void throwUnsatisfiedLinkError() {
+    private void throwUnsatisfiedLinkError(String target) {
         MethodElement helper = ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError");
-        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper), List.of()));
+        StringLiteral arg = ctxt.getLiteralFactory().literalOf(target, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getType().getReference());
+        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper), List.of(arg)));
     }
 
     private void throwIncompatibleClassChangeError() {
@@ -301,7 +303,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                 if (! target.hasMethodBodyFactory() && target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
                     null == Intrinsics.get(ctxt).getInstanceIntrinsic(Phase.ANALYZE, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor()) &&
                     null == Intrinsics.get(ctxt).getInstanceIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
-                    throwUnsatisfiedLinkError();
+                    throwUnsatisfiedLinkError(target.getEnclosingType().getInternalName().replace("/", ".")+"."+target.getName());
                     throw Assert.unreachableCode();
                 }
                 if (target.isStatic()) {
@@ -319,7 +321,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                 if (! target.hasMethodBodyFactory() && target.hasAllModifiersOf(ClassFile.ACC_NATIVE) && !target.getEnclosingType().internalPackageAndNameEquals("org/qbicc/runtime", "CNative") &&
                     null == Intrinsics.get(ctxt).getStaticIntrinsic(Phase.ANALYZE, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor()) &&
                     null == Intrinsics.get(ctxt).getStaticIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
-                    throwUnsatisfiedLinkError();
+                    throwUnsatisfiedLinkError(target.getEnclosingType().getInternalName().replace("/", ".")+"."+target.getName());
                     throw Assert.unreachableCode();
                 }
                 if (target.isVirtual()) {

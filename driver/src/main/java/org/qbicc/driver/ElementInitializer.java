@@ -30,11 +30,23 @@ public class ElementInitializer implements Consumer<ExecutableElement> {
                     String className = throwable.getVmClass().getName();
                     String message = throwable.getMessage();
                     CompilationContext ctxt = vm.getCompilationContext();
+                    String warningMessage;
                     if (message != null) {
-                        ctxt.warning("Failed to initialize %s: %s: %s", vmClass.getName(), className, message);
+                        warningMessage = String.format("Failed to initialize %s: %s: %s", vmClass.getName(), className, message);
                     } else {
-                        ctxt.warning("Failed to initialize %s: %s", vmClass.getName(), className);
+                        warningMessage = String.format("Failed to initialize %s: %s", vmClass.getName(), className);
                     }
+                    VmThrowable cause = throwable.getCause();
+                    while (cause != null) {
+                        message = cause.getMessage();
+                        if (message != null) {
+                            warningMessage += String.format(" caused by %s: %s", cause.getVmClass().getName(), message);
+                        } else {
+                            warningMessage += String.format(" caused by %s", cause.getVmClass().getName());
+                        }
+                        cause = cause.getCause();
+                    }
+                    ctxt.warning(warningMessage);
                 }
             }
         }

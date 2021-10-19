@@ -8,5 +8,7 @@ public interface VmThrowable extends VmObject {
 
     String getMessage();
 
+    VmThrowable getCause();
+
     StackTraceElement[] getStackTrace();
 }

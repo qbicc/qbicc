@@ -234,8 +234,8 @@ public final class VMHelpers {
     }
 
     // TODO: mark this with a "NoInline" annotation
-    static void raiseUnsatisfiedLinkError() {
-        throw new UnsatisfiedLinkError(); 
+    static void raiseUnsatisfiedLinkError(String target) {
+        throw new UnsatisfiedLinkError(target);
     }
  
     // TODO: mark with "must be build time initialized" annotation
