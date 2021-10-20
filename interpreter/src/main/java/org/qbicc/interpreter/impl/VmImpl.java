@@ -392,9 +392,16 @@ public final class VmImpl implements Vm {
 
             // Class
             VmClassImpl classClass = bootstrapClassLoader.loadClass("java/lang/Class");
+            classClass.registerInvokable("getModifiers", (thread, target, args) -> ((VmClass)target).getTypeDefinition().getModifiers());
+            classClass.registerInvokable("getSuperclass", (thread, target, args) -> ((VmClass)target).getSuperClass());
             classClass.registerInvokable("isArray", (thread, target, args) -> {
                 VmClassImpl clazz = (VmClassImpl) target;
                 return clazz instanceof VmArrayClass;
+            });
+            classClass.registerInvokable("isAssignableFrom", (thread, target, args) -> {
+                VmClassImpl lhs = (VmClassImpl) target;
+                VmClassImpl rhs = (VmClassImpl)args.get(0);
+                return rhs.getTypeDefinition().isSubtypeOf(lhs.getTypeDefinition());
             });
 
             // Array
