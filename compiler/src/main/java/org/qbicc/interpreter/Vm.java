@@ -38,7 +38,7 @@ public interface Vm {
      * @param daemon {@code true} to make a daemon thread
      * @return the new thread
      */
-    VmThread newThread(String threadName, VmObject threadGroup, boolean daemon);
+    VmThread newThread(String threadName, VmObject threadGroup, boolean daemon, int priority);
 
     /**
      * Perform the given action with the given thread attached to the host thread.  Any previously attached thread is

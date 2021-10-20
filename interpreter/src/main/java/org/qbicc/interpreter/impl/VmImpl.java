@@ -311,7 +311,6 @@ public final class VmImpl implements Vm {
             // Create System ThreadGroup and set the initializing Thread's group to be it
             mainThreadGroup = createMainThreadGroup();
             vmThread.setThreadGroup(mainThreadGroup);
-            vmThread.setPriority(1); // Thread.MIN_PRIORITY -- is this the right value to use for the init thread?
 
             // Register all hooks
             VmClassLoaderImpl bootstrapClassLoader = this.bootstrapClassLoader;
@@ -378,7 +377,9 @@ public final class VmImpl implements Vm {
                 return null;
             });
 
-            threadNativeClass.registerInvokable("start0", (thread, target, args) -> null); // Don't let normal threads actually start
+            // TODO: Most likely what we should do here is accumulate a list of thread objects where we have
+            //       suppressed the call to start and then start them at runtime.
+            threadNativeClass.registerInvokable("start", (thread, target, args) -> null); // Don't let normal threads actually start
 
             // Throwable
             VmClassImpl throwableClass = bootstrapClassLoader.loadClass("java/lang/Throwable");
@@ -391,9 +392,16 @@ public final class VmImpl implements Vm {
 
             // Class
             VmClassImpl classClass = bootstrapClassLoader.loadClass("java/lang/Class");
+            classClass.registerInvokable("getModifiers", (thread, target, args) -> ((VmClass)target).getTypeDefinition().getModifiers());
+            classClass.registerInvokable("getSuperclass", (thread, target, args) -> ((VmClass)target).getSuperClass());
             classClass.registerInvokable("isArray", (thread, target, args) -> {
                 VmClassImpl clazz = (VmClassImpl) target;
                 return clazz instanceof VmArrayClass;
+            });
+            classClass.registerInvokable("isAssignableFrom", (thread, target, args) -> {
+                VmClassImpl lhs = (VmClassImpl) target;
+                VmClassImpl rhs = (VmClassImpl)args.get(0);
+                return rhs.getTypeDefinition().isSubtypeOf(lhs.getTypeDefinition());
             });
 
             // Array
@@ -402,6 +410,19 @@ public final class VmImpl implements Vm {
                 VmClassImpl componentType = (VmClassImpl)args.get(0);
                 int length = (Integer)args.get(1);
                 return manuallyInitialize(componentType.getArrayClass().newInstance(length));
+            });
+
+            VmClassImpl reflectClass = bootstrapClassLoader.loadClass("jdk/internal/reflect/Reflection");
+            reflectClass.registerInvokable("getCallerClass", (thread, target, args) -> {
+                Frame currentFrame = ((VmThreadImpl)thread).currentFrame;
+                Frame enclosing = currentFrame.enclosing;
+                while (enclosing.element.getEnclosingType().getInternalName().equals("java/lang/reflect/Method")) {
+                    enclosing = enclosing.enclosing;
+                }
+                DefinedTypeDefinition def = enclosing.element.getEnclosingType();
+                VmClassLoaderImpl cl = ((VmThreadImpl)thread).vm.getClassLoaderForContext(def.getContext());
+                VmClassImpl clazz = cl.loadClass(def.getInternalName());
+                return clazz;
             });
 
             // Signal
@@ -500,12 +521,13 @@ public final class VmImpl implements Vm {
         invokeVirtual(setPropertyMethod, properties, List.of(intern(key), intern(value)));
     }
 
-    public VmThread newThread(final String threadName, final VmObject threadGroup, final boolean daemon) {
+    public VmThread newThread(final String threadName, final VmObject threadGroup, final boolean daemon, int priority) {
         VmThreadImpl vmThread = new VmThreadImpl(threadClass, this);
         manuallyInitialize(vmThread);
         if (threadGroup != null) {
             vmThread.setThreadGroup(threadGroup);
         }
+        vmThread.setPriority(priority);
         return vmThread;
     }
 
