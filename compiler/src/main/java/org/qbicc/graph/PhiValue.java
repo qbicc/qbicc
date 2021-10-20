@@ -24,7 +24,7 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
     }
 
     public Value getValueForInput(final Terminator input) {
-        return ((AbstractTerminator) Assert.checkNotNullParam("input", input)).getOutboundValue(this);
+        return Assert.checkNotNullParam("input", input).getOutboundValue(this);
     }
 
     public void setValueForTerminator(final CompilationContext ctxt, final Element element, final Terminator input, Value value) {
@@ -41,7 +41,7 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         if (! nullable && value.isNullable()) {
             ctxt.error(element, this, "Cannot set nullable value %s for phi", value);
         }
-        if (! ((AbstractTerminator) input).registerValue(this, value)) {
+        if (! input.registerValue(this, value)) {
             ctxt.error(element, this, "Phi already has a value for block %s", input.getTerminatedBlock());
             return;
         }
@@ -67,7 +67,13 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
      */
     public Set<Value> getPossibleValues() {
         LinkedHashSet<Value> possibleValues = new LinkedHashSet<>();
-        getPossibleValues(possibleValues, new HashSet<>());
+        getPossibleValues(possibleValues, new HashSet<>(), false);
+        return possibleValues;
+    }
+
+    public Set<Value> getPossibleValuesIncludingPhi() {
+        LinkedHashSet<Value> possibleValues = new LinkedHashSet<>();
+        getPossibleValues(possibleValues, new HashSet<>(), true);
         return possibleValues;
     }
 
@@ -80,15 +86,15 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         return false;
     }
 
-    private void getPossibleValues(Set<Value> current, Set<PhiValue> visited) {
+    private void getPossibleValues(Set<Value> current, Set<PhiValue> visited, boolean includePhis) {
         if (visited.add(this)) {
             BasicBlock pinnedBlock = getPinnedBlock();
             Set<BasicBlock> incoming = pinnedBlock.getIncoming();
             for (BasicBlock basicBlock : incoming) {
                 if (basicBlock.isReachable()) {
                     Value value = getValueForInput(basicBlock.getTerminator());
-                    if (value instanceof PhiValue) {
-                        ((PhiValue) value).getPossibleValues(current, visited);
+                    if (!includePhis && value instanceof PhiValue) {
+                        ((PhiValue) value).getPossibleValues(current, visited, false);
                     } else {
                         current.add(value);
                     }

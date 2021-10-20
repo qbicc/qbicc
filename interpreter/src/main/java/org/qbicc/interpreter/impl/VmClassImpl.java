@@ -389,6 +389,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             } else {
                 vm.invokeExact(errorType.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), obj, List.of());
             }
+            thread.setThrown(obj);
             throw new Thrown(obj);
         }
     }

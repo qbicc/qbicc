@@ -6,9 +6,10 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Value;
 import org.qbicc.type.FunctionType;
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
 
 public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
@@ -20,6 +21,8 @@ public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     public BasicBlock throw_(final Value value) {
         ThrowExceptionHelper teh = ThrowExceptionHelper.get(ctxt);
+        FieldElement exceptionField = ctxt.getExceptionField();
+        store(instanceFieldOf(referenceHandle(currentThread()), exceptionField), value, MemoryAtomicityMode.NONE);
 
         // TODO Is this safe? Can the java/lang/Thread object be moved while this pointer is still in use?
         Value ptr = bitCast(addressOf(instanceFieldOf(referenceHandle(currentThread()), teh.getUnwindExceptionField())), teh.getUnwindExceptionField().getType().getPointer());

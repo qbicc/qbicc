@@ -34,21 +34,28 @@ public class LocalThrowHandlingBasicBlockBuilder extends DelegatingBasicBlockBui
         }
         LiteralFactory lf = ctxt.getLiteralFactory();
         // null check
-        BlockLabel npe = new BlockLabel();
         BasicBlockBuilder fb = getFirstBuilder();
-        BasicBlock from = fb.if_(fb.isEq(value, lf.zeroInitializerLiteralOfType(value.getType())), npe, exceptionHandler.getHandler());
-        // dispatch to the exception handler
-        exceptionHandler.enterHandler(from, fb.notNull(value));
-        // throw an NPE to the handler instead
-        fb.begin(npe);
-        ClassContext classContext = ctxt.getBootstrapClassContext();
-        LoadedTypeDefinition npeType = classContext.findDefinedType("java/lang/NullPointerException").load();
-        Value ex = fb.new_(npeType.getClassType());
-        // pre-resolver
-        ValueHandle ctor = fb.constructorOf(ex, npeType.getDescriptor(), MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of()));
-        fb.call(ctor, List.of());
-        BasicBlock from2 = fb.goto_(exceptionHandler.getHandler());
-        exceptionHandler.enterHandler(from2, ex);
-        return from;
+        if (value.isNullable()) {
+            BlockLabel npe = new BlockLabel();
+            BasicBlock from = fb.if_(fb.isEq(value, lf.zeroInitializerLiteralOfType(value.getType())), npe, exceptionHandler.getHandler());
+            // dispatch to the exception handler
+            exceptionHandler.enterHandler(from, null, fb.notNull(value));
+            // throw an NPE to the handler instead
+            fb.begin(npe);
+            ClassContext classContext = ctxt.getBootstrapClassContext();
+            LoadedTypeDefinition npeType = classContext.findDefinedType("java/lang/NullPointerException").load();
+            Value ex = fb.new_(npeType.getClassType());
+            // pre-resolver
+            ValueHandle ctor = fb.constructorOf(ex, npeType.getDescriptor(), MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of()));
+            fb.call(ctor, List.of());
+            BasicBlock from2 = fb.goto_(exceptionHandler.getHandler());
+            exceptionHandler.enterHandler(from2, null, ex);
+            return from;
+        } else {
+            BasicBlock from = fb.goto_(exceptionHandler.getHandler());
+            // dispatch to the exception handler
+            exceptionHandler.enterHandler(from, null, fb.notNull(value));
+            return from;
+        }
     }
 }

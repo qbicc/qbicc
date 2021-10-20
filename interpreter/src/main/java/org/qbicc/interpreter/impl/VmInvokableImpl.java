@@ -16,6 +16,7 @@ import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.Value;
+import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
@@ -33,12 +34,14 @@ import org.qbicc.type.definition.element.LocalVariableElement;
 final class VmInvokableImpl implements VmInvokable {
     private final ExecutableElement element;
     private final Map<BasicBlock, List<Node>> scheduled;
+    private final Schedule schedule;
     private final int memorySize;
 
     VmInvokableImpl(ExecutableElement element) {
         this.element = element;
         int[] sizeHolder = new int[1];
         scheduled = buildScheduled(element, sizeHolder);
+        schedule = element.getMethodBody().getSchedule();
         memorySize = sizeHolder[0];
     }
 
@@ -163,10 +166,16 @@ final class VmInvokableImpl implements VmInvokable {
                 }
                 // register outbound phi values
                 for (PhiValue phiValue : t.getOutboundValues().keySet()) {
-                    Value value = t.getOutboundValue(phiValue);
-                    Object realValue = frame.require(value);
-                    frame.values.put(value, realValue);
-                    frame.values.put(phiValue, realValue);
+                    // only register outbound values that will be used by the target
+                    if (phiValue.getPinnedBlock() == next) {
+                        if (schedule.getBlockForNode(phiValue) != null) {
+                            // reachable value
+                            Value value = t.getOutboundValue(phiValue);
+                            Object realValue = frame.require(value);
+                            frame.values.put(value, realValue);
+                            frame.values.put(phiValue, realValue);
+                        }
+                    }
                 }
                 frame.block = next;
             }

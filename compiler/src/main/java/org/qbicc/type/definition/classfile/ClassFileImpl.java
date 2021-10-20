@@ -1409,6 +1409,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             entryBlockHandle = newLabel;
         }
         gf.finish();
+        methodParser.finish();
         BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
         Schedule schedule = Schedule.forMethod(entryBlock);
         return MethodBody.of(entryBlock, schedule, thisValue, parameters);

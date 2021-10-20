@@ -97,12 +97,6 @@ public interface Schedule {
         Terminator terminator = block.getTerminator();
         if (! scheduledNodes.containsKey(terminator)) {
             scheduleToPinnedBlock(root, blockInfos, scheduledNodes, terminator, block);
-            // schedule all outbound values
-            for (Map.Entry<PhiValue, Value> entry : terminator.getOutboundValues().entrySet()) {
-                if (entry.getKey().getPinnedBlock().isReachable()) {
-                    scheduleEarly(root, blockInfos, scheduledNodes, entry.getValue());
-                }
-            }
             int cnt = terminator.getSuccessorCount();
             for (int i = 0; i < cnt; i ++) {
                 scheduleEarly(root, blockInfos, scheduledNodes, terminator.getSuccessor(i));
@@ -171,6 +165,11 @@ public interface Schedule {
         if (node instanceof PhiValue) {
             // make sure phi entries were scheduled
             PhiValue phiValue = (PhiValue) node;
+            if (phiValue.getPossibleValues().isEmpty()) {
+                CompilationContext ctxt = root.block.getTerminator().getElement().getEnclosingType().getContext().getCompilationContext();
+                ctxt.error(Location.builder().setNode(node).build(), "Found phi with no possible values");
+                return selected;
+            }
             for (BasicBlock terminatedBlock : phiValue.getPinnedBlock().getIncoming()) {
                 // skip unreachable inputs
                 Terminator terminator = terminatedBlock.getTerminator();

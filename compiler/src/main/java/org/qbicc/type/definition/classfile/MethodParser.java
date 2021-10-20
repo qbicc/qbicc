@@ -13,13 +13,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.smallrye.common.constraint.Assert;
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.Action;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.LocalVariable;
+import org.qbicc.graph.Invoke;
 import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.NodeVisitor;
+import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.Ret;
 import org.qbicc.graph.Terminator;
@@ -34,7 +40,6 @@ import org.qbicc.type.BooleanType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
-import org.qbicc.type.PoisonType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
@@ -42,9 +47,7 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -55,7 +58,6 @@ import org.qbicc.type.descriptor.MethodHandleDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
-import io.smallrye.common.constraint.Assert;
 
 final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     final ClassMethodInfo info;
@@ -192,8 +194,6 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         private final int index;
         private final BasicBlockBuilder.ExceptionHandler delegate;
         private final PhiValue phi;
-        private PhiValue[] locals;
-        private boolean entered;
 
         ExceptionHandlerImpl(final int index, final BasicBlockBuilder.ExceptionHandler delegate) {
             this.index = index;
@@ -201,99 +201,127 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             this.phi = gf.phi(throwable.load().getType().getReference(), new BlockLabel(), PhiValue.Flag.NOT_NULL);
         }
 
-        private void clearExceptionField() {
-            Value thr = gf.getFirstBuilder().currentThread();
-            FieldElement exceptionField = ctxt.getCompilationContext().getExceptionField();
-            ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(thr), exceptionField);
-            gf.store(handle, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(handle.getValueType()), MemoryAtomicityMode.NONE);
-        }
-
         public BlockLabel getHandler() {
             return phi.getPinnedBlockLabel();
         }
 
-        public void enterHandler(final BasicBlock from, final Value exceptionValue) {
+        public void enterHandler(final BasicBlock from, final BasicBlock landingPad, final Value exceptionValue) {
+            Value[] savedStack = saveStack();
+            Value[] savedLocals = saveLocals();
+            // the PC of the actual exception handler
             int pc = info.getExTableEntryHandlerPc(index);
-            // generate the `if` branch for the current handler's type
-            BlockLabel label = phi.getPinnedBlockLabel();
-            phi.setValueForBlock(ctxt.getCompilationContext(), gf.getCurrentElement(), from, exceptionValue);
-            if (entered) {
-                // subsequent time - populate local phis
-                for (int i = 0; i < locals.length; i ++) {
-                    PhiValue local = locals[i];
-                    Value ourValue = MethodParser.this.locals[i];
-                    if (local == null) {
-                        if (ourValue != null) {
-                            // populate late!
-                            local = locals[i] = gf.phi(ourValue.getType(), phi.getPinnedBlockLabel());
-                            local.setValueForBlock(ctxt.getCompilationContext(), phi.getElement(), from, ourValue);
-                        }
-                    } else {
-                        if (ourValue != null) {
-                            local.setValueForBlock(ctxt.getCompilationContext(), phi.getElement(), from, ourValue);
-                        }
-                    }
-                }
+            // just like entering a new block except we synthesize this one
+            if (landingPad != null) {
+                // if we have a landing pad, then that's where we've actually entered from
+                saveExitValues(landingPad);
             } else {
-                // first time
-                entered = true;
-                Value[] locals = saveLocals();
-                Value[] stack = saveStack();
-                // first time being entered
-                gf.begin(label);
-                int exTypeIdx = info.getExTableEntryTypeIdx(index);
-                ReferenceType exType;
-                if (exTypeIdx == 0) {
-                    exType = throwable.load().getType().getReference();
-                } else {
-                    ObjectType objType = (ObjectType) getClassFile().getTypeConstant(exTypeIdx, TypeParameterContext.of(gf.getCurrentElement()));
-                    exType = objType.getReference();
-                }
+                // no landing pad means a throw directly transferred control here
+                saveExitValues(from);
+            }
+            clearStack();
+            // lock in the thrown exception value
+            phi.setValueForBlock(ctxt.getCompilationContext(), gf.getCurrentElement(), landingPad != null ? landingPad : from, gf.notNull(exceptionValue));
+            // the phi is the exception value input to our stage of the `if` tree;
+            // its label is the entry to our synthetic block
+            BlockLabel label = phi.getPinnedBlockLabel();
+            if (visited.add(label)) {
+                // not yet entered
+                setUpNewBlock(pc, label);
+                int oldPos = buffer.position();
+                int oldPc = gf.setBytecodeIndex(pc);
+                gf.setLineNumber(info.getLineNumber(pc));
+                // preserve stack and locals so the caller doesn't get mixed up
+                // get the block for the exception handler
                 BlockLabel block = getBlockForIndexIfExists(pc);
                 boolean single = block == null;
                 if (single) {
+                    // the exception handler is only entered once, so there's no EP registered for it
                     block = new BlockLabel();
+                } else {
+                    // configure the stack map items for our block with the same types of locals as the target handler
+                    int epIdx = info.getEntryPointIndex(pc);
+                    if (epIdx < 0) {
+                        throw new IllegalStateException("No entry point for block at bci " + pc);
+                    }
+                    ValueType[] varTypes = varTypesByEntryPoint[epIdx];
+                    for (int i = 0; i < locals.length && i < varTypes.length; i ++) {
+                        if (varTypes[i] != null) {
+                            PhiValue phiValue = gf.phi(varTypes[i], label);
+                            locals[i] = phiValue;
+                            phiValueSlots.put(phiValue, getVarSlot(i));
+                        } else {
+                            locals[i] = null;
+                        }
+                    }
+                    // clear remaining slots
+                    Arrays.fill(locals, varTypes.length, locals.length, null);
                 }
-                PhiValue[] localPhis = new PhiValue[locals.length];
-                this.locals = localPhis;
-                // make a phi for each local var
-                for (int i = 0; i < locals.length; i ++) {
-                    Value local = locals[i];
-                    if (local != null) {
-                        localPhis[i] = gf.phi(local.getType(), phi.getPinnedBlockLabel());
-                        localPhis[i].setValueForBlock(ctxt.getCompilationContext(), phi.getElement(), from, local);
+                clearStack();
+                // get the exception reference type
+                int exTypeIdx = info.getExTableEntryTypeIdx(index);
+                boolean catchAll = exTypeIdx == 0;
+                ReferenceType exType;
+                if (exTypeIdx == 0) {
+                    exType = null;
+                } else {
+                    ObjectType objType = (ObjectType) getClassFile().getTypeConstant(exTypeIdx, TypeParameterContext.of(gf.getCurrentElement()));
+                    if (objType.equals(throwable.load().getType())) {
+                        catchAll = true;
+                        exType = null;
+                    } else {
+                        exType = objType.getReference();
                     }
                 }
-                gf.setBytecodeIndex(pc);
-                gf.setLineNumber(info.getLineNumber(pc));
+                // start up our block
+                clearStack();
+                gf.begin(label);
                 // Safe to pass the upperBound as the classFileType to the instanceOf node here as catch blocks can
                 // only catch subclasses of Throwable as enforced by the verifier
-                BasicBlock innerFrom = gf.if_(gf.instanceOf(phi, exType.getUpperBound(), 0), block, delegate.getHandler());
-                // enter the delegate handler
-                clearStack();
-                restoreLocals(localPhis);
-                delegate.enterHandler(innerFrom, phi);
-                // enter our handler
-                clearStack();
-                restoreLocals(localPhis);
-                int pos = buffer.position();
+                BasicBlock innerFrom;
+                Value outboundExValue;
+                if (catchAll) {
+                    outboundExValue = phi;
+                    innerFrom = gf.goto_(block);
+                    // make sure the phi is correctly registered even though we don't really use a stack here
+                    push1(outboundExValue);
+                    saveExitValues(innerFrom);
+                    pop1();
+                } else {
+                    Value[] ourLocals = saveLocals();
+                    outboundExValue = gf.bitCast(phi, exType);
+                    innerFrom = gf.if_(gf.instanceOf(phi, exType.getUpperBound(), 0), block, delegate.getHandler());
+                    // enter the delegate handler if the exception type didn't match
+                    // make sure the phi is correctly registered even though we don't really use a stack here
+                    push1(outboundExValue);
+                    saveExitValues(innerFrom);
+                    pop1();
+                    delegate.enterHandler(innerFrom, null, phi);
+                    clearStack();
+                    restoreLocals(ourLocals);
+                }
+                // enter our handler if the exception type did match
                 int previousbci = currentbci;
                 buffer.position(pc);
                 if (single) {
                     gf.begin(block);
-                    push1(gf.bitCast(phi, exType));
-                    clearExceptionField();
+                    // the handler expects the thrown exception on the stack
+                    push1(outboundExValue);
+                    // only entered from one place, so there's no need to create another layer of phis
                     processNewBlock();
                 } else {
-                    push1(gf.bitCast(phi, exType));
+                    // the handler expects the thrown exception on the stack
+                    push1(outboundExValue);
+                    // entered from multiple possible places, so formally process the target block
                     processBlock(innerFrom);
                 }
                 // restore everything like nothing happened...
-                buffer.position(pos);
+                buffer.position(oldPos);
+                gf.setBytecodeIndex(oldPc);
+                gf.setLineNumber(info.getLineNumber(oldPc));
                 currentbci = previousbci;
-                restoreLocals(locals);
-                restoreStack(stack);
+                restoreLocals(savedLocals);
             }
+            restoreStack(savedStack);
         }
     }
 
@@ -479,9 +507,92 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         System.arraycopy(locals, 0, this.locals, 0, locals.length);
     }
 
-    Map<BlockLabel, PhiValue[]> entryLocalsArrays = new HashMap<>();
-    Map<BlockLabel, PhiValue[]> entryStacks = new HashMap<>();
-    Map<BlockLabel, Set<BasicBlock>> visitedFrom = new HashMap<>();
+    static final class Slot {
+        private final boolean stack;
+        private final int index;
+
+        Slot(boolean stack, int index) {
+            this.stack = stack;
+            this.index = index;
+        }
+
+        public boolean isStack() {
+            return stack;
+        }
+
+        public int getIndex() {
+            return index;
+        }
+
+        @Override
+        public int hashCode() {
+            return Integer.hashCode(index) * Boolean.hashCode(stack);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof Slot && equals((Slot) obj);
+        }
+
+        public boolean equals(Slot obj) {
+            return obj == this || obj != null && obj.stack == stack && obj.index == index;
+        }
+
+        @Override
+        public String toString() {
+            return (stack ? "stack" : "var") + '[' + index + ']';
+        }
+    }
+
+    final List<Slot> stackSlotCache = new ArrayList<>(4);
+    final List<Slot> varSlotCache = new ArrayList<>(8);
+
+    /**
+     * Each phi value exists only in one logical slot when it is created.  This map records the slot for each
+     * phi value.
+     */
+    final Map<PhiValue, Slot> phiValueSlots = new HashMap<>();
+    /**
+     * The values that are <em>available</em> at the end of each block. Successor blocks may choose
+     * not to consume these values.
+     */
+    final Map<BasicBlock, Map<Slot, Value>> blockExitValues = new HashMap<>();
+    /**
+     * The set of blocks whose bytecode has been processed.
+     */
+    final Set<BlockLabel> visited = new HashSet<>();
+
+    Slot getStackSlot(int idx) {
+        int size = stackSlotCache.size();
+        Slot slot;
+        if (idx >= size) {
+            stackSlotCache.addAll(Collections.nCopies(idx - size + 1, null));
+            slot = null;
+        } else {
+            slot = stackSlotCache.get(idx);
+        }
+        if (slot == null) {
+            slot = new Slot(true, idx);
+            stackSlotCache.set(idx, slot);
+        }
+        return slot;
+    }
+
+    Slot getVarSlot(int idx) {
+        int size = varSlotCache.size();
+        Slot slot;
+        if (idx >= size) {
+            varSlotCache.addAll(Collections.nCopies(idx - size + 1, null));
+            slot = null;
+        } else {
+            slot = varSlotCache.get(idx);
+        }
+        if (slot == null)  {
+            slot = new Slot(false, idx);
+            varSlotCache.set(idx, slot);
+        }
+        return slot;
+    }
 
     /**
      * Process a single block.  The current stack and locals are used as a template for the phi value types within
@@ -490,76 +601,52 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
      * @param from the source (exiting) block
      */
     void processBlock(BasicBlock from) {
+        if (from != null) {
+            // save exit values so we can match them later
+            saveExitValues(from);
+        }
         ByteBuffer buffer = this.buffer;
         // this is the canonical map key handle
         int bci = buffer.position();
         BlockLabel block = getBlockForIndex(bci);
-        gf.setBytecodeIndex(bci);
-        gf.setLineNumber(info.getLineNumber(bci));
-        PhiValue[] entryLocalsArray;
-        PhiValue[] entryStack;
-        CompilationContext cmpCtxt = ctxt.getCompilationContext();
-        ExecutableElement element = gf.getCurrentElement();
-        if (entryStacks.containsKey(block)) {
-            // already registered
-            if (visitedFrom.get(block).add(from)) {
-                entryLocalsArray = entryLocalsArrays.get(block);
-                entryStack = entryStacks.get(block);
-                // complete phis
-                for (int i = 0; i < locals.length; i ++) {
-                    Value val = locals[i];
-                    if (val != null) {
-                        PhiValue phiValue = entryLocalsArray[i];
-                        // some local slots will be empty
-                        if (phiValue != null) {
-                            phiValue.setValueForBlock(cmpCtxt, element, from, val);
-                        }
-                    }
-                }
-                for (int i = 0; i < sp; i ++) {
-                    Value val = stack[i];
-                    if (val != null) {
-                        entryStack[i].setValueForBlock(cmpCtxt, element, from, val);
-                    }
-                }
-            }
-        } else {
+        if (visited.add(block)) {
             // not registered yet; process new block first
-            assert ! block.hasTarget();
-            HashSet<BasicBlock> set = new HashSet<>();
-            set.add(from);
-            visitedFrom.put(block, set);
+            gf.setBytecodeIndex(bci);
+            gf.setLineNumber(info.getLineNumber(bci));
+            setUpNewBlock(bci, block);
             gf.begin(block);
-            entryLocalsArray = new PhiValue[locals.length];
-            entryStack = new PhiValue[sp];
-            int epIdx = info.getEntryPointIndex(bci);
-            if (epIdx < 0) {
-                throw new IllegalStateException("No entry point for block at bci " + bci);
-            }
-            ValueType[] varTypes = varTypesByEntryPoint[epIdx];
-            for (int i = 0; i < locals.length && i < varTypes.length; i ++) {
-                Value val = locals[i];
-                if (varTypes[i] != null && ! (varTypes[i] instanceof PoisonType)) {
-                    PhiValue phiValue = gf.phi(varTypes[i], block);
-                    entryLocalsArray[i] = phiValue;
-                    phiValue.setValueForBlock(cmpCtxt, element, from, val);
-                }
-            }
-            ValueType[] stackTypes = stackTypesByEntryPoint[epIdx];
-            for (int i = 0; i < sp; i ++) {
-                Value val = stack[i];
-                if (stackTypes[i] != null && ! (stackTypes[i] instanceof PoisonType)) {
-                    PhiValue phiValue = gf.phi(stackTypes[i], block);
-                    entryStack[i] = phiValue;
-                    phiValue.setValueForBlock(cmpCtxt, element, from, val);
-                }
-            }
-            entryLocalsArrays.put(block, entryLocalsArray);
-            entryStacks.put(block, entryStack);
-            restoreStack(entryStack);
-            restoreLocals(entryLocalsArray);
             processNewBlock();
         }
+    }
+
+    private final Set<BlockLabel> setUpBlocks = new HashSet<>();
+
+    private void setUpNewBlock(final int bci, final BlockLabel block) {
+        if (!setUpBlocks.add(block)) {
+            throw new IllegalStateException("Set up twice");
+        }
+        PhiValue[] entryStack;
+        PhiValue[] entryLocalsArray;
+        entryLocalsArray = new PhiValue[locals.length];
+        entryStack = new PhiValue[sp];
+        int epIdx = info.getEntryPointIndex(bci);
+        if (epIdx < 0) {
+            throw new IllegalStateException("No entry point for block at bci " + bci);
+        }
+        ValueType[] varTypes = varTypesByEntryPoint[epIdx];
+        for (int i = 0; i < locals.length && i < varTypes.length; i ++) {
+            if (varTypes[i] != null) {
+                phiValueSlots.put(entryLocalsArray[i] = gf.phi(varTypes[i], block), getVarSlot(i));
+            }
+        }
+        ValueType[] stackTypes = stackTypesByEntryPoint[epIdx];
+        for (int i = 0; i < sp; i ++) {
+            if (stackTypes[i] != null) {
+                phiValueSlots.put(entryStack[i] = gf.phi(stackTypes[i], block), getStackSlot(i));
+            }
+        }
+        restoreStack(entryStack);
+        restoreLocals(entryLocalsArray);
     }
 
     void processNewBlock() {
@@ -1596,9 +1683,150 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     return;
                 }
             }
-        } catch (BlockEarlyTermination ignored) {
+        } catch (BlockEarlyTermination bet) {
             // don't process any more
             return;
+        }
+    }
+
+    private void saveExitValues(final BasicBlock ours) {
+        if (blockExitValues.containsKey(ours)) {
+            // already recorded the exit values
+            return;
+        }
+        Map<Slot, Value> exitValues = new HashMap<>();
+        for (int i = 0; i < sp; i++) {
+            Value value = stack[i];
+            if (value != null) {
+                exitValues.put(getStackSlot(i), value);
+            }
+        }
+        for (int i = 0; i < locals.length; i++) {
+            Value value = locals[i];
+            if (value != null) {
+                exitValues.put(getVarSlot(i), value);
+            }
+        }
+        blockExitValues.put(ours, exitValues);
+    }
+
+    void finish() {
+        BasicBlock entryBlock = gf.getFirstBlock();
+        entryBlock.getTerminator().accept(new PhiPopulator(), new PhiPopulationContext(ctxt.getCompilationContext(), phiValueSlots, blockExitValues));
+    }
+
+    static final class PhiPopulationContext {
+        final CompilationContext ctxt;
+        final HashSet<Node> visited = new HashSet<>();
+        final Map<PhiValue, Slot> phiValueSlots;
+        final Map<BasicBlock, Map<Slot, Value>> blockExitValues;
+
+        PhiPopulationContext(CompilationContext ctxt, Map<PhiValue, Slot> phiValueSlots, Map<BasicBlock, Map<Slot, Value>> blockExitValues) {
+            this.ctxt = ctxt;
+            this.phiValueSlots = phiValueSlots;
+            this.blockExitValues = blockExitValues;
+        }
+    }
+
+    static final class PhiPopulator implements NodeVisitor<PhiPopulationContext, Void, Void, Void, Void> {
+        @Override
+        public Void visitUnknown(PhiPopulationContext param, Action node) {
+            visitUnknown(param, (Node) node);
+            return null;
+        }
+
+        @Override
+        public Void visitUnknown(PhiPopulationContext param, Value node) {
+            visitUnknown(param, (Node) node);
+            return null;
+        }
+
+        @Override
+        public Void visitUnknown(PhiPopulationContext param, ValueHandle node) {
+            visitUnknown(param, (Node) node);
+            return null;
+        }
+
+        @Override
+        public Void visitUnknown(PhiPopulationContext param, Terminator node) {
+            if (visitUnknown(param, (Node) node)) {
+                // process reachable successors
+                int cnt = node.getSuccessorCount();
+                for (int i = 0; i < cnt; i ++) {
+                    node.getSuccessor(i).getTerminator().accept(this, param);
+                }
+            }
+            return null;
+        }
+
+        boolean visitUnknown(PhiPopulationContext param, Node node) {
+            if (param.visited.add(node)) {
+                if (node.hasValueHandleDependency()) {
+                    node.getValueHandle().accept(this, param);
+                }
+                int cnt = node.getValueDependencyCount();
+                for (int i = 0; i < cnt; i ++) {
+                    node.getValueDependency(i).accept(this,param);
+                }
+                if (node instanceof OrderedNode) {
+                    Node dependency = ((OrderedNode) node).getDependency();
+                    if (dependency instanceof Action) {
+                        ((Action) dependency).accept(this, param);
+                    } else if (dependency instanceof Value) {
+                        ((Value) dependency).accept(this, param);
+                    } else if (dependency instanceof Terminator) {
+                        ((Terminator) dependency).accept(this, param);
+                    } else if (dependency instanceof ValueHandle) {
+                        ((ValueHandle) dependency).accept(this, param);
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public Void visit(PhiPopulationContext param, Invoke.ReturnValue node) {
+            visitUnknown(param, node.getInvoke());
+            return NodeVisitor.super.visit(param, node);
+        }
+
+        @Override
+        public Void visit(PhiPopulationContext param, PhiValue node) {
+            // phi nodes have no dependencies other than their incoming value
+            if (param.visited.add(node)) {
+                // make sure everything is transitively reachable
+                BasicBlock block = node.getPinnedBlock();
+                Slot slot = param.phiValueSlots.get(node);
+                if (slot == null) {
+                    // this is an already-populated phi
+                    for (BasicBlock incomingBlock : block.getIncoming()) {
+                        if (incomingBlock.isReachable()) {
+                            Value value = incomingBlock.getTerminator().getOutboundValue(node);
+                            value.accept(this, param);
+                        }
+                    }
+                } else {
+                    for (BasicBlock incomingBlock : block.getIncoming()) {
+                        if (incomingBlock.isReachable()) {
+                            Map<Slot, Value> exitValues = param.blockExitValues.get(incomingBlock);
+                            if (exitValues == null) {
+                                param.ctxt.error(node.getElement().getLocation(), "No exit values from reachable block");
+                            } else {
+                                Value value = exitValues.get(slot);
+                                if (value == null) {
+                                    param.ctxt.error(node.getElement().getLocation(), "Missing outbound value on reachable phi");
+                                } else {
+                                    node.setValueForBlock(param.ctxt, node.getElement(), incomingBlock, value);
+                                    Terminator terminator = incomingBlock.getTerminator();
+                                    terminator.getOutboundValue(node).accept(this, param);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
         }
     }
 

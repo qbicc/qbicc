@@ -221,11 +221,7 @@ final class ClassMethodInfo {
             exTable[base + 1] = codeAttr.getShort();
             target = exTable[base + 2] = codeAttr.getShort();
             exTable[base + 3] = codeAttr.getShort();
-            if (enteredOnce.get(target)) {
-                enteredMulti.set(target);
-            } else {
-                enteredOnce.set(target);
-            }
+            enteredMulti.set(target);
         }
         int etCnt = enteredMulti.cardinality();
         short[] entryPoints = new short[etCnt];
