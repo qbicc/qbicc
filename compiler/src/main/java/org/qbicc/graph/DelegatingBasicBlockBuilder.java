@@ -10,7 +10,6 @@ import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
-import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.ConstructorElement;
@@ -107,8 +106,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return delegate;
     }
 
-    public Value checkcast(final Value value, final Value toType, final Value toDimensions, final CheckCast.CastType kind, final ReferenceType type) {
-        return getDelegate().checkcast(value, toType, toDimensions, kind, type);
+    public Value checkcast(final Value value, final Value toType, final Value toDimensions, final CheckCast.CastType kind, final ObjectType expectedType) {
+        return getDelegate().checkcast(value, toType, toDimensions, kind, expectedType);
     }
 
     public Value checkcast(final Value value, final TypeDescriptor desc) {

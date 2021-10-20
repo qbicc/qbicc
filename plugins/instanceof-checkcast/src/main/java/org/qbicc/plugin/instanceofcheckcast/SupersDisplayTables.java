@@ -342,6 +342,10 @@ public class SupersDisplayTables {
     public int getInterfaceByteIndex(LoadedTypeDefinition cls) {
         Assert.assertTrue(cls.isInterface());
         IdAndRange idRange = typeids.get(cls);
+        if (idRange == null) {
+            // breakpoint
+            throw new IllegalStateException();
+        }
         return idRange.implementedInterfaceByteIndex();
     }
 

@@ -17,7 +17,6 @@ import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.plugin.coreclasses.CoreClasses;
-import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
@@ -25,7 +24,6 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceArrayObjectType;
-import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
@@ -157,14 +155,14 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // it may be something we can't really cast.
             return ctxt.getLiteralFactory().undefinedLiteralOfType(castType);
         } else if (castType instanceof ObjectType) {
-            ReferenceType refType = ((ObjectType)castType).getReference();
-            ObjectType toType = refType.getUpperBound();
+            ObjectType originalToType = (ObjectType) castType;
+            ObjectType toType = originalToType;
             int toDimensions = 0;
             if (toType instanceof ReferenceArrayObjectType) {
                 toDimensions = ((ReferenceArrayObjectType) toType).getDimensionCount();
                 toType = ((ReferenceArrayObjectType) toType).getLeafElementType();
             }
-            return checkcast(value, cc.getLiteralFactory().literalOfType(toType), cc.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), toDimensions), CheckCast.CastType.Cast, refType);
+            return checkcast(value, cc.getLiteralFactory().literalOfType(toType), cc.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), toDimensions), CheckCast.CastType.Cast, originalToType);
         } else if (castType instanceof WordType) {
             // A checkcast in the bytecodes, but it is actually a WordType coming from some native magic...just bitcast it.
             WordType toType = (WordType) castType;
