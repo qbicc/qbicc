@@ -377,7 +377,9 @@ public final class VmImpl implements Vm {
                 return null;
             });
 
-            threadNativeClass.registerInvokable("start0", (thread, target, args) -> null); // Don't let normal threads actually start
+            // TODO: Most likely what we should do here is accumulate a list of thread objects where we have
+            //       suppressed the call to start and then start them at runtime.
+            threadNativeClass.registerInvokable("start", (thread, target, args) -> null); // Don't let normal threads actually start
 
             // Throwable
             VmClassImpl throwableClass = bootstrapClassLoader.loadClass("java/lang/Throwable");
