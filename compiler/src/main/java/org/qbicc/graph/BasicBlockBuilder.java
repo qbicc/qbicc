@@ -280,7 +280,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value instanceOf(Value input, TypeDescriptor desc);
 
-    Value checkcast(Value value, Value toType, Value toDimensions, CheckCast.CastType kind, ReferenceType type);
+    Value checkcast(Value value, Value toType, Value toDimensions, CheckCast.CastType kind, ObjectType expectedType);
 
     Value checkcast(Value value, TypeDescriptor desc);
 

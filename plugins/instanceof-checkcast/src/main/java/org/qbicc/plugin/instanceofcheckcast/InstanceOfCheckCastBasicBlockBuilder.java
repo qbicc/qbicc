@@ -44,26 +44,32 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         this.ctxt = ctxt;
     }
 
-    public Value checkcast(Value input, Value toType, Value toDimensions, CheckCast.CastType kind, ReferenceType type) {
+    public Value checkcast(Value input, Value toType, Value toDimensions, CheckCast.CastType kind, ObjectType expectedType) {
         // First, see if we can statically prove the cast must always succeed
+        ReferenceType inputType = (ReferenceType) input.getType();
+        ReferenceType outputType = inputType.narrow(expectedType);
+        if (outputType == null) {
+            // invalid cast; should be impossible at this point
+            throw new IllegalStateException("Invalid cast");
+        }
         if (toType instanceof TypeLiteral && toDimensions instanceof IntegerLiteral) {
             // We know the exact toType at compile time
             ObjectType toTypeOT = (ObjectType) ((TypeLiteral) toType).getValue(); // by construction in MemberResolvingBasicBlockBuilder.checkcast
             int dims = ((IntegerLiteral) toDimensions).intValue();
-            if (isAlwaysAssignable(input.getType(), toTypeOT, dims)) {
-                return bitCast(input, type);
+            if (isAlwaysAssignable(inputType, toTypeOT, dims)) {
+                return bitCast(input, outputType);
             }
-        } else if (kind.equals(CheckCast.CastType.ArrayStore) && isEffectivelyFinal(type.getUpperBound())) {
+        } else if (kind.equals(CheckCast.CastType.ArrayStore) && isEffectivelyFinal(expectedType)) {
             // We do not have toType as a compile-time literal, but since the element type of the array we are
             // storing into is effectivelyFinal we do not need to worry about co-variant array subtyping.
-            if (input.getType() instanceof ReferenceType && ((ReferenceType) input.getType()).instanceOf(type.getUpperBound())) {
-                return bitCast(input, type);
+            if (inputType.instanceOf(expectedType)) {
+                return bitCast(input, outputType);
             }
         }
 
         // Second, null can be trivially cast to any reference type
         if (input instanceof NullLiteral) {
-            return bitCast(input, type);
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(outputType);
         }
 
         // If we get here, we have to generate code for a test of some form.
@@ -72,7 +78,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         final BlockLabel pass = new BlockLabel();
         final BlockLabel fail = new BlockLabel();
         final BlockLabel dynCheck = new BlockLabel();
-        if_(isEq(input, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType())), pass, dynCheck);
+        if_(isEq(input, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(inputType)), pass, dynCheck);
 
         // raise exception on failure.
         try {
@@ -81,6 +87,28 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             getFirstBuilder().callNoReturn(getFirstBuilder().staticMethod(thrower), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
+        }
+
+        // If the expectedType isn't live in the RTAInfo, then we know we can never have a valid
+        // checkcast at runtime. Transform all such checkcasts to CCE and bail out.
+        RTAInfo info = RTAInfo.get(ctxt);
+        if (expectedType instanceof ClassObjectType || expectedType instanceof InterfaceObjectType) {
+            LoadedTypeDefinition vtd = expectedType.getDefinition().load();
+            if (vtd.isInterface()) {
+                if (!info.isReachableInterface(vtd)) {
+                    // reroute dynCheck directly to fail
+                    dynCheck.setTarget(fail);
+                    begin(pass);
+                    return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(outputType);
+                }
+            } else {
+                if (!info.isReachableClass(vtd)) {
+                    // reroute dynCheck directly to fail
+                    dynCheck.setTarget(fail);
+                    begin(pass);
+                    return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(outputType);
+                }
+            }
         }
 
         try {
@@ -93,7 +121,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
                 int dims = ((IntegerLiteral) toDimensions).intValue();
                 inlinedTest = generateTypeTest(input, toTypeOT, dims, pass, fail);
             } else {
-                inlinedTest = generateTypeTest(input, toType, toDimensions, type, pass, fail);
+                inlinedTest = generateTypeTest(input, toType, toDimensions, expectedType, pass, fail);
             }
             if (!inlinedTest) {
                 String helperName;
@@ -110,7 +138,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         }
 
         begin(pass);
-        return bitCast(input, type);
+        return bitCast(input, outputType);
     }
 
     public Value instanceOf(final Value input, final ObjectType expectedType, int expectedDimensions) {
@@ -257,9 +285,9 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
 
     // Used when we don't know the exact type we are testing for at compile time (array store check, Class.cast).
     // However, we may still know enough about the allowable kinds of types to generate an inlined test.
-    private boolean generateTypeTest(Value input, Value toType, Value toDimensions, ReferenceType shape, BlockLabel pass, BlockLabel fail) {
+    private boolean generateTypeTest(Value input, Value toType, Value toDimensions, ObjectType shape, BlockLabel pass, BlockLabel fail) {
         // A Class that isn't java.lang.Object (and therefore excludes Arrays); generate subclass test
-        if (shape.getUpperBound() instanceof ClassObjectType && shape.getUpperBound().hasSuperClass()) {
+        if (shape instanceof ClassObjectType && shape.hasSuperClass()) {
             SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
             // 1. use toType (a TypeId) to load the corresponding maxTypeId
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(getDelegate().getCurrentElement());

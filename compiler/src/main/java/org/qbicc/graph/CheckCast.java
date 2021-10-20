@@ -2,6 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -33,6 +34,10 @@ public final class CheckCast extends AbstractValue implements CastValue, Ordered
      * The kind of exception to throw on cast failure
      */
     private final CastType kind;
+    /**
+     * The expected type.
+     */
+    private final ObjectType expectedType;
 
     public enum CastType {
         ArrayStore, Cast;
@@ -43,13 +48,14 @@ public final class CheckCast extends AbstractValue implements CastValue, Ordered
     }
 
     CheckCast(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final Value input, final Value toType,
-              final Value toDimensions, CastType kind, ReferenceType type) {
+              final Value toDimensions, CastType kind, ObjectType expectedType) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.input = input;
         this.toType = toType;
         this.toDimensions = toDimensions;
-        this.type = type;
+        this.expectedType = expectedType;
+        this.type = ((ReferenceType) input.getType()).narrow(expectedType);
         this.kind = kind;
     }
 
@@ -68,6 +74,15 @@ public final class CheckCast extends AbstractValue implements CastValue, Ordered
 
     public Value getToDimensions() {
         return toDimensions;
+    }
+
+    /**
+     * Get the expected type of the cast.  This type must not be inconsistent with the {@code toType} and {@code toDimensions} values.
+     *
+     * @return the expected type of the cast
+     */
+    public ObjectType getExpectedType() {
+        return expectedType;
     }
 
     public ReferenceType getType() {

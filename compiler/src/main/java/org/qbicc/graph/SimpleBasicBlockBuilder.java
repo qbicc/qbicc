@@ -21,6 +21,7 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
+import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
@@ -364,19 +365,20 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("InstanceOf of unresolved type");
     }
 
-    public Value checkcast(final Value value, final Value toType, final Value toDimensions, final CheckCast.CastType kind, final ReferenceType type) {
+    public Value checkcast(final Value value, final Value toType, final Value toDimensions, final CheckCast.CastType kind, final ObjectType expectedType) {
         ValueType inputType = value.getType();
-        ReferenceType outputType = type;
-        if (inputType instanceof ReferenceType) {
-            outputType = type.meet((ReferenceType) inputType);
-            if (outputType == null) {
-                CompilationContext ctxt = getCurrentElement().getEnclosingType().getContext().getCompilationContext();
-                ctxt.warning(getLocation(), "Invalid narrow from %s to %s compiled to raiseCCE()", inputType, type);
-                MethodElement helper = ctxt.getVMHelperMethod("raiseClassCastException");
-                throw new BlockEarlyTermination(getFirstBuilder().callNoReturn(getFirstBuilder().staticMethod(helper), List.of()));
-            }
+        if (! (inputType instanceof ReferenceType)) {
+            throw new IllegalArgumentException("Only references can be checkcast");
         }
-        return asDependency(new CheckCast(callSite, element, line, bci, requireDependency(), value, toType, toDimensions, kind, outputType));
+        ValueType toTypeTypeRaw = toType.getType();
+        if (! (toTypeTypeRaw instanceof TypeType)) {
+            throw new IllegalArgumentException("Invalid type for toType argument");
+        }
+        ReferenceType outputType = ((ReferenceType) inputType).narrow(expectedType);
+        if (outputType == null) {
+            throw new IllegalStateException(String.format("Invalid cast from %s to %s", inputType, expectedType));
+        }
+        return asDependency(new CheckCast(callSite, element, line, bci, requireDependency(), value, toType, toDimensions, kind, expectedType));
     }
 
     public Value checkcast(final Value value, final TypeDescriptor desc) {

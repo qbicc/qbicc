@@ -84,6 +84,20 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
+    public Value checkcast(Value value, Value toType, Value toDimensions, CheckCast.CastType kind, ObjectType expectedType) {
+        ValueType rawValueType = value.getType();
+        if (rawValueType instanceof ReferenceType) {
+            ReferenceType outputType = ((ReferenceType) rawValueType).narrow(expectedType);
+            if (outputType == null) {
+                // impossible cast
+                ctxt.warning("Narrowing %s to %s will always fail", rawValueType, expectedType);
+                throwClassCastException();
+            }
+        }
+        return super.checkcast(value, toType, toDimensions, kind, expectedType);
+    }
+
+    @Override
     public Value addressOf(ValueHandle handle) {
         check(handle);
         return super.addressOf(handle);
@@ -211,6 +225,11 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         throw new BlockEarlyTermination(callNoReturn(staticMethod(helper), List.of()));
     }
 
+    private void throwClassCastException() {
+        MethodElement helper = ctxt.getVMHelperMethod("raiseClassCastException");
+        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper), List.of()));
+    }
+
     private Value check(ValueHandle handle) {
         return check(handle, null);
     }
@@ -225,9 +244,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                 if (arrayType instanceof ArrayObjectType) {
                     indexOutOfBoundsCheck(arrayHandle, node.getIndex());
                     if (arrayType instanceof ReferenceArrayObjectType && storedValue != null) {
+                        ReferenceArrayObjectType referenceArrayType = (ReferenceArrayObjectType) arrayType;
                         Value toTypeId = load(instanceFieldOf(arrayHandle, CoreClasses.get(ctxt).getRefArrayElementTypeIdField()), MemoryAtomicityMode.UNORDERED);
-                        Value toDimensions = ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), ((ReferenceArrayObjectType) arrayType).getDimensionCount() - 1);
-                        return checkcast(storedValue, toTypeId, toDimensions, CheckCast.CastType.ArrayStore, ((ReferenceArrayObjectType) arrayType).getElementType());
+                        Value toDimensions = ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), referenceArrayType.getDimensionCount() - 1);
+                        return checkcast(storedValue, toTypeId, toDimensions, CheckCast.CastType.ArrayStore, referenceArrayType.getElementObjectType());
                     }
                 }
                 return null;
