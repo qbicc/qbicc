@@ -820,18 +820,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return terminate(requireCurrentBlock(), new Ret(callSite, element, line, bci, blockEntry, dependency, address));
     }
 
-    public BasicBlock classCastException(final Value fromType, final Value toType) {
-        return terminate(requireCurrentBlock(), new ClassCastErrorNode(callSite, element, line, bci, blockEntry, dependency, fromType, toType));
-    }
-
-    public BasicBlock noSuchMethodError(final ObjectType owner, final MethodDescriptor desc, final String name) {
-        return terminate(requireCurrentBlock(), new NoSuchMethodErrorNode(callSite, element, line, bci, blockEntry, dependency, owner, desc, name));
-    }
-
-    public BasicBlock classNotFoundError(final String name) {
-        return terminate(requireCurrentBlock(), new ClassNotFoundErrorNode(callSite, element, line, bci, blockEntry, dependency, name));
-    }
-
     public BlockEntry getBlockEntry() {
         requireCurrentBlock();
         return blockEntry;

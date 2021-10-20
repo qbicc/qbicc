@@ -436,21 +436,6 @@ public interface Node {
                 return param.getBlockBuilder().return_(param.copyValue(node.getReturnValue()));
             }
 
-            public BasicBlock visit(Copier param, ClassCastErrorNode node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().classCastException(param.copyValue(node.getFromType()), param.copyValue(node.getToType()));
-            }
-
-            public BasicBlock visit(Copier param, NoSuchMethodErrorNode node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().noSuchMethodError(node.getOwner(), node.getDescriptor(), node.getName());
-            }
-
-            public BasicBlock visit(Copier param, ClassNotFoundErrorNode node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().classNotFoundError(node.getName());
-            }
-
             public Value visit(final Copier param, final Add node) {
                 return param.getBlockBuilder().add(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }

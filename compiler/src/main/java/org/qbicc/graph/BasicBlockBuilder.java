@@ -553,22 +553,6 @@ public interface BasicBlockBuilder extends Locatable {
     BasicBlock ret(Value address);
 
     /**
-     * Terminate the block with a class cast exception.
-     *
-     * @param fromType the type ID of the value being cast
-     * @param toType the target type ID
-     * @return the terminated block
-     */
-    @Deprecated
-    BasicBlock classCastException(Value fromType, Value toType);
-
-    @Deprecated
-    BasicBlock noSuchMethodError(ObjectType owner, MethodDescriptor desc, String name);
-
-    @Deprecated
-    BasicBlock classNotFoundError(String name);
-
-    /**
      * Get the current block's entry node.
      *
      * @return the current block's entry node

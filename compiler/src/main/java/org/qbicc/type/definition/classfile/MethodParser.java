@@ -1484,8 +1484,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             buffer.get(); // discard 0
                         }
                         if (owner == null) {
-                            gf.classNotFoundError(getClassFile().getMethodrefConstantClassName(methodRef));
-                            return;
+                            throw new InvalidConstantException("Method owner is null");
                         }
                         String name = getNameOfMethodRef(methodRef);
                         if (name == null) {

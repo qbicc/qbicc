@@ -64,18 +64,6 @@ public interface TerminatorVisitor<T, R> {
 
     // Errors
 
-    default R visit(T param, ClassCastErrorNode node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, NoSuchMethodErrorNode node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, ClassNotFoundErrorNode node) {
-        return visitUnknown(param, node);
-    }
-
     interface Delegating<T, R> extends TerminatorVisitor<T, R> {
         TerminatorVisitor<T, R> getDelegateTerminatorVisitor();
 
@@ -139,16 +127,5 @@ public interface TerminatorVisitor<T, R> {
             return getDelegateTerminatorVisitor().visit(param, node);
         }
 
-        default R visit(T param, ClassCastErrorNode node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
-        }
-
-        default R visit(T param, NoSuchMethodErrorNode node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
-        }
-
-        default R visit(T param, ClassNotFoundErrorNode node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
-        }
     }
 }
