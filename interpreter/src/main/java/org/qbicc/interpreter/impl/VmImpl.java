@@ -311,7 +311,6 @@ public final class VmImpl implements Vm {
             // Create System ThreadGroup and set the initializing Thread's group to be it
             mainThreadGroup = createMainThreadGroup();
             vmThread.setThreadGroup(mainThreadGroup);
-            vmThread.setPriority(1); // Thread.MIN_PRIORITY -- is this the right value to use for the init thread?
 
             // Register all hooks
             VmClassLoaderImpl bootstrapClassLoader = this.bootstrapClassLoader;
@@ -500,12 +499,13 @@ public final class VmImpl implements Vm {
         invokeVirtual(setPropertyMethod, properties, List.of(intern(key), intern(value)));
     }
 
-    public VmThread newThread(final String threadName, final VmObject threadGroup, final boolean daemon) {
+    public VmThread newThread(final String threadName, final VmObject threadGroup, final boolean daemon, int priority) {
         VmThreadImpl vmThread = new VmThreadImpl(threadClass, this);
         manuallyInitialize(vmThread);
         if (threadGroup != null) {
             vmThread.setThreadGroup(threadGroup);
         }
+        vmThread.setPriority(priority);
         return vmThread;
     }
 
