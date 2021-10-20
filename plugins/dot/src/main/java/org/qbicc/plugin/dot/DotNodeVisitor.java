@@ -911,6 +911,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         dependencyList.add(name);
         processDependency(param, node.getDependency());
+        addEdge(param, node, node.getInput(), EdgeType.VALUE_DEPENDENCY);
         return name;
     }
 
