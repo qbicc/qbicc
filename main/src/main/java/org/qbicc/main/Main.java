@@ -102,7 +102,6 @@ import org.qbicc.plugin.threadlocal.ThreadLocalBasicBlockBuilder;
 import org.qbicc.plugin.threadlocal.ThreadLocalTypeBuilder;
 import org.qbicc.plugin.trycatch.LocalThrowHandlingBasicBlockBuilder;
 import org.qbicc.plugin.trycatch.SynchronizedMethodBasicBlockBuilder;
-import org.qbicc.plugin.trycatch.ThrowValueBasicBlockBuilder;
 import org.qbicc.plugin.verification.ClassInitializingBasicBlockBuilder;
 import org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder;
 import org.qbicc.plugin.verification.LowerVerificationBasicBlockBuilder;
@@ -358,7 +357,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, BasicInitializationBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ThrowValueBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MethodCallFixupBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);

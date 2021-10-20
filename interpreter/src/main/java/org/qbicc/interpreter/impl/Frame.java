@@ -415,6 +415,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         exType = exDefined.getClassType();
         VmThrowable obj = (VmThrowable) vm.allocateObject(exType);
         vm.invokeExact(exDefined.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), obj, List.of());
+        thread.setThrown(obj);
         return new Thrown(obj);
     }
 
@@ -1858,7 +1859,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public BasicBlock visit(VmThreadImpl thread, Throw node) {
-        throw new Thrown((VmThrowable) require(node.getThrownValue()));
+        VmThrowable throwable = (VmThrowable) require(node.getThrownValue());
+        thread.setThrown(throwable);
+        throw new Thrown(throwable);
     }
 
     @Override
@@ -1929,7 +1932,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 if (result == null) {
                     VmImpl vm = VmImpl.require();
                     VmClassImpl nsme = vm.noSuchMethodErrorClass;
-                    throw new Thrown(vm.manuallyInitialize((VmThrowable) nsme.newInstance()));
+                    VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
+                    VmThrowable throwable = vm.manuallyInitialize((VmThrowable) nsme.newInstance());
+                    thread.setThrown(throwable);
+                    throw new Thrown(throwable);
                 }
                 return result;
             } else {
@@ -1947,7 +1953,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 if (result == null) {
                     VmImpl vm = VmImpl.require();
                     VmClassImpl nsme = vm.noSuchMethodErrorClass;
-                    throw new Thrown(vm.manuallyInitialize((VmThrowable) nsme.newInstance()));
+                    VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
+                    VmThrowable throwable = vm.manuallyInitialize((VmThrowable) nsme.newInstance());
+                    thread.setThrown(throwable);
+                    throw new Thrown(throwable);
                 }
                 return result;
             } else {

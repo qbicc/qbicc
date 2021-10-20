@@ -14,6 +14,7 @@ import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
+import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -72,7 +73,10 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
             return loadClass(name);
         } catch (Thrown thrown) {
             VmImpl vm = VmImpl.require();
-            throw new Thrown(vm.noClassDefFoundErrorClass.newInstance("Class definition not found", thrown.getThrowable()));
+            VmThrowable throwable = vm.noClassDefFoundErrorClass.newInstance("Class definition not found", thrown.getThrowable());
+            VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
+            thread.setThrown(throwable);
+            throw new Thrown(throwable);
         }
     }
 
@@ -92,7 +96,10 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         LoadedTypeDefinition loaded = defined.load();
         VmClassImpl vmClass = createVmClass(protectionDomain, vm, loaded);
         if (this.defined.putIfAbsent(internalName, vmClass) != null) {
-            throw new Thrown(vm.noClassDefFoundErrorClass.newInstance("Class already defined"));
+            VmThrowable throwable = vm.noClassDefFoundErrorClass.newInstance("Class already defined");
+            VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
+            thread.setThrown(throwable);
+            throw new Thrown(throwable);
         }
         return vmClass;
     }
@@ -132,7 +139,10 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
     }
 
     private Thrown duplicateClass(final VmImpl vm) {
-        return new Thrown(vm.linkageErrorClass.newInstance("Attempted duplicate class definition"));
+        VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
+        VmThrowable throwable = vm.linkageErrorClass.newInstance("Attempted duplicate class definition");
+        thread.setThrown(throwable);
+        return new Thrown(throwable);
     }
 
     VmClassImpl loadNewClass(VmThreadImpl thread, VmString intName) {
@@ -146,12 +156,16 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
             // skip JVM call
             DefinedTypeDefinition definedType = classContext.findDefinedType(intName.getContent());
             if (definedType == null) {
-                throw new Thrown(thread.getVM().noClassDefFoundErrorClass.newInstance("Class not found: " + intName.getContent()));
+                VmThrowable throwable = thread.getVM().noClassDefFoundErrorClass.newInstance("Class not found: " + intName.getContent());
+                thread.setThrown(throwable);
+                throw new Thrown(throwable);
             }
             try {
                 return (VmClassImpl) definedType.load().getVmClass();
             } catch (Exception e) {
-                throw new Thrown(thread.getVM().noClassDefFoundErrorClass.newInstance("Class load failed: " + intName.getContent()));
+                VmThrowable throwable = thread.getVM().noClassDefFoundErrorClass.newInstance("Class load failed: " + intName.getContent());
+                thread.setThrown(throwable);
+                throw new Thrown(throwable);
             }
         }
         return (VmClassImpl) classLoaderClass.getOrCompile(clDef.getMethod(clDef.findMethodIndex("loadClass", loadClassDesc))).invoke(thread, this, List.of(intName));
