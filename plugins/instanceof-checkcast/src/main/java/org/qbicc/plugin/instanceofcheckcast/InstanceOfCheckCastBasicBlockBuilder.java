@@ -51,13 +51,13 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             ObjectType toTypeOT = (ObjectType) ((TypeLiteral) toType).getValue(); // by construction in MemberResolvingBasicBlockBuilder.checkcast
             int dims = ((IntegerLiteral) toDimensions).intValue();
             if (isAlwaysAssignable(input.getType(), toTypeOT, dims)) {
-                return input;
+                return bitCast(input, type);
             }
         } else if (kind.equals(CheckCast.CastType.ArrayStore) && isEffectivelyFinal(type.getUpperBound())) {
             // We do not have toType as a compile-time literal, but since the element type of the array we are
             // storing into is effectivelyFinal we do not need to worry about co-variant array subtyping.
             if (input.getType() instanceof ReferenceType && ((ReferenceType) input.getType()).instanceOf(type.getUpperBound())) {
-                return input;
+                return bitCast(input, type);
             }
         }
 
