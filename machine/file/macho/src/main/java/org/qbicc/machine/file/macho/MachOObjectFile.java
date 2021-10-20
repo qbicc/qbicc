@@ -181,8 +181,24 @@ public final class MachOObjectFile implements ObjectFile {
         }
     }
 
-    public String getSymbolValueAsUtfString(final String name) {
-        throw Assert.unsupported();
+    public String getSymbolValueAsUtfString(final String name, final int nbytes) {
+        final NList symbol = requireSymbol(name);
+        final long value = symbol.value;
+        if (symbol.type == MachO.NList.Type.BSS) {
+            // implicitly zero
+            return "";
+        } else if (symbol.type == MachO.NList.Type.SECT) {
+            // offset into data
+            final Section section = sections.get(symbol.section - 1);
+            if (section.name.equals("__common")) {
+                return "";
+            }
+            final byte[] array = new byte[nbytes];
+            buffer.getBytes(section.fileOffset + symbol.value, array);
+            return new String(array, StandardCharsets.UTF_8);
+        } else {
+            throw new IllegalArgumentException("Unexpected symbol type " + symbol.type);
+        }
     }
 
     public long getSymbolSize(final String name) {

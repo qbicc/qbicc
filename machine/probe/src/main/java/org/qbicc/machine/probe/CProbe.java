@@ -14,6 +14,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.qbicc.context.DiagnosticContext;
 import org.qbicc.context.Location;
@@ -45,14 +47,14 @@ public final class CProbe {
     private final List<Type> types;
     private final List<String> constants;
     private final Map<String, Type> constantTypes;
-    private final List<String> functions;
+    private final List<String> functionNames;
 
     CProbe(final Builder builder) {
         this.items = List.copyOf(builder.items);
         this.types = List.copyOf(builder.types);
         this.constants = List.copyOf(builder.constants);
         this.constantTypes = Map.copyOf(builder.constantTypes);
-        this.functions = List.copyOf(builder.functions);
+        this.functionNames = List.copyOf(builder.functionNames);
     }
 
     public static Builder builder() {
@@ -112,12 +114,13 @@ public final class CProbe {
                     boolean bool = objectFile.getSymbolValueAsByte("cp_is_bool" + i) != 0;
                     constantInfos.put(name, new ConstantInfo(defined, objectFile.getSymbolAsBytes("cp_value" + i, size), name, byteOrder, signed, unsigned, floating, bool));
                 }
-                cnt = functions.size();
+                cnt = functionNames.size();
                 final Map<String, FunctionInfo> functionInfos = new HashMap<>(cnt);
                 for (int i = 0; i < cnt; i ++) {
-                    String name = functions.get(i);
-                    String fnName = objectFile.getRelocationSymbolForSymbolValue("fn_address" + i);
-                    functionInfos.put(name, new FunctionInfo(fnName));
+                    String name = functionNames.get(i);
+                    int size = (int) objectFile.getSymbolValueAsLong("fn_name_size" + i) - 1; // -1 to exclude the '\0' character
+                    String stringValue = objectFile.getSymbolValueAsUtfString("fn_name" + i, size);
+                    functionInfos.put(name, new FunctionInfo(stringValue));
                 }
                 cnt = types.size();
                 final Map<Type, Type.Info> typeInfos = new HashMap<>(cnt);
@@ -153,7 +156,7 @@ public final class CProbe {
         private final List<Type> types = new ArrayList<>();
         private final List<String> constants = new ArrayList<>();
         private final Map<String, Type> constantTypes = new HashMap<>();
-        private final List<String> functions = new ArrayList<>();
+        private final List<String> functionNames = new ArrayList<>();
 
         Builder() {
             // XXX - needed for offsetof; maybe use __builtin_offsetof instead? custom macro?
@@ -297,14 +300,21 @@ public final class CProbe {
             return this;
         }
 
-        public Builder probeFunction(String name, String sourceFile, int line) {
+        public Builder probeMacroFunctionName(String name, String sourceFile, int line) {
             Assert.checkNotNullParam("name", name);
-            int idx = functions.size();
-            ValueStep symbol = identifier(name);
-            // we don't really care if it's a macro; let it expand
+            int idx = functionNames.size();
+            add(macro("QBICC_PASTE1", List.of("x"), "#x"));
+            add(macro("QBICC_PASTE2", List.of("x"), "QBICC_PASTE1(x)"));
+            Identifier fnName = new Identifier("fn_name" + idx);
             line(line, sourceFile);
-            add(decl(ptrTo(NamedType.VOID), "fn_address", idx, symbol));
-            functions.add(name);
+            // work around to create array types - create a typedef
+            add(typedef(NamedType.CHAR, "char_array[]"));
+            NamedType charArray = new NamedType("char_array");
+            line(line, sourceFile);
+            add(decl(charArray, "fn_name", idx, call("QBICC_PASTE2", call(name, null))));
+            line(line, sourceFile);
+            add(decl(NamedType.UNSIGNED_LONG, "fn_name_size", idx, sizeof(fnName)));
+            functionNames.add(name);
             return this;
         }
 
@@ -350,6 +360,10 @@ public final class CProbe {
 
         // atoms
 
+        Step typedef(TypeStep type, String alias) {
+            return new Typedef(type, alias);
+        }
+
         Step decl(TypeStep type, String name, int idx, ValueStep value) {
             return new Decl(type, name, idx, value);
         }
@@ -358,12 +372,20 @@ public final class CProbe {
             return new Decl(type, name, -1, value);
         }
 
+        Step macro(String key, List<String> arguments, String value) {
+            return new Define(key, arguments, value);
+        };
+
         <T extends Step> ListOf<T> listOf(List<T> items) {
             return new ListOf<>(items);
         }
 
         TypeStep ptrTo(TypeStep type) {
             return new PtrTo(type);
+        }
+
+        TypeStep arrayOf(TypeStep type) {
+            return new ArrayOf(type);
         }
 
         ValueStep addrOf(ValueStep value) {
@@ -847,7 +869,13 @@ public final class CProbe {
         }
 
         public String getResolvedName() {
-            return resolvedName;
+            // check if the obtained value matches the expected pattern of function name
+            Pattern namePattern = Pattern.compile("([a-zA-Z_][a-zA-Z_0-9]*)[(][)]");
+            Matcher matcher = namePattern.matcher(resolvedName);
+            if (!matcher.matches()) {
+                throw new IllegalArgumentException("Unexpected function name pattern after macro expansion");
+            }
+            return matcher.group(1);
         }
     }
 
@@ -894,15 +922,31 @@ public final class CProbe {
 
     static final class Define extends PreProc {
         private final String key;
+        private final List<String> arguments;
         private final String value;
 
         Define(final String key, final String value) {
+            this(key, List.of(), value);
+        }
+
+        Define(final String key, final List<String> arguments, final String value) {
             this.key = key;
+            this.arguments = arguments;
             this.value = value;
         }
 
         StringBuilder appendTo(final StringBuilder b) {
             b.append('#').append("define").append(' ').append(key);
+            Iterator iterator = arguments.iterator();
+            if (iterator.hasNext()) {
+                b.append('(');
+                b.append(iterator.next());
+                while (iterator.hasNext()) {
+                    b.append(',');
+                    b.append(iterator.next());
+                }
+                b.append(')');
+            }
             if (value != null && ! value.isEmpty()) {
                 b.append(' ').append(value);
             }
@@ -1084,6 +1128,18 @@ public final class CProbe {
         }
     }
 
+    static final class ArrayOf extends TypeStep {
+        private final TypeStep type;
+
+        ArrayOf(final TypeStep type) {
+            this.type = type;
+        }
+
+        StringBuilder appendTo(final StringBuilder b) {
+            return type.appendTo(b).append(' ').append('[').append(']');
+        }
+    }
+
     static abstract class ValueStep extends Step {}
 
     static final class Number extends ValueStep {
@@ -1169,7 +1225,11 @@ public final class CProbe {
         }
 
         StringBuilder appendTo(final StringBuilder b) {
-            return value.appendTo(b.append(name).append('(')).append(')');
+            if (value == null) {
+                return b.append(name).append('(').append(')');
+            } else {
+                return value.appendTo(b.append(name).append('(')).append(')');
+            }
         }
     }
 
@@ -1280,6 +1340,21 @@ public final class CProbe {
         }
     }
 
+    static final class Typedef extends Step {
+        private final TypeStep type;
+        private final String alias;
+
+        public Typedef(TypeStep type, String alias) {
+            this.type = type;
+            this.alias = alias;
+        }
+
+        @Override
+        StringBuilder appendTo(StringBuilder b) {
+            return nl(type.appendTo(b.append("typedef").append(' ')).append(' ').append(alias).append(';'));
+        }
+    }
+
     static final class Decl extends Step {
         private final TypeStep type;
         private final String name;
@@ -1297,6 +1372,10 @@ public final class CProbe {
             type.appendTo(b).append(' ').append(name);
             if (index >= 0) {
                 b.append(index);
+            }
+            // this is ugly but would work for now
+            if (type instanceof ArrayOf) {
+                b.append("[]");
             }
             return nl(value.appendTo(b.append(' ').append('=').append(' ')).append(';'));
         }

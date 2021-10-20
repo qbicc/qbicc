@@ -1071,6 +1071,11 @@ public final class CNative {
         }
     }
 
+    @Target({ ElementType.METHOD })
+    @Retention(RetentionPolicy.CLASS)
+    public @interface macro {
+    }
+
     @Target({ ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
     @Retention(RetentionPolicy.CLASS)
     @Documented

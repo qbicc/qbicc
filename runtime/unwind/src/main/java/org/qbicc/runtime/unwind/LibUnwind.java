@@ -11,13 +11,21 @@ import static org.qbicc.runtime.CNative.*;
 public final class LibUnwind {
     private LibUnwind() {}
 
+    @macro
     public static native c_int unw_getcontext(unw_context_t_ptr context_ptr);
+    @macro
     public static native c_int unw_init_local(unw_cursor_t_ptr cursor, unw_context_t_ptr context_ptr);
+    @macro
     public static native c_int unw_step(unw_cursor_t_ptr cursor);
+    @macro
     public static native c_int unw_get_reg(unw_cursor_t_ptr cursor, unw_regnum_t reg, unw_word_t_ptr output);
+    @macro
     public static native c_int unw_set_reg(unw_cursor_t_ptr cursor, unw_regnum_t reg, unw_word_t value);
+    @macro
     public static native c_int unw_resume(unw_cursor_t_ptr cursor);
+    @macro
     public static native c_int unw_get_proc_info(unw_cursor_t_ptr cursor, unw_proc_info_t_ptr info);
+    @macro
     public static native c_int unw_is_signal_frame(unw_cursor_t_ptr cursor);
 
     public static final class unw_context_t extends object {}
