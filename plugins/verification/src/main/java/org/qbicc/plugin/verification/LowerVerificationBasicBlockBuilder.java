@@ -14,7 +14,6 @@ import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ObjectType;
-import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  * A block builder that forbids lowering of high-level (first phase) nodes in order to keep the back end(s) as simple
@@ -30,16 +29,6 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
 
     public BasicBlock throw_(final Value value) {
         invalidNode("throw");
-        return return_();
-    }
-
-    public BasicBlock noSuchMethodError(final ObjectType owner, final MethodDescriptor desc, final String name) {
-        invalidNode("noSuchMethodError");
-        return return_();
-    }
-
-    public BasicBlock classNotFoundError(final String name) {
-        invalidNode("classNotFoundError");
         return return_();
     }
 

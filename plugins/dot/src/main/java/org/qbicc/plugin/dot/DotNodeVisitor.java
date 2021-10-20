@@ -25,9 +25,7 @@ import org.qbicc.graph.Call;
 import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.CastValue;
-import org.qbicc.graph.ClassCastErrorNode;
 import org.qbicc.graph.ClassInitCheck;
-import org.qbicc.graph.ClassNotFoundErrorNode;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Clone;
 import org.qbicc.graph.Cmp;
@@ -94,7 +92,6 @@ import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.Neg;
 import org.qbicc.graph.New;
 import org.qbicc.graph.NewArray;
-import org.qbicc.graph.NoSuchMethodErrorNode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NonCommutativeBinaryValue;
@@ -739,19 +736,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return name;
     }
 
-    public String visit(final Appendable param, final ClassCastErrorNode node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "style", "diagonals, filled");
-        attr(param, "label", "class cast exception");
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
-        return name;
-    }
-
     public String visit(Appendable param, ClassInitCheck node) {
         String name = register(node);
         appendTo(param, name);
@@ -776,32 +760,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         dependencyList.add(name);
         addEdge(param, node, node.getAddress(), EdgeType.VALUE_DEPENDENCY);
-        processDependency(param, node.getDependency());
-        return name;
-    }
-
-    public String visit(final Appendable param, final NoSuchMethodErrorNode node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "style", "diagonals, filled");
-        attr(param, "label", "no such method exception");
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
-        return name;
-    }
-
-    public String visit(final Appendable param, final ClassNotFoundErrorNode node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "style", "diagonals, filled");
-        attr(param, "label", "class not found exception");
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
         processDependency(param, node.getDependency());
         return name;
     }
