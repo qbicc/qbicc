@@ -614,10 +614,11 @@ public interface BasicBlockBuilder extends Locatable {
          * block, thus the implementation of this method is allowed to generate instructions but any generated
          * block must be terminated before the method returns.
          *
-         * @param from the source block (must not be {@code null})
+         * @param from the source block of the {@code throw} or {@code invoke} (must not be {@code null})
+         * @param landingPad the landing pad block, or {@code null} if the value was thrown directly
          * @param exceptionValue the exception value to register (must not be {@code null})
          */
-        void enterHandler(BasicBlock from, Value exceptionValue);
+        void enterHandler(BasicBlock from, BasicBlock landingPad, Value exceptionValue);
     }
 
     static BasicBlockBuilder simpleBuilder(final TypeSystem typeSystem, final ExecutableElement element) {

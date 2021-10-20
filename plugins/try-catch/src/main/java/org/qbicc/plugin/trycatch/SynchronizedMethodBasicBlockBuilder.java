@@ -70,7 +70,7 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
             return phi.getPinnedBlockLabel();
         }
 
-        public void enterHandler(final BasicBlock from, final Value exceptionValue) {
+        public void enterHandler(final BasicBlock from, BasicBlock landingPad, final Value exceptionValue) {
             phi.setValueForBlock(ctxt, getCurrentElement(), from, exceptionValue);
             BlockLabel label = phi.getPinnedBlockLabel();
             if (! label.hasTarget()) {
@@ -80,7 +80,7 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
                 monitorExit(monitor);
                 // hopefully the delegate simply rethrows
                 BasicBlock ourFrom = goto_(delegate.getHandler());
-                delegate.enterHandler(ourFrom, phi);
+                delegate.enterHandler(ourFrom, landingPad, phi);
             }
         }
     }

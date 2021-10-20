@@ -11,6 +11,7 @@ import java.util.Set;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.literal.BlockLiteral;
+import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
@@ -667,23 +668,32 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     private Value promoteToInvoke(final ValueHandle target, final List<Value> arguments, final ExceptionHandler exceptionHandler) {
         BlockLabel resume = new BlockLabel();
         BlockLabel setupHandler = new BlockLabel();
+        BlockLabel currentBlock = requireCurrentBlock();
         Value result = invoke(target, arguments, setupHandler, resume);
+        BasicBlock from;
+        if (result instanceof Invoke.ReturnValue) {
+            from = ((Invoke.ReturnValue) result).getInvoke().getTerminatedBlock();
+        } else {
+            // invoke was rewritten or transformed
+            from = BlockLabel.getTargetOf(currentBlock);
+        }
         // this is the entry point for the stack unwinder
-        setUpHandler(exceptionHandler, setupHandler);
+        setUpHandler(exceptionHandler, setupHandler, from);
         begin(resume);
         return result;
     }
 
-    private void setUpHandler(final ExceptionHandler exceptionHandler, final BlockLabel setupHandler) {
+    private void setUpHandler(final ExceptionHandler exceptionHandler, final BlockLabel setupHandler, BasicBlock from) {
         begin(setupHandler);
         ClassContext classContext = element.getEnclosingType().getContext();
         CompilationContext ctxt = classContext.getCompilationContext();
         Value thr = getFirstBuilder().currentThread();
         FieldElement exceptionField = ctxt.getExceptionField();
-        ValueHandle handle = instanceFieldOf(referenceHandle(thr), exceptionField);
-        Value exceptionValue = notNull(load(handle, MemoryAtomicityMode.NONE));
+        ValueHandle handle = instanceFieldOf(referenceHandle(getFirstBuilder().notNull(thr)), exceptionField);
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        Value exceptionValue = notNull(getAndSet(handle, lf.zeroInitializerLiteralOfType(handle.getValueType()), MemoryAtomicityMode.NONE));
         BasicBlock sourceBlock = goto_(exceptionHandler.getHandler());
-        exceptionHandler.enterHandler(sourceBlock, exceptionValue);
+        exceptionHandler.enterHandler(from, sourceBlock, exceptionValue);
     }
 
     public BlockLabel getHandler() {
@@ -696,7 +706,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return exceptionPhi.getPinnedBlockLabel();
     }
 
-    public void enterHandler(final BasicBlock from, final Value exceptionValue) {
+    public void enterHandler(final BasicBlock from, BasicBlock landingPad, final Value exceptionValue) {
         exceptionPhi.setValueForBlock(element.getEnclosingType().getContext().getCompilationContext(), element, from, exceptionValue);
         BlockLabel handler = getHandler();
         if (! handler.hasTarget()) {
@@ -740,7 +750,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             BlockLabel setupHandler = new BlockLabel();
             BasicBlock result = invokeNoReturn(target, arguments, setupHandler);
             // this is the entry point for the stack unwinder
-            setUpHandler(exceptionHandler, setupHandler);
+            setUpHandler(exceptionHandler, setupHandler, result);
             return result;
         }
         return terminate(requireCurrentBlock(), new CallNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments));
@@ -758,7 +768,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             BlockLabel setupHandler = new BlockLabel();
             BasicBlock result = tailInvoke(target, arguments, setupHandler);
             // this is the entry point for the stack unwinder
-            setUpHandler(exceptionHandler, setupHandler);
+            setUpHandler(exceptionHandler, setupHandler, result);
             return result;
         }
         return terminate(requireCurrentBlock(), new TailCall(callSite, element, line, bci, blockEntry, dependency, target, arguments));
