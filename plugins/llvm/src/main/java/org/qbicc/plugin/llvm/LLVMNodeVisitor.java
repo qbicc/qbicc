@@ -40,6 +40,10 @@ import org.qbicc.graph.Fence;
 import org.qbicc.graph.FunctionDeclarationHandle;
 import org.qbicc.graph.FunctionHandle;
 import org.qbicc.graph.GetAndAdd;
+import org.qbicc.graph.GetAndBitwiseAnd;
+import org.qbicc.graph.GetAndBitwiseOr;
+import org.qbicc.graph.GetAndBitwiseXor;
+import org.qbicc.graph.GetAndSet;
 import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
@@ -572,6 +576,46 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         ValueHandle valueHandle = node.getValueHandle();
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).add();
+        insn.align(valueHandle.getValueType().getAlign());
+        insn.ordering(getOC(node.getAtomicityMode()));
+        return insn.asLocal();
+    }
+
+    public LLValue visit(Void param, GetAndBitwiseAnd node) {
+        map(node.getDependency());
+        ValueHandle valueHandle = node.getValueHandle();
+        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
+        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).and();
+        insn.align(valueHandle.getValueType().getAlign());
+        insn.ordering(getOC(node.getAtomicityMode()));
+        return insn.asLocal();
+    }
+
+    public LLValue visit(Void param, GetAndBitwiseOr node) {
+        map(node.getDependency());
+        ValueHandle valueHandle = node.getValueHandle();
+        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
+        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).or();
+        insn.align(valueHandle.getValueType().getAlign());
+        insn.ordering(getOC(node.getAtomicityMode()));
+        return insn.asLocal();
+    }
+
+    public LLValue visit(Void param, GetAndBitwiseXor node) {
+        map(node.getDependency());
+        ValueHandle valueHandle = node.getValueHandle();
+        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
+        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).xor();
+        insn.align(valueHandle.getValueType().getAlign());
+        insn.ordering(getOC(node.getAtomicityMode()));
+        return insn.asLocal();
+    }
+
+    public LLValue visit(Void param, GetAndSet node) {
+        map(node.getDependency());
+        ValueHandle valueHandle = node.getValueHandle();
+        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
+        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).xchg();
         insn.align(valueHandle.getValueType().getAlign());
         insn.ordering(getOC(node.getAtomicityMode()));
         return insn.asLocal();
