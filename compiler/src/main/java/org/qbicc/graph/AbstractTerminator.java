@@ -24,7 +24,8 @@ abstract class AbstractTerminator extends AbstractNode implements Terminator {
     public boolean registerValue(PhiValue phi, Value val) {
         Map<PhiValue, Value> outboundValues = this.outboundValues;
         if (outboundValues.containsKey(phi)) {
-            return false;
+            // an exactly duplicate registration is OK
+            return outboundValues.get(phi) == val;
         }
         if (outboundValues.size() == 0) {
             this.outboundValues = Map.of(phi, val);
