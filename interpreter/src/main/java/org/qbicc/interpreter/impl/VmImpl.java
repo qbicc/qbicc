@@ -403,6 +403,19 @@ public final class VmImpl implements Vm {
                 return manuallyInitialize(componentType.getArrayClass().newInstance(length));
             });
 
+            VmClassImpl reflectClass = bootstrapClassLoader.loadClass("jdk/internal/reflect/Reflection");
+            reflectClass.registerInvokable("getCallerClass", (thread, target, args) -> {
+                Frame currentFrame = ((VmThreadImpl)thread).currentFrame;
+                Frame enclosing = currentFrame.enclosing;
+                while (enclosing.element.getEnclosingType().getInternalName().equals("java/lang/reflect/Method")) {
+                    enclosing = enclosing.enclosing;
+                }
+                DefinedTypeDefinition def = enclosing.element.getEnclosingType();
+                VmClassLoaderImpl cl = ((VmThreadImpl)thread).vm.getClassLoaderForContext(def.getContext());
+                VmClassImpl clazz = cl.loadClass(def.getInternalName());
+                return clazz;
+            });
+
             // Signal
             VmClassImpl signalClass = bootstrapClassLoader.loadClass("jdk/internal/misc/Signal");
             signalClass.registerInvokable("findSignal0", (thread, target, args) -> {
