@@ -214,11 +214,12 @@ public final class CoreClasses {
         typeBuilder.setName(internalName);
         // add fields in this order, which is relied upon up above
         int idx = 0;
+        DefinedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object");
         if (realMemberType instanceof ReferenceType) {
             // also need a dimensions field
             typeBuilder.addField(CoreClasses::makeDimensionsField, idx++);
             // also need a type ID field
-            typeBuilder.addField((index, encl) -> makeElementTypeIdField(index, superClass, encl), idx++);
+            typeBuilder.addField((index, encl) -> makeElementTypeIdField(index, jlo, encl), idx++);
         }
         typeBuilder.addField((index, enclosing) -> makeContentField(index, enclosing, realMemberType), idx);
         typeBuilder.setInitializer(EMPTY_INIT, 0);
@@ -256,7 +257,7 @@ public final class CoreClasses {
         fieldBuilder.setSignature(BaseTypeSignature.V);
         fieldBuilder.setIndex(index);
         fieldBuilder.setName("elementType");
-        fieldBuilder.setType(jlo.load().getClassType().getReference().getTypeType());
+        fieldBuilder.setType(jlo.load().getClassType().getTypeType());
         fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         return fieldBuilder.build();
     }
