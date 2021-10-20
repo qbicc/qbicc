@@ -11,7 +11,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import io.smallrye.common.constraint.Assert;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.AddressOf;
@@ -50,6 +49,14 @@ import org.qbicc.graph.FunctionDeclarationHandle;
 import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.FunctionHandle;
 import org.qbicc.graph.GetAndAdd;
+import org.qbicc.graph.GetAndBitwiseAnd;
+import org.qbicc.graph.GetAndBitwiseNand;
+import org.qbicc.graph.GetAndBitwiseOr;
+import org.qbicc.graph.GetAndBitwiseXor;
+import org.qbicc.graph.GetAndSet;
+import org.qbicc.graph.GetAndSetMax;
+import org.qbicc.graph.GetAndSetMin;
+import org.qbicc.graph.GetAndSub;
 import org.qbicc.graph.InsertElement;
 import org.qbicc.graph.InsertMember;
 import org.qbicc.graph.InterfaceMethodElementHandle;
@@ -99,6 +106,7 @@ import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
+import org.qbicc.graph.ReadModifyWriteValue;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Ret;
 import org.qbicc.graph.Return;
@@ -972,16 +980,61 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return literal(param, String.valueOf(node.doubleValue()));
     }
 
-    public String visit(Appendable param, GetAndAdd node) {
+    private String node(Appendable param, String label, ReadModifyWriteValue node) {
         String name = register(node);
         appendTo(param, name);
-        attr(param, "label", "get-and-add");
+        attr(param, "label", label);
         nl(param);
         dependencyList.add(name);
-        processDependency(param, node.getDependency());
+        if (node instanceof OrderedNode) {
+            processDependency(param, ((OrderedNode) node).getDependency());
+        }
         addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getUpdateValue(), EdgeType.VALUE_DEPENDENCY);
         return name;
+    }
+
+    public String visit(Appendable param, GetAndAdd node) {
+        return node(param, "get-and-add", (ReadModifyWriteValue) node);
+    }
+
+    public String visit(Appendable param, GetAndSet node) {
+        return node(param, "get-and-set", (ReadModifyWriteValue) node);
+    }
+
+    @Override
+    public String visit(Appendable param, GetAndBitwiseAnd node) {
+        return node(param, "get-and-and", (ReadModifyWriteValue) node);
+    }
+
+    @Override
+    public String visit(Appendable param, GetAndBitwiseNand node) {
+        return node(param, "get-and-nand", (ReadModifyWriteValue) node);
+    }
+
+    @Override
+    public String visit(Appendable param, GetAndBitwiseOr node) {
+        return node(param, "get-and-or", (ReadModifyWriteValue) node);
+    }
+
+    @Override
+    public String visit(Appendable param, GetAndBitwiseXor node) {
+        return node(param, "get-and-xor", (ReadModifyWriteValue) node);
+    }
+
+    @Override
+    public String visit(Appendable param, GetAndSetMax node) {
+        return node(param, "get-and-set-max", (ReadModifyWriteValue) node);
+    }
+
+    @Override
+    public String visit(Appendable param, GetAndSetMin node) {
+        return node(param, "get-and-set-min", (ReadModifyWriteValue) node);
+    }
+
+    @Override
+    public String visit(Appendable param, GetAndSub node) {
+        return node(param, "get-and-sub", (ReadModifyWriteValue) node);
     }
 
     public String visit(Appendable param, InsertElement node) {
