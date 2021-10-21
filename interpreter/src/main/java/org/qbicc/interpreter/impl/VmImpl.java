@@ -391,7 +391,7 @@ public final class VmImpl implements Vm {
             idx = throwableClass.getTypeDefinition().findSingleMethodIndex(me -> me.nameEquals("fillInStackTrace") && me.getParameters().size() == 1);
             threadNativeClass.registerInvokable(throwableClass.getTypeDefinition().getMethod(idx), (thread, target, args) -> {
                 ((VmThrowableImpl)target).fillInStackTrace();
-                return null;
+                return target;
             });
 
             // Class

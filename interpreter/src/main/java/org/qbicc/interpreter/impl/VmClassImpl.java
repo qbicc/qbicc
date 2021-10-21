@@ -35,8 +35,6 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
-import org.qbicc.type.descriptor.ClassTypeDescriptor;
-import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
 class VmClassImpl extends VmObjectImpl implements VmClass {
@@ -345,6 +343,20 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         }
     }
 
+    @Override
+    public int indexOfStatic(FieldElement field) throws IllegalArgumentException {
+        LoadedTypeDefinition loaded = field.getEnclosingType().load();
+        CompilationContext ctxt = loaded.getContext().getCompilationContext();
+        LayoutInfo layoutInfo = Layout.getForInterpreter(ctxt).getInterpreterStaticLayoutInfo(loaded);
+        if (layoutInfo != null) {
+            CompoundType.Member member = layoutInfo.getMember(field);
+            if (member != null) {
+                return member.getOffset();
+            }
+        }
+        throw new IllegalArgumentException("Field " + field + " is not present on " + this);
+    }
+
     void initialize(VmThreadImpl thread) throws Thrown {
         VmClassImpl superClass = this.superClass;
         if (superClass != null) {
@@ -382,12 +394,12 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             ClassContext bcc = vm.getCompilationContext().getBootstrapClassContext();
             LoadedTypeDefinition errorType = bcc.findDefinedType("java/lang/ExceptionInInitializerError").load();
             ClassObjectType exType = errorType.getClassType();
-            VmThrowable obj = vm.manuallyInitialize((VmThrowable) vm.allocateObject(exType));
+            VmThrowableClassImpl clazz = (VmThrowableClassImpl) errorType.getVmClass();
+            VmThrowable obj;
             if (initException != null) {
-                MethodDescriptor causeMethodDesc = MethodDescriptor.synthesize(bcc, BaseTypeDescriptor.V, List.of(ClassTypeDescriptor.synthesize(bcc, "java/lang/Throwable")));
-                vm.invokeExact(errorType.resolveConstructorElement(causeMethodDesc), obj, List.of(initException));
+                obj = clazz.newInstance(initException);
             } else {
-                vm.invokeExact(errorType.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), obj, List.of());
+                obj = clazz.newInstance("Failed to initialize " + getName() + " (no nested exception)");
             }
             thread.setThrown(obj);
             throw new Thrown(obj);

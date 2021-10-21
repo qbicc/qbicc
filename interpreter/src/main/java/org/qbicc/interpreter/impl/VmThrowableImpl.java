@@ -4,6 +4,7 @@ import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
@@ -22,6 +23,12 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
     }
 
     void initializeDepth() {
+        Frame currentFrame = ((VmThreadImpl) Vm.requireCurrentThread()).currentFrame;
+        if (currentFrame == null) {
+            // no stack :(
+        } else {
+            backTrace = currentFrame.getBackTrace();
+        }
         MemoryImpl memory = getMemory();
         LoadedTypeDefinition throwableClassDef = ((VmImpl)Vm.requireCurrent()).throwableClass.getTypeDefinition();
         Layout interpLayout = Layout.getForInterpreter(throwableClassDef.getContext().getCompilationContext());
@@ -31,7 +38,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
     }
 
     void fillInStackTrace() {
-        backTrace = ((VmThreadImpl)Vm.requireCurrentThread()).currentFrame.getBackTrace();
+        // no operation
     }
 
     void initStackTraceElements(VmArrayImpl array) {
@@ -45,6 +52,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
         int declaringClassIdx = layout.getMember(steClassDef.findField("declaringClass")).getOffset();
         int fileNameIdx = layout.getMember(steClassDef.findField("fileName")).getOffset();
         int methodNameIdx = layout.getMember(steClassDef.findField("methodName")).getOffset();
+        Node[] backTrace = this.backTrace;
         for (int i = 0; i < backTrace.length; i++) {
             Node ip = backTrace[i];
             ExecutableElement frameElement = ip.getElement();
@@ -103,35 +111,28 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
 
     @Override
     public StackTraceElement[] getStackTrace() {
-        VmImpl vm = getVmClass().getVm();
-        MemoryImpl memory = getMemory();
-        LoadedTypeDefinition throwableClassDef = vm.throwableClass.getTypeDefinition();
-        Layout interpLayout = Layout.getForInterpreter(vm.getCompilationContext());
-        LayoutInfo layout = interpLayout.getInstanceLayoutInfo(throwableClassDef);
-        int stackTraceIdx = layout.getMember(throwableClassDef.findField("stackTrace")).getOffset();
-        LoadedTypeDefinition steClassDef = vm.stackTraceElementClass.getTypeDefinition();
-        layout = interpLayout.getInstanceLayoutInfo(steClassDef);
-        int classLoaderNameIdx = layout.getMember(steClassDef.findField("classLoaderName")).getOffset();
-        int moduleNameIdx = layout.getMember(steClassDef.findField("moduleName")).getOffset();
-        int moduleVersionIdx = layout.getMember(steClassDef.findField("moduleVersion")).getOffset();
-        int lineNumberIdx = layout.getMember(steClassDef.findField("lineNumber")).getOffset();
-        int declaringClassIdx = layout.getMember(steClassDef.findField("declaringClass")).getOffset();
-        int fileNameIdx = layout.getMember(steClassDef.findField("fileName")).getOffset();
-        int methodNameIdx = layout.getMember(steClassDef.findField("methodName")).getOffset();
-        VmArrayImpl array = (VmArrayImpl) memory.loadRef(stackTraceIdx, MemoryAtomicityMode.UNORDERED);
-        int length = array.getLength();
-        StackTraceElement[] stackTrace = new StackTraceElement[length];
-        for (int i = 0; i < length; i ++) {
-            memory = array.getMemory();
-            VmObjectImpl steObject = (VmObjectImpl) memory.loadRef(array.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED);
-            memory = steObject.getMemory();
-            String classLoaderName = ((VmStringImpl)memory.loadRef(classLoaderNameIdx, MemoryAtomicityMode.UNORDERED)).getContent();
-            String moduleName = ((VmStringImpl)memory.loadRef(moduleNameIdx, MemoryAtomicityMode.UNORDERED)).getContent();
-            String moduleVersion = ((VmStringImpl)memory.loadRef(moduleVersionIdx, MemoryAtomicityMode.UNORDERED)).getContent();
-            String declaringClass = ((VmStringImpl)memory.loadRef(declaringClassIdx, MemoryAtomicityMode.UNORDERED)).getContent();
-            String methodName = ((VmStringImpl)memory.loadRef(methodNameIdx, MemoryAtomicityMode.UNORDERED)).getContent();
-            String fileName = ((VmStringImpl)memory.loadRef(fileNameIdx, MemoryAtomicityMode.UNORDERED)).getContent();
-            int lineNumber = memory.load32(lineNumberIdx, MemoryAtomicityMode.UNORDERED);
+        Node[] backTrace = this.backTrace;
+        StackTraceElement[] stackTrace = new StackTraceElement[backTrace.length];
+        for (int i = 0; i < backTrace.length; i++) {
+            Node ip = backTrace[i];
+            ExecutableElement frameElement = ip.getElement();
+            VmClass elementClass = frameElement.getEnclosingType().load().getVmClass();
+            String classLoaderName = null; // todo fill in from frame element
+            String moduleName = null; // todo fill in from frame element
+            String moduleVersion = null; // todo fill in from frame element
+            String declaringClass = elementClass.getName();
+            String methodName;
+            if (frameElement instanceof MethodElement) {
+                methodName = ((MethodElement) frameElement).getName();
+            } else if (frameElement instanceof ConstructorElement) {
+                methodName = "<init>";
+            } else if (frameElement instanceof InitializerElement) {
+                methodName = "<clinit>";
+            } else {
+                methodName = "<unknown>";
+            }
+            String fileName = frameElement.getSourceFileName();
+            int lineNumber = ip.getSourceLine();
             stackTrace[i] = new StackTraceElement(classLoaderName, moduleName, moduleVersion, declaringClass, methodName, fileName, lineNumber);
         }
         return stackTrace;

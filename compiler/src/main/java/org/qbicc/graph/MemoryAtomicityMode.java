@@ -46,4 +46,20 @@ public enum MemoryAtomicityMode {
     public static MemoryAtomicityMode min(MemoryAtomicityMode a, MemoryAtomicityMode b) {
         return a.ordinal() < b.ordinal() ? a : b;
     }
+
+    /**
+     * Get the read side of the given mode.
+     *
+     * @return the read side of the given mode
+     */
+    public MemoryAtomicityMode read() {
+        switch (this) {
+            case RELEASE:
+                return MONOTONIC;
+            case ACQUIRE_RELEASE:
+            case SEQUENTIALLY_CONSISTENT:
+                return ACQUIRE;
+            default: return this;
+        }
+    }
 }

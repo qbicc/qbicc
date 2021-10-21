@@ -102,14 +102,17 @@ public final class Layout {
                 fieldToMember.put(field, member);
             }
         }
+        int size;
         if (trailingArray != null) {
             CompoundType.Member member = computeMember(allocated, trailingArray);
             if (member.getAlign() > minAlignment) {
                 minAlignment = member.getAlign();
             }
             fieldToMember.put(trailingArray, member);
+            size = member.getOffset();
+        } else {
+            size = allocated.length();
         }
-        int size = allocated.length();
         CompoundType.Member[] membersArray = fieldToMember.values().toArray(CompoundType.Member[]::new);
         Arrays.sort(membersArray);
         List<CompoundType.Member> membersList = List.of(membersArray);
