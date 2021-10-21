@@ -22,6 +22,12 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
     }
 
     void initializeDepth() {
+        Frame currentFrame = ((VmThreadImpl) Vm.requireCurrentThread()).currentFrame;
+        if (currentFrame == null) {
+            // no stack :(
+        } else {
+            backTrace = currentFrame.getBackTrace();
+        }
         MemoryImpl memory = getMemory();
         LoadedTypeDefinition throwableClassDef = ((VmImpl)Vm.requireCurrent()).throwableClass.getTypeDefinition();
         Layout interpLayout = Layout.getForInterpreter(throwableClassDef.getContext().getCompilationContext());
@@ -31,7 +37,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
     }
 
     void fillInStackTrace() {
-        backTrace = ((VmThreadImpl)Vm.requireCurrentThread()).currentFrame.getBackTrace();
+        // no operation
     }
 
     void initStackTraceElements(VmArrayImpl array) {
