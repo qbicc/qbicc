@@ -134,7 +134,6 @@ import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
-import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
@@ -1552,37 +1551,193 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl thread, GetAndBitwiseAnd node) {
-        return null;
+        ValueHandle valueHandle = node.getValueHandle();
+        Memory memory = getMemory(valueHandle);
+        int offset = getOffset(valueHandle);
+        ValueType type = node.getValueHandle().getValueType();
+        Value update = node.getUpdateValue();
+        MemoryAtomicityMode mode = node.getAtomicityMode();
+        if (isInt8(type)) {
+            return Byte.valueOf((byte) memory.getAndBitwiseAnd8(offset, unboxInt(update), mode));
+        } else if (isInt16(type)) {
+            return Short.valueOf((short) memory.getAndBitwiseAnd16(offset, unboxInt(update), mode));
+        } else if (isInt32(type)) {
+            return Integer.valueOf(memory.getAndBitwiseAnd32(offset, unboxInt(update), mode));
+        } else if (isInt64(type)) {
+            return Long.valueOf(memory.getAndBitwiseAnd64(offset, unboxLong(update), mode));
+        } else if (isBool(type)) {
+            return Boolean.valueOf((memory.getAndBitwiseAnd8(offset, unboxBool(update) ? 1 : 0, mode) & 1) != 0);
+        } else {
+            throw unsupportedType();
+        }
     }
 
     @Override
     public Object visit(VmThreadImpl thread, GetAndBitwiseNand node) {
-        return null;
+        ValueHandle valueHandle = node.getValueHandle();
+        Memory memory = getMemory(valueHandle);
+        int offset = getOffset(valueHandle);
+        ValueType type = node.getValueHandle().getValueType();
+        Value update = node.getUpdateValue();
+        MemoryAtomicityMode mode = node.getAtomicityMode();
+        if (isInt8(type)) {
+            return Byte.valueOf((byte) memory.getAndBitwiseNand8(offset, unboxInt(update), mode));
+        } else if (isInt16(type)) {
+            return Short.valueOf((short) memory.getAndBitwiseNand16(offset, unboxInt(update), mode));
+        } else if (isInt32(type)) {
+            return Integer.valueOf(memory.getAndBitwiseNand32(offset, unboxInt(update), mode));
+        } else if (isInt64(type)) {
+            return Long.valueOf(memory.getAndBitwiseNand64(offset, unboxLong(update), mode));
+        } else if (isBool(type)) {
+            return Boolean.valueOf((memory.getAndBitwiseNand8(offset, unboxBool(update) ? 1 : 0, mode) & 1) != 0);
+        } else {
+            throw unsupportedType();
+        }
     }
 
     @Override
     public Object visit(VmThreadImpl thread, GetAndBitwiseOr node) {
-        return null;
+        ValueHandle valueHandle = node.getValueHandle();
+        Memory memory = getMemory(valueHandle);
+        int offset = getOffset(valueHandle);
+        ValueType type = node.getValueHandle().getValueType();
+        Value update = node.getUpdateValue();
+        MemoryAtomicityMode mode = node.getAtomicityMode();
+        if (isInt8(type)) {
+            return Byte.valueOf((byte) memory.getAndBitwiseOr8(offset, unboxInt(update), mode));
+        } else if (isInt16(type)) {
+            return Short.valueOf((short) memory.getAndBitwiseOr16(offset, unboxInt(update), mode));
+        } else if (isInt32(type)) {
+            return Integer.valueOf(memory.getAndBitwiseOr32(offset, unboxInt(update), mode));
+        } else if (isInt64(type)) {
+            return Long.valueOf(memory.getAndBitwiseOr64(offset, unboxLong(update), mode));
+        } else if (isBool(type)) {
+            return Boolean.valueOf((memory.getAndBitwiseOr8(offset, unboxBool(update) ? 1 : 0, mode) & 1) != 0);
+        } else {
+            throw unsupportedType();
+        }
     }
 
     @Override
     public Object visit(VmThreadImpl thread, GetAndBitwiseXor node) {
-        return null;
+        ValueHandle valueHandle = node.getValueHandle();
+        Memory memory = getMemory(valueHandle);
+        int offset = getOffset(valueHandle);
+        ValueType type = node.getValueHandle().getValueType();
+        Value update = node.getUpdateValue();
+        MemoryAtomicityMode mode = node.getAtomicityMode();
+        if (isInt8(type)) {
+            return Byte.valueOf((byte) memory.getAndBitwiseXor8(offset, unboxInt(update), mode));
+        } else if (isInt16(type)) {
+            return Short.valueOf((short) memory.getAndBitwiseXor16(offset, unboxInt(update), mode));
+        } else if (isInt32(type)) {
+            return Integer.valueOf(memory.getAndBitwiseXor32(offset, unboxInt(update), mode));
+        } else if (isInt64(type)) {
+            return Long.valueOf(memory.getAndBitwiseXor64(offset, unboxLong(update), mode));
+        } else if (isBool(type)) {
+            return Boolean.valueOf((memory.getAndBitwiseXor8(offset, unboxBool(update) ? 1 : 0, mode) & 1) != 0);
+        } else {
+            throw unsupportedType();
+        }
     }
 
     @Override
     public Object visit(VmThreadImpl thread, GetAndSet node) {
-        return null;
+        ValueHandle valueHandle = node.getValueHandle();
+        Memory memory = getMemory(valueHandle);
+        int offset = getOffset(valueHandle);
+        ValueType type = node.getValueHandle().getValueType();
+        Value update = node.getUpdateValue();
+        MemoryAtomicityMode mode = node.getAtomicityMode();
+        if (isBool(type)) {
+            return Boolean.valueOf(memory.getAndSet8(offset, unboxBool(update) ? 1 : 0, mode) != 0);
+        } else if (isInt8(type)) {
+            return Byte.valueOf((byte) memory.getAndSet8(offset, unboxInt(update), mode));
+        } else if (isInt16(type)) {
+            return Short.valueOf((short) memory.getAndSet16(offset, unboxInt(update), mode));
+        } else if (isInt32(type)) {
+            return Integer.valueOf(memory.getAndSet32(offset, unboxInt(update), mode));
+        } else if (isInt64(type)) {
+            return Long.valueOf(memory.getAndSet64(offset, unboxLong(update), mode));
+        } else if (isFloat32(type)) {
+            return Float.valueOf(Float.intBitsToFloat(memory.getAndSet32(offset, Float.floatToRawIntBits(unboxFloat(update)), mode)));
+        } else if (isFloat64(type)) {
+            return Double.valueOf(Double.longBitsToDouble(memory.getAndSet64(offset, Double.doubleToRawLongBits(unboxDouble(update)), mode)));
+        } else if (isRef(type)) {
+            return memory.getAndSetRef(offset, (VmObject) require(update), mode);
+        } else {
+            throw unsupportedType();
+        }
     }
 
     @Override
     public Object visit(VmThreadImpl thread, GetAndSetMax node) {
-        return null;
+        ValueHandle valueHandle = node.getValueHandle();
+        Memory memory = getMemory(valueHandle);
+        int offset = getOffset(valueHandle);
+        ValueType type = node.getValueHandle().getValueType();
+        Value update = node.getUpdateValue();
+        MemoryAtomicityMode mode = node.getAtomicityMode();
+        if (isSigned(type)) {
+            if (isInt8(type)) {
+                return Byte.valueOf((byte) memory.getAndSetMaxSigned8(offset, unboxInt(update), mode));
+            } else if (isInt16(type)) {
+                return Short.valueOf((short) memory.getAndSetMaxSigned16(offset, unboxInt(update), mode));
+            } else if (isInt32(type)) {
+                return Integer.valueOf(memory.getAndSetMaxSigned32(offset, unboxInt(update), mode));
+            } else if (isInt64(type)) {
+                return Long.valueOf(memory.getAndSetMaxSigned64(offset, unboxLong(update), mode));
+            } else {
+                throw unsupportedType();
+            }
+        } else {
+            if (isInt8(type)) {
+                return Byte.valueOf((byte) memory.getAndSetMaxUnsigned8(offset, unboxInt(update), mode));
+            } else if (isInt16(type)) {
+                return Short.valueOf((short) memory.getAndSetMaxUnsigned16(offset, unboxInt(update), mode));
+            } else if (isInt32(type)) {
+                return Integer.valueOf(memory.getAndSetMaxUnsigned32(offset, unboxInt(update), mode));
+            } else if (isInt64(type)) {
+                return Long.valueOf(memory.getAndSetMaxUnsigned64(offset, unboxLong(update), mode));
+            } else {
+                throw unsupportedType();
+            }
+        }
     }
 
     @Override
     public Object visit(VmThreadImpl thread, GetAndSetMin node) {
-        return null;
+        ValueHandle valueHandle = node.getValueHandle();
+        Memory memory = getMemory(valueHandle);
+        int offset = getOffset(valueHandle);
+        ValueType type = node.getValueHandle().getValueType();
+        Value update = node.getUpdateValue();
+        MemoryAtomicityMode mode = node.getAtomicityMode();
+        if (isSigned(type)) {
+            if (isInt8(type)) {
+                return Byte.valueOf((byte) memory.getAndSetMinSigned8(offset, unboxInt(update), mode));
+            } else if (isInt16(type)) {
+                return Short.valueOf((short) memory.getAndSetMinSigned16(offset, unboxInt(update), mode));
+            } else if (isInt32(type)) {
+                return Integer.valueOf(memory.getAndSetMinSigned32(offset, unboxInt(update), mode));
+            } else if (isInt64(type)) {
+                return Long.valueOf(memory.getAndSetMinSigned64(offset, unboxLong(update), mode));
+            } else {
+                throw unsupportedType();
+            }
+        } else {
+            if (isInt8(type)) {
+                return Byte.valueOf((byte) memory.getAndSetMinUnsigned8(offset, unboxInt(update), mode));
+            } else if (isInt16(type)) {
+                return Short.valueOf((short) memory.getAndSetMinUnsigned16(offset, unboxInt(update), mode));
+            } else if (isInt32(type)) {
+                return Integer.valueOf(memory.getAndSetMinUnsigned32(offset, unboxInt(update), mode));
+            } else if (isInt64(type)) {
+                return Long.valueOf(memory.getAndSetMinUnsigned64(offset, unboxLong(update), mode));
+            } else {
+                throw unsupportedType();
+            }
+        }
     }
 
     @Override
