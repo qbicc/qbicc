@@ -232,6 +232,17 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     }
 
     @Override
+    public VmObject getLookupObject(int allowedModes) {
+        VmClassImpl lookupClass = vm.getBootstrapClassLoader().loadClass("java/lang/invoke/MethodHandles$Lookup");
+        LoadedTypeDefinition lookupDef = lookupClass.getTypeDefinition();
+        VmObjectImpl lookup = vm.manuallyInitialize(lookupClass.newInstance());
+        lookup.getMemory().storeRef(lookup.indexOf(lookupDef.findField("lookupClass")), this, MemoryAtomicityMode.UNORDERED);
+        lookup.getMemory().store32(lookup.indexOf(lookupDef.findField("allowedModes")), allowedModes, MemoryAtomicityMode.UNORDERED);
+        VarHandle.releaseFence();
+        return lookup;
+    }
+
+    @Override
     public String getName() {
         return typeDefinition.getInternalName().replace("/", ".");
     }

@@ -22,6 +22,15 @@ public interface VmClass extends VmObject {
 
     VmObject getProtectionDomain();
 
+    /**
+     * Get a {@link java.lang.invoke.MethodHandles.Lookup} instance for this class with the given flags. The
+     * flags are not checked.
+     *
+     * @param allowedModes the flags
+     * @return the lookup object
+     */
+    VmObject getLookupObject(int allowedModes);
+
     String getName();
 
     String getSimpleName();
