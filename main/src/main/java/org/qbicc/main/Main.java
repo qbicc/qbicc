@@ -313,12 +313,10 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addResolverFactory(InternalNativeTypeResolver::new);
                                 builder.addResolverFactory(NativeTypeResolver::new);
 
-                                if (initBuildTime) {
-                                    builder.addTaskWrapperFactory(Phase.ADD, next -> (wrapper, ctxt) -> {
-                                        Vm vm = ctxt.getVm();
-                                        vm.doAttached(vm.newThread(Thread.currentThread().getName(), vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> wrapper.accept(ctxt));
-                                    });
-                                }
+                                builder.addTaskWrapperFactory(Phase.ADD, next -> (wrapper, ctxt) -> {
+                                    Vm vm = ctxt.getVm();
+                                    vm.doAttached(vm.newThread(Thread.currentThread().getName(), vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> wrapper.accept(ctxt));
+                                });
                                 builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
                                 builder.addPreHook(Phase.ADD, CoreClasses::get);
                                 builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);
