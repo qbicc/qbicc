@@ -34,6 +34,7 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
@@ -424,7 +425,22 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             synchronized (methodTable) {
                 target = methodTable.get(element);
                 if (target == null) {
-                    methodTable.put(element, target = compile(element));
+                    if (element.tryCreateMethodBody()) {
+                        target = compile(element);
+                    } else {
+                        target = (thread, instance, args) -> {
+                            // treat it like an unsatisfied link
+                            VmThrowableClassImpl uleClazz = (VmThrowableClassImpl) vm.getBootstrapClassLoader().loadClass("java/lang/UnsatisfiedLinkError");
+                            String name;
+                            if (element instanceof MethodElement) {
+                                name = ((MethodElement) element).getName();
+                            } else {
+                                throw new IllegalStateException("Unknown native element");
+                            }
+                            throw new Thrown(uleClazz.newInstance(clazz.getName() + "." + name));
+                        };
+                    }
+                    methodTable.put(element, target);
                 }
             }
         }
