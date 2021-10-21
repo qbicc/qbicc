@@ -43,13 +43,13 @@ import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.definition.element.ParameterElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
-import org.qbicc.type.descriptor.ConstructorMethodHandleDescriptor;
+import org.qbicc.type.methodhandle.ConstructorMethodHandleConstant;
 import org.qbicc.type.descriptor.Descriptor;
-import org.qbicc.type.descriptor.FieldMethodHandleDescriptor;
+import org.qbicc.type.methodhandle.FieldMethodHandleConstant;
 import org.qbicc.type.descriptor.MethodDescriptor;
-import org.qbicc.type.descriptor.MethodHandleDescriptor;
-import org.qbicc.type.descriptor.MethodHandleKind;
-import org.qbicc.type.descriptor.MethodMethodHandleDescriptor;
+import org.qbicc.type.methodhandle.MethodHandleConstant;
+import org.qbicc.type.methodhandle.MethodHandleKind;
+import org.qbicc.type.methodhandle.MethodMethodHandleConstant;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.ClassSignature;
 import org.qbicc.type.generic.ClassTypeSignature;
@@ -457,7 +457,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
     }
 
-    public MethodHandleDescriptor getMethodHandleDescriptor(final int idx) {
+    public MethodHandleConstant getMethodHandleDescriptor(final int idx) {
         checkConstantType(idx, CONSTANT_MethodHandle);
         if (idx == 0) {
             return null;
@@ -468,7 +468,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         if (kind.isFieldTarget()) {
             int ownerIdx = getFieldrefConstantClassIndex(refIdx);
             String fieldName = getFieldrefConstantName(refIdx);
-            return new FieldMethodHandleDescriptor((ClassTypeDescriptor) getClassConstantAsDescriptor(ownerIdx), fieldName, kind);
+            return new FieldMethodHandleConstant((ClassTypeDescriptor) getClassConstantAsDescriptor(ownerIdx), fieldName, kind);
         } else {
             int mrNameAndType = getMethodrefNameAndTypeIndex(refIdx);
             MethodDescriptor desc = (MethodDescriptor) getDescriptorConstant(getNameAndTypeConstantDescriptorIdx(mrNameAndType));
@@ -477,10 +477,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             }
             ClassTypeDescriptor ownerDesc = (ClassTypeDescriptor) getClassConstantAsDescriptor(getMethodrefConstantClassIndex(refIdx));
             if (kind == MethodHandleKind.NEW_INVOKE_SPECIAL) {
-                return new ConstructorMethodHandleDescriptor(ownerDesc, kind, desc);
+                return new ConstructorMethodHandleConstant(ownerDesc, kind, desc);
             } else {
                 String methodName = getMethodrefConstantName(refIdx);
-                return new MethodMethodHandleDescriptor(ownerDesc, methodName, kind, desc);
+                return new MethodMethodHandleConstant(ownerDesc, methodName, kind, desc);
             }
         }
     }

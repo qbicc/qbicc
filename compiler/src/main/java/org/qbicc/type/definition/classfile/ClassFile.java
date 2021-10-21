@@ -11,7 +11,7 @@ import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.InitializerResolver;
 import org.qbicc.type.definition.MethodResolver;
 import org.qbicc.type.descriptor.Descriptor;
-import org.qbicc.type.descriptor.MethodHandleDescriptor;
+import org.qbicc.type.methodhandle.MethodHandleConstant;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
@@ -556,7 +556,7 @@ public interface ClassFile extends FieldResolver,
 
     TypeDescriptor getClassConstantAsDescriptor(int idx);
 
-    MethodHandleDescriptor getMethodHandleDescriptor(final int idx);
+    MethodHandleConstant getMethodHandleDescriptor(final int idx);
 
     /**
      * Get the number of fields physically present in the class file.

@@ -1,14 +1,15 @@
-package org.qbicc.type.descriptor;
+package org.qbicc.type.methodhandle;
 
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 
 /**
  *
  */
-public final class FieldMethodHandleDescriptor extends MethodHandleDescriptor {
+public final class FieldMethodHandleConstant extends MethodHandleConstant {
     private final String fieldName;
 
-    public FieldMethodHandleDescriptor(final ClassTypeDescriptor owner, final String fieldName, final MethodHandleKind kind) {
+    public FieldMethodHandleConstant(final ClassTypeDescriptor owner, final String fieldName, final MethodHandleKind kind) {
         super(fieldName.hashCode(), owner, kind);
         if (! kind.isFieldTarget()) {
             throw new IllegalArgumentException("Field method handle cannot be of kind " + kind);
@@ -20,11 +21,11 @@ public final class FieldMethodHandleDescriptor extends MethodHandleDescriptor {
         return fieldName;
     }
 
-    public boolean equals(final MethodHandleDescriptor other) {
-        return other instanceof FieldMethodHandleDescriptor && equals((FieldMethodHandleDescriptor) other);
+    public boolean equals(final MethodHandleConstant other) {
+        return other instanceof FieldMethodHandleConstant && equals((FieldMethodHandleConstant) other);
     }
 
-    public boolean equals(final FieldMethodHandleDescriptor other) {
+    public boolean equals(final FieldMethodHandleConstant other) {
         return super.equals(other) && fieldName.equals(other.fieldName);
     }
 

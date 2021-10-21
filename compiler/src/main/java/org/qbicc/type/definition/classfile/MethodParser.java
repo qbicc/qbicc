@@ -54,7 +54,7 @@ import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
-import org.qbicc.type.descriptor.MethodHandleDescriptor;
+import org.qbicc.type.methodhandle.MethodHandleConstant;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
@@ -1541,7 +1541,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         int bootstrapMethodIdx = getClassFile().getInvokeDynamicBootstrapMethodIndex(indyIdx);
                         int indyNameAndTypeIdx = getClassFile().getInvokeDynamicNameAndTypeIndex(indyIdx);
                         // get the bootstrap handle descriptor
-                        MethodHandleDescriptor bootstrapHandle = getClassFile().getMethodHandleDescriptor(getClassFile().getBootstrapMethodRef(bootstrapMethodIdx));
+                        MethodHandleConstant bootstrapHandle = getClassFile().getMethodHandleDescriptor(getClassFile().getBootstrapMethodRef(bootstrapMethodIdx));
                         if (bootstrapHandle == null) {
                             ctxt.getCompilationContext().error(gf.getLocation(), "Missing bootstrap method handle");
                             gf.unreachable();

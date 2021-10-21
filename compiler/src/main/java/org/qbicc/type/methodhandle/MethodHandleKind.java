@@ -1,4 +1,4 @@
-package org.qbicc.type.descriptor;
+package org.qbicc.type.methodhandle;
 
 /**
  * The kind of method handle.

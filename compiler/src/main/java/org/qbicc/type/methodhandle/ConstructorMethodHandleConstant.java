@@ -1,14 +1,16 @@
-package org.qbicc.type.descriptor;
+package org.qbicc.type.methodhandle;
 
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  *
  */
-public final class ConstructorMethodHandleDescriptor extends MethodHandleDescriptor {
+public final class ConstructorMethodHandleConstant extends MethodHandleConstant {
     private final MethodDescriptor methodDescriptor;
 
-    public ConstructorMethodHandleDescriptor(final ClassTypeDescriptor owner, final MethodHandleKind kind, final MethodDescriptor methodDescriptor) {
+    public ConstructorMethodHandleConstant(final ClassTypeDescriptor owner, final MethodHandleKind kind, final MethodDescriptor methodDescriptor) {
         super(methodDescriptor.hashCode(), owner, kind);
         if (! kind.isConstructorTarget()) {
             throw new IllegalArgumentException("Constructor method handle cannot be of kind " + kind);
@@ -20,11 +22,11 @@ public final class ConstructorMethodHandleDescriptor extends MethodHandleDescrip
         return methodDescriptor;
     }
 
-    public final boolean equals(final MethodHandleDescriptor other) {
-        return other instanceof ConstructorMethodHandleDescriptor && equals((ConstructorMethodHandleDescriptor) other);
+    public boolean equals(final MethodHandleConstant other) {
+        return other instanceof ConstructorMethodHandleConstant && equals((ConstructorMethodHandleConstant) other);
     }
 
-    public boolean equals(final ConstructorMethodHandleDescriptor other) {
+    public boolean equals(final ConstructorMethodHandleConstant other) {
         return super.equals(other) && methodDescriptor.equals(other.methodDescriptor);
     }
 

@@ -1,17 +1,19 @@
-package org.qbicc.type.descriptor;
+package org.qbicc.type.methodhandle;
 
 import java.util.Objects;
 
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  *
  */
-public final class MethodMethodHandleDescriptor extends MethodHandleDescriptor {
+public final class MethodMethodHandleConstant extends MethodHandleConstant {
     private final String methodName;
     private final MethodDescriptor methodDescriptor;
 
-    public MethodMethodHandleDescriptor(final ClassTypeDescriptor owner, final String methodName, final MethodHandleKind kind, final MethodDescriptor methodDescriptor) {
+    public MethodMethodHandleConstant(final ClassTypeDescriptor owner, final String methodName, final MethodHandleKind kind, final MethodDescriptor methodDescriptor) {
         super(Objects.hash(methodName, methodDescriptor), owner, kind);
         if (! kind.isMethodTarget()) {
             throw new IllegalArgumentException("Method method handle cannot be of kind " + kind);
@@ -28,11 +30,11 @@ public final class MethodMethodHandleDescriptor extends MethodHandleDescriptor {
         return methodDescriptor;
     }
 
-    public boolean equals(final MethodHandleDescriptor other) {
-        return other instanceof MethodMethodHandleDescriptor && equals((MethodMethodHandleDescriptor) other);
+    public boolean equals(final MethodHandleConstant other) {
+        return other instanceof MethodMethodHandleConstant && equals((MethodMethodHandleConstant) other);
     }
 
-    public boolean equals(final MethodMethodHandleDescriptor other) {
+    public boolean equals(final MethodMethodHandleConstant other) {
         return super.equals(other) && methodName.equals(other.methodName) && methodDescriptor.equals(other.methodDescriptor);
     }
 
