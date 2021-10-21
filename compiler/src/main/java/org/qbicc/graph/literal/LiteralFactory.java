@@ -50,8 +50,6 @@ public interface LiteralFactory {
 
     MethodHandleLiteral literalOfMethodHandle(int referenceKind, int referenceIndex);
 
-    MethodDescriptorLiteral literalOfMethodDescriptor(String descriptor);
-
     SymbolLiteral literalOfSymbol(String name, ValueType symbolType);
 
     UndefinedLiteral undefinedLiteralOfType(ValueType type);
@@ -156,10 +154,6 @@ public interface LiteralFactory {
 
             public MethodHandleLiteral literalOfMethodHandle(int referenceKind, int referenceIndex) {
                 return new MethodHandleLiteral(typeSystem.getMethodHandleType(), referenceKind, referenceIndex);
-            }
-
-            public MethodDescriptorLiteral literalOfMethodDescriptor(String descriptor) {
-                return new MethodDescriptorLiteral(typeSystem.getMethodDescriptorType(), descriptor);
             }
 
             public SymbolLiteral literalOfSymbol(final String name, final ValueType symbolType) {

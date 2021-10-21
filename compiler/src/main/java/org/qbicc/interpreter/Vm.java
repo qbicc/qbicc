@@ -12,6 +12,7 @@ import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  * A virtual machine.
@@ -210,4 +211,13 @@ public interface Vm {
      * @return the primitive class (not {@code null})
      */
     VmPrimitiveClass getPrimitiveClass(Primitive primitive);
+
+    /**
+     * Create an instance of {@code java.lang.invoke.MethodType} corresponding to the given descriptor.
+     *
+     * @param classContext the class context (must not be {@code null})
+     * @param methodDescriptor the method descriptor (must not be {@code null})
+     * @return the object instance (not {@code null})
+     */
+    VmObject createMethodType(ClassContext classContext, MethodDescriptor methodDescriptor);
 }

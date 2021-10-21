@@ -2,6 +2,8 @@ package org.qbicc.type;
 
 import java.util.function.Consumer;
 
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
+
 public enum Primitive {
     // Predefine the set of primitive types in Java
     BOOLEAN("boolean"),
@@ -45,6 +47,24 @@ public enum Primitive {
     public static void forEach(Consumer<Primitive> function) {
         for (Primitive type : Primitive.values()) {
             function.accept(type);
+        }
+    }
+
+    public static Primitive getPrimitiveFor(BaseTypeDescriptor btd) {
+        return getPrimitiveFor(btd.getShortName());
+    }
+
+    public static Primitive getPrimitiveFor(char shortName) {
+        switch (shortName) {
+            case 'B': return BYTE;
+            case 'S': return SHORT;
+            case 'I': return INT;
+            case 'J': return LONG;
+            case 'C': return CHAR;
+            case 'F': return FLOAT;
+            case 'D': return DOUBLE;
+            case 'V': return VOID;
+            default: throw new IllegalStateException("Unexpected primitive type:" + shortName);
         }
     }
 

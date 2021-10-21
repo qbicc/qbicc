@@ -29,7 +29,6 @@ import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
-import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.machine.arch.Platform;
@@ -45,6 +44,11 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.ArrayTypeDescriptor;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 public final class VmImpl implements Vm {
     private final CompilationContext ctxt;
@@ -616,7 +620,7 @@ public final class VmImpl implements Vm {
     }
 
     @Override
-    public VmPrimitiveClass getPrimitiveClass(Primitive primitive) {
+    public VmPrimitiveClassImpl getPrimitiveClass(Primitive primitive) {
         switch (primitive) {
             case BOOLEAN: return booleanClass;
             case BYTE: return byteClass;
@@ -628,6 +632,46 @@ public final class VmImpl implements Vm {
             case DOUBLE: return doubleClass;
             case VOID: return voidClass;
             default: throw Assert.impossibleSwitchCase(primitive);
+        }
+    }
+
+    @Override
+    public VmObject createMethodType(final ClassContext classContext, final MethodDescriptor methodDescriptor) {
+        VmClassLoaderImpl cl = getClassLoaderForContext(classContext);
+        VmObject mt = cl.methodTypeCache.get(methodDescriptor);
+        if (mt != null) {
+            return mt;
+        }
+        VmClassImpl methodTypeClass = bootstrapClassLoader.loadClass("java/lang/invoke/MethodType");
+        // construct it directly
+        mt = manuallyInitialize(methodTypeClass.newInstance());
+        LoadedTypeDefinition mtDef = methodTypeClass.getTypeDefinition();
+        TypeDescriptor returnType = methodDescriptor.getReturnType();
+        mt.getMemory().storeRef(mt.indexOf(mtDef.findField("rtype")), getClassForDescriptor(cl, returnType), MemoryAtomicityMode.UNORDERED);
+        List<TypeDescriptor> parameterTypes = methodDescriptor.getParameterTypes();
+        int size = parameterTypes.size();
+        VmRefArrayImpl array = (VmRefArrayImpl) classClass.getArrayClass().newInstance(size);
+        for (int i = 0; i < size; i ++) {
+            array.getMemory().storeRef(array.getArrayElementOffset(i), getClassForDescriptor(cl, parameterTypes.get(i)), MemoryAtomicityMode.UNORDERED);
+        }
+        mt.getMemory().storeRef(mt.indexOf(mtDef.findField("ptypes")), array, MemoryAtomicityMode.UNORDERED);
+        VmObject appearing = cl.methodTypeCache.putIfAbsent(methodDescriptor, mt);
+        if (appearing != null) {
+            mt = appearing;
+        }
+        return mt;
+    }
+
+    VmClassImpl getClassForDescriptor(VmClassLoaderImpl cl, TypeDescriptor descriptor) {
+        if (descriptor instanceof BaseTypeDescriptor) {
+            return getPrimitiveClass(Primitive.getPrimitiveFor((BaseTypeDescriptor) descriptor));
+        } else if (descriptor instanceof ArrayTypeDescriptor) {
+            return getClassForDescriptor(cl, ((ArrayTypeDescriptor) descriptor).getElementTypeDescriptor()).getArrayClass();
+        } else {
+            assert descriptor instanceof ClassTypeDescriptor;
+            ClassTypeDescriptor ctd = (ClassTypeDescriptor) descriptor;
+            String fullName = ctd.getPackageName().isEmpty() ? ctd.getClassName() : ctd.getPackageName() + '/' + ctd.getClassName();
+            return cl.loadClass(fullName);
         }
     }
 

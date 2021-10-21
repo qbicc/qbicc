@@ -16,7 +16,11 @@ import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.schedule.Schedule;
+import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmThread;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
@@ -376,10 +380,12 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         return literalFactory.literalOfMethodHandle(referenceKind, referenceIndex);
     }
 
-    Literal getMethodTypeConstant(int idx) {
-        int descIdx = getMethodTypeDescriptorIndex(idx);
-        String descriptor = getUtf8Constant(descIdx);
-        return literalFactory.literalOfMethodDescriptor(descriptor);
+    ObjectLiteral getMethodTypeConstant(int idx) {
+        MethodDescriptor methodDescriptor = (MethodDescriptor) getDescriptorConstant(idx);
+        VmThread thread = Vm.requireCurrentThread();
+        Vm vm = thread.getVM();
+        VmObject obj = vm.createMethodType(ctxt, methodDescriptor);
+        return ctxt.getLiteralFactory().literalOf(obj);
     }
 
     public int getRawConstantByte(final int idx, final int offset) throws IndexOutOfBoundsException {
