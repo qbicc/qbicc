@@ -19,11 +19,15 @@
         </dependency>
         <dependency>
             <groupId>org.qbicc</groupId>
+            <artifactId>qbicc-runtime-linux</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.qbicc</groupId>
             <artifactId>qbicc-runtime-posix</artifactId>
         </dependency>
         <dependency>
             <groupId>org.qbicc</groupId>
-            <artifactId>qbicc-runtime-linux</artifactId>
+            <artifactId>qbicc-runtime-unwind</artifactId>
         </dependency>
     </dependencies>
 

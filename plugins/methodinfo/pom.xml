@@ -13,11 +13,11 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-plugin-linker</artifactId>
+            <artifactId>qbicc-machine-llvm</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-plugin-llvm</artifactId>
+            <artifactId>qbicc-plugin-linker</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
