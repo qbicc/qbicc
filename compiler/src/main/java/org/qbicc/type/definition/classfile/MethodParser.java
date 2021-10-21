@@ -1539,6 +1539,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         int indyIdx = buffer.getShort() & 0xffff;
                         buffer.getShort(); // discard 0s
                         int bootstrapMethodIdx = getClassFile().getInvokeDynamicBootstrapMethodIndex(indyIdx);
+                        int indyNameAndTypeIdx = getClassFile().getInvokeDynamicNameAndTypeIndex(indyIdx);
                         // get the bootstrap handle descriptor
                         MethodHandleDescriptor bootstrapHandle = getClassFile().getMethodHandleDescriptor(getClassFile().getBootstrapMethodRef(bootstrapMethodIdx));
                         if (bootstrapHandle == null) {
@@ -1546,6 +1547,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             gf.unreachable();
                             return;
                         }
+
                         DefinedTypeDefinition enclosingType = gf.getCurrentElement().getEnclosingType();
                         ClassTypeDescriptor callSiteDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/CallSite");
                         FieldElement.Builder callSiteBuilder = FieldElement.builder();
@@ -1569,8 +1571,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             MethodDescriptor.synthesize(ctxt, descOfMethodHandle, List.of())),
                             List.of());
                         // Invoke on the method handle
-                        int nameAndTypeRef = getClassFile().getInvokeDynamicNameAndTypeIndex(indyIdx);
-                        MethodDescriptor desc = (MethodDescriptor) getClassFile().getDescriptorConstant(getClassFile().getNameAndTypeConstantDescriptorIdx(nameAndTypeRef));
+                        MethodDescriptor desc = (MethodDescriptor) getClassFile().getDescriptorConstant(getClassFile().getNameAndTypeConstantDescriptorIdx(indyNameAndTypeIdx));
                         if (desc == null) {
                             ctxt.getCompilationContext().error(gf.getLocation(), "Invoke dynamic has no target method descriptor");
                             gf.unreachable();

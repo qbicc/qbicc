@@ -26,6 +26,7 @@ import org.qbicc.type.descriptor.MethodDescriptor;
 final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
     private final ClassContext classContext;
     private final Map<String, VmClassImpl> defined = new ConcurrentHashMap<>();
+    final ConcurrentHashMap<MethodDescriptor, VmObject> methodTypeCache = new ConcurrentHashMap<>();
 
     VmClassLoaderImpl(VmClassLoaderClassImpl clazz, VmImpl vm) {
         // bootstrap CL

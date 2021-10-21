@@ -17,7 +17,6 @@ import org.qbicc.graph.literal.CompoundLiteral;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
-import org.qbicc.graph.literal.MethodDescriptorLiteral;
 import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
@@ -705,10 +704,6 @@ public interface Node {
 
             public ValueHandle visit(Copier param, MemberOf node) {
                 return param.getBlockBuilder().memberOf(param.copyValueHandle(node.getValueHandle()), node.getMember());
-            }
-
-            public Value visit(final Copier param, final MethodDescriptorLiteral node) {
-                return node;
             }
 
             public Value visit(final Copier param, final MethodHandleLiteral node) {
