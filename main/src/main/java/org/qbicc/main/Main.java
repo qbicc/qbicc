@@ -569,6 +569,8 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean debugSupers;
         @CommandLine.Option(names = "--debug-devirt")
         private boolean debugDevirt;
+        @CommandLine.Option(names = "--debug-interpreter")
+        private boolean debugInterpreter;
         @CommandLine.Option(names = "--gc", defaultValue = "none", description = "Type of GC to use. Valid values: ${COMPLETION-CANDIDATES}")
         private GCType gc;
         @CommandLine.Option(names = "--method-data-stats")
@@ -652,6 +654,9 @@ public class Main implements Callable<DiagnosticContext> {
             }
             if (debugDevirt) {
                 Logger.getLogger("org.qbicc.plugin.dispatch.devirt").setLevel(Level.DEBUG);
+            }
+            if (debugInterpreter) {
+                Logger.getLogger("org.qbicc.interpreter").setLevel(Level.DEBUG);
             }
             if (methodDataStats) {
                 Logger.getLogger("org.qbicc.plugin.methodinfo.stats").setLevel(Level.DEBUG);

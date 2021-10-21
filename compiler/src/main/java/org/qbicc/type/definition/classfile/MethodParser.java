@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 
 import io.smallrye.common.constraint.Assert;
+import org.jboss.logging.Logger;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Action;
@@ -65,6 +66,8 @@ import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
 
 final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
+    private static final Logger interpLog = Logger.getLogger("org.qbicc.interpreter");
+
     final ClassMethodInfo info;
     final Value[] stack;
     final Value[] locals;
@@ -1559,10 +1562,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         try {
                             bootstrapHandleObj = vm.createMethodHandle(ctxt, bootstrapHandle);
                         } catch (Thrown thrown) {
-                            VmThrowable throwable = thrown.getThrowable();
-                            String message = throwable.getMessage();
-                            if (message == null) message = throwable.getVmClass().getName();
-                            ctxt.getCompilationContext().warning(gf.getLocation(), "Failed to create bootstrap method handle: %s", message);
+                            ctxt.getCompilationContext().warning(gf.getLocation(), "Failed to create bootstrap method handle: %s", thrown);
+                            // todo: we should consider putting stack traces into the location of the diagnostics
+                            interpLog.debug("Failed to create a bootstrap method handle", thrown);
                             // instead, throw an run time error
                             BasicBlockBuilder fb = gf.getFirstBuilder();
                             ClassTypeDescriptor bmeDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/BootstrapMethodError");

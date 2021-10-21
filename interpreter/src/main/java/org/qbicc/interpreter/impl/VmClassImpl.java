@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.smallrye.common.constraint.Assert;
+import org.jboss.logging.Logger;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.MemoryAtomicityMode;
@@ -39,6 +40,8 @@ import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
 class VmClassImpl extends VmObjectImpl implements VmClass {
+    private static final Logger log = Logger.getLogger("org.qbicc.interpreter");
+
     private static final VarHandle interfacesHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "interfaces", VarHandle.class, VmClassImpl.class, List.class);
 
     private final VmImpl vm;
@@ -395,6 +398,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                     } catch (Thrown t) {
                         initException = this.initException = (VmThrowableImpl) t.getThrowable();
                         state = this.state = State.INITIALIZATION_FAILED;
+                        log.debug("Failed to initialize a class", t);
                     } catch (Throwable t) {
                         state = this.state = State.INITIALIZATION_FAILED;
                     }

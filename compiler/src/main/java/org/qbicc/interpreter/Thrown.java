@@ -7,6 +7,10 @@ public final class Thrown extends RuntimeException {
     public Thrown(final VmThrowable throwable) {
         this.throwable = throwable;
         setStackTrace(throwable.getStackTrace());
+        VmThrowable cause = throwable.getCause();
+        if (cause != null) {
+            initCause(new Thrown(cause));
+        }
     }
 
     public VmThrowable getThrowable() {
