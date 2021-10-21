@@ -44,6 +44,23 @@ class VmThrowableClassImpl extends VmClassImpl implements VmThrowableClass {
     }
 
     @Override
+    public VmThrowable newInstance(VmThrowable cause) {
+        VmThrowableImpl throwable = new VmThrowableImpl(this);
+        VmImpl vm = getVm();
+        vm.manuallyInitialize(throwable);
+        throwable.initializeDepth();
+        LoadedTypeDefinition typeDefinition = getTypeDefinition();
+        ClassContext context = typeDefinition.getContext();
+        ClassTypeDescriptor jlt = ClassTypeDescriptor.synthesize(context, "java/lang/Throwable");
+        int ci = typeDefinition.findConstructorIndex(MethodDescriptor.synthesize(context, BaseTypeDescriptor.V, List.of(jlt)));
+        if (ci == -1) {
+            throw new IllegalArgumentException("Cannot construct exception with message (no matching ctor) for " + getName());
+        }
+        vm.invokeExact(typeDefinition.getConstructor(ci), throwable, List.of(cause));
+        return throwable;
+    }
+
+    @Override
     public VmThrowable newInstance(String message, VmThrowable cause) {
         VmThrowableImpl throwable = new VmThrowableImpl(this);
         VmImpl vm = getVm();
