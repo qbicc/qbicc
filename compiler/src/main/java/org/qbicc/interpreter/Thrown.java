@@ -17,4 +17,15 @@ public final class Thrown extends RuntimeException {
     public String getMessage() {
         return throwable.getMessage();
     }
+
+    @Override
+    public String toString() {
+        String message = getMessage();
+        String className = throwable.getVmClass().getName();
+        if (message != null) {
+            return "(interpreter) " + className + ": " + message;
+        } else {
+            return "(interpreter) " + className;
+        }
+    }
 }
