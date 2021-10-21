@@ -35,6 +35,11 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.interpreter.Thrown;
+import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmThread;
+import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FunctionType;
@@ -1547,6 +1552,26 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             gf.unreachable();
                             return;
                         }
+                        // now get the literal method handle, requires a live interpreter
+                        VmThread thread = Vm.requireCurrentThread();
+                        Vm vm = thread.getVM();
+                        VmObject bootstrapHandleObj;
+                        try {
+                            bootstrapHandleObj = vm.createMethodHandle(ctxt, bootstrapHandle);
+                        } catch (Thrown thrown) {
+                            VmThrowable throwable = thrown.getThrowable();
+                            String message = throwable.getMessage();
+                            if (message == null) message = throwable.getVmClass().getName();
+                            ctxt.getCompilationContext().warning(gf.getLocation(), "Failed to create bootstrap method handle: %s", message);
+                            // instead, throw an run time error
+                            BasicBlockBuilder fb = gf.getFirstBuilder();
+                            ClassTypeDescriptor bmeDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/BootstrapMethodError");
+                            Value error = fb.new_(bmeDesc);
+                            fb.call(fb.constructorOf(error, bmeDesc, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+                            fb.throw_(error);
+                            return;
+                        }
+                        // todo...
 
                         DefinedTypeDefinition enclosingType = gf.getCurrentElement().getEnclosingType();
                         ClassTypeDescriptor callSiteDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/CallSite");
@@ -1924,7 +1949,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     }
 
     private String getNameOfFieldRef(final int fieldRef) {
-        return getClassFile().getFieldrefConstantName(fieldRef);
+        ClassFileImpl classFile = getClassFile();
+        return classFile.getNameAndTypeConstantName(classFile.getFieldrefNameAndTypeIndex(fieldRef));
     }
 
     private String getNameOfMethodRef(final int methodRef) {

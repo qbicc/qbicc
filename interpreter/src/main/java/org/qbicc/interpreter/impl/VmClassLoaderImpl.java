@@ -22,11 +22,13 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.methodhandle.MethodHandleConstant;
 
 final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
     private final ClassContext classContext;
     private final Map<String, VmClassImpl> defined = new ConcurrentHashMap<>();
     final ConcurrentHashMap<MethodDescriptor, VmObject> methodTypeCache = new ConcurrentHashMap<>();
+    final ConcurrentHashMap<MethodHandleConstant, VmObject> methodHandleCache = new ConcurrentHashMap<>();
 
     VmClassLoaderImpl(VmClassLoaderClassImpl clazz, VmImpl vm) {
         // bootstrap CL

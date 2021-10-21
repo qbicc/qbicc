@@ -467,8 +467,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         int refIdx = getRawConstantShort(idx, 2);
         if (kind.isFieldTarget()) {
             int ownerIdx = getFieldrefConstantClassIndex(refIdx);
-            String fieldName = getFieldrefConstantName(refIdx);
-            return new FieldMethodHandleConstant((ClassTypeDescriptor) getClassConstantAsDescriptor(ownerIdx), fieldName, kind);
+            int frNameAndType = getFieldrefNameAndTypeIndex(refIdx);
+            TypeDescriptor desc = (TypeDescriptor) getDescriptorConstant(getNameAndTypeConstantDescriptorIdx(frNameAndType));
+            String fieldName = getNameAndTypeConstantName(frNameAndType);
+            return new FieldMethodHandleConstant((ClassTypeDescriptor) getClassConstantAsDescriptor(ownerIdx), fieldName, kind, desc);
         } else {
             int mrNameAndType = getMethodrefNameAndTypeIndex(refIdx);
             MethodDescriptor desc = (MethodDescriptor) getDescriptorConstant(getNameAndTypeConstantDescriptorIdx(mrNameAndType));

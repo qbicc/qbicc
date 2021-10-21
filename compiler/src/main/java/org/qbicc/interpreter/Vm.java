@@ -13,6 +13,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.methodhandle.MethodHandleConstant;
 
 /**
  * A virtual machine.
@@ -220,4 +221,14 @@ public interface Vm {
      * @return the object instance (not {@code null})
      */
     VmObject createMethodType(ClassContext classContext, MethodDescriptor methodDescriptor);
+
+    /**
+     * Create a method handle from the given constant.
+     *
+     * @param classContext the class context (must not be {@code null})
+     * @param constant the method handle constant (must not be {@code null})
+     * @return the method handle instance (not {@code null})
+     * @throws Thrown when the method handle creation throws an exception
+     */
+    VmObject createMethodHandle(ClassContext classContext, MethodHandleConstant constant) throws Thrown;
 }

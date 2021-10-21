@@ -417,9 +417,9 @@ public interface ClassFile extends FieldResolver,
         return getRawConstantShort(idx, 1);
     }
 
-    default String getFieldrefConstantName(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+    default int getFieldrefNameAndTypeIndex(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         checkConstantType(idx, CONSTANT_Fieldref);
-        return getNameAndTypeConstantName(getRawConstantShort(idx, 3));
+        return getRawConstantShort(idx, 3);
     }
 
     default int getFieldrefConstantDescriptorIdx(final int idx) {

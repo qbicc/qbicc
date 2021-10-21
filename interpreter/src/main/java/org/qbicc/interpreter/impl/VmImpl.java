@@ -39,6 +39,7 @@ import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.element.AnnotatedElement;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -49,6 +50,10 @@ import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.methodhandle.ConstructorMethodHandleConstant;
+import org.qbicc.type.methodhandle.FieldMethodHandleConstant;
+import org.qbicc.type.methodhandle.MethodHandleConstant;
+import org.qbicc.type.methodhandle.MethodMethodHandleConstant;
 
 public final class VmImpl implements Vm {
     private final CompilationContext ctxt;
@@ -113,6 +118,7 @@ public final class VmImpl implements Vm {
     final VmThrowableClassImpl incompatibleClassChangeErrorClass;
     final VmThrowableClassImpl noClassDefFoundErrorClass;
 
+    final VmThrowableClassImpl noSuchFieldErrorClass;
     final VmThrowableClassImpl noSuchMethodErrorClass;
 
     final VmClassImpl stackTraceElementClass;
@@ -255,6 +261,8 @@ public final class VmImpl implements Vm {
         // incompatible class change errors
         noSuchMethodErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/NoSuchMethodError").load(), null);
         noSuchMethodErrorClass.postConstruct(this);
+        noSuchFieldErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/NoSuchFieldError").load(), null);
+        noSuchFieldErrorClass.postConstruct(this);
 
         stackTraceElementClass = new VmClassImpl(this, bcc.findDefinedType("java/lang/StackTraceElement").load(), null);
         stackTraceElementClass.postConstruct(this);
@@ -663,6 +671,78 @@ public final class VmImpl implements Vm {
             mt = appearing;
         }
         return mt;
+    }
+
+    @Override
+    public VmObject createMethodHandle(ClassContext classContext, MethodHandleConstant constant) throws Thrown {
+        Assert.checkNotNullParam("classContext", classContext);
+        Assert.checkNotNullParam("constant", constant);
+        // for this operation we have to call the factory method for a direct method handle, which means a VM thread must be active.
+        VmClassLoaderImpl cl = getClassLoaderForContext(classContext);
+        VmObject mh = cl.methodHandleCache.get(constant);
+        if (mh != null) {
+            return mh;
+        }
+        // generate the MethodName instance required by the factory
+        VmClassImpl mnClass = bootstrapClassLoader.loadClass("java/lang/invoke/MemberName");
+        LoadedTypeDefinition mnDef = mnClass.getTypeDefinition();
+        String nameStr;
+        VmObject type;
+        AnnotatedElement resolvedElement;
+        VmClassImpl owner = getClassForDescriptor(cl, constant.getOwnerDescriptor());
+        int extraFlags; // extra flags used by the MethodName API
+        if (constant instanceof FieldMethodHandleConstant) {
+            type = getClassForDescriptor(cl, ((FieldMethodHandleConstant) constant).getDescriptor());
+            nameStr = ((FieldMethodHandleConstant) constant).getFieldName();
+            resolvedElement = owner.getTypeDefinition().findField(nameStr);
+            if (resolvedElement == null) {
+                throw new Thrown(noSuchFieldErrorClass.newInstance());
+            }
+            extraFlags = 1 << 18;
+        } else if (constant instanceof MethodMethodHandleConstant) {
+            MethodMethodHandleConstant narrowed = (MethodMethodHandleConstant) constant;
+            MethodDescriptor descriptor = narrowed.getMethodDescriptor();
+            type = createMethodType(classContext, descriptor);
+            nameStr = narrowed.getMethodName();
+            int mi = owner.getTypeDefinition().findMethodIndex(nameStr, descriptor);
+            if (mi == -1) {
+                throw new Thrown(noSuchMethodErrorClass.newInstance());
+            }
+            resolvedElement = owner.getTypeDefinition().getMethod(mi);
+            extraFlags = 1 << 16;
+        } else {
+            assert constant instanceof ConstructorMethodHandleConstant;
+            MethodDescriptor descriptor = ((ConstructorMethodHandleConstant) constant).getMethodDescriptor();
+            type = createMethodType(classContext, descriptor);
+            nameStr = "<init>";
+            int mi = owner.getTypeDefinition().findConstructorIndex(descriptor);
+            if (mi == -1) {
+                throw new Thrown(noSuchMethodErrorClass.newInstance());
+            }
+            resolvedElement = owner.getTypeDefinition().getMethod(mi);
+            extraFlags = 1 << 17;
+        }
+        VmStringImpl nameObj = intern(nameStr);
+        // generate flags
+        int kind = constant.getKind().getId();
+        int modifiers = resolvedElement.getModifiers() & 0xffff; // only JVM-valid modifiers
+        int flags = modifiers | extraFlags | (kind << 24);
+
+        // instantiate the MethodName as fully resolved
+        VmObject mn = manuallyInitialize(mnClass.newInstance());
+        mn.getMemory().storeRef(mn.indexOf(mnDef.findField("clazz")), owner, MemoryAtomicityMode.UNORDERED);
+        mn.getMemory().storeRef(mn.indexOf(mnDef.findField("name")), nameObj, MemoryAtomicityMode.UNORDERED);
+        mn.getMemory().storeRef(mn.indexOf(mnDef.findField("type")), type, MemoryAtomicityMode.UNORDERED);
+        mn.getMemory().store32(mn.indexOf(mnDef.findField("flags")), flags, MemoryAtomicityMode.UNORDERED);
+
+        // call the factory method
+        VmClassImpl dmhClass = bootstrapClassLoader.loadClass("java/lang/invoke/DirectMethodHandle");
+        LoadedTypeDefinition dmhDef = dmhClass.getTypeDefinition();
+        int makeIdx = dmhDef.findMethodIndex(me -> me.nameEquals("make") && me.getDescriptor().getParameterTypes().size() == 1);
+        if (makeIdx == -1) {
+            throw new IllegalStateException("No make() method found on DirectMethodHandle class");
+        }
+        return (VmObject) invokeExact(dmhDef.getMethod(makeIdx), null, List.of(mn));
     }
 
     VmClassImpl getClassForDescriptor(VmClassLoaderImpl cl, TypeDescriptor descriptor) {
