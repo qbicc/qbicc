@@ -184,6 +184,105 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
+    public int getAndBitwiseAnd16(int index, int value, MemoryAtomicityMode mode) {
+        if (mode == MemoryAtomicityMode.ACQUIRE) {
+            return (int) h16.getAndBitwiseAndAcquire(data, index, (short) value);
+        } else if (mode == MemoryAtomicityMode.RELEASE) {
+            return (int) h16.getAndBitwiseAndRelease(data, index, (short) value);
+        } else {
+            return (int) h16.getAndBitwiseAnd(data, index, (short) value);
+        }
+    }
+
+    @Override
+    public int getAndBitwiseAnd32(int index, int value, MemoryAtomicityMode mode) {
+        if (mode == MemoryAtomicityMode.ACQUIRE) {
+            return (int) h32.getAndBitwiseAndAcquire(data, index, value);
+        } else if (mode == MemoryAtomicityMode.RELEASE) {
+            return (int) h32.getAndBitwiseAndRelease(data, index, value);
+        } else {
+            return (int) h32.getAndBitwiseAnd(data, index, value);
+        }
+    }
+
+    @Override
+    public long getAndBitwiseAnd64(int index, long value, MemoryAtomicityMode mode) {
+        if (mode == MemoryAtomicityMode.ACQUIRE) {
+            return (long) h64.getAndBitwiseAndAcquire(data, index, value);
+        } else if (mode == MemoryAtomicityMode.RELEASE) {
+            return (long) h64.getAndBitwiseAndRelease(data, index, value);
+        } else {
+            return (long) h64.getAndBitwiseAnd(data, index, value);
+        }
+    }
+
+    @Override
+    public int getAndBitwiseOr16(int index, int value, MemoryAtomicityMode mode) {
+        if (mode == MemoryAtomicityMode.ACQUIRE) {
+            return (int) h16.getAndBitwiseOrAcquire(data, index, (short) value);
+        } else if (mode == MemoryAtomicityMode.RELEASE) {
+            return (int) h16.getAndBitwiseOrRelease(data, index, (short) value);
+        } else {
+            return (int) h16.getAndBitwiseOr(data, index, (short) value);
+        }
+    }
+
+    @Override
+    public int getAndBitwiseOr32(int index, int value, MemoryAtomicityMode mode) {
+        if (mode == MemoryAtomicityMode.ACQUIRE) {
+            return (int) h32.getAndBitwiseOrAcquire(data, index, value);
+        } else if (mode == MemoryAtomicityMode.RELEASE) {
+            return (int) h32.getAndBitwiseOrRelease(data, index, value);
+        } else {
+            return (int) h32.getAndBitwiseOr(data, index, value);
+        }
+    }
+
+    @Override
+    public long getAndBitwiseOr64(int index, long value, MemoryAtomicityMode mode) {
+        if (mode == MemoryAtomicityMode.ACQUIRE) {
+            return (long) h64.getAndBitwiseOrAcquire(data, index, value);
+        } else if (mode == MemoryAtomicityMode.RELEASE) {
+            return (long) h64.getAndBitwiseOrRelease(data, index, value);
+        } else {
+            return (long) h64.getAndBitwiseOr(data, index, value);
+        }
+    }
+
+    @Override
+    public int getAndBitwiseXor16(int index, int value, MemoryAtomicityMode mode) {
+        if (mode == MemoryAtomicityMode.ACQUIRE) {
+            return (int) h16.getAndBitwiseXorAcquire(data, index, (short) value);
+        } else if (mode == MemoryAtomicityMode.RELEASE) {
+            return (int) h16.getAndBitwiseXorRelease(data, index, (short) value);
+        } else {
+            return (int) h16.getAndBitwiseXor(data, index, (short) value);
+        }
+    }
+
+    @Override
+    public int getAndBitwiseXor32(int index, int value, MemoryAtomicityMode mode) {
+        if (mode == MemoryAtomicityMode.ACQUIRE) {
+            return (int) h32.getAndBitwiseXorAcquire(data, index, value);
+        } else if (mode == MemoryAtomicityMode.RELEASE) {
+            return (int) h32.getAndBitwiseXorRelease(data, index, value);
+        } else {
+            return (int) h32.getAndBitwiseXor(data, index, value);
+        }
+    }
+
+    @Override
+    public long getAndBitwiseXor64(int index, long value, MemoryAtomicityMode mode) {
+        if (mode == MemoryAtomicityMode.ACQUIRE) {
+            return (long) h64.getAndBitwiseXorAcquire(data, index, value);
+        } else if (mode == MemoryAtomicityMode.RELEASE) {
+            return (long) h64.getAndBitwiseXorRelease(data, index, value);
+        } else {
+            return (long) h64.getAndBitwiseXor(data, index, value);
+        }
+    }
+
+    @Override
     public LittleEndianMemoryImpl copy(int newSize) {
         if (newSize == 0) {
             return EMPTY;

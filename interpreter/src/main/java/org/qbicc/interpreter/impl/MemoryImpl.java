@@ -239,6 +239,347 @@ abstract class MemoryImpl implements Memory {
     public abstract long getAndAdd64(int index, long value, MemoryAtomicityMode mode);
 
     @Override
+    public int getAndBitwiseAnd8(int index, int value, MemoryAtomicityMode mode) {
+        if (mode == MemoryAtomicityMode.ACQUIRE) {
+            return (int) h8.getAndBitwiseAndAcquire(data, index, (byte) value);
+        } else if (mode == MemoryAtomicityMode.RELEASE) {
+            return (int) h8.getAndBitwiseAndRelease(data, index, (byte) value);
+        } else {
+            return (int) h8.getAndBitwiseAnd(data, index, (byte) value);
+        }
+    }
+
+    @Override
+    public int getAndBitwiseOr8(int index, int value, MemoryAtomicityMode mode) {
+        if (mode == MemoryAtomicityMode.ACQUIRE) {
+            return (int) h8.getAndBitwiseOrAcquire(data, index, (byte) value);
+        } else if (mode == MemoryAtomicityMode.RELEASE) {
+            return (int) h8.getAndBitwiseOrRelease(data, index, (byte) value);
+        } else {
+            return (int) h8.getAndBitwiseOr(data, index, (byte) value);
+        }
+    }
+
+    @Override
+    public int getAndBitwiseXor8(int index, int value, MemoryAtomicityMode mode) {
+        if (mode == MemoryAtomicityMode.ACQUIRE) {
+            return (int) h8.getAndBitwiseXorAcquire(data, index, (byte) value);
+        } else if (mode == MemoryAtomicityMode.RELEASE) {
+            return (int) h8.getAndBitwiseXorRelease(data, index, (byte) value);
+        } else {
+            return (int) h8.getAndBitwiseXor(data, index, (byte) value);
+        }
+    }
+
+    @Override
+    public int getAndBitwiseNand8(int index, int value, MemoryAtomicityMode mode) {
+        int oldVal, newVal;
+        for (;;) {
+            oldVal = load8(index, mode.read()) & 0xff;
+            newVal = (oldVal & value & 0xff) ^ 0xff;
+            if (oldVal == newVal) {
+                return oldVal;
+            }
+            int witness = compareAndExchange8(index, oldVal, newVal, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public int getAndBitwiseNand16(int index, int value, MemoryAtomicityMode mode) {
+        int oldVal, newVal;
+        for (;;) {
+            oldVal = load16(index, mode.read()) & 0xffff;
+            newVal = (oldVal & value & 0xffff) ^ 0xffff;
+            if (oldVal == newVal) {
+                return oldVal;
+            }
+            int witness = compareAndExchange16(index, oldVal, newVal, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public int getAndBitwiseNand32(int index, int value, MemoryAtomicityMode mode) {
+        int oldVal, newVal;
+        for (;;) {
+            oldVal = load32(index, mode.read());
+            newVal = ~(oldVal & value);
+            if (oldVal == newVal) {
+                return oldVal;
+            }
+            int witness = compareAndExchange32(index, oldVal, newVal, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public long getAndBitwiseNand64(int index, long value, MemoryAtomicityMode mode) {
+        long oldVal, newVal;
+        for (;;) {
+            oldVal = load64(index, mode.read());
+            newVal = ~(oldVal & value);
+            if (oldVal == newVal) {
+                return oldVal;
+            }
+            long witness = compareAndExchange64(index, oldVal, newVal, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public int getAndSetMaxSigned8(int index, int value, MemoryAtomicityMode mode) {
+        int oldVal;
+        for (;;) {
+            oldVal = load8(index, mode.read());
+            if (oldVal >= value) {
+                return oldVal;
+            }
+            int witness = compareAndExchange8(index, oldVal, value, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public int getAndSetMaxSigned16(int index, int value, MemoryAtomicityMode mode) {
+        int oldVal;
+        for (;;) {
+            oldVal = load16(index, mode.read());
+            if (oldVal >= value) {
+                return oldVal;
+            }
+            int witness = compareAndExchange16(index, oldVal, value, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public int getAndSetMaxSigned32(int index, int value, MemoryAtomicityMode mode) {
+        int oldVal;
+        for (;;) {
+            oldVal = load32(index, mode.read());
+            if (oldVal >= value) {
+                return oldVal;
+            }
+            int witness = compareAndExchange32(index, oldVal, value, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public long getAndSetMaxSigned64(int index, long value, MemoryAtomicityMode mode) {
+        long oldVal;
+        for (;;) {
+            oldVal = load64(index, mode.read());
+            if (oldVal >= value) {
+                return oldVal;
+            }
+            long witness = compareAndExchange64(index, oldVal, value, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public int getAndSetMaxUnsigned8(int index, int value, MemoryAtomicityMode mode) {
+        int oldVal;
+        value &= 0xff;
+        for (;;) {
+            oldVal = load8(index, mode.read()) & 0xff;
+            if (oldVal >= value) {
+                return oldVal;
+            }
+            int witness = compareAndExchange8(index, oldVal, value, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public int getAndSetMaxUnsigned16(int index, int value, MemoryAtomicityMode mode) {
+        int oldVal;
+        value &= 0xffff;
+        for (;;) {
+            oldVal = load16(index, mode.read()) & 0xffff;
+            if (oldVal >= value) {
+                return oldVal;
+            }
+            int witness = compareAndExchange16(index, oldVal, value, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public int getAndSetMaxUnsigned32(int index, int value, MemoryAtomicityMode mode) {
+        int oldVal;
+        for (;;) {
+            oldVal = load32(index, mode.read());
+            if (Integer.compareUnsigned(oldVal, value) >= 0) {
+                return oldVal;
+            }
+            int witness = compareAndExchange32(index, oldVal, value, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public long getAndSetMaxUnsigned64(int index, long value, MemoryAtomicityMode mode) {
+        long oldVal;
+        for (;;) {
+            oldVal = load64(index, mode.read());
+            if (Long.compareUnsigned(oldVal, value) >= 0) {
+                return oldVal;
+            }
+            long witness = compareAndExchange64(index, oldVal, value, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public int getAndSetMinSigned8(int index, int value, MemoryAtomicityMode mode) {
+        int oldVal;
+        for (;;) {
+            oldVal = load8(index, mode.read());
+            if (oldVal <= value) {
+                return oldVal;
+            }
+            int witness = compareAndExchange8(index, oldVal, value, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public int getAndSetMinSigned16(int index, int value, MemoryAtomicityMode mode) {
+        int oldVal;
+        for (;;) {
+            oldVal = load16(index, mode.read());
+            if (oldVal <= value) {
+                return oldVal;
+            }
+            int witness = compareAndExchange8(index, oldVal, value, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public int getAndSetMinSigned32(int index, int value, MemoryAtomicityMode mode) {
+        int oldVal;
+        for (;;) {
+            oldVal = load32(index, mode.read());
+            if (oldVal <= value) {
+                return oldVal;
+            }
+            int witness = compareAndExchange32(index, oldVal, value, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public long getAndSetMinSigned64(int index, long value, MemoryAtomicityMode mode) {
+        long oldVal;
+        for (;;) {
+            oldVal = load64(index, mode.read());
+            if (oldVal <= value) {
+                return oldVal;
+            }
+            long witness = compareAndExchange64(index, oldVal, value, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public int getAndSetMinUnsigned8(int index, int value, MemoryAtomicityMode mode) {
+        int oldVal;
+        value &= 0xff;
+        for (;;) {
+            oldVal = load8(index, mode.read()) & 0xff;
+            if (oldVal <= value) {
+                return oldVal;
+            }
+            int witness = compareAndExchange8(index, oldVal, value, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public int getAndSetMinUnsigned16(int index, int value, MemoryAtomicityMode mode) {
+        int oldVal;
+        value &= 0xffff;
+        for (;;) {
+            oldVal = load16(index, mode.read()) & 0xffff;
+            if (oldVal <= value) {
+                return oldVal;
+            }
+            int witness = compareAndExchange16(index, oldVal, value, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public int getAndSetMinUnsigned32(int index, int value, MemoryAtomicityMode mode) {
+        int oldVal;
+        for (;;) {
+            oldVal = load32(index, mode.read());
+            if (Integer.compareUnsigned(oldVal, value) <= 0) {
+                return oldVal;
+            }
+            int witness = compareAndExchange32(index, oldVal, value, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
+    public long getAndSetMinUnsigned64(int index, long value, MemoryAtomicityMode mode) {
+        long oldVal;
+        for (;;) {
+            oldVal = load64(index, mode.read());
+            if (Long.compareUnsigned(oldVal, value) <= 0) {
+                return oldVal;
+            }
+            long witness = compareAndExchange64(index, oldVal, value, mode);
+            if (witness == oldVal) {
+                return value;
+            }
+        }
+    }
+
+    @Override
     public void storeMemory(int destIndex, Memory src, int srcIndex, int size) {
         if (size > 0) {
             MemoryImpl srcImpl = (MemoryImpl) src;

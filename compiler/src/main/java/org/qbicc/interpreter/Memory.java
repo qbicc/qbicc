@@ -84,5 +84,69 @@ public interface Memory {
 
     long getAndAdd64(int index, long value, MemoryAtomicityMode mode);
 
+    int getAndBitwiseAnd8(int index, int value, MemoryAtomicityMode mode);
+
+    int getAndBitwiseAnd16(int index, int value, MemoryAtomicityMode mode);
+
+    int getAndBitwiseAnd32(int index, int value, MemoryAtomicityMode mode);
+
+    long getAndBitwiseAnd64(int index, long value, MemoryAtomicityMode mode);
+
+    int getAndBitwiseNand8(int index, int value, MemoryAtomicityMode mode);
+
+    int getAndBitwiseNand16(int index, int value, MemoryAtomicityMode mode);
+
+    int getAndBitwiseNand32(int index, int value, MemoryAtomicityMode mode);
+
+    long getAndBitwiseNand64(int index, long value, MemoryAtomicityMode mode);
+
+    int getAndBitwiseOr8(int index, int value, MemoryAtomicityMode mode);
+
+    int getAndBitwiseOr16(int index, int value, MemoryAtomicityMode mode);
+
+    int getAndBitwiseOr32(int index, int value, MemoryAtomicityMode mode);
+
+    long getAndBitwiseOr64(int index, long value, MemoryAtomicityMode mode);
+
+    int getAndBitwiseXor8(int index, int value, MemoryAtomicityMode mode);
+
+    int getAndBitwiseXor16(int index, int value, MemoryAtomicityMode mode);
+
+    int getAndBitwiseXor32(int index, int value, MemoryAtomicityMode mode);
+
+    long getAndBitwiseXor64(int index, long value, MemoryAtomicityMode mode);
+
+    int getAndSetMaxSigned8(int index, int value, MemoryAtomicityMode mode);
+
+    int getAndSetMaxSigned16(int index, int value, MemoryAtomicityMode mode);
+
+    int getAndSetMaxSigned32(int index, int value, MemoryAtomicityMode mode);
+
+    long getAndSetMaxSigned64(int index, long value, MemoryAtomicityMode mode);
+
+    int getAndSetMaxUnsigned8(int index, int value, MemoryAtomicityMode mode);
+
+    int getAndSetMaxUnsigned16(int index, int value, MemoryAtomicityMode mode);
+
+    int getAndSetMaxUnsigned32(int index, int value, MemoryAtomicityMode mode);
+
+    long getAndSetMaxUnsigned64(int index, long value, MemoryAtomicityMode mode);
+
+    int getAndSetMinSigned8(int index, int value, MemoryAtomicityMode mode);
+
+    int getAndSetMinSigned16(int index, int value, MemoryAtomicityMode mode);
+
+    int getAndSetMinSigned32(int index, int value, MemoryAtomicityMode mode);
+
+    long getAndSetMinSigned64(int index, long value, MemoryAtomicityMode mode);
+
+    int getAndSetMinUnsigned8(int index, int value, MemoryAtomicityMode mode);
+
+    int getAndSetMinUnsigned16(int index, int value, MemoryAtomicityMode mode);
+
+    int getAndSetMinUnsigned32(int index, int value, MemoryAtomicityMode mode);
+
+    long getAndSetMinUnsigned64(int index, long value, MemoryAtomicityMode mode);
+
     Memory copy(int newSize);
 }
