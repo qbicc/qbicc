@@ -31,4 +31,6 @@ public interface VmClass extends VmObject {
     ObjectType getInstanceObjectTypeId();
 
     Literal getValueForStaticField(FieldElement field);
+
+    int indexOfStatic(FieldElement field) throws IllegalArgumentException;
 }

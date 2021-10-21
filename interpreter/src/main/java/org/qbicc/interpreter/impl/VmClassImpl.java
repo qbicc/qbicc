@@ -345,6 +345,20 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         }
     }
 
+    @Override
+    public int indexOfStatic(FieldElement field) throws IllegalArgumentException {
+        LoadedTypeDefinition loaded = field.getEnclosingType().load();
+        CompilationContext ctxt = loaded.getContext().getCompilationContext();
+        LayoutInfo layoutInfo = Layout.getForInterpreter(ctxt).getInterpreterStaticLayoutInfo(loaded);
+        if (layoutInfo != null) {
+            CompoundType.Member member = layoutInfo.getMember(field);
+            if (member != null) {
+                return member.getOffset();
+            }
+        }
+        throw new IllegalArgumentException("Field " + field + " is not present on " + this);
+    }
+
     void initialize(VmThreadImpl thread) throws Thrown {
         VmClassImpl superClass = this.superClass;
         if (superClass != null) {
