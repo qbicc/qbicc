@@ -7,6 +7,10 @@ public final class Thrown extends RuntimeException {
     public Thrown(final VmThrowable throwable) {
         this.throwable = throwable;
         setStackTrace(throwable.getStackTrace());
+        VmThrowable cause = throwable.getCause();
+        if (cause != null) {
+            initCause(new Thrown(cause));
+        }
     }
 
     public VmThrowable getThrowable() {
@@ -16,5 +20,16 @@ public final class Thrown extends RuntimeException {
     @Override
     public String getMessage() {
         return throwable.getMessage();
+    }
+
+    @Override
+    public String toString() {
+        String message = getMessage();
+        String className = throwable.getVmClass().getName();
+        if (message != null) {
+            return "(interpreter) " + className + ": " + message;
+        } else {
+            return "(interpreter) " + className;
+        }
     }
 }

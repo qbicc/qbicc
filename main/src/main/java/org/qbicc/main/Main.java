@@ -313,12 +313,10 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addResolverFactory(InternalNativeTypeResolver::new);
                                 builder.addResolverFactory(NativeTypeResolver::new);
 
-                                if (initBuildTime) {
-                                    builder.addTaskWrapperFactory(Phase.ADD, next -> (wrapper, ctxt) -> {
-                                        Vm vm = ctxt.getVm();
-                                        vm.doAttached(vm.newThread(Thread.currentThread().getName(), vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> wrapper.accept(ctxt));
-                                    });
-                                }
+                                builder.addTaskWrapperFactory(Phase.ADD, next -> (wrapper, ctxt) -> {
+                                    Vm vm = ctxt.getVm();
+                                    vm.doAttached(vm.newThread(Thread.currentThread().getName(), vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> wrapper.accept(ctxt));
+                                });
                                 builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
                                 builder.addPreHook(Phase.ADD, CoreClasses::get);
                                 builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);
@@ -569,6 +567,8 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean debugSupers;
         @CommandLine.Option(names = "--debug-devirt")
         private boolean debugDevirt;
+        @CommandLine.Option(names = "--debug-interpreter")
+        private boolean debugInterpreter;
         @CommandLine.Option(names = "--gc", defaultValue = "none", description = "Type of GC to use. Valid values: ${COMPLETION-CANDIDATES}")
         private GCType gc;
         @CommandLine.Option(names = "--method-data-stats")
@@ -652,6 +652,9 @@ public class Main implements Callable<DiagnosticContext> {
             }
             if (debugDevirt) {
                 Logger.getLogger("org.qbicc.plugin.dispatch.devirt").setLevel(Level.DEBUG);
+            }
+            if (debugInterpreter) {
+                Logger.getLogger("org.qbicc.interpreter").setLevel(Level.DEBUG);
             }
             if (methodDataStats) {
                 Logger.getLogger("org.qbicc.plugin.methodinfo.stats").setLevel(Level.DEBUG);

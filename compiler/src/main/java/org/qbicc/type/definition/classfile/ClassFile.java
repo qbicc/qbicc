@@ -11,7 +11,7 @@ import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.InitializerResolver;
 import org.qbicc.type.definition.MethodResolver;
 import org.qbicc.type.descriptor.Descriptor;
-import org.qbicc.type.descriptor.MethodHandleDescriptor;
+import org.qbicc.type.methodhandle.MethodHandleConstant;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
@@ -417,9 +417,9 @@ public interface ClassFile extends FieldResolver,
         return getRawConstantShort(idx, 1);
     }
 
-    default String getFieldrefConstantName(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+    default int getFieldrefNameAndTypeIndex(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         checkConstantType(idx, CONSTANT_Fieldref);
-        return getNameAndTypeConstantName(getRawConstantShort(idx, 3));
+        return getRawConstantShort(idx, 3);
     }
 
     default int getFieldrefConstantDescriptorIdx(final int idx) {
@@ -556,7 +556,7 @@ public interface ClassFile extends FieldResolver,
 
     TypeDescriptor getClassConstantAsDescriptor(int idx);
 
-    MethodHandleDescriptor getMethodHandleDescriptor(final int idx);
+    MethodHandleConstant getMethodHandleDescriptor(final int idx);
 
     /**
      * Get the number of fields physically present in the class file.

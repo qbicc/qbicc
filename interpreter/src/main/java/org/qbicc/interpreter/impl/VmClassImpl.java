@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.smallrye.common.constraint.Assert;
+import org.jboss.logging.Logger;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.MemoryAtomicityMode;
@@ -34,10 +35,13 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
 class VmClassImpl extends VmObjectImpl implements VmClass {
+    private static final Logger log = Logger.getLogger("org.qbicc.interpreter");
+
     private static final VarHandle interfacesHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "interfaces", VarHandle.class, VmClassImpl.class, List.class);
 
     private final VmImpl vm;
@@ -232,6 +236,17 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     }
 
     @Override
+    public VmObject getLookupObject(int allowedModes) {
+        VmClassImpl lookupClass = vm.getBootstrapClassLoader().loadClass("java/lang/invoke/MethodHandles$Lookup");
+        LoadedTypeDefinition lookupDef = lookupClass.getTypeDefinition();
+        VmObjectImpl lookup = vm.manuallyInitialize(lookupClass.newInstance());
+        lookup.getMemory().storeRef(lookup.indexOf(lookupDef.findField("lookupClass")), this, MemoryAtomicityMode.UNORDERED);
+        lookup.getMemory().store32(lookup.indexOf(lookupDef.findField("allowedModes")), allowedModes, MemoryAtomicityMode.UNORDERED);
+        VarHandle.releaseFence();
+        return lookup;
+    }
+
+    @Override
     public String getName() {
         return typeDefinition.getInternalName().replace("/", ".");
     }
@@ -383,6 +398,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                     } catch (Thrown t) {
                         initException = this.initException = (VmThrowableImpl) t.getThrowable();
                         state = this.state = State.INITIALIZATION_FAILED;
+                        log.debug("Failed to initialize a class", t);
                     } catch (Throwable t) {
                         state = this.state = State.INITIALIZATION_FAILED;
                     }
@@ -413,7 +429,22 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             synchronized (methodTable) {
                 target = methodTable.get(element);
                 if (target == null) {
-                    methodTable.put(element, target = compile(element));
+                    if (element.tryCreateMethodBody()) {
+                        target = compile(element);
+                    } else {
+                        target = (thread, instance, args) -> {
+                            // treat it like an unsatisfied link
+                            VmThrowableClassImpl uleClazz = (VmThrowableClassImpl) vm.getBootstrapClassLoader().loadClass("java/lang/UnsatisfiedLinkError");
+                            String name;
+                            if (element instanceof MethodElement) {
+                                name = ((MethodElement) element).getName();
+                            } else {
+                                throw new IllegalStateException("Unknown native element");
+                            }
+                            throw new Thrown(uleClazz.newInstance(clazz.getName() + "." + name));
+                        };
+                    }
+                    methodTable.put(element, target);
                 }
             }
         }

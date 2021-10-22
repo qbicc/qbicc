@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 
 import io.smallrye.common.constraint.Assert;
+import org.jboss.logging.Logger;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Action;
@@ -35,6 +36,11 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.interpreter.Thrown;
+import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmThread;
+import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FunctionType;
@@ -54,12 +60,14 @@ import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
-import org.qbicc.type.descriptor.MethodHandleDescriptor;
+import org.qbicc.type.methodhandle.MethodHandleConstant;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
 
 final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
+    private static final Logger interpLog = Logger.getLogger("org.qbicc.interpreter");
+
     final ClassMethodInfo info;
     final Value[] stack;
     final Value[] locals;
@@ -1541,12 +1549,31 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         int bootstrapMethodIdx = getClassFile().getInvokeDynamicBootstrapMethodIndex(indyIdx);
                         int indyNameAndTypeIdx = getClassFile().getInvokeDynamicNameAndTypeIndex(indyIdx);
                         // get the bootstrap handle descriptor
-                        MethodHandleDescriptor bootstrapHandle = getClassFile().getMethodHandleDescriptor(getClassFile().getBootstrapMethodRef(bootstrapMethodIdx));
+                        MethodHandleConstant bootstrapHandle = getClassFile().getMethodHandleDescriptor(getClassFile().getBootstrapMethodRef(bootstrapMethodIdx));
                         if (bootstrapHandle == null) {
                             ctxt.getCompilationContext().error(gf.getLocation(), "Missing bootstrap method handle");
                             gf.unreachable();
                             return;
                         }
+                        // now get the literal method handle, requires a live interpreter
+                        VmThread thread = Vm.requireCurrentThread();
+                        Vm vm = thread.getVM();
+                        VmObject bootstrapHandleObj;
+                        try {
+                            bootstrapHandleObj = vm.createMethodHandle(ctxt, bootstrapHandle);
+                        } catch (Thrown thrown) {
+                            ctxt.getCompilationContext().warning(gf.getLocation(), "Failed to create bootstrap method handle: %s", thrown);
+                            // todo: we should consider putting stack traces into the location of the diagnostics
+                            interpLog.debug("Failed to create a bootstrap method handle", thrown);
+                            // instead, throw an run time error
+                            BasicBlockBuilder fb = gf.getFirstBuilder();
+                            ClassTypeDescriptor bmeDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/BootstrapMethodError");
+                            Value error = fb.new_(bmeDesc);
+                            fb.call(fb.constructorOf(error, bmeDesc, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+                            fb.throw_(error);
+                            return;
+                        }
+                        // todo...
 
                         DefinedTypeDefinition enclosingType = gf.getCurrentElement().getEnclosingType();
                         ClassTypeDescriptor callSiteDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/CallSite");
@@ -1924,7 +1951,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     }
 
     private String getNameOfFieldRef(final int fieldRef) {
-        return getClassFile().getFieldrefConstantName(fieldRef);
+        ClassFileImpl classFile = getClassFile();
+        return classFile.getNameAndTypeConstantName(classFile.getFieldrefNameAndTypeIndex(fieldRef));
     }
 
     private String getNameOfMethodRef(final int methodRef) {
