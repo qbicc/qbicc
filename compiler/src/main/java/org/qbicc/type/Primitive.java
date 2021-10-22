@@ -63,6 +63,7 @@ public enum Primitive {
             case 'C': return CHAR;
             case 'F': return FLOAT;
             case 'D': return DOUBLE;
+            case 'Z': return BOOLEAN;
             case 'V': return VOID;
             default: throw new IllegalStateException("Unexpected primitive type:" + shortName);
         }

@@ -251,6 +251,14 @@ public final class CoreIntrinsics {
             return builder.isLe(lf.literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), tables.getFirstInterfaceTypeId()), id);
         };
 
+        InstanceIntrinsic isPrimitive = (builder, instance, target, arguments) -> {
+            ValueType firstPrimType = Primitive.getPrimitiveFor('Z').getType();
+            ValueType lastPrimType = Primitive.getPrimitiveFor('V').getType();
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance), coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
+            return builder.and(builder.isGe(id, lf.literalOfType(firstPrimType)), builder.isLe(id, lf.literalOfType(lastPrimType)));
+        };
+
         StaticIntrinsic getPrimitiveClass = (builder, target, arguments) -> {
             // always called with a string literal
             StringLiteral lit = (StringLiteral) arguments.get(0);
@@ -269,6 +277,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(jlcDesc, "getPrimitiveClass", stringToClass, getPrimitiveClass);
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isArray", emptyToBool, isArray);
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isInterface", emptyToBool, isInterface);
+        intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isPrimitive", emptyToBool, isPrimitive);
 
         StaticIntrinsic classForName0 = (builder, target, arguments) -> {
             // ignore fourth argument
