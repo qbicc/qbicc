@@ -18,7 +18,7 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
     @Override
     public void accept(CompilationContext ctxt) {
         // NOTE: CoreIntrinsics.registerOrgQbiccObjectModelIntrinsics depends on the exact order
-        //       in which typeIds are assigned to implement intrinsics is_class, is_interface, and is_prim_array.
+        //       in which typeIds are assigned to implement intrinsics is_class, is_interface, is_prim_array, and is_primitive.
         //       If any changes are made in the order here, the implementation of those primitives must be updated!
 
         RTAInfo info = RTAInfo.get(ctxt);
