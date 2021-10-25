@@ -693,18 +693,23 @@ public final class VmImpl implements Vm {
             return mt;
         }
         VmClassImpl methodTypeClass = bootstrapClassLoader.loadClass("java/lang/invoke/MethodType");
-        // construct it directly
-        mt = manuallyInitialize(methodTypeClass.newInstance());
+        // construct it via factory method
         LoadedTypeDefinition mtDef = methodTypeClass.getTypeDefinition();
+        int makeImplIdx = mtDef.findSingleMethodIndex(me -> me.nameEquals("makeImpl"));
+        if (makeImplIdx == -1) {
+            // bad JDK?
+            throw new IllegalStateException();
+        }
+        MethodElement method = mtDef.getMethod(makeImplIdx);
+        VmInvokable inv = methodTypeClass.getOrCompile(method);
         TypeDescriptor returnType = methodDescriptor.getReturnType();
-        mt.getMemory().storeRef(mt.indexOf(mtDef.findField("rtype")), getClassForDescriptor(cl, returnType), MemoryAtomicityMode.UNORDERED);
         List<TypeDescriptor> parameterTypes = methodDescriptor.getParameterTypes();
         int size = parameterTypes.size();
-        VmRefArrayImpl array = (VmRefArrayImpl) classClass.getArrayClass().newInstance(size);
+        VmRefArrayImpl array = manuallyInitialize((VmRefArrayImpl) classClass.getArrayClass().newInstance(size));
         for (int i = 0; i < size; i ++) {
             array.getMemory().storeRef(array.getArrayElementOffset(i), getClassForDescriptor(cl, parameterTypes.get(i)), MemoryAtomicityMode.UNORDERED);
         }
-        mt.getMemory().storeRef(mt.indexOf(mtDef.findField("ptypes")), array, MemoryAtomicityMode.UNORDERED);
+        mt = inv.invoke(Vm.requireCurrentThread(), null, List.of(getClassForDescriptor(cl, returnType), array, Boolean.valueOf(true)));
         VmObject appearing = cl.methodTypeCache.putIfAbsent(methodDescriptor, mt);
         if (appearing != null) {
             mt = appearing;
