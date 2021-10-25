@@ -9,8 +9,17 @@ final class VmDoubleArrayImpl extends VmArrayImpl {
         super(vm.doubleArrayClass, size);
     }
 
+    VmDoubleArrayImpl(final VmDoubleArrayImpl original) {
+        super(original);
+    }
+
     @Override
     public int getArrayElementOffset(int index) {
         return getVmClass().getVm().doubleArrayContentOffset + (index << 3);
+    }
+
+    @Override
+    protected VmDoubleArrayImpl clone() {
+        return new VmDoubleArrayImpl(this);
     }
 }

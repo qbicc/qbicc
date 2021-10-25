@@ -32,6 +32,11 @@ abstract class MemoryImpl implements Memory {
         things = dataSize == 0 ? NO_THINGS : new Object[thingSize];
     }
 
+    MemoryImpl(MemoryImpl original) {
+        data = original.data.clone();
+        things = original.things.clone();
+    }
+
     static int alignGap(final int align, final int offset) {
         int mask = align - 1;
         return align - offset & mask;
@@ -605,4 +610,7 @@ abstract class MemoryImpl implements Memory {
     byte[] getArray() {
         return data;
     }
+
+    @Override
+    protected abstract MemoryImpl clone();
 }

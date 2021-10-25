@@ -72,6 +72,16 @@ class VmObjectImpl implements VmObject, Referenceable {
         memory = vm.allocate((int) instanceLayoutInfo.getCompoundType().getSize());
     }
 
+    /**
+     * Cloning constructor.
+     *
+     * @param original the original
+     */
+    VmObjectImpl(VmObjectImpl original) {
+        clazz = original.clazz;
+        memory = original.memory.clone();
+    }
+
     @Override
     public MemoryImpl getMemory() {
         return memory;
@@ -142,6 +152,10 @@ class VmObjectImpl implements VmObject, Referenceable {
     @Override
     public ClassObjectType getObjectTypeId() {
         return (ClassObjectType) clazz.getInstanceObjectTypeId();
+    }
+
+    protected VmObjectImpl clone() {
+        return new VmObjectImpl(this);
     }
 
     Lock getLock() {

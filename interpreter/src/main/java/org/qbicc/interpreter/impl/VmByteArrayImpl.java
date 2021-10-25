@@ -18,8 +18,17 @@ final class VmByteArrayImpl extends VmArrayImpl {
         this(vm, bytes, 0, bytes.length);
     }
 
+    VmByteArrayImpl(VmByteArrayImpl original) {
+        super(original);
+    }
+
     @Override
     public int getArrayElementOffset(int index) {
         return getVmClass().getVm().byteArrayContentOffset + index;
+    }
+
+    @Override
+    protected VmByteArrayImpl clone() {
+        return new VmByteArrayImpl(this);
     }
 }

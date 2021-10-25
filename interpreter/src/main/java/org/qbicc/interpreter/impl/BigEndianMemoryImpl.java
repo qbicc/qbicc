@@ -18,6 +18,10 @@ final class BigEndianMemoryImpl extends MemoryImpl {
         super(dataSize);
     }
 
+    BigEndianMemoryImpl(final BigEndianMemoryImpl original) {
+        super(original);
+    }
+
     @Override
     public int load16(int index, MemoryAtomicityMode mode) {
         if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
@@ -292,4 +296,7 @@ final class BigEndianMemoryImpl extends MemoryImpl {
         return newMemory;
     }
 
+    protected MemoryImpl clone() {
+        return new BigEndianMemoryImpl(this);
+    }
 }

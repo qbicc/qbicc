@@ -7,16 +7,13 @@ import org.qbicc.type.ReferenceArrayObjectType;
  *
  */
 final class VmRefArrayImpl extends VmArrayImpl implements VmReferenceArray {
-    private final int size;
 
     VmRefArrayImpl(VmArrayClassImpl clazz, final int size) {
         super(clazz, size);
-        this.size = size;
     }
 
-    @Override
-    public int getLength() {
-        return size;
+    VmRefArrayImpl(final VmRefArrayImpl original) {
+        super(original);
     }
 
     @Override
@@ -29,5 +26,10 @@ final class VmRefArrayImpl extends VmArrayImpl implements VmReferenceArray {
     @Override
     public ReferenceArrayObjectType getObjectType() {
         return (ReferenceArrayObjectType) super.getObjectType();
+    }
+
+    @Override
+    protected VmRefArrayImpl clone() {
+        return new VmRefArrayImpl(this);
     }
 }

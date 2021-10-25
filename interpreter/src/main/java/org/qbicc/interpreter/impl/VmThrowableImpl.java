@@ -22,6 +22,11 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
         super(clazz);
     }
 
+    VmThrowableImpl(final VmThrowableImpl original) {
+        super(original);
+        backTrace = original.backTrace;
+    }
+
     void initializeDepth() {
         Frame currentFrame = ((VmThreadImpl) Vm.requireCurrentThread()).currentFrame;
         if (currentFrame == null) {
@@ -136,5 +141,10 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
             stackTrace[i] = new StackTraceElement(classLoaderName, moduleName, moduleVersion, declaringClass, methodName, fileName, lineNumber);
         }
         return stackTrace;
+    }
+
+    @Override
+    protected VmThrowableImpl clone() {
+        return new VmThrowableImpl(this);
     }
 }

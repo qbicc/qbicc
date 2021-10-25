@@ -9,8 +9,17 @@ final class VmShortArrayImpl extends VmArrayImpl {
         super(vm.shortArrayClass, size);
     }
 
+    VmShortArrayImpl(final VmShortArrayImpl original) {
+        super(original);
+    }
+
     @Override
     public int getArrayElementOffset(int index) {
         return getVmClass().getVm().shortArrayContentOffset + (index << 1);
+    }
+
+    @Override
+    protected VmShortArrayImpl clone() {
+        return new VmShortArrayImpl(this);
     }
 }
