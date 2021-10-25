@@ -18,6 +18,7 @@ import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.interpreter.Memory;
+import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
@@ -179,6 +180,10 @@ final class VmInvokableImpl implements VmInvokable {
                 }
                 frame.block = next;
             }
+        } catch (IllegalStateException | UnsupportedOperationException t) {
+            // capture exception from frame state
+            VmThrowableClassImpl internalErrorClass = (VmThrowableClassImpl) thread.vm.getBootstrapClassLoader().loadClass("java/lang/InternalError");
+            throw new Thrown(internalErrorClass.newInstance("Internal error: " + t));
         } finally {
             thread.currentFrame = caller;
         }
