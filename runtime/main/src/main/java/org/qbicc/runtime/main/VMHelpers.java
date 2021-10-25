@@ -584,7 +584,7 @@ public final class VMHelpers {
         //function_ptr<UnaryOperator<void_ptr>> runFuncPtr = addr_of_function(VMHelpers::threadWrapperNative);
 
         /* create pthread */
-        ptr<?> pthreadVoid = malloc(sizeof(pthread_t_ptr.class));
+        ptr<?> pthreadVoid = malloc(sizeof(pthread_t.class));
         if (pthreadVoid.isNull()) {
             throw new OutOfMemoryError(/*"Allocation failed"*/);
         }
