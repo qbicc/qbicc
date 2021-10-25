@@ -277,6 +277,19 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     @Override
     public VmClassImpl getSuperClass() {
+        VmClassImpl superClass = this.superClass;
+        if (superClass == null) {
+            LoadedTypeDefinition typeDefinition = this.typeDefinition;
+            LoadedTypeDefinition def = typeDefinition.getSuperClass();
+            if (def == null) {
+                // no superclass
+                return null;
+            } else {
+                VmClassLoader classLoader = getVm().getClassLoaderForContext(def.getContext());
+                superClass = (VmClassImpl) classLoader.loadClass(def.getInternalName());
+            }
+            this.superClass = superClass;
+        }
         return superClass;
     }
 
@@ -373,7 +386,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     }
 
     void initialize(VmThreadImpl thread) throws Thrown {
-        VmClassImpl superClass = this.superClass;
+        VmClassImpl superClass = getSuperClass();
         if (superClass != null) {
             superClass.initialize(thread);
         }
