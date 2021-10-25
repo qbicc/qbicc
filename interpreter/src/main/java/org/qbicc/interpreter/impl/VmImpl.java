@@ -422,6 +422,26 @@ public final class VmImpl implements Vm {
                 return rhs.getTypeDefinition().isSubtypeOf(lhs.getTypeDefinition());
             });
             classClass.registerInvokable("isPrimitive", (thread, target, args) -> Boolean.valueOf(target instanceof VmPrimitiveClass));
+            classClass.registerInvokable("getEnclosingMethod0", (thread, target, args) -> {
+                LoadedTypeDefinition def = ((VmClassImpl) target).getTypeDefinition();
+                LoadedTypeDefinition emcDef = def.getEnclosingMethodClass();
+                if (emcDef == null) {
+                    return null;
+                }
+                VmImpl vm = (VmImpl) thread.getVM();
+                VmArrayClassImpl arrayClass = vm.objectClass.getArrayClass();
+                VmArrayImpl vmArray = arrayClass.newInstance(3);
+                ClassContext emcCtxt = emcDef.getContext();
+                VmClassLoaderImpl emcLoader = vm.getClassLoaderForContext(emcCtxt);
+                VmClassImpl emc = emcLoader.loadClass(emcDef.getInternalName());
+                vmArray.getMemory().storeRef(0, vm.intern(emc.getName()), MemoryAtomicityMode.UNORDERED);
+                MethodElement enclosingMethod = def.getEnclosingMethod();
+                if (enclosingMethod != null) {
+                    vmArray.getMemory().storeRef(1, vm.intern(enclosingMethod.getName()), MemoryAtomicityMode.UNORDERED);
+                    vmArray.getMemory().storeRef(2, vm.intern(enclosingMethod.getDescriptor().toString()), MemoryAtomicityMode.UNORDERED);
+                }
+                return vmArray;
+            });
 
             // Array
             VmClassImpl arrayClass = bootstrapClassLoader.loadClass("java/lang/reflect/Array");

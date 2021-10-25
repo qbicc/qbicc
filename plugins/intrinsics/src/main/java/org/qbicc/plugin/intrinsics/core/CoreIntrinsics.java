@@ -53,6 +53,7 @@ import org.qbicc.type.CompoundType.Member;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.InterfaceObjectType;
+import org.qbicc.type.NullableType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.ReferenceType;
@@ -209,6 +210,7 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor jloDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
 
         MethodDescriptor classToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(jlcDesc));
+        MethodDescriptor emptyToObjArray = MethodDescriptor.synthesize(classContext, ArrayTypeDescriptor.of(classContext, jloDesc), List.of());
         MethodDescriptor emptyToString = MethodDescriptor.synthesize(classContext, jlsDesc, List.of());
         MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
         MethodDescriptor stringToClass = MethodDescriptor.synthesize(classContext, jlcDesc, List.of(jlsDesc));
@@ -292,6 +294,13 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(jlcDesc, "forName0", stringBoolLoaderClassToClass, classForName0);
+
+        InstanceIntrinsic getEnclosingMethod0 = (builder, instance, target, arguments) -> {
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            return lf.nullLiteralOfType((NullableType) target.getType().getReturnType());
+        };
+
+        intrinsics.registerIntrinsic(Phase.ANALYZE, jlcDesc, "getEnclosingMethod0", emptyToObjArray, getEnclosingMethod0);
     }
 
     public static void registerJavaLangStringIntrinsics(CompilationContext ctxt) {

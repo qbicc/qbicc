@@ -737,6 +737,18 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                         }
                     }
                 }
+            } else if (attributeNameEquals(i, "EnclosingMethod")) {
+                int classIdx = getRawAttributeShort(i, 0);
+                int methodNatIdx = getRawAttributeShort(i, 2);
+                String classConstantName = getClassConstantName(classIdx);
+                if (methodNatIdx == 0) {
+                    builder.setEnclosingMethod(classConstantName, null, null);
+                } else {
+                    String methodName = getNameAndTypeConstantName(methodNatIdx);
+                    int mdi = getNameAndTypeConstantDescriptorIdx(methodNatIdx);
+                    MethodDescriptor methodDesc = (MethodDescriptor) getDescriptorConstant(mdi);
+                    builder.setEnclosingMethod(classConstantName, methodName, methodDesc);
+                }
             }
         }
         if (signature == null) {

@@ -68,6 +68,9 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private final EnclosedClassResolver[] enclosedClassResolvers;
     private final int[] enclosedClassResolverIndexes;
     private final DefinedTypeDefinition superClass;
+    final String enclosingMethodClassName;
+    final String enclosingMethodName;
+    final MethodDescriptor enclosingMethodDesc;
 
     private volatile DefinedTypeDefinition loaded;
 
@@ -117,6 +120,9 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         int enclosedClassCount = builder.enclosedClassCount;
         this.enclosedClassResolvers = enclosedClassCount == 0 ? NO_ENCLOSED : Arrays.copyOf(builder.enclosedClassResolvers, enclosedClassCount);
         this.enclosedClassResolverIndexes = enclosedClassCount == 0 ? NO_INTS : Arrays.copyOf(builder.enclosedClassResolverIndexes, enclosedClassCount);
+        enclosingMethodClassName = builder.enclosingMethodClassName;
+        enclosingMethodName = builder.enclosingMethodName;
+        enclosingMethodDesc = builder.enclosingMethodDesc;
     }
 
     public ClassContext getContext() {
@@ -582,6 +588,9 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         EnclosedClassResolver[] enclosedClassResolvers = NO_ENCLOSED;
         int[] enclosedClassResolverIndexes = NO_INTS;
         DefinedTypeDefinition superClass;
+        String enclosingMethodClassName;
+        String enclosingMethodName;
+        MethodDescriptor enclosingMethodDesc;
 
         public void setContext(final ClassContext context) {
             this.context = context;
@@ -716,6 +725,13 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             enclosedClassResolvers[enclosedClassCount] = resolver;
             enclosedClassIndexes[enclosedClassCount] = index;
             this.enclosedClassCount = enclosedClassCount + 1;
+        }
+
+        public void setEnclosingMethod(final String classInternalName, final String methodName, final MethodDescriptor methodType) {
+            Assert.checkNotNullParam("classInternalName", classInternalName);
+            this.enclosingMethodClassName = classInternalName;
+            this.enclosingMethodName = methodName;
+            this.enclosingMethodDesc = methodType;
         }
 
         public void expectInterfaceNameCount(final int count) {
