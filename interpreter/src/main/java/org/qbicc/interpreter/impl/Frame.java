@@ -1459,7 +1459,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl thread, Clone node) {
-        return null;
+        // todo: implement according to #674
+        VmObjectImpl original = (VmObjectImpl) require(node.getInput());
+        return original.clone();
     }
     @Override
     public Object visit(VmThreadImpl thread, CmpAndSwap node) {

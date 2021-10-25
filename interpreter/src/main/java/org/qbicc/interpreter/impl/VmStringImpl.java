@@ -48,6 +48,11 @@ final class VmStringImpl extends VmObjectImpl implements VmString {
         super(clazz);
     }
 
+    VmStringImpl(final VmStringImpl original) {
+        super(original);
+        content = original.content;
+    }
+
     @Override
     public String getContent() {
         String content = this.content;
@@ -80,5 +85,10 @@ final class VmStringImpl extends VmObjectImpl implements VmString {
     @Override
     public boolean contentEquals(String string) {
         return getContent().equals(string);
+    }
+
+    @Override
+    protected VmStringImpl clone() {
+        return new VmStringImpl(this);
     }
 }

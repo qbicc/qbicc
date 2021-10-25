@@ -15,6 +15,11 @@ abstract class VmArrayImpl extends VmObjectImpl implements VmArray {
         this.length = size;
     }
 
+    VmArrayImpl(VmArrayImpl original) {
+        super(original);
+        this.length = original.length;
+    }
+
     @Override
     public int getLength() {
         return length;
@@ -24,4 +29,7 @@ abstract class VmArrayImpl extends VmObjectImpl implements VmArray {
     public ArrayObjectType getObjectType() {
         return (ArrayObjectType) getVmClass().getInstanceObjectType();
     }
+
+    @Override
+    protected abstract VmArrayImpl clone();
 }
