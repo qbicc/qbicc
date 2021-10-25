@@ -454,7 +454,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                             } else {
                                 throw new IllegalStateException("Unknown native element");
                             }
-                            throw new Thrown(uleClazz.newInstance(clazz.getName() + "." + name));
+                            throw new Thrown(uleClazz.newInstance(getName() + "." + name));
                         };
                     }
                     methodTable.put(element, target);
