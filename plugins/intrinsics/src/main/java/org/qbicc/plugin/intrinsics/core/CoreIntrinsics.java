@@ -106,8 +106,10 @@ public final class CoreIntrinsics {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
         Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
+        Literal falseLiteral = ctxt.getLiteralFactory().literalOf(false);
 
         StaticIntrinsic emptyInit = (builder, target, arguments) -> voidLiteral;
+        InstanceIntrinsic alwaysFalse = (builder, instance, target, arguments) -> falseLiteral;
 
         ClassTypeDescriptor fileInputStreamDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileInputStream");
         ClassTypeDescriptor fileOutputStreamDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileOutputStream");
@@ -135,6 +137,7 @@ public final class CoreIntrinsics {
 
         MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
         MethodDescriptor classToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(classDesc));
+        MethodDescriptor classToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(classDesc));
 
         intrinsics.registerIntrinsic(fileInputStreamDesc, "initIDs", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(fileOutputStreamDesc, "initIDs", emptyToVoid, emptyInit);
@@ -153,6 +156,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(inflateDesc, "initIDs", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(unsafeDesc, "registerNatives", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(Phase.ANALYZE, unsafeDesc, "ensureClassInitialized", classToVoid, emptyInit);
+        intrinsics.registerIntrinsic(Phase.ANALYZE, unsafeDesc, "shouldBeInitialized0", classToBool, alwaysFalse);
         intrinsics.registerIntrinsic(vmDesc, "initialize", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(vmDesc, "initializeFromArchive", classToVoid, emptyInit);
         intrinsics.registerIntrinsic(perfDesc, "registerNatives", emptyToVoid, emptyInit);

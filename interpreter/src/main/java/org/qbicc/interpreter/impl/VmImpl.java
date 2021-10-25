@@ -356,6 +356,8 @@ public final class VmImpl implements Vm {
                 ((VmClassImpl) args.get(0)).initialize((VmThreadImpl) thread);
                 return null;
             });
+            unsafeClass.registerInvokable("shouldBeInitialized0", (thread, target, args) ->
+                Boolean.valueOf(((VmClassImpl) args.get(0)).shouldBeInitialized()));
 
             // System
             VmClassImpl systemClass = bootstrapClassLoader.loadClass("java/lang/System");

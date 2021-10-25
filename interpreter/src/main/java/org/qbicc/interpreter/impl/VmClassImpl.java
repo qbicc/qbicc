@@ -489,6 +489,10 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         return "class " + getName();
     }
 
+    boolean shouldBeInitialized() {
+        return state == State.UNINITIALIZED;
+    }
+
     enum State {
         UNINITIALIZED,
         INITIALIZING,
