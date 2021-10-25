@@ -874,6 +874,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         builder.setModifiers(methodModifiers);
         String name = getUtf8Constant(getShort(methodOffsets[index] + 2));
         builder.setName(name);
+        builder.setSourceFileName(sourceFile);
         boolean isNative = (methodModifiers & ACC_NATIVE) != 0;
         boolean mayHaveBody = (methodModifiers & ACC_ABSTRACT) == 0 && ! isNative;
         if (mayHaveBody) {
@@ -898,7 +899,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         addParameters(builder, index, enclosing);
         addMethodAnnotations(index, builder);
         builder.setIndex(index);
-        builder.setSourceFileName(sourceFile);
         return builder.build();
     }
 
