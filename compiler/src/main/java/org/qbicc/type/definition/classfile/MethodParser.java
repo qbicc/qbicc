@@ -40,7 +40,6 @@ import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
-import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FunctionType;
@@ -1568,8 +1567,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             // instead, throw an run time error
                             BasicBlockBuilder fb = gf.getFirstBuilder();
                             ClassTypeDescriptor bmeDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/BootstrapMethodError");
+                            ClassTypeDescriptor thrDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/Throwable");
                             Value error = fb.new_(bmeDesc);
-                            fb.call(fb.constructorOf(error, bmeDesc, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+                            fb.call(fb.constructorOf(error, bmeDesc, MethodDescriptor.synthesize(ctxt, BaseTypeDescriptor.V, List.of(thrDesc))), List.of(lf.literalOf(thrown.getThrowable())));
                             fb.throw_(error);
                             return;
                         }
