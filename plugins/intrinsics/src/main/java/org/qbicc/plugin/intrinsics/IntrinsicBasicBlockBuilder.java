@@ -79,6 +79,10 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
         return new IntrinsicBasicBlockBuilder(ctxt, delegate, Phase.ADD);
     }
 
+    public static IntrinsicBasicBlockBuilder createForAnalyzePhase(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+        return new IntrinsicBasicBlockBuilder(ctxt, delegate, Phase.ANALYZE);
+    }
+
     public static IntrinsicBasicBlockBuilder createForLowerPhase(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         return new IntrinsicBasicBlockBuilder(ctxt, delegate, Phase.LOWER);
     }
