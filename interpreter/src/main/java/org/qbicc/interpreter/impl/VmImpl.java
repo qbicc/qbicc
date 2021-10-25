@@ -46,6 +46,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -441,6 +442,20 @@ public final class VmImpl implements Vm {
                     vmArray.getMemory().storeRef(2, vm.intern(enclosingMethod.getDescriptor().toString()), MemoryAtomicityMode.UNORDERED);
                 }
                 return vmArray;
+            });
+            // todo: this one probably should just be a single field on Class
+            classClass.registerInvokable("getDeclaringClass0", (thread, target, args) -> {
+                LoadedTypeDefinition def = ((VmClassImpl) target).getTypeDefinition();
+                NestedClassElement enc = def.getEnclosingNestedClass();
+                if (enc != null) {
+                    DefinedTypeDefinition enclosingType = enc.getEnclosingType();
+                    if (enclosingType != null) {
+                        VmImpl vm = (VmImpl) thread.getVM();
+                        VmClassLoaderImpl loader = vm.getClassLoaderForContext(enclosingType.getContext());
+                        return loader.loadClass(enclosingType.getInternalName());
+                    }
+                }
+                return null;
             });
 
             // Array
