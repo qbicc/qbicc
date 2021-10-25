@@ -29,6 +29,7 @@ import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.machine.arch.Platform;
@@ -418,6 +419,7 @@ public final class VmImpl implements Vm {
                 VmClassImpl rhs = (VmClassImpl)args.get(0);
                 return rhs.getTypeDefinition().isSubtypeOf(lhs.getTypeDefinition());
             });
+            classClass.registerInvokable("isPrimitive", (thread, target, args) -> Boolean.valueOf(target instanceof VmPrimitiveClass));
 
             // Array
             VmClassImpl arrayClass = bootstrapClassLoader.loadClass("java/lang/reflect/Array");
