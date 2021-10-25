@@ -115,6 +115,7 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor fileOutputStreamDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileOutputStream");
         ClassTypeDescriptor fileDescriptorDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileDescriptor");
         ClassTypeDescriptor randomAccessFileDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/RandomAccessFile");
+        ClassTypeDescriptor unixFileSystemDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/UnixFileSystem");
         ClassTypeDescriptor winNtFileSystem = ClassTypeDescriptor.synthesize(classContext, "java/io/WinNTFileSystem");
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor classLoaderDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ClassLoader");
@@ -143,6 +144,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(fileOutputStreamDesc, "initIDs", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(fileDescriptorDesc, "initIDs", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(randomAccessFileDesc, "initIDs", emptyToVoid, emptyInit);
+        intrinsics.registerIntrinsic(unixFileSystemDesc, "initIDs", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(winNtFileSystem, "initIDs", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(classDesc, "registerNatives", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(classLoaderDesc, "registerNatives", emptyToVoid, emptyInit);
