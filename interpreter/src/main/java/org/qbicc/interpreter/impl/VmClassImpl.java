@@ -400,13 +400,15 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                     this.state = State.INITIALIZING;
                     try {
                         InitializerElement initializer = typeDefinition.getInitializer();
-                        if (initializer.hasMethodBodyFactory()) {
+                        if (initializer != null && initializer.hasMethodBodyFactory()) {
                             if (initializer.tryCreateMethodBody()) {
                                 compile(initializer).invoke(thread, null, List.of());
                                 state = this.state = State.INITIALIZED;
                             } else {
-                                throw new IllegalStateException("Failed to compile initializer body");
+                                throw new Thrown(vm.linkageErrorClass.newInstance("Failed to compile initializer body for " + getName()));
                             }
+                        } else {
+                            state = this.state = State.INITIALIZED;
                         }
                     } catch (Thrown t) {
                         initException = this.initException = (VmThrowableImpl) t.getThrowable();
