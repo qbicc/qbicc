@@ -343,8 +343,7 @@ public final class CoreIntrinsics {
             ConstructorElement ctor = uoe.getConstructor(idx);
             Value ex = builder.new_(uoeType);
             builder.call(builder.constructorOf(ex, ctor), List.of());
-            builder.throw_(ex);
-            return lf.zeroInitializerLiteralOfType(ts.getVoidType());
+            throw new BlockEarlyTermination(builder.throw_(ex));
         };
 
         intrinsics.registerIntrinsic(Phase.ANALYZE, jliMhnDesc, "resolve", memberNameClassBoolToMemberName, resolve);
