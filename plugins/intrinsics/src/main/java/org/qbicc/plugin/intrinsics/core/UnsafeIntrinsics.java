@@ -596,7 +596,7 @@ public class UnsafeIntrinsics {
                 return lf.literalOf(0L);
             }
             // cast to long to fit method contract
-            return builder.extend(builder.offsetOfField(field), (WordType) target.getType().getReturnType());
+            return builder.extend(builder.offsetOfField(field), (WordType) target.getExecutable().getType().getReturnType());
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "objectFieldOffset", classStringToLong, objectFieldOffset);

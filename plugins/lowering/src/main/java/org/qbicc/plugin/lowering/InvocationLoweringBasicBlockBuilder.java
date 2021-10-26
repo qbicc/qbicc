@@ -166,7 +166,8 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         DispatchTables.ITableInfo info = dt.getITableInfo(target.getEnclosingType().load());
         if (info == null) {
             // No realized invocation targets are possible for this method!
-            throw new BlockEarlyTermination(fb.callNoReturn(staticMethod(ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError")), List.of()));
+            MethodElement method = ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError");
+            throw new BlockEarlyTermination(fb.callNoReturn(staticMethod(method, method.getDescriptor(), method.getType()), List.of()));
         }
 
         Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
@@ -199,7 +200,8 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             phi.setValueForBlock(ctxt, getCurrentElement(), body, fb.add(phi, ctxt.getLiteralFactory().literalOf(1)));
 
             begin(failLabel);
-            callNoReturn(staticMethod(ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError")), List.of());
+            MethodElement method = ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError");
+            callNoReturn(staticMethod(method, method.getDescriptor(), method.getType()), List.of());
         } catch (BlockEarlyTermination ignored) {
             // ignore; continue to generate validEntry block
         }

@@ -24,6 +24,7 @@ import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -233,7 +234,7 @@ public final class CoreIntrinsics {
             // TODO: Once we support java.lang.Class literals, we should add a check here to
             //  emit a CheckCast node instead of a call to the helper method if `instance` is a Class literal.
             MethodElement helper = ctxt.getVMHelperMethod("checkcast_class");
-            builder.getFirstBuilder().call(builder.staticMethod(helper), List.of(arguments.get(0), instance));
+            builder.getFirstBuilder().call(builder.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(arguments.get(0), instance));
 
             // Generics erasure issue. The return type of Class<T>.cast is T, but it gets wiped to Object.
             // If the result of this cast is actually used as a T, there will be a (redundant) checkcast bytecode following this operation.
@@ -293,21 +294,21 @@ public final class CoreIntrinsics {
         StaticIntrinsic classForName0 = (builder, target, arguments) -> {
             // ignore fourth argument
             MethodElement vmhForName = ctxt.getVMHelperMethod("classForName");
-            return builder.call(builder.staticMethod(vmhForName), arguments.subList(0, 3));
+            return builder.call(builder.staticMethod(vmhForName, vmhForName.getDescriptor(), vmhForName.getType()), arguments.subList(0, 3));
         };
 
         intrinsics.registerIntrinsic(jlcDesc, "forName0", stringBoolLoaderClassToClass, classForName0);
 
         InstanceIntrinsic getEnclosingMethod0 = (builder, instance, target, arguments) -> {
             LiteralFactory lf = ctxt.getLiteralFactory();
-            return lf.nullLiteralOfType((NullableType) target.getType().getReturnType());
+            return lf.nullLiteralOfType((NullableType) target.getExecutable().getType().getReturnType());
         };
 
         intrinsics.registerIntrinsic(Phase.ANALYZE, jlcDesc, "getEnclosingMethod0", emptyToObjArray, getEnclosingMethod0);
 
         InstanceIntrinsic getDeclaringClass0 = (builder, instance, target, arguments) -> {
             LiteralFactory lf = ctxt.getLiteralFactory();
-            return lf.nullLiteralOfType((NullableType) target.getType().getReturnType());
+            return lf.nullLiteralOfType((NullableType) target.getExecutable().getType().getReturnType());
         };
 
         intrinsics.registerIntrinsic(Phase.ANALYZE, jlcDesc, "getDeclaringClass0", emptyToClass, getDeclaringClass0);
@@ -342,7 +343,7 @@ public final class CoreIntrinsics {
             }
             ConstructorElement ctor = uoe.getConstructor(idx);
             Value ex = builder.new_(uoeType);
-            builder.call(builder.constructorOf(ex, ctor), List.of());
+            builder.call(builder.constructorOf(ex, ctor, ctor.getDescriptor(), ctor.getType()), List.of());
             throw new BlockEarlyTermination(builder.throw_(ex));
         };
 
@@ -444,7 +445,7 @@ public final class CoreIntrinsics {
         ));
 
         StaticIntrinsic arraycopy = (builder, target, arguments) ->
-            builder.call(builder.staticMethod(vmDesc, "arraycopy", target.getDescriptor()), arguments);
+            builder.call(builder.staticMethod(vmDesc, "arraycopy", target.getExecutable().getDescriptor()), arguments);
 
         intrinsics.registerIntrinsic(systemDesc, "arraycopy", arraycopyDesc, arraycopy);
 
@@ -503,8 +504,8 @@ public final class CoreIntrinsics {
         MethodDescriptor voidIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.I));
         MethodDescriptor booleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
 
-        StaticIntrinsic nopStatic = (builder, target, arguments) -> ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
-        InstanceIntrinsic nopInstance = (builder, instance, target, arguments) -> ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
+        StaticIntrinsic nopStatic = (builder, target, arguments) -> ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getExecutable().getType().getReturnType());
+        InstanceIntrinsic nopInstance = (builder, instance, target, arguments) -> ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getExecutable().getType().getReturnType());
 
         /* registerNatives */
         intrinsics.registerIntrinsic(jltDesc, "registerNatives", voidDesc, nopStatic);
@@ -536,7 +537,7 @@ public final class CoreIntrinsics {
             ValueHandle threadStatusHandle = builder.instanceFieldOf(threadObjectHandle, jltDesc, "threadStatus", BaseTypeDescriptor.I);
             builder.store(threadStatusHandle, ctxt.getLiteralFactory().literalOf(threadTerminated), MemoryAtomicityMode.NONE);
 
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType()); /* return null */
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getExecutable().getType().getReturnType()); /* return null */
         };
         intrinsics.registerIntrinsic(vmHelpersDesc, "threadWrapperNative", threadWrapperNativeDesc, threadWrapperNative);
 
@@ -721,7 +722,7 @@ public final class CoreIntrinsics {
 
         InstanceIntrinsic getClassIntrinsic = (builder, instance, target, arguments) -> {
             MethodElement helper = ctxt.getVMHelperMethod("get_class");
-            return builder.getFirstBuilder().call(builder.staticMethod(helper), List.of(instance));
+            return builder.getFirstBuilder().call(builder.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(instance));
         };
 
         intrinsics.registerIntrinsic(Phase.ADD, objDesc, "getClass", getClassDesc, getClassIntrinsic);
@@ -761,7 +762,7 @@ public final class CoreIntrinsics {
 
         // stub - public final native void wait(long timeoutMillis)
         MethodDescriptor waitDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.J));
-        InstanceIntrinsic wait = (builder, instance, target, arguments) -> ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
+        InstanceIntrinsic wait = (builder, instance, target, arguments) -> ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getExecutable().getType().getReturnType());
         intrinsics.registerIntrinsic(objDesc, "wait", waitDesc, wait);
     }
 
@@ -876,7 +877,7 @@ public final class CoreIntrinsics {
         )), attachNewThread);
 
         InstanceIntrinsic xxxValue = (builder, instance, target, arguments) -> {
-            WordType to = (WordType) target.getType().getReturnType();
+            WordType to = (WordType) target.getExecutable().getType().getReturnType();
             return smartConvert(builder, instance, to, true);
         };
 
@@ -909,7 +910,7 @@ public final class CoreIntrinsics {
 
         InstanceIntrinsic set = (builder, instance, target, arguments) -> {
             builder.store(builder.elementOf(builder.pointerHandle(instance), arguments.get(0)), arguments.get(1), MemoryAtomicityMode.NONE);
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getExecutable().getType().getReturnType());
         };
 
         intrinsics.registerIntrinsic(ptrDesc, "set", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.I, nObjDesc)), set);
@@ -967,7 +968,7 @@ public final class CoreIntrinsics {
 
         StaticIntrinsic sizeof = (builder, target, arguments) -> {
             long size = arguments.get(0).getType().getSize();
-            IntegerType returnType = (IntegerType) target.getType().getReturnType();
+            IntegerType returnType = (IntegerType) target.getExecutable().getType().getReturnType();
             return ctxt.getLiteralFactory().literalOf(returnType, size);
         };
 
@@ -982,7 +983,7 @@ public final class CoreIntrinsics {
                 ctxt.error(builder.getLocation(), "unexpected type for sizeof(Class)");
                 size = arg.getType().getSize();
             }
-            IntegerType returnType = (IntegerType) target.getType().getReturnType();
+            IntegerType returnType = (IntegerType) target.getExecutable().getType().getReturnType();
             return ctxt.getLiteralFactory().literalOf(returnType, size);
         };
 
@@ -999,7 +1000,7 @@ public final class CoreIntrinsics {
             } else {
                 align = argType.getAlign();
             }
-            IntegerType returnType = (IntegerType) target.getType().getReturnType();
+            IntegerType returnType = (IntegerType) target.getExecutable().getType().getReturnType();
             return ctxt.getLiteralFactory().literalOf(returnType, align);
         };
 
@@ -1045,7 +1046,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(cNativeDesc, "constant", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), constant);
 
         StaticIntrinsic bitCast = (builder, target, arguments) ->
-            builder.bitCast(arguments.get(0), (WordType) target.getType().getReturnType());
+            builder.bitCast(arguments.get(0), (WordType) target.getExecutable().getType().getReturnType());
 
         intrinsics.registerIntrinsic(cNativeDesc, "ptrToRef", MethodDescriptor.synthesize(classContext, objDesc, List.of(ptrDesc)), bitCast);
         intrinsics.registerIntrinsic(cNativeDesc, "refToPtr", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(objDesc)), bitCast);
@@ -1215,7 +1216,7 @@ public final class CoreIntrinsics {
             phi.setValueForBlock(ctxt, builder.getCurrentElement(), from, result);
 
             builder.begin(trueBranch); // true; create Class for array reference
-            result = builder.getFirstBuilder().call(builder.staticMethod(getOrCreateArrayClass), List.of(componentClass, dims));
+            result = builder.getFirstBuilder().call(builder.staticMethod(getOrCreateArrayClass, getOrCreateArrayClass.getDescriptor(), getOrCreateArrayClass.getType()), List.of(componentClass, dims));
             from = builder.goto_(fallThrough);
             phi.setValueForBlock(ctxt, builder.getCurrentElement(), from, result);
             builder.begin(fallThrough);
@@ -1366,7 +1367,7 @@ public final class CoreIntrinsics {
         MethodDescriptor nomOfDesc = MethodDescriptor.synthesize(classContext, pthreadMutexPtrDesc, List.of(objDesc));
         StaticIntrinsic nomOf = (builder, target, arguments) -> {
             Value mutexSlot = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField), MemoryAtomicityMode.NONE);
-            PointerType returnType = (PointerType)target.getType().getReturnType();
+            PointerType returnType = (PointerType)target.getExecutable().getType().getReturnType();
             return builder.valueConvert(mutexSlot, returnType);
         };
         intrinsics.registerIntrinsic(objModDesc, "get_nativeObjectMonitor", nomOfDesc, nomOf);
@@ -1451,7 +1452,7 @@ public final class CoreIntrinsics {
             }
 
             @Override
-            public Value emitIntrinsic(BasicBlockBuilder builder, MethodElement element, List<Value> arguments) {
+            public Value emitIntrinsic(BasicBlockBuilder builder, StaticMethodElementHandle element, List<Value> arguments) {
                 ValueHandle target = getTarget(ctxt, builder, arguments.get(0));
                 if (target == null) {
                     return ctxt.getLiteralFactory().literalOf(false);
@@ -1490,7 +1491,7 @@ public final class CoreIntrinsics {
             }
 
             @Override
-            public Value emitIntrinsic(BasicBlockBuilder builder, MethodElement element, List<Value> arguments) {
+            public Value emitIntrinsic(BasicBlockBuilder builder, StaticMethodElementHandle element, List<Value> arguments) {
                 ValueHandle target = getTarget(ctxt, builder, arguments.get(0));
                 if (target == null) {
                     return arguments.get(0);
@@ -1524,7 +1525,7 @@ public final class CoreIntrinsics {
             }
 
             @Override
-            public Value emitIntrinsic(BasicBlockBuilder builder, MethodElement element, List<Value> arguments) {
+            public Value emitIntrinsic(BasicBlockBuilder builder, StaticMethodElementHandle element, List<Value> arguments) {
                 ValueHandle target = getTarget(ctxt, builder, arguments.get(0));
                 if (target == null) {
                     builder.nop();
@@ -1560,7 +1561,7 @@ public final class CoreIntrinsics {
             }
 
             @Override
-            public Value emitIntrinsic(BasicBlockBuilder builder, MethodElement element, List<Value> arguments) {
+            public Value emitIntrinsic(BasicBlockBuilder builder, StaticMethodElementHandle element, List<Value> arguments) {
                 ValueHandle target = getTarget(ctxt, builder, arguments.get(0));
                 if (target == null) {
                     return arguments.get(0);

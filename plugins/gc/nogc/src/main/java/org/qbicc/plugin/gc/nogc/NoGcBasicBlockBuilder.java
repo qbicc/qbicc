@@ -20,6 +20,7 @@ import org.qbicc.type.IntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.MethodElement;
 
 /**
  *
@@ -46,12 +47,14 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             ptrVal = stackAllocate(compoundType, lf.literalOf(1), align);
         } else {
             long size = compoundType.getSize();
-            ptrVal = notNull(call(staticMethod(noGc.getAllocateMethod()), List.of(lf.literalOf(size), align)));
+            MethodElement method = noGc.getAllocateMethod();
+            ptrVal = notNull(call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(lf.literalOf(size), align)));
         }
         Value oop = valueConvert(ptrVal, type.getReference());
 
         // zero initialize the object's instance fields
-        call(staticMethod(noGc.getZeroMethod()), List.of(ptrVal, lf.literalOf(info.getCompoundType().getSize())));
+        MethodElement method = noGc.getZeroMethod();
+        call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(ptrVal, lf.literalOf(info.getCompoundType().getSize())));
 
         return oop;
     }
@@ -73,9 +76,11 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         assert Long.bitCount(elementSize) == 1;
         int elementShift = Long.numberOfTrailingZeros(elementSize);
         Value realSize = add(baseSize, elementShift == 0 ? size : shl(size, lf.literalOf((IntegerType)size.getType(), elementShift)));
-        Value ptrVal = notNull(call(staticMethod(noGc.getAllocateMethod()), List.of(realSize, align)));
+        MethodElement method1 = noGc.getAllocateMethod();
+        Value ptrVal = notNull(call(staticMethod(method1, method1.getDescriptor(), method1.getType()), List.of(realSize, align)));
 
-        call(staticMethod(noGc.getZeroMethod()), List.of(ptrVal, realSize));
+        MethodElement method = noGc.getZeroMethod();
+        call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(ptrVal, realSize));
 
         return valueConvert(ptrVal, arrayType.getReference());
     }
@@ -95,11 +100,13 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             if (type.isSubtypeOf(noGc.getStackObjectType())) {
                 ptrVal = stackAllocate(compoundType, lf.literalOf(1), align);
             } else {
-                ptrVal = notNull(call(staticMethod(noGc.getAllocateMethod()), List.of(size, align)));
+                MethodElement method = noGc.getAllocateMethod();
+                ptrVal = notNull(call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(size, align)));
             }
             // TODO: replace with field-by-field copy once we have a redundant assignment elimination optimization
             // TODO: if/when we put a thinlock, default hashcode, or GC state bits in the object header we need to properly initialize them.
-            call(staticMethod(noGc.getCopyMethod()), List.of(ptrVal, valueConvert(object, (WordType) ptrVal.getType()), size));
+            MethodElement method = noGc.getCopyMethod();
+            call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(ptrVal, valueConvert(object, (WordType) ptrVal.getType()), size));
             fence(MemoryAtomicityMode.RELEASE);
             return valueConvert(ptrVal, type.getReference());
         } else if (objType instanceof ArrayObjectType) {

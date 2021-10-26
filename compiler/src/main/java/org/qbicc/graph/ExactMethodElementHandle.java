@@ -1,15 +1,17 @@
 package org.qbicc.graph;
 
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  * A handle for an instance exact method.
  */
 public final class ExactMethodElementHandle extends InstanceMethodElementHandle {
 
-    ExactMethodElementHandle(ExecutableElement element, int line, int bci, MethodElement methodElement, Value instance) {
-        super(element, line, bci, methodElement, instance);
+    ExactMethodElementHandle(ExecutableElement element, int line, int bci, MethodElement methodElement, Value instance, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+        super(element, line, bci, methodElement, instance, callSiteDescriptor, callSiteType);
     }
 
     int calcHashCode() {
