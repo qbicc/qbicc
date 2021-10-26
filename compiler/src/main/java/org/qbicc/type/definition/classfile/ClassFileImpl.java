@@ -778,7 +778,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
         if (! foundInitializer) {
             // synthesize an empty one
-            builder.setInitializer(this, 0);
+            builder.setInitializer(this, -1);
         }
         acnt = getFieldCount();
         for (int i = 0; i < acnt; i ++) {
@@ -942,7 +942,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         InitializerElement.Builder builder = InitializerElement.builder();
         builder.setEnclosingType(enclosing);
         builder.setModifiers(ACC_STATIC);
-        if (index != 0) {
+        if (index != -1) {
             int attrCount = getMethodAttributeCount(index);
             for (int i = 0; i < attrCount; i ++) {
                 if (methodAttributeNameEquals(index, i, "Code")) {
