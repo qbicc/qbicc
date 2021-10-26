@@ -159,6 +159,7 @@ final class VmInvokableImpl implements VmInvokable {
                     }
                 }
                 Terminator t = frame.block.getTerminator();
+                frame.ip = t;
                 // keep it simple for now
                 BasicBlock next = t.accept(frame, thread);
                 if (next == null) {
