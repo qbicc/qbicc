@@ -201,7 +201,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             }
         } else if (desc instanceof ClassTypeDescriptor) {
             ClassTypeDescriptor classDesc = (ClassTypeDescriptor) desc;
-            String className = (classDesc.getPackageName() != "" ? classDesc.getPackageName() + "/" : "") + classDesc.getClassName();
+            String className = (classDesc.getPackageName().isEmpty() ? "" : classDesc.getPackageName() + "/") + classDesc.getClassName();
             DefinedTypeDefinition definedType = cc.findDefinedType(className);
             ot = definedType.load().getType();
         } else {
