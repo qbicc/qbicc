@@ -66,6 +66,7 @@ import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -83,6 +84,7 @@ public final class CoreIntrinsics {
         registerEmptyNativeInitMethods(ctxt);
         registerJavaIoFileDescriptorIntrinsics(ctxt);
         registerJavaLangClassIntrinsics(ctxt);
+        registerJavaLangInvokeMethodHandleNativesIntrinsics(ctxt);
         registerJavaLangStringIntrinsics(ctxt);
         registerJavaLangStringUTF16Intrinsics(ctxt);
         registerJavaLangSystemIntrinsics(ctxt);
@@ -309,6 +311,43 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(Phase.ANALYZE, jlcDesc, "getDeclaringClass0", emptyToClass, getDeclaringClass0);
+    }
+
+    public static void registerJavaLangInvokeMethodHandleNativesIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        TypeSystem ts = ctxt.getTypeSystem();
+
+        ClassTypeDescriptor memberNameDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/invoke/MemberName");
+        ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+        ClassTypeDescriptor jliMhnDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/invoke/MethodHandleNatives");
+
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
+        MethodDescriptor memberNameClassBoolToMemberName = MethodDescriptor.synthesize(classContext,
+            memberNameDesc,
+            List.of(
+                memberNameDesc,
+                classDesc,
+                BaseTypeDescriptor.Z
+            )
+        );
+
+        StaticIntrinsic resolve = (builder, target, arguments) -> {
+            LoadedTypeDefinition uoe = classContext.findDefinedType("java/lang/UnsupportedOperationException").load();
+            ClassObjectType uoeType = uoe.getClassType();
+            int idx = uoe.findConstructorIndex(emptyToVoid);
+            if (idx == -1) {
+                throw new IllegalStateException();
+            }
+            ConstructorElement ctor = uoe.getConstructor(idx);
+            Value ex = builder.new_(uoeType);
+            builder.call(builder.constructorOf(ex, ctor), List.of());
+            builder.throw_(ex);
+            return lf.zeroInitializerLiteralOfType(ts.getVoidType());
+        };
+
+        intrinsics.registerIntrinsic(Phase.ANALYZE, jliMhnDesc, "resolve", memberNameClassBoolToMemberName, resolve);
     }
 
     public static void registerJavaLangStringIntrinsics(CompilationContext ctxt) {

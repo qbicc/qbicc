@@ -508,6 +508,10 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         return state == State.UNINITIALIZED;
     }
 
+    TypeDescriptor getDescriptor() {
+        return typeDefinition.getDescriptor();
+    }
+
     enum State {
         UNINITIALIZED,
         INITIALIZING,

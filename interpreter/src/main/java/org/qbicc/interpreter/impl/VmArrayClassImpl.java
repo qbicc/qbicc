@@ -3,6 +3,8 @@ package org.qbicc.interpreter.impl;
 import org.qbicc.interpreter.VmArrayClass;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.descriptor.ArrayTypeDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  *
@@ -29,6 +31,10 @@ abstract class VmArrayClassImpl extends VmClassImpl implements VmArrayClass {
     @Override
     VmObjectImpl newInstance() {
         throw new UnsupportedOperationException("Cannot construct an array without a length");
+    }
+
+    TypeDescriptor getDescriptor() {
+        return ArrayTypeDescriptor.of(getTypeDefinition().getContext(), elementType.getDescriptor());
     }
 
     @Override
