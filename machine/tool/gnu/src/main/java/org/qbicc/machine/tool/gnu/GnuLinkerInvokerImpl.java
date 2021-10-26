@@ -82,12 +82,15 @@ final class GnuLinkerInvokerImpl extends AbstractGccInvoker implements GnuLinker
         for (Path libraryPath : libraryPaths) {
             cmd.add("-L" + libraryPath.toString());
         }
-        for (String library : libraries) {
-            cmd.add("-l" + library);
-        }
+
         for (Path objectFile : objectFiles) {
             cmd.add(objectFile.toString());
         }
+
+        for (String library : libraries) {
+            cmd.add("-l" + library);
+        }
+
         cmd.add("-o");
         cmd.add(outputPath.toString());
     }
