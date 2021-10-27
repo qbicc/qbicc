@@ -203,6 +203,7 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor jloDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
 
         MethodDescriptor classToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(jlcDesc));
+        MethodDescriptor emptyToClass = MethodDescriptor.synthesize(classContext, jlcDesc, List.of());
         MethodDescriptor emptyToString = MethodDescriptor.synthesize(classContext, jlsDesc, List.of());
         MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
         MethodDescriptor stringToClass = MethodDescriptor.synthesize(classContext, jlcDesc, List.of(jlsDesc));
@@ -259,6 +260,50 @@ public final class CoreIntrinsics {
             return builder.and(builder.isGe(id, lf.literalOfType(firstPrimType)), builder.isLe(id, lf.literalOfType(lastPrimType)));
         };
 
+        InstanceIntrinsic getSuperclass = (builder, instance, target, arguments) -> {
+            Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance), coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
+
+            LoadedTypeDefinition jlc = coreClasses.getClassTypeDefinition();
+            ValueType objectType = coreClasses.getObjectTypeDefinition().getType();
+            ValueType firstPrimType = Primitive.getPrimitiveFor('Z').getType();
+            ValueType lastPrimType = Primitive.getPrimitiveFor('V').getType();
+
+            /**Pseudo code:
+             *
+             * Class<?> cls = null;
+             * if (!isInterface && !isPrimitive && !isJLObject) {
+             *     cls = superclass;
+             * }
+             * return cls;
+             */
+            BlockLabel trueBranch = new BlockLabel();
+            BlockLabel fallThrough = new BlockLabel();
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            TypeSystem ts = ctxt.getTypeSystem();
+            Value result = lf.zeroInitializerLiteralOfType(jlc.getClassType().getReference());
+            PhiValue phi = builder.phi(result.getType(), fallThrough);
+            BasicBlock from = builder.if_(builder.and(
+                                             builder.and(builder.isGt(lf.literalOf(ts.getTypeIdLiteralType(), tables.getFirstInterfaceTypeId()), id),
+                                                         builder.or(builder.isLt(id, lf.literalOfType(firstPrimType)), builder.isGt(id, lf.literalOfType(lastPrimType)))),
+                                             builder.isNe(id, lf.literalOfType(objectType))),
+                                          trueBranch, fallThrough);
+            phi.setValueForBlock(ctxt, builder.getCurrentElement(), from, result);
+            builder.begin(trueBranch);
+            // Get typeid of a super class
+            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
+            ValueHandle typeIdStruct = builder.elementOf(builder.globalVariable(typeIdGlobal), id);
+            ValueHandle superTypeId = builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("superTypeId"));
+            Value superTypeIdValue = builder.load(superTypeId, MemoryAtomicityMode.UNORDERED);
+            // Get the super class
+            result = builder.getFirstBuilder().call(builder.staticMethod(ctxt.getVMHelperMethod("classof_from_typeid")),
+                                                    List.of(superTypeIdValue, lf.zeroInitializerLiteralOfType(ts.getUnsignedInteger8Type())));
+            from = builder.goto_(fallThrough);
+            phi.setValueForBlock(ctxt, builder.getCurrentElement(), from, result);
+            builder.begin(fallThrough);
+
+            return phi;
+        };
+
         StaticIntrinsic getPrimitiveClass = (builder, target, arguments) -> {
             // always called with a string literal
             StringLiteral lit = (StringLiteral) arguments.get(0);
@@ -278,6 +323,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isArray", emptyToBool, isArray);
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isInterface", emptyToBool, isInterface);
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isPrimitive", emptyToBool, isPrimitive);
+        intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "getSuperclass", emptyToClass, getSuperclass);
 
         StaticIntrinsic classForName0 = (builder, target, arguments) -> {
             // ignore fourth argument
