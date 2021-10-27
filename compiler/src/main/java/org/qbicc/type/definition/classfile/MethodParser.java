@@ -1316,7 +1316,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         int db = buffer.getInt();
                         int low = buffer.getInt();
                         int high = buffer.getInt();
-                        int cnt = high - low;
+                        int cnt = high - low + 1;
                         int[] dests = new int[cnt];
                         int[] vals = new int[cnt];
                         boolean[] singles = new boolean[cnt];
