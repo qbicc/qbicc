@@ -18,6 +18,7 @@ import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
@@ -429,40 +430,40 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new LocalVariable(element, line, bci, variable, variable.getType());
     }
 
-    public ValueHandle exactMethodOf(Value instance, MethodElement method) {
-        return new ExactMethodElementHandle(element, line, bci, method, instance);
+    public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+        return new ExactMethodElementHandle(element, line, bci, method, instance, callSiteDescriptor, callSiteType);
     }
 
     public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         throw new IllegalStateException("Unresolved instance method");
     }
 
-    public ValueHandle virtualMethodOf(Value instance, MethodElement method) {
-        return new VirtualMethodElementHandle(element, line, bci, method, instance);
+    public ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+        return new VirtualMethodElementHandle(element, line, bci, method, instance, callSiteDescriptor, callSiteType);
     }
 
     public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         throw new IllegalStateException("Unresolved instance method");
     }
 
-    public ValueHandle interfaceMethodOf(Value instance, MethodElement method) {
-        return new InterfaceMethodElementHandle(element, line, bci, method, instance);
+    public ValueHandle interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+        return new InterfaceMethodElementHandle(element, line, bci, method, instance, callSiteDescriptor, callSiteType);
     }
 
     public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         throw new IllegalStateException("Unresolved instance method");
     }
 
-    public ValueHandle staticMethod(MethodElement method) {
-        return new StaticMethodElementHandle(element, line, bci, method);
+    public ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+        return new StaticMethodElementHandle(element, line, bci, method, callSiteDescriptor, callSiteType);
     }
 
     public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         throw new IllegalStateException("Unresolved static method");
     }
 
-    public ValueHandle constructorOf(Value instance, ConstructorElement constructor) {
-        return new ConstructorElementHandle(element, line, bci, constructor, instance);
+    public ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+        return new ConstructorElementHandle(element, line, bci, constructor, instance, callSiteDescriptor, callSiteType);
     }
 
     public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {

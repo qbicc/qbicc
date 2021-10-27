@@ -21,6 +21,7 @@ import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceArrayObjectType;
@@ -68,7 +69,16 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             if (element == null) {
                 throw new BlockEarlyTermination(nsme());
             } else {
-                return exactMethodOf(instance, element);
+                TypeParameterContext tpc = getCurrentElement() instanceof TypeParameterContext ? (TypeParameterContext) getCurrentElement() : definedType;
+                FunctionType callSiteType = getClassContext().resolveMethodFunctionType(
+                    descriptor,
+                    tpc,
+                    element.getSignature(),
+                    TypeAnnotationList.empty(),
+                    element.getParameterVisibleTypeAnnotations(),
+                    TypeAnnotationList.empty(),
+                    element.getParameterInvisibleTypeAnnotations());
+                return exactMethodOf(instance, element, descriptor, callSiteType);
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
@@ -84,7 +94,16 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             if (element == null) {
                 throw new BlockEarlyTermination(nsme());
             } else {
-                return virtualMethodOf(instance, element);
+                TypeParameterContext tpc = getCurrentElement() instanceof TypeParameterContext ? (TypeParameterContext) getCurrentElement() : definedType;
+                FunctionType callSiteType = getClassContext().resolveMethodFunctionType(
+                    descriptor,
+                    tpc,
+                    element.getSignature(),
+                    TypeAnnotationList.empty(),
+                    element.getParameterVisibleTypeAnnotations(),
+                    TypeAnnotationList.empty(),
+                    element.getParameterInvisibleTypeAnnotations());
+                return virtualMethodOf(instance, element, descriptor, callSiteType);
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
@@ -100,7 +119,16 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             if (element == null) {
                 throw new BlockEarlyTermination(nsme());
             } else {
-                return interfaceMethodOf(instance, element);
+                TypeParameterContext tpc = getCurrentElement() instanceof TypeParameterContext ? (TypeParameterContext) getCurrentElement() : definedType;
+                FunctionType callSiteType = getClassContext().resolveMethodFunctionType(
+                    descriptor,
+                    tpc,
+                    element.getSignature(),
+                    TypeAnnotationList.empty(),
+                    element.getParameterVisibleTypeAnnotations(),
+                    TypeAnnotationList.empty(),
+                    element.getParameterInvisibleTypeAnnotations());
+                return interfaceMethodOf(instance, element, descriptor, callSiteType);
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
@@ -116,7 +144,16 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             if (element == null) {
                 throw new BlockEarlyTermination(nsme());
             } else {
-                return staticMethod(element);
+                TypeParameterContext tpc = getCurrentElement() instanceof TypeParameterContext ? (TypeParameterContext) getCurrentElement() : definedType;
+                FunctionType callSiteType = getClassContext().resolveMethodFunctionType(
+                    descriptor,
+                    tpc,
+                    element.getSignature(),
+                    TypeAnnotationList.empty(),
+                    element.getParameterVisibleTypeAnnotations(),
+                    TypeAnnotationList.empty(),
+                    element.getParameterInvisibleTypeAnnotations());
+                return staticMethod(element, descriptor, callSiteType);
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
@@ -132,7 +169,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             if (element == null) {
                 throw new BlockEarlyTermination(nsme());
             } else {
-                return constructorOf(instance, element);
+                return constructorOf(instance, element, element.getDescriptor(), element.getType());
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
@@ -201,7 +238,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             }
         } else if (desc instanceof ClassTypeDescriptor) {
             ClassTypeDescriptor classDesc = (ClassTypeDescriptor) desc;
-            String className = (classDesc.getPackageName() != "" ? classDesc.getPackageName() + "/" : "") + classDesc.getClassName();
+            String className = (classDesc.getPackageName().isEmpty() ? "" : classDesc.getPackageName() + "/") + classDesc.getClassName();
             DefinedTypeDefinition definedType = cc.findDefinedType(className);
             ot = definedType.load().getType();
         } else {

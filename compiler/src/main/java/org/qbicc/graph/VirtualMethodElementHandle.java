@@ -1,15 +1,17 @@
 package org.qbicc.graph;
 
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  * A handle for an instance virtual method.
  */
 public final class VirtualMethodElementHandle extends InstanceMethodElementHandle {
 
-    VirtualMethodElementHandle(ExecutableElement element, int line, int bci, MethodElement methodElement, Value instance) {
-        super(element, line, bci, methodElement, instance);
+    VirtualMethodElementHandle(ExecutableElement element, int line, int bci, MethodElement methodElement, Value instance, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+        super(element, line, bci, methodElement, instance, callSiteDescriptor, callSiteType);
         if (methodElement.isStatic() || methodElement.getEnclosingType().isInterface()) {
             throw new IllegalArgumentException("Wrong argument kind for virtual method handle");
         }

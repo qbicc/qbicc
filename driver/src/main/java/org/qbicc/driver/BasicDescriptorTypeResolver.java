@@ -1,5 +1,7 @@
 package org.qbicc.driver;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.qbicc.type.ArrayObjectType;
@@ -107,17 +109,33 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
         }
     }
 
-    public FunctionType resolveMethodFunctionType(final MethodDescriptor descriptor, TypeParameterContext paramCtxt, final MethodSignature signature, final TypeAnnotationList returnTypeVisible, final List<TypeAnnotationList> visible, final TypeAnnotationList returnTypeInvisible, final List<TypeAnnotationList> invisible) {
+    public FunctionType resolveMethodFunctionType(final MethodDescriptor descriptor, TypeParameterContext paramCtxt, final MethodSignature signature, final TypeAnnotationList returnTypeVisible, List<TypeAnnotationList> visible, final TypeAnnotationList returnTypeInvisible, List<TypeAnnotationList> invisible) {
         TypeDescriptor returnType = descriptor.getReturnType();
         List<TypeDescriptor> parameterTypes = descriptor.getParameterTypes();
         TypeSignature returnTypeSignature = signature.getReturnTypeSignature();
         List<TypeSignature> paramSignatures = signature.getParameterTypes();
+        int cnt = parameterTypes.size();
+        if (paramSignatures.size() != cnt) {
+            // sig-poly or bad generic data
+            TypeSignature[] array = new TypeSignature[cnt];
+            for (int i = 0; i < cnt; i ++) {
+                array[i] = TypeSignature.synthesize(classContext, parameterTypes.get(i));
+            }
+            paramSignatures = Arrays.asList(array);
+        }
+        if (visible.size() != cnt) {
+            // sig-poly or bad annotation data
+            visible = Collections.nCopies(cnt, TypeAnnotationList.empty());
+        }
+        if (invisible.size() != cnt) {
+            // sig-poly or bad annotation data
+            invisible = Collections.nCopies(cnt, TypeAnnotationList.empty());
+        }
         TypeParameterContext nestedCtxt = TypeParameterContext.create(paramCtxt, signature);
         ValueType resolvedReturnType = classContext.resolveTypeFromMethodDescriptor(returnType, nestedCtxt, returnTypeSignature, returnTypeVisible, returnTypeInvisible);
         if (resolvedReturnType instanceof ObjectType) {
             resolvedReturnType = ((ObjectType) resolvedReturnType).getReference();
         }
-        int cnt = parameterTypes.size();
         ValueType[] resolvedParamTypes = new ValueType[cnt];
         for (int i = 0; i < cnt; i ++) {
             resolvedParamTypes[i] = classContext.resolveTypeFromMethodDescriptor(parameterTypes.get(i), nestedCtxt, paramSignatures.get(i), visible.get(i), invisible.get(i));

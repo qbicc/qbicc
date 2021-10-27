@@ -277,6 +277,19 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     @Override
     public VmClassImpl getSuperClass() {
+        VmClassImpl superClass = this.superClass;
+        if (superClass == null) {
+            LoadedTypeDefinition typeDefinition = this.typeDefinition;
+            LoadedTypeDefinition def = typeDefinition.getSuperClass();
+            if (def == null) {
+                // no superclass
+                return null;
+            } else {
+                VmClassLoader classLoader = getVm().getClassLoaderForContext(def.getContext());
+                superClass = (VmClassImpl) classLoader.loadClass(def.getInternalName());
+            }
+            this.superClass = superClass;
+        }
         return superClass;
     }
 
@@ -373,7 +386,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     }
 
     void initialize(VmThreadImpl thread) throws Thrown {
-        VmClassImpl superClass = this.superClass;
+        VmClassImpl superClass = getSuperClass();
         if (superClass != null) {
             superClass.initialize(thread);
         }
@@ -387,13 +400,15 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                     this.state = State.INITIALIZING;
                     try {
                         InitializerElement initializer = typeDefinition.getInitializer();
-                        if (initializer.hasMethodBodyFactory()) {
+                        if (initializer != null && initializer.hasMethodBodyFactory()) {
                             if (initializer.tryCreateMethodBody()) {
                                 compile(initializer).invoke(thread, null, List.of());
                                 state = this.state = State.INITIALIZED;
                             } else {
-                                throw new IllegalStateException("Failed to compile initializer body");
+                                throw new Thrown(vm.linkageErrorClass.newInstance("Failed to compile initializer body for " + getName()));
                             }
+                        } else {
+                            state = this.state = State.INITIALIZED;
                         }
                     } catch (Thrown t) {
                         initException = this.initException = (VmThrowableImpl) t.getThrowable();
@@ -441,7 +456,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                             } else {
                                 throw new IllegalStateException("Unknown native element");
                             }
-                            throw new Thrown(uleClazz.newInstance(clazz.getName() + "." + name));
+                            throw new Thrown(uleClazz.newInstance(getName() + "." + name));
                         };
                     }
                     methodTable.put(element, target);
@@ -487,6 +502,14 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     @Override
     public String toString() {
         return "class " + getName();
+    }
+
+    boolean shouldBeInitialized() {
+        return state == State.UNINITIALIZED;
+    }
+
+    TypeDescriptor getDescriptor() {
+        return typeDefinition.getDescriptor();
     }
 
     enum State {

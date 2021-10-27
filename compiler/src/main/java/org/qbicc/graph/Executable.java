@@ -3,16 +3,21 @@ package org.qbicc.graph;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  * A value handle to an executable element.
  */
 public abstract class Executable extends AbstractValueHandle {
     private final ExecutableElement executable;
+    private final MethodDescriptor callSiteDescriptor;
+    private final FunctionType callSiteType;
 
-    Executable(ExecutableElement currentElement, int line, int bci, ExecutableElement executable) {
+    Executable(ExecutableElement currentElement, int line, int bci, ExecutableElement executable, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
         super(null, currentElement, line, bci);
         this.executable = executable;
+        this.callSiteDescriptor = callSiteDescriptor;
+        this.callSiteType = callSiteType;
     }
 
     @Override
@@ -32,6 +37,14 @@ public abstract class Executable extends AbstractValueHandle {
 
     public ExecutableElement getExecutable() {
         return executable;
+    }
+
+    public MethodDescriptor getCallSiteDescriptor() {
+        return callSiteDescriptor;
+    }
+
+    public FunctionType getCallSiteType() {
+        return callSiteType;
     }
 
     @Override

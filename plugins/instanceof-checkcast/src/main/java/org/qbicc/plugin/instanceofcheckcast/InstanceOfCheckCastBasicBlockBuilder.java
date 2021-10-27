@@ -84,7 +84,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         try {
             begin(fail);
             MethodElement thrower = ctxt.getVMHelperMethod(kind.equals(CheckCast.CastType.Cast) ? "raiseClassCastException" : "raiseArrayStoreException");
-            getFirstBuilder().callNoReturn(getFirstBuilder().staticMethod(thrower), List.of());
+            getFirstBuilder().callNoReturn(getFirstBuilder().staticMethod(thrower, thrower.getDescriptor(), thrower.getType()), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
         }
@@ -130,7 +130,8 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
                 } else {
                     helperName = "arrayStoreCheck";
                 }
-                getFirstBuilder().call(getFirstBuilder().staticMethod(ctxt.getVMHelperMethod(helperName)), List.of(input, toType, toDimensions));
+                MethodElement method = ctxt.getVMHelperMethod(helperName);
+                getFirstBuilder().call(getFirstBuilder().staticMethod(method, method.getDescriptor(), method.getType()), List.of(input, toType, toDimensions));
                 goto_(pass);
             }
         } catch (BlockEarlyTermination ignored) {
@@ -190,7 +191,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             boolean inlinedTest = generateTypeTest(input, expectedType, expectedDimensions, passInline, fail);
             if (!inlinedTest) {
                 MethodElement helper = ctxt.getVMHelperMethod("instanceof_typeId");
-                passResult = getFirstBuilder().call(getFirstBuilder().staticMethod(helper),
+                passResult = getFirstBuilder().call(getFirstBuilder().staticMethod(helper, helper.getDescriptor(), helper.getType()),
                     List.of(input, lf.literalOfType(expectedType), lf.literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), expectedDimensions)));
                 passLabel = notNull;
                 goto_(allDone);
@@ -220,10 +221,10 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         if (dimensions.isDefEq(ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), 0))) {
             // call the intrinsic directly, inlining the calculation
             methodElement = ctxt.getOMHelperMethod("get_class_from_type_id_simple");
-            return notNull(getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement), List.of(typeId)));
+            return notNull(getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement, methodElement.getDescriptor(), methodElement.getType()), List.of(typeId)));
         } else {
             methodElement = ctxt.getVMHelperMethod("classof_from_typeid");
-            return notNull(getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement), List.of(typeId, dimensions)));
+            return notNull(getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement, methodElement.getDescriptor(), methodElement.getType()), List.of(typeId, dimensions)));
         }
     }
 

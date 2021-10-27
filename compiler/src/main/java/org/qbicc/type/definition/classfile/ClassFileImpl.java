@@ -737,6 +737,18 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                         }
                     }
                 }
+            } else if (attributeNameEquals(i, "EnclosingMethod")) {
+                int classIdx = getRawAttributeShort(i, 0);
+                int methodNatIdx = getRawAttributeShort(i, 2);
+                String classConstantName = getClassConstantName(classIdx);
+                if (methodNatIdx == 0) {
+                    builder.setEnclosingMethod(classConstantName, null, null);
+                } else {
+                    String methodName = getNameAndTypeConstantName(methodNatIdx);
+                    int mdi = getNameAndTypeConstantDescriptorIdx(methodNatIdx);
+                    MethodDescriptor methodDesc = (MethodDescriptor) getDescriptorConstant(mdi);
+                    builder.setEnclosingMethod(classConstantName, methodName, methodDesc);
+                }
             }
         }
         if (signature == null) {
@@ -766,7 +778,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
         if (! foundInitializer) {
             // synthesize an empty one
-            builder.setInitializer(this, 0);
+            builder.setInitializer(this, -1);
         }
         acnt = getFieldCount();
         for (int i = 0; i < acnt; i ++) {
@@ -874,6 +886,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         builder.setModifiers(methodModifiers);
         String name = getUtf8Constant(getShort(methodOffsets[index] + 2));
         builder.setName(name);
+        builder.setSourceFileName(sourceFile);
         boolean isNative = (methodModifiers & ACC_NATIVE) != 0;
         boolean mayHaveBody = (methodModifiers & ACC_ABSTRACT) == 0 && ! isNative;
         if (mayHaveBody) {
@@ -898,7 +911,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         addParameters(builder, index, enclosing);
         addMethodAnnotations(index, builder);
         builder.setIndex(index);
-        builder.setSourceFileName(sourceFile);
         return builder.build();
     }
 
@@ -930,7 +942,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         InitializerElement.Builder builder = InitializerElement.builder();
         builder.setEnclosingType(enclosing);
         builder.setModifiers(ACC_STATIC);
-        if (index != 0) {
+        if (index != -1) {
             int attrCount = getMethodAttributeCount(index);
             for (int i = 0; i < attrCount; i ++) {
                 if (methodAttributeNameEquals(index, i, "Code")) {

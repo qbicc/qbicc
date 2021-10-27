@@ -512,4 +512,18 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
      * @return the VM class (not {@code null})
      */
     VmClass getVmClass();
+
+    /**
+     * Get the class of the enclosing method, if any.
+     *
+     * @return the enclosing method's class, or {@code null} if there is none
+     */
+    LoadedTypeDefinition getEnclosingMethodClass();
+
+    /**
+     * Get the enclosing method, if any.
+     *
+     * @return the enclosing method, or {@code null} if there is none
+     */
+    MethodElement getEnclosingMethod();
 }

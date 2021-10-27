@@ -3,12 +3,14 @@ package org.qbicc.plugin.dispatch;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.*;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.MethodElement;
 import org.jboss.logging.Logger;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private static final Logger log = Logger.getLogger("org.qbicc.plugin.dispatch.devirt");
@@ -21,15 +23,15 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public ValueHandle interfaceMethodOf(Value instance, MethodElement target) {
+    public ValueHandle interfaceMethodOf(Value instance, MethodElement target, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
         MethodElement virtualTarget = virtualizeInvokeInterface(instance, target);
-        return virtualTarget != null ? virtualMethodOf(instance, virtualTarget) : super.interfaceMethodOf(instance, target);
+        return virtualTarget != null ? virtualMethodOf(instance, virtualTarget, callSiteDescriptor, callSiteType) : super.interfaceMethodOf(instance, target, callSiteDescriptor, callSiteType);
     }
 
     @Override
-    public ValueHandle virtualMethodOf(Value instance, MethodElement target) {
+    public ValueHandle virtualMethodOf(Value instance, MethodElement target, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
         MethodElement exactTarget = staticallyBind(instance, target);
-        return exactTarget != null ? exactMethodOf(instance, exactTarget) : super.virtualMethodOf(instance, target);
+        return exactTarget != null ? exactMethodOf(instance, exactTarget, callSiteDescriptor, callSiteType) : super.virtualMethodOf(instance, target, callSiteDescriptor, callSiteType);
     }
 
     /*

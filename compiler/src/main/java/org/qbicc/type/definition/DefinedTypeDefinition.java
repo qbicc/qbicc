@@ -16,6 +16,7 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.generic.ClassSignature;
 import org.qbicc.type.generic.TypeParameter;
 import org.qbicc.type.generic.TypeParameterContext;
@@ -237,6 +238,8 @@ public interface DefinedTypeDefinition extends FieldResolver,
 
         void addEnclosedClass(EnclosedClassResolver resolver, int index);
 
+        void setEnclosingMethod(String classInternalName, String methodName, MethodDescriptor methodType);
+
         void setName(String internalName);
 
         void setSimpleName(String simpleName);
@@ -312,6 +315,10 @@ public interface DefinedTypeDefinition extends FieldResolver,
 
             default void addEnclosedClass(EnclosedClassResolver resolver, int index) {
                 getDelegate().addEnclosedClass(resolver, index);
+            }
+
+            default void setEnclosingMethod(String classInternalName, String methodName, MethodDescriptor methodType) {
+                getDelegate().setEnclosingMethod(classInternalName, methodName, methodType);
             }
 
             default void setName(String internalName) {

@@ -535,7 +535,7 @@ public interface Node {
             }
 
             public ValueHandle visit(Copier param, ConstructorElementHandle node) {
-                return param.getBlockBuilder().constructorOf(param.copyValue(node.getInstance()), node.getExecutable());
+                return param.getBlockBuilder().constructorOf(param.copyValue(node.getInstance()), node.getExecutable(), node.getCallSiteDescriptor(), node.getCallSiteType());
             }
 
             public Value visit(final Copier param, final Convert node) {
@@ -556,7 +556,7 @@ public interface Node {
             }
 
             public ValueHandle visit(Copier param, ExactMethodElementHandle node) {
-                return param.getBlockBuilder().exactMethodOf(param.copyValue(node.getInstance()), node.getExecutable());
+                return param.getBlockBuilder().exactMethodOf(param.copyValue(node.getInstance()), node.getExecutable(), node.getCallSiteDescriptor(), node.getCallSiteType());
             }
 
             public ValueHandle visit(Copier param, FunctionDeclarationHandle node) {
@@ -686,11 +686,11 @@ public interface Node {
             }
 
             public ValueHandle visit(Copier param, InterfaceMethodElementHandle node) {
-                return param.getBlockBuilder().interfaceMethodOf(param.copyValue(node.getInstance()), node.getExecutable());
+                return param.getBlockBuilder().interfaceMethodOf(param.copyValue(node.getInstance()), node.getExecutable(), node.getCallSiteDescriptor(), node.getCallSiteType());
             }
 
             public ValueHandle visit(Copier param, VirtualMethodElementHandle node) {
-                return param.getBlockBuilder().virtualMethodOf(param.copyValue(node.getInstance()), node.getExecutable());
+                return param.getBlockBuilder().virtualMethodOf(param.copyValue(node.getInstance()), node.getExecutable(), node.getCallSiteDescriptor(), node.getCallSiteType());
             }
 
             public Value visit(final Copier param, final Load node) {
@@ -823,7 +823,7 @@ public interface Node {
             }
 
             public ValueHandle visit(Copier param, StaticMethodElementHandle node) {
-                return param.getBlockBuilder().staticMethod(node.getExecutable());
+                return param.getBlockBuilder().staticMethod(node.getExecutable(), node.getCallSiteDescriptor(), node.getCallSiteType());
             }
 
             public Node visit(final Copier param, final Store node) {
