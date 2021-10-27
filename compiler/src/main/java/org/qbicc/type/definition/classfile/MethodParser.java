@@ -1587,39 +1587,53 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             gf.throw_(error);
                             return;
                         }
-                        // 5.4.3.6, invoking the bootstrap method handle
-                        // 1. allocate the array
-                        int bootstrapArgCnt = getClassFile().getBootstrapMethodArgumentCount(bootstrapMethodIdx);
-                        VmClass objectClass = ctxt.findDefinedType("java/lang/Object").load().getVmClass();
-                        VmReferenceArray array = vm.newArrayOf(objectClass, 3 + bootstrapArgCnt);
-                        // 1.a. populate first three elements
-                        array.store(0, vm.getLookup(gf.getRootElement().getEnclosingType().load().getVmClass()));
-                        array.store(1, vm.intern(getClassFile().getNameAndTypeConstantName(indyNameAndTypeIdx)));
-                        array.store(2, vm.createMethodType(ctxt, bootstrapHandle.getDescriptor()));
-                        // 1.b. populate remaining elements with constant values
-                        TypeParameterContext tpc;
-                        ExecutableElement rootElement = gf.getRootElement();
-                        if (rootElement instanceof TypeParameterContext) {
-                            tpc = (TypeParameterContext) rootElement;
-                        } else {
-                            tpc = rootElement.getEnclosingType();
-                        }
-                        for (int i = 0; i < bootstrapArgCnt; i ++) {
-                            int argIdx = getClassFile().getBootstrapMethodArgumentConstantIndex(bootstrapMethodIdx, i);
-                            if (argIdx != 0) {
-                                Literal literal = getClassFile().getConstantValue(argIdx, tpc);
-                                VmObject box = vm.box(ctxt, literal);
-                                array.store(i + 3, box);
+                        VmObject callSite;
+                        try {
+                            // 5.4.3.6, invoking the bootstrap method handle
+                            // 1. allocate the array
+                            int bootstrapArgCnt = getClassFile().getBootstrapMethodArgumentCount(bootstrapMethodIdx);
+                            VmClass objectClass = ctxt.findDefinedType("java/lang/Object").load().getVmClass();
+                            VmReferenceArray array = vm.newArrayOf(objectClass, 3 + bootstrapArgCnt);
+                            // 1.a. populate first three elements
+                            array.store(0, vm.getLookup(gf.getRootElement().getEnclosingType().load().getVmClass()));
+                            array.store(1, vm.intern(getClassFile().getNameAndTypeConstantName(indyNameAndTypeIdx)));
+                            array.store(2, vm.createMethodType(ctxt, bootstrapHandle.getDescriptor()));
+                            // 1.b. populate remaining elements with constant values
+                            TypeParameterContext tpc;
+                            ExecutableElement rootElement = gf.getRootElement();
+                            if (rootElement instanceof TypeParameterContext) {
+                                tpc = (TypeParameterContext) rootElement;
+                            } else {
+                                tpc = rootElement.getEnclosingType();
                             }
+                            for (int i = 0; i < bootstrapArgCnt; i ++) {
+                                int argIdx = getClassFile().getBootstrapMethodArgumentConstantIndex(bootstrapMethodIdx, i);
+                                if (argIdx != 0) {
+                                    Literal literal = getClassFile().getConstantValue(argIdx, tpc);
+                                    VmObject box = vm.box(ctxt, literal);
+                                    array.store(i + 3, box);
+                                }
+                            }
+                            // 2. call bootstrap method via `invokeWithArguments`
+                            LoadedTypeDefinition mhDef = ctxt.findDefinedType("java/lang/invoke/MethodHandle").load();
+                            int iwaIdx = mhDef.findMethodIndex(me -> me.nameEquals("invokeWithArguments") && me.isVarargs());
+                            if (iwaIdx == -1) {
+                                throw new IllegalStateException();
+                            }
+                            MethodElement invokeWithArguments = mhDef.getMethod(iwaIdx);
+                            callSite = (VmObject) vm.invokeExact(invokeWithArguments, bootstrapHandleObj, List.of(array));
+                        } catch (Thrown thrown) {
+                            ctxt.getCompilationContext().warning(gf.getLocation(), "Failed to invoke bootstrap method handle: %s", thrown);
+                            // todo: we should consider putting stack traces into the location of the diagnostics
+                            interpLog.debug("Failed to create a bootstrap method handle", thrown);
+                            // instead, throw an run time error
+                            ClassTypeDescriptor bmeDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/BootstrapMethodError");
+                            ClassTypeDescriptor thrDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/Throwable");
+                            Value error = gf.new_(bmeDesc);
+                            gf.call(gf.constructorOf(error, bmeDesc, MethodDescriptor.synthesize(ctxt, BaseTypeDescriptor.V, List.of(thrDesc))), List.of(lf.literalOf(thrown.getThrowable())));
+                            gf.throw_(error);
+                            return;
                         }
-                        // 2. call bootstrap method via `invokeWithArguments`
-                        LoadedTypeDefinition mhDef = ctxt.findDefinedType("java/lang/invoke/MethodHandle").load();
-                        int iwaIdx = mhDef.findMethodIndex(me -> me.nameEquals("invokeWithArguments") && me.isVarargs());
-                        if (iwaIdx == -1) {
-                            throw new IllegalStateException();
-                        }
-                        MethodElement invokeWithArguments = mhDef.getMethod(iwaIdx);
-                        VmObject callSite = (VmObject) vm.invokeExact(invokeWithArguments, bootstrapHandleObj, List.of(array));
                         ClassTypeDescriptor callSiteDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/CallSite");
                         // Get the method handle instance from the call site
                         ClassTypeDescriptor descOfMethodHandle = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/MethodHandle");
