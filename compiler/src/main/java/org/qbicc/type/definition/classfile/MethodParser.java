@@ -442,12 +442,16 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
 
     Value getLocal(int index, int bci) {
         final LocalVariableElement lve = getLocalVariableElement(bci, index);
-        if (lve != null) {
-            return promote(gf.load(gf.localVariable(lve), MemoryAtomicityMode.NONE), lve.getTypeDescriptor());
-        }
         Value value = locals[index];
         if (value == null) {
             throw new IllegalStateException("Invalid get local (no value)");
+        }
+        if (value.getType() instanceof ReferenceType) {
+            // address cannot be taken of this variable; do not indirect through the LV
+            return value;
+        }
+        if (lve != null) {
+            return promote(gf.load(gf.localVariable(lve), MemoryAtomicityMode.NONE), lve.getTypeDescriptor());
         }
         return value;
     }
