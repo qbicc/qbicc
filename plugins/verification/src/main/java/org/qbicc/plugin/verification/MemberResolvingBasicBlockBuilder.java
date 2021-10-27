@@ -65,7 +65,14 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         DefinedTypeDefinition definedType = resolveDescriptor(owner);
         if (definedType != null) {
             // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
-            MethodElement element = definedType.load().resolveMethodElementExact(name, descriptor);
+            MethodElement element;
+            if (definedType.isInterface()) {
+                // use 5.4.3.4 rules
+                element = definedType.load().resolveMethodElementInterface(name, descriptor);
+            } else {
+                // use 5.4.3.3 rules
+                element = definedType.load().resolveMethodElementVirtual(name, descriptor);
+            }
             if (element == null) {
                 throw new BlockEarlyTermination(nsme());
             } else {
@@ -139,8 +146,15 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         DefinedTypeDefinition definedType = resolveDescriptor(owner);
         if (definedType != null) {
-            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
-            MethodElement element = definedType.load().resolveMethodElementExact(name, descriptor);
+            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed.
+            MethodElement element;
+            if (definedType.isInterface()) {
+                // use 5.4.3.4 rules
+                element = definedType.load().resolveMethodElementInterface(name, descriptor);
+            } else {
+                // use 5.4.3.3 rules
+                element = definedType.load().resolveMethodElementVirtual(name, descriptor);
+            }
             if (element == null) {
                 throw new BlockEarlyTermination(nsme());
             } else {
