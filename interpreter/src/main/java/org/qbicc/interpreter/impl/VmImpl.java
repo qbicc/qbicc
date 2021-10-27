@@ -766,7 +766,7 @@ public final class VmImpl implements Vm {
             extraFlags = 1 << 18;
         } else if (constant instanceof MethodMethodHandleConstant) {
             MethodMethodHandleConstant narrowed = (MethodMethodHandleConstant) constant;
-            MethodDescriptor descriptor = narrowed.getMethodDescriptor();
+            MethodDescriptor descriptor = narrowed.getDescriptor();
             type = createMethodType(classContext, descriptor);
             nameStr = narrowed.getMethodName();
             int mi = owner.getTypeDefinition().findMethodIndex(nameStr, descriptor);
@@ -777,7 +777,7 @@ public final class VmImpl implements Vm {
             extraFlags = 1 << 16;
         } else {
             assert constant instanceof ConstructorMethodHandleConstant;
-            MethodDescriptor descriptor = ((ConstructorMethodHandleConstant) constant).getMethodDescriptor();
+            MethodDescriptor descriptor = ((ConstructorMethodHandleConstant) constant).getDescriptor();
             type = createMethodType(classContext, descriptor);
             nameStr = "<init>";
             int mi = owner.getTypeDefinition().findConstructorIndex(descriptor);

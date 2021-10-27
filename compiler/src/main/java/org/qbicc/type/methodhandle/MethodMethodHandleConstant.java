@@ -1,7 +1,5 @@
 package org.qbicc.type.methodhandle;
 
-import java.util.Objects;
-
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -9,16 +7,14 @@ import org.qbicc.type.descriptor.MethodDescriptor;
 /**
  *
  */
-public final class MethodMethodHandleConstant extends MethodHandleConstant {
+public final class MethodMethodHandleConstant extends ExecutableMethodHandleConstant {
     private final String methodName;
-    private final MethodDescriptor methodDescriptor;
 
-    public MethodMethodHandleConstant(final ClassTypeDescriptor owner, final String methodName, final MethodHandleKind kind, final MethodDescriptor methodDescriptor) {
-        super(Objects.hash(methodName, methodDescriptor), owner, kind);
+    public MethodMethodHandleConstant(final ClassTypeDescriptor owner, final String methodName, final MethodHandleKind kind, final MethodDescriptor descriptor) {
+        super(methodName.hashCode(), owner, kind, descriptor);
         if (! kind.isMethodTarget()) {
             throw new IllegalArgumentException("Method method handle cannot be of kind " + kind);
         }
-        this.methodDescriptor = Assert.checkNotNullParam("methodDescriptor", methodDescriptor);
         this.methodName = Assert.checkNotNullParam("methodName", methodName);
     }
 
@@ -26,19 +22,15 @@ public final class MethodMethodHandleConstant extends MethodHandleConstant {
         return methodName;
     }
 
-    public MethodDescriptor getMethodDescriptor() {
-        return methodDescriptor;
-    }
-
-    public boolean equals(final MethodHandleConstant other) {
+    public boolean equals(final ExecutableMethodHandleConstant other) {
         return other instanceof MethodMethodHandleConstant && equals((MethodMethodHandleConstant) other);
     }
 
     public boolean equals(final MethodMethodHandleConstant other) {
-        return super.equals(other) && methodName.equals(other.methodName) && methodDescriptor.equals(other.methodDescriptor);
+        return super.equals(other) && methodName.equals(other.methodName);
     }
 
     public StringBuilder toString(final StringBuilder target) {
-        return target.append(getKind()).append('[').append(getOwnerDescriptor()).append(':').append(methodName).append(methodDescriptor).append(']');
+        return target.append(getKind()).append('[').append(getOwnerDescriptor()).append('#').append(methodName).append(':').append(getDescriptor()).append(']');
     }
 }
