@@ -280,15 +280,17 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         VmClassImpl superClass = this.superClass;
         if (superClass == null) {
             LoadedTypeDefinition typeDefinition = this.typeDefinition;
-            LoadedTypeDefinition def = typeDefinition.getSuperClass();
-            if (def == null) {
-                // no superclass
-                return null;
-            } else {
-                VmClassLoader classLoader = getVm().getClassLoaderForContext(def.getContext());
-                superClass = (VmClassImpl) classLoader.loadClass(def.getInternalName());
+            if (typeDefinition != null) {
+                LoadedTypeDefinition def = typeDefinition.getSuperClass();
+                if (def == null) {
+                    // no superclass
+                    return null;
+                } else {
+                    VmClassLoader classLoader = getVm().getClassLoaderForContext(def.getContext());
+                    superClass = (VmClassImpl) classLoader.loadClass(def.getInternalName());
+                }
+                this.superClass = superClass;
             }
-            this.superClass = superClass;
         }
         return superClass;
     }
