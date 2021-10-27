@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -20,6 +22,15 @@ import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.literal.BooleanLiteral;
+import org.qbicc.graph.literal.ByteArrayLiteral;
+import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.literal.IntegerLiteral;
+import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.MethodHandleLiteral;
+import org.qbicc.graph.literal.NullLiteral;
+import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Signal;
 import org.qbicc.interpreter.Thrown;
@@ -30,6 +41,7 @@ import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmPrimitiveClass;
+import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.machine.arch.Platform;
@@ -37,7 +49,11 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.FloatType;
+import org.qbicc.type.IntegerType;
 import org.qbicc.type.Primitive;
+import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.AnnotatedElement;
@@ -306,6 +322,7 @@ public final class VmImpl implements Vm {
         bootstrapClassLoader.registerClass("internal_array_Z", booleanArrayClass);
 
         throwableClass.initializeConstantStaticFields(); // Has constant String fields that can't be initialized when we first process the class
+
     }
 
     VmClassLoaderImpl getBootstrapClassLoader() {
@@ -808,6 +825,100 @@ public final class VmImpl implements Vm {
             throw new IllegalStateException("No make() method found on DirectMethodHandle class");
         }
         return (VmObject) invokeExact(dmhDef.getMethod(makeIdx), null, List.of(mn));
+    }
+
+    private MethodElement valueOfMethod(VmClassImpl clazz, WordType argType) {
+        clazz.initialize((VmThreadImpl) Vm.requireCurrentThread());
+        LoadedTypeDefinition typeDef = clazz.getTypeDefinition();
+        int mi = typeDef.findMethodIndex(me ->
+            me.nameEquals("valueOf") && me.getType().getParameterType(0).equals(argType));
+        if (mi == -1) {
+            throw new IllegalStateException();
+        }
+        return typeDef.getMethod(mi);
+    }
+
+    @Override
+    public VmObject box(ClassContext classContext, Literal literal) {
+        Assert.checkNotNullParam("literal", literal);
+        if (literal instanceof BooleanLiteral) {
+            MethodElement booleanValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Boolean"), ((BooleanLiteral) literal).getType());
+            return (VmObject) invokeExact(booleanValueOf, null, List.of(Boolean.valueOf(((BooleanLiteral) literal).booleanValue())));
+        } else if (literal instanceof ByteArrayLiteral) {
+            byte[] values = ((ByteArrayLiteral) literal).getValues();
+            int length = values.length;
+            VmByteArrayImpl vmByteArray = byteArrayClass.newInstance(length);
+            vmByteArray.getMemory().storeMemory(vmByteArray.getArrayElementOffset(0), values, 0, length);
+            return vmByteArray;
+        } else if (literal instanceof FloatLiteral) {
+            FloatLiteral floatLiteral = (FloatLiteral) literal;
+            FloatType type = floatLiteral.getType();
+            if (type.getMinBits() == 32) {
+                MethodElement floatValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Float"), type);
+                return (VmObject) invokeExact(floatValueOf, null, List.of(Float.valueOf(floatLiteral.floatValue())));
+            } else {
+                MethodElement doubleValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Double"), type);
+                return (VmObject) invokeExact(doubleValueOf, null, List.of(Double.valueOf(floatLiteral.doubleValue())));
+            }
+        } else if (literal instanceof IntegerLiteral) {
+            // lots of possibilities here
+            IntegerLiteral integerLiteral = (IntegerLiteral) literal;
+            IntegerType type = integerLiteral.getType();
+            if (type instanceof UnsignedIntegerType && type.getMinBits() == 16) {
+                // the lone unsigned type
+                MethodElement charValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Character"), type);
+                return (VmObject) invokeExact(charValueOf, null, List.of(Character.valueOf(integerLiteral.charValue())));
+            } else if (type.getMinBits() == 8) {
+                MethodElement byteValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Byte"), type.asSigned());
+                return (VmObject) invokeExact(byteValueOf, null, List.of(Byte.valueOf(integerLiteral.byteValue())));
+            } else if (type.getMinBits() == 16) {
+                MethodElement shortValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Short"), type); // already signed
+                return (VmObject) invokeExact(shortValueOf, null, List.of(Short.valueOf(integerLiteral.shortValue())));
+            } else if (type.getMinBits() == 32) {
+                MethodElement intValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Integer"), type.asSigned());
+                return (VmObject) invokeExact(intValueOf, null, List.of(Integer.valueOf(integerLiteral.intValue())));
+            } else {
+                assert type.getMinBits() == 64;
+                MethodElement longValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Long"), type.asSigned());
+                return (VmObject) invokeExact(longValueOf, null, List.of(Long.valueOf(integerLiteral.longValue())));
+            }
+        } else if (literal instanceof MethodHandleLiteral) {
+            MethodHandleLiteral mhLiteral = (MethodHandleLiteral) literal;
+            return createMethodHandle(classContext, mhLiteral.getMethodHandleConstant());
+        } else if (literal instanceof NullLiteral) {
+            return null;
+        } else if (literal instanceof ObjectLiteral) {
+            return ((ObjectLiteral) literal).getValue();
+        } else if (literal instanceof StringLiteral) {
+            return intern(((StringLiteral) literal).getValue());
+        } else {
+            throw new UnsupportedOperationException("Boxing literal of type " + literal.getClass());
+        }
+    }
+
+    @Override
+    public VmReferenceArray newArrayOf(VmClass elementType, int size) {
+        if (elementType instanceof VmPrimitiveClass) {
+            throw new IllegalArgumentException("Cannot create a reference array with a primitive element type");
+        }
+        return (VmReferenceArray) ((VmClassImpl)elementType).getArrayClass().newInstance(size);
+    }
+
+    @Override
+    public VmObject getLookup(VmClass vmClass) {
+        // todo: cache these on VmClassImpl?
+        VmClassImpl lookupClass = bootstrapClassLoader.loadClass("java/lang/invoke/MethodHandles$Lookup");
+        LoadedTypeDefinition lookupDef = lookupClass.getTypeDefinition();
+        VmObjectImpl lookupObj = manuallyInitialize(lookupClass.newInstance());
+        lookupObj.getMemory().storeRef(lookupObj.indexOf(lookupDef.findField("lookupClass")), vmClass, MemoryAtomicityMode.UNORDERED);
+        int fullPower = MethodHandles.Lookup.PUBLIC |
+            MethodHandles.Lookup.PRIVATE |
+            MethodHandles.Lookup.PROTECTED |
+            MethodHandles.Lookup.PACKAGE |
+            MethodHandles.Lookup.MODULE;
+        lookupObj.getMemory().store32(lookupObj.indexOf(lookupDef.findField("allowedModes")), fullPower, MemoryAtomicityMode.UNORDERED);
+        VarHandle.releaseFence();
+        return lookupObj;
     }
 
     VmClassImpl getClassForDescriptor(VmClassLoaderImpl cl, TypeDescriptor descriptor) {

@@ -31,7 +31,6 @@ public final class TypeSystem {
     private final VoidType voidType = new VoidType(this);
     private final BlockType blockType = new BlockType(this);
     private final UnresolvedType unresolvedType = new UnresolvedType(this);
-    private final MethodHandleType methodHandleType = new MethodHandleType(this);
     private final BooleanType booleanType;
     private final FloatType float32Type;
     private final FloatType float64Type;
@@ -128,10 +127,6 @@ public final class TypeSystem {
 
     public UnresolvedType getUnresolvedType() {
         return unresolvedType;
-    }
-
-    public MethodHandleType getMethodHandleType() {
-        return methodHandleType;
     }
 
     /**

@@ -1,25 +1,28 @@
 package org.qbicc.graph.literal;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.graph.ValueVisitor;
-import org.qbicc.type.MethodHandleType;
-import org.qbicc.type.ValueType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.methodhandle.MethodHandleConstant;
 
 /**
  * A literal representing a method handle.
  */
 public final class MethodHandleLiteral extends Literal {
-    private final MethodHandleType type;
-    private final int referenceKind;
-    private final int referenceIndex; // TODO: this should be the actual information, not the cpIndex.
+    private final MethodHandleConstant methodHandleConstant;
+    private final ReferenceType type;
 
-    MethodHandleLiteral(MethodHandleType type, int kind, final int reference) {
-        this.type = type;
-        this.referenceKind = kind;
-        this.referenceIndex = reference;
+    MethodHandleLiteral(MethodHandleConstant methodHandleConstant, ReferenceType type) {
+        this.methodHandleConstant = Assert.checkNotNullParam("methodHandleConstant", methodHandleConstant);
+        this.type = Assert.checkNotNullParam("type", type);
     }
 
     public boolean isZero() {
         return false;
+    }
+
+    public MethodHandleConstant getMethodHandleConstant() {
+        return methodHandleConstant;
     }
 
     public boolean equals(final Literal other) {
@@ -27,15 +30,15 @@ public final class MethodHandleLiteral extends Literal {
     }
 
     public boolean equals(final MethodHandleLiteral other) {
-        return this == other || other != null && referenceKind == other.referenceKind && referenceIndex == other.referenceIndex;
+        return this == other || other != null && methodHandleConstant.equals(other.methodHandleConstant);
     }
 
     public int hashCode() {
-        return Integer.hashCode(referenceKind) * 19 + Integer.hashCode(referenceIndex);
+        return methodHandleConstant.hashCode();
     }
 
-    public ValueType getType() {
-      return this.type;
+    public ReferenceType getType() {
+      return type;
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

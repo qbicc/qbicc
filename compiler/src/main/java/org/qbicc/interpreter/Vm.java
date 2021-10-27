@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.literal.Literal;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -231,4 +232,30 @@ public interface Vm {
      * @throws Thrown when the method handle creation throws an exception
      */
     VmObject createMethodHandle(ClassContext classContext, MethodHandleConstant constant) throws Thrown;
+
+    /**
+     * Create an {@code Object} box for the given literal, returning it as a {@code VmObject}.
+     *
+     * @param classContext the class context (must not be {@code null})
+     * @param literal the literal value (must not be {@code null})
+     * @return the box object
+     */
+    VmObject box(ClassContext classContext, Literal literal);
+
+    /**
+     * Create a new reference array with the given element type.
+     *
+     * @param elementType the element type (must not be {@code null})
+     * @param size the array size
+     * @return the new array (not {@code null})
+     */
+    VmReferenceArray newArrayOf(VmClass elementType, int size);
+
+    /**
+     * Get or create the full-powered {@link java.lang.invoke.MethodHandles.Lookup} object for the given class.
+     *
+     * @param vmClass the class (must not be {@code null})
+     * @return the lookup object (not {@code null})
+     */
+    VmObject getLookup(VmClass vmClass);
 }
