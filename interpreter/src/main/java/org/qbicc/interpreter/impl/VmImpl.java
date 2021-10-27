@@ -451,6 +451,9 @@ public final class VmImpl implements Vm {
             });
             classClass.registerInvokable("isPrimitive", (thread, target, args) -> Boolean.valueOf(target instanceof VmPrimitiveClass));
             classClass.registerInvokable("getEnclosingMethod0", (thread, target, args) -> {
+                if (target instanceof VmPrimitiveClass) {
+                    return null;
+                }
                 LoadedTypeDefinition def = ((VmClassImpl) target).getTypeDefinition();
                 LoadedTypeDefinition emcDef = def.getEnclosingMethodClass();
                 if (emcDef == null) {
@@ -472,6 +475,9 @@ public final class VmImpl implements Vm {
             });
             // todo: this one probably should just be a single field on Class
             classClass.registerInvokable("getDeclaringClass0", (thread, target, args) -> {
+                if (target instanceof VmPrimitiveClass) {
+                    return null;
+                }
                 LoadedTypeDefinition def = ((VmClassImpl) target).getTypeDefinition();
                 NestedClassElement enc = def.getEnclosingNestedClass();
                 if (enc != null) {
