@@ -12,15 +12,28 @@ import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 public final class PhiValue extends AbstractValue implements PinnedNode {
+    private static final boolean DEBUG_PHIS = Boolean.parseBoolean(System.getProperty("qbicc.debug.phis", "false"));
+
+    static class DebugHelper {
+        static final StackWalker STACK_WALKER = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
+
+        static StackTraceElement getCreatingFrame() {
+            return STACK_WALKER.walk(stream -> stream.skip(2).dropWhile(sf -> BasicBlockBuilder.class.isAssignableFrom(sf.getDeclaringClass())).findFirst().orElseThrow()).toStackTraceElement();
+        }
+    }
+
     private final ValueType type;
     private final BlockLabel blockLabel;
     private final boolean nullable;
+    // for debugger
+    private final StackTraceElement creatingFrame;
 
     PhiValue(final Node callSite, final ExecutableElement element, final int line, final int bci, final ValueType type, final BlockLabel blockLabel, boolean nullable) {
         super(callSite, element, line, bci);
         this.type = type;
         this.blockLabel = blockLabel;
         this.nullable = nullable;
+        creatingFrame = DEBUG_PHIS ? DebugHelper.getCreatingFrame() : null;
     }
 
     public Value getValueForInput(final Terminator input) {

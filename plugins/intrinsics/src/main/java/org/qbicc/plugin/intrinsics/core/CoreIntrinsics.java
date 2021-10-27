@@ -37,6 +37,7 @@ import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
+import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.machine.probe.CProbe;
@@ -86,6 +87,7 @@ public final class CoreIntrinsics {
         registerJavaIoFileDescriptorIntrinsics(ctxt);
         registerJavaLangClassIntrinsics(ctxt);
         registerJavaLangInvokeMethodHandleNativesIntrinsics(ctxt);
+        registerJavaLangInvokeMethodHandleIntrinsics(ctxt);
         registerJavaLangStringIntrinsics(ctxt);
         registerJavaLangStringUTF16Intrinsics(ctxt);
         registerJavaLangSystemIntrinsics(ctxt);
@@ -348,6 +350,46 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(Phase.ANALYZE, jliMhnDesc, "resolve", memberNameClassBoolToMemberName, resolve);
+    }
+
+    public static void registerJavaLangInvokeMethodHandleIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        TypeSystem ts = ctxt.getTypeSystem();
+
+        ClassTypeDescriptor methodHandleDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/invoke/MethodHandle");
+        ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
+        ClassTypeDescriptor methodTypeDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/invoke/MethodType");
+
+        ArrayTypeDescriptor objArrayDesc = ArrayTypeDescriptor.of(classContext, objDesc);
+
+        MethodDescriptor objArrayToObj = MethodDescriptor.synthesize(classContext, objDesc, List.of(objArrayDesc));
+
+        // mh.invoke(...) -> mh.asType(actualType).invokeExact(...)
+        InstanceIntrinsic invoke = (builder, instance, target, arguments) -> {
+            // Use first builder because we chain to other intrinsics!
+            MethodDescriptor descriptor = target.getCallSiteDescriptor();
+            Vm vm = Vm.requireCurrent();
+            VmObject realType = vm.createMethodType(classContext, descriptor);
+            BasicBlockBuilder fb = builder.getFirstBuilder();
+            Value realHandle;
+            LoadedTypeDefinition mhDef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/invoke/MethodHandle").load();
+            int asTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("asType"));
+            MethodElement asType = mhDef.getMethod(asTypeIdx);
+            if (instance instanceof ObjectLiteral) {
+                // get the target statically
+                realHandle = lf.literalOf((VmObject) vm.invokeExact(asType, ((ObjectLiteral) instance).getValue(), List.of(realType)));
+            } else {
+                // get the target dynamically
+                ValueHandle asTypeHandle = fb.exactMethodOf(instance, asType, asType.getDescriptor(), asType.getType());
+                realHandle = fb.call(asTypeHandle, List.of(lf.literalOf(realType)));
+            }
+            ValueHandle invokeExactHandle = fb.exactMethodOf(realHandle, methodHandleDesc, "invokeExact", descriptor);
+            return fb.call(invokeExactHandle, arguments);
+        };
+        // this intrinsic MUST be added during ADD because `invoke` must always be converted.
+        intrinsics.registerIntrinsic(Phase.ADD, methodHandleDesc, "invoke", objArrayToObj, invoke);
     }
 
     public static void registerJavaLangStringIntrinsics(CompilationContext ctxt) {

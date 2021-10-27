@@ -356,7 +356,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, BasicInitializationBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MethodCallFixupBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
                                 if (optMemoryTracking) {
                                     // TODO: breaks addr_of; should only be done in ANALYZE and then only if addr_of wasn't taken (alias)
@@ -364,6 +363,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, RuntimeChecksBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, LocalThrowHandlingBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 if (initBuildTime) {
                                     builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::initForBuildTimeInit);

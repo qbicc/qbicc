@@ -20,6 +20,7 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.type.methodhandle.MethodHandleConstant;
 
 /**
  *
@@ -48,7 +49,7 @@ public interface LiteralFactory {
 
     ObjectLiteral literalOf(VmObject value);
 
-    MethodHandleLiteral literalOfMethodHandle(int referenceKind, int referenceIndex);
+    MethodHandleLiteral literalOfMethodHandle(MethodHandleConstant methodHandleConstant, ReferenceType type);
 
     SymbolLiteral literalOfSymbol(String name, ValueType symbolType);
 
@@ -152,8 +153,8 @@ public interface LiteralFactory {
                 return new ObjectLiteral(value.getObjectType().getReference(), value);
             }
 
-            public MethodHandleLiteral literalOfMethodHandle(int referenceKind, int referenceIndex) {
-                return new MethodHandleLiteral(typeSystem.getMethodHandleType(), referenceKind, referenceIndex);
+            public MethodHandleLiteral literalOfMethodHandle(MethodHandleConstant methodHandleConstant, ReferenceType type) {
+                return new MethodHandleLiteral(methodHandleConstant, type);
             }
 
             public SymbolLiteral literalOfSymbol(final String name, final ValueType symbolType) {

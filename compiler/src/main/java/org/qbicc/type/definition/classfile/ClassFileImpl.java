@@ -16,12 +16,14 @@ import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
@@ -267,8 +269,19 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         return cpOffset == 0 ? 0 : getByte(cpOffset);
     }
 
-    public int getBootstrapMethodRef(final int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+    public int getBootstrapMethodHandleRef(final int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         return getShort(bootstrapMethodOffsets[idx]);
+    }
+
+    public int getBootstrapMethodArgumentCount(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        return getShort(bootstrapMethodOffsets[idx] + 2);
+    }
+
+    public int getBootstrapMethodArgumentConstantIndex(int idx, int argIdx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        if (argIdx < 0 || argIdx >= getBootstrapMethodArgumentCount(idx)) {
+            throw new IndexOutOfBoundsException(argIdx);
+        }
+        return getShort(bootstrapMethodOffsets[idx] + 4 + (argIdx << 1));
     }
 
     public boolean utf8ConstantEquals(final int idx, final String expected) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
@@ -341,7 +354,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             case CONSTANT_Double:
                 return setIfNull(literals, idx, literalFactory.literalOf(getDoubleConstant(idx)));
             case CONSTANT_MethodHandle:
-                return setIfNull(literals, idx, getMethodHandleConstant(idx));
+                return setIfNull(literals, idx, getMethodHandleLiteral(idx));
             case CONSTANT_MethodType:
                 return setIfNull(literals, idx, getMethodTypeConstant(idx));
             default: {
@@ -374,14 +387,15 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
     }
 
-    Literal getMethodHandleConstant(int idx) {
-        int referenceKind = getMethodHandleReferenceKind(idx);
-        int referenceIndex = getMethodHandleReferenceIndex(idx);
-        return literalFactory.literalOfMethodHandle(referenceKind, referenceIndex);
+    MethodHandleLiteral getMethodHandleLiteral(int idx) {
+        MethodHandleConstant methodHandleConstant = getMethodHandleConstant(idx);
+        ReferenceType type = ctxt.findDefinedType("java/lang/invoke/MethodHandle").load().getClassType().getReference();
+        return literalFactory.literalOfMethodHandle(methodHandleConstant, type);
     }
 
     ObjectLiteral getMethodTypeConstant(int idx) {
-        MethodDescriptor methodDescriptor = (MethodDescriptor) getDescriptorConstant(idx);
+        int descIdx = getRawConstantShort(idx, 1);
+        MethodDescriptor methodDescriptor = (MethodDescriptor) getDescriptorConstant(descIdx);
         VmThread thread = Vm.requireCurrentThread();
         Vm vm = thread.getVM();
         VmObject obj = vm.createMethodType(ctxt, methodDescriptor);
@@ -457,7 +471,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
     }
 
-    public MethodHandleConstant getMethodHandleDescriptor(final int idx) {
+    public MethodHandleConstant getMethodHandleConstant(final int idx) {
         checkConstantType(idx, CONSTANT_MethodHandle);
         if (idx == 0) {
             return null;
