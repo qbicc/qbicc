@@ -28,6 +28,12 @@ jobs:
         run: |
           sudo apt-get install -y libunwind-dev
 
+      - name: Install OpenJDK 17
+        uses: joschi/setup-jdk@v2
+        with:
+          java-version: '17'
+          architecture: 'x64'
+
       - name: Clone qbicc
         uses: actions/checkout@v2
         with:
