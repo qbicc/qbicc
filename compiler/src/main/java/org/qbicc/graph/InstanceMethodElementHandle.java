@@ -1,7 +1,9 @@
 package org.qbicc.graph;
 
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  *
@@ -9,8 +11,8 @@ import org.qbicc.type.definition.element.MethodElement;
 public abstract class InstanceMethodElementHandle extends Executable {
     private final Value instance;
 
-    public InstanceMethodElementHandle(final ExecutableElement currentElement, final int line, final int bci, final ExecutableElement executable, Value instance) {
-        super(currentElement, line, bci, executable);
+    public InstanceMethodElementHandle(final ExecutableElement currentElement, final int line, final int bci, final ExecutableElement executable, Value instance, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+        super(currentElement, line, bci, executable, callSiteDescriptor, callSiteType);
         this.instance = instance;
     }
 

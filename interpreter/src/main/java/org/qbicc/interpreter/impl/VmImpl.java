@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -20,6 +22,15 @@ import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.literal.BooleanLiteral;
+import org.qbicc.graph.literal.ByteArrayLiteral;
+import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.literal.IntegerLiteral;
+import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.MethodHandleLiteral;
+import org.qbicc.graph.literal.NullLiteral;
+import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Signal;
 import org.qbicc.interpreter.Thrown;
@@ -30,6 +41,7 @@ import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmPrimitiveClass;
+import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.machine.arch.Platform;
@@ -37,7 +49,11 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.FloatType;
+import org.qbicc.type.IntegerType;
 import org.qbicc.type.Primitive;
+import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.AnnotatedElement;
@@ -46,6 +62,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -124,6 +141,9 @@ public final class VmImpl implements Vm {
 
     final VmClassImpl stackTraceElementClass;
 
+    // jli special classes
+    final VmMemberNameClassImpl memberNameClass;
+
     // regular classes
     volatile VmClassImpl propertiesClass;
 
@@ -155,15 +175,15 @@ public final class VmImpl implements Vm {
         threadClass = new VmThreadClassImpl(this, bcc.findDefinedType("java/lang/Thread").load(), null);
         throwableClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/Throwable").load(), null);
 
-        byteClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getByteArrayTypeDefinition(), "byte");
-        shortClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getShortArrayTypeDefinition(), "short");
-        intClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getIntArrayTypeDefinition(), "int");
-        longClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getLongArrayTypeDefinition(), "long");
-        floatClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getFloatArrayTypeDefinition(), "float");
-        doubleClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getDoubleArrayTypeDefinition(), "double");
-        charClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getCharArrayTypeDefinition(), "char");
-        booleanClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getBooleanArrayTypeDefinition(), "boolean");
-        voidClass = new VmPrimitiveClassImpl(this, classClass, null, "void");
+        byteClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getByteArrayTypeDefinition(), "byte", BaseTypeDescriptor.B);
+        shortClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getShortArrayTypeDefinition(), "short", BaseTypeDescriptor.S);
+        intClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getIntArrayTypeDefinition(), "int", BaseTypeDescriptor.I);
+        longClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getLongArrayTypeDefinition(), "long", BaseTypeDescriptor.J);
+        floatClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getFloatArrayTypeDefinition(), "float", BaseTypeDescriptor.F);
+        doubleClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getDoubleArrayTypeDefinition(), "double", BaseTypeDescriptor.D);
+        charClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getCharArrayTypeDefinition(), "char", BaseTypeDescriptor.C);
+        booleanClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getBooleanArrayTypeDefinition(), "boolean", BaseTypeDescriptor.Z);
+        voidClass = new VmPrimitiveClassImpl(this, classClass, null, "void", BaseTypeDescriptor.V);
 
         FieldElement arrayLengthField = coreClasses.getArrayLengthField();
         LoadedTypeDefinition arrayBaseClassDef = arrayLengthField.getEnclosingType().load();
@@ -268,6 +288,9 @@ public final class VmImpl implements Vm {
         stackTraceElementClass = new VmClassImpl(this, bcc.findDefinedType("java/lang/StackTraceElement").load(), null);
         stackTraceElementClass.postConstruct(this);
 
+        memberNameClass = new VmMemberNameClassImpl(this, bcc.findDefinedType("java/lang/invoke/MemberName").load(), null);
+        memberNameClass.postConstruct(this);
+
         // set up the bootstrap class loader *last*
         bootstrapClassLoader = new VmClassLoaderImpl(classLoaderClass, this);
 
@@ -287,6 +310,8 @@ public final class VmImpl implements Vm {
 
         bootstrapClassLoader.registerClass("java/lang/StackTraceElement", stackTraceElementClass);
 
+        bootstrapClassLoader.registerClass("java/lang/invoke/MemberName", memberNameClass);
+
         bootstrapClassLoader.registerClass("internal_array_B", byteArrayClass);
         bootstrapClassLoader.registerClass("internal_array_S", shortArrayClass);
         bootstrapClassLoader.registerClass("internal_array_I", intArrayClass);
@@ -297,6 +322,7 @@ public final class VmImpl implements Vm {
         bootstrapClassLoader.registerClass("internal_array_Z", booleanArrayClass);
 
         throwableClass.initializeConstantStaticFields(); // Has constant String fields that can't be initialized when we first process the class
+
     }
 
     VmClassLoaderImpl getBootstrapClassLoader() {
@@ -356,6 +382,8 @@ public final class VmImpl implements Vm {
                 ((VmClassImpl) args.get(0)).initialize((VmThreadImpl) thread);
                 return null;
             });
+            unsafeClass.registerInvokable("shouldBeInitialized0", (thread, target, args) ->
+                Boolean.valueOf(((VmClassImpl) args.get(0)).shouldBeInitialized()));
 
             // System
             VmClassImpl systemClass = bootstrapClassLoader.loadClass("java/lang/System");
@@ -414,12 +442,54 @@ public final class VmImpl implements Vm {
                 VmClassImpl clazz = (VmClassImpl) target;
                 return clazz instanceof VmArrayClass;
             });
+            classClass.registerInvokable("isInterface", (thread, target, args) ->
+                Boolean.valueOf(((VmClassImpl) target).getTypeDefinition().isInterface()));
             classClass.registerInvokable("isAssignableFrom", (thread, target, args) -> {
                 VmClassImpl lhs = (VmClassImpl) target;
                 VmClassImpl rhs = (VmClassImpl)args.get(0);
                 return rhs.getTypeDefinition().isSubtypeOf(lhs.getTypeDefinition());
             });
             classClass.registerInvokable("isPrimitive", (thread, target, args) -> Boolean.valueOf(target instanceof VmPrimitiveClass));
+            classClass.registerInvokable("getEnclosingMethod0", (thread, target, args) -> {
+                if (target instanceof VmPrimitiveClass) {
+                    return null;
+                }
+                LoadedTypeDefinition def = ((VmClassImpl) target).getTypeDefinition();
+                LoadedTypeDefinition emcDef = def.getEnclosingMethodClass();
+                if (emcDef == null) {
+                    return null;
+                }
+                VmImpl vm = (VmImpl) thread.getVM();
+                VmArrayClassImpl arrayClass = vm.objectClass.getArrayClass();
+                VmArrayImpl vmArray = arrayClass.newInstance(3);
+                ClassContext emcCtxt = emcDef.getContext();
+                VmClassLoaderImpl emcLoader = vm.getClassLoaderForContext(emcCtxt);
+                VmClassImpl emc = emcLoader.loadClass(emcDef.getInternalName());
+                vmArray.getMemory().storeRef(0, vm.intern(emc.getName()), MemoryAtomicityMode.UNORDERED);
+                MethodElement enclosingMethod = def.getEnclosingMethod();
+                if (enclosingMethod != null) {
+                    vmArray.getMemory().storeRef(1, vm.intern(enclosingMethod.getName()), MemoryAtomicityMode.UNORDERED);
+                    vmArray.getMemory().storeRef(2, vm.intern(enclosingMethod.getDescriptor().toString()), MemoryAtomicityMode.UNORDERED);
+                }
+                return vmArray;
+            });
+            // todo: this one probably should just be a single field on Class
+            classClass.registerInvokable("getDeclaringClass0", (thread, target, args) -> {
+                if (target instanceof VmPrimitiveClass) {
+                    return null;
+                }
+                LoadedTypeDefinition def = ((VmClassImpl) target).getTypeDefinition();
+                NestedClassElement enc = def.getEnclosingNestedClass();
+                if (enc != null) {
+                    DefinedTypeDefinition enclosingType = enc.getEnclosingType();
+                    if (enclosingType != null) {
+                        VmImpl vm = (VmImpl) thread.getVM();
+                        VmClassLoaderImpl loader = vm.getClassLoaderForContext(enclosingType.getContext());
+                        return loader.loadClass(enclosingType.getInternalName());
+                    }
+                }
+                return null;
+            });
 
             // Array
             VmClassImpl arrayClass = bootstrapClassLoader.loadClass("java/lang/reflect/Array");
@@ -467,6 +537,17 @@ public final class VmImpl implements Vm {
                     bytes.getMemory().store8(bytes.getArrayElementOffset(i), cwd[i], MemoryAtomicityMode.UNORDERED);
                 }
                 return bytes;
+            });
+
+            // MethodHandleNatives
+            VmClassImpl methodHandleNatives = bootstrapClassLoader.loadClass("java/lang/invoke/MethodHandleNatives");
+            methodHandleNatives.registerInvokable("resolve", (thread, target, args) -> {
+                VmThreadImpl ourThread = (VmThreadImpl) thread;
+                VmMemberNameImpl self = (VmMemberNameImpl) args.get(0);
+                VmClassImpl caller = (VmClassImpl) args.get(1);
+                boolean speculativeResolve = ((Boolean) args.get(2)).booleanValue();
+                self.resolve(ourThread, caller, speculativeResolve);
+                return self;
             });
 
             // Now execute system initialization
@@ -656,18 +737,23 @@ public final class VmImpl implements Vm {
             return mt;
         }
         VmClassImpl methodTypeClass = bootstrapClassLoader.loadClass("java/lang/invoke/MethodType");
-        // construct it directly
-        mt = manuallyInitialize(methodTypeClass.newInstance());
+        // construct it via factory method
         LoadedTypeDefinition mtDef = methodTypeClass.getTypeDefinition();
+        int makeImplIdx = mtDef.findSingleMethodIndex(me -> me.nameEquals("makeImpl"));
+        if (makeImplIdx == -1) {
+            // bad JDK?
+            throw new IllegalStateException();
+        }
+        MethodElement method = mtDef.getMethod(makeImplIdx);
+        VmInvokable inv = methodTypeClass.getOrCompile(method);
         TypeDescriptor returnType = methodDescriptor.getReturnType();
-        mt.getMemory().storeRef(mt.indexOf(mtDef.findField("rtype")), getClassForDescriptor(cl, returnType), MemoryAtomicityMode.UNORDERED);
         List<TypeDescriptor> parameterTypes = methodDescriptor.getParameterTypes();
         int size = parameterTypes.size();
-        VmRefArrayImpl array = (VmRefArrayImpl) classClass.getArrayClass().newInstance(size);
+        VmRefArrayImpl array = manuallyInitialize((VmRefArrayImpl) classClass.getArrayClass().newInstance(size));
         for (int i = 0; i < size; i ++) {
             array.getMemory().storeRef(array.getArrayElementOffset(i), getClassForDescriptor(cl, parameterTypes.get(i)), MemoryAtomicityMode.UNORDERED);
         }
-        mt.getMemory().storeRef(mt.indexOf(mtDef.findField("ptypes")), array, MemoryAtomicityMode.UNORDERED);
+        mt = inv.invoke(Vm.requireCurrentThread(), null, List.of(getClassForDescriptor(cl, returnType), array, Boolean.valueOf(true)));
         VmObject appearing = cl.methodTypeCache.putIfAbsent(methodDescriptor, mt);
         if (appearing != null) {
             mt = appearing;
@@ -703,7 +789,7 @@ public final class VmImpl implements Vm {
             extraFlags = 1 << 18;
         } else if (constant instanceof MethodMethodHandleConstant) {
             MethodMethodHandleConstant narrowed = (MethodMethodHandleConstant) constant;
-            MethodDescriptor descriptor = narrowed.getMethodDescriptor();
+            MethodDescriptor descriptor = narrowed.getDescriptor();
             type = createMethodType(classContext, descriptor);
             nameStr = narrowed.getMethodName();
             int mi = owner.getTypeDefinition().findMethodIndex(nameStr, descriptor);
@@ -714,7 +800,7 @@ public final class VmImpl implements Vm {
             extraFlags = 1 << 16;
         } else {
             assert constant instanceof ConstructorMethodHandleConstant;
-            MethodDescriptor descriptor = ((ConstructorMethodHandleConstant) constant).getMethodDescriptor();
+            MethodDescriptor descriptor = ((ConstructorMethodHandleConstant) constant).getDescriptor();
             type = createMethodType(classContext, descriptor);
             nameStr = "<init>";
             int mi = owner.getTypeDefinition().findConstructorIndex(descriptor);
@@ -745,6 +831,100 @@ public final class VmImpl implements Vm {
             throw new IllegalStateException("No make() method found on DirectMethodHandle class");
         }
         return (VmObject) invokeExact(dmhDef.getMethod(makeIdx), null, List.of(mn));
+    }
+
+    private MethodElement valueOfMethod(VmClassImpl clazz, WordType argType) {
+        clazz.initialize((VmThreadImpl) Vm.requireCurrentThread());
+        LoadedTypeDefinition typeDef = clazz.getTypeDefinition();
+        int mi = typeDef.findMethodIndex(me ->
+            me.nameEquals("valueOf") && me.getType().getParameterType(0).equals(argType));
+        if (mi == -1) {
+            throw new IllegalStateException();
+        }
+        return typeDef.getMethod(mi);
+    }
+
+    @Override
+    public VmObject box(ClassContext classContext, Literal literal) {
+        Assert.checkNotNullParam("literal", literal);
+        if (literal instanceof BooleanLiteral) {
+            MethodElement booleanValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Boolean"), ((BooleanLiteral) literal).getType());
+            return (VmObject) invokeExact(booleanValueOf, null, List.of(Boolean.valueOf(((BooleanLiteral) literal).booleanValue())));
+        } else if (literal instanceof ByteArrayLiteral) {
+            byte[] values = ((ByteArrayLiteral) literal).getValues();
+            int length = values.length;
+            VmByteArrayImpl vmByteArray = byteArrayClass.newInstance(length);
+            vmByteArray.getMemory().storeMemory(vmByteArray.getArrayElementOffset(0), values, 0, length);
+            return vmByteArray;
+        } else if (literal instanceof FloatLiteral) {
+            FloatLiteral floatLiteral = (FloatLiteral) literal;
+            FloatType type = floatLiteral.getType();
+            if (type.getMinBits() == 32) {
+                MethodElement floatValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Float"), type);
+                return (VmObject) invokeExact(floatValueOf, null, List.of(Float.valueOf(floatLiteral.floatValue())));
+            } else {
+                MethodElement doubleValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Double"), type);
+                return (VmObject) invokeExact(doubleValueOf, null, List.of(Double.valueOf(floatLiteral.doubleValue())));
+            }
+        } else if (literal instanceof IntegerLiteral) {
+            // lots of possibilities here
+            IntegerLiteral integerLiteral = (IntegerLiteral) literal;
+            IntegerType type = integerLiteral.getType();
+            if (type instanceof UnsignedIntegerType && type.getMinBits() == 16) {
+                // the lone unsigned type
+                MethodElement charValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Character"), type);
+                return (VmObject) invokeExact(charValueOf, null, List.of(Character.valueOf(integerLiteral.charValue())));
+            } else if (type.getMinBits() == 8) {
+                MethodElement byteValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Byte"), type.asSigned());
+                return (VmObject) invokeExact(byteValueOf, null, List.of(Byte.valueOf(integerLiteral.byteValue())));
+            } else if (type.getMinBits() == 16) {
+                MethodElement shortValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Short"), type); // already signed
+                return (VmObject) invokeExact(shortValueOf, null, List.of(Short.valueOf(integerLiteral.shortValue())));
+            } else if (type.getMinBits() == 32) {
+                MethodElement intValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Integer"), type.asSigned());
+                return (VmObject) invokeExact(intValueOf, null, List.of(Integer.valueOf(integerLiteral.intValue())));
+            } else {
+                assert type.getMinBits() == 64;
+                MethodElement longValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Long"), type.asSigned());
+                return (VmObject) invokeExact(longValueOf, null, List.of(Long.valueOf(integerLiteral.longValue())));
+            }
+        } else if (literal instanceof MethodHandleLiteral) {
+            MethodHandleLiteral mhLiteral = (MethodHandleLiteral) literal;
+            return createMethodHandle(classContext, mhLiteral.getMethodHandleConstant());
+        } else if (literal instanceof NullLiteral) {
+            return null;
+        } else if (literal instanceof ObjectLiteral) {
+            return ((ObjectLiteral) literal).getValue();
+        } else if (literal instanceof StringLiteral) {
+            return intern(((StringLiteral) literal).getValue());
+        } else {
+            throw new UnsupportedOperationException("Boxing literal of type " + literal.getClass());
+        }
+    }
+
+    @Override
+    public VmReferenceArray newArrayOf(VmClass elementType, int size) {
+        if (elementType instanceof VmPrimitiveClass) {
+            throw new IllegalArgumentException("Cannot create a reference array with a primitive element type");
+        }
+        return (VmReferenceArray) ((VmClassImpl)elementType).getArrayClass().newInstance(size);
+    }
+
+    @Override
+    public VmObject getLookup(VmClass vmClass) {
+        // todo: cache these on VmClassImpl?
+        VmClassImpl lookupClass = bootstrapClassLoader.loadClass("java/lang/invoke/MethodHandles$Lookup");
+        LoadedTypeDefinition lookupDef = lookupClass.getTypeDefinition();
+        VmObjectImpl lookupObj = manuallyInitialize(lookupClass.newInstance());
+        lookupObj.getMemory().storeRef(lookupObj.indexOf(lookupDef.findField("lookupClass")), vmClass, MemoryAtomicityMode.UNORDERED);
+        int fullPower = MethodHandles.Lookup.PUBLIC |
+            MethodHandles.Lookup.PRIVATE |
+            MethodHandles.Lookup.PROTECTED |
+            MethodHandles.Lookup.PACKAGE |
+            MethodHandles.Lookup.MODULE;
+        lookupObj.getMemory().store32(lookupObj.indexOf(lookupDef.findField("allowedModes")), fullPower, MemoryAtomicityMode.UNORDERED);
+        VarHandle.releaseFence();
+        return lookupObj;
     }
 
     VmClassImpl getClassForDescriptor(VmClassLoaderImpl cl, TypeDescriptor descriptor) {

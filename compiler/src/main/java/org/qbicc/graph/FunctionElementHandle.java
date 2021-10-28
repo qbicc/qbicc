@@ -9,7 +9,7 @@ import org.qbicc.type.definition.element.FunctionElement;
 public final class FunctionElementHandle extends Executable {
 
     FunctionElementHandle(ExecutableElement element, int line, int bci, FunctionElement functionElement) {
-        super(element, line, bci, functionElement);
+        super(element, line, bci, functionElement, functionElement.getDescriptor(), functionElement.getType());
     }
 
     @Override

@@ -6,6 +6,7 @@ import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
 
 /**
  *
@@ -13,16 +14,23 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 class VmPrimitiveClassImpl extends VmClassImpl implements VmPrimitiveClass {
     private final LoadedTypeDefinition arrayTypeDefinition;
     private final String simpleName;
+    private final BaseTypeDescriptor descriptor;
 
-    VmPrimitiveClassImpl(VmImpl vmImpl, VmClassClassImpl classClass, LoadedTypeDefinition arrayTypeDefinition, String simpleName) {
+    VmPrimitiveClassImpl(VmImpl vmImpl, VmClassClassImpl classClass, LoadedTypeDefinition arrayTypeDefinition, String simpleName, BaseTypeDescriptor descriptor) {
         super(vmImpl, classClass, 0);
         this.arrayTypeDefinition = arrayTypeDefinition;
         this.simpleName = simpleName;
+        this.descriptor = descriptor;
     }
 
     @Override
     VmObjectImpl newInstance() {
         throw new UnsupportedOperationException("Cannot construct a primitive instance");
+    }
+
+    @Override
+    BaseTypeDescriptor getDescriptor() {
+        return descriptor;
     }
 
     @Override

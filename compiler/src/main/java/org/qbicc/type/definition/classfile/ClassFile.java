@@ -512,7 +512,38 @@ public interface ClassFile extends FieldResolver,
         return getRawConstantShort(idx, 1);
     }
 
-    int getBootstrapMethodRef(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
+    /**
+     * Get the constant table index of the {@code MethodHandle} constant corresponding to the bootstrap method with
+     * the given index.
+     *
+     * @param idx the bootstrap method index
+     * @return the method handle index
+     * @throws IndexOutOfBoundsException if the index is not valid
+     * @throws ConstantTypeMismatchException if a constant is of an unexpected type
+     */
+    int getBootstrapMethodHandleRef(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
+
+    /**
+     * Get the number of explicit arguments for the bootstrap method with the given index.
+     *
+     * @param idx the bootstrap method index
+     * @return the argument count
+     * @throws IndexOutOfBoundsException if the index is not valid
+     * @throws ConstantTypeMismatchException if a constant is of an unexpected type
+     */
+    int getBootstrapMethodArgumentCount(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
+
+    /**
+     * Get the index of the constant table entry for the argument with the given index to the corresponding bootstrap
+     * method with the corresponding index.
+     *
+     * @param idx the bootstrap method index
+     * @param argIdx the argument index
+     * @return the method handle index
+     * @throws IndexOutOfBoundsException if an index is not valid
+     * @throws ConstantTypeMismatchException if a constant is of an unexpected type
+     */
+    int getBootstrapMethodArgumentConstantIndex(int idx, int argIdx) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
 
     // todo: Module
     // todo: Package
@@ -556,7 +587,7 @@ public interface ClassFile extends FieldResolver,
 
     TypeDescriptor getClassConstantAsDescriptor(int idx);
 
-    MethodHandleConstant getMethodHandleDescriptor(final int idx);
+    MethodHandleConstant getMethodHandleConstant(final int idx);
 
     /**
      * Get the number of fields physically present in the class file.

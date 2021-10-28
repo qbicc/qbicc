@@ -1,15 +1,17 @@
 package org.qbicc.graph;
 
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  * A handle for a static method.
  */
 public final class StaticMethodElementHandle extends Executable {
 
-    StaticMethodElementHandle(ExecutableElement element, int line, int bci, MethodElement methodElement) {
-        super(element, line, bci, methodElement);
+    StaticMethodElementHandle(ExecutableElement element, int line, int bci, MethodElement methodElement, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+        super(element, line, bci, methodElement, callSiteDescriptor, callSiteType);
     }
 
     @Override

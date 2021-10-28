@@ -32,6 +32,8 @@ public final class NativeBindingMethodConfigurator implements NativeMethodConfig
                 if (methodIndex != -1) {
                     // match!
                     MethodElement methodElement = loaded.getMethod(methodIndex);
+                    // make sure the stack trace makes sense
+                    builder.setSourceFileName(methodElement.getSourceFileName());
                     builder.setMethodBodyFactory(methodElement.getMethodBodyFactory(), methodElement.getMethodBodyFactoryIndex());
                     return;
                 }

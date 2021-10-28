@@ -6,12 +6,14 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  *
@@ -38,27 +40,27 @@ public class ClassInitializingBasicBlockBuilder extends DelegatingBasicBlockBuil
     }
 
     @Override
-    public ValueHandle exactMethodOf(Value instance, MethodElement method) {
+    public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
         initialize(method.getEnclosingType());
-        return super.exactMethodOf(instance, method);
+        return super.exactMethodOf(instance, method, callSiteDescriptor, callSiteType);
     }
 
     @Override
-    public ValueHandle virtualMethodOf(Value instance, MethodElement method) {
+    public ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
         initialize(method.getEnclosingType());
-        return super.virtualMethodOf(instance, method);
+        return super.virtualMethodOf(instance, method, callSiteDescriptor, callSiteType);
     }
 
     @Override
-    public ValueHandle staticMethod(MethodElement method) {
+    public ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
         initializeStaticMember(method.getEnclosingType());
-        return super.staticMethod(method);
+        return super.staticMethod(method, callSiteDescriptor, callSiteType);
     }
 
     @Override
-    public ValueHandle constructorOf(Value instance, ConstructorElement constructor) {
+    public ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
         initialize(constructor.getEnclosingType());
-        return super.constructorOf(instance, constructor);
+        return super.constructorOf(instance, constructor, callSiteDescriptor, callSiteType);
     }
 
     @Override

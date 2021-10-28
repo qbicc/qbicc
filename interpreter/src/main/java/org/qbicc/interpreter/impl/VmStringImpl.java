@@ -59,7 +59,7 @@ final class VmStringImpl extends VmObjectImpl implements VmString {
         if (content != null) {
             return content;
         }
-        VmImpl vm = VmImpl.require();
+        VmImpl vm = getVmClass().getVm();
         MemoryImpl memory = getMemory();
         int coder = memory.load8(vm.stringCoderOffset, MemoryAtomicityMode.ACQUIRE);
         VmByteArrayImpl array = (VmByteArrayImpl) memory.loadRef(vm.stringValueOffset, MemoryAtomicityMode.ACQUIRE);

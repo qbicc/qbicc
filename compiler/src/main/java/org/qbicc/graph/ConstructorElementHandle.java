@@ -1,8 +1,10 @@
 package org.qbicc.graph;
 
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  * A handle for an instance constructor.
@@ -10,8 +12,8 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public final class ConstructorElementHandle extends Executable {
     private final Value instance;
 
-    ConstructorElementHandle(ExecutableElement element, int line, int bci, ConstructorElement constructorElement, Value instance) {
-        super(element, line, bci, constructorElement);
+    ConstructorElementHandle(ExecutableElement element, int line, int bci, ConstructorElement constructorElement, Value instance, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+        super(element, line, bci, constructorElement, callSiteDescriptor, callSiteType);
         this.instance = instance;
     }
 

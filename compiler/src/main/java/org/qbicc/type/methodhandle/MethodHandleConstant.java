@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.Descriptor;
 
 /**
  * A holder for the unresolved method handle constant information.  There is a subclass for each shape that can
@@ -20,12 +21,14 @@ public abstract class MethodHandleConstant {
         this.kind = Assert.checkNotNullParam("kind", kind);
     }
 
+    public abstract Descriptor getDescriptor();
+
     public final boolean equals(final Object other) {
         return other instanceof MethodHandleConstant && equals((MethodHandleConstant) other);
     }
 
     public boolean equals(final MethodHandleConstant other) {
-        return super.equals(other) && ownerDescriptor.equals(other.ownerDescriptor) && kind.equals(other.kind);
+        return ownerDescriptor.equals(other.ownerDescriptor) && kind.equals(other.kind);
     }
 
     public int hashCode() {

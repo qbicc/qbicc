@@ -10,6 +10,7 @@ import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
@@ -308,23 +309,23 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle localVariable(LocalVariableElement variable);
 
-    ValueHandle exactMethodOf(Value instance, MethodElement method);
+    ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType);
 
     ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
-    ValueHandle virtualMethodOf(Value instance, MethodElement method);
+    ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType);
 
     ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
-    ValueHandle interfaceMethodOf(Value instance, MethodElement method);
+    ValueHandle interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType);
 
     ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
-    ValueHandle staticMethod(MethodElement method);
+    ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType);
 
     ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
-    ValueHandle constructorOf(Value instance, ConstructorElement constructor);
+    ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, FunctionType callSiteType);
 
     ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor);
 

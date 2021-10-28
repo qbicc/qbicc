@@ -55,7 +55,7 @@ public class LowerClassInitCheckBlockBuilder extends DelegatingBasicBlockBuilder
         try {
             begin(callInit);
             MethodElement helper = ctxt.getVMHelperMethod("initialize_class");
-            getFirstBuilder().call(getFirstBuilder().staticMethod(helper), List.of(getFirstBuilder().currentThread(), typeId));
+            getFirstBuilder().call(getFirstBuilder().staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(getFirstBuilder().currentThread(), typeId));
             goto_(goAhead);
         } catch (BlockEarlyTermination ignored) {
             //continue

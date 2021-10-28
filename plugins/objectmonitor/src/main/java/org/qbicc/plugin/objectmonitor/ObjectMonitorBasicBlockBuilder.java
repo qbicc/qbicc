@@ -34,6 +34,6 @@ public class ObjectMonitorBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     private Value generateObjectMonitorFunctionCall(final Value object, String functionName) {
         MethodElement methodElement = ctxt.getVMHelperMethod(functionName);
         List<Value> args = List.of(object);
-        return getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement), args);
+        return getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement, methodElement.getDescriptor(), methodElement.getType()), args);
     }
 }

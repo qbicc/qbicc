@@ -205,7 +205,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             try {
                 begin(throwIt);
                 MethodElement helper = ctxt.getVMHelperMethod("raiseArithmeticException");
-                callNoReturn(staticMethod(helper), List.of());
+                callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of());
             } catch (BlockEarlyTermination ignored) {
                 // continue
             }
@@ -217,17 +217,17 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     private void throwUnsatisfiedLinkError(String target) {
         MethodElement helper = ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError");
         StringLiteral arg = ctxt.getLiteralFactory().literalOf(target, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getType().getReference());
-        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper), List.of(arg)));
+        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(arg)));
     }
 
     private void throwIncompatibleClassChangeError() {
         MethodElement helper = ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError");
-        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper), List.of()));
+        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of()));
     }
 
     private void throwClassCastException() {
         MethodElement helper = ctxt.getVMHelperMethod("raiseClassCastException");
-        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper), List.of()));
+        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of()));
     }
 
     private Value check(ValueHandle handle) {
@@ -376,7 +376,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         try {
             begin(throwIt);
             MethodElement helper = ctxt.getVMHelperMethod("raiseNullPointerException");
-            callNoReturn(staticMethod(helper), List.of());
+            callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of());
         } catch (BlockEarlyTermination ignored) {
             //continue
         }
@@ -401,7 +401,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         try {
             begin(throwIt);
             MethodElement helper = ctxt.getVMHelperMethod("raiseArrayIndexOutOfBoundsException");
-            callNoReturn(staticMethod(helper), List.of());
+            callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
         }
@@ -416,7 +416,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         try {
             begin(throwIt);
             MethodElement helper = ctxt.getVMHelperMethod("raiseNegativeArraySizeException");
-            callNoReturn(staticMethod(helper), List.of());
+            callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
         }

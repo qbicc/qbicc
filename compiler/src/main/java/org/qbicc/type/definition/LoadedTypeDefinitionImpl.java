@@ -19,6 +19,7 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  *
@@ -41,6 +42,8 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
     private final boolean hasDefaultMethods;
     private final boolean declaresDefaultMethods;
     private volatile VmClass vmClass;
+    private LoadedTypeDefinition enclosingMethodClass;
+    private MethodElement enclosingMethod;
 
     LoadedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final LoadedTypeDefinition superType, final LoadedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final MethodElement[] instanceMethods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses) {
         this.delegate = delegate;
@@ -242,5 +245,40 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
             vmClass = this.vmClass = vm.getClassLoaderForContext(getContext()).getOrDefineClass(this);
         }
         return vmClass;
+    }
+
+    public LoadedTypeDefinition getEnclosingMethodClass() {
+        LoadedTypeDefinition emc = this.enclosingMethodClass;
+        if (emc == null) {
+            String emcName = delegate.enclosingMethodClassName;
+            if (emcName == null) {
+                return null;
+            }
+            DefinedTypeDefinition definedType = getContext().findDefinedType(emcName);
+            if (definedType == null) {
+                return null;
+            }
+            this.enclosingMethodClass = emc = definedType.load();
+        }
+        return emc;
+    }
+
+    public MethodElement getEnclosingMethod() {
+        MethodElement em = this.enclosingMethod;
+        if (em == null) {
+            LoadedTypeDefinition emc = getEnclosingMethodClass();
+            if (emc == null) {
+                return null;
+            }
+            String emName = delegate.enclosingMethodName;
+            MethodDescriptor emDesc = delegate.enclosingMethodDesc;
+            if (emName != null && emDesc != null) {
+                int emIdx = emc.findMethodIndex(emName, emDesc);
+                if (emIdx != -1) {
+                    this.enclosingMethod = em = emc.getMethod(emIdx);
+                }
+            }
+        }
+        return em;
     }
 }

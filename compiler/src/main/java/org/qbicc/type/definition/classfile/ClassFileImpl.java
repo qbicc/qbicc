@@ -16,12 +16,14 @@ import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
@@ -267,8 +269,19 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         return cpOffset == 0 ? 0 : getByte(cpOffset);
     }
 
-    public int getBootstrapMethodRef(final int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+    public int getBootstrapMethodHandleRef(final int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         return getShort(bootstrapMethodOffsets[idx]);
+    }
+
+    public int getBootstrapMethodArgumentCount(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        return getShort(bootstrapMethodOffsets[idx] + 2);
+    }
+
+    public int getBootstrapMethodArgumentConstantIndex(int idx, int argIdx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        if (argIdx < 0 || argIdx >= getBootstrapMethodArgumentCount(idx)) {
+            throw new IndexOutOfBoundsException(argIdx);
+        }
+        return getShort(bootstrapMethodOffsets[idx] + 4 + (argIdx << 1));
     }
 
     public boolean utf8ConstantEquals(final int idx, final String expected) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
@@ -341,7 +354,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             case CONSTANT_Double:
                 return setIfNull(literals, idx, literalFactory.literalOf(getDoubleConstant(idx)));
             case CONSTANT_MethodHandle:
-                return setIfNull(literals, idx, getMethodHandleConstant(idx));
+                return setIfNull(literals, idx, getMethodHandleLiteral(idx));
             case CONSTANT_MethodType:
                 return setIfNull(literals, idx, getMethodTypeConstant(idx));
             default: {
@@ -374,14 +387,15 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
     }
 
-    Literal getMethodHandleConstant(int idx) {
-        int referenceKind = getMethodHandleReferenceKind(idx);
-        int referenceIndex = getMethodHandleReferenceIndex(idx);
-        return literalFactory.literalOfMethodHandle(referenceKind, referenceIndex);
+    MethodHandleLiteral getMethodHandleLiteral(int idx) {
+        MethodHandleConstant methodHandleConstant = getMethodHandleConstant(idx);
+        ReferenceType type = ctxt.findDefinedType("java/lang/invoke/MethodHandle").load().getClassType().getReference();
+        return literalFactory.literalOfMethodHandle(methodHandleConstant, type);
     }
 
     ObjectLiteral getMethodTypeConstant(int idx) {
-        MethodDescriptor methodDescriptor = (MethodDescriptor) getDescriptorConstant(idx);
+        int descIdx = getRawConstantShort(idx, 1);
+        MethodDescriptor methodDescriptor = (MethodDescriptor) getDescriptorConstant(descIdx);
         VmThread thread = Vm.requireCurrentThread();
         Vm vm = thread.getVM();
         VmObject obj = vm.createMethodType(ctxt, methodDescriptor);
@@ -457,7 +471,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
     }
 
-    public MethodHandleConstant getMethodHandleDescriptor(final int idx) {
+    public MethodHandleConstant getMethodHandleConstant(final int idx) {
         checkConstantType(idx, CONSTANT_MethodHandle);
         if (idx == 0) {
             return null;
@@ -737,6 +751,18 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                         }
                     }
                 }
+            } else if (attributeNameEquals(i, "EnclosingMethod")) {
+                int classIdx = getRawAttributeShort(i, 0);
+                int methodNatIdx = getRawAttributeShort(i, 2);
+                String classConstantName = getClassConstantName(classIdx);
+                if (methodNatIdx == 0) {
+                    builder.setEnclosingMethod(classConstantName, null, null);
+                } else {
+                    String methodName = getNameAndTypeConstantName(methodNatIdx);
+                    int mdi = getNameAndTypeConstantDescriptorIdx(methodNatIdx);
+                    MethodDescriptor methodDesc = (MethodDescriptor) getDescriptorConstant(mdi);
+                    builder.setEnclosingMethod(classConstantName, methodName, methodDesc);
+                }
             }
         }
         if (signature == null) {
@@ -766,7 +792,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
         if (! foundInitializer) {
             // synthesize an empty one
-            builder.setInitializer(this, 0);
+            builder.setInitializer(this, -1);
         }
         acnt = getFieldCount();
         for (int i = 0; i < acnt; i ++) {
@@ -874,6 +900,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         builder.setModifiers(methodModifiers);
         String name = getUtf8Constant(getShort(methodOffsets[index] + 2));
         builder.setName(name);
+        builder.setSourceFileName(sourceFile);
         boolean isNative = (methodModifiers & ACC_NATIVE) != 0;
         boolean mayHaveBody = (methodModifiers & ACC_ABSTRACT) == 0 && ! isNative;
         if (mayHaveBody) {
@@ -898,7 +925,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         addParameters(builder, index, enclosing);
         addMethodAnnotations(index, builder);
         builder.setIndex(index);
-        builder.setSourceFileName(sourceFile);
         return builder.build();
     }
 
@@ -930,7 +956,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         InitializerElement.Builder builder = InitializerElement.builder();
         builder.setEnclosingType(enclosing);
         builder.setModifiers(ACC_STATIC);
-        if (index != 0) {
+        if (index != -1) {
             int attrCount = getMethodAttributeCount(index);
             for (int i = 0; i < attrCount; i ++) {
                 if (methodAttributeNameEquals(index, i, "Code")) {

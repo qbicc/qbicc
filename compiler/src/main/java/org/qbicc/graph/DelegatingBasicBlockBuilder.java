@@ -9,6 +9,7 @@ import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
@@ -158,40 +159,40 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().localVariable(variable);
     }
 
-    public ValueHandle exactMethodOf(Value instance, MethodElement method) {
-        return getDelegate().exactMethodOf(instance, method);
+    public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+        return getDelegate().exactMethodOf(instance, method, callSiteDescriptor, callSiteType);
     }
 
     public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         return getDelegate().exactMethodOf(instance, owner, name, descriptor);
     }
 
-    public ValueHandle virtualMethodOf(Value instance, MethodElement method) {
-        return getDelegate().virtualMethodOf(instance, method);
+    public ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+        return getDelegate().virtualMethodOf(instance, method, callSiteDescriptor, callSiteType);
     }
 
     public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         return getDelegate().virtualMethodOf(instance, owner, name, descriptor);
     }
 
-    public ValueHandle interfaceMethodOf(Value instance, MethodElement method) {
-        return getDelegate().interfaceMethodOf(instance, method);
+    public ValueHandle interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+        return getDelegate().interfaceMethodOf(instance, method, callSiteDescriptor, callSiteType);
     }
 
     public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         return getDelegate().interfaceMethodOf(instance, owner, name, descriptor);
     }
 
-    public ValueHandle staticMethod(MethodElement method) {
-        return getDelegate().staticMethod(method);
+    public ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+        return getDelegate().staticMethod(method, callSiteDescriptor, callSiteType);
     }
 
     public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         return getDelegate().staticMethod(owner, name, descriptor);
     }
 
-    public ValueHandle constructorOf(Value instance, ConstructorElement constructor) {
-        return getDelegate().constructorOf(instance, constructor);
+    public ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+        return getDelegate().constructorOf(instance, constructor, callSiteDescriptor, callSiteType);
     }
 
     public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
