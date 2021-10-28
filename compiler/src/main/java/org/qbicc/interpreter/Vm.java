@@ -258,4 +258,11 @@ public interface Vm {
      * @return the lookup object (not {@code null})
      */
     VmObject getLookup(VmClass vmClass);
+
+    /**
+     * Get the complete list of threads which were started from within interpreted code.
+     *
+     * @return the thread list
+     */
+    VmThread[] getStartedThreads();
 }

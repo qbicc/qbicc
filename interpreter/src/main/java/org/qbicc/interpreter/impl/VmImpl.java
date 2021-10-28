@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -150,6 +151,8 @@ public final class VmImpl implements Vm {
     volatile MethodElement setPropertyMethod;
 
     volatile VmObject mainThreadGroup;
+
+    final Set<VmThreadImpl> startedThreads = ConcurrentHashMap.newKeySet();
 
     VmImpl(final CompilationContext ctxt, Consumer<VmObject> manualInitializers) {
         this.ctxt = ctxt;
@@ -419,9 +422,10 @@ public final class VmImpl implements Vm {
                 return null;
             });
 
-            // TODO: Most likely what we should do here is accumulate a list of thread objects where we have
-            //       suppressed the call to start and then start them at runtime.
-            threadNativeClass.registerInvokable("start", (thread, target, args) -> null); // Don't let normal threads actually start
+            threadNativeClass.registerInvokable("start", (thread, target, args) -> {
+                startedThreads.add(vmThread);
+                return null;
+            });
 
             // Throwable
             VmClassImpl throwableClass = bootstrapClassLoader.loadClass("java/lang/Throwable");
@@ -926,6 +930,11 @@ public final class VmImpl implements Vm {
         lookupObj.getMemory().store32(lookupObj.indexOf(lookupDef.findField("allowedModes")), fullPower, MemoryAtomicityMode.UNORDERED);
         VarHandle.releaseFence();
         return lookupObj;
+    }
+
+    @Override
+    public VmThread[] getStartedThreads() {
+        return startedThreads.toArray(VmThread[]::new);
     }
 
     VmClassImpl getClassForDescriptor(VmClassLoaderImpl cl, TypeDescriptor descriptor) {
