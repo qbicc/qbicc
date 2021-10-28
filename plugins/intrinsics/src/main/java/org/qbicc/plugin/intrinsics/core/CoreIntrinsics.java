@@ -277,7 +277,8 @@ public final class CoreIntrinsics {
             Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance), coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
             LiteralFactory lf = ctxt.getLiteralFactory();
             TypeSystem ts = ctxt.getTypeSystem();
-            return builder.getFirstBuilder().call(builder.staticMethod(ctxt.getVMHelperMethod("get_superclass")), List.of(id));
+            MethodElement helper = ctxt.getVMHelperMethod("get_superclass");
+            return builder.getFirstBuilder().call(builder.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(id));
         };
 
         StaticIntrinsic getPrimitiveClass = (builder, target, arguments) -> {
