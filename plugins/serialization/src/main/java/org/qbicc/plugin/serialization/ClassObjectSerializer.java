@@ -9,7 +9,7 @@ import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.object.Section;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables;
-import org.qbicc.plugin.reachability.RTAInfo;
+import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.ReferenceType;
@@ -26,7 +26,7 @@ public class ClassObjectSerializer implements Consumer<CompilationContext> {
     public void accept(CompilationContext ctxt) {
         BuildtimeHeap bth = BuildtimeHeap.get(ctxt);
         SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
-        RTAInfo rtaInfo = RTAInfo.get(ctxt);
+        ReachabilityInfo reachabilityInfo = ReachabilityInfo.get(ctxt);
         LoadedTypeDefinition jlc = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
         Section section = ctxt.getImplicitSection(jlc);
         ReferenceType jlcRef = jlc.getType().getReference();
@@ -46,7 +46,7 @@ public class ClassObjectSerializer implements Consumer<CompilationContext> {
         // initialize the Class array by serializing java.lang.Class instances for all initialized types and primitive types
         Literal[] rootTable = new Literal[tables.get_number_of_typeids()];
         Arrays.fill(rootTable, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(jlcRef));
-        rtaInfo.visitInitializedTypes( ltd -> {
+        reachabilityInfo.visitInitializedTypes(ltd -> {
             SymbolLiteral cls = bth.serializeClassObject(ltd);
             if (cls != null) {
                 section.declareData(null, cls.getName(), cls.getType()).setAddrspace(1);

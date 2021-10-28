@@ -18,7 +18,7 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.plugin.coreclasses.CoreClasses;
-import org.qbicc.plugin.reachability.RTAInfo;
+import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
@@ -89,9 +89,9 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             // continue
         }
 
-        // If the expectedType isn't live in the RTAInfo, then we know we can never have a valid
+        // If the expectedType isn't live in the ReachabilityInfo, then we know we can never have a valid
         // checkcast at runtime. Transform all such checkcasts to CCE and bail out.
-        RTAInfo info = RTAInfo.get(ctxt);
+        ReachabilityInfo info = ReachabilityInfo.get(ctxt);
         if (expectedType instanceof ClassObjectType || expectedType instanceof InterfaceObjectType) {
             LoadedTypeDefinition vtd = expectedType.getDefinition().load();
             if (vtd.isInterface()) {
@@ -158,9 +158,9 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             }
         }
 
-        // If the expectedType isn't live in the RTAInfo, then we know we can never have an
+        // If the expectedType isn't live in the ReachabilityInfo, then we know we can never have an
         // instanceof it at runtime. Transform all such instanceofs to false
-        RTAInfo info = RTAInfo.get(ctxt);
+        ReachabilityInfo info = ReachabilityInfo.get(ctxt);
         if (expectedType instanceof ClassObjectType || expectedType instanceof InterfaceObjectType) {
             LoadedTypeDefinition vtd = expectedType.getDefinition().load();
             if (vtd.isInterface()) {

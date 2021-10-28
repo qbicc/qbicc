@@ -1,7 +1,7 @@
 package org.qbicc.plugin.dispatch;
 
 import org.qbicc.context.CompilationContext;
-import org.qbicc.plugin.reachability.RTAInfo;
+import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 public class DispatchTableBuilder implements Consumer<CompilationContext>  {
     @Override
     public void accept(CompilationContext ctxt) {
-        RTAInfo info = RTAInfo.get(ctxt);
+        ReachabilityInfo info = ReachabilityInfo.get(ctxt);
         DispatchTables tables = DispatchTables.get(ctxt);
 
         // Starting from java.lang.Object walk down the live class hierarchy and

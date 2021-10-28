@@ -93,7 +93,7 @@ import org.qbicc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
 import org.qbicc.plugin.opt.InliningBasicBlockBuilder;
 import org.qbicc.plugin.opt.PhiOptimizerVisitor;
 import org.qbicc.plugin.opt.SimpleOptBasicBlockBuilder;
-import org.qbicc.plugin.reachability.RTAInfo;
+import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
 import org.qbicc.plugin.serialization.ClassObjectSerializer;
 import org.qbicc.plugin.serialization.MethodDataStringsSerializer;
@@ -333,9 +333,9 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
                                 }
                                 if (initBuildTime) {
-                                    builder.addPreHook(Phase.ADD, RTAInfo::forceCoreClassesReachableBuildTimeInit);
+                                    builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachableBuildTimeInit);
                                 } else {
-                                    builder.addPreHook(Phase.ADD, RTAInfo::forceCoreClassesReachableRunTimeInit);
+                                    builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachableRunTimeInit);
                                 }
                                 builder.addElementHandler(Phase.ADD, new ElementBodyCreator());
                                 builder.addElementHandler(Phase.ADD, new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig)));
@@ -370,13 +370,13 @@ public class Main implements Callable<DiagnosticContext> {
                                 } else {
                                     builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::initForRunTimeInit);
                                 }
-                                builder.addPostHook(Phase.ADD, RTAInfo::reportStats);
-                                builder.addPostHook(Phase.ADD, RTAInfo::clear);
+                                builder.addPostHook(Phase.ADD, ReachabilityInfo::reportStats);
+                                builder.addPostHook(Phase.ADD, ReachabilityInfo::clear);
 
                                 if (initBuildTime) {
-                                    builder.addPreHook(Phase.ANALYZE, RTAInfo::forceCoreClassesReachableBuildTimeInit);
+                                    builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::forceCoreClassesReachableBuildTimeInit);
                                 } else {
-                                    builder.addPreHook(Phase.ANALYZE, RTAInfo::forceCoreClassesReachableRunTimeInit);
+                                    builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::forceCoreClassesReachableRunTimeInit);
                                 }
                                 builder.addElementHandler(Phase.ANALYZE, new ElementBodyCopier());
                                 builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new DotGenerator(Phase.ANALYZE, graphGenConfig)));
@@ -406,7 +406,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::initForRunTimeInit);
                                 }
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, LocalVariableFindingBasicBlockBuilder::new);
-                                builder.addPostHook(Phase.ANALYZE, RTAInfo::reportStats);
+                                builder.addPostHook(Phase.ANALYZE, ReachabilityInfo::reportStats);
                                 if (! initBuildTime) {
                                     builder.addPostHook(Phase.ANALYZE, new ClassInitializerRegister());
                                 }
@@ -562,8 +562,8 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean debugVTables;
         @CommandLine.Option(names = "--dispatch-stats")
         private boolean dispatchStats;
-        @CommandLine.Option(names = "--debug-rta")
-        private boolean debugRTA;
+        @CommandLine.Option(names = "--debug-reachability")
+        private boolean debugReachability;
         @CommandLine.Option(names = "--debug-supers")
         private boolean debugSupers;
         @CommandLine.Option(names = "--debug-devirt")
@@ -645,8 +645,8 @@ public class Main implements Callable<DiagnosticContext> {
             if (dispatchStats) {
                 Logger.getLogger("org.qbicc.plugin.dispatch.stats").setLevel(Level.DEBUG);
             }
-            if (debugRTA) {
-                Logger.getLogger("org.qbicc.plugin.reachability.rta").setLevel(Level.DEBUG);
+            if (debugReachability) {
+                Logger.getLogger("org.qbicc.plugin.reachability").setLevel(Level.DEBUG);
             }
             if (debugSupers) {
                 Logger.getLogger("org.qbicc.plugin.instanceofcheckcast.supers").setLevel(Level.DEBUG);

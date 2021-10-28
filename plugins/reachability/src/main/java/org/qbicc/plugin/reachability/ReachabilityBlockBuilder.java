@@ -18,11 +18,9 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.TypeLiteral;
-import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
-import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -38,14 +36,14 @@ import org.qbicc.type.definition.element.MethodElement;
 public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<Void, Void> {
     private final CompilationContext ctxt;
     private final ExecutableElement originalElement;
-    private final RTAInfo info;
+    private final ReachabilityAnalysis analysis;
     private final boolean buildTimeInit;
 
     private ReachabilityBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate, final boolean buildTimeInit) {
         super(delegate);
         this.ctxt = ctxt;
         this.originalElement = delegate.getCurrentElement();
-        this.info = RTAInfo.get(ctxt);
+        this.analysis = ReachabilityInfo.get(ctxt).getAnalysis();
         this.buildTimeInit = buildTimeInit;
     }
 
@@ -103,47 +101,47 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     public Void visit(Void param, ConstructorElementHandle node) {
         ConstructorElement target = node.getExecutable();
         LoadedTypeDefinition ltd = target.getEnclosingType().load();
-        info.processReachableConstructorInvoke(ltd, target, buildTimeInit, originalElement);
+        analysis.processReachableConstructorInvoke(ltd, target, buildTimeInit, originalElement);
         return null;
     }
 
     @Override
     public Void visit(Void param, FunctionElementHandle node) {
         FunctionElement target = node.getExecutable();
-        info.processReachableStaticInvoke(target, originalElement);
+        analysis.processReachableStaticInvoke(target, originalElement);
         return null;
     }
 
     @Override
     public Void visit(Void param, ExactMethodElementHandle node) {
-        info.processReachableInstanceMethodInvoke(node.getExecutable(), originalElement);
+        analysis.processReachableInstanceMethodInvoke(node.getExecutable(), originalElement);
         return null;
     }
 
     @Override
     public Void visit(Void param, VirtualMethodElementHandle node) {
-        info.processReachableInstanceMethodInvoke(node.getExecutable(), originalElement);
+        analysis.processReachableInstanceMethodInvoke(node.getExecutable(), originalElement);
         return null;
     }
 
     @Override
     public Void visit(Void param, InterfaceMethodElementHandle node) {
-        info.processReachableInstanceMethodInvoke(node.getExecutable(), originalElement);
+        analysis.processReachableInstanceMethodInvoke(node.getExecutable(), originalElement);
         return null;
     }
 
     @Override
     public Void visit(Void param, StaticMethodElementHandle node) {
         MethodElement target = node.getExecutable();
-        info.processStaticElementInitialization(target.getEnclosingType().load(), target, buildTimeInit, originalElement);
-        info.processReachableStaticInvoke(target, originalElement);
+        analysis.processStaticElementInitialization(target.getEnclosingType().load(), target, buildTimeInit, originalElement);
+        analysis.processReachableStaticInvoke(target, originalElement);
         return null;
     }
 
     public Value newArray(final ArrayObjectType arrayType, Value size) {
         if (arrayType instanceof ReferenceArrayObjectType) {
             // Force the array's leaf element type to be reachable (and thus assigned a typeId).
-            info.processArrayElementType(((ReferenceArrayObjectType)arrayType).getLeafElementType());
+            analysis.processArrayElementType(((ReferenceArrayObjectType)arrayType).getLeafElementType());
         }
         return super.newArray(arrayType, size);
     }
@@ -151,7 +149,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {
         if (arrayType instanceof ReferenceArrayObjectType) {
             // Force the array's leaf element type to be reachable (and thus assigned a typeId).
-            info.processArrayElementType(((ReferenceArrayObjectType)arrayType).getLeafElementType());
+            analysis.processArrayElementType(((ReferenceArrayObjectType)arrayType).getLeafElementType());
         }
         return super.multiNewArray(arrayType, dimensions);
     }
@@ -159,7 +157,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     // TODO: only initialize the enclosing type if the static field is actually used for something
     @Override
     public ValueHandle staticField(FieldElement field) {
-        info.processStaticElementInitialization(field.getEnclosingType().load(), field, buildTimeInit, originalElement);
+        analysis.processStaticElementInitialization(field.getEnclosingType().load(), field, buildTimeInit, originalElement);
         return super.staticField(field);
     }
 
@@ -170,7 +168,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         Assert.assertTrue(typeId instanceof TypeLiteral);
         TypeLiteral typeLiteral = (TypeLiteral)typeId;
         if (typeLiteral.getValue() instanceof ClassObjectType) {
-            info.processClassInitialization(((ClassObjectType)typeLiteral.getValue()).getDefinition().load(), buildTimeInit);
+            analysis.processClassInitialization(((ClassObjectType)typeLiteral.getValue()).getDefinition().load(), buildTimeInit);
         }
         return super.classOf(typeId, dimensions);
     }

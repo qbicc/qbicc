@@ -2,11 +2,8 @@ package org.qbicc.plugin.instanceofcheckcast;
 
 import java.util.function.Consumer;
 
-import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.plugin.reachability.RTAInfo;
-import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.type.definition.element.InitializerElement;
 
 /**
@@ -22,7 +19,7 @@ public class ClassInitializerRegister implements Consumer<CompilationContext>  {
 
     @Override
     public void accept(CompilationContext ctxt) {
-        RTAInfo rtaInfo = RTAInfo.get(ctxt);
+        ReachabilityInfo rtaInfo = ReachabilityInfo.get(ctxt);
 
         // Code below uses #hasMethodBody() to filter out the empty
         // class initializers and to avoid processing internal arrays

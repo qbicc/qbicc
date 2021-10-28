@@ -46,7 +46,7 @@ class BuildtimeHeapAnalyzer {
      * to identify instantiated types.
      * @param ltd Type whose static fields are the roots for this trace
      */
-    void traceHeap(CompilationContext ctxt, RTAInfo rtaInfo, LoadedTypeDefinition ltd) {
+    void traceHeap(CompilationContext ctxt, ReachabilityAnalysis analysis, LoadedTypeDefinition ltd) {
         ArrayDeque<VmObject> worklist = new ArrayDeque<>();
 
         int fieldCount = ltd.getFieldCount();
@@ -72,7 +72,7 @@ class BuildtimeHeapAnalyzer {
             PhysicalObjectType ot = cur.getObjectType();
             if (ot instanceof ClassObjectType && !(cur instanceof VmClass || cur instanceof VmString)) {
                 LoadedTypeDefinition concreteType = cur.getObjectType().getDefinition().load();
-                rtaInfo.processBuildtimeInstantiatedObjectType(concreteType, ltd);
+                analysis.processBuildtimeInstantiatedObjectType(concreteType, ltd);
 
                 LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
                 for (CompoundType.Member im : memLayout.getCompoundType().getMembers()) {
@@ -85,7 +85,7 @@ class BuildtimeHeapAnalyzer {
                     }
                 }
             } else if (ot instanceof ReferenceArrayObjectType) {
-                rtaInfo.processArrayElementType(((ReferenceArrayObjectType) ot).getLeafElementType());
+                analysis.processArrayElementType(((ReferenceArrayObjectType) ot).getLeafElementType());
 
                 FieldElement contentsField = coreClasses.getRefArrayContentField();
                 LayoutInfo info = interpreterLayout.getInstanceLayoutInfo(contentsField.getEnclosingType());
