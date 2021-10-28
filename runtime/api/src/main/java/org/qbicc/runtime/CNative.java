@@ -815,6 +815,9 @@ public final class CNative {
          * Dereference the pointer, returning what the pointer points to. This operation
          * does not necessarily directly translate to a physical memory operation.
          *
+         * Pointers to structure types cannot be dereferenced, but members can be accessed as structPtr.deref().member
+         * which would be represented in C as structPtr->member.
+         *
          * @return the pointed-to value
          */
         public native T deref();
