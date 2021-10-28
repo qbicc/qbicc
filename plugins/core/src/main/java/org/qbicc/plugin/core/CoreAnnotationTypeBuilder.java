@@ -16,12 +16,16 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
 
     private final ClassTypeDescriptor noSideEffects;
     private final ClassTypeDescriptor hidden;
+    private final ClassTypeDescriptor noReturn;
+    private final ClassTypeDescriptor noThrow;
 
     public CoreAnnotationTypeBuilder(final ClassContext classCtxt, DefinedTypeDefinition.Builder delegate) {
         this.delegate = delegate;
 
         noSideEffects = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoSideEffects");
         hidden = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/Hidden");
+        noReturn = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoReturn");
+        noThrow = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoThrow");
     }
 
     @Override
@@ -40,6 +44,10 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
                         methodElement.setModifierFlags(ClassFile.I_ACC_NO_SIDE_EFFECTS);
                     } else if (annotation.getDescriptor().equals(hidden)) {
                         methodElement.setModifierFlags(ClassFile.I_ACC_HIDDEN);
+                    } else if (annotation.getDescriptor().equals(noReturn)) {
+                        methodElement.setModifierFlags(ClassFile.I_ACC_NO_RETURN);
+                    } else if (annotation.getDescriptor().equals(noThrow)) {
+                        methodElement.setModifierFlags(ClassFile.I_ACC_NO_THROW);
                     }
                 }
                 return methodElement;
