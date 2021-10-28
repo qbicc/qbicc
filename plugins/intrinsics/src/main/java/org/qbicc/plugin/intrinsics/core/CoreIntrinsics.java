@@ -262,46 +262,9 @@ public final class CoreIntrinsics {
 
         InstanceIntrinsic getSuperclass = (builder, instance, target, arguments) -> {
             Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance), coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
-
-            LoadedTypeDefinition jlc = coreClasses.getClassTypeDefinition();
-            ValueType objectType = coreClasses.getObjectTypeDefinition().getType();
-            ValueType firstPrimType = Primitive.getPrimitiveFor('Z').getType();
-            ValueType lastPrimType = Primitive.getPrimitiveFor('V').getType();
-
-            /**Pseudo code:
-             *
-             * Class<?> cls = null;
-             * if (!isInterface && !isPrimitive && !isJLObject) {
-             *     cls = superclass;
-             * }
-             * return cls;
-             */
-            BlockLabel trueBranch = new BlockLabel();
-            BlockLabel fallThrough = new BlockLabel();
             LiteralFactory lf = ctxt.getLiteralFactory();
             TypeSystem ts = ctxt.getTypeSystem();
-            Value result = lf.zeroInitializerLiteralOfType(jlc.getClassType().getReference());
-            PhiValue phi = builder.phi(result.getType(), fallThrough);
-            BasicBlock from = builder.if_(builder.and(
-                                             builder.and(builder.isGt(lf.literalOf(ts.getTypeIdLiteralType(), tables.getFirstInterfaceTypeId()), id),
-                                                         builder.or(builder.isLt(id, lf.literalOfType(firstPrimType)), builder.isGt(id, lf.literalOfType(lastPrimType)))),
-                                             builder.isNe(id, lf.literalOfType(objectType))),
-                                          trueBranch, fallThrough);
-            phi.setValueForBlock(ctxt, builder.getCurrentElement(), from, result);
-            builder.begin(trueBranch);
-            // Get typeid of a super class
-            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
-            ValueHandle typeIdStruct = builder.elementOf(builder.globalVariable(typeIdGlobal), id);
-            ValueHandle superTypeId = builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("superTypeId"));
-            Value superTypeIdValue = builder.load(superTypeId, MemoryAtomicityMode.UNORDERED);
-            // Get the super class
-            result = builder.getFirstBuilder().call(builder.staticMethod(ctxt.getVMHelperMethod("classof_from_typeid")),
-                                                    List.of(superTypeIdValue, lf.zeroInitializerLiteralOfType(ts.getUnsignedInteger8Type())));
-            from = builder.goto_(fallThrough);
-            phi.setValueForBlock(ctxt, builder.getCurrentElement(), from, result);
-            builder.begin(fallThrough);
-
-            return phi;
+            return builder.getFirstBuilder().call(builder.staticMethod(ctxt.getVMHelperMethod("get_superclass")), List.of(id));
         };
 
         StaticIntrinsic getPrimitiveClass = (builder, target, arguments) -> {
@@ -1138,6 +1101,14 @@ public final class CoreIntrinsics {
                 builder.isLe(arguments.get(0), lf.literalOfType(lastPrimArray)));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_prim_array", typeIdBooleanDesc, isPrimArray);
+
+        StaticIntrinsic isPrimitive = (builder, target, arguments) -> {
+            ValueType firstPrimType = Primitive.getPrimitiveFor('Z').getType();
+            ValueType lastPrimType = Primitive.getPrimitiveFor('V').getType();
+            return builder.and(builder.isGe(arguments.get(0), lf.literalOfType(firstPrimType)),
+                               builder.isLe(arguments.get(0), lf.literalOfType(lastPrimType)));
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_primitive", typeIdBooleanDesc, isPrimitive);
 
         StaticIntrinsic isRefArray = (builder, target, arguments) -> {
             ValueType refArray = coreClasses.getArrayLoadedTypeDefinition("[ref").getType();
