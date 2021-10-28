@@ -1,5 +1,7 @@
 package org.qbicc.machine.llvm;
 
+import java.util.Set;
+
 import org.qbicc.machine.llvm.debuginfo.DIExpression;
 import org.qbicc.machine.llvm.impl.LLVM;
 
@@ -77,4 +79,9 @@ public final class Values {
     public static LLValue metadataString(String value) {
         return LLVM.metadataString(value);
     }
+
+    public static LLValue asm(final String instruction, final String constraints, final Set<AsmFlag> flags) {
+        return LLVM.asm(instruction, constraints, flags);
+    }
+
 }
