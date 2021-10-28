@@ -6,7 +6,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 /**
  * Wraps a CompoundType value which cannot be directly dereferenced. If this node is lowered an error will be thrown.
  */
-public class Deref extends AbstractValue implements Value {
+public final class Deref extends AbstractValue implements UnaryValue {
     private final Value value;
 
     Deref(Node callSite, ExecutableElement element, int line, int bci, Value value) {
@@ -14,7 +14,7 @@ public class Deref extends AbstractValue implements Value {
         this.value = value;
     }
 
-    public Value getValue() {
+    public Value getInput() {
         return value;
     }
 

@@ -872,8 +872,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final Deref node) {
-                param.ctxt.error(node.getElement(), "Invalid dereference of %s", node.getValue().getType());
-                return node;
+                return param.getBlockBuilder().deref(param.copyValue(node.getInput()));
             }
         }
     }

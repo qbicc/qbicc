@@ -206,7 +206,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         } else if (value instanceof UndefinedLiteral) {
             // it may be something we can't really cast.
             return ctxt.getLiteralFactory().undefinedLiteralOfType(castType);
-        } else if (value.getType() instanceof PointerType && castType.equals(((PointerType)value.getType()).getPointeeType())) {
+        } else if (value.getType() instanceof PointerType pt && castType.equals(pt.getPointeeType())) {
             /* Pointer<x> -> x */
             if (castType instanceof CompoundType) {
                 return super.deref(value);
