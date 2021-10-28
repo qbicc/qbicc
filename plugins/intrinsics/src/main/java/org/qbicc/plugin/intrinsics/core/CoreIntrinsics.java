@@ -297,7 +297,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus", emptyToBool, desiredAssertionStatus);
         intrinsics.registerIntrinsic(jlcDesc, "initClassName", emptyToString, initClassName);
         intrinsics.registerIntrinsic(jlcDesc, "getPrimitiveClass", stringToClass, getPrimitiveClass);
-        intrinsics.registerIntrinsic(jlcDesc, "getSuperclass", emptyToClass, getSuperclass);
+        intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "getSuperclass", emptyToClass, getSuperclass);
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isArray", emptyToBool, isArray);
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isInterface", emptyToBool, isInterface);
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isPrimitive", emptyToBool, isPrimitive);
