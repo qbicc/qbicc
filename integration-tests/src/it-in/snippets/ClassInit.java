@@ -1,10 +1,16 @@
 import static org.qbicc.runtime.CNative.*;
 
 public class ClassInit {
+    static boolean parentInitialized;
+    static boolean childInitialized;
+    static boolean holderInitialized;
+    static boolean iInitialized;
+    static boolean jInitialized;
+    static boolean kInitialized;
 
     static class Parent {
         static {
-            putchar('P');
+            parentInitialized = true;
         }
 
         public static void call_child() {
@@ -14,7 +20,7 @@ public class ClassInit {
 
     static class Child {
         static {
-            putchar('C');
+            childInitialized = true;
         }
 
         public static void method() { }
@@ -22,7 +28,7 @@ public class ClassInit {
 
     static class FieldHolder {
         static {
-            putchar('F');
+            holderInitialized = true;
         }
 
         public static String s;
@@ -35,7 +41,7 @@ public class ClassInit {
         String s = initS();
 
         static String initS() {
-            putchar('I');
+            iInitialized = true;
             return new String("b");
         }
         default void m() { }
@@ -45,14 +51,15 @@ public class ClassInit {
         String s = initS();
 
         static String initS() {
-            putchar('J'); // should not be called by class init of implmentor
+            // should not be called by class init of implmentor
+            jInitialized = true;
             return new String("b");
         }
     }
 
     static class K implements J {
         static {
-            putchar('K');
+            kInitialized = true;
         }
 
     }
@@ -62,13 +69,19 @@ public class ClassInit {
 
     public static void main(String[] args) {
        Parent.call_child();
+       if (parentInitialized) putchar('P');
+       if (childInitialized) putchar('C');
        putchar('#');
        String s = FieldHolder.s;
+       if (holderInitialized) putchar('F');
        if (s == null) {
            throw new NullPointerException("Ensure field get isn't removed");
        }
        putchar('#');
        new K();
+       if (iInitialized) putchar('I');
+       if (jInitialized) putchar('J');
+       if (kInitialized) putchar('K');
     }
 
 
