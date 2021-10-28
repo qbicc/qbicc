@@ -25,9 +25,6 @@
         <version.org.apache.maven.plugins.maven-dependency-plugin>2.6</version.org.apache.maven.plugins.maven-dependency-plugin>
         <version.org.apache.maven.shared.maven-filtering>1.1</version.org.apache.maven.shared.maven-filtering>
         <version.org.codehaus.plexus.plexus-utils>3.0.10</version.org.codehaus.plexus.plexus-utils>
-
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
     </properties>
 
     <build>
