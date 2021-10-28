@@ -17,6 +17,7 @@ import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.schedule.Schedule;
+import org.qbicc.interpreter.InterpreterHaltedException;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.VmInvokable;
@@ -52,7 +53,7 @@ final class VmInvokableImpl implements VmInvokable {
         }
         MethodBody body = element.getMethodBody();
         if (element.getEnclosingType().getContext().getCompilationContext().errors() > 0) {
-            throw new IllegalStateException("Interpreter halted due to compilation errors");
+            throw new InterpreterHaltedException("Interpreter halted due to compilation errors");
         }
         Map<BasicBlock, List<Node>> scheduled = new HashMap<>();
         buildScheduled(body, new HashSet<>(), scheduled, body.getEntryBlock().getTerminator(), sizeHolder);

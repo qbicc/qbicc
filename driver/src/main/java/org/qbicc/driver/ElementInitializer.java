@@ -3,6 +3,7 @@ package org.qbicc.driver;
 import java.util.function.Consumer;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.interpreter.InterpreterHaltedException;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
@@ -25,6 +26,8 @@ public class ElementInitializer implements Consumer<ExecutableElement> {
                 VmClass vmClass = element.getEnclosingType().load().getVmClass();
                 try {
                     vm.initialize(vmClass);
+                } catch (InterpreterHaltedException ignored) {
+                    // just skip it
                 } catch (Thrown thrown) {
                     VmThrowable throwable = thrown.getThrowable();
                     String className = throwable.getVmClass().getName();

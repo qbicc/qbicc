@@ -5,6 +5,7 @@ import java.nio.ByteOrder;
 import java.util.Collections;
 import java.util.List;
 
+import org.jboss.logging.Logger;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Driver;
@@ -37,6 +38,7 @@ import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
+import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
@@ -81,6 +83,8 @@ import org.qbicc.type.descriptor.MethodDescriptor;
  * Core JDK intrinsics.
  */
 public final class CoreIntrinsics {
+    public static final Logger log = Logger.getLogger("org.qbicc.plugin.intrinsics");
+
     public static void register(CompilationContext ctxt) {
         registerOrgQbiccRuntimeCNativeIntrinsics(ctxt);
         registerEmptyNativeInitMethods(ctxt);
@@ -370,32 +374,43 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor methodHandleDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/invoke/MethodHandle");
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor methodTypeDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/invoke/MethodType");
+        ClassTypeDescriptor internalErrorDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/InternalError");
+        ClassTypeDescriptor throwableDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Throwable");
 
         ArrayTypeDescriptor objArrayDesc = ArrayTypeDescriptor.of(classContext, objDesc);
 
         MethodDescriptor objArrayToObj = MethodDescriptor.synthesize(classContext, objDesc, List.of(objArrayDesc));
+        MethodDescriptor throwableToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(throwableDesc));
 
         // mh.invoke(...) -> mh.asType(actualType).invokeExact(...)
         InstanceIntrinsic invoke = (builder, instance, target, arguments) -> {
             // Use first builder because we chain to other intrinsics!
             MethodDescriptor descriptor = target.getCallSiteDescriptor();
             Vm vm = Vm.requireCurrent();
-            VmObject realType = vm.createMethodType(classContext, descriptor);
             BasicBlockBuilder fb = builder.getFirstBuilder();
-            Value realHandle;
-            LoadedTypeDefinition mhDef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/invoke/MethodHandle").load();
-            int asTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("asType"));
-            MethodElement asType = mhDef.getMethod(asTypeIdx);
-            if (instance instanceof ObjectLiteral) {
-                // get the target statically
-                realHandle = lf.literalOf((VmObject) vm.invokeExact(asType, ((ObjectLiteral) instance).getValue(), List.of(realType)));
-            } else {
-                // get the target dynamically
-                ValueHandle asTypeHandle = fb.exactMethodOf(instance, asType, asType.getDescriptor(), asType.getType());
-                realHandle = fb.call(asTypeHandle, List.of(lf.literalOf(realType)));
+            try {
+                VmObject realType = vm.createMethodType(classContext, descriptor);
+                Value realHandle;
+                LoadedTypeDefinition mhDef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/invoke/MethodHandle").load();
+                int asTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("asType"));
+                MethodElement asType = mhDef.getMethod(asTypeIdx);
+                if (instance instanceof ObjectLiteral) {
+                    // get the target statically
+                    realHandle = lf.literalOf((VmObject) vm.invokeExact(asType, ((ObjectLiteral) instance).getValue(), List.of(realType)));
+                } else {
+                    // get the target dynamically
+                    ValueHandle asTypeHandle = fb.exactMethodOf(instance, asType, asType.getDescriptor(), asType.getType());
+                    realHandle = fb.call(asTypeHandle, List.of(lf.literalOf(realType)));
+                }
+                ValueHandle invokeExactHandle = fb.exactMethodOf(realHandle, methodHandleDesc, "invokeExact", descriptor);
+                return fb.call(invokeExactHandle, arguments);
+            } catch (Thrown t) {
+                ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invoke intrinsic: %s", t);
+                log.warnf(t, "Failed to expand MethodHandle.invoke intrinsic");
+                Value ie = fb.new_(internalErrorDesc);
+                fb.call(fb.constructorOf(ie, internalErrorDesc, throwableToVoid), List.of(lf.literalOf(t.getThrowable())));
+                throw new BlockEarlyTermination(fb.throw_(ie));
             }
-            ValueHandle invokeExactHandle = fb.exactMethodOf(realHandle, methodHandleDesc, "invokeExact", descriptor);
-            return fb.call(invokeExactHandle, arguments);
         };
         // this intrinsic MUST be added during ADD because `invoke` must always be converted.
         intrinsics.registerIntrinsic(Phase.ADD, methodHandleDesc, "invoke", objArrayToObj, invoke);
