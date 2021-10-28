@@ -29,7 +29,7 @@ public final class Stddef {
          * @return the absolute value
          */
         public size_t abs() {
-            return word(Math.abs(longValue()));
+            return word(java.lang.Math.abs(longValue()));
         }
     }
 
