@@ -26,7 +26,7 @@ import org.qbicc.object.Function;
 import org.qbicc.object.Section;
 import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.plugin.dispatch.DispatchTables;
-import org.qbicc.plugin.reachability.RTAInfo;
+import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -117,7 +117,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     @Override
     public ValueHandle visit(ArrayList<Value> args, ExactMethodElementHandle node) {
-        if (!RTAInfo.get(ctxt).isInvokableMethod(node.getExecutable())) {
+        if (!ReachabilityInfo.get(ctxt).isInvokableMethod(node.getExecutable())) {
             // No realized invocation targets are possible for this method!
             throw new BlockEarlyTermination(unreachable());
         }
@@ -136,7 +136,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         // insert "this" and current thread
         args.addAll(0, List.of(fb.currentThread(), node.getInstance()));
         final MethodElement target = node.getExecutable();
-        if (!RTAInfo.get(ctxt).isInvokableMethod(target)) {
+        if (!ReachabilityInfo.get(ctxt).isInvokableMethod(target)) {
             // No realized invocation targets are possible for this method!
             throw new BlockEarlyTermination(unreachable());
         }

@@ -19,7 +19,7 @@ import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.object.Function;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
-import org.qbicc.plugin.reachability.RTAInfo;
+import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
@@ -264,7 +264,7 @@ public class DispatchTables {
                 } else {
                     Function impl = methImpl.isNative() ? null : ctxt.getExactFunctionIfExists(methImpl);
                     if (impl == null) {
-                        if (!methImpl.isNative() && RTAInfo.get(ctxt).isInvokableMethod(methImpl)) {
+                        if (!methImpl.isNative() && ReachabilityInfo.get(ctxt).isInvokableMethod(methImpl)) {
                             ctxt.error(methImpl, "Missing method implementation for vtable of %s", cls.getInternalName());
                         } else {
                             MethodElement uleStub = ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError");

@@ -15,7 +15,7 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.object.Function;
 import org.qbicc.object.Section;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables.IdAndRange.Factory;
-import org.qbicc.plugin.reachability.RTAInfo;
+import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
@@ -202,7 +202,7 @@ public class SupersDisplayTables {
         log.debug("Building SupersDisplay for: " + cls.getDescriptor());
         LoadedTypeDefinition[] supersArray = getSupersDisplay(cls);
         if (supersArray == INVALID_DISPLAY) {
-            RTAInfo info = RTAInfo.get(ctxt);
+            ReachabilityInfo info = ReachabilityInfo.get(ctxt);
             ArrayList<LoadedTypeDefinition> superDisplay = new ArrayList<>();
             LoadedTypeDefinition next = cls;
             do {
@@ -609,7 +609,7 @@ public class SupersDisplayTables {
         Literal uninitialized = lf.literalOf(0);
         Literal initialized = lf.literalOf(1);
         Literal nullInitializer = lf.zeroInitializerLiteralOfType(clinit_state_t.getMember("class_initializers").getType());
-        RTAInfo info = RTAInfo.get(ctxt);
+        ReachabilityInfo info = ReachabilityInfo.get(ctxt);
          // poison
         init_state_literals.add(uninitialized);
         class_initializers_literals.add(nullInitializer);

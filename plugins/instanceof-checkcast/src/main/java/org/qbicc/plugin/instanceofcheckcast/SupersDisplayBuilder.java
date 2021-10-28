@@ -4,14 +4,14 @@ import java.util.function.Consumer;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.plugin.coreclasses.CoreClasses;
-import org.qbicc.plugin.reachability.RTAInfo;
+import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 
 /**
  * Build Cohen's Display for Super types for all classes present in
- * the RTAInfo.
+ * the ReachabilityInfo.
  */
 public class SupersDisplayBuilder implements Consumer<CompilationContext> {
     
@@ -21,10 +21,10 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         //       in which typeIds are assigned to implement intrinsics is_class, is_interface, is_prim_array, and is_primitive.
         //       If any changes are made in the order here, the implementation of those primitives must be updated!
 
-        RTAInfo info = RTAInfo.get(ctxt);
+        ReachabilityInfo info = ReachabilityInfo.get(ctxt);
         SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
         // Starting from java.lang.Object walk down the live class hierarchy and
-        // compute supers display that contain just the classes where RTAInfo
+        // compute supers display that contain just the classes where ReachabilityInfo
         // marks the class as live
         ClassContext classContext = ctxt.getBootstrapClassContext();
         DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
@@ -66,7 +66,7 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         // back propagate max subclass typeid
         info.visitReachableSubclassesPostOrder(jlo, tables::assignMaximumSubtypeId);
 
-        // visit all interfaces implemented as determined by the RTAInfo
+        // visit all interfaces implemented as determined by the ReachabilityInfo
         info.visitReachableInterfaces(tables::assignInterfaceId);
 
         tables.updateJLORange(jlo);
