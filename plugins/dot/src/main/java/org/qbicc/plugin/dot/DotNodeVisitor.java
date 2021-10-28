@@ -16,6 +16,7 @@ import org.qbicc.graph.Add;
 import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.And;
 import org.qbicc.graph.ArrayLength;
+import org.qbicc.graph.AsmHandle;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BitReverse;
@@ -229,6 +230,14 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visitUnknown(final Appendable param, Value node) {
         throw new IllegalStateException("Visitor for node " + node.getClass() + " is not implemented");
+    }
+
+    public String visit(final Appendable param, final AsmHandle node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "asm(" + node.getInstruction() + "," + node.getConstraints() + ")");
+        nl(param);
+        return name;
     }
 
     public String visit(final Appendable param, final BlockEntry node) {

@@ -8,6 +8,10 @@ public interface ValueHandleVisitor<T, R> {
         return null;
     }
 
+    default R visit(T param, AsmHandle node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, ConstructorElementHandle node) {
         return visitUnknown(param, node);
     }
@@ -90,6 +94,11 @@ public interface ValueHandleVisitor<T, R> {
         @Override
         default R visitUnknown(T param, ValueHandle node) {
             return node.accept(getDelegateValueHandleVisitor(), param);
+        }
+
+        @Override
+        default R visit(T param, AsmHandle node) {
+            return getDelegateValueHandleVisitor().visit(param, node);
         }
 
         @Override
