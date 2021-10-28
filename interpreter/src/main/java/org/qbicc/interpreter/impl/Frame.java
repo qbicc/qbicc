@@ -36,12 +36,17 @@ import org.qbicc.graph.Convert;
 import org.qbicc.graph.CountLeadingZeros;
 import org.qbicc.graph.CountTrailingZeros;
 import org.qbicc.graph.CurrentThreadRead;
+import org.qbicc.graph.DataDeclarationHandle;
+import org.qbicc.graph.DataHandle;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
+import org.qbicc.graph.FunctionDeclarationHandle;
+import org.qbicc.graph.FunctionElementHandle;
+import org.qbicc.graph.FunctionHandle;
 import org.qbicc.graph.GetAndAdd;
 import org.qbicc.graph.GetAndBitwiseAnd;
 import org.qbicc.graph.GetAndBitwiseNand;
@@ -2119,6 +2124,55 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             } else {
                 throw unsupportedType();
             }
+        }
+
+        @Override
+        public ExecutableElement visit(Frame param, FunctionDeclarationHandle node) {
+            throw unsatisfiedLink();
+        }
+
+        @Override
+        public ExecutableElement visit(Frame param, FunctionElementHandle node) {
+            throw unsatisfiedLink();
+        }
+
+        @Override
+        public ExecutableElement visit(Frame param, FunctionHandle node) {
+            throw unsatisfiedLink();
+        }
+
+        @Override
+        public ExecutableElement visit(Frame param, DataDeclarationHandle node) {
+            throw unsatisfiedLink();
+        }
+
+        @Override
+        public ExecutableElement visit(Frame param, DataHandle node) {
+            throw unsatisfiedLink();
+        }
+
+        @Override
+        public ExecutableElement visit(Frame param, GlobalVariable node) {
+            throw unsatisfiedLink();
+        }
+
+        @Override
+        public ExecutableElement visit(Frame param, LocalVariable node) {
+            throw unsatisfiedLink();
+        }
+
+        @Override
+        public ExecutableElement visit(Frame param, PointerHandle node) {
+            throw unsatisfiedLink();
+        }
+
+        Thrown unsatisfiedLink() {
+            VmImpl vm = VmImpl.require();
+            VmClassImpl ule = vm.getBootstrapClassLoader().loadClass("java/lang/UnsatisfiedLinkError");
+            VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
+            VmThrowable throwable = vm.manuallyInitialize((VmThrowable) ule.newInstance());
+            thread.setThrown(throwable);
+            return new Thrown(throwable);
         }
 
         @Override
