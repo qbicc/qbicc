@@ -273,6 +273,14 @@ public final class CoreIntrinsics {
             return builder.and(builder.isGe(id, lf.literalOfType(firstPrimType)), builder.isLe(id, lf.literalOfType(lastPrimType)));
         };
 
+        InstanceIntrinsic getSuperclass = (builder, instance, target, arguments) -> {
+            Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance), coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            TypeSystem ts = ctxt.getTypeSystem();
+            MethodElement helper = ctxt.getVMHelperMethod("get_superclass");
+            return builder.getFirstBuilder().call(builder.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(id));
+        };
+
         StaticIntrinsic getPrimitiveClass = (builder, target, arguments) -> {
             // always called with a string literal
             StringLiteral lit = (StringLiteral) arguments.get(0);
@@ -289,6 +297,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus", emptyToBool, desiredAssertionStatus);
         intrinsics.registerIntrinsic(jlcDesc, "initClassName", emptyToString, initClassName);
         intrinsics.registerIntrinsic(jlcDesc, "getPrimitiveClass", stringToClass, getPrimitiveClass);
+        intrinsics.registerIntrinsic(jlcDesc, "getSuperclass", emptyToClass, getSuperclass);
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isArray", emptyToBool, isArray);
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isInterface", emptyToBool, isInterface);
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isPrimitive", emptyToBool, isPrimitive);
@@ -1196,6 +1205,14 @@ public final class CoreIntrinsics {
                 builder.isLe(arguments.get(0), lf.literalOfType(lastPrimArray)));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_prim_array", typeIdBooleanDesc, isPrimArray);
+
+        StaticIntrinsic isPrimitive = (builder, target, arguments) -> {
+            ValueType firstPrimType = Primitive.getPrimitiveFor('Z').getType();
+            ValueType lastPrimType = Primitive.getPrimitiveFor('V').getType();
+            return builder.and(builder.isGe(arguments.get(0), lf.literalOfType(firstPrimType)),
+                               builder.isLe(arguments.get(0), lf.literalOfType(lastPrimType)));
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_primitive", typeIdBooleanDesc, isPrimitive);
 
         StaticIntrinsic isRefArray = (builder, target, arguments) -> {
             ValueType refArray = coreClasses.getArrayLoadedTypeDefinition("[ref").getType();

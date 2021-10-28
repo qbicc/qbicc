@@ -189,6 +189,11 @@ public class ObjectModel {
     public static native boolean is_prim_array(type_id typeId);
 
     /**
+     * Is the argument typeId the typeId of a primitive?
+     */
+    public static native boolean is_primitive(type_id typeId);
+
+    /**
      * Is the argument typeId the typeId use for reference arrays?
      */
     public static native boolean is_reference_array(type_id typeId);

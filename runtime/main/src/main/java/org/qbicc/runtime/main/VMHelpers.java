@@ -113,6 +113,15 @@ public final class VMHelpers {
         return ObjectModel.get_class_from_type_id(typeId, dimensions);
     }
 
+    static Class<?> get_superclass(type_id typeId) {
+        if (ObjectModel.is_java_lang_object(typeId) || ObjectModel.is_primitive(typeId) || ObjectModel.is_interface(typeId)) {
+            return null;
+        }
+        type_id superTypeId = ObjectModel.get_superclass_typeid(typeId);
+        uint8_t dims = word(0);
+        return classof_from_typeid(superTypeId, dims);
+    }
+
     // TODO: mark this with a "NoInline" annotation
     static void monitor_enter(Object object) throws IllegalMonitorStateException {
         int result;
