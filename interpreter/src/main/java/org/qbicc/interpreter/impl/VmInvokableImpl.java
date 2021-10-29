@@ -1,5 +1,8 @@
 package org.qbicc.interpreter.impl;
 
+import java.lang.invoke.ConstantBootstraps;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,10 +36,13 @@ import org.qbicc.type.definition.element.LocalVariableElement;
  *
  */
 final class VmInvokableImpl implements VmInvokable {
+    private static final VarHandle countHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "count", VarHandle.class, VmInvokableImpl.class, long.class);
+
     private final ExecutableElement element;
     private final Map<BasicBlock, List<Node>> scheduled;
     private final Schedule schedule;
     private final int memorySize;
+    private volatile long count;
 
     VmInvokableImpl(ExecutableElement element) {
         this.element = element;
@@ -117,6 +123,10 @@ final class VmInvokableImpl implements VmInvokable {
     }
 
     Object run(VmThreadImpl thread, VmObject target, List<Object> args) {
+        long invCnt = ((long) countHandle.getAndAdd(this, 1)) + 1;
+        if (invCnt == 100) {
+            thread.getVM().getCompilationContext().info(element, "Excessive invocation count (JIT candidate)");
+        }
         if (! (element instanceof InitializerElement)) {
             ((VmClassImpl)element.getEnclosingType().load().getVmClass()).initialize(thread);
         }
