@@ -384,6 +384,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, Deref node) {
+        return visitUnknown(param, node);
+    }
+
     interface Delegating<T, R> extends ValueVisitor<T, R> {
         ValueVisitor<T, R> getDelegateValueVisitor();
 
@@ -736,6 +740,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, ZeroInitializerLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Deref node) {
             return getDelegateValueVisitor().visit(param, node);
         }
     }

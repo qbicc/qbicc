@@ -31,6 +31,7 @@ import org.qbicc.graph.Convert;
 import org.qbicc.graph.DataDeclarationHandle;
 import org.qbicc.graph.DataHandle;
 import org.qbicc.graph.DebugAddressDeclaration;
+import org.qbicc.graph.Deref;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.Extend;
@@ -705,6 +706,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         } else {
             return call.asLocal();
         }
+    }
+
+    public LLValue visit(final Void param, final Deref node) {
+        ctxt.error(node.getElement(), "Invalid dereference of %s", node.getInput().getType());
+        return null;
     }
 
     public LLValue visit(final Void param, final BitCast node) {

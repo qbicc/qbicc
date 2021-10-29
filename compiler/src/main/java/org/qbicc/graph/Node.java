@@ -870,6 +870,10 @@ public interface Node {
             public Value visit(final Copier param, final ZeroInitializerLiteral node) {
                 return node;
             }
+
+            public Value visit(final Copier param, final Deref node) {
+                return param.getBlockBuilder().deref(param.copyValue(node.getInput()));
+            }
         }
     }
 }

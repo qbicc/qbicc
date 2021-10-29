@@ -946,12 +946,9 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(wordDesc, "isZero", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of()), isZero);
         intrinsics.registerIntrinsic(wordDesc, "isNull", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of()), isZero);
 
-        InstanceIntrinsic deref = (builder, instance, target, arguments) -> builder.load(builder.pointerHandle(instance), MemoryAtomicityMode.NONE);
-
-        intrinsics.registerIntrinsic(ptrDesc, "deref", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), deref);
-
         InstanceIntrinsic identity = (builder, instance, target, arguments) -> instance;
 
+        intrinsics.registerIntrinsic(ptrDesc, "deref", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), identity);
         intrinsics.registerIntrinsic(ptrDesc, "asArray", MethodDescriptor.synthesize(classContext, ArrayTypeDescriptor.of(classContext, nObjDesc), List.of()), identity);
 
         InstanceIntrinsic get = (builder, instance, target, arguments) ->

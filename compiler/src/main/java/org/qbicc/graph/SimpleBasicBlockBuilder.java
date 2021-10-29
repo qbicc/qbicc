@@ -386,6 +386,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("CheckCast of unresolved type");
     }
 
+    public Value deref(final Value value) {
+        return new Deref(callSite, element, line, bci, value);
+    }
+
     public ValueHandle memberOf(final ValueHandle structHandle, final CompoundType.Member member) {
         return new MemberOf(callSite, element, line, bci, structHandle, member);
     }
