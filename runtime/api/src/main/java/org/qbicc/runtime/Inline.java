@@ -7,15 +7,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Inline the annotated method.
+ * Inline the annotated method.  Note that only monomorphic method call sites will be considered for inlining.
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.CLASS)
 @Documented
 public @interface Inline {
-    /* TODO: conditions
-    Class<? extends InlineCondition>[] when() default {};
-
-    Class<? extends InlineCondition>[] unless() default {};
+    /**
+     * Get the inlining condition.
+     *
+     * @return the inlining condition
      */
+    InlineCondition value() default InlineCondition.HINT;
 }

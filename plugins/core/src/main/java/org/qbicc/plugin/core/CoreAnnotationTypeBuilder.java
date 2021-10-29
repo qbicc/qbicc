@@ -2,6 +2,8 @@ package org.qbicc.plugin.core;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.AnnotationValue;
+import org.qbicc.type.annotation.EnumConstantAnnotationValue;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.MethodResolver;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -18,6 +20,7 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
     private final ClassTypeDescriptor hidden;
     private final ClassTypeDescriptor noReturn;
     private final ClassTypeDescriptor noThrow;
+    private final ClassTypeDescriptor inline;
 
     public CoreAnnotationTypeBuilder(final ClassContext classCtxt, DefinedTypeDefinition.Builder delegate) {
         this.delegate = delegate;
@@ -26,6 +29,7 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
         hidden = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/Hidden");
         noReturn = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoReturn");
         noThrow = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoThrow");
+        inline = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/Inline");
     }
 
     @Override
@@ -48,6 +52,15 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
                         methodElement.setModifierFlags(ClassFile.I_ACC_NO_RETURN);
                     } else if (annotation.getDescriptor().equals(noThrow)) {
                         methodElement.setModifierFlags(ClassFile.I_ACC_NO_THROW);
+                    } else if (annotation.getDescriptor().equals(inline)) {
+                        AnnotationValue value = annotation.getValue("value");
+                        if (value instanceof EnumConstantAnnotationValue ec) {
+                            if (ec.getValueName().equals("ALWAYS")) {
+                                methodElement.setModifierFlags(ClassFile.I_ACC_ALWAYS_INLINE);
+                            } else if (ec.getValueName().equals("NEVER")) {
+                                methodElement.setModifierFlags(ClassFile.I_ACC_NEVER_INLINE);
+                            }
+                        }
                     }
                 }
                 return methodElement;
