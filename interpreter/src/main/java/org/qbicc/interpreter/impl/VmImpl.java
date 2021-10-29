@@ -663,7 +663,26 @@ public final class VmImpl implements Vm {
     }
 
     public Object invokeVirtual(final MethodElement method, final VmObject instance, final List<Object> args) {
-        return getInstanceInvoker(method).invokeAny(Vm.requireCurrentThread(), instance, args);
+        return getVirtualInvoker(method, instance).invokeAny(Vm.requireCurrentThread(), instance, args);
+    }
+
+    @Override
+    public VmObject newInstance(VmClass vmClass, ConstructorElement constructor, List<Object> arguments) throws Thrown {
+        if (vmClass instanceof VmPrimitiveClass || vmClass instanceof VmArrayClass) {
+            throw new IllegalArgumentException("Invalid class for construction");
+        }
+        LoadedTypeDefinition typeDefinition = vmClass.getTypeDefinition();
+        if (typeDefinition == null || typeDefinition.isInterface() || typeDefinition.isAbstract()) {
+            throw new IllegalArgumentException("Invalid class for construction");
+        }
+        LoadedTypeDefinition loaded = typeDefinition.load();
+        if (constructor.getEnclosingType().load() != loaded) {
+            throw new IllegalArgumentException("Constructor for wrong type specified");
+        }
+        VmInvokable invoker = getInstanceInvoker(constructor);
+        VmObjectImpl vmObject = manuallyInitialize(((VmClassImpl) vmClass).newInstance());
+        invoker.invoke(Vm.requireCurrentThread(), vmObject, arguments);
+        return vmObject;
     }
 
     public void initialize(final VmClass vmClass) {
@@ -980,6 +999,16 @@ public final class VmImpl implements Vm {
         VmClassLoaderImpl classLoader = getClassLoaderForContext(enclosingType.getContext());
         VmClassImpl loadedClass = classLoader.loadClass(enclosingType.getInternalName());
         return loadedClass.getOrCompile(element);
+    }
+
+    private VmInvokable getVirtualInvoker(MethodElement element, VmObject instance) {
+        VmClassImpl instanceClass = (VmClassImpl) instance.getVmClass();
+        LoadedTypeDefinition instanceDef = instanceClass.getTypeDefinition();
+        MethodElement target = instanceDef.resolveMethodElementVirtual(element.getName(), element.getDescriptor(), true);
+        if (target == null) {
+            throw new Thrown(noSuchMethodErrorClass.newInstance(element.getName()));
+        }
+        return instanceClass.getOrCompile(target);
     }
 
     public Memory getGlobal(final GlobalVariableElement variableElement) {

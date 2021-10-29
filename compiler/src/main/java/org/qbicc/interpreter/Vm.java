@@ -142,6 +142,18 @@ public interface Vm {
     Object invokeVirtual(MethodElement method, VmObject instance, List<Object> args);
 
     /**
+     * Construct a new instance of the given class using the given constructor, initializing the class if necessary.
+     *
+     * @param vmClass the class (must not be {@code null})
+     * @param constructor the constructor (must not be {@code null} and must match the class)
+     * @param arguments the constructor arguments
+     * @return the new instance (not {@code null})
+     * @throws Thrown if an exception is thrown from the constructor
+     * @throws IllegalArgumentException if the class or constructor is not valid for construction
+     */
+    VmObject newInstance(VmClass vmClass, ConstructorElement constructor, List<Object> arguments) throws Thrown;
+
+    /**
      * Deliver a "signal" to the target environment.
      *
      * @param signal the signal to deliver

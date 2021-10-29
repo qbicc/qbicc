@@ -19,7 +19,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Driver;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.probe.Qualifier;
-import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.core.ConditionEvaluation;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.layout.NativeLayout;
 import org.qbicc.plugin.linker.Linker;
@@ -125,6 +125,7 @@ final class NativeInfo {
         }
         ClassContext classContext = definedType.getContext();
         CompilationContext ctxt = classContext.getCompilationContext();
+        ConditionEvaluation conditionEvaluation = ConditionEvaluation.get(ctxt);
         ValueType resolved = ref.get();
         if (resolved == null) {
             synchronized (ref) {
@@ -140,18 +141,22 @@ final class NativeInfo {
                         int annotatedAlign = 0;
                         for (Annotation annotation : definedType.getInvisibleAnnotations()) {
                             ClassTypeDescriptor annDesc = annotation.getDescriptor();
-                            if (ProbeUtils.processCommonAnnotation(pb, annotation)) {
+                            if (ProbeUtils.processCommonAnnotation(classContext, definedType, pb, annotation)) {
                                 continue;
                             }
                             if (annDesc.getPackageName().equals(Native.NATIVE_PKG)) {
                                 if (annDesc.getClassName().equals(Native.ANN_NAME)) {
                                     simpleName = ((StringAnnotationValue) annotation.getValue("value")).getString();
                                 } else if (annDesc.getClassName().equals(Native.ANN_INCOMPLETE)) {
-                                    incomplete = true;
+                                    if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
+                                        incomplete = true;
+                                    }
                                 } else if (annDesc.getClassName().equals(Native.ANN_ALIGN)) {
-                                    annotatedAlign = ((IntAnnotationValue)annotation.getValue("value")).intValue();
-                                    if (annotatedAlign == Integer.MAX_VALUE) {
-                                        annotatedAlign = ctxt.getTypeSystem().getMaxAlignment();
+                                    if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
+                                        annotatedAlign = ((IntAnnotationValue)annotation.getValue("value")).intValue();
+                                        if (annotatedAlign == Integer.MAX_VALUE) {
+                                            annotatedAlign = ctxt.getTypeSystem().getMaxAlignment();
+                                        }
                                     }
                                 }
                             }
@@ -160,7 +165,7 @@ final class NativeInfo {
                         while (enclosingName != null) {
                             DefinedTypeDefinition enclosingType = classContext.findDefinedType(enclosingName);
                             for (Annotation annotation : enclosingType.getInvisibleAnnotations()) {
-                                ProbeUtils.processCommonAnnotation(pb, annotation);
+                                ProbeUtils.processCommonAnnotation(classContext, definedType, pb, annotation);
                             }
                             enclosingName = enclosingType.getEnclosingClassInternalName();
                         }

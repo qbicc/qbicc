@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.qbicc.context.ClassContext;
+import org.qbicc.context.Location;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
@@ -808,6 +809,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
         public DefinedTypeDefinition build() {
             return new DefinedTypeDefinitionImpl(this);
+        }
+
+        public Location getLocation() {
+            return Location.builder().setClassInternalName(internalName).build();
         }
     }
 

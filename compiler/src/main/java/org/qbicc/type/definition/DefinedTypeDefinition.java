@@ -217,7 +217,7 @@ public interface DefinedTypeDefinition extends FieldResolver,
 
     BootstrapMethod getBootstrapMethod(int index);
 
-    interface Builder {
+    interface Builder extends Locatable {
         void setContext(ClassContext context);
 
         void setInitializer(InitializerResolver resolver, int index);
@@ -379,6 +379,10 @@ public interface DefinedTypeDefinition extends FieldResolver,
 
             default DefinedTypeDefinition build() {
                 return getDelegate().build();
+            }
+
+            default Location getLocation() {
+                return getDelegate().getLocation();
             }
         }
     }

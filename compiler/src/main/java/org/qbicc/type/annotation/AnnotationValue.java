@@ -7,6 +7,7 @@ import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.classfile.InvalidAnnotationValueException;
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  *
@@ -126,7 +127,7 @@ public abstract class AnnotationValue {
                 return EnumConstantAnnotationValue.of(classFile.getUtf8Constant(nextShort(buf)), classFile.getUtf8Constant(nextShort(buf)));
             }
             case 'c': {
-                return ClassAnnotationValue.of(classFile.getUtf8Constant(nextShort(buf)));
+                return ClassAnnotationValue.of((TypeDescriptor) classFile.getDescriptorConstant(nextShort(buf)));
             }
             case '@': {
                 return Annotation.parse(classFile, classContext, buf);

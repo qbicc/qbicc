@@ -12,6 +12,7 @@ import org.qbicc.object.Data;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
 import org.qbicc.object.ThreadLocalMode;
+import org.qbicc.plugin.core.ConditionEvaluation;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
@@ -51,6 +52,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
 
     public void setInvisibleAnnotations(final List<Annotation> annotations) {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
+        ConditionEvaluation conditionEvaluation = ConditionEvaluation.get(ctxt);
         for (Annotation annotation : annotations) {
             ClassTypeDescriptor desc = annotation.getDescriptor();
             if (desc.getPackageName().equals(Native.NATIVE_PKG)) {
@@ -59,13 +61,17 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                     hasInclude = true;
                 }
                 if (annClassName.equals(Native.ANN_LIB)) {
-                    nativeInfo.registerLibrary(((StringAnnotationValue) annotation.getValue("value")).getString());
+                    if (conditionEvaluation.evaluateConditions(classCtxt, this, annotation)) {
+                        nativeInfo.registerLibrary(((StringAnnotationValue) annotation.getValue("value")).getString());
+                    }
                 } else if (annClassName.equals(Native.ANN_LIB_LIST)) {
                     ArrayAnnotationValue array = (ArrayAnnotationValue) annotation.getValue("value");
                     int cnt = array.getElementCount();
                     for (int j = 0; j < cnt; j ++) {
                         Annotation element = (Annotation) array.getValue(j);
-                        nativeInfo.registerLibrary(((StringAnnotationValue) element.getValue("value")).getString());
+                        if (conditionEvaluation.evaluateConditions(classCtxt, this, element)) {
+                            nativeInfo.registerLibrary(((StringAnnotationValue) element.getValue("value")).getString());
+                        }
                     }
                 }
             }
@@ -230,7 +236,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
             private String getFunctionNameFromMacro(final MethodElement origMethod) {
                 CProbe.Builder builder = CProbe.builder();
                 for (Annotation annotation : origMethod.getEnclosingType().getInvisibleAnnotations()) {
-                    ProbeUtils.processCommonAnnotation(builder, annotation);
+                    ProbeUtils.processCommonAnnotation(classCtxt, origMethod, builder, annotation);
                 }
                 builder.probeMacroFunctionName(origMethod.getName(), origMethod.getSourceFileName(), 0);
                 CProbe probe = builder.build();
