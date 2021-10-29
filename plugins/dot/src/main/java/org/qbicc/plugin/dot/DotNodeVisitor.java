@@ -1548,11 +1548,19 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     private String nextName() {
-        return "n" + counter++;
+        int id = counter++;
+        if (id > 500) {
+            throw new TooBigException();
+        }
+        return "n" + id;
     }
 
     private String nextBBName() {
-        return "b" + bbCounter++;
+        int id = bbCounter++;
+        if (id > 100) {
+            throw new TooBigException();
+        }
+        return "b" + id;
     }
 
     void processPhiQueue(Appendable param) {

@@ -7,8 +7,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Iterator;
 import java.util.function.Consumer;
 
+import org.jboss.logging.Logger;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Diagnostic;
 import org.qbicc.driver.GraphGenConfig;
@@ -23,7 +25,6 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.BasicElement;
-import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.ElementVisitor;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MemberElement;
@@ -32,6 +33,8 @@ import org.qbicc.type.definition.element.MemberElement;
  *
  */
 public class DotGenerator implements ElementVisitor<CompilationContext, Void>, Consumer<CompilationContext> {
+    private static final Logger log = Logger.getLogger("org.qbicc.plugin.dot");
+
     private final Phase phase;
     private final GraphGenFilter filter;
 
@@ -44,22 +47,51 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
         }
     }
 
-    public void accept(final CompilationContext compilationContext) {
-        for (ProgramModule module : compilationContext.getAllProgramModules()) {
-            for (Section section : module.sections()) {
-                for (ProgramObject content : section.contents()) {
-                    if (content instanceof Function) {
-                        Element element = ((Function) content).getOriginalElement();
-                        if (element instanceof MemberElement) {
-                            MethodBody body = ((Function) content).getBody();
-                            if (body != null && filter != null && filter.accept(element, phase)) {
-                                process((MemberElement) element, body);
+    static final class Producer {
+        private final Iterator<ProgramModule> pmIter;
+        private Iterator<Section> sectionIter;
+        private Iterator<ProgramObject> fnIter;
+
+        Producer(CompilationContext ctxt) {
+            pmIter = ctxt.getAllProgramModules().iterator();
+        }
+
+        Function next() {
+            synchronized (this) {
+                ProgramObject item;
+                do {
+                    while (fnIter == null || ! fnIter.hasNext()) {
+                        while (sectionIter == null || ! sectionIter.hasNext()) {
+                            if (! pmIter.hasNext()) {
+                                return null;
                             }
+                            sectionIter = pmIter.next().sections().iterator();
                         }
+                        fnIter = sectionIter.next().contents().iterator();
                     }
-                }
+                    item = fnIter.next();
+                } while (! (item instanceof Function));
+                return (Function) item;
             }
         }
+    }
+
+    public void accept(final CompilationContext compilationContext) {
+        Producer producer = new Producer(compilationContext);
+        compilationContext.runParallelTask(ctxt -> {
+            Function fn;
+            for (;;) {
+                fn = producer.next();
+                if (fn == null) {
+                    return;
+                }
+                MemberElement element = fn.getOriginalElement();
+                MethodBody body = fn.getBody();
+                if (body != null && filter != null && filter.accept(element, phase)) {
+                    process(element, body);
+                }
+            }
+        });
     }
 
     public Void visitUnknown(final CompilationContext param, final BasicElement basicElement) {
@@ -105,7 +137,7 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
             IOException cause = e.getCause();
             failedToWrite(ctxt, path, cause);
         } catch (TooBigException e) {
-            ctxt.warning("Element \"%s\" is too big to graph", element);
+            log.debugf("Element \"%s\" is too big to graph", element);
         }
     }
 
