@@ -29,6 +29,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-constants</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-core</artifactId>
+        </dependency>
         <!-- This dependency is only to avoid hard-coding annotation class names; no code is actually used from here -->
         <dependency>
             <groupId>${project.groupId}</groupId>

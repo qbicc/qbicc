@@ -2,6 +2,7 @@ package org.qbicc.plugin.native_;
 
 import java.io.IOException;
 
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.driver.Driver;
@@ -73,6 +74,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
 
     private void processConstant(final FieldElement fieldElement) {
         Constants constants = Constants.get(ctxt);
+        ClassContext classContext = fieldElement.getEnclosingType().getContext();
         /* Capture location during the ADD phase since constants are defined lazily. */
         Location location = getLocation();
         constants.registerConstant(fieldElement, () -> {
@@ -81,7 +83,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
             String name = fieldElement.getName();
             for (Annotation annotation : fieldElement.getInvisibleAnnotations()) {
                 ClassTypeDescriptor desc = annotation.getDescriptor();
-                if (ProbeUtils.processCommonAnnotation(builder, annotation)) {
+                if (ProbeUtils.processCommonAnnotation(classContext, fieldElement, builder, annotation)) {
                     continue;
                 }
                 if (desc.getPackageName().equals(Native.NATIVE_PKG) && desc.getClassName().equals(Native.ANN_NAME)) {
@@ -89,7 +91,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
                 }
             }
             for (Annotation annotation : fieldElement.getEnclosingType().getInvisibleAnnotations()) {
-                ProbeUtils.processCommonAnnotation(builder, annotation);
+                ProbeUtils.processCommonAnnotation(classContext, fieldElement, builder, annotation);
             }
             // todo: recursively process enclosing types (requires InnerClasses support)
             builder.probeConstant(name, location.getSourceFilePath(), location.getLineNumber());
