@@ -662,6 +662,25 @@ public final class VmImpl implements Vm {
         return getInstanceInvoker(method).invokeAny(Vm.requireCurrentThread(), instance, args);
     }
 
+    @Override
+    public VmObject newInstance(VmClass vmClass, ConstructorElement constructor, List<Object> arguments) throws Thrown {
+        if (vmClass instanceof VmPrimitiveClass || vmClass instanceof VmArrayClass) {
+            throw new IllegalArgumentException("Invalid class for construction");
+        }
+        LoadedTypeDefinition typeDefinition = vmClass.getTypeDefinition();
+        if (typeDefinition == null || typeDefinition.isInterface() || typeDefinition.isAbstract()) {
+            throw new IllegalArgumentException("Invalid class for construction");
+        }
+        LoadedTypeDefinition loaded = typeDefinition.load();
+        if (constructor.getEnclosingType().load() != loaded) {
+            throw new IllegalArgumentException("Constructor for wrong type specified");
+        }
+        VmInvokable invoker = getInstanceInvoker(constructor);
+        VmObjectImpl vmObject = manuallyInitialize(((VmClassImpl) vmClass).newInstance());
+        invoker.invoke(Vm.requireCurrentThread(), vmObject, arguments);
+        return vmObject;
+    }
+
     public void initialize(final VmClass vmClass) {
         VmThreadImpl vmThread = (VmThreadImpl) Vm.requireCurrentThread();
         ((VmClassImpl)vmClass).initialize(vmThread);
