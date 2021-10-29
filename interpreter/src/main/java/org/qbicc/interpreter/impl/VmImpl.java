@@ -659,7 +659,7 @@ public final class VmImpl implements Vm {
     }
 
     public Object invokeVirtual(final MethodElement method, final VmObject instance, final List<Object> args) {
-        return getInstanceInvoker(method).invokeAny(Vm.requireCurrentThread(), instance, args);
+        return getVirtualInvoker(method, instance).invokeAny(Vm.requireCurrentThread(), instance, args);
     }
 
     @Override
@@ -990,6 +990,16 @@ public final class VmImpl implements Vm {
         VmClassLoaderImpl classLoader = getClassLoaderForContext(enclosingType.getContext());
         VmClassImpl loadedClass = classLoader.loadClass(enclosingType.getInternalName());
         return loadedClass.getOrCompile(element);
+    }
+
+    private VmInvokable getVirtualInvoker(MethodElement element, VmObject instance) {
+        VmClassImpl instanceClass = (VmClassImpl) instance.getVmClass();
+        LoadedTypeDefinition instanceDef = instanceClass.getTypeDefinition();
+        MethodElement target = instanceDef.resolveMethodElementVirtual(element.getName(), element.getDescriptor(), true);
+        if (target == null) {
+            throw new Thrown(noSuchMethodErrorClass.newInstance(element.getName()));
+        }
+        return instanceClass.getOrCompile(target);
     }
 
     public Memory getGlobal(final GlobalVariableElement variableElement) {
