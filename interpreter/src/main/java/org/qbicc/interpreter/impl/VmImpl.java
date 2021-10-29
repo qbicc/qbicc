@@ -410,6 +410,14 @@ public final class VmImpl implements Vm {
             VmClassImpl stringClass = bootstrapClassLoader.loadClass("java/lang/String");
 
             stringClass.registerInvokable("intern", (thread, target, args) -> intern((VmStringImpl) target));
+            // for performance:
+            // String.hashCode is well-defined
+            stringClass.registerInvokable("hashCode", (thread, target, args) -> Integer.valueOf(((VmStringImpl) target).getContent().hashCode()));
+            stringClass.registerInvokable("equals", (thread, target, args) -> Boolean.valueOf(args.get(0) instanceof VmStringImpl other && ((VmStringImpl)target).contentEquals(other.getContent())));
+            stringClass.registerInvokable("coder", (thread, target, args) -> Byte.valueOf((byte) ((VmStringImpl) target).getMemory().load8(stringCoderOffset, MemoryAtomicityMode.UNORDERED)));
+            stringClass.registerInvokable("isLatin1", (thread, target, args) -> Boolean.valueOf(((VmStringImpl) target).getMemory().load8(stringCoderOffset, MemoryAtomicityMode.UNORDERED) == 0));
+            stringClass.registerInvokable("length", (thread, target, args) -> Integer.valueOf(((VmStringImpl) target).getContent().length()));
+            stringClass.registerInvokable("charAt", (thread, target, args) -> Integer.valueOf(((VmStringImpl) target).getContent().charAt(((Integer) args.get(0)).intValue())));
 
             // Thread
             VmClassImpl threadNativeClass = bootstrapClassLoader.loadClass("java/lang/Thread");
