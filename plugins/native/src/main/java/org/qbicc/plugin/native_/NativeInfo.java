@@ -139,9 +139,11 @@ final class NativeInfo {
                         Qualifier q = Qualifier.NONE;
                         boolean incomplete = false;
                         int annotatedAlign = 0;
+                        processEnclosingType(classContext, pb, definedType);
+                        ProbeUtils.ProbeProcessor pp = new ProbeUtils.ProbeProcessor(classContext, definedType);
                         for (Annotation annotation : definedType.getInvisibleAnnotations()) {
                             ClassTypeDescriptor annDesc = annotation.getDescriptor();
-                            if (ProbeUtils.processCommonAnnotation(classContext, definedType, pb, annotation)) {
+                            if (pp.processAnnotation(annotation)) {
                                 continue;
                             }
                             if (annDesc.getPackageName().equals(Native.NATIVE_PKG)) {
@@ -161,14 +163,7 @@ final class NativeInfo {
                                 }
                             }
                         }
-                        String enclosingName = definedType.getEnclosingClassInternalName();
-                        while (enclosingName != null) {
-                            DefinedTypeDefinition enclosingType = classContext.findDefinedType(enclosingName);
-                            for (Annotation annotation : enclosingType.getInvisibleAnnotations()) {
-                                ProbeUtils.processCommonAnnotation(classContext, definedType, pb, annotation);
-                            }
-                            enclosingName = enclosingType.getEnclosingClassInternalName();
-                        }
+                        pp.accept(pb);
                         if (simpleName == null) {
                             String fullName = definedType.getInternalName();
                             int idx = fullName.lastIndexOf('/');
@@ -271,6 +266,20 @@ final class NativeInfo {
             }
         }
         return resolved;
+    }
+
+    private void processEnclosingType(ClassContext classContext, CProbe.Builder builder, DefinedTypeDefinition definedType) {
+        String enclosingName = definedType.getEnclosingClassInternalName();
+        if (enclosingName != null) {
+            DefinedTypeDefinition enclosingType = classContext.findDefinedType(enclosingName);
+            // enclosing types first so enclosed types can override
+            processEnclosingType(classContext, builder, enclosingType);
+            ProbeUtils.ProbeProcessor pp = new ProbeUtils.ProbeProcessor(classContext, definedType);
+            for (Annotation annotation : enclosingType.getInvisibleAnnotations()) {
+                pp.processAnnotation(annotation);
+            }
+            pp.accept(builder);
+        }
     }
 
     private ValueType decodePointerType(final DefinedTypeDefinition definedType) {

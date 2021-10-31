@@ -16,6 +16,8 @@ final class Native {
     static final String ANN_ALIGN_LIST = className(align.List.class);
     static final String ANN_DEFINE = className(define.class);
     static final String ANN_DEFINE_LIST = className(define.List.class);
+    static final String ANN_UNDEF = className(define.class);
+    static final String ANN_UNDEF_LIST = className(define.List.class);
     static final String ANN_EXTERN = className(extern.class);
     static final String ANN_EXPORT = className(export.class);
     static final String ANN_INCLUDE = className(include.class);

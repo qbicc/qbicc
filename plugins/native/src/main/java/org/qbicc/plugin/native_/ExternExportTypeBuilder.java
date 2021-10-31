@@ -235,9 +235,16 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
 
             private String getFunctionNameFromMacro(final MethodElement origMethod) {
                 CProbe.Builder builder = CProbe.builder();
+                ProbeUtils.ProbeProcessor pp = new ProbeUtils.ProbeProcessor(classCtxt, origMethod.getEnclosingType());
                 for (Annotation annotation : origMethod.getEnclosingType().getInvisibleAnnotations()) {
-                    ProbeUtils.processCommonAnnotation(classCtxt, origMethod, builder, annotation);
+                    pp.processAnnotation(annotation);
                 }
+                pp.accept(builder);
+                pp = new ProbeUtils.ProbeProcessor(classCtxt, origMethod);
+                for (Annotation annotation : origMethod.getInvisibleAnnotations()) {
+                    pp.processAnnotation(annotation);
+                }
+                pp.accept(builder);
                 builder.probeMacroFunctionName(origMethod.getName(), origMethod.getSourceFileName(), 0);
                 CProbe probe = builder.build();
                 CProbe.Result result;
