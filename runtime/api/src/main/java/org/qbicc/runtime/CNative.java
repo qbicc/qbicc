@@ -1074,6 +1074,38 @@ public final class CNative {
         }
     }
 
+    @Repeatable(undef.List.class)
+    @Target({ ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
+    @Retention(RetentionPolicy.CLASS)
+    public @interface undef {
+        /**
+         * The name of the symbol being undefined. Must not be empty.
+         *
+         * @return the name
+         */
+        String value();
+
+        /**
+         * Cause this annotation to take effect only if <em>all</em> of the given conditions return {@code true}.
+         *
+         * @return the condition classes
+         */
+        Class<? extends BooleanSupplier>[] when() default {};
+
+        /**
+         * Prevent this annotation from taking effect if <em>all</em> of the given conditions return {@code true}.
+         *
+         * @return the condition classes
+         */
+        Class<? extends BooleanSupplier>[] unless() default {};
+
+        @Target({ ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
+        @Retention(RetentionPolicy.CLASS)
+        @interface List {
+            undef[] value();
+        }
+    }
+
     @Target({ ElementType.METHOD })
     @Retention(RetentionPolicy.CLASS)
     public @interface macro {

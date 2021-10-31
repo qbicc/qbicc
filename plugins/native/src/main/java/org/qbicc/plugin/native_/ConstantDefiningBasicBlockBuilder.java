@@ -81,18 +81,24 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
             CProbe.Builder builder = CProbe.builder();
             // get the element's info
             String name = fieldElement.getName();
+            // process enclosing type first
+            ProbeUtils.ProbeProcessor pp = new ProbeUtils.ProbeProcessor(classContext, fieldElement.getEnclosingType());
+            for (Annotation annotation : fieldElement.getEnclosingType().getInvisibleAnnotations()) {
+                pp.processAnnotation(annotation);
+            }
+            pp.accept(builder);
+            // now process the annotated member so it can override
+            pp = new ProbeUtils.ProbeProcessor(classContext, fieldElement);
             for (Annotation annotation : fieldElement.getInvisibleAnnotations()) {
                 ClassTypeDescriptor desc = annotation.getDescriptor();
-                if (ProbeUtils.processCommonAnnotation(classContext, fieldElement, builder, annotation)) {
+                if (pp.processAnnotation(annotation)) {
                     continue;
                 }
                 if (desc.getPackageName().equals(Native.NATIVE_PKG) && desc.getClassName().equals(Native.ANN_NAME)) {
                     name = ((StringAnnotationValue) annotation.getValue("value")).getString();
                 }
             }
-            for (Annotation annotation : fieldElement.getEnclosingType().getInvisibleAnnotations()) {
-                ProbeUtils.processCommonAnnotation(classContext, fieldElement, builder, annotation);
-            }
+            pp.accept(builder);
             // todo: recursively process enclosing types (requires InnerClasses support)
             builder.probeConstant(name, location.getSourceFilePath(), location.getLineNumber());
             // run the probe

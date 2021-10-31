@@ -186,6 +186,11 @@ public final class CProbe {
             return this;
         }
 
+        public Builder undef(String key) {
+            items.add(new Undefine(key));
+            return this;
+        }
+
         public Builder line(int line, String file) {
             if (line > 0) {
                 items.add(new Line(line, file));
@@ -936,8 +941,14 @@ public final class CProbe {
         }
 
         StringBuilder appendTo(final StringBuilder b) {
+            b.append('#').append("if").append(' ').append("defined").append('(').append(key).append(')');
+            nl(b);
+            b.append('#').append("undef").append(' ').append(key);
+            nl(b);
+            b.append('#').append("endif");
+            nl(b);
             b.append('#').append("define").append(' ').append(key);
-            Iterator iterator = arguments.iterator();
+            Iterator<String> iterator = arguments.iterator();
             if (iterator.hasNext()) {
                 b.append('(');
                 b.append(iterator.next());
@@ -950,6 +961,23 @@ public final class CProbe {
             if (value != null && ! value.isEmpty()) {
                 b.append(' ').append(value);
             }
+            return nl(b);
+        }
+    }
+
+    static final class Undefine extends PreProc {
+        private final String key;
+
+        Undefine(final String key) {
+            this.key = key;
+        }
+
+        StringBuilder appendTo(final StringBuilder b) {
+            b.append('#').append("if").append(' ').append("defined").append('(').append(key).append(')');
+            nl(b);
+            b.append('#').append("undef").append(' ').append(key);
+            nl(b);
+            b.append('#').append("endif");
             return nl(b);
         }
     }
