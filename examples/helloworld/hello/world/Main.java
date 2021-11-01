@@ -12,28 +12,13 @@
 //DEPS org.qbicc:qbicc-runtime-api:0.1.0-SNAPSHOT
 package hello.world;
 
-import static org.qbicc.runtime.CNative.*;
-
 /**
- *
+ * The classic Hello World program for Java.
  */
 public class Main {
-    @extern
-    public static native int putchar(int arg);
 
     public static void main(String[] args) {
-        putchar('h');
-        putchar('e');
-        putchar('l');
-        putchar('l');
-        putchar('o');
-        putchar(' ');
-        putchar('w');
-        putchar('o');
-        putchar('r');
-        putchar('l');
-        putchar('d');
-        putchar('\n');
+        System.out.println("hello world");
     }
 }
 
