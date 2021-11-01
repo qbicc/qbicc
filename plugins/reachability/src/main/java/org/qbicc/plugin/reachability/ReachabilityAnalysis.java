@@ -19,13 +19,13 @@ interface ReachabilityAnalysis {
 
     void processReachableStaticInvoke(final InvokableElement target, ExecutableElement originalElement);
 
-    void processReachableConstructorInvoke(LoadedTypeDefinition ltd, ConstructorElement target, boolean buildTimeInit, ExecutableElement originalElement);
+    void processReachableConstructorInvoke(LoadedTypeDefinition ltd, ConstructorElement target, ExecutableElement originalElement);
 
     void processReachableInstanceMethodInvoke(final MethodElement target, ExecutableElement originalElement);
 
-    void processStaticElementInitialization(final LoadedTypeDefinition ltd, BasicElement cause, boolean buildTimeInit, ExecutableElement originalElement);
+    void processStaticElementInitialization(final LoadedTypeDefinition ltd, BasicElement cause, ExecutableElement originalElement);
 
-    void processClassInitialization(final LoadedTypeDefinition ltd, boolean buildTimeInit);
+    void processClassInitialization(final LoadedTypeDefinition ltd);
 
     void processInstantiatedClass(final LoadedTypeDefinition type, boolean directlyInstantiated, boolean onHeapType, ExecutableElement originalElement);
 

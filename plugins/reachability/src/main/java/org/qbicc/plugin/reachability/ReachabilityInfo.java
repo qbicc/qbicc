@@ -103,11 +103,7 @@ public class ReachabilityInfo {
 
     // We force some fundamental types to be considered reachable even if the program doesn't use them.
     // This simplifies the implementation of the core runtime.
-    public static void forceCoreClassesReachableBuildTimeInit(CompilationContext ctxt) {
-        forceCoreClassesReachable(ctxt, true);
-    }
-
-    private static void forceCoreClassesReachable(CompilationContext ctxt, boolean buildTimeInit) {
+    public static void forceCoreClassesReachable(CompilationContext ctxt) {
         ReachabilityInfo info = get(ctxt);
         CoreClasses cc = CoreClasses.get(ctxt);
         LOGGER.debugf("Forcing all array types reachable/instantiated");
@@ -116,7 +112,7 @@ public class ReachabilityInfo {
         LoadedTypeDefinition cloneable = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Cloneable").load();
         LoadedTypeDefinition serializable = ctxt.getBootstrapClassContext().findDefinedType("java/io/Serializable").load();
         info.analysis.processInstantiatedClass(obj, true, false,null);
-        info.analysis.processClassInitialization(obj, buildTimeInit);
+        info.analysis.processClassInitialization(obj);
         info.addReachableInterface(cloneable);
         info.addReachableInterface(serializable);
         for (String d : desc) {
@@ -130,17 +126,17 @@ public class ReachabilityInfo {
         LOGGER.debugf("Forcing java.lang.Class reachable/instantiated");
         LoadedTypeDefinition clz = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
         info.analysis.processInstantiatedClass(clz, true, false,null);
-        info.analysis.processClassInitialization(clz, buildTimeInit);
+        info.analysis.processClassInitialization(clz);
 
         LOGGER.debugf("Forcing jdk.internal.misc.Unsafe reachable/instantiated");
         LoadedTypeDefinition unsafe = ctxt.getBootstrapClassContext().findDefinedType("jdk/internal/misc/Unsafe").load();
         info.analysis.processInstantiatedClass(unsafe, true, false,null);
-        info.analysis.processClassInitialization(unsafe, buildTimeInit);
+        info.analysis.processClassInitialization(unsafe);
 
         // Hack around the way NoGC entrypoints are registered and then not used until LOWERING PHASE...
         LOGGER.debugf("Forcing org.qbicc.runtime.gc.nogc.NoGcHelpers reachable");
         LoadedTypeDefinition nogc = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/gc/nogc/NoGcHelpers").load();
-        info.analysis.processClassInitialization(nogc, buildTimeInit);
+        info.analysis.processClassInitialization(nogc);
     }
 
     public boolean isInvokableMethod(MethodElement meth) {
