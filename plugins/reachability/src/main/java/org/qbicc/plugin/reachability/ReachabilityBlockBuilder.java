@@ -2,7 +2,6 @@ package org.qbicc.plugin.reachability;
 
 import java.util.List;
 
-import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
@@ -37,18 +36,12 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     private final CompilationContext ctxt;
     private final ExecutableElement originalElement;
     private final ReachabilityAnalysis analysis;
-    private final boolean buildTimeInit;
 
-    private ReachabilityBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate, final boolean buildTimeInit) {
+    public ReachabilityBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
         this.originalElement = delegate.getCurrentElement();
         this.analysis = ReachabilityInfo.get(ctxt).getAnalysis();
-        this.buildTimeInit = buildTimeInit;
-    }
-
-    public static ReachabilityBlockBuilder initForBuildTimeInit(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
-        return new ReachabilityBlockBuilder(ctxt, delegate, true);
     }
 
     @Override
@@ -97,7 +90,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     public Void visit(Void param, ConstructorElementHandle node) {
         ConstructorElement target = node.getExecutable();
         LoadedTypeDefinition ltd = target.getEnclosingType().load();
-        analysis.processReachableConstructorInvoke(ltd, target, buildTimeInit, originalElement);
+        analysis.processReachableConstructorInvoke(ltd, target, originalElement);
         return null;
     }
 
@@ -129,7 +122,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     @Override
     public Void visit(Void param, StaticMethodElementHandle node) {
         MethodElement target = node.getExecutable();
-        analysis.processStaticElementInitialization(target.getEnclosingType().load(), target, buildTimeInit, originalElement);
+        analysis.processStaticElementInitialization(target.getEnclosingType().load(), target, originalElement);
         analysis.processReachableStaticInvoke(target, originalElement);
         return null;
     }
@@ -153,7 +146,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     // TODO: only initialize the enclosing type if the static field is actually used for something
     @Override
     public ValueHandle staticField(FieldElement field) {
-        analysis.processStaticElementInitialization(field.getEnclosingType().load(), field, buildTimeInit, originalElement);
+        analysis.processStaticElementInitialization(field.getEnclosingType().load(), field, originalElement);
         return super.staticField(field);
     }
 
@@ -161,10 +154,8 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     public Value classOf(Value typeId, Value dimensions) {
         MethodElement methodElement = ctxt.getVMHelperMethod("classof_from_typeid");
         ctxt.enqueue(methodElement);
-        Assert.assertTrue(typeId instanceof TypeLiteral);
-        TypeLiteral typeLiteral = (TypeLiteral)typeId;
-        if (typeLiteral.getValue() instanceof ClassObjectType) {
-            analysis.processClassInitialization(((ClassObjectType)typeLiteral.getValue()).getDefinition().load(), buildTimeInit);
+        if (typeId instanceof TypeLiteral typeLiteral && typeLiteral.getValue() instanceof ClassObjectType cot) {
+            analysis.processClassInitialization(cot.getDefinition().load());
         }
         return super.classOf(typeId, dimensions);
     }

@@ -65,7 +65,7 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
 
     public synchronized void processBuildtimeInstantiatedObjectType(LoadedTypeDefinition ltd, LoadedTypeDefinition staticRootType) {
         processInstantiatedClass(ltd, true, true, staticRootType.getInitializer());
-        processClassInitialization(ltd, true);
+        processClassInitialization(ltd);
     }
 
     public synchronized void processReachableStaticInvoke(final InvokableElement target, ExecutableElement originalElement) {
@@ -75,9 +75,9 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         }
     }
 
-    public synchronized void processReachableConstructorInvoke(LoadedTypeDefinition ltd, ConstructorElement target, boolean buildTimeInit, ExecutableElement originalElement) {
+    public synchronized void processReachableConstructorInvoke(LoadedTypeDefinition ltd, ConstructorElement target, ExecutableElement originalElement) {
         processInstantiatedClass(ltd, true, false, originalElement);
-        processClassInitialization(ltd, buildTimeInit);
+        processClassInitialization(ltd);
         if (!ctxt.wasEnqueued(target)) {
             ReachabilityInfo.LOGGER.debugf("Adding <init> %s (invoked in %s)", target, originalElement);
             ctxt.enqueue(target);
@@ -102,46 +102,31 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         }
     }
 
-    public synchronized void processStaticElementInitialization(final LoadedTypeDefinition ltd, BasicElement cause, boolean buildTimeInit, ExecutableElement originalElement) {
+    public synchronized void processStaticElementInitialization(final LoadedTypeDefinition ltd, BasicElement cause, ExecutableElement originalElement) {
         if (info.isInitializedType(ltd)) return;
         ReachabilityInfo.LOGGER.debugf("Initializing %s (static access to %s in %s)", ltd.getInternalName(), cause, originalElement);
         if (ltd.isInterface()) {
             info.addReachableInterface(ltd);
             // JLS: accessing a static field/method of an interface only causes local <clinit> execution
             info.addInitializedType(ltd);
-            if (!buildTimeInit && ltd.getInitializer() != null) {
-                if (!ctxt.wasEnqueued(ltd.getInitializer())) {
-                    ReachabilityInfo.LOGGER.debugf("\tadding <clinit> %s (interface static member)", ltd.getInitializer());
-                    ctxt.enqueue(ltd.getInitializer());
-                }
-            }
         } else {
             // JLS: accessing a static field/method of a class <clinit> all the way up the class/interface hierarchy
-            processClassInitialization(ltd, buildTimeInit);
+            processClassInitialization(ltd);
         }
     }
 
-    public synchronized void processClassInitialization(final LoadedTypeDefinition ltd, boolean buildTimeInit) {
+    public synchronized void processClassInitialization(final LoadedTypeDefinition ltd) {
         Assert.assertFalse(ltd.isInterface());
         if (info.isInitializedType(ltd)) return;
         info.addReachableClass(ltd);
 
         if (ltd.hasSuperClass()) {
             // force superclass initialization
-            processClassInitialization(ltd.getSuperClass(), buildTimeInit);
+            processClassInitialization(ltd.getSuperClass());
         }
         info.addInitializedType(ltd);
 
-        if (!buildTimeInit && ltd.getInitializer() != null) {
-            if (!ctxt.wasEnqueued(ltd.getInitializer())) {
-                ReachabilityInfo.LOGGER.debugf("\tadding <clinit> %s (class initialization)", ltd.getInitializer());
-                ctxt.enqueue(ltd.getInitializer());
-            }
-        }
-
-        if (buildTimeInit) {
-            heapAnalyzer.traceHeap(ctxt, this, ltd);
-        }
+        heapAnalyzer.traceHeap(ctxt, this, ltd);
 
         // Annoyingly, because an intermediate interface could be marked initialized due to a static field
         // access which doesn't cause the initialization of its superinterfaces, we can't short-circuit
@@ -151,12 +136,6 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
             LoadedTypeDefinition i = worklist.pop();
             if (i.declaresDefaultMethods() && !info.isInitializedType(i)) {
                 info.addInitializedType(i);
-                if (!buildTimeInit && i.getInitializer() != null) {
-                    if (!ctxt.wasEnqueued(i.getInitializer())) {
-                        ReachabilityInfo.LOGGER.debugf("\tadding <clinit> %s (class initialization)", i.getInitializer());
-                        ctxt.enqueue(i.getInitializer());
-                    }
-                }
             }
             worklist.addAll(List.of(i.getInterfaces()));
         }
