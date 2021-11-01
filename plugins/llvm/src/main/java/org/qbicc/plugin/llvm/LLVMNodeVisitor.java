@@ -4,6 +4,7 @@ import static org.qbicc.machine.llvm.Types.*;
 import static org.qbicc.machine.llvm.Values.ZERO;
 import static org.qbicc.machine.llvm.Values.diExpression;
 
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.And;
+import org.qbicc.graph.AsmHandle;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEntry;
@@ -93,6 +95,7 @@ import org.qbicc.graph.ValueReturn;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.graph.schedule.Schedule;
+import org.qbicc.machine.llvm.AsmFlag;
 import org.qbicc.machine.llvm.FastMathFlag;
 import org.qbicc.machine.llvm.FloatCondition;
 import org.qbicc.machine.llvm.FunctionAttributes;
@@ -1183,6 +1186,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         }
 
         @Override
+        public LLValue visit(LLVMNodeVisitor param, AsmHandle node) {
+            // special case: not a pointer at all!
+            return Values.asm(node.getInstruction(), node.getConstraints(), map(node.getFlags()));
+        }
+
+        @Override
         public LLValue visit(LLVMNodeVisitor param, DataDeclarationHandle node) {
             return Values.global(node.getProgramObject().getName());
         }
@@ -1222,6 +1231,23 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             return param.map(node.getPointerValue());
         }
     };
+
+    private static Set<AsmFlag> map(final Set<AsmHandle.Flag> flags) {
+        EnumSet<AsmFlag> output = EnumSet.noneOf(AsmFlag.class);
+        if (flags.contains(AsmHandle.Flag.SIDE_EFFECT)) {
+            output.add(AsmFlag.SIDE_EFFECT);
+        }
+        if (! flags.contains(AsmHandle.Flag.NO_THROW)) {
+            output.add(AsmFlag.UNWIND);
+        }
+        if (flags.contains(AsmHandle.Flag.ALIGN_STACK)) {
+            output.add(AsmFlag.ALIGN_STACK);
+        }
+        if (flags.contains(AsmHandle.Flag.INTEL_DIALECT)) {
+            output.add(AsmFlag.INTEL_DIALECT);
+        }
+        return output;
+    }
 
     GetElementPtr gep(LLValue ptr, ValueHandle handle) {
         PointerType pointerType = handle.getPointerType();

@@ -1,5 +1,8 @@
 package org.qbicc.machine.llvm.impl;
 
+import java.util.Set;
+
+import org.qbicc.machine.llvm.AsmFlag;
 import org.qbicc.machine.llvm.FloatCondition;
 import org.qbicc.machine.llvm.IntCondition;
 import org.qbicc.machine.llvm.LLBasicBlock;

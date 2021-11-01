@@ -1,6 +1,7 @@
 package org.qbicc.graph;
 
 import java.util.List;
+import java.util.Set;
 
 import org.qbicc.context.Locatable;
 import org.qbicc.context.Location;
@@ -334,6 +335,8 @@ public interface BasicBlockBuilder extends Locatable {
     ValueHandle functionOf(Function function);
 
     ValueHandle functionOf(FunctionDeclaration function);
+
+    ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type);
 
     // memory
 

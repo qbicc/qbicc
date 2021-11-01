@@ -1,6 +1,7 @@
 package org.qbicc.graph;
 
 import java.util.List;
+import java.util.Set;
 
 import org.qbicc.context.Location;
 import org.qbicc.graph.literal.BlockLiteral;
@@ -209,6 +210,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public ValueHandle functionOf(FunctionDeclaration function) {
         return getDelegate().functionOf(function);
+    }
+
+    public ValueHandle asm(final String instruction, final String constraints, final Set<AsmHandle.Flag> flags, FunctionType type) {
+        return getDelegate().asm(instruction, constraints, flags, type);
     }
 
     public Value addressOf(final ValueHandle handle) {

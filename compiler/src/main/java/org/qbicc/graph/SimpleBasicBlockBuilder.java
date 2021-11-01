@@ -27,6 +27,7 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.context.ClassContext;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -486,6 +487,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new FunctionDeclarationHandle(element, line, bci, function);
     }
 
+    public ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type) {
+        return new AsmHandle(callSite, element, line, bci, instruction, constraints, flags, type);
+    }
+
     public Value addressOf(ValueHandle handle) {
         return new AddressOf(callSite, element, line, bci, handle);
     }
@@ -655,7 +660,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     public Value call(ValueHandle target, List<Value> arguments) {
         // todo: this should be done in a separate BBB
         ExceptionHandler exceptionHandler = getExceptionHandler();
-        if (exceptionHandler != null) {
+        if (exceptionHandler != null && canThrow(target)) {
             // promote to invoke
             return promoteToInvoke(target, arguments, exceptionHandler);
         }
@@ -665,7 +670,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
         // todo: this should be done in a separate BBB
         ExceptionHandler exceptionHandler = getExceptionHandler();
-        if (exceptionHandler != null) {
+        if (exceptionHandler != null && canThrow(target)) {
             // promote to invoke
             return promoteToInvoke(target, arguments, exceptionHandler);
         }
@@ -752,7 +757,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
         // todo: this should be done in a separate BBB
         ExceptionHandler exceptionHandler = getExceptionHandler();
-        if (exceptionHandler != null) {
+        if (exceptionHandler != null && canThrow(target)) {
             // promote to invoke
             BlockLabel setupHandler = new BlockLabel();
             BasicBlock result = invokeNoReturn(target, arguments, setupHandler);
@@ -770,7 +775,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
         // todo: this should be done in a separate BBB
         ExceptionHandler exceptionHandler = getExceptionHandler();
-        if (exceptionHandler != null) {
+        if (exceptionHandler != null && canThrow(target)) {
             // promote to invoke
             BlockLabel setupHandler = new BlockLabel();
             BasicBlock result = tailInvoke(target, arguments, setupHandler);
@@ -790,6 +795,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         Invoke invoke = new Invoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, resumeLabel);
         terminate(currentBlock, invoke);
         return invoke.getReturnValue();
+    }
+
+    private boolean canThrow(ValueHandle target) {
+        return ! (target instanceof Executable ex && ex.getExecutable().hasAllModifiersOf(ClassFile.I_ACC_NO_THROW));
     }
 
     public BasicBlock goto_(final BlockLabel resumeLabel) {

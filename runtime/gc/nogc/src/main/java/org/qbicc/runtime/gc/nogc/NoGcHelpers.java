@@ -7,6 +7,7 @@ import static org.qbicc.runtime.stdc.Stdlib.*;
 import static org.qbicc.runtime.stdc.String.*;
 
 import org.qbicc.runtime.Build;
+import org.qbicc.runtime.Hidden;
 
 /**
  *
@@ -14,6 +15,7 @@ import org.qbicc.runtime.Build;
 public final class NoGcHelpers {
     private NoGcHelpers() {}
 
+    @Hidden
     public static Object allocate(long size, int align) {
         if (false && Build.Target.isPosix()) {
             void_ptr ptr = auto();
@@ -38,8 +40,10 @@ public final class NoGcHelpers {
         }
     }
 
+    @Hidden
     public static void clear(Object ptr, long size) { memset(refToPtr(ptr), word(0), word(size)); }
 
+    @Hidden
     public static void copy(Object to, Object from, long size) {
         memcpy(refToPtr(to), refToPtr(from), word(size));
     }

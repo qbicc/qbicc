@@ -1544,7 +1544,11 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                                 assert opcode == OP_INVOKEINTERFACE;
                                 handle = gf.interfaceMethodOf(v1, owner, name, desc);
                             }
-                            Value result = gf.call(handle, List.of(args));
+                            if (handle.isNoReturn()) {
+                                gf.callNoReturn(handle, List.of(args));
+                                return;
+                            }
+                            Value result = handle.isNoSideEffect() ? gf.callNoSideEffects(handle, List.of(args)) : gf.call(handle, List.of(args));
                             if (returnType != BaseTypeDescriptor.V) {
                                 push(promote(result, returnType), desc.getReturnType().isClass2());
                             }

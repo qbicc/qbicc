@@ -2,6 +2,7 @@ package org.qbicc.graph;
 
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.PointerType;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 
@@ -45,6 +46,16 @@ public abstract class Executable extends AbstractValueHandle {
 
     public FunctionType getCallSiteType() {
         return callSiteType;
+    }
+
+    @Override
+    public boolean isNoThrow() {
+        return executable.hasAllModifiersOf(ClassFile.I_ACC_NO_THROW);
+    }
+
+    @Override
+    public boolean isNoReturn() {
+        return executable.hasAllModifiersOf(ClassFile.I_ACC_NO_RETURN);
     }
 
     @Override

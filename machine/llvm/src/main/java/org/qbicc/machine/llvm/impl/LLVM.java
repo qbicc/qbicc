@@ -2,9 +2,11 @@ package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.qbicc.machine.llvm.Array;
+import org.qbicc.machine.llvm.AsmFlag;
 import org.qbicc.machine.llvm.LLBasicBlock;
 import org.qbicc.machine.llvm.LLBuilder;
 import org.qbicc.machine.llvm.LLValue;
@@ -163,5 +165,9 @@ public final class LLVM {
 
     public static LLValue gepConstant(LLValue type, LLValue ptrType, LLValue pointer, LLValue ... args) {
         return new GetElementPtrConstant(type, ptrType, pointer, args);
+    }
+
+    public static LLValue asm(final String instruction, final String constraints, final Set<AsmFlag> flags) {
+        return new AsmExpression(instruction, constraints, flags);
     }
 }

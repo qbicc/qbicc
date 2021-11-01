@@ -58,6 +58,7 @@ import org.qbicc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
 import org.qbicc.plugin.intrinsics.core.CoreIntrinsics;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.llvm.LLVMDefaultModuleCompileStage;
+import org.qbicc.plugin.llvm.LLVMIntrinsics;
 import org.qbicc.plugin.lowering.LocalVariableFindingBasicBlockBuilder;
 import org.qbicc.plugin.lowering.LocalVariableLoweringBasicBlockBuilder;
 import org.qbicc.plugin.layout.ObjectAccessLoweringBuilder;
@@ -317,6 +318,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     Vm vm = ctxt.getVm();
                                     vm.doAttached(vm.newThread(Thread.currentThread().getName(), vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> wrapper.accept(ctxt));
                                 });
+                                builder.addPreHook(Phase.ADD, LLVMIntrinsics::register);
                                 builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
                                 builder.addPreHook(Phase.ADD, CoreClasses::get);
                                 builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);

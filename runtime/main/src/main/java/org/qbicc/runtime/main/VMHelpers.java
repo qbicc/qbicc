@@ -1,11 +1,12 @@
 package org.qbicc.runtime.main;
 
 import org.qbicc.runtime.CNative;
+import org.qbicc.runtime.Hidden;
+import org.qbicc.runtime.Inline;
+import org.qbicc.runtime.InlineCondition;
+import org.qbicc.runtime.NoReturn;
 import org.qbicc.runtime.NoSideEffects;
 import org.qbicc.runtime.stdc.Stddef;
-import org.qbicc.runtime.stdc.Stdint;
-
-import java.util.function.UnaryOperator;
 
 import static org.qbicc.runtime.CNative.*;
 import static org.qbicc.runtime.posix.PThread.*;
@@ -18,6 +19,7 @@ import static org.qbicc.runtime.stdc.Stdlib.*;
 @SuppressWarnings("unused")
 public final class VMHelpers {
 
+    @Hidden
     public static Class<?> get_class(Object instance) {
         type_id typeId = ObjectModel.type_id_of(instance);
         uint8_t dims = word(0);
@@ -29,6 +31,7 @@ public final class VMHelpers {
     }
 
     @NoSideEffects
+    @Hidden
     public static boolean instanceof_class(Object instance, Class<?> cls) {
         if (instance == null) {
             return false;
@@ -39,6 +42,7 @@ public final class VMHelpers {
     }
 
     @NoSideEffects
+    @Hidden
     public static boolean instanceof_typeId(Object instance, type_id typeId, uint8_t dimensions) {
         if (instance == null) {
             return false;
@@ -46,6 +50,7 @@ public final class VMHelpers {
         return isAssignableTo(instance, typeId, dimensions);
     }
 
+    @Hidden
     public static void arrayStoreCheck(Object value, type_id toTypeId, uint8_t toDimensions) {
         if (value == null || isAssignableTo(value, toTypeId, toDimensions)) {
             return;
@@ -53,12 +58,14 @@ public final class VMHelpers {
         raiseArrayStoreException();
     }
 
+    @Hidden
     public static void checkcast_class (Object value, Class<?> cls) {
         type_id toTypeId = ObjectModel.get_type_id_from_class(cls);
         uint8_t toDim = ObjectModel.get_dimensions_from_class(cls);
         checkcast_typeId(value, toTypeId, toDim);
     }
 
+    @Hidden
     public static void checkcast_typeId(Object value, type_id toTypeId, uint8_t toDimensions) {
         if (value == null || isAssignableTo(value, toTypeId, toDimensions)) {
             return;
@@ -68,16 +75,9 @@ public final class VMHelpers {
 
     // Invariant: value is not null
     @NoSideEffects
+    @Hidden
     private static boolean isAssignableTo(Object value, type_id toTypeId, uint8_t toDimensions) {
         type_id valueTypeId = ObjectModel.type_id_of(value);
-        // putchar('A');
-        // putchar(':');
-        // printTypeId(valueTypeId);
-        // putchar(':');
-        // printTypeId(toTypeId);
-        // putchar(':');
-        // printInt(toDimensions);
-        // putchar('\n');
         int intDim = toDimensions.intValue();
         if (intDim == 0) {
             return isAssignableToLeaf(valueTypeId, toTypeId);
@@ -95,6 +95,7 @@ public final class VMHelpers {
     }
 
     @NoSideEffects
+    @Hidden
     private static boolean isAssignableToLeaf(type_id valueTypeId, type_id toTypeId) {
         if (ObjectModel.is_class(toTypeId)) {
             type_id maxTypeId = ObjectModel.max_subclass_type_id_of(toTypeId);
@@ -107,12 +108,14 @@ public final class VMHelpers {
         }
     }
 
-    // TODO: mark this with a "NoInline" annotation
     @NoSideEffects
+    @Hidden
+    @Inline(InlineCondition.NEVER)
     static Class<?> classof_from_typeid(type_id typeId, uint8_t dimensions) {
         return ObjectModel.get_class_from_type_id(typeId, dimensions);
     }
 
+    @Hidden
     static Class<?> get_superclass(type_id typeId) {
         if (ObjectModel.is_java_lang_object(typeId) || ObjectModel.is_primitive(typeId) || ObjectModel.is_interface(typeId)) {
             return null;
@@ -122,7 +125,8 @@ public final class VMHelpers {
         return classof_from_typeid(superTypeId, dims);
     }
 
-    // TODO: mark this with a "NoInline" annotation
+    @Hidden
+    @Inline(InlineCondition.NEVER)
     static void monitor_enter(Object object) throws IllegalMonitorStateException {
         int result;
         if (object == null) {
@@ -185,7 +189,8 @@ public final class VMHelpers {
         }
     }
 
-    // TODO: mark this with a "NoInline" annotation
+    @Hidden
+    @Inline(InlineCondition.NEVER)
     static void monitor_exit(Object object) throws IllegalMonitorStateException {
         if (object == null) {
             /* TODO skip for now. Object should never be null except that
@@ -202,47 +207,65 @@ public final class VMHelpers {
         }
     }
 
-    // TODO: mark this with a "NoInline" annotation
+    @Hidden
+    @NoReturn
+    @Inline(InlineCondition.NEVER)
     static void raiseAbstractMethodError() {
         throw new AbstractMethodError();
     }
 
-    // TODO: mark this with a "NoInline" annotation
+    @Hidden
+    @NoReturn
+    @Inline(InlineCondition.NEVER)
     static void raiseArithmeticException() {
         throw new ArithmeticException();
     }
 
-    // TODO: mark this with a "NoInline" annotation
+    @Hidden
+    @NoReturn
+    @Inline(InlineCondition.NEVER)
     static void raiseArrayIndexOutOfBoundsException() {
         throw new ArrayIndexOutOfBoundsException();
     }
 
-    // TODO: mark this with a "NoInline" annotation
+    @Hidden
+    @NoReturn
+    @Inline(InlineCondition.NEVER)
     static void raiseArrayStoreException() {
         throw new ArrayStoreException();
     }
 
-    // TODO: mark this with a "NoInline" annotation
+    @Hidden
+    @NoReturn
+    @Inline(InlineCondition.NEVER)
     static void raiseClassCastException() {
         throw new ClassCastException();
     }
 
-    // TODO: mark this with a "NoInline" annotation
+    @Hidden
+    @NoReturn
+    @Inline(InlineCondition.NEVER)
     static void raiseIncompatibleClassChangeError() {
         throw new IncompatibleClassChangeError(); 
     }
 
-    // TODO: mark this with a "NoInline" annotation
+    @Hidden
+    @NoReturn
+    @Inline(InlineCondition.NEVER)
     static void raiseNegativeArraySizeException() {
         throw new NegativeArraySizeException(); 
     }
 
-    // TODO: mark this with a "NoInline" annotation
+    @Hidden
+    @NoReturn
+    @Inline(InlineCondition.NEVER)
     static void raiseNullPointerException() {
         throw new NullPointerException();
     }
 
-    // TODO: mark this with a "NoInline" annotation
+    @Hidden
+    @NoReturn
+    @Inline(InlineCondition.NEVER)
     static void raiseUnsatisfiedLinkError(String target) {
         throw new UnsatisfiedLinkError(target);
     }
@@ -587,7 +610,8 @@ public final class VMHelpers {
      * @param runFuncPtr - pointer to threadWrapper
      * @param thread - Java thread object that has been cast to a void pointer to be compatible with pthread_create
      */
-    // TODO: mark this with a "NoInline" annotation
+    @Hidden
+    @Inline(InlineCondition.NEVER)
     public static void JLT_start0(void_ptr_unaryoperator_function_ptr runFuncPtr, void_ptr thread) {
         // TODO once invokedynamic is working for lambda expressions use addr_of_function to fetch the correct function pointer
         //function_ptr<UnaryOperator<void_ptr>> runFuncPtr = addr_of_function(VMHelpers::threadWrapperNative);

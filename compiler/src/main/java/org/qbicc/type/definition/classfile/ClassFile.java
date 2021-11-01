@@ -109,6 +109,14 @@ public interface ClassFile extends FieldResolver,
      * For members which should never be symbolically resolvable.
      */
     int I_ACC_NO_RESOLVE = 1 << 24;
+    /**
+     * For executable members which never return normally.
+     */
+    int I_ACC_NO_RETURN = 1 << 25;
+    /**
+     * For executable members which never throw - not even {@link StackOverflowError} or {@link OutOfMemoryError}.
+     */
+    int I_ACC_NO_THROW = 1 << 26;
 
     int OP_NOP = 0x00;
     int OP_ACONST_NULL = 0x01;

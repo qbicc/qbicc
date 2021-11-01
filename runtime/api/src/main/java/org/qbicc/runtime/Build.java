@@ -212,6 +212,13 @@ public final class Build {
             return defined(__MACH__);
         }
 
+        // backend type
+
+        public static boolean isLlvm() {
+            // rewrite with an intrinsic if LLVM plugin is active
+            return false;
+        }
+
         private static final object __MACH__ = constant();
         private static final object __ELF__ = constant();
         private static final object __unix__ = constant();
