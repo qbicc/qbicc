@@ -250,27 +250,23 @@ public final class CoreIntrinsics {
         };
 
         InstanceIntrinsic isArray = (builder, instance, target, arguments) -> {
-            ValueType firstPrimArray = coreClasses.getArrayLoadedTypeDefinition("[Z").getType();
-            ValueType lastPrimArray = coreClasses.getArrayLoadedTypeDefinition("[D").getType();
-            ValueType refArray = coreClasses.getArrayLoadedTypeDefinition("[ref").getType();
             Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance),  coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
-            LiteralFactory lf = ctxt.getLiteralFactory();
-            return builder.or(builder.isEq(id, lf.literalOfType(refArray)),
-                builder.and(builder.isGe(id, lf.literalOfType(firstPrimArray)), builder.isLe(id, lf.literalOfType(lastPrimArray))));
+            MethodElement isRefArray = ctxt.getOMHelperMethod("is_reference_array");
+            MethodElement isPrimArray = ctxt.getOMHelperMethod("is_prim_array");
+            return builder.or(builder.getFirstBuilder().call(builder.staticMethod(isRefArray, isRefArray.getDescriptor(), isRefArray.getType()), List.of(id)),
+                              builder.getFirstBuilder().call(builder.staticMethod(isPrimArray, isPrimArray.getDescriptor(), isPrimArray.getType()), List.of(id)));
         };
 
         InstanceIntrinsic isInterface = (builder, instance, target, arguments) -> {
             Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance),  coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
-            LiteralFactory lf = ctxt.getLiteralFactory();
-            return builder.isLe(lf.literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), tables.getFirstInterfaceTypeId()), id);
+            MethodElement isIntf = ctxt.getOMHelperMethod("is_interface");
+            return builder.getFirstBuilder().call(builder.staticMethod(isIntf, isIntf.getDescriptor(), isIntf.getType()), List.of(id));
         };
 
         InstanceIntrinsic isPrimitive = (builder, instance, target, arguments) -> {
-            ValueType firstPrimType = Primitive.getPrimitiveFor('Z').getType();
-            ValueType lastPrimType = Primitive.getPrimitiveFor('V').getType();
-            LiteralFactory lf = ctxt.getLiteralFactory();
             Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance), coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
-            return builder.and(builder.isGe(id, lf.literalOfType(firstPrimType)), builder.isLe(id, lf.literalOfType(lastPrimType)));
+            MethodElement isPrim = ctxt.getOMHelperMethod("is_primitive");
+            return builder.getFirstBuilder().call(builder.staticMethod(isPrim, isPrim.getDescriptor(), isPrim.getType()), List.of(id));
         };
 
         InstanceIntrinsic getSuperclass = (builder, instance, target, arguments) -> {
