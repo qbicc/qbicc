@@ -49,9 +49,7 @@ import org.qbicc.plugin.gc.nogc.NoGcBasicBlockBuilder;
 import org.qbicc.plugin.gc.nogc.NoGcMultiNewArrayBasicBlockBuilder;
 import org.qbicc.plugin.gc.nogc.NoGcSetupHook;
 import org.qbicc.plugin.gc.nogc.NoGcTypeSystemConfigurator;
-import org.qbicc.plugin.instanceofcheckcast.ClassInitializerRegister;
 import org.qbicc.plugin.instanceofcheckcast.InstanceOfCheckCastBasicBlockBuilder;
-import org.qbicc.plugin.instanceofcheckcast.LowerClassInitCheckBlockBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayEmitter;
 import org.qbicc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
@@ -132,7 +130,6 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean optPhis;
     private final boolean optGotos;
     private final boolean optInlining;
-    private final boolean initBuildTime;
     private final Platform platform;
     private final boolean smallTypeIds;
 
@@ -150,7 +147,6 @@ public class Main implements Callable<DiagnosticContext> {
         optPhis = builder.optPhis;
         optGotos = builder.optGotos;
         platform = builder.platform;
-        initBuildTime = builder.initBuildTime;
         smallTypeIds = builder.smallTypeIds;
     }
 
@@ -323,27 +319,19 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, CoreClasses::get);
                                 builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);
                                 builder.addPreHook(Phase.ADD, new VMHelpersSetupHook());
-                                if (initBuildTime) {
-                                    builder.addPreHook(Phase.ADD, compilationContext -> {
-                                        Vm vm = compilationContext.getVm();
-                                        VmThread initThread = vm.newThread("initialization", vm.getMainThreadGroup(), false,  Thread.currentThread().getPriority());
-                                        vm.doAttached(initThread, vm::initialize);
-                                    });
-                                }
+                                builder.addPreHook(Phase.ADD, compilationContext -> {
+                                    Vm vm = compilationContext.getVm();
+                                    VmThread initThread = vm.newThread("initialization", vm.getMainThreadGroup(), false,  Thread.currentThread().getPriority());
+                                    vm.doAttached(initThread, vm::initialize);
+                                });
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
                                 if (nogc) {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
                                 }
-                                if (initBuildTime) {
-                                    builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachableBuildTimeInit);
-                                } else {
-                                    builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachableRunTimeInit);
-                                }
+                                builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachableBuildTimeInit);
                                 builder.addElementHandler(Phase.ADD, new ElementBodyCreator());
                                 builder.addElementHandler(Phase.ADD, new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig)));
-                                if (initBuildTime) {
-                                    builder.addElementHandler(Phase.ADD, new ElementInitializer());
-                                }
+                                builder.addElementHandler(Phase.ADD, new ElementInitializer());
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NoGcMultiNewArrayBasicBlockBuilder::new);
@@ -367,19 +355,11 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, LocalThrowHandlingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
-                                if (initBuildTime) {
-                                    builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::initForBuildTimeInit);
-                                } else {
-                                    builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::initForRunTimeInit);
-                                }
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::initForBuildTimeInit);
                                 builder.addPostHook(Phase.ADD, ReachabilityInfo::reportStats);
                                 builder.addPostHook(Phase.ADD, ReachabilityInfo::clear);
 
-                                if (initBuildTime) {
-                                    builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::forceCoreClassesReachableBuildTimeInit);
-                                } else {
-                                    builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::forceCoreClassesReachableRunTimeInit);
-                                }
+                                builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::forceCoreClassesReachableBuildTimeInit);
                                 builder.addElementHandler(Phase.ANALYZE, new ElementBodyCopier());
                                 builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new DotGenerator(Phase.ANALYZE, graphGenConfig)));
                                 if (optGotos) {
@@ -389,9 +369,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addCopyFactory(Phase.ANALYZE, PhiOptimizerVisitor::new);
                                 }
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAnalyzePhase);
-                                if (initBuildTime) {
-                                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, InitializedStaticFieldBasicBlockBuilder::new);
-                                }
+                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, InitializedStaticFieldBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, ThreadLocalBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
                                 if (optMemoryTracking) {
@@ -402,16 +380,11 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (optInlining) {
                                     builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::new);
                                 }
-                                if (initBuildTime) {
-                                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::initForBuildTimeInit);
-                                } else {
-                                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::initForRunTimeInit);
-                                }
+                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::initForBuildTimeInit);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, LocalVariableFindingBasicBlockBuilder::new);
                                 builder.addPostHook(Phase.ANALYZE, ReachabilityInfo::reportStats);
-                                if (! initBuildTime) {
-                                    builder.addPostHook(Phase.ANALYZE, new ClassInitializerRegister());
-                                }
+                                // todo: restore when adapted for run time initializers
+                                //builder.addPostHook(Phase.ANALYZE, new ClassInitializerRegister());
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
 
@@ -440,9 +413,8 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, StaticFieldLoweringBasicBlockBuilder::new);
                                 // InstanceOfCheckCastBB must come before ObjectAccessLoweringBuilder or typeIdOf won't be lowered correctly
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InstanceOfCheckCastBasicBlockBuilder::new);
-                                if (! initBuildTime) {
-                                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LowerClassInitCheckBlockBuilder::new);
-                                }
+                                // todo: restore when adapted for run time initializers
+                                //builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LowerClassInitCheckBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectAccessLoweringBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectMonitorBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LLVMCompatibleBasicBlockBuilder::new);
@@ -508,7 +480,6 @@ public class Main implements Callable<DiagnosticContext> {
             .setOptInlining(optionsProcessor.optArgs.optInlining)
             .setOptGotos(optionsProcessor.optArgs.optGotos)
             .setOptPhis(optionsProcessor.optArgs.optPhis)
-            .setInitBuildTime(optionsProcessor.initBuildTime)
             .setSmallTypeIds(optionsProcessor.smallTypeIds)
             .setGraphGenConfig(optionsProcessor.graphGenConfig);
         Platform platform = optionsProcessor.platform;
@@ -582,8 +553,6 @@ public class Main implements Callable<DiagnosticContext> {
         private Platform platform;
         @CommandLine.Option(names = "--string-pool-stats")
         private boolean stringPoolStats;
-        @CommandLine.Option(names = "--init-build-time", negatable = true, defaultValue = "false", description = "Initialize all classes at build time")
-        private boolean initBuildTime;
 
         @CommandLine.Option(names = "--small-type-ids", negatable = true, defaultValue = "false", description = "Use narrow (16-bit) type ID values if true, wide (32-bit) type ID values if false")
         private boolean smallTypeIds;
@@ -704,7 +673,6 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean optPhis = true;
         private boolean optGotos = true;
         private GraphGenConfig graphGenConfig;
-        private boolean initBuildTime = false;
         private boolean smallTypeIds = false;
 
         Builder() {}
@@ -788,11 +756,6 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Builder setOptGotos(boolean optGotos) {
             this.optGotos = optGotos;
-            return this;
-        }
-
-        public Builder setInitBuildTime(boolean initBuildTime) {
-            this.initBuildTime = initBuildTime;
             return this;
         }
 

@@ -107,10 +107,6 @@ public class ReachabilityInfo {
         forceCoreClassesReachable(ctxt, true);
     }
 
-    public static void forceCoreClassesReachableRunTimeInit(CompilationContext ctxt) {
-        forceCoreClassesReachable(ctxt, false);
-    }
-
     private static void forceCoreClassesReachable(CompilationContext ctxt, boolean buildTimeInit) {
         ReachabilityInfo info = get(ctxt);
         CoreClasses cc = CoreClasses.get(ctxt);

@@ -3,9 +3,11 @@ package org.qbicc.interpreter;
 @SuppressWarnings("serial")
 public final class Thrown extends RuntimeException {
     private final VmThrowable throwable;
+    private final StackTraceElement[] realStackTrace;
 
     public Thrown(final VmThrowable throwable) {
         this.throwable = throwable;
+        realStackTrace = getStackTrace();
         setStackTrace(throwable.getStackTrace());
         VmThrowable cause = throwable.getCause();
         if (cause != null) {

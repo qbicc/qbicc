@@ -51,10 +51,6 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         return new ReachabilityBlockBuilder(ctxt, delegate, true);
     }
 
-    public static ReachabilityBlockBuilder initForRunTimeInit(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
-        return new ReachabilityBlockBuilder(ctxt, delegate, false);
-    }
-
     @Override
     public Value call(ValueHandle target, List<Value> arguments) {
         target.accept(this, null);
