@@ -442,27 +442,24 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     VmInvokable getOrCompile(ExecutableElement element) {
         VmInvokable target = methodTable.get(element);
         if (target == null) {
-            // only compile one at a time to avoid redundant work
-            synchronized (methodTable) {
-                target = methodTable.get(element);
-                if (target == null) {
-                    if (element.tryCreateMethodBody()) {
-                        target = compile(element);
+            if (element.tryCreateMethodBody()) {
+                target = compile(element);
+            } else {
+                target = (thread, instance, args) -> {
+                    // treat it like an unsatisfied link
+                    VmThrowableClassImpl uleClazz = (VmThrowableClassImpl) vm.getBootstrapClassLoader().loadClass("java/lang/UnsatisfiedLinkError");
+                    String name;
+                    if (element instanceof MethodElement) {
+                        name = ((MethodElement) element).getName();
                     } else {
-                        target = (thread, instance, args) -> {
-                            // treat it like an unsatisfied link
-                            VmThrowableClassImpl uleClazz = (VmThrowableClassImpl) vm.getBootstrapClassLoader().loadClass("java/lang/UnsatisfiedLinkError");
-                            String name;
-                            if (element instanceof MethodElement) {
-                                name = ((MethodElement) element).getName();
-                            } else {
-                                throw new IllegalStateException("Unknown native element");
-                            }
-                            throw new Thrown(uleClazz.newInstance(getName() + "." + name));
-                        };
+                        throw new IllegalStateException("Unknown native element");
                     }
-                    methodTable.put(element, target);
-                }
+                    throw new Thrown(uleClazz.newInstance(getName() + "." + name));
+                };
+            }
+            VmInvokable appearing = methodTable.putIfAbsent(element, target);
+            if (appearing != null) {
+                target = appearing;
             }
         }
         return target;
