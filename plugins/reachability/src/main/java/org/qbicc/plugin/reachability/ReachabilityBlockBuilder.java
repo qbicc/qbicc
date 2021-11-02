@@ -1,23 +1,30 @@
 package org.qbicc.plugin.reachability;
 
-import java.util.List;
+import java.util.HashSet;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.Action;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
-import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.InterfaceMethodElementHandle;
+import org.qbicc.graph.MultiNewArray;
+import org.qbicc.graph.NewArray;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.NodeVisitor;
+import org.qbicc.graph.OrderedNode;
+import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
+import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.TypeLiteral;
-import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -28,135 +35,190 @@ import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
- * A block builder stage which recursively enqueues all referenced executable elements.
- * We implement an RTA-style analysis to identify reachable virtual methods based on
- * the set of reachable call sites and instantiated types.
+ * A block builder stage which traverses the final set of reachable Nodes
+ * for an ExecutableElement and invokes a ReachabilityAnalysis them.
+ * As a result of the analysis, new ExecutableElements may become reachable and
+ * this be enqueued for compilation.
  */
 public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<Void, Void> {
     private final CompilationContext ctxt;
-    private final ExecutableElement originalElement;
-    private final ReachabilityAnalysis analysis;
 
     public ReachabilityBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
-        this.originalElement = delegate.getCurrentElement();
-        this.analysis = ReachabilityInfo.get(ctxt).getAnalysis();
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
-        target.accept(this, null);
-        return super.call(target, arguments);
+    public void finish() {
+        BasicBlock entryBlock = getFirstBlock();
+        entryBlock.getTerminator().accept(new ReachabilityVisitor(), new ReachabilityContext(ctxt, getDelegate().getCurrentElement()));
+        super.finish();
     }
 
-    @Override
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
-        target.accept(this, null);
-        return super.callNoSideEffects(target, arguments);
-    }
+    static final class ReachabilityContext {
+        final CompilationContext ctxt;
+        private final ExecutableElement originalElement;
+        private final ReachabilityAnalysis analysis;
+        final HashSet<Node> visited = new HashSet<>();
 
-    @Override
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
-        target.accept(this, null);
-        return super.callNoReturn(target, arguments);
-    }
-
-    @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
-        target.accept(this, null);
-        return super.invokeNoReturn(target, arguments, catchLabel);
-    }
-
-    @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
-        target.accept(this, null);
-        return super.tailCall(target, arguments);
-    }
-
-    @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
-        target.accept(this, null);
-        return super.tailInvoke(target, arguments, catchLabel);
-    }
-
-    @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
-        target.accept(this, null);
-        return super.invoke(target, arguments, catchLabel, resumeLabel);
-    }
-
-    @Override
-    public Void visit(Void param, ConstructorElementHandle node) {
-        ConstructorElement target = node.getExecutable();
-        LoadedTypeDefinition ltd = target.getEnclosingType().load();
-        analysis.processReachableConstructorInvoke(ltd, target, originalElement);
-        return null;
-    }
-
-    @Override
-    public Void visit(Void param, FunctionElementHandle node) {
-        FunctionElement target = node.getExecutable();
-        analysis.processReachableStaticInvoke(target, originalElement);
-        return null;
-    }
-
-    @Override
-    public Void visit(Void param, ExactMethodElementHandle node) {
-        analysis.processReachableInstanceMethodInvoke(node.getExecutable(), originalElement);
-        return null;
-    }
-
-    @Override
-    public Void visit(Void param, VirtualMethodElementHandle node) {
-        analysis.processReachableInstanceMethodInvoke(node.getExecutable(), originalElement);
-        return null;
-    }
-
-    @Override
-    public Void visit(Void param, InterfaceMethodElementHandle node) {
-        analysis.processReachableInstanceMethodInvoke(node.getExecutable(), originalElement);
-        return null;
-    }
-
-    @Override
-    public Void visit(Void param, StaticMethodElementHandle node) {
-        MethodElement target = node.getExecutable();
-        analysis.processStaticElementInitialization(target.getEnclosingType().load(), target, originalElement);
-        analysis.processReachableStaticInvoke(target, originalElement);
-        return null;
-    }
-
-    public Value newArray(final ArrayObjectType arrayType, Value size) {
-        if (arrayType instanceof ReferenceArrayObjectType) {
-            // Force the array's leaf element type to be reachable (and thus assigned a typeId).
-            analysis.processArrayElementType(((ReferenceArrayObjectType)arrayType).getLeafElementType());
+        ReachabilityContext(CompilationContext ctxt, ExecutableElement originalElement) {
+            this.ctxt = ctxt;
+            this.originalElement = originalElement;
+            this.analysis = ReachabilityInfo.get(ctxt).getAnalysis();
         }
-        return super.newArray(arrayType, size);
     }
 
-    public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {
-        if (arrayType instanceof ReferenceArrayObjectType) {
-            // Force the array's leaf element type to be reachable (and thus assigned a typeId).
-            analysis.processArrayElementType(((ReferenceArrayObjectType)arrayType).getLeafElementType());
+    static final class ReachabilityVisitor implements NodeVisitor<ReachabilityContext, Void, Void, Void, Void> {
+        @Override
+        public Void visitUnknown(ReachabilityContext param, Action node) {
+            visitUnknown(param, (Node) node);
+            return null;
         }
-        return super.multiNewArray(arrayType, dimensions);
-    }
 
-    // TODO: only initialize the enclosing type if the static field is actually used for something
-    @Override
-    public ValueHandle staticField(FieldElement field) {
-        analysis.processStaticElementInitialization(field.getEnclosingType().load(), field, originalElement);
-        return super.staticField(field);
-    }
-
-    @Override
-    public Value classOf(Value typeId, Value dimensions) {
-        MethodElement methodElement = ctxt.getVMHelperMethod("classof_from_typeid");
-        ctxt.enqueue(methodElement);
-        if (typeId instanceof TypeLiteral typeLiteral && typeLiteral.getValue() instanceof ClassObjectType cot) {
-            analysis.processClassInitialization(cot.getDefinition().load());
+        @Override
+        public Void visitUnknown(ReachabilityContext param, Value node) {
+            visitUnknown(param, (Node) node);
+            return null;
         }
-        return super.classOf(typeId, dimensions);
+
+        @Override
+        public Void visitUnknown(ReachabilityContext param, ValueHandle node) {
+            visitUnknown(param, (Node) node);
+            return null;
+        }
+
+        @Override
+        public Void visitUnknown(ReachabilityContext param, Terminator node) {
+            if (visitUnknown(param, (Node) node)) {
+                // process reachable successors
+                int cnt = node.getSuccessorCount();
+                for (int i = 0; i < cnt; i ++) {
+                    node.getSuccessor(i).getTerminator().accept(this, param);
+                }
+            }
+            return null;
+        }
+
+        boolean visitUnknown(ReachabilityContext param, Node node) {
+            if (param.visited.add(node)) {
+                if (node.hasValueHandleDependency()) {
+                    node.getValueHandle().accept(this, param);
+                }
+                int cnt = node.getValueDependencyCount();
+                for (int i = 0; i < cnt; i ++) {
+                    node.getValueDependency(i).accept(this, param);
+                }
+                if (node instanceof OrderedNode on) {
+                    Node dependency =on.getDependency();
+                    if (dependency instanceof Action a) {
+                        a.accept(this, param);
+                    } else if (dependency instanceof Value v) {
+                        v.accept(this, param);
+                    } else if (dependency instanceof Terminator t) {
+                        t.accept(this, param);
+                    } else if (dependency instanceof ValueHandle vh) {
+                        vh.accept(this, param);
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, ConstructorElementHandle node) {
+            if (visitUnknown(param, (Node)node)) {
+                ConstructorElement target = node.getExecutable();
+                LoadedTypeDefinition ltd = target.getEnclosingType().load();
+                param.analysis.processReachableConstructorInvoke(ltd, target, param.originalElement);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, FunctionElementHandle node) {
+            if (visitUnknown(param, (Node)node)) {
+                FunctionElement target = node.getExecutable();
+                param.analysis.processReachableStaticInvoke(target, param.originalElement);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, ExactMethodElementHandle node) {
+            if (visitUnknown(param, (Node)node)) {
+                param.analysis.processReachableInstanceMethodInvoke(node.getExecutable(), param.originalElement);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, VirtualMethodElementHandle node) {
+            if (visitUnknown(param, (Node)node)) {
+                param.analysis.processReachableInstanceMethodInvoke(node.getExecutable(), param.originalElement);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, InterfaceMethodElementHandle node) {
+            if (visitUnknown(param, (Node)node)) {
+                param.analysis.processReachableInstanceMethodInvoke(node.getExecutable(), param.originalElement);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, StaticMethodElementHandle node) {
+            if (visitUnknown(param, (Node)node)) {
+                MethodElement target = node.getExecutable();
+                param.analysis.processStaticElementInitialization(target.getEnclosingType().load(), target, param.originalElement);
+                param.analysis.processReachableStaticInvoke(target, param.originalElement);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, NewArray node) {
+            if (visitUnknown(param, (Node)node)) {
+                if (node.getArrayType() instanceof ReferenceArrayObjectType at) {
+                    // Force the array's leaf element type to be reachable (and thus assigned a typeId).
+                    param.analysis.processArrayElementType(at.getLeafElementType());
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, MultiNewArray node) {
+            if (visitUnknown(param, (Node)node)) {
+                if (node.getArrayType() instanceof ReferenceArrayObjectType at) {
+                    // Force the array's leaf element type to be reachable (and thus assigned a typeId).
+                    param.analysis.processArrayElementType(at.getLeafElementType());
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, StaticField node) {
+            if (visitUnknown(param, (Node)node)) {
+                FieldElement f = node.getVariableElement();
+                param.analysis.processStaticElementInitialization(f.getEnclosingType().load(), f, param.originalElement);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, ClassOf node) {
+            if (visitUnknown(param, (Node)node)) {
+                MethodElement methodElement = param.ctxt.getVMHelperMethod("classof_from_typeid");
+                param.ctxt.enqueue(methodElement);
+                if (node.getInput() instanceof TypeLiteral tl && tl.getValue() instanceof ClassObjectType cot) {
+                    param.analysis.processClassInitialization(cot.getDefinition().load());
+                }
+            }
+            return null;
+        }
     }
 }
