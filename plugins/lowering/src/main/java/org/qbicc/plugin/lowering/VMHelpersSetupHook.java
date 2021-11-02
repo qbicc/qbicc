@@ -51,6 +51,8 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
         ctxt.enqueue(ctxt.getVMHelperMethod("threadWrapper"));
 
         // Helpers for stack walk
+        ctxt.enqueue(methodFinder.getMethod("org/qbicc/runtime/stackwalk/MethodData", "getClass"));
+        ctxt.enqueue(methodFinder.getMethod("org/qbicc/runtime/stackwalk/MethodData", "getClassName"));
         ctxt.enqueue(methodFinder.getMethod("org/qbicc/runtime/stackwalk/MethodData", "fillStackTraceElements"));
         ctxt.enqueue(methodFinder.getMethod("org/qbicc/runtime/stackwalk/JavaStackWalker", "getFrameCount"));
         ctxt.enqueue(methodFinder.getMethod("org/qbicc/runtime/stackwalk/JavaStackWalker", "walkStack"));

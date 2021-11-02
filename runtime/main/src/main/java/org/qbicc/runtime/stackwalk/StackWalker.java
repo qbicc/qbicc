@@ -19,7 +19,7 @@ public class StackWalker {
             unw_get_reg(cursor, UNW_REG_IP, ip);
             unw_get_reg(cursor, UNW_REG_IP, sp);
 
-            visitor.visitFrame(index, ip.deref().longValue(), sp.deref().longValue());
+            visitor.visitFrame(index, ip.loadUnshared().longValue(), sp.loadUnshared().longValue());
             index += 1;
         }
     }

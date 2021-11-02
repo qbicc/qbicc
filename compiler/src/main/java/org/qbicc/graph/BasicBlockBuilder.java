@@ -392,8 +392,6 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode, CmpAndSwap.Strength strength);
 
-    Value deref(Value value);
-
     Value vaArg(Value vaList, ValueType type);
 
     Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode);

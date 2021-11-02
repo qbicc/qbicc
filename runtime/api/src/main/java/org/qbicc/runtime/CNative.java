@@ -814,19 +814,17 @@ public final class CNative {
          * Dereference the pointer, returning what the pointer points to. This operation
          * does not necessarily directly translate to a physical memory operation.
          *
-         * Pointers to structure types cannot be dereferenced, but members can be accessed as structPtr.deref().member
-         * which would be represented in C as structPtr->member.
          *
          * @return the pointed-to value
          */
-        public native T deref();
+        public native T loadUnshared();
 
         /**
          * Overwrite the value that is pointed to by this pointer.
          *
          * @param value the value to write
          */
-        public native void derefAssign(T value);
+        public native void storeUnshared(T value);
 
         /**
          * Get an array view of this pointer value. The array points to the same address as
@@ -844,18 +842,18 @@ public final class CNative {
 
         /**
          * Treating this pointer as an array, get the array element at the given index. This is equivalent
-         * to {@linkplain #deref()} dereferencing} the pointer at the given {@linkplain #plus(int) offset}.
+         * to {@linkplain #loadUnshared()} dereferencing} the pointer at the given {@linkplain #plus(int) offset}.
          * In C, this is equivalent to pointer addition.
          *
          * @param arrayIdx the array index
          * @return the value
          */
         public T get(int arrayIdx) {
-            return plus(arrayIdx).deref();
+            return plus(arrayIdx).loadUnshared();
         }
 
         public void set(int arrayIdx, T newVal) {
-            plus(arrayIdx).derefAssign(newVal);
+            plus(arrayIdx).storeUnshared(newVal);
         }
 
         /**

@@ -17,13 +17,6 @@ public class StructMemberAccessBasicBlockBuilder extends DelegatingBasicBlockBui
         ctxt = context;
     }
 
-    public ValueHandle referenceHandle(Value reference) {
-        if (reference.getType() instanceof CompoundType) {
-            return reference.getValueHandle();
-        }
-        return super.referenceHandle(reference);
-    }
-
     public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
         ValueType valueType = instance.getValueType();
         if (valueType instanceof CompoundType) {

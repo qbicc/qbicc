@@ -185,7 +185,7 @@ public final class Unwind {
                 break;
             case 0x3:
                 uint32_t_ptr temp32 = lsda.plus(offset[0]).cast(uint32_t_ptr.class);
-                result = temp32.deref().longValue();
+                result = temp32.loadUnshared().longValue();
                 offset[0] += 4;
                 break;
             default:
