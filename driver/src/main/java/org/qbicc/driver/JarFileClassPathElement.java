@@ -13,11 +13,11 @@ final class JarFileClassPathElement extends ClassPathElement {
         this.jarFile = jarFile;
     }
 
-    String getName() {
+    public String getName() {
         return jarFile.getName();
     }
 
-    ClassPathElement.Resource getResource(final String name) {
+    public ClassPathElement.Resource getResource(final String name) {
         JarEntry jarEntry = jarFile.getJarEntry(name);
         return jarEntry == null ? NON_EXISTENT : new Resource(jarEntry);
     }
@@ -33,10 +33,15 @@ final class JarFileClassPathElement extends ClassPathElement {
             this.entry = entry;
         }
 
-        ByteBuffer getBuffer() throws IOException {
-            try (InputStream inputStream = jarFile.getInputStream(entry)) {
+        public ByteBuffer getBuffer() throws IOException {
+            try (InputStream inputStream = openStream()) {
                 return ByteBuffer.wrap(inputStream.readAllBytes());
             }
+        }
+
+        @Override
+        public InputStream openStream() throws IOException {
+            return jarFile.getInputStream(entry);
         }
 
         public void close() {

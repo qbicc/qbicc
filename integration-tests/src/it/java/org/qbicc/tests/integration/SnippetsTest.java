@@ -5,8 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.logging.Handler;
 import java.util.regex.Pattern;
 
+import org.jboss.logmanager.formatters.PatternFormatter;
+import org.jboss.logmanager.handlers.ConsoleHandler;
+import org.junit.jupiter.api.BeforeAll;
 import org.qbicc.context.DiagnosticContext;
 import org.qbicc.machine.tool.ToolExecutionFailureException;
 import org.qbicc.tests.integration.utils.Javac;
@@ -27,6 +31,17 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 public class SnippetsTest {
 
     private static final Logger LOGGER = Logger.getLogger(SnippetsTest.class.getName());
+
+    @BeforeAll
+    static void setUpHandler() {
+        org.jboss.logmanager.Logger rootLogger = org.jboss.logmanager.Logger.getLogger("");
+        ConsoleHandler consoleHandler = new ConsoleHandler(ConsoleHandler.Target.SYSTEM_OUT, new PatternFormatter("[%1.1p] (%c) %X{phase}: %m%n"));
+        rootLogger.setHandlers(
+            new Handler[]{
+                consoleHandler
+            }
+        );
+    }
 
     @ParameterizedTest
     @ArgumentsSource(SnippetsJUnitProvider.class)

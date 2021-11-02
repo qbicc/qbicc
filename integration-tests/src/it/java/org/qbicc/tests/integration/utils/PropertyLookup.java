@@ -2,14 +2,10 @@ package org.qbicc.tests.integration.utils;
 
 import java.io.File;
 
-import org.jboss.logging.Logger;
-
 /**
  * Utilities to lookup properties
  */
 public class PropertyLookup {
-    private static final Logger LOGGER = Logger.getLogger(PropertyLookup.class.getName());
-
     public static String getProperty(String[] alternatives, String defaultValue) {
         String prop = null;
         for (String p : alternatives) {
@@ -25,8 +21,6 @@ public class PropertyLookup {
             }
         }
         if (prop == null) {
-            LOGGER.info("Failed to detect any of " + String.join(", ", alternatives) +
-                    " as env or sys props, defaulting to " + defaultValue);
             return defaultValue;
         }
         return prop;

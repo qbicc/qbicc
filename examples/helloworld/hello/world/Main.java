@@ -4,7 +4,7 @@
 // $ jbang build --java=11 examples/helloworld/hello/world/Main.java
 //
 // Build the native executable in /tmp/output with:
-// $ jbang org.qbicc:qbicc-main:0.1.0-SNAPSHOT --boot-module-path $(jbang info classpath --deps org.qbicc.rt:qbicc-rt-java.base:11.0.1-SNAPSHOT --deps org.qbicc:qbicc-runtime-main:0.1.0-SNAPSHOT --deps org.qbicc:qbicc-runtime-unwind:0.1.0-SNAPSHOT --deps org.qbicc:qbicc-runtime-gc-nogc:0.1.0-SNAPSHOT examples/helloworld/hello/world/Main.java) --output-path /tmp/output hello.world.Main
+// $ jbang org.qbicc:qbicc-main:0.1.0-SNAPSHOT --boot-path-append-file $(jbang info classpath examples/helloworld/hello/world/Main.java) --output-path /tmp/output hello.world.Main
 //
 // Run the executable
 // $ /tmp/output/a.out

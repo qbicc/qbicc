@@ -36,10 +36,8 @@ To run the driver, first build the project and then use https://jbang.dev[`jbang
 
 [source,shell]
 -----
-jbang --quiet org.qbicc:qbicc-main:1.0.0-SNAPSHOT --boot-module-path /path/to/main.jar:~/.m2/repository/org/qbicc/rt/qbicc-rt-java.base/11.0.1-SNAPSHOT/qbicc-rt-java.base-11.0.1-SNAPSHOT.jar:~/.m2/repository/org/qbicc/qbicc-runtime-unwind/1.0.0-SNAPSHOT/qbicc-runtime-unwind-1.0.0-SNAPSHOT.jar:~/.m2/repository/org/qbicc/qbicc-runtime-api/1.0.0-SNAPSHOT/qbicc-runtime-api-1.0.0-SNAPSHOT.jar:~/.m2/repository/org/qbicc/qbicc-runtime-gc-nogc/1.0.0-SNAPSHOT/qbicc-runtime-gc-nogc-1.0.0-SNAPSHOT.jar:~/.m2/repository/org/qbicc/qbicc-runtime-main/1.0.0-SNAPSHOT/qbicc-runtime-main-1.0.0-SNAPSHOT.jar --output-path /tmp/output hello/world/Main
+jbang --quiet org.qbicc:qbicc-main:1.0.0-SNAPSHOT --boot-path-append-file /path/to/main.jar --output-path /tmp/output hello/world/Main
 -----
-
-Replace the `java.base` JAR with your locally-built JAR path from <<Class Library>>.
 
 For a step-by-step example, see `examples/helloworld/hello/world/Main.java`
 
