@@ -8,6 +8,7 @@ public final class MethodData {
     public static native String getClassName(int minfoIndex);
     public static native String getMethodName(int minfoIndex);
     public static native String getMethodDesc(int minfoIndex);
+    public static native int getTypeId(int minfoIndex);
 
     public static native int getMethodInfoIndex(int scIndex);
     public static native int getLineNumber(int scIndex);
