@@ -528,6 +528,10 @@ public final class VmImpl implements Vm {
                 VmClassImpl clazz = cl.loadClass(def.getInternalName());
                 return clazz;
             });
+            reflectClass.registerInvokable("getClassAccessFlags", (thread, target, args) -> {
+                VmClassImpl cls = (VmClassImpl)args.get(0);
+                return cls.getTypeDefinition().getModifiers() & 0x1FFF;
+            });
 
             // Signal
             VmClassImpl signalClass = bootstrapClassLoader.loadClass("jdk/internal/misc/Signal");
