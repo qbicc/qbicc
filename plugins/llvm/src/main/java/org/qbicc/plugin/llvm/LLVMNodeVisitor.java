@@ -117,6 +117,7 @@ import org.qbicc.machine.llvm.op.OrderingConstraint;
 import org.qbicc.machine.llvm.op.Phi;
 import org.qbicc.machine.llvm.op.YieldingInstruction;
 import org.qbicc.object.Function;
+import org.qbicc.plugin.methodinfo.CallSiteInfo;
 import org.qbicc.plugin.unwind.UnwindHelper;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
@@ -1118,7 +1119,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     private void addStatepointId(Call call, Node node) {
         int statepointId = LLVM.getNextStatepointId();
         call.attribute(FunctionAttributes.statepointId(statepointId));
-        LLVMCallSiteInfo.get(ctxt).mapStatepointIdToNode(statepointId, node);
+        CallSiteInfo.get(ctxt).mapStatepointIdToNode(statepointId, node);
     }
 
     // GEP
