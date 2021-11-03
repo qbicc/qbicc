@@ -19,6 +19,7 @@ import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Thrown;
+import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmInvokable;
@@ -43,6 +44,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     private static final Logger log = Logger.getLogger("org.qbicc.interpreter");
 
     private static final VarHandle interfacesHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "interfaces", VarHandle.class, VmClassImpl.class, List.class);
+    private static final VarHandle declaredFieldsHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "declaredFields", VarHandle.class, VmClassImpl.class, VmArrayImpl.class);
 
     private final VmImpl vm;
     /**
@@ -76,6 +78,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     private volatile List<? extends VmClassImpl> interfaces;
     private volatile VmClassImpl superClass;
     private volatile VmArrayClassImpl arrayClass;
+    private volatile VmArrayImpl declaredFields; // backs getDeclaredFields0
 
     // initialization state
 
@@ -121,6 +124,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         staticLayoutInfo = null;
         staticMemory = vmImpl.emptyMemory;
         interfaces = List.of();
+        declaredFields = null;
     }
 
     VmClassImpl(final VmImpl vm, final ClassContext classContext, @SuppressWarnings("unused") Class<VmClassClassImpl> classClassOnly) {
@@ -322,6 +326,61 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             } while (interfaces == null);
         }
         return interfaces;
+    }
+
+    @Override
+    public VmArray getDeclaredFields(boolean publicOnly) {
+        if (declaredFields == null) {
+            int numFields = typeDefinition.getFieldCount();
+            VmClassImpl fieldClass =vm.getBootstrapClassLoader().loadClass("java/lang/reflect/Field");
+            VmArrayImpl fields = vm.manuallyInitialize(fieldClass.getArrayClass().newInstance(numFields));
+            for (int i=0; i<numFields; i++) {
+                FieldElement field = typeDefinition.getField(i);
+                VmObjectImpl fObj = vm.manuallyInitialize(fieldClass.newInstance());
+
+                // Simulate the constructor of java.lang.reflect.Field
+                MemoryImpl memory = fObj.getMemory();
+                int offset = indexOf(fieldClass.getTypeDefinition().findField("clazz"));
+                memory.storeRef(offset, this, MemoryAtomicityMode.UNORDERED);
+                offset = indexOf(fieldClass.getTypeDefinition().findField("name"));
+                memory.storeRef(offset, vm.intern(field.getName()), MemoryAtomicityMode.UNORDERED);
+                offset = indexOf(fieldClass.getTypeDefinition().findField("modifiers"));
+                memory.store32(offset, field.getModifiers(), MemoryAtomicityMode.UNORDERED);
+                // TODO: Field.type
+                // TODO: Field.signature
+                // TODO: Field.annotations
+
+                fields.getMemory().storeRef(fields.getArrayElementOffset(i), fObj, MemoryAtomicityMode.UNORDERED);
+            }
+            do {
+                if (declaredFieldsHandle.compareAndSet(this, null, fields)) {
+                    break;
+                }
+                fields = this.declaredFields;
+            } while (declaredFields == null);
+        }
+
+        if (publicOnly) {
+            int numPublic = 0;
+            for (int i=0; i<typeDefinition.getFieldCount(); i++) {
+                if (typeDefinition.getField(i).isPublic()) {
+                    numPublic += 1;
+                }
+            }
+            VmClassImpl fieldClass =vm.getBootstrapClassLoader().loadClass("java/lang/reflect/Field");
+            VmArrayImpl pubFields = vm.manuallyInitialize(fieldClass.getArrayClass().newInstance(numPublic));
+            int pubIdx = 0;
+            for (int i=0; i<typeDefinition.getFieldCount(); i++) {
+                if (typeDefinition.getField(i).isPublic()) {
+                    pubFields.getMemory().storeRef(pubFields.getArrayElementOffset(pubIdx++),
+                        declaredFields.getMemory().loadRef(declaredFields.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED),
+                        MemoryAtomicityMode.UNORDERED);
+                }
+            }
+            return pubFields;
+        } else {
+            return declaredFields;
+        }
     }
 
     @Override

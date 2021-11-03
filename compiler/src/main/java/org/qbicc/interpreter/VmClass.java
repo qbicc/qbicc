@@ -18,6 +18,8 @@ public interface VmClass extends VmObject {
 
     List<? extends VmClass> getInterfaces();
 
+    VmArray getDeclaredFields(boolean publicOnly);
+
     VmClassLoader getClassLoader();
 
     VmObject getProtectionDomain();
