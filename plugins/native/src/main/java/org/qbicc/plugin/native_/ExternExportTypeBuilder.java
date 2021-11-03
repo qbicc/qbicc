@@ -14,6 +14,7 @@ import org.qbicc.object.Section;
 import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.plugin.core.ConditionEvaluation;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
@@ -206,10 +207,6 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
             }
 
             private void addExport(final NativeInfo nativeInfo, final MethodElement origMethod, final String name) {
-                if (origMethod.isVarargs()) {
-                    ctxt.error(origMethod, "Exported vararg functions not yet supported");
-                    return;
-                }
                 FunctionElement.Builder builder = FunctionElement.builder();
                 builder.setName(name);
                 builder.setModifiers(origMethod.getModifiers());
@@ -217,6 +214,16 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 builder.setDescriptor(origMethod.getDescriptor());
                 builder.setSignature(origMethod.getSignature());
                 FunctionType fnType = origMethod.getType();
+                int parameterCount = fnType.getParameterCount();
+                if (origMethod.isVarargs() && parameterCount > 0 && fnType.getParameterType(parameterCount - 1) instanceof ReferenceArrayObjectType) {
+                    ValueType[] newParamTypes = new ValueType[parameterCount];
+                    for (int i = 0; i < parameterCount - 1; i ++) {
+                        newParamTypes[i] = fnType.getParameterType(i);
+                    }
+                    TypeSystem ts = ctxt.getTypeSystem();
+                    newParamTypes[parameterCount - 1] = ts.getVariadicType();
+                    fnType = ts.getFunctionType(fnType.getReturnType(), newParamTypes);
+                }
                 builder.setType(fnType);
                 builder.setSourceFileName(origMethod.getSourceFileName());
                 builder.setParameters(origMethod.getParameters());
