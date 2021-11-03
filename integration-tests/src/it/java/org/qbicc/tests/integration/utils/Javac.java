@@ -16,11 +16,11 @@ public class Javac {
         JavaCompiler javac = ToolProvider.getSystemJavaCompiler();
         StandardJavaFileManager fileManager = javac.getStandardFileManager(null, null, null);
         Iterable<? extends JavaFileObject> javaFileObjects = fileManager.getJavaFileObjects(source);
+
         List<String> options = List.of(
             "--release", TestConstants.MAVEN_COMPILER_RELEASE,
             "-d", outputPath.toString(),
-            "-g", "-parameters",
-            "-cp", TestConstants.QBICC_RUNTIME_API_JAR);
+            "-g", "-parameters");
 
         JavaCompiler.CompilationTask task =
             javac.getTask(

@@ -2,11 +2,14 @@ package org.qbicc.driver;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Set;
+
+import io.smallrye.common.os.OS;
 
 final class DirectoryClassPathElement extends ClassPathElement {
     private final Path baseDir;
@@ -15,11 +18,11 @@ final class DirectoryClassPathElement extends ClassPathElement {
         this.baseDir = baseDir;
     }
 
-    String getName() {
+    public String getName() {
         return baseDir.toString();
     }
 
-    ClassPathElement.Resource getResource(final String name) throws IOException {
+    public ClassPathElement.Resource getResource(final String name) throws IOException {
         Path resourcePath = baseDir.resolve(name);
         return ! Files.exists(resourcePath) ? NON_EXISTENT : new Resource(FileChannel.open(resourcePath, Set.of(StandardOpenOption.READ)));
     }
@@ -36,11 +39,15 @@ final class DirectoryClassPathElement extends ClassPathElement {
             this.channel = channel;
         }
 
-        ByteBuffer getBuffer() throws IOException {
-            // todo: this won't work on windows - we'll have to keep the channel open there and tie it to the element
+        public ByteBuffer getBuffer() throws IOException {
             ByteBuffer buffer = this.buffer;
             if (buffer == null) {
-                buffer = this.buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0L, channel.size());
+                if (OS.current() == OS.WINDOWS) {
+                    // just read the whole thing; no need to close because the outer close will close the channel
+                    buffer = this.buffer = ByteBuffer.wrap(Channels.newInputStream(channel).readAllBytes());
+                } else {
+                    buffer = this.buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0L, channel.size());
+                }
             }
             return buffer;
         }

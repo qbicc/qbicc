@@ -24,8 +24,13 @@
         <version.org.jboss.jandex>2.4.1.Final</version.org.jboss.jandex>
         <version.org.jboss.logging>3.4.2.Final</version.org.jboss.logging>
         <version.org.jboss.logmanager>2.1.18.Final</version.org.jboss.logmanager>
+        <version.org.jboss.slf4j.logmanager>1.1.0.Final</version.org.jboss.slf4j.logmanager>
         <version.org.ow2.asm>9.2</version.org.ow2.asm>
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
+        <version.shrinkwrap.resolvers>3.1.4</version.shrinkwrap.resolvers>
+
+        <!-- this is the class lib version; the class lib cannot be used in a POM but is used in resources -->
+        <version.qbicc.classlib>11.alpha.0.1-SNAPSHOT</version.qbicc.classlib>
     </properties>
 
     <packaging>pom</packaging>
@@ -411,6 +416,20 @@
                 <groupId>org.jboss.logmanager</groupId>
                 <artifactId>jboss-logmanager</artifactId>
                 <version>${version.org.jboss.logmanager}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.slf4j</groupId>
+                <artifactId>slf4j-jboss-logmanager</artifactId>
+                <version>${version.org.jboss.slf4j.logmanager}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.shrinkwrap.resolver</groupId>
+                <artifactId>shrinkwrap-resolver-bom</artifactId>
+                <version>${version.shrinkwrap.resolvers}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
 
             <dependency>

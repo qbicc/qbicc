@@ -1,9 +1,7 @@
 package org.qbicc.driver;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,8 +14,6 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-import java.util.jar.JarFile;
-import java.util.zip.ZipFile;
 
 import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
@@ -26,7 +22,6 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Diagnostic;
-import org.qbicc.context.Location;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.Node;
@@ -35,7 +30,6 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.interpreter.Vm;
-import org.qbicc.interpreter.VmObject;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.tool.CToolChain;
@@ -89,27 +83,10 @@ public class Driver implements Closeable {
     final List<Consumer<? super CompilationContext>> preGenerateHooks;
     final List<Consumer<? super CompilationContext>> postGenerateHooks;
     final Map<String, BootModule> bootModules;
-    final List<ClassPathElement> bootClassPath;
+    final List<ClassPathItem> bootClassPath;
     final Path outputDir;
     final float threadsPerCpu;
     final long stackSize;
-
-    /*
-        Reachability (Run Time)
-
-        A class is reachable when any instance of that class can exist at run time.  This can happen only
-        when either its constructor is reachable at run time, or when an instance of that class
-        is reachable via the heap from an entry point.  The existence of a variable of a class type
-        is not sufficient to cause the class to be reachable (the variable could be null-only) - there
-        must be an actual value.
-
-        A non-virtual method is reachable only when it can be directly called by another reachable method.
-
-        A virtual method is reachable when it (or a method that the virtual method overrides) can be called
-        by a reachable method and when its class is reachable.
-
-        A static field is reachable when it can be accessed by a reachable method.
-     */
 
     Driver(final Builder builder) {
         initialContext = Assert.checkNotNullParam("builder.initialContext", builder.initialContext);
@@ -124,31 +101,20 @@ public class Driver implements Closeable {
 
         // boot modules
         Map<String, BootModule> bootModules = new HashMap<>();
-        List<ClassPathElement> bootClassPath = new ArrayList<>();
-        for (Path path : builder.bootClassPathElements) {
+
+        this.bootClassPath = List.copyOf(builder.bootClassPath);
+        for (ClassPathItem item : bootClassPath) {
             // open all bootstrap JARs (MR bootstrap JARs not supported)
-            ClassPathElement element;
-            if (Files.isDirectory(path)) {
-                element = new DirectoryClassPathElement(path);
-            } else {
-                try {
-                    element = new JarFileClassPathElement(new JarFile(path.toFile(), true, ZipFile.OPEN_READ));
-                } catch (Exception e) {
-                    initialContext.error("Failed to open boot class path JAR \"%s\": %s", path, e);
-                    continue;
-                }
-            }
-            bootClassPath.add(element);
-            try (ClassPathElement.Resource moduleInfo = element.getResource(MODULE_INFO)) {
-                ByteBuffer buffer = moduleInfo.getBuffer();
-                if (buffer == null) {
+            try (ClassPathElement.Resource moduleInfo = item.findResource(MODULE_INFO)) {
+                if (moduleInfo == ClassPathElement.NON_EXISTENT) {
                     // ignore non-module
                     continue;
                 }
+                ByteBuffer buffer = moduleInfo.getBuffer();
                 ModuleDefinition moduleDefinition = ModuleDefinition.create(buffer);
-                bootModules.put(moduleDefinition.getName(), new BootModule(element, moduleDefinition));
+                bootModules.put(moduleDefinition.getName(), new BootModule(item, moduleDefinition));
             } catch (Exception e) {
-                initialContext.error("Failed to read module from class path element \"%s\": %s", path, e);
+                initialContext.error("Failed to read module from class path element \"%s\": %s", item, e);
             }
         }
         BootModule javaBase = bootModules.get("java.base");
@@ -156,7 +122,6 @@ public class Driver implements Closeable {
             initialContext.error("Bootstrap failed: no java.base module found");
         }
         this.bootModules = bootModules;
-        this.bootClassPath = bootClassPath;
 
         // ADD phase
         addTaskWrapperFactories = List.copyOf(builder.taskWrapperFactories.getOrDefault(Phase.ADD, List.of()));
@@ -265,13 +230,12 @@ public class Driver implements Closeable {
     private DefinedTypeDefinition defaultFinder(ClassContext classContext, String name) {
         String fileName = name + ".class";
         ByteBuffer buffer;
-        for (ClassPathElement element : bootClassPath) {
-            try (ClassPathElement.Resource resource = element.getResource(fileName)) {
-                buffer = resource.getBuffer();
-                if (buffer == null) {
-                    // non existent
+        for (ClassPathItem item : bootClassPath) {
+            try (ClassPathElement.Resource resource = item.findResource(fileName)) {
+                if (resource == ClassPathElement.NON_EXISTENT) {
                     continue;
                 }
+                buffer = resource.getBuffer();
                 ClassFile classFile = ClassFile.of(classContext, buffer);
                 DefinedTypeDefinition.Builder builder = classContext.newTypeBuilder();
                 classFile.accept(builder);
@@ -596,12 +560,8 @@ public class Driver implements Closeable {
     }
 
     public void close() {
-        for (ClassPathElement element : bootClassPath) {
-            try {
-                element.close();
-            } catch (IOException e) {
-                compilationContext.warning(Location.builder().setSourceFilePath(element.getName()).build(), "Failed to close boot class path element: %s", e);
-            }
+        for (ClassPathItem item : bootClassPath) {
+            item.close();
         }
     }
 
@@ -619,7 +579,9 @@ public class Driver implements Closeable {
     }
 
     public static final class Builder {
-        final List<Path> bootClassPathElements = new ArrayList<>();
+        final List<ClassPathItem> bootClassPath = new ArrayList<>();
+        final List<ClassPathItem> appClassPath = new ArrayList<>();
+        final List<ClassPathItem> appModulePath = new ArrayList<>();
         final Map<Phase, Map<BuilderStage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>>> builderFactories = new EnumMap<>(Phase.class);
         final Map<Phase, List<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>>>> copyFactories = new EnumMap<>(Phase.class);
         final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories = new ArrayList<>();
@@ -652,16 +614,23 @@ public class Driver implements Closeable {
             return this;
         }
 
-        public Builder addBootClassPathElement(Path path) {
-            if (path != null) {
-                bootClassPathElements.add(path);
+        public Builder addBootClassPathItem(ClassPathItem item) {
+            if (item != null) {
+                bootClassPath.add(item);
             }
             return this;
         }
 
-        public Builder addBootClassPathElements(List<Path> paths) {
-            if (paths != null) {
-                bootClassPathElements.addAll(paths);
+        public Builder addAppClassPathItem(ClassPathItem item) {
+            if (item != null) {
+                appClassPath.add(item);
+            }
+            return this;
+        }
+
+        public Builder addAppModulePathItem(ClassPathItem item) {
+            if (item != null) {
+                appModulePath.add(item);
             }
             return this;
         }
@@ -833,17 +802,14 @@ public class Driver implements Closeable {
         }
     }
 
-    static final class BootModule implements Closeable {
-        private final ClassPathElement element;
-        private final ModuleDefinition moduleDefinition;
-
-        BootModule(final ClassPathElement element, final ModuleDefinition moduleDefinition) {
-            this.element = element;
-            this.moduleDefinition = moduleDefinition;
+    record BootModule(ClassPathItem item, ModuleDefinition moduleDefinition) implements Closeable {
+        BootModule {
+            Assert.checkNotNullParam("item", item);
+            Assert.checkNotNullParam("moduleDefinition", moduleDefinition);
         }
 
-        public void close() throws IOException {
-            element.close();
+        public void close() {
+            item.close();
         }
     }
 }

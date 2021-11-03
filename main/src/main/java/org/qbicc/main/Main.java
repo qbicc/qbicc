@@ -1,22 +1,41 @@
 package org.qbicc.main;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOError;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
+import org.jboss.shrinkwrap.resolver.api.ResolutionException;
+import org.jboss.shrinkwrap.resolver.api.maven.Maven;
+import org.jboss.shrinkwrap.resolver.api.maven.MavenResolvedArtifact;
+import org.jboss.shrinkwrap.resolver.api.maven.PackagingType;
+import org.jboss.shrinkwrap.resolver.api.maven.ScopeType;
+import org.jboss.shrinkwrap.resolver.api.maven.coordinate.MavenCoordinate;
+import org.jboss.shrinkwrap.resolver.api.maven.coordinate.MavenCoordinates;
+import org.jboss.shrinkwrap.resolver.api.maven.coordinate.MavenDependencies;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Diagnostic;
 import org.qbicc.context.DiagnosticContext;
 import org.qbicc.driver.BaseDiagnosticContext;
 import org.qbicc.driver.BuilderStage;
+import org.qbicc.driver.ClassPathElement;
+import org.qbicc.driver.ClassPathItem;
 import org.qbicc.driver.Driver;
 import org.qbicc.driver.ElementBodyCopier;
 import org.qbicc.driver.ElementBodyCreator;
@@ -119,7 +138,8 @@ import picocli.CommandLine.ParseResult;
  * The main entry point, which can be constructed using a builder or directly invoked.
  */
 public class Main implements Callable<DiagnosticContext> {
-    private final List<Path> bootModulePath;
+    private final List<ClassPathEntry> bootPaths;
+    private final List<ClassPathEntry> appPaths;
     private final Path outputPath;
     private final Consumer<Iterable<Diagnostic>> diagnosticsHandler;
     private final String mainClass;
@@ -134,7 +154,12 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean smallTypeIds;
 
     Main(Builder builder) {
-        bootModulePath = List.copyOf(builder.bootModulePath);
+        ArrayList<ClassPathEntry> bootPaths = new ArrayList<>(builder.bootPathsPrepend.size() + 1 + builder.bootPathsAppend.size());
+        bootPaths.addAll(builder.bootPathsPrepend);
+        bootPaths.add(ClassPathEntry.ofClassLibraries(builder.classLibVersion));
+        bootPaths.addAll(builder.bootPathsAppend);
+        this.bootPaths = bootPaths;
+        appPaths = List.copyOf(builder.appPaths);
         outputPath = builder.outputPath;
         diagnosticsHandler = builder.diagnosticsHandler;
         // todo: this becomes optional
@@ -162,14 +187,27 @@ public class Main implements Callable<DiagnosticContext> {
         return ctxt;
     }
 
-    DiagnosticContext call0(BaseDiagnosticContext initialContext) {
+    void call0(BaseDiagnosticContext initialContext) {
         final Driver.Builder builder = Driver.builder();
         builder.setInitialContext(initialContext);
         boolean nogc = gc.equals("none");
         int errors = initialContext.errors();
         if (errors == 0) {
             builder.setOutputDirectory(outputPath);
-            builder.addBootClassPathElements(bootModulePath);
+            HashSet<MavenCoordinate> addedCoordinates = new HashSet<>();
+            // process the class paths
+            try {
+                resolveClassPath(builder::addBootClassPathItem, bootPaths, addedCoordinates);
+                // add core things
+                addCoreComponent(builder, addedCoordinates, "qbicc-runtime-unwind");
+                addCoreComponent(builder, addedCoordinates, "qbicc-runtime-main");
+                if (nogc) {
+                    addCoreComponent(builder, addedCoordinates, "qbicc-runtime-gc-nogc");
+                }
+            } catch (IOException e) {
+                // todo: close class path items?
+                return;
+            }
             // first, probe the target platform
             Platform target = platform;
             builder.setTargetPlatform(target);
@@ -450,7 +488,55 @@ public class Main implements Callable<DiagnosticContext> {
                 }
             }
         }
-        return initialContext;
+        return;
+    }
+
+    private void addCoreComponent(final Driver.Builder builder, final HashSet<MavenCoordinate> addedCoordinates, final String artifact) throws IOException {
+        resolveClassPath(builder::addBootClassPathItem, List.of(ClassPathEntry.of(MavenCoordinates.createCoordinate("org.qbicc", artifact, MainProperties.QBICC_VERSION, PackagingType.JAR, null))), addedCoordinates);
+    }
+
+    private void resolveClassPath(Consumer<ClassPathItem> classPathItemConsumer, final List<ClassPathEntry> bootPaths, Set<MavenCoordinate> addedCoordinates) throws IOException {
+        for (ClassPathEntry bootPath : bootPaths) {
+            if (bootPath instanceof ClassPathEntry.FilePath fp) {
+                classPathItemConsumer.accept(new ClassPathItem(fp.getPath().toString(), List.of(ClassPathElement.forDirectory(fp.getPath())), List.of()));
+            } else if (bootPath instanceof ClassPathEntry.MavenArtifact ma) {
+                processCoordinate(classPathItemConsumer, addedCoordinates, ma.getArtifact());
+            } else if (bootPath instanceof ClassPathEntry.ClassLibraries cl) {
+                processCoordinate(classPathItemConsumer, addedCoordinates, MavenCoordinates.createCoordinate("org.qbicc.rt", "qbicc-rt", cl.getVersion(), PackagingType.POM, null));
+            }
+        }
+    }
+
+    private void processCoordinate(final Consumer<ClassPathItem> classPathItemConsumer, final Set<MavenCoordinate> addedCoordinates, final MavenCoordinate mavenCoordinate) throws IOException {
+        try {
+            // todo: work offline switch
+            MavenResolvedArtifact[] artifacts = Maven.configureResolver().withMavenCentralRepo(true).addDependency(MavenDependencies.createDependency(mavenCoordinate, null, false)).resolve().withTransitivity().asResolvedArtifact();
+            for (MavenResolvedArtifact artifact : artifacts) {
+                // try to avoid duplication to a reasonable extent
+                MavenCoordinate coordinate = artifact.getCoordinate();
+                if (addedCoordinates.add(coordinate)) {
+                    // try to get the source artifact for debug info
+                    List<ClassPathElement> sourceList;
+                    MavenCoordinate sourceCoordinate = MavenCoordinates.createCoordinate(coordinate.getGroupId(), coordinate.getArtifactId(), coordinate.getVersion(), PackagingType.JAVA_SOURCE, coordinate.getClassifier());
+                    try {
+                        MavenResolvedArtifact sourceArtifact = Maven.resolver().addDependency(MavenDependencies.createDependency(sourceCoordinate, ScopeType.COMPILE, false)).resolve().withoutTransitivity().asSingleResolvedArtifact();
+                        sourceList = List.of(ClassPathElement.forJarFile(sourceArtifact.asFile()));
+                    } catch (ResolutionException ignored) {
+                        // no source item
+                        sourceList = List.of();
+                    }
+                    File file = artifact.asFile();
+                    // skip non-JAR things like POMs
+                    if (file.getName().endsWith(".jar")) {
+                        classPathItemConsumer.accept(new ClassPathItem(coordinate.toCanonicalForm(), List.of(ClassPathElement.forJarFile(file)), sourceList));
+                    }
+                }
+            }
+        } catch (ResolutionException e) {
+            System.err.printf("Failed to resolve Maven artifact %s: ", mavenCoordinate.toCanonicalForm());
+            e.printStackTrace(System.err);
+            throw new IOException(e);
+        }
     }
 
     public static void main(String[] args) {
@@ -461,7 +547,10 @@ public class Main implements Callable<DiagnosticContext> {
             return;
         }
         Builder mainBuilder = builder();
-        mainBuilder.setBootModulePaths(optionsProcessor.bootPaths)
+        mainBuilder.appendBootPaths(List.of(ClassPathEntry.ofClassLibraries(optionsProcessor.rtVersion)))
+            .appendBootPaths(optionsProcessor.appendedBootPathEntries)
+            .prependBootPaths(optionsProcessor.prependedBootPathEntries)
+            .addAppPaths(optionsProcessor.appPathEntries)
             .setOutputPath(optionsProcessor.outputPath)
             .setMainClass(optionsProcessor.mainClass)
             .setDiagnosticsHandler(diagnostics -> {
@@ -510,7 +599,7 @@ public class Main implements Callable<DiagnosticContext> {
         ;
     }
 
-    @CommandLine.Command(version = "1.0", mixinStandardHelpOptions = true)
+    @CommandLine.Command(versionProvider = VersionProvider.class, mixinStandardHelpOptions = true)
     private static final class CommandLineProcessor {
         private enum GCType {
             NONE("none"),
@@ -525,8 +614,39 @@ public class Main implements Callable<DiagnosticContext> {
             }
         }
 
-        @CommandLine.Option(names = "--boot-module-path", required = true, split=":")
-        private String[] bootPaths;
+        @CommandLine.Option(names = "--boot-path-prepend-artifact", converter = ClassPathEntry.MavenArtifact.Converter.class)
+        void prependBootPathArtifact(ClassPathEntry.MavenArtifact artifact) {
+            prependedBootPathEntries.add(artifact);
+        }
+        @CommandLine.Option(names = "--boot-path-prepend-file", converter = ClassPathEntry.FilePath.Converter.class)
+        void prependBootPathFile(ClassPathEntry.FilePath filePath) {
+            prependedBootPathEntries.add(filePath);
+        }
+        private final List<ClassPathEntry> prependedBootPathEntries = new ArrayList<>();
+
+        @CommandLine.Option(names = "--boot-path-append-artifact", converter = ClassPathEntry.MavenArtifact.Converter.class)
+        void appendBootPathArtifact(ClassPathEntry.MavenArtifact artifact) {
+            appendedBootPathEntries.add(artifact);
+        }
+        @CommandLine.Option(names = "--boot-path-append-file", converter = ClassPathEntry.FilePath.Converter.class)
+        void appendBootPathFile(ClassPathEntry.FilePath filePath) {
+            appendedBootPathEntries.add(filePath);
+        }
+        private final List<ClassPathEntry> appendedBootPathEntries = new ArrayList<>();
+
+        @CommandLine.Option(names = "--rt-version")
+        private String rtVersion = MainProperties.CLASSLIB_DEFAULT_VERSION;
+
+        @CommandLine.Option(names = "--app-path-artifact", converter = ClassPathEntry.MavenArtifact.Converter.class)
+        void addAppPathArtifact(ClassPathEntry.MavenArtifact artifact) {
+            appPathEntries.add(artifact);
+        }
+        @CommandLine.Option(names = "--app-path-file", converter = ClassPathEntry.FilePath.Converter.class)
+        void addAppPathFile(ClassPathEntry.FilePath filePath) {
+            appPathEntries.add(filePath);
+        }
+        private List<ClassPathEntry> appPathEntries = new ArrayList<>();
+
         @CommandLine.Option(names = "--output-path", description = "Specify directory where the executable is placed")
         private Path outputPath;
         @CommandLine.Option(names = "--debug")
@@ -597,7 +717,8 @@ public class Main implements Callable<DiagnosticContext> {
 
         public CmdResult process(String[] args) {
             try {
-                ParseResult parseResult = new CommandLine(this).parseArgs(args);
+                CommandLine commandLine = new CommandLine(this);
+                ParseResult parseResult = commandLine.parseArgs(args);
                 if (CommandLine.printHelpIfRequested(parseResult)) {
                     return CmdResult.CMD_RESULT_HELP;
                 }
@@ -660,7 +781,10 @@ public class Main implements Callable<DiagnosticContext> {
     }
 
     public static final class Builder {
-        private final List<Path> bootModulePath = new ArrayList<>();
+        private final List<ClassPathEntry> bootPathsPrepend = new ArrayList<>();
+        private final List<ClassPathEntry> bootPathsAppend = new ArrayList<>();
+        private final List<ClassPathEntry> appPaths = new ArrayList<>();
+        private String classLibVersion = MainProperties.CLASSLIB_DEFAULT_VERSION;
         private Path outputPath;
         private Consumer<Iterable<Diagnostic>> diagnosticsHandler = diagnostics -> {};
         private Platform platform = Platform.HOST_PLATFORM;
@@ -677,25 +801,45 @@ public class Main implements Callable<DiagnosticContext> {
 
         Builder() {}
 
-        public Builder addBootModulePath(Path path) {
-            Assert.checkNotNullParam("path", path);
-            bootModulePath.add(path);
+        public Builder appendBootPath(ClassPathEntry entry) {
+            Assert.checkNotNullParam("entry", entry);
+            bootPathsAppend.add(entry);
             return this;
         }
 
-        public Builder addBootModulePaths(List<Path> paths) {
-            Assert.checkNotNullParam("paths", paths);
-            bootModulePath.addAll(paths);
+        public Builder appendBootPaths(List<ClassPathEntry> entry) {
+            Assert.checkNotNullParam("entry", entry);
+            bootPathsAppend.addAll(entry);
             return this;
         }
 
-        public Builder setBootModulePaths(String[] paths) {
-            Assert.checkNotNullParam("paths", paths);
-            for (String pathStr : paths) {
-                if (! pathStr.isEmpty()) {
-                    addBootModulePath(Path.of(pathStr));
-                }
-            }
+        public Builder prependBootPath(ClassPathEntry entry) {
+            Assert.checkNotNullParam("entry", entry);
+            bootPathsPrepend.add(entry);
+            return this;
+        }
+
+        public Builder prependBootPaths(List<ClassPathEntry> entry) {
+            Assert.checkNotNullParam("entry", entry);
+            bootPathsPrepend.addAll(entry);
+            return this;
+        }
+
+        public Builder setClassLibVersion(String classLibVersion) {
+            Assert.checkNotNullParam("classLibVersion", classLibVersion);
+            this.classLibVersion = classLibVersion;
+            return this;
+        }
+
+        public Builder addAppPath(ClassPathEntry entry) {
+            Assert.checkNotNullParam("entry", entry);
+            appPaths.add(entry);
+            return this;
+        }
+
+        public Builder addAppPaths(List<ClassPathEntry> entry) {
+            Assert.checkNotNullParam("entry", entry);
+            appPaths.addAll(entry);
             return this;
         }
 
@@ -766,6 +910,38 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Main build() {
             return new Main(this);
+        }
+    }
+
+    static class MainProperties {
+        static final String CLASSLIB_DEFAULT_VERSION;
+
+        static final String QBICC_VERSION;
+
+        static {
+            Properties properties = new Properties();
+            InputStream inputStream = MainProperties.class.getClassLoader().getResourceAsStream("main.properties");
+            if (inputStream == null) {
+                throw new Error("Missing main.properties");
+            } else try (inputStream) {
+                try (InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+                    try (BufferedReader br = new BufferedReader(reader)) {
+                        properties.load(br);
+                    }
+                }
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+            CLASSLIB_DEFAULT_VERSION = properties.getProperty("classlib.default-version");
+
+            QBICC_VERSION = properties.getProperty("qbicc.version");
+        }
+    }
+
+    static class VersionProvider implements CommandLine.IVersionProvider {
+        @Override
+        public String[] getVersion() {
+            return new String[] { "Qbicc version " + MainProperties.QBICC_VERSION };
         }
     }
 }
