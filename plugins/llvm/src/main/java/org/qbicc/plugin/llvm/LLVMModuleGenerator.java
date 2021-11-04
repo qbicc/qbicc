@@ -136,19 +136,6 @@ final class LLVMModuleGenerator {
                     if (item.getAddrspace() != 0) {
                         obj.addressSpace(item.getAddrspace());
                     }
-                } else if (item instanceof DataDeclaration) {
-                    Global obj = module.global(moduleVisitor.map(item.getType())).linkage(Linkage.EXTERNAL);
-                    ThreadLocalMode tlm = item.getThreadLocalMode();
-                    if (tlm != null) {
-                        obj.threadLocal(map(tlm));
-                    }
-                    obj.asGlobal(item.getName());
-                    if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
-                        obj.section(sectionName);
-                    }
-                    if (item.getAddrspace() != 0) {
-                        obj.addressSpace(item.getAddrspace());
-                    }
                 } else {
                     assert item instanceof Data;
                     Literal value = (Literal) ((Data) item).getValue();
