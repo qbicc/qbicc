@@ -364,6 +364,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, VaArg node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, ValueConvertLiteral node) {
         return visitUnknown(param, node);
     }
@@ -712,6 +716,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, UndefinedLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, VaArg node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

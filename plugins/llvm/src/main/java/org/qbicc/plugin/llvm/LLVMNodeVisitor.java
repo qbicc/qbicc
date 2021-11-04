@@ -88,6 +88,7 @@ import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Unreachable;
 import org.qbicc.graph.Unschedulable;
+import org.qbicc.graph.VaArg;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
@@ -877,6 +878,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         return isFloating(javaInputType) ?
                builder.ftrunc(inputType, llvmInput, outputType).asLocal() :
                builder.trunc(inputType, llvmInput, outputType).asLocal();
+    }
+
+    public LLValue visit(final Void param, final VaArg node) {
+        map(node.getDependency());
+        Value vaList = node.getVaList();
+        return builder.va_arg(map(vaList.getType()), map(vaList), map(node.getType())).asLocal();
     }
 
     public LLValue visit(final Void param, final StackAllocation node) {

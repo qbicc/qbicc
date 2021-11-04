@@ -854,6 +854,10 @@ public interface Node {
                 return node;
             }
 
+            public Value visit(final Copier param, final VaArg node) {
+                return param.getBlockBuilder().vaArg(param.copyValue(node.getVaList()), node.getType());
+            }
+
             public ValueHandle visit(final Copier param, final UnsafeHandle node) {
                 return param.getBlockBuilder().unsafeHandle(param.copyValueHandle(node.getBase()), param.copyValue(node.getOffset()), node.getOutputType());
             }

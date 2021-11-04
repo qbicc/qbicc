@@ -14,35 +14,17 @@ public final class LLVM {
 
     // Variable argument lists
 
-    @Inline
-    @Hidden
-    public static void va_start(va_list_ptr arglist) {
-        va_start_real(arglist.cast());
-    }
-
-    @Inline
-    @Hidden
-    public static void va_end(va_list_ptr arglist) {
-        va_end_real(arglist.cast());
-    }
-
-    @Inline
-    @Hidden
-    public static void va_copy(va_list_ptr dest_arglist, va_list_ptr src_arglist) {
-        va_copy_real(dest_arglist.cast(), src_arglist.cast());
-    }
-
     @extern(withName = "llvm.va_start")
     @NoThrow
-    private static native void va_start_real(void_ptr arglist);
+    public static native void va_start(va_list_ptr arglist);
 
     @extern(withName = "llvm.va_end")
     @NoThrow
-    private static native void va_end_real(void_ptr arglist);
+    public static native void va_end(va_list_ptr arglist);
 
     @extern(withName = "llvm.va_copy")
     @NoThrow
-    private static native void va_copy_real(void_ptr dest_arglist, void_ptr src_arglist);
+    public static native void va_copy(va_list_ptr dest_arglist, va_list_ptr src_arglist);
 
     // Code generator
 

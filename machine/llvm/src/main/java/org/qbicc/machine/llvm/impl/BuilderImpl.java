@@ -394,6 +394,13 @@ final class BuilderImpl implements LLBuilder {
         return append(new IntToPtr(block, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
     }
 
+    public YieldingInstruction va_arg(final LLValue vaListType, final LLValue vaList, final LLValue outputType) {
+        Assert.checkNotNullParam("vaListType", vaListType);
+        Assert.checkNotNullParam("vaList", vaList);
+        Assert.checkNotNullParam("outputType", outputType);
+        return append(new VaArg(block, (AbstractValue) vaListType, (AbstractValue) vaList, (AbstractValue) outputType));
+    }
+
     public Call call(final LLValue type, final LLValue function) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("function", function);

@@ -391,6 +391,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new Deref(callSite, element, line, bci, value);
     }
 
+    public Value vaArg(Value vaList, ValueType type) {
+        return asDependency(new VaArg(callSite, element, line, bci, requireDependency(), vaList, type));
+    }
+
     public ValueHandle memberOf(final ValueHandle structHandle, final CompoundType.Member member) {
         return new MemberOf(callSite, element, line, bci, structHandle, member);
     }

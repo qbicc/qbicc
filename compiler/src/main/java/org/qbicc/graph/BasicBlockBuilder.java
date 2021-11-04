@@ -382,6 +382,8 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value deref(Value value);
 
+    Value vaArg(Value vaList, ValueType type);
+
     Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode);
 
     Node classInitCheck(ObjectType objectType);

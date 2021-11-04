@@ -9,12 +9,15 @@ import org.qbicc.graph.AsmHandle;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.ClassOf;
+import org.qbicc.graph.Deref;
+import org.qbicc.graph.Load;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.NewArray;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
+import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
@@ -49,6 +52,8 @@ public final class LLVMIntrinsics {
         //    public static native <T extends object> T asm(Class<T> returnType, String instruction, String operands, int flags, object... args);
 
         ClassTypeDescriptor thingDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$object");
+        ClassTypeDescriptor vaListDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdarg$va_list");
+        ClassTypeDescriptor vaListPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdarg$va_list_ptr");
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor stringDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ArrayTypeDescriptor arrayOfThingDesc = ArrayTypeDescriptor.of(classContext, thingDesc);
@@ -63,8 +68,104 @@ public final class LLVMIntrinsics {
                 arrayOfThingDesc
             )
         );
+        MethodDescriptor vaListClassToThing = MethodDescriptor.synthesize(classContext, thingDesc, List.of(vaListDesc, classDesc));
+        MethodDescriptor vaListToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(vaListDesc));
+        MethodDescriptor vaListVaListToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(vaListDesc, vaListDesc));
+        MethodDescriptor vaListPtrToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(vaListPtrDesc));
+        MethodDescriptor vaListPtrVaListPtrToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(vaListPtrDesc, vaListPtrDesc));
 
         intrinsics.registerIntrinsic(llvmRuntimeDesc, "asm", asmDesc, LLVMIntrinsics::asm);
+
+        // replace Stdarg methods with intrinsics; like the corresponding C macros, they take a va_list rather than a pointer to it
+
+        Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
+
+        ClassTypeDescriptor stdArgDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdarg");
+
+        StaticIntrinsic saVaStart = (builder, target, arguments) -> {
+            BasicBlockBuilder fb = builder.getFirstBuilder();
+            ValueHandle vaListHandle;
+            Value vaList = arguments.get(0);
+            if (vaList instanceof Deref deref) {
+                vaListHandle = fb.pointerHandle(deref.getInput());
+            } else if (vaList instanceof Load load) {
+                vaListHandle = load.getValueHandle();
+            } else {
+                ctxt.error(builder.getLocation(), "Invalid ap argument to va_start: must have an address");
+                return voidLiteral;
+            }
+            return fb.call(fb.staticMethod(llvmRuntimeDesc, "va_start", vaListPtrToVoid), List.of(fb.addressOf(vaListHandle)));
+        };
+
+        intrinsics.registerIntrinsic(stdArgDesc, "va_start", vaListToVoid, saVaStart);
+
+        StaticIntrinsic saVaEnd = (builder, target, arguments) -> {
+            BasicBlockBuilder fb = builder.getFirstBuilder();
+            ValueHandle vaListHandle;
+            Value vaList = arguments.get(0);
+            if (vaList instanceof Deref deref) {
+                vaListHandle = fb.pointerHandle(deref.getInput());
+            } else if (vaList instanceof Load load) {
+                vaListHandle = load.getValueHandle();
+            } else {
+                ctxt.error(builder.getLocation(), "Invalid ap argument to va_end: must have an address");
+                return voidLiteral;
+            }
+            return fb.call(fb.staticMethod(llvmRuntimeDesc, "va_end", vaListPtrToVoid), List.of(fb.addressOf(vaListHandle)));
+        };
+
+        intrinsics.registerIntrinsic(stdArgDesc, "va_end", vaListToVoid, saVaEnd);
+
+        StaticIntrinsic saVaCopy = (builder, target, arguments) -> {
+            BasicBlockBuilder fb = builder.getFirstBuilder();
+            ValueHandle destHandle;
+            Value destList = arguments.get(0);
+            if (destList instanceof Deref deref) {
+                destHandle = fb.pointerHandle(deref.getInput());
+            } else if (destList instanceof Load load) {
+                destHandle = load.getValueHandle();
+            } else {
+                ctxt.error(builder.getLocation(), "Invalid dest argument to va_copy: must have an address");
+                return voidLiteral;
+            }
+            ValueHandle srcHandle;
+            Value srcList = arguments.get(1);
+            if (srcList instanceof Deref deref) {
+                srcHandle = fb.pointerHandle(deref.getInput());
+            } else if (srcList instanceof Load load) {
+                srcHandle = load.getValueHandle();
+            } else {
+                ctxt.error(builder.getLocation(), "Invalid src argument to va_copy: must have an address");
+                return voidLiteral;
+            }
+            return fb.call(fb.staticMethod(llvmRuntimeDesc, "va_copy", vaListPtrVaListPtrToVoid), List.of(fb.addressOf(destHandle), fb.addressOf(srcHandle)));
+        };
+
+        intrinsics.registerIntrinsic(stdArgDesc, "va_copy", vaListVaListToVoid, saVaCopy);
+
+        // this one is technically implementation-neutral, but we can keep it here until we have another backend
+        StaticIntrinsic saVaArg = (builder, target, arguments) -> {
+            BasicBlockBuilder fb = builder.getFirstBuilder();
+            ValueHandle vaListHandle;
+            Value vaList = arguments.get(0);
+            if (vaList instanceof Deref deref) {
+                vaListHandle = fb.pointerHandle(deref.getInput());
+            } else if (vaList instanceof Load load) {
+                vaListHandle = load.getValueHandle();
+            } else {
+                ctxt.error(builder.getLocation(), "Invalid ap argument to va_arg: must have an address");
+                throw new BlockEarlyTermination(builder.unreachable());
+            }
+            Value outputType = arguments.get(1);
+            if (outputType instanceof ClassOf co && co.getInput() instanceof TypeLiteral tl) {
+                return builder.vaArg(fb.addressOf(vaListHandle), tl.getValue());
+            } else {
+                ctxt.error(builder.getLocation(), "Invalid type argument to va_arg (must be a class literal)");
+                throw new BlockEarlyTermination(builder.unreachable());
+            }
+        };
+
+        intrinsics.registerIntrinsic(stdArgDesc, "va_arg", vaListClassToThing, saVaArg);
     }
 
     // flag values must match the LLVM runtime API class.
