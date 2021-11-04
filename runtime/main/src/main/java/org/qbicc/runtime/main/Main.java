@@ -4,6 +4,7 @@ import static org.qbicc.runtime.CNative.*;
 import static org.qbicc.runtime.posix.PThread.pthread_exit;
 
 import org.qbicc.runtime.Build;
+import org.qbicc.runtime.Hidden;
 import org.qbicc.runtime.NotReachableException;
 
 /**
@@ -24,6 +25,7 @@ public final class Main {
     static native ThreadGroup createSystemThreadGroup();
 
     @export
+    @Hidden
     public static c_int main(c_int argc, char_ptr[] argv) {
 
         // first set up VM

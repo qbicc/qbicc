@@ -678,7 +678,7 @@ public final class CoreIntrinsics {
         InstanceIntrinsic fillInStackTrace = (builder, instance, target, arguments) -> {
             Value frameCount = builder.getFirstBuilder().call(
                 builder.staticMethod(getFrameCountElement, getFrameCountElement.getDescriptor(), getFrameCountElement.getType()),
-                List.of());
+                List.of(instance));
             ClassObjectType jsfcClassType = (ClassObjectType) ctxt.getBootstrapClassContext().findDefinedType(jsfcClass).load().getType();
             Value visitor = builder.getFirstBuilder().new_(jsfcClassType);
             builder.call(
@@ -686,7 +686,7 @@ public final class CoreIntrinsics {
                 List.of(frameCount));
             builder.call(
                 builder.getFirstBuilder().staticMethod(walkStackElement, walkStackElement.getDescriptor(), walkStackElement.getType()),
-                List.of(visitor));
+                List.of(instance, visitor));
 
             // set Throwable#backtrace and Throwable#depth fields
             DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Throwable");
@@ -862,6 +862,16 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(Phase.LOWER, mdDesc, "getTypeId", intToIntDesc, getTypeId);
+
+        StaticIntrinsic getModifiers = (builder, target, arguments) -> {
+            GlobalVariable gmdVariable = (GlobalVariable) builder.globalVariable(mdTypes.getAndRegisterGlobalMethodData(builder.getCurrentElement()));
+            Value tablePointer = builder.load(builder.memberOf(gmdVariable, gmdType.getMember("methodInfoTable")), MemoryAtomicityMode.UNORDERED);
+
+            ValueHandle minfoHandle = builder.elementOf(builder.pointerHandle(builder.bitCast(tablePointer, minfoType.getPointer())), arguments.get(0));
+            return builder.load(builder.memberOf(minfoHandle, minfoType.getMember("modifiers")), MemoryAtomicityMode.UNORDERED);
+        };
+
+        intrinsics.registerIntrinsic(Phase.LOWER, mdDesc, "getModifiers", intToIntDesc, getModifiers);
 
         String methodDataClass = "org/qbicc/runtime/stackwalk/MethodData";
         MethodElement getLineNumberElement = methodFinder.getMethod(methodDataClass, "getLineNumber");

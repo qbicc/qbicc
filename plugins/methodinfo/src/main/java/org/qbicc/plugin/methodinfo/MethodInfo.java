@@ -10,13 +10,15 @@ final class MethodInfo {
     private SymbolLiteral methodNameSymbolLiteral;
     private SymbolLiteral methodDescSymbolLiteral;
     private int typeId;
+    private int modifiers;
 
-    MethodInfo(SymbolLiteral fileSymbolLiteral, SymbolLiteral classSymbolLiteral, SymbolLiteral methodSymbolLiteral, SymbolLiteral methodDescSymbolLiteral, int typeId) {
+    MethodInfo(SymbolLiteral fileSymbolLiteral, SymbolLiteral classSymbolLiteral, SymbolLiteral methodSymbolLiteral, SymbolLiteral methodDescSymbolLiteral, int typeId, int modifiers) {
         this.fileNameSymbolLiteral = fileSymbolLiteral;
         this.classNameSymbolLiteral = classSymbolLiteral;
         this.methodNameSymbolLiteral = methodSymbolLiteral;
         this.methodDescSymbolLiteral = methodDescSymbolLiteral;
         this.typeId = typeId;
+        this.modifiers = modifiers;
     }
 
     public boolean equals(Object other) {
@@ -24,9 +26,11 @@ final class MethodInfo {
         if (other == null || getClass() != other.getClass()) return false;
         MethodInfo that = (MethodInfo) other;
         return Objects.equals(fileNameSymbolLiteral, that.fileNameSymbolLiteral) // fileNameSymbolLiteral can be null, avoid using equals() on it
-            && classNameSymbolLiteral.equals(that.classNameSymbolLiteral)
-            && methodNameSymbolLiteral.equals(that.methodNameSymbolLiteral)
-            && methodDescSymbolLiteral.equals(that.methodDescSymbolLiteral);
+            && Objects.equals(classNameSymbolLiteral, that.classNameSymbolLiteral)
+            && Objects.equals(methodNameSymbolLiteral, that.methodNameSymbolLiteral)
+            && Objects.equals(methodDescSymbolLiteral, that.methodDescSymbolLiteral)
+            && typeId == that.typeId
+            && modifiers == that.modifiers;
     }
 
     SymbolLiteral getFileNameSymbolLiteral() {
@@ -49,12 +53,10 @@ final class MethodInfo {
         return typeId;
     }
 
+    int getModifiers() { return modifiers; }
+
     @Override
     public int hashCode() {
-        int result = fileNameSymbolLiteral != null ? fileNameSymbolLiteral.hashCode() : 0;
-        result = 31 * result + (classNameSymbolLiteral != null ? classNameSymbolLiteral.hashCode() : 0);
-        result = 31 * result + (methodNameSymbolLiteral != null ? methodNameSymbolLiteral.hashCode() : 0);
-        result = 31 * result + (methodDescSymbolLiteral != null ? methodDescSymbolLiteral.hashCode() : 0);
-        return result;
+        return Objects.hash(fileNameSymbolLiteral, classNameSymbolLiteral, methodDescSymbolLiteral, methodDescSymbolLiteral, typeId, modifiers);
     }
 }

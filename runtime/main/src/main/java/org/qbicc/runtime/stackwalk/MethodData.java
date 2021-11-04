@@ -9,6 +9,16 @@ public final class MethodData {
     public static native String getMethodName(int minfoIndex);
     public static native String getMethodDesc(int minfoIndex);
     public static native int getTypeId(int minfoIndex);
+    public static native int getModifiers(int minfoIndex);
+    public static boolean hasAllModifiersOf(int minfoIndex, int mask) {
+        int modifiers = getModifiers(minfoIndex);
+        return (modifiers & mask) == mask;
+    }
+
+    public static boolean hasNoModifiersOf(int minfoIndex, int mask) {
+        int modifiers = getModifiers(minfoIndex);
+        return (modifiers & mask) == 0;
+    }
 
     public static native int getMethodInfoIndex(int scIndex);
     public static native int getLineNumber(int scIndex);

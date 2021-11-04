@@ -67,7 +67,7 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
             methodName = ((FunctionElement)element).getName();
         }
         String fileName = element.getSourceFileName();
-        String className = element.getEnclosingType().getInternalName();
+        String className = element.getEnclosingType().getInternalName().replace('/', '.');
         String methodDesc = element.getDescriptor().toString();
         int typeId = element.getEnclosingType().load().getTypeId();
 
@@ -85,7 +85,7 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         SymbolLiteral mdLiteral = btHeap.getSerializedVmObject(vm.intern(methodDesc));
         Assert.assertNotNull(mdLiteral);
 
-        return methodData.add(new MethodInfo(fnLiteral, cnLiteral, mnLiteral, mdLiteral, typeId));
+        return methodData.add(new MethodInfo(fnLiteral, cnLiteral, mnLiteral, mdLiteral, typeId, element.getModifiers()));
     }
 
     private int createSourceCodeInfo(CompilationContext ctxt, MethodData methodData, ExecutableElement element, int lineNumber, int bcIndex, int inlinedAtIndex) {
@@ -186,12 +186,14 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
             Literal mnLiteral = castHeapSymbolTo(ctxt, minfo.getMethodNameSymbolLiteral(), jlsRef);
             Literal mdLiteral = castHeapSymbolTo(ctxt, minfo.getMethodDescSymbolLiteral(), jlsRef);
             Literal typeIdLiteral = lf.literalOf(minfo.getTypeId());
+            Literal modifiersLiteral = lf.literalOf(minfo.getModifiers());
 
             valueMap.put(methodInfoType.getMember("fileName"), fnLiteral);
             valueMap.put(methodInfoType.getMember("className"), cnLiteral);
             valueMap.put(methodInfoType.getMember("methodName"), mnLiteral);
             valueMap.put(methodInfoType.getMember("methodDesc"), mdLiteral);
             valueMap.put(methodInfoType.getMember("typeId"), typeIdLiteral);
+            valueMap.put(methodInfoType.getMember("modifiers"), modifiersLiteral);
             return lf.literalOf(methodInfoType, valueMap);
         }).toArray(Literal[]::new);
 
