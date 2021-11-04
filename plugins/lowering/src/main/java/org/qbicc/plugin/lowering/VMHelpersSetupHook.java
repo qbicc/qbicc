@@ -26,15 +26,15 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
         ctxt.enqueue(ctxt.getVMHelperMethod("get_superclass"));
 
         // Helpers to create and throw common runtime exceptions
-        ctxt.enqueue(ctxt.getVMHelperMethod("raiseAbstractMethodError"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("raiseArithmeticException"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("raiseArrayIndexOutOfBoundsException"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("raiseArrayStoreException"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("raiseClassCastException"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("raiseNegativeArraySizeException"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("raiseNullPointerException"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseAbstractMethodError"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseArithmeticException"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseArrayIndexOutOfBoundsException"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseArrayStoreException"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseClassCastException"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseNegativeArraySizeException"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseNullPointerException"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError"));
 
         // Object monitors
         ctxt.enqueue(ctxt.getVMHelperMethod("monitor_enter"));
