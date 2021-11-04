@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Driver;
@@ -35,6 +36,7 @@ import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -75,6 +77,8 @@ final class NativeInfo {
     final Map<DefinedTypeDefinition, AtomicReference<ValueType>> internalNativeTypes = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, FunctionalInterfaceData> functionalInterfaceMethods = new ConcurrentHashMap<>();
     final Set<InitializerElement> initializers = ConcurrentHashMap.newKeySet();
+    final Map<DefinedTypeDefinition, List<FunctionAndPriority>> globalCtors = new ConcurrentHashMap<>();
+    final Map<DefinedTypeDefinition, List<FunctionAndPriority>> globalDtors = new ConcurrentHashMap<>();
 
     private NativeInfo(final CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -484,4 +488,41 @@ final class NativeInfo {
     public NativeDataInfo getFieldInfo(final TypeDescriptor owner, final String name) {
         return nativeFields.getOrDefault(owner, Map.of()).get(name);
     }
+
+    public void registerGlobalConstructor(FunctionElement element, int priority) {
+        registerGlobalXtor(globalCtors, element, priority);
+    }
+
+    public void registerGlobalDestructor(FunctionElement element, int priority) {
+        registerGlobalXtor(globalDtors, element, priority);
+    }
+
+    private void registerGlobalXtor(final Map<DefinedTypeDefinition, List<FunctionAndPriority>> map, final FunctionElement element, final int priority) {
+        Assert.checkNotNullParam("element", element);
+        List<FunctionAndPriority> list = map.computeIfAbsent(element.getEnclosingType(), NativeInfo::createList);
+        synchronized (list) {
+            list.add(new FunctionAndPriority(element, priority));
+        }
+    }
+
+    private static List<FunctionAndPriority> createList(final DefinedTypeDefinition ignored) {
+        return new ArrayList<>();
+    }
+
+    public List<FunctionAndPriority> getGlobalConstructors(DefinedTypeDefinition enclosingType) {
+        return getGlobalXtors(globalCtors, enclosingType);
+    }
+
+    public List<FunctionAndPriority> getGlobalDestructors(DefinedTypeDefinition enclosingType) {
+        return getGlobalXtors(globalDtors, enclosingType);
+    }
+
+    private List<FunctionAndPriority> getGlobalXtors(Map<DefinedTypeDefinition, List<FunctionAndPriority>> map, DefinedTypeDefinition enclosingType) {
+        List<FunctionAndPriority> list = map.getOrDefault(enclosingType, List.of());
+        synchronized (list) {
+            return List.copyOf(list);
+        }
+    }
+
+    public record FunctionAndPriority(FunctionElement function, int priority) {}
 }

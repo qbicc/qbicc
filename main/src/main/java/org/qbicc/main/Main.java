@@ -102,6 +102,7 @@ import org.qbicc.plugin.native_.NativeBasicBlockBuilder;
 import org.qbicc.plugin.native_.NativeBindingMethodConfigurator;
 import org.qbicc.plugin.native_.NativeTypeBuilder;
 import org.qbicc.plugin.native_.NativeTypeResolver;
+import org.qbicc.plugin.native_.NativeXtorLoweringElementHandler;
 import org.qbicc.plugin.native_.PointerBasicBlockBuilder;
 import org.qbicc.plugin.native_.PointerTypeResolver;
 import org.qbicc.plugin.native_.StructMemberAccessBasicBlockBuilder;
@@ -432,6 +433,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.LOWER, Layout::unlock);
                                 builder.addPreHook(Phase.LOWER, new ClassObjectSerializer());
                                 builder.addElementHandler(Phase.LOWER, new FunctionLoweringElementHandler());
+                                builder.addElementHandler(Phase.LOWER, new NativeXtorLoweringElementHandler());
                                 builder.addElementHandler(Phase.LOWER, new ElementVisitorAdapter(new DotGenerator(Phase.LOWER, graphGenConfig)));
                                 if (optGotos) {
                                     builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
