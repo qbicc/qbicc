@@ -32,8 +32,7 @@ public class BasicInitializationBasicBlockBuilder extends DelegatingBasicBlockBu
     public ValueHandle lengthOf(ValueHandle array) {
         ValueType arrayType = array.getValueType();
         if (arrayType instanceof ArrayObjectType) {
-            CoreClasses coreClasses = CoreClasses.get(ctxt);
-            return instanceFieldOf(array, coreClasses.getArrayLengthField());
+            return instanceFieldOf(array, CoreClasses.get(ctxt).getArrayLengthField());
         }
         return super.lengthOf(array);
     }

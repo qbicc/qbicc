@@ -123,7 +123,6 @@ import org.qbicc.graph.TailInvoke;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Throw;
 import org.qbicc.graph.Truncate;
-import org.qbicc.graph.TypeIdOf;
 import org.qbicc.graph.UnaryValue;
 import org.qbicc.graph.Unreachable;
 import org.qbicc.graph.UnsafeHandle;
@@ -1246,17 +1245,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final Truncate node) {
         return node(param, "trunc", node);
-    }
-
-    public String visit(final Appendable param, final TypeIdOf node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "circle");
-        attr(param, "label", "type of");
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
-        return name;
     }
 
     public String visit(final Appendable param, final TypeLiteral node) {

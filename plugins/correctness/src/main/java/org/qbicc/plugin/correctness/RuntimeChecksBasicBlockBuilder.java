@@ -78,12 +78,6 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public Value typeIdOf(ValueHandle handle) {
-        check(handle);
-        return super.typeIdOf(handle);
-    }
-
-    @Override
     public Value checkcast(Value value, Value toType, Value toDimensions, CheckCast.CastType kind, ObjectType expectedType) {
         ValueType rawValueType = value.getType();
         if (rawValueType instanceof ReferenceType) {

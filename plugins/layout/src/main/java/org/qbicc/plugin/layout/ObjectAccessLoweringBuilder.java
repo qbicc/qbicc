@@ -34,11 +34,6 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
         this.ctxt = ctxt;
     }
 
-    public Value typeIdOf(final ValueHandle valueHandle) {
-        CoreClasses coreClasses = CoreClasses.get(ctxt);
-        return load(instanceFieldOf(valueHandle, coreClasses.getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
-    }
-
     @Override
     public Value load(ValueHandle handle, MemoryAtomicityMode mode) {
         return super.load(transform(handle), mode);

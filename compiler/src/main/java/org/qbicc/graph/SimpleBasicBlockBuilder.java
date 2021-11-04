@@ -553,10 +553,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new Select(callSite, element, line, bci, condition, trueValue, falseValue);
     }
 
-    public Value typeIdOf(final ValueHandle valueHandle) {
-        return new TypeIdOf(callSite, element, line, bci, valueHandle);
-    }
-
     public Value classOf(Value typeId, Value dimensions) {
         Assert.assertTrue(typeId instanceof TypeLiteral);
         ClassContext classContext = element.getEnclosingType().getContext();

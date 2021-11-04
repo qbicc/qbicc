@@ -250,16 +250,6 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle lengthOf(ValueHandle arrayHandle);
 
-    // typed
-
-    /**
-     * Get the type ID of the given reference value.
-     *
-     * @param valueHandle the value, whose type must be a {@link ReferenceType}
-     * @return the type ID, whose type must be a {@link TypeType}
-     */
-    Value typeIdOf(ValueHandle valueHandle);
-
     /**
      * Get the {@link Class} object for the given type ID value, whose type must be a {@link TypeType} with
      * an upper bound which is a {@link ObjectType}.

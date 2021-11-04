@@ -846,10 +846,6 @@ public interface Node {
                 return param.getBlockBuilder().truncate(param.copyValue(node.getInput()), node.getType());
             }
 
-            public Value visit(final Copier param, final TypeIdOf node) {
-                return param.getBlockBuilder().typeIdOf(param.copyValueHandle(node.getValueHandle()));
-            }
-
             public Value visit(final Copier param, final TypeLiteral node) {
                 return node;
             }
