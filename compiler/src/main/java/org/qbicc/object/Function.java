@@ -67,8 +67,9 @@ public final class Function extends SectionObject {
         int flags = 0;
         if (element.hasAllModifiersOf(ClassFile.I_ACC_NO_SIDE_EFFECTS)) {
             flags |= Function.FN_NO_SIDE_EFFECTS;
+        } else if (element.hasAllModifiersOf(ClassFile.I_ACC_NO_RETURN)) {
+            flags |= Function.FN_NO_RETURN;
         }
-        // todo: no return
         return flags;
     }
 }

@@ -96,6 +96,9 @@ final class LLVMModuleGenerator {
                     functionDefinition.attribute(FunctionAttributes.framePointer("non-leaf"));
                     functionDefinition.attribute(FunctionAttributes.uwtable);
                     functionDefinition.gc("statepoint-example");
+                    if (((Function) item).isNoReturn()) {
+                        functionDefinition.attribute(FunctionAttributes.noreturn);
+                    }
 
                     LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(context, module, debugInfo, pseudoIntrinsics, topSubprogram, moduleVisitor, Schedule.forMethod(entryBlock), ((Function) item), functionDefinition);
                     if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
