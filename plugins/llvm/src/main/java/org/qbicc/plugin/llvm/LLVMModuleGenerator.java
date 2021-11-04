@@ -74,9 +74,9 @@ final class LLVMModuleGenerator {
             for (ProgramObject item : section.contents()) {
                 String name = item.getName();
                 Linkage linkage = map(item.getLinkage());
-                if (item instanceof Function) {
-                    ExecutableElement element = ((Function) item).getOriginalElement();
-                    MethodBody body = ((Function) item).getBody();
+                if (item instanceof Function fn) {
+                    ExecutableElement element = fn.getOriginalElement();
+                    MethodBody body = fn.getBody();
                     boolean isExact = item == context.getExactFunction(element);
                     if (body == null) {
                         context.error("Function `%s` has no body", name);
@@ -84,30 +84,29 @@ final class LLVMModuleGenerator {
                     }
                     BasicBlock entryBlock = body.getEntryBlock();
                     FunctionDefinition functionDefinition = module.define(name).linkage(linkage);
-                    LLValue topSubprogram = null;
+                    LLValue topSubprogram;
 
                     if (isExact) {
                         topSubprogram = debugInfo.getDebugInfoForFunction(element).getSubprogram();
                         functionDefinition.meta("dbg", topSubprogram);
                     } else {
-                        topSubprogram = debugInfo.createThunkSubprogram((Function) item).asRef();
+                        topSubprogram = debugInfo.createThunkSubprogram(fn).asRef();
                         functionDefinition.meta("dbg", topSubprogram);
                     }
                     functionDefinition.attribute(FunctionAttributes.framePointer("non-leaf"));
                     functionDefinition.attribute(FunctionAttributes.uwtable);
                     functionDefinition.gc("statepoint-example");
-                    if (((Function) item).isNoReturn()) {
+                    if (fn.isNoReturn()) {
                         functionDefinition.attribute(FunctionAttributes.noreturn);
                     }
 
-                    LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(context, module, debugInfo, pseudoIntrinsics, topSubprogram, moduleVisitor, Schedule.forMethod(entryBlock), ((Function) item), functionDefinition);
+                    LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(context, module, debugInfo, pseudoIntrinsics, topSubprogram, moduleVisitor, Schedule.forMethod(entryBlock), fn, functionDefinition);
                     if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                         functionDefinition.section(sectionName);
                     }
 
                     nodeVisitor.execute();
-                } else if (item instanceof FunctionDeclaration) {
-                    FunctionDeclaration fn = (FunctionDeclaration) item;
+                } else if (item instanceof FunctionDeclaration fn) {
                     decl = module.declare(name).linkage(linkage);
                     FunctionType fnType = fn.getValueType();
                     decl.returns(moduleVisitor.map(fnType.getReturnType()));
@@ -146,20 +145,22 @@ final class LLVMModuleGenerator {
                     }
                     obj.alignment(data.getValueType().getAlign());
                     obj.linkage(linkage);
-                    ThreadLocalMode tlm = item.getThreadLocalMode();
+                    ThreadLocalMode tlm = data.getThreadLocalMode();
                     if (tlm != null) {
                         obj.threadLocal(map(tlm));
                     }
-                    if (((Data) item).isDsoLocal()) {
+                    if (data.isDsoLocal()) {
                         obj.preemption(RuntimePreemption.LOCAL);
                     }
                     if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                         obj.section(sectionName);
                     }
                     if (item.getAddrspace() != 0) {
-                        obj.addressSpace(item.getAddrspace());
+                        obj.addressSpace(data.getAddrspace());
                     }
-                    obj.asGlobal(item.getName());
+                    obj.asGlobal(data.getName());
+                } else {
+                    throw new IllegalStateException();
                 }
             }
         }

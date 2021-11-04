@@ -28,6 +28,7 @@ final class GlobalImpl extends AbstractYieldingInstruction implements Global {
     int alignment = 0;
     AbstractValue value;
     ThreadLocalStorageModel threadLocalStorageModel;
+    boolean appending;
 
     GlobalImpl(final ModuleImpl module, final boolean constant, final AbstractValue type) {
         super(module);
@@ -90,6 +91,11 @@ final class GlobalImpl extends AbstractYieldingInstruction implements Global {
         return this;
     }
 
+    public Global appending() {
+        this.appending = true;
+        return this;
+    }
+
     public Appendable appendTo(final Appendable target) throws IOException {
         super.appendTo(target);
         final Linkage linkage = this.linkage;
@@ -133,6 +139,10 @@ final class GlobalImpl extends AbstractYieldingInstruction implements Global {
             target.append("addrspace(");
             target.append(Integer.toString(addressSpace));
             target.append(") ");
+        }
+        if (appending) {
+            target.append("appending");
+            target.append(' ');
         }
         if (constant) {
             target.append("constant");
