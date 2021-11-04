@@ -9,7 +9,6 @@
 // Run the executable
 // $ /tmp/output/a.out
 //
-//DEPS org.qbicc:qbicc-runtime-api:0.1.0-SNAPSHOT
 package hello.world;
 
 /**
