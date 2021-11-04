@@ -1,5 +1,7 @@
 package org.qbicc.runtime.unwind;
 
+import org.qbicc.runtime.Build;
+
 import static org.qbicc.runtime.CNative.*;
 
 /**
@@ -7,7 +9,7 @@ import static org.qbicc.runtime.CNative.*;
  */
 @define("UNW_LOCAL_ONLY")
 @include("<libunwind.h>")
-@lib("unwind")
+@lib(value = "unwind", unless = Build.Target.IsMacOs.class)
 public final class LibUnwind {
     private LibUnwind() {}
 
