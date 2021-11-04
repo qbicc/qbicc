@@ -59,6 +59,11 @@ public abstract class Executable extends AbstractValueHandle {
     }
 
     @Override
+    public boolean isFold() {
+        return executable.hasAllModifiersOf(ClassFile.I_ACC_FOLD);
+    }
+
+    @Override
     public final boolean equals(Object other) {
         return other instanceof Executable && equals((Executable) other);
     }

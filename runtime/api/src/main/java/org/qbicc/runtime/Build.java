@@ -128,86 +128,105 @@ public final class Build {
 
         // OS
 
+        @Fold
         public static boolean isUnix() {
             return defined(__unix__) || isMacOs();
         }
 
+        @Fold
         public static boolean isLinux() {
             return defined(linux);
         }
 
+        @Fold
         public static boolean isWindows() {
             return defined(_WIN32) || defined(WIN32);
         }
 
+        @Fold
         public static boolean isApple() {
             return defined(__APPLE__) && __APPLE__.booleanValue();
         }
 
+        @Fold
         public static boolean isMacOs() {
             return isApple() && defined(TARGET_OS_MAC) && TARGET_OS_MAC.booleanValue();
         }
 
+        @Fold
         public static boolean isIOS() {
             return isApple() && defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE.booleanValue();
         }
 
+        @Fold
         public static boolean isAix() {
             return defined(_AIX);
         }
 
+        @Fold
         public static boolean isPosix() {
             return isUnix() && defined(_POSIX_VERSION);
         }
 
         // CPU
 
+        @Fold
         public static boolean isAmd64() {
             return defined(__GNUC__) && defined(__x86_64__) || defined(MSVC) && defined(_M_AMD64);
         }
 
+        @Fold
         public static boolean isI386() {
             return defined(__GNUC__) && defined(__i386__) || defined(MSVC) && defined(_M_X86);
         }
 
+        @Fold
         public static boolean isArm() {
             return defined(__GNUC__) && defined(__arm__) || defined(MSVC) && defined(_M_ARM);
         }
 
+        @Fold
         public static boolean isAarch64() {
             return defined(__GNUC__) && defined(__aarch64__);
         }
 
         // Toolchain
 
+        @Fold
         public static boolean isGcc() {
             return defined(__GNUC__);
         }
 
         // C environment
 
+        @Fold
         public static boolean isGLibCLike() {
             return defined(__GNU_LIBRARY__);
         }
 
+        @Fold
         public static boolean isGLibC() {
             return isGLibCLike() && !isUCLibC() && !isMusl();
         }
 
+        @Fold
         public static boolean isUCLibC() {
             return defined(__UCLIBC__);
         }
 
+        @Fold
         public static boolean isMusl() {
             return defined(__MUSL__);
         }
 
         // object environment
 
+        @Fold
         public static boolean isElf() {
             return defined(__ELF__);
         }
 
+        @Fold
         public static boolean isMachO() {
             return defined(__MACH__);
         }
