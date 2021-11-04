@@ -56,7 +56,7 @@ import org.qbicc.plugin.coreclasses.BasicInitializationBasicBlockBuilder;
 import org.qbicc.plugin.coreclasses.BasicInitializationManualInitializer;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.constants.ConstantBasicBlockBuilder;
-import org.qbicc.plugin.conversion.LLVMCompatibleBasicBlockBuilder;
+import org.qbicc.plugin.llvm.LLVMCompatibleBasicBlockBuilder;
 import org.qbicc.plugin.conversion.MethodCallFixupBasicBlockBuilder;
 import org.qbicc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import org.qbicc.plugin.core.CoreAnnotationTypeBuilder;
