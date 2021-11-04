@@ -248,7 +248,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value populationCount(Value v);
 
-    Value arrayLength(ValueHandle arrayHandle);
+    ValueHandle lengthOf(ValueHandle arrayHandle);
 
     // typed
 

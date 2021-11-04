@@ -349,16 +349,6 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.valueConvert(input, toType);
     }
 
-    public Value arrayLength(final ValueHandle arrayHandle) {
-        if (arrayHandle instanceof ReferenceHandle) {
-            Value array = ((ReferenceHandle) arrayHandle).getReferenceValue();
-            if (array instanceof NewArray) {
-                return ((NewArray) array).getSize();
-            }
-        }
-        return getDelegate().arrayLength(arrayHandle);
-    }
-
     public Value select(final Value condition, final Value trueValue, final Value falseValue) {
         if (condition instanceof BooleanLiteral) {
             return ((BooleanLiteral) condition).booleanValue() ? trueValue : falseValue;

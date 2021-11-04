@@ -15,7 +15,6 @@ import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.And;
-import org.qbicc.graph.ArrayLength;
 import org.qbicc.graph.AsmHandle;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BitCast;
@@ -789,12 +788,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final And node) {
         return node(param, "&", node);
-    }
-
-    public String visit(final Appendable param, final ArrayLength node) {
-        String name = node(param, "array length", node);
-        addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
-        return name;
     }
 
     public String visit(final Appendable param, final BitCast node) {

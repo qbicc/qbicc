@@ -339,8 +339,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw Assert.unsupported();
     }
 
-    public Value arrayLength(final ValueHandle arrayHandle) {
-        return asDependency(new ArrayLength(callSite, element, line, bci, requireDependency(), arrayHandle, typeSystem.getSignedInteger32Type()));
+    public ValueHandle lengthOf(final ValueHandle arrayHandle) {
+        throw new IllegalStateException("lengthOf not converted");
     }
 
     public Value truncate(final Value value, final WordType toType) {
