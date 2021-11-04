@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -500,7 +501,11 @@ public class Main implements Callable<DiagnosticContext> {
     private void resolveClassPath(Consumer<ClassPathItem> classPathItemConsumer, final List<ClassPathEntry> bootPaths, Set<MavenCoordinate> addedCoordinates) throws IOException {
         for (ClassPathEntry bootPath : bootPaths) {
             if (bootPath instanceof ClassPathEntry.FilePath fp) {
-                classPathItemConsumer.accept(new ClassPathItem(fp.getPath().toString(), List.of(ClassPathElement.forDirectory(fp.getPath())), List.of()));
+                if (Files.isDirectory(fp.getPath())) {
+                    classPathItemConsumer.accept(new ClassPathItem(fp.getPath().toString(), List.of(ClassPathElement.forDirectory(fp.getPath())), List.of()));
+                } else {
+                    classPathItemConsumer.accept(new ClassPathItem(fp.getPath().toString(), List.of(ClassPathElement.forJarFile(fp.getPath())), List.of()));
+                }
             } else if (bootPath instanceof ClassPathEntry.MavenArtifact ma) {
                 processCoordinate(classPathItemConsumer, addedCoordinates, ma.getArtifact());
             } else if (bootPath instanceof ClassPathEntry.ClassLibraries cl) {
