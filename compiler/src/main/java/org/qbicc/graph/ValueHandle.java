@@ -84,6 +84,15 @@ public interface ValueHandle extends Unschedulable {
     boolean isValueConstant();
 
     /**
+     * Determine whether the value handle refers to a function or method that should be constant-folded.
+     *
+     * @return {@code true} to constant-fold the call result, or {@code false} otherwise
+     */
+    default boolean isFold() {
+        return false;
+    }
+
+    /**
      * Get the detected access mode for this handle.
      *
      * @return the detected access mode for this handle (must not be {@code null})
@@ -93,5 +102,4 @@ public interface ValueHandle extends Unschedulable {
     <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param);
 
     <T> long accept(ValueHandleVisitorLong<T> visitor, T param);
-
 }

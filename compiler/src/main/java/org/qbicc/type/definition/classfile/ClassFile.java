@@ -117,6 +117,10 @@ public interface ClassFile extends FieldResolver,
      * For executable members which never throw - not even {@link StackOverflowError} or {@link OutOfMemoryError}.
      */
     int I_ACC_NO_THROW = 1 << 26;
+    /**
+     * For executable members which should be evaluated during compilation.
+     */
+    int I_ACC_FOLD = 1 << 27;
 
     int OP_NOP = 0x00;
     int OP_ACONST_NULL = 0x01;
