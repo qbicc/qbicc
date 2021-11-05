@@ -42,7 +42,6 @@ public class MethodDataTypes {
             .setName("qbicc_method_info")
             .setOverallAlignment(jlsRef.getAlign())
             .addNextMember("fileName", jlsRef)
-            .addNextMember("className", jlsRef)
             .addNextMember("methodName", jlsRef)
             .addNextMember("methodDesc", jlsRef)
             .addNextMember("typeId", ts.getUnsignedInteger32Type())

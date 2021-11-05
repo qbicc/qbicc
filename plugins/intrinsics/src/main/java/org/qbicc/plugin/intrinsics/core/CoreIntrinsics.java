@@ -823,16 +823,6 @@ public final class CoreIntrinsics {
 
         intrinsics.registerIntrinsic(Phase.LOWER, mdDesc, "getFileName", intToStringDesc, getFileName);
 
-        StaticIntrinsic getClassName = (builder, target, arguments) -> {
-            GlobalVariable gmdVariable = (GlobalVariable) builder.globalVariable(mdTypes.getAndRegisterGlobalMethodData(builder.getCurrentElement()));
-            Value tablePointer = builder.load(builder.memberOf(gmdVariable, gmdType.getMember("methodInfoTable")), MemoryAtomicityMode.UNORDERED);
-
-            ValueHandle minfoHandle = builder.elementOf(builder.pointerHandle(builder.bitCast(tablePointer, minfoType.getPointer())), arguments.get(0));
-            return builder.load(builder.memberOf(minfoHandle, minfoType.getMember("className")), MemoryAtomicityMode.UNORDERED);
-        };
-
-        intrinsics.registerIntrinsic(Phase.LOWER, mdDesc, "getClassName", intToStringDesc, getClassName);
-
         StaticIntrinsic getMethodName = (builder, target, arguments) -> {
             GlobalVariable gmdVariable = (GlobalVariable) builder.globalVariable(mdTypes.getAndRegisterGlobalMethodData(builder.getCurrentElement()));
             Value tablePointer = builder.load(builder.memberOf(gmdVariable, gmdType.getMember("methodInfoTable")), MemoryAtomicityMode.UNORDERED);
@@ -879,8 +869,7 @@ public final class CoreIntrinsics {
         MethodElement getFileNameElement = methodFinder.getMethod(methodDataClass, "getFileName");
         MethodElement getClassNameElement = methodFinder.getMethod(methodDataClass, "getClassName");
         MethodElement getMethodNameElement = methodFinder.getMethod(methodDataClass, "getMethodName");
-        MethodElement getTypeIdElement = methodFinder.getMethod(methodDataClass, "getTypeId");
-        MethodElement getClassFromTypeIdElement = methodFinder.getMethod("org/qbicc/runtime/main/ObjectModel", "get_class_from_type_id");
+        MethodElement getClassElement = methodFinder.getMethod(methodDataClass, "getClass");
 
         StaticIntrinsic fillStackTraceElement = (builder, target, arguments) -> {
             DefinedTypeDefinition jls = classContext.findDefinedType("java/lang/StackTraceElement");
@@ -897,18 +886,15 @@ public final class CoreIntrinsics {
             Value fileName = builder.getFirstBuilder().call(
                 builder.staticMethod(getFileNameElement, getFileNameElement.getDescriptor(), getFileNameElement.getType()),
                 List.of(minfoIndex));
+            Value classObject = builder.getFirstBuilder().call(
+                builder.staticMethod(getClassElement, getClassElement.getDescriptor(), getClassElement.getType()),
+                List.of(minfoIndex));
             Value className = builder.getFirstBuilder().call(
                 builder.staticMethod(getClassNameElement, getClassNameElement.getDescriptor(), getClassNameElement.getType()),
                 List.of(minfoIndex));
             Value methodName = builder.getFirstBuilder().call(
                 builder.staticMethod(getMethodNameElement, getMethodNameElement.getDescriptor(), getMethodNameElement.getType()),
                 List.of(minfoIndex));
-            Value typeId = builder.getFirstBuilder().call(
-                builder.staticMethod(getTypeIdElement, getTypeIdElement.getDescriptor(), getTypeIdElement.getType()),
-                List.of(minfoIndex));
-            Value classObject = builder.getFirstBuilder().call(
-                builder.staticMethod(getClassFromTypeIdElement, getClassFromTypeIdElement.getDescriptor(), getClassFromTypeIdElement.getType()),
-                List.of(typeId, ctxt.getLiteralFactory().literalOf(0)));
 
             ValueHandle steRefHandle = builder.referenceHandle(arguments.get(0));
             FieldElement dcField = jlsVal.findField("declaringClass");
