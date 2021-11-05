@@ -1318,6 +1318,38 @@ public final class CNative {
     }
 
     /**
+     * Establish that the annotated function is a global constructor.  The function must be {@linkplain export exported} but
+     * may have a {@linkplain ExportScope#LOCAL local export scope}.
+     */
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.CLASS)
+    @Documented
+    public @interface constructor {
+        /**
+         * The priority in which the constructor is called.  Constructors are called in ascending priority order.
+         *
+         * @return the priority
+         */
+        int priority() default 1000;
+    }
+
+    /**
+     * Establish that the annotated function is a global destructor.  The function must be {@linkplain export exported} but
+     * may have a {@linkplain ExportScope#LOCAL local export scope}.
+     */
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.CLASS)
+    @Documented
+    public @interface destructor {
+        /**
+         * The priority in which the destructor is called.  Destructors are called in descending priority order.
+         *
+         * @return the priority
+         */
+        int priority() default 1000;
+    }
+
+    /**
      * Indicate that a C type is not modifiable.
      */
     @Target(ElementType.TYPE_USE)

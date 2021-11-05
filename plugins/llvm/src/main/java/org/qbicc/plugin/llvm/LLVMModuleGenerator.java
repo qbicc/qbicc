@@ -1,9 +1,12 @@
 package org.qbicc.plugin.llvm;
 
+import static java.lang.Math.max;
+
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.machine.llvm.FunctionAttributes;
 import org.qbicc.machine.llvm.FunctionDefinition;
@@ -20,11 +23,17 @@ import org.qbicc.object.Data;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
+import org.qbicc.object.GlobalXtor;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ProgramObject;
 import org.qbicc.object.Section;
 import org.qbicc.object.ThreadLocalMode;
+import org.qbicc.type.ArrayType;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.PointerType;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VariadicType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -36,6 +45,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
+import java.util.Map;
 
 final class LLVMModuleGenerator {
     private final CompilationContext context;
@@ -69,14 +80,18 @@ final class LLVMModuleGenerator {
         decl.returns(Types.void_);
         decl.param(Types.metadata).param(Types.metadata).param(Types.metadata);
 
+        // declare global ctors and dtors
+        processXtors(programModule.constructors(), "llvm.global_ctors", module, moduleVisitor);
+        processXtors(programModule.destructors(), "llvm.global_dtors", module, moduleVisitor);
+
         for (Section section : programModule.sections()) {
             String sectionName = section.getName();
             for (ProgramObject item : section.contents()) {
                 String name = item.getName();
                 Linkage linkage = map(item.getLinkage());
-                if (item instanceof Function) {
-                    ExecutableElement element = ((Function) item).getOriginalElement();
-                    MethodBody body = ((Function) item).getBody();
+                if (item instanceof Function fn) {
+                    ExecutableElement element = fn.getOriginalElement();
+                    MethodBody body = fn.getBody();
                     boolean isExact = item == context.getExactFunction(element);
                     if (body == null) {
                         context.error("Function `%s` has no body", name);
@@ -84,30 +99,29 @@ final class LLVMModuleGenerator {
                     }
                     BasicBlock entryBlock = body.getEntryBlock();
                     FunctionDefinition functionDefinition = module.define(name).linkage(linkage);
-                    LLValue topSubprogram = null;
+                    LLValue topSubprogram;
 
                     if (isExact) {
                         topSubprogram = debugInfo.getDebugInfoForFunction(element).getSubprogram();
                         functionDefinition.meta("dbg", topSubprogram);
                     } else {
-                        topSubprogram = debugInfo.createThunkSubprogram((Function) item).asRef();
+                        topSubprogram = debugInfo.createThunkSubprogram(fn).asRef();
                         functionDefinition.meta("dbg", topSubprogram);
                     }
                     functionDefinition.attribute(FunctionAttributes.framePointer("non-leaf"));
                     functionDefinition.attribute(FunctionAttributes.uwtable);
                     functionDefinition.gc("statepoint-example");
-                    if (((Function) item).isNoReturn()) {
+                    if (fn.isNoReturn()) {
                         functionDefinition.attribute(FunctionAttributes.noreturn);
                     }
 
-                    LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(context, module, debugInfo, pseudoIntrinsics, topSubprogram, moduleVisitor, Schedule.forMethod(entryBlock), ((Function) item), functionDefinition);
+                    LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(context, module, debugInfo, pseudoIntrinsics, topSubprogram, moduleVisitor, Schedule.forMethod(entryBlock), fn, functionDefinition);
                     if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                         functionDefinition.section(sectionName);
                     }
 
                     nodeVisitor.execute();
-                } else if (item instanceof FunctionDeclaration) {
-                    FunctionDeclaration fn = (FunctionDeclaration) item;
+                } else if (item instanceof FunctionDeclaration fn) {
                     decl = module.declare(name).linkage(linkage);
                     FunctionType fnType = fn.getValueType();
                     decl.returns(moduleVisitor.map(fnType.getReturnType()));
@@ -146,20 +160,22 @@ final class LLVMModuleGenerator {
                     }
                     obj.alignment(data.getValueType().getAlign());
                     obj.linkage(linkage);
-                    ThreadLocalMode tlm = item.getThreadLocalMode();
+                    ThreadLocalMode tlm = data.getThreadLocalMode();
                     if (tlm != null) {
                         obj.threadLocal(map(tlm));
                     }
-                    if (((Data) item).isDsoLocal()) {
+                    if (data.isDsoLocal()) {
                         obj.preemption(RuntimePreemption.LOCAL);
                     }
                     if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                         obj.section(sectionName);
                     }
                     if (item.getAddrspace() != 0) {
-                        obj.addressSpace(item.getAddrspace());
+                        obj.addressSpace(data.getAddrspace());
                     }
-                    obj.asGlobal(item.getName());
+                    obj.asGlobal(data.getName());
+                } else {
+                    throw new IllegalStateException();
                 }
             }
         }
@@ -180,6 +196,39 @@ final class LLVMModuleGenerator {
             }
         }
         return outputFile;
+    }
+
+    private void processXtors(final List<GlobalXtor> xtors, final String xtorName, Module module, LLVMModuleNodeVisitor moduleVisitor) {
+        if (! xtors.isEmpty()) {
+            TypeSystem ts = context.getTypeSystem();
+            LiteralFactory lf = context.getLiteralFactory();
+            int xtorSize = 0;
+            // this special type has a fixed size and layout
+            UnsignedIntegerType u32 = ts.getUnsignedInteger32Type();
+            CompoundType.Member priorityMember = ts.getUnalignedCompoundTypeMember("priority", u32, 0);
+            xtorSize += u32.getSize();
+            PointerType voidFnPtrType = ts.getFunctionType(ts.getVoidType()).getPointer();
+            CompoundType.Member fnMember = ts.getUnalignedCompoundTypeMember("fn", voidFnPtrType, xtorSize);
+            xtorSize += voidFnPtrType.getSize();
+            PointerType u8ptr = ts.getUnsignedInteger8Type().getPointer();
+            CompoundType.Member dataMember = ts.getUnalignedCompoundTypeMember("data", u8ptr, xtorSize);
+            xtorSize += u8ptr.getSize();
+            CompoundType xtorType = ts.getCompoundType(CompoundType.Tag.NONE, "xtor_t", xtorSize, 1, () -> List.of(
+                priorityMember, fnMember, dataMember
+            ));
+            // special global
+            ArrayType arrayType = ts.getArrayType(xtorType, xtors.size());
+            Global global_ctors = module.global(moduleVisitor.map(arrayType));
+            global_ctors.appending();
+            global_ctors.value(moduleVisitor.map(lf.literalOf(
+                arrayType, xtors.stream().map(g -> lf.literalOf(xtorType, Map.of(
+                    priorityMember, lf.literalOf(g.getPriority()),
+                    fnMember, lf.bitcastLiteral(lf.literalOf(g.getFunction()), voidFnPtrType),
+                    dataMember, lf.nullLiteralOfType(u8ptr)
+                ))).toList()
+            )));
+            global_ctors.asGlobal(xtorName);
+        }
     }
 
     Linkage map(org.qbicc.object.Linkage linkage) {

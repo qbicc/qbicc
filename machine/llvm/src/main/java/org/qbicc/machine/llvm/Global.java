@@ -27,4 +27,6 @@ public interface Global extends YieldingInstruction {
     Global threadLocal(ThreadLocalStorageModel model);
 
     Global addressSpace(int addressSpace);
+
+    Global appending();
 }

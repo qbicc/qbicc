@@ -21,6 +21,7 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.annotation.ArrayAnnotationValue;
+import org.qbicc.type.annotation.IntAnnotationValue;
 import org.qbicc.type.annotation.StringAnnotationValue;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
@@ -216,6 +217,23 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
             }
 
             private void addExport(final NativeInfo nativeInfo, final MethodElement origMethod, final String name) {
+                boolean constructor = false;
+                int constructorPriority = 0;
+                boolean destructor = false;
+                int destructorPriority = 0;
+                for (Annotation annotation : origMethod.getInvisibleAnnotations()) {
+                    ClassTypeDescriptor desc = annotation.getDescriptor();
+                    if (desc.getPackageName().equals(Native.NATIVE_PKG)) {
+                        IntAnnotationValue priority = (IntAnnotationValue) annotation.getValue("priority");
+                        if (desc.getClassName().equals(Native.ANN_CONSTRUCTOR)) {
+                            constructor = true;
+                            constructorPriority = priority == null ? 1000 : priority.intValue();
+                        } else if (desc.getClassName().equals(Native.ANN_DESTRUCTOR)) {
+                            destructor = true;
+                            destructorPriority = priority == null ? 1000 : priority.intValue();
+                        }
+                    }
+                }
                 FunctionElement.Builder builder = FunctionElement.builder();
                 builder.setName(name);
                 builder.setModifiers(origMethod.getModifiers());
@@ -248,6 +266,12 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 );
                 ctxt.establishExactFunction(origMethod, function);
                 ctxt.registerEntryPoint(function);
+                if (constructor) {
+                    nativeInfo.registerGlobalConstructor(function, constructorPriority);
+                }
+                if (destructor) {
+                    nativeInfo.registerGlobalDestructor(function, destructorPriority);
+                }
             }
 
             private String getFunctionNameFromMacro(final MethodElement origMethod) {
