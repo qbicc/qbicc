@@ -210,6 +210,21 @@ public final class TypeSystem {
         return new CompoundType.Member(name, type, offset, align);
     }
 
+    /**
+     * Get an unaligned compound type member. This is useful when creating structures that are not stored in memory
+     * or that LLVM must understand.
+     *
+     * @param name the member name (must not be {@code null})
+     * @param type the member type (must not be {@code null})
+     * @param offset the member offset (must be at least 0)
+     * @return the member (not {@code null})
+     */
+    public CompoundType.Member getUnalignedCompoundTypeMember(String name, ValueType type, int offset) {
+        Assert.checkNotNullParam("name", name);
+        Assert.checkMinimumParameter("offset", 0, offset);
+        return new CompoundType.Member(name, type, offset, type.getAlign());
+    }
+
     public FunctionType getFunctionType(ValueType returnType, ValueType... argTypes) {
         Assert.checkNotNullParam("returnType", returnType);
         TypeCache<FunctionType> current = functionTypeCache.computeIfAbsent(returnType, TypeCache::new);
