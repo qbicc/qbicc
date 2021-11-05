@@ -456,6 +456,15 @@ public final class CNative {
     public static native void reattach(Thread thread);
 
     /**
+     * Get a constant character pointer to the UTF-8 representation of the given string literal.  If the string
+     * is not already zero-terminated, a zero is added to the end of the string.
+     *
+     * @param stringLiteral the string literal (must not be {@code null}, must be a literal)
+     * @return the pointer to the string
+     */
+    public static native const_char_ptr utf8z(String stringLiteral);
+
+    /**
      * A native object. Native objects are allocated on the stack or in the system heap, or are otherwise externally
      * managed.
      * <p>

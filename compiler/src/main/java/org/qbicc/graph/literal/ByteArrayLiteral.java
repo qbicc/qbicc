@@ -1,7 +1,6 @@
 package org.qbicc.graph.literal;
 
 import java.util.Arrays;
-import java.util.Objects;
 
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.type.ArrayType;
@@ -17,7 +16,7 @@ public final class ByteArrayLiteral extends Literal {
     ByteArrayLiteral(final ArrayType type, final byte[] values) {
         this.values = values;
         this.type = type;
-        hashCode = Objects.hash(type, values);
+        hashCode = type.hashCode() * 19 + Arrays.hashCode(values);
     }
 
     public byte[] getValues() {

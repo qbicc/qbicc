@@ -2,8 +2,12 @@ package org.qbicc.plugin.intrinsics.core;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jboss.logging.Logger;
 import org.qbicc.context.ClassContext;
@@ -33,9 +37,11 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Variable;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.BooleanLiteral;
+import org.qbicc.graph.literal.ByteArrayLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
@@ -44,6 +50,9 @@ import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.machine.probe.CProbe;
+import org.qbicc.object.Data;
+import org.qbicc.object.DataDeclaration;
+import org.qbicc.object.Section;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables;
@@ -74,6 +83,7 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -1083,6 +1093,7 @@ public final class CoreIntrinsics {
         ArrayTypeDescriptor objArrayDesc = ArrayTypeDescriptor.of(classContext, objDesc);
         ClassTypeDescriptor nObjDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$object");
         ClassTypeDescriptor ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$ptr");
+        ClassTypeDescriptor constCharPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$const_char_ptr");
         ClassTypeDescriptor wordDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$word");
         ClassTypeDescriptor tgDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ThreadGroup");
         ClassTypeDescriptor thrDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
@@ -1350,6 +1361,35 @@ public final class CoreIntrinsics {
 
         intrinsics.registerIntrinsic(cNativeDesc, "ptrToRef", MethodDescriptor.synthesize(classContext, objDesc, List.of(ptrDesc)), bitCast);
         intrinsics.registerIntrinsic(cNativeDesc, "refToPtr", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(objDesc)), bitCast);
+
+        final ConcurrentHashMap<Literal, Data> utf8zCache = new ConcurrentHashMap<>();
+        final AtomicInteger cnt = new AtomicInteger();
+
+        StaticIntrinsic utf8z = (builder, target, arguments) -> {
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            TypeSystem ts = ctxt.getTypeSystem();
+            String content;
+            PointerType returnType = (PointerType) target.getValueType().getReturnType();
+            if (arguments.get(0) instanceof StringLiteral sl) {
+                content = sl.getValue();
+            } else if (arguments.get(0) instanceof ObjectLiteral ol && ol.getValue() instanceof VmString vs) {
+                content = vs.getContent();
+            } else {
+                ctxt.error(builder.getLocation(), "Argument to CNative.utf8z() must be a string literal");
+                return lf.nullLiteralOfType(returnType);
+            }
+            byte[] bytes = (content.endsWith("\0") ? content : (content + "\0")).getBytes(StandardCharsets.UTF_8);
+            assert bytes[bytes.length - 1] == 0;
+            Literal literal = lf.literalOf(ts.getArrayType(ts.getUnsignedInteger8Type(), bytes.length), bytes);
+            Data data = utf8zCache.computeIfAbsent(literal, bal -> {
+                ExecutableElement currentElement = builder.getCurrentElement();
+                Section section = ctxt.getImplicitSection(currentElement);
+                return section.addData(null, "utf8z_" + cnt.incrementAndGet(), bal);
+            });
+            return lf.bitcastLiteral(lf.literalOf(ctxt.getImplicitSection(builder.getCurrentElement()).declareData(data)), returnType);
+        };
+
+        intrinsics.registerIntrinsic(cNativeDesc, "utf8z", MethodDescriptor.synthesize(classContext, constCharPtrDesc, List.of(strDesc)), utf8z);
     }
 
     static void registerOrgQbiccObjectModelIntrinsics(final CompilationContext ctxt) {

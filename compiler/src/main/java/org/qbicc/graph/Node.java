@@ -11,10 +11,13 @@ import java.util.function.BiFunction;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.ArrayLiteral;
+import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
+import org.qbicc.graph.literal.ByteArrayLiteral;
 import org.qbicc.graph.literal.CompoundLiteral;
 import org.qbicc.graph.literal.ConstantLiteral;
+import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.MethodHandleLiteral;
@@ -24,6 +27,7 @@ import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
+import org.qbicc.graph.literal.ValueConvertLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -455,6 +459,10 @@ public interface Node {
                 return param.getBlockBuilder().bitCast(param.copyValue(node.getInput()), node.getType());
             }
 
+            public Value visit(Copier param, BitCastLiteral node) {
+                return node;
+            }
+
             public Value visit(final Copier param, final BitReverse node) {
                 return param.getBlockBuilder().bitReverse(param.copyValue(node.getInput()));
             }
@@ -464,6 +472,10 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final BooleanLiteral node) {
+                return node;
+            }
+
+            public Value visit(final Copier param, final ByteArrayLiteral node) {
                 return node;
             }
 
@@ -542,6 +554,14 @@ public interface Node {
                 return param.getBlockBuilder().currentThread();
             }
 
+            public ValueHandle visit(Copier param, DataDeclarationHandle node) {
+                return node;
+            }
+
+            public ValueHandle visit(Copier param, DataHandle node) {
+                return node;
+            }
+
             public Value visit(final Copier param, final Div node) {
                 return param.getBlockBuilder().divide(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
@@ -552,6 +572,10 @@ public interface Node {
 
             public ValueHandle visit(Copier param, ElementOf node) {
                 return param.getBlockBuilder().elementOf(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getIndex()));
+            }
+
+            public Value visit(Copier param, ElementOfLiteral node) {
+                return node;
             }
 
             public ValueHandle visit(Copier param, ExactMethodElementHandle node) {
@@ -847,6 +871,10 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final TypeLiteral node) {
+                return node;
+            }
+
+            public Value visit(Copier param, ValueConvertLiteral node) {
                 return node;
             }
 
