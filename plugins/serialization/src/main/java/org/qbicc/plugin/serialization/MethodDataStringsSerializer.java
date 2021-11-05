@@ -43,7 +43,7 @@ public final class MethodDataStringsSerializer extends DelegatingBasicBlockBuild
         }
 
         String fileName = element.getSourceFileName();
-        String className = element.getEnclosingType().getInternalName();
+        String className = element.getEnclosingType().getInternalName().replace('/', '.');
         String methodDesc = element.getDescriptor().toString();
 
         if (fileName != null) {
