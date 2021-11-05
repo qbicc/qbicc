@@ -11,7 +11,7 @@ final class NamedLocalValueOf extends AbstractValue {
     NamedLocalValueOf(AbstractInstruction instruction, final String name) {
         super();
         this.instruction = instruction;
-        this.name = name;
+        this.name = LLVM.needsQuotes(name) ? LLVM.quoteString(name) : name;;
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
