@@ -248,17 +248,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value populationCount(Value v);
 
-    Value arrayLength(ValueHandle arrayHandle);
-
-    // typed
-
-    /**
-     * Get the type ID of the given reference value.
-     *
-     * @param valueHandle the value, whose type must be a {@link ReferenceType}
-     * @return the type ID, whose type must be a {@link TypeType}
-     */
-    Value typeIdOf(ValueHandle valueHandle);
+    ValueHandle lengthOf(ValueHandle arrayHandle);
 
     /**
      * Get the {@link Class} object for the given type ID value, whose type must be a {@link TypeType} with

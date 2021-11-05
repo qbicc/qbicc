@@ -15,7 +15,6 @@ import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.And;
-import org.qbicc.graph.ArrayLength;
 import org.qbicc.graph.AsmHandle;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BitCast;
@@ -124,7 +123,6 @@ import org.qbicc.graph.TailInvoke;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Throw;
 import org.qbicc.graph.Truncate;
-import org.qbicc.graph.TypeIdOf;
 import org.qbicc.graph.UnaryValue;
 import org.qbicc.graph.Unreachable;
 import org.qbicc.graph.UnsafeHandle;
@@ -791,12 +789,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return node(param, "&", node);
     }
 
-    public String visit(final Appendable param, final ArrayLength node) {
-        String name = node(param, "array length", node);
-        addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
-        return name;
-    }
-
     public String visit(final Appendable param, final BitCast node) {
         return node(param, "bit cast", node);
     }
@@ -1253,17 +1245,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final Truncate node) {
         return node(param, "trunc", node);
-    }
-
-    public String visit(final Appendable param, final TypeIdOf node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "circle");
-        attr(param, "label", "type of");
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
-        return name;
     }
 
     public String visit(final Appendable param, final TypeLiteral node) {

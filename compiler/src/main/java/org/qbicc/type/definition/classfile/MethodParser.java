@@ -1699,7 +1699,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         break;
                     }
                     case OP_ARRAYLENGTH:
-                        push1(gf.arrayLength(gf.referenceHandle(pop1())));
+                        push1(gf.load(gf.lengthOf(gf.referenceHandle(pop1())), MemoryAtomicityMode.UNORDERED));
                         break;
                     case OP_ATHROW:
                         gf.throw_(pop1());

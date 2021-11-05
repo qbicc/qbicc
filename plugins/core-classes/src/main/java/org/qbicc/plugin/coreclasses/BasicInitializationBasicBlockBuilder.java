@@ -29,6 +29,15 @@ public class BasicInitializationBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
+    public ValueHandle lengthOf(ValueHandle array) {
+        ValueType arrayType = array.getValueType();
+        if (arrayType instanceof ArrayObjectType) {
+            return instanceFieldOf(array, CoreClasses.get(ctxt).getArrayLengthField());
+        }
+        return super.lengthOf(array);
+    }
+
+    @Override
     public Value new_(ClassObjectType type) {
         Value allocated = super.new_(type);
         ValueType allocatedType = allocated.getType();

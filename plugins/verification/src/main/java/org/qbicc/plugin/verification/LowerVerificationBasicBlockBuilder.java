@@ -77,11 +77,6 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
         return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(arrayType.getReference());
     }
 
-    public Value typeIdOf(ValueHandle valueHandle) {
-        invalidNode("typeIdOf");
-        return ctxt.getLiteralFactory().literalOf(0);
-    }
-
     private void invalidNode(String name) {
         ctxt.warning(getLocation(), "Invalid node encountered (cannot directly lower %s)", name);
     }

@@ -447,11 +447,6 @@ public interface Node {
                 return param.getBlockBuilder().and(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
-            public Value visit(final Copier param, final ArrayLength node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().arrayLength(param.copyValueHandle(node.getInstance()));
-            }
-
             public Value visit(final Copier param, final ArrayLiteral node) {
                 return node;
             }
@@ -849,10 +844,6 @@ public interface Node {
 
             public Value visit(final Copier param, final Truncate node) {
                 return param.getBlockBuilder().truncate(param.copyValue(node.getInput()), node.getType());
-            }
-
-            public Value visit(final Copier param, final TypeIdOf node) {
-                return param.getBlockBuilder().typeIdOf(param.copyValueHandle(node.getValueHandle()));
             }
 
             public Value visit(final Copier param, final TypeLiteral node) {

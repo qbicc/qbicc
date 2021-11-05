@@ -13,7 +13,6 @@ import org.qbicc.graph.Action;
 import org.qbicc.graph.ActionVisitor;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.And;
-import org.qbicc.graph.ArrayLength;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BinaryValue;
 import org.qbicc.graph.BitCast;
@@ -1439,18 +1438,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     // Other
-
-    @Override
-    public Object visit(VmThreadImpl param, ArrayLength node) {
-        VmArrayImpl object;
-        try {
-            object = (VmArrayImpl) getObject(node.getInstance());
-        } catch (ClassCastException e) {
-            // for breakpoints
-            throw e;
-        }
-        return Integer.valueOf(object.getLength());
-    }
 
     @Override
     public Void visit(VmThreadImpl thread, ClassInitCheck node) {

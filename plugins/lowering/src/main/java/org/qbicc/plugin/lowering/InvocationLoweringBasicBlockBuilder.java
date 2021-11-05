@@ -25,6 +25,7 @@ import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.object.Function;
 import org.qbicc.object.Section;
 import org.qbicc.object.ThreadLocalMode;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.dispatch.DispatchTables;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.type.PointerType;
@@ -149,7 +150,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             section.declareData(null, vtables.getName(), vtables.getType());
         }
         int index = dt.getVTableIndex(target);
-        Value typeId = fb.typeIdOf(fb.referenceHandle(node.getInstance()));
+        Value typeId = fb.load(fb.instanceFieldOf(fb.referenceHandle(node.getInstance()), CoreClasses.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
         Value vtable = fb.load(elementOf(globalVariable(dt.getVTablesGlobal()), typeId), MemoryAtomicityMode.UNORDERED);
         Value ptr = fb.load(memberOf(pointerHandle(bitCast(vtable, info.getType().getPointer())), info.getType().getMember(index)), MemoryAtomicityMode.UNORDERED);
         return pointerHandle(ptr);
@@ -177,7 +178,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         }
 
         // Use the receiver's typeId to get the itable dictionary for its class
-        Value typeId = fb.typeIdOf(fb.referenceHandle(node.getInstance()));
+        Value typeId = fb.load(fb.instanceFieldOf(fb.referenceHandle(node.getInstance()), CoreClasses.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
         Value itableDict = fb.load(elementOf(globalVariable(rootITables), typeId), MemoryAtomicityMode.UNORDERED);
         ValueHandle zeroElementHandle = fb.elementOf(fb.pointerHandle(itableDict), ctxt.getLiteralFactory().literalOf(0));
 

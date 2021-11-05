@@ -78,12 +78,6 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public Value typeIdOf(ValueHandle handle) {
-        check(handle);
-        return super.typeIdOf(handle);
-    }
-
-    @Override
     public Value checkcast(Value value, Value toType, Value toDimensions, CheckCast.CastType kind, ObjectType expectedType) {
         ValueType rawValueType = value.getType();
         if (rawValueType instanceof ReferenceType) {
@@ -104,9 +98,9 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public Value arrayLength(ValueHandle handle) {
+    public ValueHandle lengthOf(ValueHandle handle) {
         check(handle);
-        return super.arrayLength(handle);
+        return super.lengthOf(handle);
     }
 
     @Override
@@ -393,7 +387,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         if_(isLt(index, zero), throwIt, notNegative);
         try {
             begin(notNegative);
-            final Value length = arrayLength(array);
+            final Value length = load(getFirstBuilder().lengthOf(array), MemoryAtomicityMode.UNORDERED);
             if_(isGe(index, length), throwIt, goAhead);
         } catch (BlockEarlyTermination ignored) {
             // continue

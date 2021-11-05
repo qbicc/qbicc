@@ -284,8 +284,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().select(condition, trueValue, falseValue);
     }
 
-    public Value arrayLength(final ValueHandle arrayHandle) {
-        return getDelegate().arrayLength(arrayHandle);
+    public ValueHandle lengthOf(final ValueHandle arrayHandle) {
+        return getDelegate().lengthOf(arrayHandle);
     }
 
     public Value new_(final ClassObjectType type) {
@@ -594,10 +594,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Node nop() {
         return getDelegate().nop();
-    }
-
-    public Value typeIdOf(final ValueHandle valueHandle) {
-        return getDelegate().typeIdOf(valueHandle);
     }
 
     public Value classOf(final Value typeId, final Value dimensions) {

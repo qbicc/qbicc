@@ -40,10 +40,6 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, ArrayLength node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, ArrayLiteral node) {
         return visitUnknown(param, node);
     }
@@ -360,10 +356,6 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, TypeIdOf node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, TypeLiteral node) {
         return visitUnknown(param, node);
     }
@@ -404,10 +396,6 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, And node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, ArrayLength node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -716,10 +704,6 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, Truncate node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, TypeIdOf node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

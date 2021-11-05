@@ -1111,7 +1111,7 @@ public final class CoreIntrinsics {
         MethodDescriptor objArrayTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objArrayDesc));
 
         StaticIntrinsic typeOf = (builder, target, arguments) ->
-            builder.typeIdOf(builder.referenceHandle(arguments.get(0)));
+            builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), CoreClasses.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
 
         intrinsics.registerIntrinsic(cNativeDesc, "type_id_of", objTypeIdDesc, typeOf);
 
@@ -1393,7 +1393,7 @@ public final class CoreIntrinsics {
         MethodDescriptor casDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, Collections.nCopies(3, BaseTypeDescriptor.J));
 
         StaticIntrinsic typeOf = (builder, target, arguments) ->
-            builder.typeIdOf(builder.referenceHandle(arguments.get(0)));
+            builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "type_id_of", objTypeIdDesc, typeOf);
 
         FieldElement elementTypeField = coreClasses.getRefArrayElementTypeIdField();
