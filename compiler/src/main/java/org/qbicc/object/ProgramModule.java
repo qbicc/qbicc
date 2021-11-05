@@ -35,7 +35,7 @@ public final class ProgramModule {
     }
 
     public Section getOrAddSection(String name) {
-        return sections.computeIfAbsent(name, n -> new Section(n, literalFactory.literalOfSymbol(name, typeSystem.getVoidType().getPointer()), this));
+        return sections.computeIfAbsent(name, n -> new Section(n, typeSystem.getVoidType(), this));
     }
 
     public Iterable<Section> sections() {

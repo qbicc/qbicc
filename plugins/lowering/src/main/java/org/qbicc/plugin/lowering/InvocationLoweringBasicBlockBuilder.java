@@ -14,21 +14,20 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.InterfaceMethodElementHandle;
-import org.qbicc.graph.PhiValue;
-import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
-import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.graph.VirtualMethodElementHandle;
+import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
 import org.qbicc.object.Section;
 import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.dispatch.DispatchTables;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
-import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FunctionElement;
@@ -51,11 +50,10 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     public Value currentThread() {
         ReferenceType type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread").load().getClassType().getReference();
         if (originalElement instanceof FunctionElement) {
-            SymbolLiteral sym = ctxt.getCurrentThreadLocalSymbolLiteral();
             Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
-            section.declareData(null, sym.getName(), ((PointerType)sym.getType()).getPointeeType()).setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
-            // todo: replace symbol literal with global variable - or static field perhaps
-            Value ptrVal = load(pointerHandle(sym), MemoryAtomicityMode.NONE);
+            DataDeclaration decl = section.declareData(null, "_qbicc_bound_thread", type);
+            decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
+            Value ptrVal = load(pointerHandle(ctxt.getLiteralFactory().literalOf(decl)), MemoryAtomicityMode.NONE);
             return valueConvert(ptrVal, type);
         } else {
             return parameter(type, "thr", 0);

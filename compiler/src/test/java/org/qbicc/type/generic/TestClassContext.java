@@ -23,7 +23,6 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.machine.arch.Platform;
@@ -43,6 +42,7 @@ import org.qbicc.type.definition.NativeMethodConfigurator;
 import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.MemberElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -147,16 +147,16 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
+        public FunctionElement establishExactFunction(ExecutableElement element, FunctionElement function) {
+            return null;
+        }
+
         public FunctionType getFunctionTypeForElement(ExecutableElement element) {
             return null;
         }
 
         public FunctionDeclaration declareForeignFunction(ExecutableElement target, Function function, ExecutableElement current) {
             return null;  // TODO: Customise this generated block
-        }
-
-        public SymbolLiteral getCurrentThreadLocalSymbolLiteral() {
-            return null;
         }
 
         public FieldElement getExceptionField() {

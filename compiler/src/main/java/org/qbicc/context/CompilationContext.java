@@ -12,7 +12,6 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.machine.arch.Platform;
@@ -26,6 +25,7 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.NativeMethodConfigurator;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.MemberElement;
 import org.qbicc.type.definition.element.MethodElement;
 
@@ -99,11 +99,11 @@ public interface CompilationContext extends DiagnosticContext {
 
     Function getExactFunctionIfExists(ExecutableElement element);
 
+    FunctionElement establishExactFunction(ExecutableElement element, FunctionElement function);
+
     FunctionType getFunctionTypeForElement(ExecutableElement element);
 
     FunctionDeclaration declareForeignFunction(ExecutableElement target, Function function, ExecutableElement current);
-
-    SymbolLiteral getCurrentThreadLocalSymbolLiteral();
 
     FieldElement getExceptionField();
 

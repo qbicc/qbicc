@@ -15,8 +15,11 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
+import org.qbicc.object.Data;
+import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
+import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
@@ -99,9 +102,8 @@ public class DispatchTables {
         }
         CompoundType vtableType = ts.getCompoundType(CompoundType.Tag.STRUCT, vtableName, vtable.length * ts.getPointerSize(),
             ts.getPointerAlignment(), () -> List.of(functions));
-        SymbolLiteral vtableSymbol = ctxt.getLiteralFactory().literalOfSymbol(vtableName, vtableType.getPointer());
 
-        vtables.put(cls,new VTableInfo(vtable, vtableType, vtableSymbol));
+        vtables.put(cls,new VTableInfo(vtable, vtableType, vtableName));
     }
 
     void buildFilteredITableForInterface(LoadedTypeDefinition cls) {
@@ -175,8 +177,8 @@ public class DispatchTables {
             if (vtable[i].isAbstract() || vtable[i].hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
                 MethodElement stub = ctxt.getVMHelperMethod(vtable[i].isAbstract() ? "raiseAbstractMethodError" : "raiseUnsatisfiedLinkError");
                 Function stubImpl = ctxt.getExactFunction(stub);
-                SymbolLiteral literal = ctxt.getLiteralFactory().literalOfSymbol(stubImpl.getLiteral().getName(), stubImpl.getType().getPointer());
-                section.declareFunction(stub, stubImpl.getName(), stubImpl.getType());
+                FunctionDeclaration decl = section.declareFunction(stub, stubImpl.getName(), stubImpl.getValueType());
+                ProgramObjectLiteral literal = ctxt.getLiteralFactory().literalOf(decl);
                 valueMap.put(info.getType().getMember(i), ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getFunctionTypeForElement(vtable[i]).getPointer()));
             } else {
                 Function impl = ctxt.getExactFunctionIfExists(vtable[i]);
@@ -187,11 +189,11 @@ public class DispatchTables {
                 if (!vtable[i].getEnclosingType().load().equals(cls)) {
                     section.declareFunction(vtable[i], impl.getName(), funType);
                 }
-                valueMap.put(info.getType().getMember(i), impl.getLiteral());
+                valueMap.put(info.getType().getMember(i), ctxt.getLiteralFactory().literalOf(impl));
             }
         }
         Literal vtableLiteral = ctxt.getLiteralFactory().literalOf(info.getType(), valueMap);
-        section.addData(null, info.getSymbol().getName(), vtableLiteral).setLinkage(Linkage.EXTERNAL);
+        section.addData(null, info.getName(), vtableLiteral).setLinkage(Linkage.EXTERNAL);
         emittedVTableCount += 1;
         emittedVTableBytes += info.getType().getMemberCount() * ctxt.getTypeSystem().getPointerSize();
     }
@@ -205,12 +207,11 @@ public class DispatchTables {
         for (Map.Entry<LoadedTypeDefinition, VTableInfo> e: vtables.entrySet()) {
             LoadedTypeDefinition cls = e.getKey();
             if (!cls.isAbstract()) {
-                if (!cls.equals(jlo)) {
-                    section.declareData(null, e.getValue().getSymbol().getName(), e.getValue().getType());
-                }
+                DataDeclaration decl = section.declareData(null, e.getValue().getName(), e.getValue().getType());
+                ProgramObjectLiteral symbol = ctxt.getLiteralFactory().literalOf(decl);
                 int typeId = cls.getTypeId();
                 Assert.assertTrue(vtableLiterals[typeId].equals(zeroLiteral));
-                vtableLiterals[typeId] = ctxt.getLiteralFactory().bitcastLiteral(e.getValue().getSymbol(), (WordType) vtablesGlobalType.getElementType());
+                vtableLiterals[typeId] = ctxt.getLiteralFactory().bitcastLiteral(symbol, (WordType) vtablesGlobalType.getElementType());
             }
         }
         Literal vtablesGlobalValue = ctxt.getLiteralFactory().literalOf(vtablesGlobalType, List.of(vtableLiterals));
@@ -252,14 +253,12 @@ public class DispatchTables {
                 if (methImpl == null) {
                     MethodElement icceStub = ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError");
                     Function icceImpl = ctxt.getExactFunction(icceStub);
-                    SymbolLiteral iceeLiteral = lf.literalOfSymbol(icceImpl.getLiteral().getName(), icceImpl.getLiteral().getType().getPointer());
-                    cSection.declareFunction(icceStub, icceImpl.getName(), icceImpl.getType());
+                    ProgramObjectLiteral iceeLiteral = lf.literalOf(cSection.declareFunction(icceImpl));
                     valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(iceeLiteral, implType.getPointer()));
                 } else if (methImpl.isAbstract()) {
                     MethodElement ameStub = ctxt.getVMHelperMethod("raiseAbstractMethodError");
                     Function ameImpl = ctxt.getExactFunction(ameStub);
-                    SymbolLiteral ameLiteral = lf.literalOfSymbol(ameImpl.getLiteral().getName(), ameImpl.getLiteral().getType().getPointer());
-                    cSection.declareFunction(ameStub, ameImpl.getName(), ameImpl.getType());
+                    ProgramObjectLiteral ameLiteral = lf.literalOf(cSection.declareFunction(ameImpl));
                     valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(ameLiteral, implType.getPointer()));
                 } else {
                     Function impl = methImpl.isNative() ? null : ctxt.getExactFunctionIfExists(methImpl);
@@ -269,23 +268,23 @@ public class DispatchTables {
                         } else {
                             MethodElement uleStub = ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError");
                             Function uleImpl = ctxt.getExactFunction(uleStub);
-                            SymbolLiteral uleLiteral = lf.literalOfSymbol(uleImpl.getLiteral().getName(), uleImpl.getLiteral().getType().getPointer());
-                            cSection.declareFunction(uleStub, uleImpl.getName(), uleImpl.getType());
+                            ProgramObjectLiteral uleLiteral = lf.literalOf(cSection.declareFunction(uleImpl));
                             valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(uleLiteral, implType.getPointer()));
                         }
                     } else {
                         if (!methImpl.getEnclosingType().load().equals(cls)) {
                             cSection.declareFunction(methImpl, impl.getName(), implType);
                         }
-                        valueMap.put(itableInfo.getType().getMember(i), impl.getLiteral());
+                        valueMap.put(itableInfo.getType().getMember(i), ctxt.getLiteralFactory().literalOf(impl));
                     }
                 }
             }
 
             String functionsName = "qbicc_itable_funcs_for_"+currentInterface.getInterfaceType().toFriendlyString();
-            cSection.addData(null, functionsName, lf.literalOf(itableInfo.getType(), valueMap)).setLinkage(Linkage.PRIVATE);
+            Data data = cSection.addData(null, functionsName, lf.literalOf(itableInfo.getType(), valueMap));
+            data.setLinkage(Linkage.PRIVATE);
             itableLiterals.add(lf.literalOf(itableDictType, Map.of(itableDictType.getMember("typeId"), lf.literalOf(currentInterface.getTypeId()),
-                itableDictType.getMember("itable"), lf.bitcastLiteral(lf.literalOfSymbol(functionsName, itableInfo.getType().getPointer()), ts.getVoidType().getPointer()))));
+                itableDictType.getMember("itable"), lf.bitcastLiteral(lf.literalOf(data), ts.getVoidType().getPointer()))));
             emittedClassITableCount += 1;
             emittedClassITableBytes += itable.length * ctxt.getTypeSystem().getPointerSize();
         }
@@ -311,9 +310,10 @@ public class DispatchTables {
             int typeId = cls.getTypeId();
             Assert.assertTrue(itableLiterals[typeId].equals(zeroLiteral));
             String dictName = "qbicc_itable_dictionary_for_"+cls.getInternalName().replace('/', '.');
-            SymbolLiteral symLit = lf.literalOfSymbol(dictName, ctxt.getTypeSystem().getArrayType(itableDictType, 0));
+            ArrayType type = ctxt.getTypeSystem().getArrayType(itableDictType, 0);
+            DataDeclaration decl = section.declareData(null, dictName, type);
+            ProgramObjectLiteral symLit = lf.literalOf(decl);
             itableLiterals[typeId] = symLit;
-            section.declareData(null, symLit.getName(), symLit.getType());
         }
 
         Literal itablesGlobalValue = ctxt.getLiteralFactory().literalOf(itablesGlobalType, List.of(itableLiterals));
@@ -368,16 +368,16 @@ public class DispatchTables {
     public static final class VTableInfo {
         private final MethodElement[] vtable;
         private final CompoundType type;
-        private final SymbolLiteral symbol;
+        private final String name;
 
-        VTableInfo(MethodElement[] vtable, CompoundType type, SymbolLiteral symbol) {
+        VTableInfo(MethodElement[] vtable, CompoundType type, String name) {
             this.vtable = vtable;
             this.type = type;
-            this.symbol = symbol;
+            this.name = name;
         }
 
         public MethodElement[] getVtable() { return vtable; }
-        public SymbolLiteral getSymbol() { return symbol; }
+        public String getName() { return name; }
         public CompoundType getType() { return  type; }
     }
 

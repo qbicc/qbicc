@@ -1,6 +1,5 @@
 package org.qbicc.object;
 
-import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -17,8 +16,8 @@ public final class Function extends SectionObject {
     private volatile MethodBody body;
     private volatile FunctionDeclaration declaration;
 
-    Function(final ExecutableElement originalElement, final String name, final SymbolLiteral literal, int fnFlags) {
-        super(originalElement, name, literal);
+    Function(final ExecutableElement originalElement, final String name, final FunctionType functionType, int fnFlags) {
+        super(originalElement, name, functionType);
         this.fnFlags = fnFlags;
     }
 
@@ -26,8 +25,8 @@ public final class Function extends SectionObject {
         return (ExecutableElement) super.getOriginalElement();
     }
 
-    public FunctionType getType() {
-        return (FunctionType) super.getType();
+    public FunctionType getValueType() {
+        return (FunctionType) super.getValueType();
     }
 
     public MethodBody getBody() {
@@ -56,11 +55,15 @@ public final class Function extends SectionObject {
             synchronized (this) {
                 declaration = this.declaration;
                 if (declaration == null) {
-                    declaration = this.declaration = new FunctionDeclaration(getOriginalElement(), name, literal);
+                    declaration = this.declaration = new FunctionDeclaration(this);
                 }
             }
         }
         return declaration;
+    }
+
+    void initDeclaration(FunctionDeclaration decl) {
+        declaration = decl;
     }
 
     public static int getFunctionFlags(ExecutableElement element) {

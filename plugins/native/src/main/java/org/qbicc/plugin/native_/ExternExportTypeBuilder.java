@@ -9,6 +9,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Driver;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.object.Data;
+import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
 import org.qbicc.object.ThreadLocalMode;
@@ -96,17 +97,23 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                             if (! resolved.isStatic()) {
                                 ctxt.error(resolved, "External (imported) fields must be `static`");
                             }
-                            // register as an external data object
-                            addExtern(nativeInfo, resolved, name);
+                            // declare it
+                            Section section = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+                            ValueType fieldType = resolved.getType();
+                            DataDeclaration decl = section.declareData(resolved, name, fieldType);
+                            if (resolved.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {
+                                decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
+                            }
+                            decl.setLinkage(Linkage.COMMON);
+                            // and register as an external data object
+                            addExtern(nativeInfo, resolved, decl);
                             // all done
                             return resolved;
                         } else if (desc.getClassName().equals(Native.ANN_EXPORT)) {
                             // immediately generate the call-in stub
                             AnnotationValue nameVal = annotation.getValue("withName");
                             String name = nameVal == null ? resolved.getName() : ((StringAnnotationValue) nameVal).getString();
-                            // register it
-                            addExport(nativeInfo, resolved, name);
-                            // and define it
+                            // define it
                             Section section = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
                             ValueType fieldType = resolved.getType();
                             Data data = section.addData(resolved, name, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldType));
@@ -114,6 +121,8 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                                 data.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
                             }
                             data.setLinkage(Linkage.COMMON);
+                            // and register it
+                            addExport(nativeInfo, resolved, data);
                             // all done
                             return resolved;
                         }
@@ -122,21 +131,21 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 return resolved;
             }
 
-            private void addExtern(final NativeInfo nativeInfo, final FieldElement resolved, final String name) {
+            private void addExtern(final NativeInfo nativeInfo, final FieldElement resolved, final DataDeclaration decl) {
                 ValueType fieldType = resolved.getType();
                 nativeInfo.registerFieldInfo(
                     resolved.getEnclosingType().getDescriptor(),
                     resolved.getName(),
-                    new NativeDataInfo(resolved, false, fieldType, ctxt.getLiteralFactory().literalOfSymbol(name, fieldType.getPointer()))
+                    new NativeDataInfo(resolved, fieldType, ctxt.getLiteralFactory().literalOf(decl))
                 );
             }
 
-            private void addExport(final NativeInfo nativeInfo, final FieldElement resolved, final String name) {
+            private void addExport(final NativeInfo nativeInfo, final FieldElement resolved, final Data data) {
                 ValueType fieldType = resolved.getType();
                 nativeInfo.registerFieldInfo(
                     resolved.getEnclosingType().getDescriptor(),
                     resolved.getName(),
-                    new NativeDataInfo(resolved, true, fieldType, ctxt.getLiteralFactory().literalOfSymbol(name, fieldType.getPointer()))
+                    new NativeDataInfo(resolved, fieldType, ctxt.getLiteralFactory().literalOf(data))
                 );
             }
         }, index);
@@ -237,6 +246,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                     origMethod.getDescriptor(),
                     new ExportedFunctionInfo(function)
                 );
+                ctxt.establishExactFunction(origMethod, function);
                 ctxt.registerEntryPoint(function);
             }
 

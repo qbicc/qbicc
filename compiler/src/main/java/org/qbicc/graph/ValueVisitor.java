@@ -13,8 +13,8 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
-import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.graph.literal.ValueConvertLiteral;
@@ -312,6 +312,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, ProgramObjectLiteral node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, ReferenceTo node) {
         return visitUnknown(param, node);
     }
@@ -341,10 +345,6 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, StringLiteral node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, SymbolLiteral node) {
         return visitUnknown(param, node);
     }
 
@@ -667,6 +667,10 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
+        default R visit(T param, ProgramObjectLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
         default R visit(T param, ReferenceTo node) {
             return getDelegateValueVisitor().visit(param, node);
         }
@@ -696,10 +700,6 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, StringLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, SymbolLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

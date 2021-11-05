@@ -11,9 +11,10 @@ import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
-import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.object.Data;
+import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
 import org.qbicc.plugin.constants.Constants;
@@ -106,9 +107,10 @@ public class Lowering {
             }
         }
         if (initialValue instanceof ObjectLiteral) {
-            SymbolLiteral objLit = BuildtimeHeap.get(ctxt).serializeVmObject(((ObjectLiteral) initialValue).getValue());
-            section.declareData(null, objLit.getName(), objLit.getType()).setAddrspace(1);
-            SymbolLiteral refToLiteral = ctxt.getLiteralFactory().literalOfSymbol(objLit.getName(), objLit.getType().getPointer().asCollected());
+            ProgramObjectLiteral objLit = BuildtimeHeap.get(ctxt).serializeVmObject(((ObjectLiteral) initialValue).getValue());
+            DataDeclaration decl = section.declareData(objLit.getProgramObject());
+            decl.setAddrspace(1);
+            ProgramObjectLiteral refToLiteral = ctxt.getLiteralFactory().literalOf(decl);
             initialValue = ctxt.getLiteralFactory().bitcastLiteral(refToLiteral, ((ObjectLiteral) initialValue).getType());
         }
 

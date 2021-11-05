@@ -1,17 +1,17 @@
 package org.qbicc.plugin.methodinfo;
 
-import org.qbicc.graph.literal.SymbolLiteral;
-
 import java.util.Objects;
 
+import org.qbicc.graph.literal.ProgramObjectLiteral;
+
 final class MethodInfo {
-    private SymbolLiteral fileNameSymbolLiteral;
-    private SymbolLiteral methodNameSymbolLiteral;
-    private SymbolLiteral methodDescSymbolLiteral;
+    private ProgramObjectLiteral fileNameSymbolLiteral;
+    private ProgramObjectLiteral methodNameSymbolLiteral;
+    private ProgramObjectLiteral methodDescSymbolLiteral;
     private int typeId;
     private int modifiers;
 
-    MethodInfo(SymbolLiteral fileSymbolLiteral, SymbolLiteral methodSymbolLiteral, SymbolLiteral methodDescSymbolLiteral, int typeId, int modifiers) {
+    MethodInfo(ProgramObjectLiteral fileSymbolLiteral, ProgramObjectLiteral methodSymbolLiteral, ProgramObjectLiteral methodDescSymbolLiteral, int typeId, int modifiers) {
         this.fileNameSymbolLiteral = fileSymbolLiteral;
         this.methodNameSymbolLiteral = methodSymbolLiteral;
         this.methodDescSymbolLiteral = methodDescSymbolLiteral;
@@ -30,15 +30,15 @@ final class MethodInfo {
             && modifiers == that.modifiers;
     }
 
-    SymbolLiteral getFileNameSymbolLiteral() {
+    ProgramObjectLiteral getFileNameSymbolLiteral() {
         return fileNameSymbolLiteral;
     }
 
-    SymbolLiteral getMethodNameSymbolLiteral() {
+    ProgramObjectLiteral getMethodNameSymbolLiteral() {
         return methodNameSymbolLiteral;
     }
 
-    SymbolLiteral getMethodDescSymbolLiteral() {
+    ProgramObjectLiteral getMethodDescSymbolLiteral() {
         return methodDescSymbolLiteral;
     }
 

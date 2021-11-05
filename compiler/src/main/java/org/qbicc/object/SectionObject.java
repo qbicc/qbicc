@@ -1,6 +1,6 @@
 package org.qbicc.object;
 
-import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.Element;
 
 /**
@@ -9,9 +9,14 @@ import org.qbicc.type.definition.element.Element;
 public abstract class SectionObject extends ProgramObject {
     final Element originalElement;
 
-    SectionObject(final Element originalElement, final String name, final SymbolLiteral literal) {
-        super(name, literal);
+    SectionObject(final Element originalElement, final String name, final ValueType valueType) {
+        super(name, valueType);
         this.originalElement = originalElement;
+    }
+
+    SectionObject(final SectionObject original) {
+        super(original);
+        this.originalElement = original.getOriginalElement();
     }
 
     /**
@@ -21,6 +26,8 @@ public abstract class SectionObject extends ProgramObject {
     public Element getOriginalElement() {
         return originalElement;
     }
+
+    public abstract SectionObject getDeclaration();
 
     public String toString() {
         return getName();

@@ -29,7 +29,6 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.machine.arch.Platform;
@@ -74,11 +73,10 @@ final class CompilationContextImpl implements CompilationContext {
     final ClassContext bootstrapClassContext;
     private final ConcurrentMap<DefinedTypeDefinition, ProgramModule> programModules = new ConcurrentHashMap<>();
     private final ConcurrentMap<ExecutableElement, org.qbicc.object.Function> exactFunctions = new ConcurrentHashMap<>();
-    private final ConcurrentMap<MethodElement, org.qbicc.object.Function> virtualFunctions = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ExecutableElement, FunctionElement> establishedFunctions = new ConcurrentHashMap<>();
     private final Path outputDir;
     final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories;
     private final AtomicReference<FieldElement> exceptionFieldHolder = new AtomicReference<>();
-    private final SymbolLiteral qbiccBoundThread;
     private volatile DefinedTypeDefinition defaultTypeDefinition;
     private final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories;
 
@@ -98,7 +96,6 @@ final class CompilationContextImpl implements CompilationContext {
         bootstrapClassContext = new ClassContextImpl(this, null, bootstrapFinder);
         this.typeBuilderFactories = typeBuilderFactories;
         this.nativeMethodConfigurator = nativeMethodConfigurator;
-        qbiccBoundThread = getLiteralFactory().literalOfSymbol("_qbicc_bound_thread", getTypeSystem().getVoidType().getPointer().asCollected().getPointer());
         // last!
         this.vm = vmFactory.apply(this);
     }
@@ -396,6 +393,10 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     public org.qbicc.object.Function getExactFunction(final ExecutableElement element) {
+        FunctionElement established = establishedFunctions.get(element);
+        if (established != null) {
+            return getExactFunction(established);
+        }
         // optimistic
         org.qbicc.object.Function function = getExactFunctionIfExists(element);
         if (function != null) {
@@ -407,8 +408,8 @@ final class CompilationContextImpl implements CompilationContext {
         return exactFunctions.computeIfAbsent(element, e -> {
             Section implicit = getImplicitSection(element);
             FunctionType elementType = element.getType();
-            if (element instanceof FunctionElement) {
-                return implicit.addFunction(element, ((FunctionElement) element).getName(), elementType);
+            if (element instanceof FunctionElement fe) {
+                return implicit.addFunction(element, fe.getName(), elementType);
             }
             FunctionType functionType = getFunctionTypeForElement(element);
             return implicit.addFunction(element, getExactNameForElement(element, elementType), functionType);
@@ -417,7 +418,22 @@ final class CompilationContextImpl implements CompilationContext {
 
     @Override
     public org.qbicc.object.Function getExactFunctionIfExists(final ExecutableElement element) {
+        FunctionElement established = establishedFunctions.get(element);
+        if (established != null) {
+            return getExactFunctionIfExists(established);
+        }
         return exactFunctions.get(element);
+    }
+
+    @Override
+    public FunctionElement establishExactFunction(ExecutableElement element, FunctionElement function) {
+        FunctionElement existing = establishedFunctions.putIfAbsent(element, function);
+        if (existing != null) {
+            throw new IllegalStateException(
+                String.format("Attempted to map a function that was already mapped: element %s cannot map to %s because it is mapped to %s already",
+                    element, function, existing));
+        }
+        return function;
     }
 
     public DefinedTypeDefinition getDefaultTypeDefinition() {
@@ -463,26 +479,7 @@ final class CompilationContextImpl implements CompilationContext {
         }
 
         return getImplicitSection(current)
-            .declareFunction(target, function.getName(), function.getType());
-    }
-
-    public org.qbicc.object.Function getVirtualFunction(final MethodElement element) {
-        // optimistic
-        org.qbicc.object.Function function = virtualFunctions.get(element);
-        if (function != null) {
-            return function;
-        }
-        // look up the thread ID literal - todo: lazy cache?
-        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").load().getClassType();
-        Section implicit = getImplicitSection(element);
-        return virtualFunctions.computeIfAbsent(element, e -> {
-            FunctionType type = getFunctionTypeForElement(element, threadType);
-            return implicit.addFunction(element, getVirtualNameForElement(element, type), type);
-        });
-    }
-
-    public SymbolLiteral getCurrentThreadLocalSymbolLiteral() {
-        return qbiccBoundThread;
+            .declareFunction(target, function.getName(), function.getValueType());
     }
 
     public FieldElement getExceptionField() {
@@ -536,23 +533,6 @@ final class CompilationContextImpl implements CompilationContext {
         }
         b.append(parameterCount);
         for (int i = 0; i < parameterCount; i ++) {
-            b.append('.');
-            type.getParameterType(i).toFriendlyString(b);
-        }
-        return b.toString();
-    }
-
-    private String getVirtualNameForElement(final MethodElement element, final FunctionType type) {
-        // todo: encode class loader ID
-        String internalDotName = element.getEnclosingType().getInternalName().replace('/', '.');
-        StringBuilder b = new StringBuilder();
-        int parameterCount = type.getParameterCount();
-        b.append("virtual.");
-        b.append(internalDotName).append('.');
-        b.append(element.getName()).append('.');
-        type.getReturnType().toFriendlyString(b).append('.');
-        b.append(parameterCount - 1);
-        for (int i = 1; i < parameterCount; i ++) {
             b.append('.');
             type.getParameterType(i).toFriendlyString(b);
         }

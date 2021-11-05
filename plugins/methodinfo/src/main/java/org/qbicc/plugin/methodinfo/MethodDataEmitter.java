@@ -7,17 +7,18 @@ import org.qbicc.driver.Driver;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.machine.llvm.stackmap.StackMap;
 import org.qbicc.machine.llvm.stackmap.StackMapVisitor;
 import org.qbicc.machine.object.ObjectFile;
 import org.qbicc.machine.object.ObjectFileProvider;
+import org.qbicc.object.Data;
+import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
 import org.qbicc.object.Section;
 import org.qbicc.plugin.linker.Linker;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
-import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
@@ -72,14 +73,14 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
 
         Vm vm = ctxt.getVm();
         BuildtimeHeap btHeap = BuildtimeHeap.get(ctxt);
-        SymbolLiteral fnLiteral = null;
+        ProgramObjectLiteral fnLiteral = null;
         if (fileName != null) {
             fnLiteral = btHeap.getSerializedVmObject(vm.intern(fileName));
             Assert.assertNotNull(fnLiteral);
         }
-        SymbolLiteral mnLiteral = btHeap.getSerializedVmObject(vm.intern(methodName));
+        ProgramObjectLiteral mnLiteral = btHeap.getSerializedVmObject(vm.intern(methodName));
         Assert.assertNotNull(mnLiteral);
-        SymbolLiteral mdLiteral = btHeap.getSerializedVmObject(vm.intern(methodDesc));
+        ProgramObjectLiteral mdLiteral = btHeap.getSerializedVmObject(vm.intern(methodDesc));
         Assert.assertNotNull(mdLiteral);
 
         return methodData.add(new MethodInfo(fnLiteral, mnLiteral, mdLiteral, typeId, element.getModifiers()));
@@ -148,13 +149,14 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         return methodData;
     }
 
-    private Literal castHeapSymbolTo(CompilationContext ctxt, SymbolLiteral literal, WordType toType) {
+    private Literal castHeapSymbolTo(CompilationContext ctxt, ProgramObjectLiteral literal, WordType toType) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         Section section = ctxt.getImplicitSection(ctxt.getDefaultTypeDefinition());
         Literal result;
         if (literal != null) {
-            section.declareData(null, literal.getName(), literal.getType()).setAddrspace(1);
-            SymbolLiteral refToString = ctxt.getLiteralFactory().literalOfSymbol(literal.getName(), literal.getType().getPointer().asCollected());
+            DataDeclaration decl = section.declareData(literal.getProgramObject());
+            decl.setAddrspace(1);
+            ProgramObjectLiteral refToString = ctxt.getLiteralFactory().literalOf(decl);
             result = ctxt.getLiteralFactory().bitcastLiteral(refToString, toType);
         } else {
             result = lf.zeroInitializerLiteralOfType(toType);
@@ -162,9 +164,9 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         return result;
     }
 
-    private void defineData(CompilationContext ctxt, String variableName, Literal value) {
+    private Data defineData(CompilationContext ctxt, String variableName, Literal value) {
         Section section = ctxt.getImplicitSection(ctxt.getDefaultTypeDefinition());
-        section.addData(null, variableName, value);
+        return section.addData(null, variableName, value);
     }
 
     Literal emitMethodInfoTable(CompilationContext ctxt, MethodInfo[] minfoList) {
@@ -195,9 +197,8 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         methodInfoTableCount += minfoLiterals.length;
         methodInfoTableSize += methodInfoTableCount * methodInfoType.getSize();
 
-        SymbolLiteral minfoTableLiteral = lf.literalOfSymbol("qbicc_method_info_table", ts.getArrayType(methodInfoType, minfoLiterals.length));
-        defineData(ctxt, minfoTableLiteral.getName(), lf.literalOf((ArrayType)minfoTableLiteral.getType(), List.of(minfoLiterals)));
-        return minfoTableLiteral;
+        Data data = defineData(ctxt, "qbicc_method_info_table", lf.literalOf(ts.getArrayType(methodInfoType, minfoLiterals.length), List.of(minfoLiterals)));
+        return lf.literalOf(data);
     }
 
     Literal emitSourceCodeInfoTable(CompilationContext ctxt, SourceCodeInfo[] scList) {
@@ -219,9 +220,8 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         sourceCodeInfoTableCount += scInfoLiterals.length;
         sourceCodeInfoTableSize += sourceCodeInfoTableCount * sourceCodeInfoType.getSize();
 
-        SymbolLiteral scInfoTableLiteral = lf.literalOfSymbol("qbicc_source_code_info_table", ts.getArrayType(sourceCodeInfoType, scInfoLiterals.length));
-        defineData(ctxt, scInfoTableLiteral.getName(), lf.literalOf((ArrayType)scInfoTableLiteral.getType(), List.of(scInfoLiterals)));
-        return scInfoTableLiteral;
+        Data data = defineData(ctxt, "qbicc_source_code_info_table", lf.literalOf(ts.getArrayType(sourceCodeInfoType, scInfoLiterals.length), List.of(scInfoLiterals)));
+        return lf.literalOf(data);
     }
 
     Literal emitSourceCodeIndexList(CompilationContext ctxt, InstructionMap[] imapList) {
@@ -236,9 +236,8 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         sourceCodeIndexListCount += scIndexLiterals.length;
         sourceCodeIndexListSize += sourceCodeIndexListCount * uint32Type.getSize();
 
-        SymbolLiteral scInfoIndexTableLiteral = lf.literalOfSymbol("qbicc_source_code_index_table", ts.getArrayType(uint32Type, scIndexLiterals.length));
-        defineData(ctxt, scInfoIndexTableLiteral.getName(), lf.literalOf((ArrayType)scInfoIndexTableLiteral.getType(), List.of(scIndexLiterals)));
-        return scInfoIndexTableLiteral;
+        Data data = defineData(ctxt, "qbicc_source_code_index_table", lf.literalOf(ts.getArrayType(uint32Type, scIndexLiterals.length), List.of(scIndexLiterals)));
+        return lf.literalOf(data);
     }
 
     Literal emitInstructionList(CompilationContext ctxt, InstructionMap[] imapList) {
@@ -251,25 +250,24 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
             .parallel()
             .mapToObj(i -> {
                 Function function = ctxt.getExactFunction(imapList[i].getFunction());
-                Literal functionCastLiteral = lf.bitcastLiteral(lf.literalOfSymbol(function.getName(), function.getType().getPointer()), ts.getUnsignedInteger8Type().getPointer());
+                Literal functionCastLiteral = lf.bitcastLiteral(lf.literalOf(function), ts.getUnsignedInteger8Type().getPointer());
                 Literal instructionAddrLiteral = lf.valueConvertLiteral(lf.elementOfLiteral(functionCastLiteral, lf.literalOf(imapList[i].getOffset())), ts.getUnsignedInteger64Type());
-                section.declareFunction(null, function.getName(), function.getType());
+                section.declareFunction(null, function.getName(), function.getValueType());
                 return instructionAddrLiteral;
             }).toArray(Literal[]::new);
 
         instructionListCount += instructionLiterals.length;
         instructionListSize += instructionListCount * uint64Type.getSize();
 
-        SymbolLiteral instructionTableLiteral = lf.literalOfSymbol("qbicc_instruction_table", ts.getArrayType(uint64Type, instructionLiterals.length));
-        defineData(ctxt, instructionTableLiteral.getName(), lf.literalOf((ArrayType)instructionTableLiteral.getType(), List.of(instructionLiterals)));
-        return instructionTableLiteral;
+        Data data = defineData(ctxt, "qbicc_instruction_table", lf.literalOf(ts.getArrayType(uint64Type, instructionLiterals.length), List.of(instructionLiterals)));
+        return lf.literalOf(data);
     }
 
     void emitGlobalMethodData(CompilationContext ctxt,
-                              SymbolLiteral minfoTable,
-                              SymbolLiteral scInfoTable,
-                              SymbolLiteral scIndexTable,
-                              SymbolLiteral instructionTable,
+                              ProgramObjectLiteral minfoTable,
+                              ProgramObjectLiteral scInfoTable,
+                              ProgramObjectLiteral scIndexTable,
+                              ProgramObjectLiteral instructionTable,
                               int instructionTableSize) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         TypeSystem ts = ctxt.getTypeSystem();
@@ -278,21 +276,17 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
         CompoundType.Member member;
 
-        SymbolLiteral pointerSymbol = lf.literalOfSymbol(minfoTable.getName(), minfoTable.getType().getPointer());
         member = mdhType.getMember("methodInfoTable");
-        valueMap.put(member, lf.bitcastLiteral(pointerSymbol, (WordType) member.getType()));
+        valueMap.put(member, lf.bitcastLiteral(minfoTable, (WordType) member.getType()));
 
-        pointerSymbol = lf.literalOfSymbol(scInfoTable.getName(), scInfoTable.getType().getPointer());
         member = mdhType.getMember("sourceCodeInfoTable");
-        valueMap.put(member, lf.bitcastLiteral(pointerSymbol, (WordType) member.getType()));
+        valueMap.put(member, lf.bitcastLiteral(scInfoTable, (WordType) member.getType()));
 
-        pointerSymbol = lf.literalOfSymbol(scIndexTable.getName(), scIndexTable.getType().getPointer());
         member = mdhType.getMember("sourceCodeIndexTable");
-        valueMap.put(member, lf.bitcastLiteral(pointerSymbol, (WordType) member.getType()));
+        valueMap.put(member, lf.bitcastLiteral(scIndexTable, (WordType) member.getType()));
 
-        pointerSymbol = lf.literalOfSymbol(instructionTable.getName(), instructionTable.getType().getPointer());
         member = mdhType.getMember("instructionTable");
-        valueMap.put(member, lf.bitcastLiteral(pointerSymbol, (WordType) member.getType()));
+        valueMap.put(member, lf.bitcastLiteral(instructionTable, (WordType) member.getType()));
 
         valueMap.put(mdhType.getMember("instructionTableSize"), lf.literalOf(instructionTableSize));
 
@@ -301,10 +295,10 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
     }
 
     public void emitMethodData(CompilationContext ctxt, MethodData methodData) {
-        SymbolLiteral minfoTableSymbol = (SymbolLiteral) emitMethodInfoTable(ctxt, methodData.getMethodInfoTable());
-        SymbolLiteral scInfoTableSymbol = (SymbolLiteral) emitSourceCodeInfoTable(ctxt, methodData.getSourceCodeInfoTable());
-        SymbolLiteral scIndexTableSymbol = (SymbolLiteral) emitSourceCodeIndexList(ctxt, methodData.getInstructionMapList());
-        SymbolLiteral instructionTableSymbol = (SymbolLiteral) emitInstructionList(ctxt, methodData.getInstructionMapList());
+        ProgramObjectLiteral minfoTableSymbol = (ProgramObjectLiteral) emitMethodInfoTable(ctxt, methodData.getMethodInfoTable());
+        ProgramObjectLiteral scInfoTableSymbol = (ProgramObjectLiteral) emitSourceCodeInfoTable(ctxt, methodData.getSourceCodeInfoTable());
+        ProgramObjectLiteral scIndexTableSymbol = (ProgramObjectLiteral) emitSourceCodeIndexList(ctxt, methodData.getInstructionMapList());
+        ProgramObjectLiteral instructionTableSymbol = (ProgramObjectLiteral) emitInstructionList(ctxt, methodData.getInstructionMapList());
         emitGlobalMethodData(ctxt, minfoTableSymbol, scInfoTableSymbol, scIndexTableSymbol, instructionTableSymbol, methodData.getInstructionMapList().length);
     }
 
