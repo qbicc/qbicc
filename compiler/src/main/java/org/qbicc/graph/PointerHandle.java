@@ -1,5 +1,7 @@
 package org.qbicc.graph;
 
+import org.qbicc.graph.literal.ProgramObjectLiteral;
+import org.qbicc.object.Function;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -31,6 +33,26 @@ public final class PointerHandle extends AbstractValueHandle {
     public boolean isWritable() {
         ValueType pointeeType = pointerType.getPointeeType();
         return pointeeType.isComplete() && ! pointerType.isConstPointee();
+    }
+
+    @Override
+    public boolean isNoReturn() {
+        if (pointerValue instanceof ProgramObjectLiteral pol) {
+            if (pol.getProgramObject() instanceof Function fn) {
+                return fn.isNoReturn();
+            }
+        }
+        return super.isNoReturn();
+    }
+
+    @Override
+    public boolean isNoSideEffect() {
+        if (pointerValue instanceof ProgramObjectLiteral pol) {
+            if (pol.getProgramObject() instanceof Function fn) {
+                return fn.isNoSideEffects();
+            }
+        }
+        return super.isNoSideEffect();
     }
 
     @Override
