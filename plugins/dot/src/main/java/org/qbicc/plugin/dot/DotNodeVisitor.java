@@ -134,6 +134,7 @@ import org.qbicc.graph.Xor;
 import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
+import org.qbicc.graph.literal.ByteArrayLiteral;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
@@ -814,6 +815,16 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final BooleanLiteral node) {
         return literal(param, String.valueOf(node.booleanValue()));
+    }
+
+    public String visit(final Appendable param, final ByteArrayLiteral node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "circle");
+        attr(param, "label", "byte array [" + node.getValues().length + "]");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        return name;
     }
 
     public String visit(final Appendable param, final ByteSwap node) {
