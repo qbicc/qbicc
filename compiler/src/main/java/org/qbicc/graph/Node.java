@@ -554,14 +554,6 @@ public interface Node {
                 return param.getBlockBuilder().currentThread();
             }
 
-            public ValueHandle visit(Copier param, DataDeclarationHandle node) {
-                return node;
-            }
-
-            public ValueHandle visit(Copier param, DataHandle node) {
-                return node;
-            }
-
             public Value visit(final Copier param, final Div node) {
                 return param.getBlockBuilder().divide(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
@@ -582,16 +574,8 @@ public interface Node {
                 return param.getBlockBuilder().exactMethodOf(param.copyValue(node.getInstance()), node.getExecutable(), node.getCallSiteDescriptor(), node.getCallSiteType());
             }
 
-            public ValueHandle visit(Copier param, FunctionDeclarationHandle node) {
-                return param.getBlockBuilder().functionOf(node.getProgramObject());
-            }
-
             public ValueHandle visit(Copier param, FunctionElementHandle node) {
                 return param.getBlockBuilder().functionOf(node.getExecutable());
-            }
-
-            public ValueHandle visit(Copier param, FunctionHandle node) {
-                return param.getBlockBuilder().functionOf(node.getProgramObject());
             }
 
             public Value visit(final Copier param, final Extend node) {

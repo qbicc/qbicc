@@ -473,15 +473,6 @@ final class CompilationContextImpl implements CompilationContext {
         return programModule.getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
     }
 
-    public FunctionDeclaration declareForeignFunction(final ExecutableElement target, final org.qbicc.object.Function function, final ExecutableElement current) {
-        if (target.getEnclosingType().equals(current.getEnclosingType())) {
-            return null;
-        }
-
-        return getImplicitSection(current)
-            .declareFunction(target, function.getName(), function.getValueType());
-    }
-
     public FieldElement getExceptionField() {
         AtomicReference<FieldElement> exceptionFieldHolder = this.exceptionFieldHolder;
         FieldElement fieldElement = exceptionFieldHolder.get();

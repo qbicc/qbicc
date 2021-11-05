@@ -30,8 +30,6 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
 import org.qbicc.graph.Convert;
-import org.qbicc.graph.DataDeclarationHandle;
-import org.qbicc.graph.DataHandle;
 import org.qbicc.graph.DebugAddressDeclaration;
 import org.qbicc.graph.Deref;
 import org.qbicc.graph.Div;
@@ -40,8 +38,6 @@ import org.qbicc.graph.Extend;
 import org.qbicc.graph.ExtractElement;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
-import org.qbicc.graph.FunctionDeclarationHandle;
-import org.qbicc.graph.FunctionHandle;
 import org.qbicc.graph.GetAndAdd;
 import org.qbicc.graph.GetAndBitwiseAnd;
 import org.qbicc.graph.GetAndBitwiseOr;
@@ -1140,16 +1136,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         }
 
         @Override
-        public GetElementPtr visit(LLVMNodeVisitor param, DataDeclarationHandle node) {
-            return param.gep(Values.global(node.getProgramObject().getName()), node).arg(false, i32, ZERO);
-        }
-
-        @Override
-        public GetElementPtr visit(LLVMNodeVisitor param, DataHandle node) {
-            return param.gep(Values.global(node.getProgramObject().getName()), node).arg(false, i32, ZERO);
-        }
-
-        @Override
         public GetElementPtr visit(LLVMNodeVisitor param, ElementOf node) {
             ValueHandle nextHandle = node.getValueHandle();
             LLValue index = param.map(node.getIndex());
@@ -1202,28 +1188,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         }
 
         @Override
-        public LLValue visit(LLVMNodeVisitor param, DataDeclarationHandle node) {
-            return Values.global(node.getProgramObject().getName());
-        }
-
-        @Override
-        public LLValue visit(LLVMNodeVisitor param, DataHandle node) {
-            return Values.global(node.getProgramObject().getName());
-        }
-
-        @Override
         public LLValue visit(LLVMNodeVisitor param, ElementOf node) {
             return node.accept(GET_HANDLE_ELEMENT_POINTER, param).asLocal();
-        }
-
-        @Override
-        public LLValue visit(LLVMNodeVisitor param, FunctionDeclarationHandle node) {
-            return Values.global(node.getProgramObject().getName());
-        }
-
-        @Override
-        public LLValue visit(LLVMNodeVisitor param, FunctionHandle node) {
-            return Values.global(node.getProgramObject().getName());
         }
 
         @Override

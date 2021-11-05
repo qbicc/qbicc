@@ -23,6 +23,7 @@ import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
+import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.Section;
 import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -102,16 +103,18 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         args.addAll(0, List.of(fb.currentThread(), node.getInstance()));
         ctxt.enqueue(node.getExecutable());
         Function function = ctxt.getExactFunction(node.getExecutable());
-        ctxt.declareForeignFunction(node.getExecutable(), function, originalElement);
-        return functionOf(function);
+        node.getExecutable();
+        FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);
+        return pointerHandle(ctxt.getLiteralFactory().literalOf(decl));
     }
 
     @Override
     public ValueHandle visit(ArrayList<Value> args, FunctionElementHandle node) {
         ctxt.enqueue(node.getExecutable());
         Function function = ctxt.getExactFunction(node.getExecutable());
-        ctxt.declareForeignFunction(node.getExecutable(), function, originalElement);
-        return functionOf(function);
+        node.getExecutable();
+        FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);
+        return pointerHandle(ctxt.getLiteralFactory().literalOf(decl));
     }
 
     @Override
@@ -125,8 +128,9 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         args.addAll(0, List.of(fb.currentThread(), node.getInstance()));
         ctxt.enqueue(node.getExecutable());
         Function function = ctxt.getExactFunction(node.getExecutable());
-        ctxt.declareForeignFunction(node.getExecutable(), function, originalElement);
-        return functionOf(function);
+        node.getExecutable();
+        FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);
+        return pointerHandle(ctxt.getLiteralFactory().literalOf(decl));
     }
 
     @Override
@@ -217,8 +221,9 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         args.add(0, fb.currentThread());
         ctxt.enqueue(node.getExecutable());
         Function function = ctxt.getExactFunction(node.getExecutable());
-        ctxt.declareForeignFunction(node.getExecutable(), function, originalElement);
-        return functionOf(function);
+        node.getExecutable();
+        FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);
+        return pointerHandle(ctxt.getLiteralFactory().literalOf(decl));
     }
 
     @Override

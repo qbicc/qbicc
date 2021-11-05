@@ -16,14 +16,6 @@ public interface ValueHandleVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, DataDeclarationHandle node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, DataHandle node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, ElementOf node) {
         return visitUnknown(param, node);
     }
@@ -32,15 +24,7 @@ public interface ValueHandleVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, FunctionDeclarationHandle node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, FunctionElementHandle node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, FunctionHandle node) {
         return visitUnknown(param, node);
     }
 
@@ -107,16 +91,6 @@ public interface ValueHandleVisitor<T, R> {
         }
 
         @Override
-        default R visit(T param, DataDeclarationHandle node) {
-            return getDelegateValueHandleVisitor().visit(param, node);
-        }
-
-        @Override
-        default R visit(T param, DataHandle node) {
-            return getDelegateValueHandleVisitor().visit(param, node);
-        }
-
-        @Override
         default R visit(T param, ElementOf node) {
             return getDelegateValueHandleVisitor().visit(param, node);
         }
@@ -127,17 +101,7 @@ public interface ValueHandleVisitor<T, R> {
         }
 
         @Override
-        default R visit(T param, FunctionDeclarationHandle node) {
-            return getDelegateValueHandleVisitor().visit(param, node);
-        }
-
-        @Override
         default R visit(T param, FunctionElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(param, node);
-        }
-
-        @Override
-        default R visit(T param, FunctionHandle node) {
             return getDelegateValueHandleVisitor().visit(param, node);
         }
 

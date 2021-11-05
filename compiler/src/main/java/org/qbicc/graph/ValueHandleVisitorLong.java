@@ -16,14 +16,6 @@ public interface ValueHandleVisitorLong<T> {
         return visitUnknown(param, node);
     }
 
-    default long visit(T param, DataDeclarationHandle node) {
-        return visitUnknown(param, node);
-    }
-
-    default long visit(T param, DataHandle node) {
-        return visitUnknown(param, node);
-    }
-
     default long visit(T param, ElementOf node) {
         return visitUnknown(param, node);
     }
@@ -32,15 +24,7 @@ public interface ValueHandleVisitorLong<T> {
         return visitUnknown(param, node);
     }
 
-    default long visit(T param, FunctionDeclarationHandle node) {
-        return visitUnknown(param, node);
-    }
-
     default long visit(T param, FunctionElementHandle node) {
-        return visitUnknown(param, node);
-    }
-
-    default long visit(T param, FunctionHandle node) {
         return visitUnknown(param, node);
     }
 
@@ -107,16 +91,6 @@ public interface ValueHandleVisitorLong<T> {
         }
 
         @Override
-        default long visit(T param, DataDeclarationHandle node) {
-            return getDelegateValueHandleVisitor().visit(param, node);
-        }
-
-        @Override
-        default long visit(T param, DataHandle node) {
-            return getDelegateValueHandleVisitor().visit(param, node);
-        }
-
-        @Override
         default long visit(T param, ElementOf node) {
             return getDelegateValueHandleVisitor().visit(param, node);
         }
@@ -127,17 +101,7 @@ public interface ValueHandleVisitorLong<T> {
         }
 
         @Override
-        default long visit(T param, FunctionDeclarationHandle node) {
-            return getDelegateValueHandleVisitor().visit(param, node);
-        }
-
-        @Override
         default long visit(T param, FunctionElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(param, node);
-        }
-
-        @Override
-        default long visit(T param, FunctionHandle node) {
             return getDelegateValueHandleVisitor().visit(param, node);
         }
 

@@ -35,17 +35,13 @@ import org.qbicc.graph.CmpL;
 import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.CountLeadingZeros;
 import org.qbicc.graph.CountTrailingZeros;
-import org.qbicc.graph.DataDeclarationHandle;
-import org.qbicc.graph.DataHandle;
 import org.qbicc.graph.DebugAddressDeclaration;
 import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.ExtractElement;
 import org.qbicc.graph.ExtractInstanceField;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
-import org.qbicc.graph.FunctionDeclarationHandle;
 import org.qbicc.graph.FunctionElementHandle;
-import org.qbicc.graph.FunctionHandle;
 import org.qbicc.graph.GetAndAdd;
 import org.qbicc.graph.GetAndBitwiseAnd;
 import org.qbicc.graph.GetAndBitwiseNand;
@@ -363,24 +359,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return name;
     }
 
-    public String visit(Appendable param, DataDeclarationHandle node) {
-        String name = register(node);
-        appendTo(param, name);
-        nl(param);
-        attr(param, "label", "data\\n" + node.getProgramObject());
-        nl(param);
-        return name;
-    }
-
-    public String visit(Appendable param, DataHandle node) {
-        String name = register(node);
-        appendTo(param, name);
-        nl(param);
-        attr(param, "label", "data\\n" + node.getProgramObject());
-        nl(param);
-        return name;
-    }
-
     public String visit(Appendable param, ExactMethodElementHandle node) {
         String name = register(node);
         appendTo(param, name);
@@ -391,29 +369,11 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return name;
     }
 
-    public String visit(Appendable param, FunctionDeclarationHandle node) {
-        String name = register(node);
-        appendTo(param, name);
-        nl(param);
-        attr(param, "label", "function\\n" + node.getProgramObject());
-        nl(param);
-        return name;
-    }
-
     public String visit(Appendable param, FunctionElementHandle node) {
         String name = register(node);
         appendTo(param, name);
         nl(param);
         attr(param, "label", "function\\n" + node.getExecutable());
-        nl(param);
-        return name;
-    }
-
-    public String visit(Appendable param, FunctionHandle node) {
-        String name = register(node);
-        appendTo(param, name);
-        nl(param);
-        attr(param, "label", "function\\n" + node.getProgramObject());
         nl(param);
         return name;
     }

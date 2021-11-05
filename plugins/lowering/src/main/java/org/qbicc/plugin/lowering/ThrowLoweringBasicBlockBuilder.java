@@ -31,6 +31,6 @@ public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         String functionName = "_Unwind_RaiseException";
         FunctionType functionType = teh.getRaiseExceptionMethod().getType();
         FunctionDeclaration decl = ctxt.getImplicitSection(getRootElement()).declareFunction(teh.getRaiseExceptionMethod(), functionName, functionType);
-        return callNoReturn(functionOf(decl), List.of(ptr));
+        return callNoReturn(pointerHandle(ctxt.getLiteralFactory().literalOf(decl)), List.of(ptr));
     }
 }

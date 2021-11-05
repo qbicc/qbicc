@@ -483,14 +483,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new FunctionElementHandle(element, line, bci, function);
     }
 
-    public ValueHandle functionOf(Function function) {
-        return new FunctionHandle(element, line, bci, function);
-    }
-
-    public ValueHandle functionOf(FunctionDeclaration function) {
-        return new FunctionDeclarationHandle(element, line, bci, function);
-    }
-
     public ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type) {
         return new AsmHandle(callSite, element, line, bci, instruction, constraints, flags, type);
     }
