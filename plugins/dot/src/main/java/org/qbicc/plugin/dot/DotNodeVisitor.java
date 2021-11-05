@@ -140,8 +140,8 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
-import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
@@ -1235,7 +1235,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return literal(param, '"' + node.getValue() + '"');
     }
 
-    public String visit(final Appendable param, final SymbolLiteral node) {
+    public String visit(final Appendable param, final ProgramObjectLiteral node) {
         return literal(param, "@" + node.getName());
     }
 

@@ -135,7 +135,7 @@ final class LLVMModuleDebugInfo {
     }
 
     public DISubprogram createThunkSubprogram(final Function function) {
-        LLValue type = getType(function.getType());
+        LLValue type = getType(function.getSymbolType());
         int line = function.getOriginalElement().getMinimumLineNumber();
 
         return module.diSubprogram(function.getName(), type, diCompileUnit)

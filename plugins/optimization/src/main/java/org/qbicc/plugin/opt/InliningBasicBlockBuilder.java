@@ -265,20 +265,10 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
         ProgramModule module = ctxt.getOrAddProgramModule(target.getEnclosingType());
         for (Section section : module.sections()) {
             for (ProgramObject object : section.contents()) {
-                if (object instanceof FunctionDeclaration) {
-                    FunctionDeclaration declaration = (FunctionDeclaration) object;
-                    ourModule.getOrAddSection(section.getName()).declareFunction(
-                        declaration.getOriginalElement(),
-                        declaration.getName(),
-                        declaration.getType()
-                    );
-                } else if (object instanceof DataDeclaration) {
-                    DataDeclaration declaration = (DataDeclaration) object;
-                    ourModule.getOrAddSection(section.getName()).declareData(
-                        declaration.getOriginalElement(),
-                        declaration.getName(),
-                        declaration.getType()
-                    );
+                if (object instanceof FunctionDeclaration declaration) {
+                    ourModule.getOrAddSection(section.getName()).declareFunction(declaration);
+                } else if (object instanceof DataDeclaration declaration) {
+                    ourModule.getOrAddSection(section.getName()).declareData(declaration);
                 }
             }
         }

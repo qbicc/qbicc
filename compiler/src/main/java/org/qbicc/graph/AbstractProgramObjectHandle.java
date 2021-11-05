@@ -18,7 +18,7 @@ public abstract class AbstractProgramObjectHandle extends AbstractValueHandle {
 
     @Override
     public PointerType getPointerType() {
-        return programObject.getType().getPointer();
+        return programObject.getSymbolType();
     }
 
     @Override
@@ -35,7 +35,7 @@ public abstract class AbstractProgramObjectHandle extends AbstractValueHandle {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        programObject.getType().toString(b);
+        programObject.getSymbolType().toString(b);
         b.append(' ');
         b.append('"');
         b.append(programObject.getName());
@@ -50,7 +50,7 @@ public abstract class AbstractProgramObjectHandle extends AbstractValueHandle {
 
     @Override
     public ValueType getValueType() {
-        return programObject.getType();
+        return programObject.getValueType();
     }
 
     public boolean isConstantLocation() {

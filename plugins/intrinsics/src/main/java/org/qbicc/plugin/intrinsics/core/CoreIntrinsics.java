@@ -561,6 +561,7 @@ public final class CoreIntrinsics {
         final int threadRunnable = 0x0004;
 
         ClassTypeDescriptor jltDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
+        ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/VM");
         ClassTypeDescriptor vmHelpersDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/VMHelpers");
         ClassTypeDescriptor pthreadPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/posix/PThread$pthread_t_ptr");
         ClassTypeDescriptor voidPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$void_ptr");
@@ -593,8 +594,7 @@ public final class CoreIntrinsics {
             ValueHandle threadObjectHandle = builder.referenceHandle(threadObject);
 
             /* set current thread */
-            ValueHandle qbiccCurrentThreadPointer = builder.pointerHandle(ctxt.getCurrentThreadLocalSymbolLiteral());
-            builder.store(qbiccCurrentThreadPointer, threadObject, MemoryAtomicityMode.NONE);
+            builder.store(builder.staticField(vmDesc, "_qbicc_bound_thread", jltDesc), threadObject, MemoryAtomicityMode.NONE);
 
             /* call "run" method of thread object */
             VirtualMethodElementHandle runHandle = (VirtualMethodElementHandle)builder.virtualMethodOf(threadObject, jltDesc, "run", voidDesc);
@@ -1076,6 +1076,7 @@ public final class CoreIntrinsics {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
+        ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/VM");
         ClassTypeDescriptor cNativeDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative");
         ClassTypeDescriptor typeIdDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$type_id");
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
@@ -1149,7 +1150,7 @@ public final class CoreIntrinsics {
             //java.lang.Thread.nextThreadID
             Value thread = builder.new_(thrDesc);
             // immediately set the thread to be the current thread
-            builder.store(builder.pointerHandle(ctxt.getCurrentThreadLocalSymbolLiteral()), thread, MemoryAtomicityMode.NONE);
+            builder.store(builder.staticField(vmDesc, "_qbicc_bound_thread", thrDesc), thread, MemoryAtomicityMode.NONE);
             // now start initializing
             DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
             LoadedTypeDefinition jltVal = jlt.load();

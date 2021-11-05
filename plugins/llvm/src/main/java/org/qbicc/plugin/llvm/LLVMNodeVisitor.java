@@ -94,7 +94,7 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.ValueReturn;
 import org.qbicc.graph.Xor;
-import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.machine.llvm.AsmFlag;
 import org.qbicc.machine.llvm.FastMathFlag;
@@ -179,7 +179,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     // begin
 
     public void execute() {
-        FunctionType funcType = functionObj.getType();
+        FunctionType funcType = functionObj.getValueType();
         int cnt = methodBody.getParameterCount();
         if (cnt != funcType.getParameterCount()) {
             throw new IllegalStateException("Mismatch between method body and function type parameter counts");
@@ -1112,7 +1112,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     private void addPersonalityIfNeeded() {
         if (!personalityAdded) {
             MethodElement personalityFunction = UnwindHelper.get(ctxt).getPersonalityMethod();
-            SymbolLiteral literal = ctxt.getLiteralFactory().literalOfSymbol(personalityFunction.getName(), personalityFunction.getType().getPointer());
+
+            Function personality = ctxt.getExactFunction(personalityFunction);
+            ProgramObjectLiteral literal = ctxt.getLiteralFactory().literalOf(personality);
             // clang generates the personality argument like this (by casting the function to i8* using bitcast):
             //      define dso_local void @_Z7catchitv() #0 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
             // We can also generate it this way using following construct:

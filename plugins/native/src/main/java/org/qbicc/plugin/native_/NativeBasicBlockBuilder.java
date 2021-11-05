@@ -15,16 +15,11 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.SymbolLiteral;
-import org.qbicc.object.DataDeclaration;
-import org.qbicc.object.Linkage;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.object.Section;
-import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.classfile.ClassFile;
-import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
@@ -154,25 +149,17 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
         NativeDataInfo fieldInfo = nativeInfo.getFieldInfo(owner, name);
         if (fieldInfo != null) {
-            // todo: convert to GlobalVariable
             return pointerHandle(getAndDeclareSymbolLiteral(fieldInfo));
         }
         return super.staticField(owner, name, type);
     }
 
-    private SymbolLiteral getAndDeclareSymbolLiteral(final NativeDataInfo fieldInfo) {
-        SymbolLiteral sym = fieldInfo.symbolLiteral;
+    private ProgramObjectLiteral getAndDeclareSymbolLiteral(final NativeDataInfo fieldInfo) {
+        ProgramObjectLiteral sym = fieldInfo.symbolLiteral;
         DefinedTypeDefinition ourType = getRootElement().getEnclosingType();
-        if (!fieldInfo.defined || fieldInfo.fieldElement.getEnclosingType() != ourType) {
-            // declare it
-            Section section = ctxt.getImplicitSection(ourType);
-            DataDeclaration decl = section.declareData(fieldInfo.fieldElement, sym.getName(), fieldInfo.objectType);
-            decl.setLinkage(Linkage.EXTERNAL);
-            if (fieldInfo.fieldElement.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {
-                decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
-            }
-        }
-        return sym;
+        // declare it
+        Section section = ctxt.getImplicitSection(ourType);
+        return ctxt.getLiteralFactory().literalOf(section.declareData(sym.getProgramObject()));
     }
 
 }

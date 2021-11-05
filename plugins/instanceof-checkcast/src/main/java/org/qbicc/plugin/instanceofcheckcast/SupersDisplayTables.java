@@ -635,7 +635,7 @@ public class SupersDisplayTables {
                             if (!ie.getEnclosingType().load().equals(jlo)) {
                                 section.declareFunction(ie, impl.getName(), funType);
                             }
-                            initializer = impl.getLiteral();
+                            initializer = ctxt.getLiteralFactory().literalOf(impl);
                         }
                     }
                 }

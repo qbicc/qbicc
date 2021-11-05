@@ -6,7 +6,8 @@ import java.util.function.Consumer;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.Literal;
-import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
+import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Section;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
@@ -47,19 +48,21 @@ public class ClassObjectSerializer implements Consumer<CompilationContext> {
         Literal[] rootTable = new Literal[tables.get_number_of_typeids()];
         Arrays.fill(rootTable, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(jlcRef));
         reachabilityInfo.visitInitializedTypes(ltd -> {
-            SymbolLiteral cls = bth.serializeClassObject(ltd);
+            ProgramObjectLiteral cls = bth.serializeClassObject(ltd);
             if (cls != null) {
-                section.declareData(null, cls.getName(), cls.getType()).setAddrspace(1);
-                SymbolLiteral refToClass = ctxt.getLiteralFactory().literalOfSymbol(cls.getName(), cls.getType().getPointer().asCollected());
+                DataDeclaration decl = section.declareData(cls.getProgramObject());
+                decl.setAddrspace(1);
+                ProgramObjectLiteral refToClass = ctxt.getLiteralFactory().literalOf(decl);
                 rootTable[ltd.getTypeId()] = ctxt.getLiteralFactory().bitcastLiteral(refToClass, jlcRef);
             }
         });
 
         Primitive.forEach(type -> {
-            SymbolLiteral cls = bth.serializeClassObject(type);
+            ProgramObjectLiteral cls = bth.serializeClassObject(type);
             if (cls != null) {
-                section.declareData(null, cls.getName(), cls.getType()).setAddrspace(1);
-                SymbolLiteral refToClass = ctxt.getLiteralFactory().literalOfSymbol(cls.getName(), cls.getType().getPointer().asCollected());
+                DataDeclaration decl = section.declareData(cls.getProgramObject());
+                decl.setAddrspace(1);
+                ProgramObjectLiteral refToClass = ctxt.getLiteralFactory().literalOf(decl);
                 rootTable[type.getTypeId()] = ctxt.getLiteralFactory().bitcastLiteral(refToClass, jlcRef);
             }
         });

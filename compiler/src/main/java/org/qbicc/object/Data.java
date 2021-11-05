@@ -1,7 +1,7 @@
 package org.qbicc.object;
 
 import org.qbicc.graph.Value;
-import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.MemberElement;
 
 /**
@@ -12,8 +12,8 @@ public final class Data extends SectionObject {
     private volatile DataDeclaration declaration;
     private volatile boolean dsoLocal;
 
-    Data(final MemberElement originalElement, final String name, final SymbolLiteral symbolLiteral, final Value value) {
-        super(originalElement, name, symbolLiteral);
+    Data(final MemberElement originalElement, final String name, final ValueType valueType, final Value value) {
+        super(originalElement, name, valueType);
         this.value = value;
     }
 
@@ -40,11 +40,15 @@ public final class Data extends SectionObject {
             synchronized (this) {
                 declaration = this.declaration;
                 if (declaration == null) {
-                    declaration = this.declaration = new DataDeclaration(getOriginalElement(), name, literal);
+                    declaration = this.declaration = new DataDeclaration(this);
                 }
             }
         }
         return declaration;
+    }
+
+    void initDeclaration(DataDeclaration decl) {
+        declaration = decl;
     }
 
     public void setDsoLocal() {

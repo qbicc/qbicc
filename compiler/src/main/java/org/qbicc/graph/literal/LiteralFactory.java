@@ -8,6 +8,7 @@ import java.util.function.Function;
 
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.object.ProgramObject;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
@@ -51,7 +52,7 @@ public interface LiteralFactory {
 
     MethodHandleLiteral literalOfMethodHandle(MethodHandleConstant methodHandleConstant, ReferenceType type);
 
-    SymbolLiteral literalOfSymbol(String name, ValueType symbolType);
+    ProgramObjectLiteral literalOf(ProgramObject programObject);
 
     UndefinedLiteral undefinedLiteralOfType(ValueType type);
 
@@ -88,6 +89,7 @@ public interface LiteralFactory {
             private final ConcurrentMap<NullableType, NullLiteral> nullLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ValueType, UndefinedLiteral> undefLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ValueType, ConstantLiteral> constantLiterals = new ConcurrentHashMap<>();
+            private final ConcurrentMap<ProgramObject, ProgramObjectLiteral> programObjectLiterals = new ConcurrentHashMap<>();
 
             public BlockLiteral literalOf(final BlockLabel blockLabel) {
                 return new BlockLiteral(typeSystem.getBlockType(), blockLabel);
@@ -157,11 +159,9 @@ public interface LiteralFactory {
                 return new MethodHandleLiteral(methodHandleConstant, type);
             }
 
-            public SymbolLiteral literalOfSymbol(final String name, final ValueType symbolType) {
-                Assert.checkNotNullParam("name", name);
-                Assert.checkNotEmptyParam("name", name);
-                Assert.checkNotNullParam("symbolType", symbolType);
-                return new SymbolLiteral(name, symbolType);
+            public ProgramObjectLiteral literalOf(ProgramObject programObject) {
+                Assert.checkNotNullParam("programObject", programObject);
+                return programObjectLiterals.computeIfAbsent(programObject.getDeclaration(), ProgramObjectLiteral::new);
             }
 
             public TypeLiteral literalOfType(final ValueType type) {

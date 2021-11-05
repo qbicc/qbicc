@@ -109,7 +109,7 @@ final class LLVMModuleGenerator {
                 } else if (item instanceof FunctionDeclaration) {
                     FunctionDeclaration fn = (FunctionDeclaration) item;
                     decl = module.declare(name).linkage(linkage);
-                    FunctionType fnType = fn.getType();
+                    FunctionType fnType = fn.getValueType();
                     decl.returns(moduleVisitor.map(fnType.getReturnType()));
                     int cnt = fnType.getParameterCount();
                     for (int i = 0; i < cnt; i++) {
@@ -124,7 +124,7 @@ final class LLVMModuleGenerator {
                         }
                     }
                 } else if (item instanceof DataDeclaration) {
-                    Global obj = module.global(moduleVisitor.map(item.getType())).linkage(Linkage.EXTERNAL);
+                    Global obj = module.global(moduleVisitor.map(item.getValueType())).linkage(Linkage.EXTERNAL);
                     ThreadLocalMode tlm = item.getThreadLocalMode();
                     if (tlm != null) {
                         obj.threadLocal(map(tlm));
@@ -136,16 +136,15 @@ final class LLVMModuleGenerator {
                     if (item.getAddrspace() != 0) {
                         obj.addressSpace(item.getAddrspace());
                     }
-                } else {
-                    assert item instanceof Data;
-                    Literal value = (Literal) ((Data) item).getValue();
-                    Global obj = module.global(moduleVisitor.map(item.getType()));
+                } else if (item instanceof Data data) {
+                    Literal value = (Literal) data.getValue();
+                    Global obj = module.global(moduleVisitor.map(data.getValueType()));
                     if (value != null) {
                         obj.value(moduleVisitor.map(value));
                     } else {
                         obj.value(Values.zeroinitializer);
                     }
-                    obj.alignment(item.getType().getAlign());
+                    obj.alignment(data.getValueType().getAlign());
                     obj.linkage(linkage);
                     ThreadLocalMode tlm = item.getThreadLocalMode();
                     if (tlm != null) {
