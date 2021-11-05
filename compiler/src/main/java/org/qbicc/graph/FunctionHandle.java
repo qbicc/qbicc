@@ -41,6 +41,16 @@ public final class FunctionHandle extends AbstractProgramObjectHandle {
     }
 
     @Override
+    public boolean isNoSideEffect() {
+        return getProgramObject().isNoSideEffects();
+    }
+
+    @Override
+    public boolean isNoReturn() {
+        return getProgramObject().isNoReturn();
+    }
+
+    @Override
     String getNodeName() {
         return "Function";
     }

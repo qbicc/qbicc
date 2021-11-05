@@ -127,6 +127,8 @@ public interface LLBuilder {
 
     YieldingInstruction inttoptr(LLValue type, LLValue value, LLValue toType);
 
+    YieldingInstruction va_arg(LLValue vaListType, LLValue vaList, LLValue outputType);
+
     Call call(LLValue type, LLValue function);
 
     Call invoke(LLValue type, LLValue function, LLBasicBlock normal, LLBasicBlock unwind);

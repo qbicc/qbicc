@@ -1,4 +1,4 @@
-package org.qbicc.plugin.conversion;
+package org.qbicc.plugin.llvm;
 
 import java.util.List;
 
