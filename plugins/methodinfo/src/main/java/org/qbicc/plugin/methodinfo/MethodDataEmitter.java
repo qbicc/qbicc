@@ -67,7 +67,6 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
             methodName = ((FunctionElement)element).getName();
         }
         String fileName = element.getSourceFileName();
-        String className = element.getEnclosingType().getInternalName().replace('/', '.');
         String methodDesc = element.getDescriptor().toString();
         int typeId = element.getEnclosingType().load().getTypeId();
 
@@ -78,14 +77,12 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
             fnLiteral = btHeap.getSerializedVmObject(vm.intern(fileName));
             Assert.assertNotNull(fnLiteral);
         }
-        SymbolLiteral cnLiteral = btHeap.getSerializedVmObject(vm.intern(className));
-        Assert.assertNotNull(cnLiteral);
         SymbolLiteral mnLiteral = btHeap.getSerializedVmObject(vm.intern(methodName));
         Assert.assertNotNull(mnLiteral);
         SymbolLiteral mdLiteral = btHeap.getSerializedVmObject(vm.intern(methodDesc));
         Assert.assertNotNull(mdLiteral);
 
-        return methodData.add(new MethodInfo(fnLiteral, cnLiteral, mnLiteral, mdLiteral, typeId, element.getModifiers()));
+        return methodData.add(new MethodInfo(fnLiteral, mnLiteral, mdLiteral, typeId, element.getModifiers()));
     }
 
     private int createSourceCodeInfo(CompilationContext ctxt, MethodData methodData, ExecutableElement element, int lineNumber, int bcIndex, int inlinedAtIndex) {
@@ -182,14 +179,12 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         Literal[] minfoLiterals = Arrays.stream(minfoList).parallel().map(minfo -> {
             HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
             Literal fnLiteral = castHeapSymbolTo(ctxt, minfo.getFileNameSymbolLiteral(), jlsRef);
-            Literal cnLiteral = castHeapSymbolTo(ctxt, minfo.getClassNameSymbolLiteral(), jlsRef);
             Literal mnLiteral = castHeapSymbolTo(ctxt, minfo.getMethodNameSymbolLiteral(), jlsRef);
             Literal mdLiteral = castHeapSymbolTo(ctxt, minfo.getMethodDescSymbolLiteral(), jlsRef);
             Literal typeIdLiteral = lf.literalOf(minfo.getTypeId());
             Literal modifiersLiteral = lf.literalOf(minfo.getModifiers());
 
             valueMap.put(methodInfoType.getMember("fileName"), fnLiteral);
-            valueMap.put(methodInfoType.getMember("className"), cnLiteral);
             valueMap.put(methodInfoType.getMember("methodName"), mnLiteral);
             valueMap.put(methodInfoType.getMember("methodDesc"), mdLiteral);
             valueMap.put(methodInfoType.getMember("typeId"), typeIdLiteral);

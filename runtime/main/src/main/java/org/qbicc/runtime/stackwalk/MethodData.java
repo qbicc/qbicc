@@ -1,15 +1,27 @@
 package org.qbicc.runtime.stackwalk;
 
 import org.qbicc.runtime.CNative;
+import org.qbicc.runtime.main.ObjectModel;
+
+import static org.qbicc.runtime.CNative.*;
 
 public final class MethodData {
 
     public static native String getFileName(int minfoIndex);
-    public static native String getClassName(int minfoIndex);
     public static native String getMethodName(int minfoIndex);
     public static native String getMethodDesc(int minfoIndex);
     public static native int getTypeId(int minfoIndex);
     public static native int getModifiers(int minfoIndex);
+
+    public static String getClassName(int minfoIndex) {
+        return getClass(minfoIndex).getName();
+    }
+
+    public static Class<?> getClass(int minfoIndex) {
+        type_id typeId = word(getTypeId(minfoIndex));
+        return ObjectModel.get_class_from_type_id(typeId, word(0));
+    }
+
     public static boolean hasAllModifiersOf(int minfoIndex, int mask) {
         int modifiers = getModifiers(minfoIndex);
         return (modifiers & mask) == mask;
