@@ -3,8 +3,7 @@ package org.qbicc.runtime.posix;
 import static org.qbicc.runtime.CNative.*;
 import static org.qbicc.runtime.stdc.Signal.*;
 import static org.qbicc.runtime.stdc.Stddef.*;
-
-import java.util.function.UnaryOperator;
+import static org.qbicc.runtime.stdc.Time.*;
 
 import org.qbicc.runtime.NoReturn;
 
@@ -54,6 +53,24 @@ public final class PThread {
     public static final class pthread_mutexattr_t_ptr_const_ptr extends ptr<@c_const pthread_mutexattr_t_ptr> {}
     public static final class const_pthread_mutexattr_t_ptr_const_ptr extends ptr<@c_const const_pthread_mutexattr_t_ptr> {}
 
+    public static class pthread_cond_t extends word {}
+
+    public static final class pthread_cond_t_ptr extends ptr<pthread_cond_t> {}
+    public static final class const_pthread_cond_t_ptr extends ptr<@c_const pthread_cond_t> {}
+    public static final class pthread_cond_t_ptr_ptr extends ptr<pthread_cond_t_ptr> {}
+    public static final class const_pthread_cond_t_ptr_ptr extends ptr<const_pthread_cond_t_ptr> {}
+    public static final class pthread_cond_t_ptr_const_ptr extends ptr<@c_const pthread_cond_t_ptr> {}
+    public static final class const_pthread_cond_t_ptr_const_ptr extends ptr<@c_const const_pthread_cond_t_ptr> {}
+
+    public static class pthread_condattr_t extends word {}
+
+    public static final class pthread_condattr_t_ptr extends ptr<pthread_condattr_t> {}
+    public static final class const_pthread_condattr_t_ptr extends ptr<@c_const pthread_condattr_t> {}
+    public static final class pthread_condattr_t_ptr_ptr extends ptr<pthread_condattr_t_ptr> {}
+    public static final class const_pthread_condattr_t_ptr_ptr extends ptr<const_pthread_condattr_t_ptr> {}
+    public static final class pthread_condattr_t_ptr_const_ptr extends ptr<@c_const pthread_condattr_t_ptr> {}
+    public static final class const_pthread_condattr_t_ptr_const_ptr extends ptr<@c_const const_pthread_condattr_t_ptr> {}
+
     public static native c_int pthread_attr_init(pthread_attr_t_ptr attr);
     public static native c_int pthread_attr_destroy(pthread_attr_t_ptr attr);
 
@@ -82,4 +99,14 @@ public final class PThread {
     public static native c_int pthread_mutexattr_init(pthread_mutexattr_t_ptr attr);
     public static native c_int pthread_mutexattr_settype(pthread_mutexattr_t_ptr attr, c_int type);
     public static native c_int pthread_mutexattr_destroy(pthread_mutexattr_t_ptr attr);
+
+    public static native c_int pthread_cond_init(pthread_cond_t_ptr cond, pthread_condattr_t_ptr attr);
+    public static native c_int pthread_cond_destroy(pthread_cond_t_ptr cond);
+    public static native c_int pthread_cond_signal(pthread_cond_t_ptr cond);
+    public static native c_int pthread_cond_broadcast(pthread_cond_t_ptr cond);
+    public static native c_int pthread_cond_wait(pthread_cond_t_ptr cond, pthread_mutex_t_ptr mutex);
+    public static native c_int pthread_cond_timedwait(pthread_cond_t_ptr cond, pthread_mutex_t_ptr mutex, const_struct_timespec_ptr abstime);
+
+    public static native c_int pthread_condattr_init(pthread_condattr_t_ptr attr);
+    public static native c_int pthread_condattr_destroy(pthread_condattr_t_ptr attr);
 }
