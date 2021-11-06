@@ -366,7 +366,24 @@ public final class VmImpl implements Vm {
                 if (classLoader == null) {
                     classLoader = bootstrapClassLoader;
                 }
-                VmClassImpl clazz = classLoader.loadClass(((VmStringImpl) args.get(0)).getContent().replace('.', '/'));
+                String name = ((VmStringImpl) args.get(0)).getContent();
+                int dims = 0;
+                while (name.startsWith("[[")) {
+                    name = name.substring(1);
+                    dims ++;
+                }
+                if (name.startsWith("[L")) {
+                    if (! name.endsWith(";")) {
+                        throw new Thrown(noClassDefFoundErrorClass.newInstance("Bad array descriptor"));
+                    }
+                    // load the array class
+                    name = name.substring(2, name.length() - 1);
+                    dims ++;
+                }
+                VmClassImpl clazz = classLoader.loadClass(name.replace('.', '/'));
+                for (int i = 0; i < dims; i ++) {
+                    clazz = clazz.getArrayClass();
+                }
                 if (((Boolean) args.get(1)).booleanValue()) {
                     clazz.initialize((VmThreadImpl) thread);
                 }
