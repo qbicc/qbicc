@@ -138,8 +138,8 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
             // declare it
-            return functionOf(ctxt.getImplicitSection(getRootElement())
-                .declareFunction(null, functionInfo.getName(), functionInfo.getType()));
+            return pointerHandle(ctxt.getLiteralFactory().literalOf(ctxt.getImplicitSection(getRootElement())
+                .declareFunction(null, functionInfo.getName(), functionInfo.getType())));
         }
         return super.staticMethod(owner, name, descriptor);
     }

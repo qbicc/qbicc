@@ -103,8 +103,6 @@ public interface CompilationContext extends DiagnosticContext {
 
     FunctionType getFunctionTypeForElement(ExecutableElement element);
 
-    FunctionDeclaration declareForeignFunction(ExecutableElement target, Function function, ExecutableElement current);
-
     FieldElement getExceptionField();
 
     Vm getVm();
