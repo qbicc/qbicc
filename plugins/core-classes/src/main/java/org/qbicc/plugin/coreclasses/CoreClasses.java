@@ -201,7 +201,7 @@ public final class CoreClasses {
 
     private static DefinedTypeDefinition defineArrayType(ClassContext classContext, DefinedTypeDefinition superClass, ValueType realMemberType, String simpleName) {
         DefinedTypeDefinition.Builder typeBuilder = DefinedTypeDefinition.Builder.basic();
-        String internalName = INTERNAL_ARRAY + "_" + simpleName.charAt(1);
+        String internalName = "[" + simpleName.charAt(1);
         ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, internalName);
         typeBuilder.setDescriptor(desc);
         ClassTypeSignature superClassSig = (ClassTypeSignature) TypeSignature.synthesize(classContext, superClass.getDescriptor());

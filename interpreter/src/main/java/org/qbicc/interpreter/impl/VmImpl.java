@@ -315,14 +315,14 @@ public final class VmImpl implements Vm {
 
         bootstrapClassLoader.registerClass("java/lang/invoke/MemberName", memberNameClass);
 
-        bootstrapClassLoader.registerClass("internal_array_B", byteArrayClass);
-        bootstrapClassLoader.registerClass("internal_array_S", shortArrayClass);
-        bootstrapClassLoader.registerClass("internal_array_I", intArrayClass);
-        bootstrapClassLoader.registerClass("internal_array_J", longArrayClass);
-        bootstrapClassLoader.registerClass("internal_array_F", floatArrayClass);
-        bootstrapClassLoader.registerClass("internal_array_D", doubleArrayClass);
-        bootstrapClassLoader.registerClass("internal_array_C", charArrayClass);
-        bootstrapClassLoader.registerClass("internal_array_Z", booleanArrayClass);
+        bootstrapClassLoader.registerClass("[B", byteArrayClass);
+        bootstrapClassLoader.registerClass("[S", shortArrayClass);
+        bootstrapClassLoader.registerClass("[I", intArrayClass);
+        bootstrapClassLoader.registerClass("[J", longArrayClass);
+        bootstrapClassLoader.registerClass("[F", floatArrayClass);
+        bootstrapClassLoader.registerClass("[D", doubleArrayClass);
+        bootstrapClassLoader.registerClass("[C", charArrayClass);
+        bootstrapClassLoader.registerClass("[Z", booleanArrayClass);
 
         throwableClass.initializeConstantStaticFields(); // Has constant String fields that can't be initialized when we first process the class
 

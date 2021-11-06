@@ -170,4 +170,21 @@ public final class LLVM {
     public static LLValue asm(final String instruction, final String constraints, final Set<AsmFlag> flags) {
         return new AsmExpression(instruction, constraints, flags);
     }
+
+    public static boolean needsQuotes(final String name) {
+        char c = name.charAt(0);
+        if (c == '-' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || c == '.' || c == '_') {
+            // okay so far
+            for (int i = 1; i < name.length(); i ++) {
+                c = name.charAt(i);
+                if (c == '-' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || c == '.' || c == '_' || '0' <= c && c <= '9') {
+                    continue;
+                }
+                return true;
+            }
+        } else {
+            return true;
+        }
+        return false;
+    }
 }
