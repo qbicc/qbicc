@@ -121,6 +121,12 @@ public interface ClassFile extends FieldResolver,
      * For executable members which should be evaluated during compilation.
      */
     int I_ACC_FOLD = 1 << 27;
+    /**
+     * For members which are visible at run time.  Members with this annotation are not accessible during build.
+     * Fields which are available at both build time and run time do <em>not</em> have this modifier, even if they
+     * are associated with an initializer that does have this modifier.
+     */
+    int I_ACC_RUN_TIME = 1 << 28;
 
     int OP_NOP = 0x00;
     int OP_ACONST_NULL = 0x01;

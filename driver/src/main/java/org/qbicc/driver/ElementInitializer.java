@@ -8,6 +8,7 @@ import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmThrowable;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.InitializerElement;
 
@@ -20,7 +21,7 @@ public class ElementInitializer implements Consumer<ExecutableElement> {
 
     @Override
     public void accept(ExecutableElement element) {
-        if (element instanceof InitializerElement) {
+        if (element instanceof InitializerElement && element.hasNoModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
             if (element.hasMethodBody()) {
                 Vm vm = Vm.requireCurrent();
                 VmClass vmClass = element.getEnclosingType().load().getVmClass();
