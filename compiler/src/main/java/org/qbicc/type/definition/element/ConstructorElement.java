@@ -6,7 +6,7 @@ package org.qbicc.type.definition.element;
 public final class ConstructorElement extends InvokableElement {
     public static final ConstructorElement[] NO_CONSTRUCTORS = new ConstructorElement[0];
 
-    ConstructorElement(Builder builder) {
+    ConstructorElement(BuilderImpl builder) {
         super(builder);
     }
 
@@ -23,11 +23,15 @@ public final class ConstructorElement extends InvokableElement {
     }
 
     public static Builder builder() {
-        return new Builder();
+        return new BuilderImpl();
     }
 
-    public static final class Builder extends InvokableElement.Builder {
-        Builder() {}
+    public interface Builder extends InvokableElement.Builder {
+        ConstructorElement build();
+    }
+
+    static final class BuilderImpl extends InvokableElement.BuilderImpl implements Builder {
+        BuilderImpl() {}
 
         public ConstructorElement build() {
             return new ConstructorElement(this);

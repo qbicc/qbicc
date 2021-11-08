@@ -5,7 +5,6 @@ import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 
-import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.context.ClassContext;
@@ -33,7 +32,7 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
 
     private volatile int interpOffset;
 
-    VariableElement(Builder builder) {
+    VariableElement(BuilderImpl builder) {
         super(builder);
         this.name = builder.name;
         this.typeDescriptor = Assert.checkNotNullParam("builder.typeDescriptor", builder.typeDescriptor);
@@ -115,7 +114,25 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         return interpOffsetHandle.compareAndSet(this, expect, update);
     }
 
-    public static abstract class Builder extends AnnotatedElement.Builder implements NamedElement.Builder {
+    public interface Builder extends AnnotatedElement.Builder, NamedElement.Builder {
+        void setName(final String name);
+
+        void setDescriptor(TypeDescriptor typeDescriptor);
+
+        void setSignature(TypeSignature typeSignature);
+
+        void setVisibleTypeAnnotations(TypeAnnotationList annotations);
+
+        void setInvisibleTypeAnnotations(TypeAnnotationList annotations);
+
+        void setTypeParameterContext(TypeParameterContext typeParameterContext);
+
+        void setType(final ValueType type);
+
+        VariableElement build();
+    }
+
+    static abstract class BuilderImpl extends AnnotatedElement.BuilderImpl implements Builder {
         private String name;
         private TypeDescriptor typeDescriptor;
         private TypeSignature typeSignature;
@@ -124,9 +141,9 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         private TypeParameterContext typeParameterContext;
         private ValueType type;
 
-        Builder() {}
+        BuilderImpl() {}
 
-        Builder(final VariableElement original) {
+        BuilderImpl(final VariableElement original) {
             super(original);
             name = original.name;
             typeDescriptor = original.typeDescriptor;

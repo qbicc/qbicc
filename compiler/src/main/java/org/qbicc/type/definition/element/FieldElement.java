@@ -12,7 +12,7 @@ public final class FieldElement extends VariableElement implements MemberElement
     public static final FieldElement[] NO_FIELDS = new FieldElement[0];
     private final Literal initialValue;
 
-    FieldElement(Builder builder) {
+    FieldElement(BuilderImpl builder) {
         super(builder);
         this.initialValue = builder.initialValue;
     }
@@ -40,7 +40,7 @@ public final class FieldElement extends VariableElement implements MemberElement
     }
 
     public static Builder builder() {
-        return new Builder();
+        return new BuilderImpl();
     }
 
     public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
@@ -51,8 +51,14 @@ public final class FieldElement extends VariableElement implements MemberElement
         return hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL);
     }
 
-    public static final class Builder extends VariableElement.Builder implements MemberElement.Builder {
-        Builder() {}
+    public interface Builder extends VariableElement.Builder, MemberElement.Builder {
+        void setInitialValue(final Literal initialValue);
+
+        FieldElement build();
+    }
+
+    static final class BuilderImpl extends VariableElement.BuilderImpl implements Builder {
+        BuilderImpl() {}
 
         private Literal initialValue;
 

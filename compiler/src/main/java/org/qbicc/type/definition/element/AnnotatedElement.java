@@ -19,7 +19,7 @@ public abstract class AnnotatedElement extends BasicElement {
         invisibleAnnotations = null;
     }
 
-    AnnotatedElement(Builder builder) {
+    AnnotatedElement(BuilderImpl builder) {
         super(builder);
         visibleAnnotations = builder.visibleAnnotations;
         invisibleAnnotations = builder.invisibleAnnotations;
@@ -33,13 +33,21 @@ public abstract class AnnotatedElement extends BasicElement {
         return invisibleAnnotations;
     }
 
-    public static abstract class Builder extends BasicElement.Builder {
+    public interface Builder extends BasicElement.Builder {
+        void setVisibleAnnotations(List<Annotation> annotations);
+
+        void setInvisibleAnnotations(List<Annotation> annotations);
+
+        AnnotatedElement build();
+    }
+
+    static abstract class BuilderImpl extends BasicElement.BuilderImpl implements Builder {
         List<Annotation> visibleAnnotations = List.of();
         List<Annotation> invisibleAnnotations = List.of();
 
-        Builder() {}
+        BuilderImpl() {}
 
-        Builder(final AnnotatedElement original) {
+        BuilderImpl(final AnnotatedElement original) {
             super(original);
             visibleAnnotations = original.visibleAnnotations;
             invisibleAnnotations = original.invisibleAnnotations;

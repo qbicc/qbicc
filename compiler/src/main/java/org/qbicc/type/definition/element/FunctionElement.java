@@ -13,7 +13,7 @@ import io.smallrye.common.constraint.Assert;
 public final class FunctionElement extends InvokableElement implements NamedElement {
     private final String name;
 
-    FunctionElement(final Builder builder) {
+    FunctionElement(final BuilderImpl builder) {
         super(builder);
         Assert.checkNotNullParam("builder.type", builder.type);
         name = Assert.checkNotNullParam("builder.name", builder.name);
@@ -35,13 +35,29 @@ public final class FunctionElement extends InvokableElement implements NamedElem
     }
 
     public static Builder builder() {
-        return new Builder();
+        return new BuilderImpl();
     }
 
-    public static final class Builder extends InvokableElement.Builder implements NamedElement.Builder {
+    public interface Builder extends InvokableElement.Builder, NamedElement.Builder {
+        void setName(String name);
+
+        FunctionElement build();
+
+        void setType(FunctionType type);
+
+        void setVisibleAnnotations(List<Annotation> annotations);
+
+        void setInvisibleAnnotations(List<Annotation> annotations);
+
+        void setReturnVisibleTypeAnnotations(TypeAnnotationList returnVisibleTypeAnnotations);
+
+        void setReturnInvisibleTypeAnnotations(TypeAnnotationList returnInvisibleTypeAnnotations);
+    }
+
+    static final class BuilderImpl extends InvokableElement.BuilderImpl implements Builder {
         private String name;
 
-        Builder() {}
+        BuilderImpl() {}
 
         @Override
         public void setName(String name) {

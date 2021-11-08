@@ -12,7 +12,7 @@ public final class LocalVariableElement extends VariableElement {
     private final int line;
     private final int bci;
 
-    LocalVariableElement(final Builder builder) {
+    LocalVariableElement(final BuilderImpl builder) {
         super(builder);
         reflectsParameter = builder.reflectsParameter;
         line = builder.line;
@@ -45,13 +45,26 @@ public final class LocalVariableElement extends VariableElement {
     }
 
     public static Builder builder() {
-        return new Builder();
+        return new BuilderImpl();
     }
 
-    public static final class Builder extends VariableElement.Builder {
+    public interface Builder extends VariableElement.Builder {
+        void setReflectsParameter(boolean reflectsParameter);
+
+        void setLine(int line);
+
+        void setBci(int bci);
+
+        LocalVariableElement build();
+    }
+
+    static final class BuilderImpl extends VariableElement.BuilderImpl implements Builder {
         private boolean reflectsParameter;
         private int line;
         private int bci = -1;
+
+        BuilderImpl() {
+        }
 
         public void setReflectsParameter(boolean reflectsParameter) {
             this.reflectsParameter = reflectsParameter;
