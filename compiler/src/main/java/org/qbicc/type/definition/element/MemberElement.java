@@ -28,5 +28,15 @@ public interface MemberElement extends Element {
 
     interface Builder extends Element.Builder {
         MemberElement build();
+
+        interface Delegating extends Element.Builder.Delegating, Builder {
+            @Override
+            Builder getDelegate();
+
+            @Override
+            default MemberElement build() {
+                return getDelegate().build();
+            }
+        }
     }
 }

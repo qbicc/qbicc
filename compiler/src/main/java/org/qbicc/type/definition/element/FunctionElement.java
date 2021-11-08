@@ -52,6 +52,46 @@ public final class FunctionElement extends InvokableElement implements NamedElem
         void setReturnVisibleTypeAnnotations(TypeAnnotationList returnVisibleTypeAnnotations);
 
         void setReturnInvisibleTypeAnnotations(TypeAnnotationList returnInvisibleTypeAnnotations);
+
+        interface Delegating extends InvokableElement.Builder.Delegating, NamedElement.Builder.Delegating, Builder {
+            @Override
+            Builder getDelegate();
+
+            @Override
+            default void setType(FunctionType type) {
+                getDelegate().setType(type);
+            }
+
+            @Override
+            default FunctionElement build() {
+                return getDelegate().build();
+            }
+
+            @Override
+            default void setName(final String name) {
+                getDelegate().setName(name);
+            }
+
+            @Override
+            default void setVisibleAnnotations(List<Annotation> annotations) {
+                getDelegate().setVisibleAnnotations(annotations);
+            }
+
+            @Override
+            default void setInvisibleAnnotations(List<Annotation> annotations) {
+                 getDelegate().setInvisibleAnnotations(annotations);
+            }
+
+            @Override
+            default void setReturnVisibleTypeAnnotations(final TypeAnnotationList annotations) {
+                getDelegate().setReturnVisibleTypeAnnotations(annotations);
+            }
+
+            @Override
+            default void setReturnInvisibleTypeAnnotations(final TypeAnnotationList annotations) {
+                getDelegate().setReturnInvisibleTypeAnnotations(annotations);
+            }
+        }
     }
 
     static final class BuilderImpl extends InvokableElement.BuilderImpl implements Builder {

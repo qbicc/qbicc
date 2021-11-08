@@ -77,6 +77,41 @@ public abstract class BasicElement implements Element {
         void setEnclosingType(DefinedTypeDefinition enclosingType);
 
         BasicElement build();
+
+        interface Delegating extends Element.Builder.Delegating, Builder {
+            @Override
+            Builder getDelegate();
+
+            @Override
+            default void setSourceFileName(String sourceFileName) {
+                getDelegate().setSourceFileName(sourceFileName);
+            }
+
+            @Override
+            default void addModifiers(int modifiers) {
+                getDelegate().addModifiers(modifiers);
+            }
+
+            @Override
+            default void setModifiers(int modifiers) {
+                getDelegate().setModifiers(modifiers);
+            }
+
+            @Override
+            default void setIndex(int index) {
+                getDelegate().setIndex(index);
+            }
+
+            @Override
+            default void setEnclosingType(DefinedTypeDefinition enclosingType) {
+                Element.Builder.Delegating.super.setEnclosingType(enclosingType);
+            }
+
+            @Override
+            default BasicElement build() {
+                return getDelegate().build();
+            }
+        }
     }
 
     static abstract class BuilderImpl implements Builder {

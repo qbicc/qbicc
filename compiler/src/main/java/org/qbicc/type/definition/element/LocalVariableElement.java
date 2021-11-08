@@ -56,6 +56,31 @@ public final class LocalVariableElement extends VariableElement {
         void setBci(int bci);
 
         LocalVariableElement build();
+
+        interface Delegating extends VariableElement.Builder.Delegating, Builder {
+            @Override
+            Builder getDelegate();
+
+            @Override
+            default void setReflectsParameter(boolean reflectsParameter) {
+                getDelegate().setReflectsParameter(reflectsParameter);
+            }
+
+            @Override
+            default void setLine(int line) {
+                getDelegate().setLine(line);
+            }
+
+            @Override
+            default void setBci(int bci) {
+                getDelegate().setBci(bci);
+            }
+
+            @Override
+            default LocalVariableElement build() {
+                return getDelegate().build();
+            }
+        }
     }
 
     static final class BuilderImpl extends VariableElement.BuilderImpl implements Builder {

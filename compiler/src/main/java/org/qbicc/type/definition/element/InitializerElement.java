@@ -126,6 +126,31 @@ public final class InitializerElement extends BasicElement implements Executable
         void setMaximumLineNumber(int maximumLineNumber);
 
         InitializerElement build();
+
+        interface Delegating extends BasicElement.Builder.Delegating, ExecutableElement.Builder.Delegating, Builder {
+            @Override
+            Builder getDelegate();
+
+            @Override
+            default void setMinimumLineNumber(int minimumLineNumber) {
+                getDelegate().setMinimumLineNumber(minimumLineNumber);
+            }
+
+            @Override
+            default void setMaximumLineNumber(int maximumLineNumber) {
+                getDelegate().setMaximumLineNumber(maximumLineNumber);
+            }
+
+            @Override
+            default void setMethodBodyFactory(MethodBodyFactory factory, int index) {
+                getDelegate().setMethodBodyFactory(factory, index);
+            }
+
+            @Override
+            default InitializerElement build() {
+                return getDelegate().build();
+            }
+        }
     }
 
     static final class BuilderImpl extends BasicElement.BuilderImpl implements Builder {

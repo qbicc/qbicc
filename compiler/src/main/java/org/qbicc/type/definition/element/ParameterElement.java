@@ -37,6 +37,16 @@ public final class ParameterElement extends VariableElement {
 
     public interface Builder extends VariableElement.Builder {
         ParameterElement build();
+
+        interface Delegating extends VariableElement.Builder.Delegating, Builder {
+            @Override
+            Builder getDelegate();
+
+            @Override
+            default ParameterElement build() {
+                return getDelegate().build();
+            }
+        }
     }
 
     static final class BuilderImpl extends VariableElement.BuilderImpl implements Builder {

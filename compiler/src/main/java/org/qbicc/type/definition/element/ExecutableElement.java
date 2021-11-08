@@ -54,10 +54,24 @@ public interface ExecutableElement extends MemberElement {
     int getMinimumLineNumber();
     int getMaximumLineNumber();
 
-    interface Builder extends Element.Builder {
+    interface Builder extends MemberElement.Builder {
 
         void setMethodBodyFactory(MethodBodyFactory factory, int index);
 
         ExecutableElement build();
+
+        interface Delegating extends MemberElement.Builder.Delegating, Builder {
+            @Override
+            Builder getDelegate();
+
+            default void setMethodBodyFactory(MethodBodyFactory factory, int index) {
+                getDelegate().setMethodBodyFactory(factory, index);
+            }
+
+            @Override
+            default ExecutableElement build() {
+                return getDelegate().build();
+            }
+        }
     }
 }

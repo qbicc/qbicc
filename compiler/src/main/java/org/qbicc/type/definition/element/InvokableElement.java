@@ -224,6 +224,56 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         void setMaximumLineNumber(int maximumLineNumber);
 
         InvokableElement build();
+
+        interface Delegating extends AnnotatedElement.Builder.Delegating, ExecutableElement.Builder.Delegating, Builder {
+            @Override
+            Builder getDelegate();
+
+            @Override
+            default void setDescriptor(MethodDescriptor descriptor) {
+                getDelegate().setDescriptor(descriptor);
+            }
+
+            @Override
+            default void setSignature(final MethodSignature signature) {
+                getDelegate().setSignature(signature);
+            }
+
+            @Override
+            default void setParameters(final List<ParameterElement> parameters) {
+                getDelegate().setParameters(parameters);
+            }
+
+            @Override
+            default void setReturnVisibleTypeAnnotations(final TypeAnnotationList annotations) {
+                getDelegate().setReturnVisibleTypeAnnotations(annotations);
+            }
+
+            @Override
+            default void setReturnInvisibleTypeAnnotations(final TypeAnnotationList annotations) {
+                getDelegate().setReturnInvisibleTypeAnnotations(annotations);
+            }
+
+            @Override
+            default void setMinimumLineNumber(int minimumLineNumber) {
+                getDelegate().setMinimumLineNumber(minimumLineNumber);
+            }
+
+            @Override
+            default void setMaximumLineNumber(int maximumLineNumber) {
+                getDelegate().setMaximumLineNumber(maximumLineNumber);
+            }
+
+            @Override
+            default void setMethodBodyFactory(MethodBodyFactory factory, int index) {
+                getDelegate().setMethodBodyFactory(factory, index);
+            }
+
+            @Override
+            default InvokableElement build() {
+                return getDelegate().build();
+            }
+        }
     }
 
     static abstract class BuilderImpl extends AnnotatedElement.BuilderImpl implements Builder {
