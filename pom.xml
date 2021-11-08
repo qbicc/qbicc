@@ -19,7 +19,7 @@
         <maven.compiler.target>17</maven.compiler.target>
         <maven.compiler.release>17</maven.compiler.release>
 
-        <version.info.picocli>4.6.1</version.info.picocli>
+        <version.info.picocli>4.6.2</version.info.picocli>
         <version.io.smallrye.common>1.8.0</version.io.smallrye.common>
         <version.org.jboss.jandex>2.4.1.Final</version.org.jboss.jandex>
         <version.org.jboss.logging>3.4.2.Final</version.org.jboss.logging>
