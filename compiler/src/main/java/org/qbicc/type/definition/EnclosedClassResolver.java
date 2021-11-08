@@ -6,5 +6,5 @@ import org.qbicc.type.definition.element.NestedClassElement;
  *
  */
 public interface EnclosedClassResolver {
-    NestedClassElement resolveEnclosedNestedClass(int index, final DefinedTypeDefinition enclosing);
+    NestedClassElement resolveEnclosedNestedClass(int index, DefinedTypeDefinition enclosing, NestedClassElement.Builder builder);
 }

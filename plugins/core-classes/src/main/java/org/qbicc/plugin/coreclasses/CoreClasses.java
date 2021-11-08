@@ -21,7 +21,6 @@ import org.qbicc.type.definition.InitializerResolver;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.FieldElement;
-import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.generic.BaseTypeSignature;
@@ -38,8 +37,7 @@ public final class CoreClasses {
 
     private static final String INTERNAL_ARRAY = "internal_array";
 
-    private static final InitializerResolver EMPTY_INIT = (index, enclosing) -> {
-        InitializerElement.Builder builder = InitializerElement.builder();
+    private static final InitializerResolver EMPTY_INIT = (index, enclosing, builder) -> {
         builder.setEnclosingType(enclosing);
         return builder.build();
     };
@@ -219,15 +217,14 @@ public final class CoreClasses {
             // also need a dimensions field
             typeBuilder.addField(CoreClasses::makeDimensionsField, idx++);
             // also need a type ID field
-            typeBuilder.addField((index, encl) -> makeElementTypeIdField(index, jlo, encl), idx++);
+            typeBuilder.addField((index, encl, builder) -> makeElementTypeIdField(index, jlo, encl, builder), idx++);
         }
-        typeBuilder.addField((index, enclosing) -> makeContentField(index, enclosing, realMemberType), idx);
+        typeBuilder.addField((index, enclosing, builder) -> makeContentField(index, enclosing, realMemberType, builder), idx);
         typeBuilder.setInitializer(EMPTY_INIT, 0);
         return typeBuilder.build();
     }
 
-    private static FieldElement makeDimensionsField(final int index, final DefinedTypeDefinition enclosing) {
-        FieldElement.Builder fieldBuilder = FieldElement.builder();
+    private static FieldElement makeDimensionsField(final int index, final DefinedTypeDefinition enclosing, FieldElement.Builder fieldBuilder) {
         fieldBuilder.setEnclosingType(enclosing);
         fieldBuilder.setDescriptor(BaseTypeDescriptor.V);
         fieldBuilder.setSignature(BaseTypeSignature.V);
@@ -238,8 +235,7 @@ public final class CoreClasses {
         return fieldBuilder.build();
     }
 
-    private static FieldElement makeLengthField(final int index, final DefinedTypeDefinition enclosing) {
-        FieldElement.Builder fieldBuilder = FieldElement.builder();
+    private static FieldElement makeLengthField(final int index, final DefinedTypeDefinition enclosing, FieldElement.Builder fieldBuilder) {
         fieldBuilder.setEnclosingType(enclosing);
         fieldBuilder.setDescriptor(BaseTypeDescriptor.I);
         fieldBuilder.setSignature(BaseTypeSignature.I);
@@ -250,8 +246,7 @@ public final class CoreClasses {
         return fieldBuilder.build();
     }
 
-    private static FieldElement makeElementTypeIdField(final int index, final DefinedTypeDefinition jlo, final DefinedTypeDefinition enclosing) {
-        FieldElement.Builder fieldBuilder = FieldElement.builder();
+    private static FieldElement makeElementTypeIdField(final int index, final DefinedTypeDefinition jlo, final DefinedTypeDefinition enclosing, FieldElement.Builder fieldBuilder) {
         fieldBuilder.setEnclosingType(enclosing);
         fieldBuilder.setDescriptor(BaseTypeDescriptor.V);
         fieldBuilder.setSignature(BaseTypeSignature.V);
@@ -262,8 +257,7 @@ public final class CoreClasses {
         return fieldBuilder.build();
     }
 
-    private static FieldElement makeContentField(final int index, final DefinedTypeDefinition enclosing, final ValueType realMemberType) {
-        FieldElement.Builder fieldBuilder = FieldElement.builder();
+    private static FieldElement makeContentField(final int index, final DefinedTypeDefinition enclosing, final ValueType realMemberType, FieldElement.Builder fieldBuilder) {
         fieldBuilder.setEnclosingType(enclosing);
         fieldBuilder.setDescriptor(BaseTypeDescriptor.V);
         fieldBuilder.setSignature(BaseTypeSignature.V);

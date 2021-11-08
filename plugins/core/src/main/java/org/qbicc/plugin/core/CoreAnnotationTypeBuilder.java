@@ -49,8 +49,8 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
     public void addMethod(MethodResolver resolver, int index) {
         Delegating.super.addMethod(new MethodResolver() {
             @Override
-            public MethodElement resolveMethod(int index, DefinedTypeDefinition enclosing) {
-                MethodElement methodElement = resolver.resolveMethod(index, enclosing);
+            public MethodElement resolveMethod(int index, DefinedTypeDefinition enclosing, MethodElement.Builder builder) {
+                MethodElement methodElement = resolver.resolveMethod(index, enclosing, builder);
                 for (Annotation annotation : methodElement.getInvisibleAnnotations()) {
                     if (annotation.getDescriptor().equals(noSideEffects)) {
                         methodElement.setModifierFlags(ClassFile.I_ACC_NO_SIDE_EFFECTS);
@@ -84,8 +84,8 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
     public void addField(FieldResolver resolver, int index) {
         Delegating.super.addField(new FieldResolver() {
             @Override
-            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing) {
-                FieldElement fieldElement = resolver.resolveField(index, enclosing);
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+                FieldElement fieldElement = resolver.resolveField(index, enclosing, builder);
                 for (Annotation annotation : fieldElement.getInvisibleAnnotations()) {
                     if (annotation.getDescriptor().equals(noReflect)) {
                         fieldElement.setModifierFlags(ClassFile.I_ACC_NO_REFLECT);
@@ -100,8 +100,8 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
     public void addConstructor(ConstructorResolver resolver, int index) {
         Delegating.super.addConstructor(new ConstructorResolver() {
             @Override
-            public ConstructorElement resolveConstructor(int index, DefinedTypeDefinition enclosing) {
-                ConstructorElement constructorElement = resolver.resolveConstructor(index, enclosing);
+            public ConstructorElement resolveConstructor(int index, DefinedTypeDefinition enclosing, ConstructorElement.Builder builder) {
+                ConstructorElement constructorElement = resolver.resolveConstructor(index, enclosing, builder);
                 for (Annotation annotation : constructorElement.getInvisibleAnnotations()) {
                     if (annotation.getDescriptor().equals(noSideEffects)) {
                         constructorElement.setModifierFlags(ClassFile.I_ACC_NO_SIDE_EFFECTS);

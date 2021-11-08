@@ -801,8 +801,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         builder.setModifiers(access);
     }
 
-    public FieldElement resolveField(final int index, final DefinedTypeDefinition enclosing) {
-        FieldElement.Builder builder = FieldElement.builder();
+    public FieldElement resolveField(final int index, final DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
         builder.setEnclosingType(enclosing);
         TypeDescriptor typeDescriptor = (TypeDescriptor) getDescriptorConstant(getShort(fieldOffsets[index] + 4));
         builder.setDescriptor(typeDescriptor);
@@ -843,14 +842,13 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         return builder.build();
     }
 
-    public NestedClassElement resolveEnclosedNestedClass(final int index, final DefinedTypeDefinition enclosing) {
+    public NestedClassElement resolveEnclosedNestedClass(final int index, final DefinedTypeDefinition enclosing, NestedClassElement.Builder builder) {
         int innerClassInfoIdx = getShort(index); // CONSTANT_Class == to inner class name
         int outerClassInfoIdx = getShort(index + 2); // CONSTANT_Class == to our name
         int innerNameIdx = getShort(index + 4); // CONSTANT_Utf8 == simple name
         int innerFlags = getShort(index + 6); // value == modifiers
         DefinedTypeDefinition enclosed = ctxt.findDefinedType(getClassConstantName(innerClassInfoIdx));
         if (enclosed != null) {
-            NestedClassElement.Builder builder = NestedClassElement.builder();
             builder.setEnclosingType(enclosing);
             builder.setCorrespondingType(enclosed);
             if (innerNameIdx != 0) {
@@ -863,7 +861,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         return null;
     }
 
-    public NestedClassElement resolveEnclosingNestedClass(final int index, final DefinedTypeDefinition enclosed) {
+    public NestedClassElement resolveEnclosingNestedClass(final int index, final DefinedTypeDefinition enclosed, NestedClassElement.Builder builder) {
         int innerClassInfoIdx = getShort(index); // CONSTANT_Class == to our name
         int outerClassInfoIdx = getShort(index + 2); // CONSTANT_Class == to enclosing class name
         int innerNameIdx = getShort(index + 4); // CONSTANT_Utf8 == simple name
@@ -872,7 +870,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         if (outer == null) {
             return null;
         }
-        NestedClassElement.Builder builder = NestedClassElement.builder();
         builder.setEnclosingType(outer);
         builder.setCorrespondingType(enclosed);
         if (innerNameIdx != 0) {
@@ -883,8 +880,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         return builder.build();
     }
 
-    public MethodElement resolveMethod(final int index, final DefinedTypeDefinition enclosing) {
-        MethodElement.Builder builder = MethodElement.builder();
+    public MethodElement resolveMethod(final int index, final DefinedTypeDefinition enclosing, MethodElement.Builder builder) {
         builder.setEnclosingType(enclosing);
         int methodModifiers = getShort(methodOffsets[index]);
         builder.setModifiers(methodModifiers);
@@ -918,8 +914,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         return builder.build();
     }
 
-    public ConstructorElement resolveConstructor(final int index, final DefinedTypeDefinition enclosing) {
-        ConstructorElement.Builder builder = ConstructorElement.builder();
+    public ConstructorElement resolveConstructor(final int index, final DefinedTypeDefinition enclosing, ConstructorElement.Builder builder) {
         builder.setEnclosingType(enclosing);
         int methodModifiers = getShort(methodOffsets[index]);
         builder.setModifiers(methodModifiers);
@@ -942,8 +937,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         return builder.build();
     }
 
-    public InitializerElement resolveInitializer(final int index, final DefinedTypeDefinition enclosing) {
-        InitializerElement.Builder builder = InitializerElement.builder();
+    public InitializerElement resolveInitializer(final int index, final DefinedTypeDefinition enclosing, InitializerElement.Builder builder) {
         builder.setEnclosingType(enclosing);
         builder.setModifiers(ACC_STATIC);
         if (index != -1) {

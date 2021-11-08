@@ -34,8 +34,8 @@ public class ThreadLocalTypeBuilder implements DefinedTypeDefinition.Builder.Del
     public void addField(FieldResolver resolver, int index) {
         FieldResolver ourResolver = new FieldResolver() {
             @Override
-            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing) {
-                FieldElement resolved = resolver.resolveField(index, enclosing);
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+                FieldElement resolved = resolver.resolveField(index, enclosing, builder);
                 List<Annotation> annotations = resolved.getInvisibleAnnotations();
                 for (Annotation annotation : annotations) {
                     ClassTypeDescriptor desc = annotation.getDescriptor();

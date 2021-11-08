@@ -212,19 +212,19 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         cnt = getFieldCount();
         ArrayList<FieldElement> fields = new ArrayList<>(cnt);
         for (int i = 0; i < cnt; i ++) {
-            fields.add(fieldResolvers[i].resolveField(fieldIndexes[i], this));
+            fields.add(fieldResolvers[i].resolveField(fieldIndexes[i], this, FieldElement.builder()));
         }
         cnt = getMethodCount();
         MethodElement[] methods;
         if (isInterface()) {
             methods = cnt == 0 ? MethodElement.NO_METHODS : new MethodElement[cnt];
             for (int i = 0; i < cnt; i ++) {
-                methods[i] = methodResolvers[i].resolveMethod(methodIndexes[i], this);
+                methods[i] = methodResolvers[i].resolveMethod(methodIndexes[i], this, MethodElement.builder());
             }
         } else {
             List<MethodElement> methodsList = new ArrayList<>(cnt + (cnt >> 1)); // 1.5x size
             for (int i = 0; i < cnt; i ++) {
-                methodsList.add(methodResolvers[i].resolveMethod(methodIndexes[i], this));
+                methodsList.add(methodResolvers[i].resolveMethod(methodIndexes[i], this, MethodElement.builder()));
             }
             // now add methods for any maximally-specific interface methods that are not implemented by this class
             // - but, if the method is default, let's copy it in, body and all
@@ -352,10 +352,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         cnt = getConstructorCount();
         ConstructorElement[] ctors = cnt == 0 ? ConstructorElement.NO_CONSTRUCTORS : new ConstructorElement[cnt];
         for (int i = 0; i < cnt; i ++) {
-            ctors[i] = constructorResolvers[i].resolveConstructor(constructorIndexes[i], this);
+            ctors[i] = constructorResolvers[i].resolveConstructor(constructorIndexes[i], this, ConstructorElement.builder());
         }
-        InitializerElement init = initializerResolver.resolveInitializer(initializerIndex, this);
-        NestedClassElement enclosingClass = enclosingClassResolver == null ? null : enclosingClassResolver.resolveEnclosingNestedClass(enclosingClassResolverIndex, this);
+        InitializerElement init = initializerResolver.resolveInitializer(initializerIndex, this, InitializerElement.builder());
+        NestedClassElement enclosingClass = enclosingClassResolver == null ? null : enclosingClassResolver.resolveEnclosingNestedClass(enclosingClassResolverIndex, this, NestedClassElement.builder());
         NestedClassElement[] enclosedClasses = resolveEnclosedClasses(enclosedClassResolvers, enclosedClassResolverIndexes, 0, 0);
 
         // Construct instanceMethods -- the ordered list of all instance methods inherited and directly implemented.
@@ -506,7 +506,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         if (inIdx == maxInIdx) {
             return outIdx == 0 ? NestedClassElement.NO_NESTED_CLASSES : new NestedClassElement[outIdx];
         }
-        NestedClassElement resolved = resolvers[inIdx].resolveEnclosedNestedClass(indexes[inIdx], this);
+        NestedClassElement resolved = resolvers[inIdx].resolveEnclosedNestedClass(indexes[inIdx], this, NestedClassElement.builder());
         if (resolved != null) {
             NestedClassElement[] array = resolveEnclosedClasses(resolvers, indexes, inIdx + 1, outIdx + 1);
             array[outIdx] = resolved;

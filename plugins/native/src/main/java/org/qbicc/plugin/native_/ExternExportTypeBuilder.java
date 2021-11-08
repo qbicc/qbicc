@@ -85,9 +85,9 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
     public void addField(final FieldResolver resolver, final int index) {
         delegate.addField(new FieldResolver() {
             @Override
-            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing) {
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
                 NativeInfo nativeInfo = NativeInfo.get(ctxt);
-                FieldElement resolved = resolver.resolveField(index, enclosing);
+                FieldElement resolved = resolver.resolveField(index, enclosing, builder);
                 // look for annotations
                 for (Annotation annotation : resolved.getInvisibleAnnotations()) {
                     ClassTypeDescriptor desc = annotation.getDescriptor();
@@ -154,9 +154,9 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
 
     public void addMethod(final MethodResolver resolver, final int index) {
         delegate.addMethod(new MethodResolver() {
-            public MethodElement resolveMethod(final int index, final DefinedTypeDefinition enclosing) {
+            public MethodElement resolveMethod(final int index, final DefinedTypeDefinition enclosing, MethodElement.Builder builder) {
                 NativeInfo nativeInfo = NativeInfo.get(ctxt);
-                MethodElement origMethod = resolver.resolveMethod(index, enclosing);
+                MethodElement origMethod = resolver.resolveMethod(index, enclosing, builder);
                 String name = origMethod.getName();
                 // look for annotations that indicate that this method requires special handling
                 for (Annotation annotation : origMethod.getInvisibleAnnotations()) {
