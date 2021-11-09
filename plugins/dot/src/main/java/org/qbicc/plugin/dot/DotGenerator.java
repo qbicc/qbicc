@@ -120,24 +120,35 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
             return;
         }
         Path path = dir.resolve(phase.toString() + ".dot");
-        try (BufferedWriter bw = Files.newBufferedWriter(path, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
-            bw.write("digraph {");
-            bw.newLine();
-            bw.write("graph [ rankdir = BT ];");
-            bw.newLine();
-            bw.write("edge [ splines = true ];");
-            bw.newLine();
-            bw.newLine();
-            DotNodeVisitor visitor = new DotNodeVisitor(entryBlock);
-            visitor.process(bw);
-            bw.write("}");
-        } catch (IOException e) {
-            failedToWrite(ctxt, path, e);
-        } catch (UncheckedIOException e) {
-            IOException cause = e.getCause();
-            failedToWrite(ctxt, path, cause);
+        try {
+            try (BufferedWriter bw = Files.newBufferedWriter(path, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+                bw.write("digraph {");
+                bw.newLine();
+                bw.write("graph [ rankdir = BT ];");
+                bw.newLine();
+                bw.write("edge [ splines = true ];");
+                bw.newLine();
+                bw.newLine();
+                DotNodeVisitor visitor = new DotNodeVisitor(entryBlock);
+                visitor.process(bw);
+                bw.write("}");
+            } catch (IOException e) {
+                failedToWrite(ctxt, path, e);
+            } catch (UncheckedIOException e) {
+                IOException cause = e.getCause();
+                failedToWrite(ctxt, path, cause);
+            } catch (TooBigException e) {
+                log.debugf("Element \"%s\" is too big to graph", element);
+                throw e;
+            }
         } catch (TooBigException e) {
-            log.debugf("Element \"%s\" is too big to graph", element);
+            try {
+                // Some operating systems will not let you delete a file while it is open.
+                // So, if the graph is too big, attempt to delete the file when the original file has been closed.
+                Files.delete(path);
+            } catch (IOException ex) {
+                // Ignore
+            }
         }
     }
 
