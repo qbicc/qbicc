@@ -36,14 +36,16 @@ final class ClassContextImpl implements ClassContext {
     private final DescriptorTypeResolver descriptorTypeResolver;
     private final ConcurrentMap<String, AtomicReference<Object>> definedClasses = new ConcurrentHashMap<>();
     private final BiFunction<ClassContext, String, DefinedTypeDefinition> finder;
+    private final BiFunction<ClassContext, String, byte[]> resourceFinder;
 
     private static final Object LOADING = new Object();
     private static final Object NOT_FOUND = new Object();
 
-    ClassContextImpl(final CompilationContextImpl compilationContext, final VmClassLoader classLoader, BiFunction<ClassContext, String, DefinedTypeDefinition> finder) {
+    ClassContextImpl(final CompilationContextImpl compilationContext, final VmClassLoader classLoader, BiFunction<ClassContext, String, DefinedTypeDefinition> finder, BiFunction<ClassContext, String, byte[]> resourceFinder) {
         this.compilationContext = compilationContext;
         this.classLoader = classLoader;
         this.finder = finder;
+        this.resourceFinder = resourceFinder;
         DescriptorTypeResolver descriptorTypeResolver = new BasicDescriptorTypeResolver(this);
         for (BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver> factory : compilationContext.resolverFactories) {
             descriptorTypeResolver = factory.apply(this, descriptorTypeResolver);
@@ -86,6 +88,10 @@ final class ClassContextImpl implements ClassContext {
             }
             return definition;
         }
+    }
+
+    public byte[] getResource(String resourceName) {
+        return resourceFinder.apply(this, resourceName);
     }
 
     public String deduplicate(final ByteBuffer buffer, final int offset, final int length) {

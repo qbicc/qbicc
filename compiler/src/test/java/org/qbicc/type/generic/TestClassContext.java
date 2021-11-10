@@ -367,6 +367,10 @@ public class TestClassContext implements ClassContext {
         return null;
     }
 
+    public byte[] getResource(final String resourceName) {
+        return null;
+    }
+
     public DefinedTypeDefinition.Builder newTypeBuilder() {
         return null;
     }
