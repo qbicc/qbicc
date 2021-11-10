@@ -1208,6 +1208,16 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(wordDesc, "isZero", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of()), isZero);
         intrinsics.registerIntrinsic(wordDesc, "isNull", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of()), isZero);
 
+        InstanceIntrinsic isLt = (builder, instance, target, arguments) -> builder.isLt(instance, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType()));
+        InstanceIntrinsic isGt = (builder, instance, target, arguments) -> builder.isGt(instance, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType()));
+        InstanceIntrinsic isLe = (builder, instance, target, arguments) -> builder.isLe(instance, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType()));
+        InstanceIntrinsic isGe = (builder, instance, target, arguments) -> builder.isGe(instance, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType()));
+
+        intrinsics.registerIntrinsic(wordDesc, "isLt", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(wordDesc)), isLt);
+        intrinsics.registerIntrinsic(wordDesc, "isGt", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(wordDesc)), isGt);
+        intrinsics.registerIntrinsic(wordDesc, "isLe", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(wordDesc)), isLe);
+        intrinsics.registerIntrinsic(wordDesc, "isGe", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(wordDesc)), isGe);
+
         InstanceIntrinsic identity = (builder, instance, target, arguments) -> instance;
 
         intrinsics.registerIntrinsic(ptrDesc, "deref", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), identity);

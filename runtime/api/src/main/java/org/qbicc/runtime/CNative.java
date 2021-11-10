@@ -612,6 +612,14 @@ public final class CNative {
         public final boolean isNotPositive() {
             return isUnsigned(getClass()) ? isZero() : longValue() <= 0;
         }
+
+        public native boolean isLt(word other);
+
+        public native boolean isGt(word other);
+
+        public native boolean isLe(word other);
+
+        public native boolean isGe(word other);
     }
 
     /**
