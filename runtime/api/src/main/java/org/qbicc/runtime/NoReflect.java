@@ -7,9 +7,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Indicate that the annotated method is hidden from reflection.
+ * Indicate that the annotated type or member is hidden from reflection.
  */
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD, ElementType.FIELD, ElementType.CONSTRUCTOR, ElementType.TYPE })
 @Retention(RetentionPolicy.CLASS)
 @Documented
 public @interface NoReflect {
