@@ -401,7 +401,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     public String visit(Appendable param, LocalVariable node) {
         String name = register(node);
         appendTo(param, name);
-        attr(param, "label", "local\n\n"+node.getVariableElement().getName());
+        attr(param, "label", "local\\n\\n"+node.getVariableElement().getName());
         nl(param);
         return name;
     }
