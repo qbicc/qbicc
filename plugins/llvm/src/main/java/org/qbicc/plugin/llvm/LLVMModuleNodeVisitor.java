@@ -144,7 +144,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             //   - Add the mapping to types early to avoid infinite recursion when mapping self-referential member types
             CompoundType compoundType = (CompoundType) type;
             HashMap<CompoundType.Member, LLValue> offsets = new HashMap<>();
-            boolean isIdentified = !compoundType.getTag().equals(CompoundType.Tag.INLINE);
+            boolean isIdentified = !compoundType.isAnonymous();
 
             structureOffsets.putIfAbsent(compoundType, offsets);
 

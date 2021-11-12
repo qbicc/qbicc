@@ -25,7 +25,7 @@ public final class CompoundType extends ValueType {
         super(typeSystem, (int) size * 19 + Integer.numberOfTrailingZeros(overallAlign));
         // name/tag do not contribute to hash or equality
         this.tag = tag;
-        this.name = name == null ? "<anon>" : name;
+        this.name = name;
         // todo: assert size ≥ end of last member w/alignment etc.
         this.size = size;
         assert Integer.bitCount(overallAlign) == 1;
@@ -44,8 +44,13 @@ public final class CompoundType extends ValueType {
         this.members = List.of();
     }
 
+    public boolean isAnonymous() {
+        return name == null;
+    }
+
     public String getName() {
-        return name;
+        final String name = this.name;
+        return name == null ? "<anon>" : name;
     }
 
     public List<Member> getMembers() {
@@ -75,7 +80,7 @@ public final class CompoundType extends ValueType {
     }
 
     public Member getMember(String name) {
-        Assert.assertFalse(this.tag.equals(Tag.INLINE)); /* inline members do not have names */
+        Assert.assertFalse(isAnonymous()); /* anonymous structs do not have member names */
         List<Member> members = getMembers();
         for (Member m : members) {
             if (m.getName().equals(name)) {
@@ -98,11 +103,11 @@ public final class CompoundType extends ValueType {
     }
 
     public boolean equals(final ValueType other) {
-        return other instanceof CompoundType && equals((CompoundType) other);
+        return other instanceof CompoundType ct && equals(ct);
     }
 
     public boolean equals(final CompoundType other) {
-        return this == other || super.equals(other) && name.equals(other.name) && size == other.size && align == other.align && getMembers().equals(other.getMembers());
+        return this == other || super.equals(other) && Objects.equals(name, other.name) && size == other.size && align == other.align && getMembers().equals(other.getMembers());
     }
 
     public StringBuilder toString(final StringBuilder b) {
@@ -111,20 +116,14 @@ public final class CompoundType extends ValueType {
         if (tag != Tag.NONE) {
             b.append(tag).append(' ');
         }
-        return b.append(name);
+        return b.append(getName());
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
         b.append("compound.");
-        if (tag == Tag.NONE) {
-            b.append("unt.");
-        } else if (tag == Tag.STRUCT) {
-            b.append("struct.");
-        } else {
-            assert tag == Tag.UNION;
-            b.append("union.");
-        }
-        b.append(name);
+        b.append(tag.toString());
+        b.append('.');
+        b.append(getName());
         return b;
     }
 
@@ -181,11 +180,11 @@ public final class CompoundType extends ValueType {
         }
 
         public boolean equals(final Object obj) {
-            return obj instanceof Member && equals((Member) obj);
+            return obj instanceof Member m && equals(m);
         }
 
         public boolean equals(final Member other) {
-            return other == this || other != null && hashCode == other.hashCode && offset == other.offset && align == other.align && name.equals(other.name) && type.equals(other.type);
+            return other == this || other != null && hashCode == other.hashCode && offset == other.offset && align == other.align && Objects.equals(name, other.name) && type.equals(other.type);
         }
 
         public int compareTo(final Member o) {
@@ -201,9 +200,9 @@ public final class CompoundType extends ValueType {
 
     public enum Tag {
         NONE("untagged"),
+        CLASS("class"),
         STRUCT("struct"),
         UNION("union"),
-        INLINE("inline"), /* LLVM literal structure type */
         ;
         private final String string;
 
@@ -261,7 +260,7 @@ public final class CompoundType extends ValueType {
         }
 
         public Builder addNextMember(final ValueType type) {
-            Assert.assertTrue(this.tag.equals(Tag.INLINE));
+            Assert.assertTrue(name == null);
             return addNextMember("", type, type.getAlign());
         }
 
