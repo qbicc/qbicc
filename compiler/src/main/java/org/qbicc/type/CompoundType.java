@@ -202,7 +202,6 @@ public final class CompoundType extends ValueType {
         NONE("untagged"),
         CLASS("class"),
         STRUCT("struct"),
-        UNION("union"),
         ;
         private final String string;
 

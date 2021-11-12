@@ -196,7 +196,10 @@ final class NativeInfo {
                                 tb.addMember(field.getName());
                             }
                         }
-                        CompoundType.Tag tag = q == Qualifier.NONE ? CompoundType.Tag.NONE : q == Qualifier.STRUCT ? CompoundType.Tag.STRUCT : CompoundType.Tag.UNION;
+                        if (q == Qualifier.UNION) {
+                            throw new UnsupportedOperationException("Unions are presently unsupported");
+                        }
+                        CompoundType.Tag tag = q == Qualifier.NONE ? CompoundType.Tag.NONE : CompoundType.Tag.STRUCT;
                         if (incomplete) {
                             resolved = ts.getIncompleteCompoundType(tag, simpleName);
                         } else {
