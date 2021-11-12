@@ -38,6 +38,7 @@ import org.qbicc.graph.Variable;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ByteArrayLiteral;
+import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
@@ -1386,7 +1387,10 @@ public final class CoreIntrinsics {
                 Section section = ctxt.getImplicitSection(currentElement);
                 return section.addData(null, "utf8z_" + cnt.incrementAndGet(), bal);
             });
-            return lf.bitcastLiteral(lf.literalOf(ctxt.getImplicitSection(builder.getCurrentElement()).declareData(data)), returnType);
+            final IntegerLiteral z = lf.literalOf(0);
+            final ProgramObjectLiteral global = lf.literalOf(ctxt.getImplicitSection(builder.getCurrentElement()).declareData(data));
+            // get the zeroth array element of the zeroth pointer element of the global
+            return builder.addressOf(builder.elementOf(builder.elementOf(builder.pointerHandle(global), z), z));
         };
 
         intrinsics.registerIntrinsic(cNativeDesc, "utf8z", MethodDescriptor.synthesize(classContext, constCharPtrDesc, List.of(strDesc)), utf8z);
