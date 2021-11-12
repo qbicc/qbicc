@@ -2,6 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -84,6 +85,10 @@ public final class InsertElement extends AbstractValue implements Unschedulable 
     @Override
     public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
+    }
+
+    public Value extractElement(LiteralFactory lf, final Value index) {
+        return index.equals(this.index) ? insertedValue : arrayValue.extractElement(lf, index);
     }
 
     public boolean isConstant() {

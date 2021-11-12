@@ -2,6 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -84,6 +85,11 @@ public final class InsertMember extends AbstractValue implements Unschedulable {
     @Override
     public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
+    }
+
+    @Override
+    public Value extractMember(LiteralFactory lf, CompoundType.Member member) {
+        return member.equals(this.member) ? insertedValue : compoundValue.extractMember(lf, member);
     }
 
     public boolean isConstant() {

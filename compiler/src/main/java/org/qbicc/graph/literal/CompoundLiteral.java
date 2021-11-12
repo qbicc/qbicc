@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 
+import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.type.CompoundType;
 
@@ -32,6 +33,10 @@ public final class CompoundLiteral extends Literal {
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    public Value extractMember(LiteralFactory lf, CompoundType.Member member) {
+        return values.get(member);
     }
 
     public boolean isZero() {
