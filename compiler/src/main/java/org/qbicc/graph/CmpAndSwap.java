@@ -162,7 +162,7 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
         if (compoundType == null) {
             TypeSystem ts = ctxt.getTypeSystem();
             compoundType = CompoundType.builder(ts)
-                .setTag(CompoundType.Tag.INLINE)
+                .setTag(CompoundType.Tag.NONE)
                 .setName(null)
                 .addNextMember(valueType)
                 .addNextMember(ts.getBooleanType())

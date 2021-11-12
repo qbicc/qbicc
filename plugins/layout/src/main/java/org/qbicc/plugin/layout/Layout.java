@@ -116,7 +116,7 @@ public final class Layout {
         CompoundType.Member[] membersArray = fieldToMember.values().toArray(CompoundType.Member[]::new);
         Arrays.sort(membersArray);
         List<CompoundType.Member> membersList = List.of(membersArray);
-        CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.NONE, type.getInternalName().replace('/', '.'), size, minAlignment, () -> membersList);
+        CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.CLASS, type.getInternalName().replace('/', '.'), size, minAlignment, () -> membersList);
         layoutInfo = new LayoutInfo(allocated, compoundType, fieldToMember);
         LayoutInfo appearing = instanceLayouts.putIfAbsent(validated, layoutInfo);
         return appearing != null ? appearing : layoutInfo;
@@ -152,7 +152,7 @@ public final class Layout {
         CompoundType.Member[] membersArray = fieldToMember.values().toArray(CompoundType.Member[]::new);
         Arrays.sort(membersArray);
         List<CompoundType.Member> membersList = List.of(membersArray);
-        CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.NONE, type.getInternalName().replace('/', '.'), size, 1, () -> membersList);
+        CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.CLASS, type.getInternalName().replace('/', '.'), size, 1, () -> membersList);
         layoutInfo = new LayoutInfo(allocated, compoundType, fieldToMember);
         LayoutInfo appearing = staticLayouts.putIfAbsent(loaded, layoutInfo);
         return appearing != null ? appearing : layoutInfo;

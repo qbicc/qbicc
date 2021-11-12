@@ -144,7 +144,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             //   - Add the mapping to types early to avoid infinite recursion when mapping self-referential member types
             CompoundType compoundType = (CompoundType) type;
             HashMap<CompoundType.Member, LLValue> offsets = new HashMap<>();
-            boolean isIdentified = !compoundType.getTag().equals(CompoundType.Tag.INLINE);
+            boolean isIdentified = !compoundType.isAnonymous();
 
             structureOffsets.putIfAbsent(compoundType, offsets);
 
@@ -152,13 +152,11 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             if (isIdentified) {
                 String compoundName = compoundType.getName();
                 String name;
-                if (compoundName.equals("<anon>")) {
-                    name = "T.anon" + anonCnt.getAndIncrement();
-                } else if (compoundType.getTag() == CompoundType.Tag.NONE) {
-                    String outputName = "T." + compoundName;
+                if (compoundType.getTag() == CompoundType.Tag.NONE) {
+                    String outputName = "type." + compoundName;
                     name = LLVM.needsQuotes(compoundName) ? LLVM.quoteString(outputName) : outputName;
                 } else {
-                    String outputName = "T." + compoundType.getTag() + "." + compoundName;
+                    String outputName = compoundType.getTag() + "." + compoundName;
                     name = LLVM.needsQuotes(compoundName) ? LLVM.quoteString(outputName) : outputName;
                 }
                 identifiedType = module.identifiedType(name);
