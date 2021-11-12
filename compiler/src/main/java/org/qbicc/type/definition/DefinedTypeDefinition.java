@@ -13,6 +13,7 @@ import org.qbicc.type.definition.classfile.BootstrapMethod;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.ClassSignature;
 import org.qbicc.type.generic.TypeParameter;
 import org.qbicc.type.generic.TypeParameterContext;
@@ -196,15 +197,15 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
 
         void expectFieldCount(int count);
 
-        void addField(FieldResolver resolver, int index);
+        void addField(FieldResolver resolver, int index, String name, TypeDescriptor descriptor);
 
         void expectMethodCount(int count);
 
-        void addMethod(MethodResolver resolver, int index);
+        void addMethod(MethodResolver resolver, int index, String name, MethodDescriptor descriptor);
 
         void expectConstructorCount(int count);
 
-        void addConstructor(ConstructorResolver resolver, int index);
+        void addConstructor(ConstructorResolver resolver, int index, MethodDescriptor descriptor);
 
         void setEnclosingClass(String internalName, EnclosingClassResolver resolver, int index);
 
@@ -261,24 +262,24 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
                 getDelegate().expectFieldCount(count);
             }
 
-            default void addField(FieldResolver resolver, int index) {
-                getDelegate().addField(resolver, index);
+            default void addField(FieldResolver resolver, int index, String name, TypeDescriptor descriptor) {
+                getDelegate().addField(resolver, index, name, descriptor);
             }
 
             default void expectMethodCount(int count) {
                 getDelegate().expectMethodCount(count);
             }
 
-            default void addMethod(MethodResolver resolver, int index) {
-                getDelegate().addMethod(resolver, index);
+            default void addMethod(MethodResolver resolver, int index, String name, MethodDescriptor descriptor) {
+                getDelegate().addMethod(resolver, index, name, descriptor);
             }
 
             default void expectConstructorCount(int count) {
                 getDelegate().expectConstructorCount(count);
             }
 
-            default void addConstructor(ConstructorResolver resolver, int index) {
-                getDelegate().addConstructor(resolver, index);
+            default void addConstructor(ConstructorResolver resolver, int index, MethodDescriptor descriptor) {
+                getDelegate().addConstructor(resolver, index, descriptor);
             }
 
             default void setEnclosingClass(String internalName, EnclosingClassResolver resolver, int index) {

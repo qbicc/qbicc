@@ -478,12 +478,10 @@ final class CompilationContextImpl implements CompilationContext {
             synchronized (exceptionFieldHolder) {
                 fieldElement = exceptionFieldHolder.get();
                 if (fieldElement == null) {
-                    FieldElement.Builder builder = FieldElement.builder();
-                    builder.setName("thrown");
                     ClassContext classContext = this.bootstrapClassContext;
-                    DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
                     ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Throwable");
-                    builder.setDescriptor(desc);
+                    FieldElement.Builder builder = FieldElement.builder("thrown", desc);
+                    DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
                     builder.setSignature(TypeSignature.synthesize(classContext, desc));
                     builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
                     builder.setEnclosingType(jlt);

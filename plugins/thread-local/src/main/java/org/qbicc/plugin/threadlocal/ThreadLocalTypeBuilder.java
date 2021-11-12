@@ -10,6 +10,7 @@ import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  *
@@ -31,7 +32,7 @@ public class ThreadLocalTypeBuilder implements DefinedTypeDefinition.Builder.Del
     }
 
     @Override
-    public void addField(FieldResolver resolver, int index) {
+    public void addField(FieldResolver resolver, int index, String name, TypeDescriptor descriptor) {
         FieldResolver ourResolver = new FieldResolver() {
             @Override
             public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
@@ -50,16 +51,14 @@ public class ThreadLocalTypeBuilder implements DefinedTypeDefinition.Builder.Del
                             }
                             resolved.setModifierFlags(ClassFile.I_ACC_THREAD_LOCAL);
                             DefinedTypeDefinition jlt = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread");
-                            FieldElement.Builder injectedFieldBuilder = FieldElement.builder();
+                            FieldElement.Builder injectedFieldBuilder = FieldElement.builder(resolved.getName(), resolved.getTypeDescriptor());
                             int modifiers = resolved.getModifiers();
                             // remove unwanted modifiers
                             modifiers &= ~(ClassFile.I_ACC_THREAD_LOCAL | ClassFile.ACC_STATIC);
                             // add these modifiers
                             modifiers |= ClassFile.I_ACC_NO_RESOLVE | ClassFile.I_ACC_NO_REFLECT;
                             injectedFieldBuilder.setModifiers(modifiers);
-                            injectedFieldBuilder.setName(resolved.getName());
                             injectedFieldBuilder.setSourceFileName(resolved.getSourceFileName());
-                            injectedFieldBuilder.setDescriptor(resolved.getTypeDescriptor());
                             injectedFieldBuilder.setSignature(resolved.getTypeSignature());
                             injectedFieldBuilder.setEnclosingType(jlt);
                             FieldElement injectedField = injectedFieldBuilder.build();
@@ -71,6 +70,6 @@ public class ThreadLocalTypeBuilder implements DefinedTypeDefinition.Builder.Del
                 return resolved;
             }
         };
-        delegate.addField(ourResolver, index);
+        delegate.addField(ourResolver, index, name, descriptor);
     }
 }

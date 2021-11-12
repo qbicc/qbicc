@@ -34,6 +34,7 @@ import org.qbicc.type.definition.element.ParameterElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.ClassSignature;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.generic.MethodSignature;
@@ -50,12 +51,18 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private final String[] interfaceNames;
     private final ClassTypeDescriptor descriptor;
     private final ClassSignature signature;
+    private final String[] methodNames;
+    private final MethodDescriptor[] methodDescriptors;
     private final MethodResolver[] methodResolvers;
     private final int[] methodIndexes;
+    private final String[] fieldNames;
+    private final TypeDescriptor[] fieldDescriptors;
     private final FieldResolver[] fieldResolvers;
     private final int[] fieldIndexes;
+    private final MethodDescriptor[] constructorDescriptors;
     private final ConstructorResolver[] constructorResolvers;
     private final int[] constructorIndexes;
+    // this is the whole-class initializer
     private final InitializerResolver initializerResolver;
     private final int initializerIndex;
     private final List<Annotation> visibleAnnotations;
@@ -75,7 +82,9 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
     private volatile DefinedTypeDefinition loaded;
 
-    private static final String[] NO_INTERFACES = new String[0];
+    private static final String[] NO_STRINGS = new String[0];
+    private static final TypeDescriptor[] NO_DESCRIPTORS = new TypeDescriptor[0];
+    private static final MethodDescriptor[] NO_METHOD_DESCRIPTORS = new MethodDescriptor[0];
     private static final int[] NO_INTS = new int[0];
     private static final MethodResolver[] NO_METHODS = new MethodResolver[0];
     private static final FieldResolver[] NO_FIELDS = new FieldResolver[0];
@@ -96,16 +105,21 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         }
         this.modifiers = builder.modifiers;
         int interfaceCount = builder.interfaceCount;
-        this.interfaceNames = interfaceCount == 0 ? NO_INTERFACES : Arrays.copyOf(builder.interfaceNames, interfaceCount);
+        this.interfaceNames = interfaceCount == 0 ? NO_STRINGS : Arrays.copyOf(builder.interfaceNames, interfaceCount);
         int methodCount = builder.methodCount;
         this.descriptor = Assert.checkNotNullParam("builder.descriptor", builder.descriptor);
         this.signature = Assert.checkNotNullParam("builder.signature", builder.signature);
+        this.methodNames = methodCount == 0 ? NO_STRINGS : Arrays.copyOf(builder.methodNames, methodCount);
+        this.methodDescriptors = methodCount == 0 ? NO_METHOD_DESCRIPTORS : Arrays.copyOf(builder.methodDescriptors, methodCount);
         this.methodResolvers = methodCount == 0 ? NO_METHODS : Arrays.copyOf(builder.methodResolvers, methodCount);
         this.methodIndexes = methodCount == 0 ? NO_INTS : Arrays.copyOf(builder.methodIndexes, methodCount);
         int fieldCount = builder.fieldCount;
+        this.fieldNames = fieldCount == 0 ? NO_STRINGS : Arrays.copyOf(builder.fieldNames, fieldCount);
+        this.fieldDescriptors = fieldCount == 0 ? NO_DESCRIPTORS : Arrays.copyOf(builder.fieldDescriptors, fieldCount);
         this.fieldResolvers = fieldCount == 0 ? NO_FIELDS : Arrays.copyOf(builder.fieldResolvers, fieldCount);
         this.fieldIndexes = fieldCount == 0 ? NO_INTS : Arrays.copyOf(builder.fieldIndexes, fieldCount);
         int constructorCount = builder.constructorCount;
+        this.constructorDescriptors = constructorCount == 0 ? NO_METHOD_DESCRIPTORS : Arrays.copyOf(builder.constructorDescriptors, constructorCount);
         this.constructorResolvers = constructorCount == 0 ? NO_CONSTRUCTORS : Arrays.copyOf(builder.constructorResolvers, constructorCount);
         this.constructorIndexes = constructorCount == 0 ? NO_INTS : Arrays.copyOf(builder.constructorIndexes, constructorCount);
         this.visibleAnnotations = builder.visibleAnnotations;
@@ -212,19 +226,19 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         cnt = getFieldCount();
         ArrayList<FieldElement> fields = new ArrayList<>(cnt);
         for (int i = 0; i < cnt; i ++) {
-            fields.add(fieldResolvers[i].resolveField(fieldIndexes[i], this, FieldElement.builder()));
+            fields.add(fieldResolvers[i].resolveField(fieldIndexes[i], this, FieldElement.builder(fieldNames[i], fieldDescriptors[i])));
         }
         cnt = getMethodCount();
         MethodElement[] methods;
         if (isInterface()) {
             methods = cnt == 0 ? MethodElement.NO_METHODS : new MethodElement[cnt];
             for (int i = 0; i < cnt; i ++) {
-                methods[i] = methodResolvers[i].resolveMethod(methodIndexes[i], this, MethodElement.builder());
+                methods[i] = methodResolvers[i].resolveMethod(methodIndexes[i], this, MethodElement.builder(methodNames[i], methodDescriptors[i]));
             }
         } else {
             List<MethodElement> methodsList = new ArrayList<>(cnt + (cnt >> 1)); // 1.5x size
             for (int i = 0; i < cnt; i ++) {
-                methodsList.add(methodResolvers[i].resolveMethod(methodIndexes[i], this, MethodElement.builder()));
+                methodsList.add(methodResolvers[i].resolveMethod(methodIndexes[i], this, MethodElement.builder(methodNames[i], methodDescriptors[i])));
             }
             // now add methods for any maximally-specific interface methods that are not implemented by this class
             // - but, if the method is default, let's copy it in, body and all
@@ -261,9 +275,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                     defaultMethod = element;
                                 } else {
                                     // conflict method! Synthesize a method that throws ICCE
-                                    MethodElement.Builder builder = MethodElement.builder();
-                                    builder.setName(name);
-                                    builder.setDescriptor(descriptor);
+                                    MethodElement.Builder builder = MethodElement.builder(name, descriptor);
                                     builder.setEnclosingType(this);
                                     // inheritable interface methods are public
                                     builder.setModifiers(ClassFile.ACC_PUBLIC);
@@ -302,9 +314,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                         }
                         assert oneOfTheMethods != null;
                         // non-conflict method
-                        MethodElement.Builder builder = MethodElement.builder();
-                        builder.setName(name);
-                        builder.setDescriptor(descriptor);
+                        MethodElement.Builder builder = MethodElement.builder(name, descriptor);
                         builder.setEnclosingType(this);
                         builder.setInvisibleAnnotations(List.of());
                         builder.setVisibleAnnotations(List.of());
@@ -352,7 +362,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         cnt = getConstructorCount();
         ConstructorElement[] ctors = cnt == 0 ? ConstructorElement.NO_CONSTRUCTORS : new ConstructorElement[cnt];
         for (int i = 0; i < cnt; i ++) {
-            ctors[i] = constructorResolvers[i].resolveConstructor(constructorIndexes[i], this, ConstructorElement.builder());
+            ctors[i] = constructorResolvers[i].resolveConstructor(constructorIndexes[i], this, ConstructorElement.builder(constructorDescriptors[i]));
         }
         InitializerElement init = initializerResolver.resolveInitializer(initializerIndex, this, InitializerElement.builder());
         NestedClassElement enclosingClass = enclosingClassResolver == null ? null : enclosingClassResolver.resolveEnclosingNestedClass(enclosingClassResolverIndex, this, NestedClassElement.builder());
@@ -564,18 +574,23 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         String superClassName = "java/lang/Object";
         int modifiers = ClassFile.ACC_SUPER;
         int interfaceCount;
-        String[] interfaceNames = NO_INTERFACES;
+        String[] interfaceNames = NO_STRINGS;
         ClassTypeDescriptor descriptor;
         ClassSignature signature;
         int methodCount;
         MethodResolver[] methodResolvers = NO_METHODS;
         int[] methodIndexes = NO_INTS;
+        String[] methodNames = NO_STRINGS;
+        MethodDescriptor[] methodDescriptors = NO_METHOD_DESCRIPTORS;
         int fieldCount;
         FieldResolver[] fieldResolvers = NO_FIELDS;
         int[] fieldIndexes = NO_INTS;
+        String[] fieldNames = NO_STRINGS;
+        TypeDescriptor[] fieldDescriptors = NO_DESCRIPTORS;
         int constructorCount;
         ConstructorResolver[] constructorResolvers = NO_CONSTRUCTORS;
         int[] constructorIndexes = NO_INTS;
+        MethodDescriptor[] constructorDescriptors = NO_METHOD_DESCRIPTORS;
         InitializerResolver initializerResolver;
         int initializerIndex;
         List<Annotation> visibleAnnotations = List.of();
@@ -613,16 +628,22 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             if (fieldResolvers == null) {
                 this.fieldResolvers = new FieldResolver[count];
                 this.fieldIndexes = new int[count];
+                this.fieldNames = new String[count];
+                this.fieldDescriptors = new TypeDescriptor[count];
             } else if (fieldResolvers.length < count) {
                 this.fieldResolvers = Arrays.copyOf(fieldResolvers, count);
                 this.fieldIndexes = Arrays.copyOf(fieldIndexes, count);
+                this.fieldNames = Arrays.copyOf(fieldNames, count);
+                this.fieldDescriptors = Arrays.copyOf(fieldDescriptors, count);
             }
         }
 
-        public void addField(final FieldResolver resolver, final int index) {
+        public void addField(final FieldResolver resolver, final int index, String name, TypeDescriptor descriptor) {
             Assert.checkNotNullParam("resolver", resolver);
             FieldResolver[] fieldResolvers = this.fieldResolvers;
             int[] fieldIndexes = this.fieldIndexes;
+            String[] fieldNames = this.fieldNames;
+            TypeDescriptor[] fieldDescriptors = this.fieldDescriptors;
             int len = fieldResolvers.length;
             int fieldCount = this.fieldCount;
             if (fieldCount == len) {
@@ -630,9 +651,13 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                 int newSize = len == 0 ? 4 : len << 1;
                 fieldResolvers = this.fieldResolvers = Arrays.copyOf(fieldResolvers, newSize);
                 fieldIndexes = this.fieldIndexes = Arrays.copyOf(fieldIndexes, newSize);
+                fieldNames = this.fieldNames = Arrays.copyOf(fieldNames, newSize);
+                fieldDescriptors = this.fieldDescriptors = Arrays.copyOf(fieldDescriptors, newSize);
             }
             fieldResolvers[fieldCount] = resolver;
             fieldIndexes[fieldCount] = index;
+            fieldNames[fieldCount] = name;
+            fieldDescriptors[fieldCount] = descriptor;
             this.fieldCount = fieldCount + 1;
         }
 
@@ -645,16 +670,22 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             if (methodResolvers == null) {
                 this.methodResolvers = new MethodResolver[count];
                 this.methodIndexes = new int[count];
+                this.methodNames = new String[count];
+                this.methodDescriptors = new MethodDescriptor[count];
             } else if (methodResolvers.length < count) {
                 this.methodResolvers = Arrays.copyOf(methodResolvers, count);
                 this.methodIndexes = Arrays.copyOf(methodIndexes, count);
+                this.methodNames = Arrays.copyOf(methodNames, count);
+                this.methodDescriptors = Arrays.copyOf(methodDescriptors, count);
             }
         }
 
-        public void addMethod(final MethodResolver resolver, final int index) {
+        public void addMethod(final MethodResolver resolver, final int index, String name, MethodDescriptor descriptor) {
             Assert.checkNotNullParam("resolver", resolver);
             MethodResolver[] methodResolvers = this.methodResolvers;
             int[] methodIndexes = this.methodIndexes;
+            String[] methodNames = this.methodNames;
+            MethodDescriptor[] methodDescriptors = this.methodDescriptors;
             int len = methodResolvers.length;
             int methodCount = this.methodCount;
             if (methodCount == len) {
@@ -662,9 +693,13 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                 int newSize = len == 0 ? 4 : len << 1;
                 methodResolvers = this.methodResolvers = Arrays.copyOf(methodResolvers, newSize);
                 methodIndexes = this.methodIndexes = Arrays.copyOf(methodIndexes, newSize);
+                methodNames = this.methodNames = Arrays.copyOf(methodNames, newSize);
+                methodDescriptors = this.methodDescriptors = Arrays.copyOf(methodDescriptors, newSize);
             }
             methodResolvers[methodCount] = resolver;
             methodIndexes[methodCount] = index;
+            methodNames[methodCount] = name;
+            methodDescriptors[methodCount] = descriptor;
             this.methodCount = methodCount + 1;
         }
 
@@ -677,16 +712,19 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             if (constructorResolvers == null) {
                 this.constructorResolvers = new ConstructorResolver[count];
                 this.constructorIndexes = new int[count];
+                this.constructorDescriptors = new MethodDescriptor[count];
             } else if (constructorResolvers.length < count) {
                 this.constructorResolvers = Arrays.copyOf(constructorResolvers, count);
                 this.constructorIndexes = Arrays.copyOf(constructorIndexes, count);
+                this.constructorDescriptors = Arrays.copyOf(constructorDescriptors, count);
             }
         }
 
-        public void addConstructor(final ConstructorResolver resolver, final int index) {
+        public void addConstructor(final ConstructorResolver resolver, final int index, MethodDescriptor descriptor) {
             Assert.checkNotNullParam("resolver", resolver);
             ConstructorResolver[] constructorResolvers = this.constructorResolvers;
             int[] constructorIndexes = this.constructorIndexes;
+            MethodDescriptor[] constructorDescriptors = this.constructorDescriptors;
             int len = constructorResolvers.length;
             int constructorCount = this.constructorCount;
             if (constructorCount == len) {
@@ -694,9 +732,11 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                 int newSize = len == 0 ? 4 : len << 1;
                 constructorResolvers = this.constructorResolvers = Arrays.copyOf(constructorResolvers, newSize);
                 constructorIndexes = this.constructorIndexes = Arrays.copyOf(constructorIndexes, newSize);
+                constructorDescriptors = this.constructorDescriptors = Arrays.copyOf(constructorDescriptors, newSize);
             }
             constructorResolvers[constructorCount] = resolver;
             constructorIndexes[constructorCount] = index;
+            constructorDescriptors[constructorCount] = descriptor;
             this.constructorCount = constructorCount + 1;
         }
 

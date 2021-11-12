@@ -20,6 +20,7 @@ public final class InitializerElement extends BasicElement implements Executable
     final int minimumLineNumber;
     final int maximumLineNumber;
     boolean inProgress;
+    volatile int lowerIndex;
 
     InitializerElement(BuilderImpl builder) {
         super(builder);
@@ -103,6 +104,24 @@ public final class InitializerElement extends BasicElement implements Executable
 
     public int getMaximumLineNumber() {
         return maximumLineNumber;
+    }
+
+    /**
+     * Get the lowered index of this initializer. Used to locate the table entry for run time initializer checks.
+     *
+     * @return the lowered index
+     */
+    public int getLowerIndex() {
+        return lowerIndex;
+    }
+
+    /**
+     * Set the lowered index.
+     *
+     * @param lowerIndex the lowered index
+     */
+    public void setLowerIndex(int lowerIndex) {
+        this.lowerIndex = lowerIndex;
     }
 
     public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {

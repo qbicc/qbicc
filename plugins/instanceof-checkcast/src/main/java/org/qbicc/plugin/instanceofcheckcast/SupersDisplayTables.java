@@ -438,12 +438,9 @@ public class SupersDisplayTables {
         ArrayType typeIdsArrayType = ts.getArrayType(typeIdStruct, get_number_of_typeids());
 
         // create a GlobalVariable for shared access to the typeId array
-        GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
-        builder.setName(GLOBAL_TYPEID_ARRAY);
+        GlobalVariableElement.Builder builder = GlobalVariableElement.builder(GLOBAL_TYPEID_ARRAY, BaseTypeDescriptor.V);
         builder.setType(typeIdsArrayType);
         builder.setEnclosingType(jlo);
-        // void for now, but this is cheating terribly
-        builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
         typeIdArrayGlobal = builder.build();
         typeIdStructType = typeIdStruct;
@@ -584,12 +581,9 @@ public class SupersDisplayTables {
             .build();
 
         // create a GlobalVariable for shared access to the clinitStates struct
-        GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
-        builder.setName(GLOBAL_CLINIT_STATES_STRUCT);
+        GlobalVariableElement.Builder builder = GlobalVariableElement.builder(GLOBAL_CLINIT_STATES_STRUCT, BaseTypeDescriptor.V);
         builder.setType(clinit_state_t);
         builder.setEnclosingType(jlo);
-        // void for now, but this is cheating terribly
-        builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
         clinitStatesGlobal = builder.build();
     }

@@ -128,30 +128,30 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             int entryCount = info.getLocalVarEntryCount(slot);
             varsByTableEntry[slot] = new LocalVariableElement[entryCount];
             for (int entry = 0; entry < entryCount; entry ++) {
-                LocalVariableElement.Builder builder = LocalVariableElement.builder();
+                int cons = info.getLocalVarNameIndex(slot, entry);
+                boolean realName = false;
+                String name;
+                if (cons == 0) {
+                    name = "var" + slot + "_" + entry;
+                } else {
+                    realName = true;
+                    name = info.getClassFile().getUtf8Constant(cons);
+                }
+                cons = info.getLocalVarDescriptorIndex(slot, entry);
+                if (cons == 0) {
+                    throw new IllegalStateException("No descriptor for local variable");
+                }
+                TypeDescriptor typeDescriptor = (TypeDescriptor) info.getClassFile().getDescriptorConstant(cons);
+                LocalVariableElement.Builder builder = LocalVariableElement.builder(name, typeDescriptor);
                 int startPc = info.getLocalVarStartPc(slot, entry);
                 if (startPc == 0) {
                     builder.setReflectsParameter(true);
                 }
                 builder.setBci(startPc);
                 builder.setLine(info.getLineNumber(startPc));
-                int cons = info.getLocalVarNameIndex(slot, entry);
-                boolean realName = false;
-                if (cons == 0) {
-                    builder.setName("var" + slot + "_" + entry);
-                } else {
-                    realName = true;
-                    builder.setName(info.getClassFile().getUtf8Constant(cons));
-                }
                 builder.setIndex(slot);
                 builder.setEnclosingType(gf.getCurrentElement().getEnclosingType());
                 builder.setTypeParameterContext(gf.getCurrentElement().getTypeParameterContext());
-                cons = info.getLocalVarDescriptorIndex(slot, entry);
-                if (cons == 0) {
-                    throw new IllegalStateException("No descriptor for local variable");
-                }
-                TypeDescriptor typeDescriptor = (TypeDescriptor) info.getClassFile().getDescriptorConstant(cons);
-                builder.setDescriptor(typeDescriptor);
                 cons = info.getLocalVarSignatureIndex(slot, entry);
                 if (cons == 0) {
                     builder.setSignature(TypeSignature.synthesize(ctxt, typeDescriptor));

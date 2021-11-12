@@ -115,9 +115,8 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
     }
 
     public interface Builder extends AnnotatedElement.Builder, NamedElement.Builder {
-        void setName(final String name);
 
-        void setDescriptor(TypeDescriptor typeDescriptor);
+        TypeDescriptor getDescriptor();
 
         void setSignature(TypeSignature typeSignature);
 
@@ -136,8 +135,8 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
             Builder getDelegate();
 
             @Override
-            default void setDescriptor(TypeDescriptor typeDescriptor) {
-                getDelegate().setDescriptor(typeDescriptor);
+            default TypeDescriptor getDescriptor() {
+                return getDelegate().getDescriptor();
             }
 
             @Override
@@ -166,11 +165,6 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
             }
 
             @Override
-            default void setName(final String name) {
-                getDelegate().setName(name);
-            }
-
-            @Override
             default VariableElement build() {
                 return getDelegate().build();
             }
@@ -178,15 +172,18 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
     }
 
     static abstract class BuilderImpl extends AnnotatedElement.BuilderImpl implements Builder {
-        private String name;
-        private TypeDescriptor typeDescriptor;
+        private final String name;
+        private final TypeDescriptor typeDescriptor;
         private TypeSignature typeSignature;
         private TypeAnnotationList visibleTypeAnnotations = TypeAnnotationList.empty();
         private TypeAnnotationList invisibleTypeAnnotations = TypeAnnotationList.empty();
         private TypeParameterContext typeParameterContext;
         private ValueType type;
 
-        BuilderImpl() {}
+        BuilderImpl(final String name, final TypeDescriptor typeDescriptor) {
+            this.name = name;
+            this.typeDescriptor = typeDescriptor;
+        }
 
         BuilderImpl(final VariableElement original) {
             super(original);
@@ -199,12 +196,12 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
             type = original.type;
         }
 
-        public void setName(final String name) {
-            this.name = name;
+        public String getName() {
+            return name;
         }
 
-        public void setDescriptor(TypeDescriptor typeDescriptor) {
-            this.typeDescriptor = Assert.checkNotNullParam("typeDescriptor", typeDescriptor);
+        public TypeDescriptor getDescriptor() {
+            return typeDescriptor;
         }
 
         public void setSignature(TypeSignature typeSignature) {

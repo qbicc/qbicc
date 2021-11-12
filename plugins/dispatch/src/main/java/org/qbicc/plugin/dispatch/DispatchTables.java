@@ -133,14 +133,11 @@ public class DispatchTables {
     }
 
     void buildVTablesGlobal(DefinedTypeDefinition containingType) {
-        GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
-        builder.setName("qbicc_vtables_array");
-        // Invariant: typeIds are assigned from 1...N, where N is the number of reachable classes as computed by RTA 
+        GlobalVariableElement.Builder builder = GlobalVariableElement.builder("qbicc_vtables_array", BaseTypeDescriptor.V);
+        // Invariant: typeIds are assigned from 1...N, where N is the number of reachable classes as computed by RTA
         // plus 18 for 8 primitive types, void, 8 primitive arrays and reference array.
         builder.setType(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getVoidType().getPointer().getPointer(), vtables.size()+19));  //TODO: communicate this +19 better
         builder.setEnclosingType(containingType);
-        // void for now, but this is cheating terribly
-        builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
         vtablesGlobal = builder.build();
     }
@@ -152,14 +149,11 @@ public class DispatchTables {
         itableDictType = ts.getCompoundType(CompoundType.Tag.STRUCT, "qbicc_itable_dict_entry", ts.getPointerSize() + ts.getTypeIdSize(),
             ts.getPointerAlignment(), () -> List.of(itableMember, typeIdMember));
 
-        GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
-        builder.setName("qbicc_itable_dicts_array");
+        GlobalVariableElement.Builder builder = GlobalVariableElement.builder("qbicc_itable_dicts_array", BaseTypeDescriptor.V);
         // Invariant: typeIds are assigned from 1...N, where N is the number of reachable classes as computed by RTA
         // plus 18 for 8 primitive types, void, 8 primitive arrays and reference array.
         builder.setType(ts.getArrayType(ts.getArrayType(itableDictType, 0).getPointer(), vtables.size()+19));  //TODO: communicate this +19 better
         builder.setEnclosingType(containingType);
-        // void for now, but this is cheating terribly
-        builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
         itablesGlobal = builder.build();
     }

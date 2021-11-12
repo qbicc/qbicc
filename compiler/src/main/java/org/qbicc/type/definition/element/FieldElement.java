@@ -3,6 +3,7 @@ package org.qbicc.type.definition.element;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 
 /**
@@ -45,8 +46,8 @@ public final class FieldElement extends VariableElement implements MemberElement
         return runTimeInitializer;
     }
 
-    public static Builder builder() {
-        return new BuilderImpl();
+    public static Builder builder(String name, TypeDescriptor descriptor) {
+        return new BuilderImpl(name, descriptor);
     }
 
     public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
@@ -86,7 +87,9 @@ public final class FieldElement extends VariableElement implements MemberElement
     }
 
     static final class BuilderImpl extends VariableElement.BuilderImpl implements Builder {
-        BuilderImpl() {}
+        BuilderImpl(String name, TypeDescriptor typeDescriptor) {
+            super(name, typeDescriptor);
+        }
 
         private Literal initialValue;
         private InitializerElement runTimeInitializer;

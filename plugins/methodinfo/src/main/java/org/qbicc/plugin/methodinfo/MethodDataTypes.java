@@ -4,7 +4,6 @@ import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.object.Section;
-import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
@@ -69,11 +68,9 @@ public class MethodDataTypes {
             .addNextMember("instructionTableSize", uint32Type)
             .build();
 
-        GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
-        builder.setName(QBICC_GLOBAL_METHOD_DATA);
+        GlobalVariableElement.Builder builder = GlobalVariableElement.builder(QBICC_GLOBAL_METHOD_DATA, BaseTypeDescriptor.V);
         builder.setType(globalMethodDataType);
         builder.setEnclosingType(ctxt.getDefaultTypeDefinition().load());
-        builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
         globalMethodData = builder.build();
     }

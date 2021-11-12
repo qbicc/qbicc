@@ -558,6 +558,18 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         return methodOffsets.length;
     }
 
+    public int getMethodModifiers(int idx) {
+        return getShort(methodOffsets[idx]);
+    }
+
+    public String getMethodName(int idx) {
+        return getUtf8Constant(getShort(methodOffsets[idx] + 2));
+    }
+
+    public MethodDescriptor getMethodDescriptor(int idx) {
+        return (MethodDescriptor) getDescriptorConstant(getShort(methodOffsets[idx] + 4));
+    }
+
     public int getMethodAttributeCount(final int idx) throws IndexOutOfBoundsException {
         return methodAttributeOffsets[idx].length;
     }
@@ -783,10 +795,12 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 builder.setInitializer(this, i);
                 foundInitializer = true;
             } else {
+                MethodDescriptor methodDescriptor = (MethodDescriptor) getDescriptorConstant(getShort(base + 4));
                 if (utf8ConstantEquals(nameIdx, "<init>")) {
-                    builder.addConstructor(this, i);
+                    builder.addConstructor(this, i, methodDescriptor);
                 } else {
-                    builder.addMethod(this, i);
+                    String name = getUtf8Constant(nameIdx);
+                    builder.addMethod(this, i, name, methodDescriptor);
                 }
             }
         }
@@ -796,7 +810,9 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
         acnt = getFieldCount();
         for (int i = 0; i < acnt; i ++) {
-            builder.addField(this, i);
+            String name = getUtf8Constant(getShort(fieldOffsets[i] + 2));
+            TypeDescriptor typeDescriptor = (TypeDescriptor) getDescriptorConstant(getShort(fieldOffsets[i] + 4));
+            builder.addField(this, i, name, typeDescriptor);
         }
         builder.setModifiers(access);
     }
@@ -804,10 +820,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
     public FieldElement resolveField(final int index, final DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
         builder.setEnclosingType(enclosing);
         TypeDescriptor typeDescriptor = (TypeDescriptor) getDescriptorConstant(getShort(fieldOffsets[index] + 4));
-        builder.setDescriptor(typeDescriptor);
-        int modifiers = getShort(fieldOffsets[index]);
+        int modifiers = getFieldModifiers(index);
         builder.setModifiers(modifiers);
-        builder.setName(getUtf8Constant(getShort(fieldOffsets[index] + 2)));
         // process attributes
         TypeSignature signature = null;
         int cnt = getFieldAttributeCount(index);
@@ -840,6 +854,18 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         builder.setSourceFileName(sourceFile);
         builder.setIndex(index);
         return builder.build();
+    }
+
+    public String getFieldName(final int index) {
+        return getUtf8Constant(getShort(fieldOffsets[index] + 2));
+    }
+
+    public TypeDescriptor getFieldDescriptor(int idx) {
+        return (TypeDescriptor) getDescriptorConstant(getShort(fieldOffsets[idx] + 4));
+    }
+
+    public int getFieldModifiers(final int fieldIndex) {
+        return getShort(fieldOffsets[fieldIndex]);
     }
 
     public NestedClassElement resolveEnclosedNestedClass(final int index, final DefinedTypeDefinition enclosing, NestedClassElement.Builder builder) {
@@ -884,8 +910,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         builder.setEnclosingType(enclosing);
         int methodModifiers = getShort(methodOffsets[index]);
         builder.setModifiers(methodModifiers);
-        String name = getUtf8Constant(getShort(methodOffsets[index] + 2));
-        builder.setName(name);
         builder.setSourceFileName(sourceFile);
         boolean isNative = (methodModifiers & ACC_NATIVE) != 0;
         boolean mayHaveBody = (methodModifiers & ACC_ABSTRACT) == 0 && ! isNative;
@@ -903,10 +927,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 }
             }
         } else if (isNative) {
-            int base = methodOffsets[index];
-            int descIdx = getShort(base + 4);
-            MethodDescriptor methodDescriptor = (MethodDescriptor) getDescriptorConstant(descIdx);
-            ctxt.getCompilationContext().getNativeMethodConfigurator().configureNativeMethod(builder, enclosing, name, methodDescriptor);
+            ctxt.getCompilationContext().getNativeMethodConfigurator().configureNativeMethod(builder, enclosing, builder.getName(), builder.getDescriptor());
         }
         addParameters(builder, index, enclosing);
         addMethodAnnotations(index, builder);
@@ -962,8 +983,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
     private void addParameters(InvokableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
         int base = methodOffsets[index];
         int modifiers = getShort(base);
-        int descIdx = getShort(base + 4);
-        MethodDescriptor methodDescriptor = (MethodDescriptor) getDescriptorConstant(descIdx);
+        MethodDescriptor methodDescriptor = builder.getDescriptor();
         int attrCnt = getMethodAttributeCount(index);
         assert methodDescriptor != null;
         int realCnt = methodDescriptor.getParameterTypes().size();
@@ -1008,10 +1028,19 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         ParameterElement[] parameters = new ParameterElement[realCnt];
         TypeParameterContext tpc = TypeParameterContext.create(enclosing, signature);
         for (int i = 0; i < realCnt; i ++) {
-            ParameterElement.Builder paramBuilder = ParameterElement.builder();
+            String name = null;
+            int paramMods = 0;
+            if (i >= mpOffs && i < mpOffs + mpCnt) {
+                int nameIdx = methodParams.getShort() & 0xffff;
+                if (nameIdx != 0) {
+                    name = getUtf8Constant(nameIdx);
+                }
+                paramMods = methodParams.getShort() & 0xffff;
+            }
+            ParameterElement.Builder paramBuilder = ParameterElement.builder(name, methodDescriptor.getParameterTypes().get(i));
             paramBuilder.setEnclosingType(enclosing);
             paramBuilder.setIndex(i);
-            paramBuilder.setDescriptor(methodDescriptor.getParameterTypes().get(i));
+            paramBuilder.setModifiers(paramMods);
             paramBuilder.setTypeParameterContext(tpc);
             paramBuilder.setSignature(signature.getParameterTypes().get(i));
             if (i >= vaOffs && i < vaOffs + vaCnt) {
@@ -1036,16 +1065,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             if (i >= itaOffs && i < itaOffs + itaCnt) {
                 paramBuilder.setInvisibleTypeAnnotations(TypeAnnotationList.parse(this, ctxt, invisibleTypeAnn));
             }
-            if (i >= mpOffs && i < mpOffs + mpCnt) {
-                int nameIdx = methodParams.getShort() & 0xffff;
-                if (nameIdx != 0) {
-                    paramBuilder.setName(getUtf8Constant(nameIdx));
-                }
-                paramBuilder.setModifiers(methodParams.getShort() & 0xffff);
-            }
             parameters[i] = paramBuilder.build();
         }
-        builder.setDescriptor(methodDescriptor);
         builder.setSignature(signature);
         builder.setParameters(List.of(parameters));
         if (parameters.length == 1 && (modifiers & (ACC_VARARGS | ACC_NATIVE)) == (ACC_VARARGS | ACC_NATIVE)) {

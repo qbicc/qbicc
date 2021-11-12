@@ -9,6 +9,7 @@ import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.definition.ConstructorResolver;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  *
@@ -40,10 +41,10 @@ public class NativeTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
         getDelegate().setSuperClassName(superClassInternalName);
     }
 
-    public void addConstructor(final ConstructorResolver resolver, final int index) {
+    public void addConstructor(final ConstructorResolver resolver, final int index, MethodDescriptor descriptor) {
         // native types cannot be constructed the normal way
         if (! isNative) {
-            delegate.addConstructor(resolver, index);
+            delegate.addConstructor(resolver, index, descriptor);
         }
     }
 

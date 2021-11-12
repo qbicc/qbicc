@@ -56,11 +56,9 @@ public class Lowering {
         CompilationContext ctxt = classContext.getCompilationContext();
         ValueType fieldType = fieldElement.getType();
         String itemName = "static-" + enclosingType.getInternalName().replace('/', '.') + "-" + fieldElement.getName() + "-" + fieldElement.getIndex();
-        final GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
-        builder.setName(itemName);
+        final GlobalVariableElement.Builder builder = GlobalVariableElement.builder(itemName, fieldElement.getTypeDescriptor());
         final ValueType varType = fieldType instanceof BooleanType ? ctxt.getTypeSystem().getUnsignedInteger8Type() : fieldType;
         builder.setType(varType);
-        builder.setDescriptor(fieldElement.getTypeDescriptor());
         builder.setSignature(fieldElement.getTypeSignature());
         builder.setModifiers(fieldElement.getModifiers());
         builder.setEnclosingType(enclosingType);
