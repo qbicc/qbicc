@@ -269,9 +269,6 @@ public final class TypeSystem {
     public ArrayType getArrayType(ValueType memberType, long elements) {
         Assert.checkNotNullParam("memberType", memberType);
         Assert.checkMinimumParameter("elements", 0, elements);
-        if (! memberType.isComplete()) {
-            throw new IllegalArgumentException("Arrays of incomplete type are not allowed");
-        }
         return new ArrayType(this, memberType, elements);
     }
 
