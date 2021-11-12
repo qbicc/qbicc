@@ -623,22 +623,22 @@ public class Main implements Callable<DiagnosticContext> {
         }
 
         @CommandLine.Option(names = "--boot-path-prepend-artifact", converter = ClassPathEntry.MavenArtifact.Converter.class)
-        void prependBootPathArtifact(ClassPathEntry.MavenArtifact artifact) {
-            prependedBootPathEntries.add(artifact);
+        void prependBootPathArtifact(List<ClassPathEntry.MavenArtifact> artifact) {
+            prependedBootPathEntries.addAll(artifact);
         }
         @CommandLine.Option(names = "--boot-path-prepend-file", converter = ClassPathEntry.FilePath.Converter.class)
-        void prependBootPathFile(ClassPathEntry.FilePath filePath) {
-            prependedBootPathEntries.add(filePath);
+        void prependBootPathFile(List<ClassPathEntry.FilePath> filePath) {
+            prependedBootPathEntries.addAll(filePath);
         }
         private final List<ClassPathEntry> prependedBootPathEntries = new ArrayList<>();
 
         @CommandLine.Option(names = "--boot-path-append-artifact", converter = ClassPathEntry.MavenArtifact.Converter.class)
-        void appendBootPathArtifact(ClassPathEntry.MavenArtifact artifact) {
-            appendedBootPathEntries.add(artifact);
+        void appendBootPathArtifact(List<ClassPathEntry.MavenArtifact> artifact) {
+            appendedBootPathEntries.addAll(artifact);
         }
         @CommandLine.Option(names = "--boot-path-append-file", converter = ClassPathEntry.FilePath.Converter.class)
-        void appendBootPathFile(ClassPathEntry.FilePath filePath) {
-            appendedBootPathEntries.add(filePath);
+        void appendBootPathFile(List<ClassPathEntry.FilePath> filePath) {
+            appendedBootPathEntries.addAll(filePath);
         }
         private final List<ClassPathEntry> appendedBootPathEntries = new ArrayList<>();
 
@@ -646,14 +646,14 @@ public class Main implements Callable<DiagnosticContext> {
         private String rtVersion = MainProperties.CLASSLIB_DEFAULT_VERSION;
 
         @CommandLine.Option(names = "--app-path-artifact", converter = ClassPathEntry.MavenArtifact.Converter.class)
-        void addAppPathArtifact(ClassPathEntry.MavenArtifact artifact) {
-            appPathEntries.add(artifact);
+        void addAppPathArtifact(List<ClassPathEntry.MavenArtifact> artifact) {
+            appPathEntries.addAll(artifact);
         }
         @CommandLine.Option(names = "--app-path-file", converter = ClassPathEntry.FilePath.Converter.class)
-        void addAppPathFile(ClassPathEntry.FilePath filePath) {
-            appPathEntries.add(filePath);
+        void addAppPathFile(List<ClassPathEntry.FilePath> filePath) {
+            appPathEntries.addAll(filePath);
         }
-        private List<ClassPathEntry> appPathEntries = new ArrayList<>();
+        private final List<ClassPathEntry> appPathEntries = new ArrayList<>();
 
         @CommandLine.Option(names = "--output-path", description = "Specify directory where the executable is placed")
         private Path outputPath;
