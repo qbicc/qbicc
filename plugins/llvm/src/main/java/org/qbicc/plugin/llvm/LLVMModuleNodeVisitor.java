@@ -152,13 +152,11 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             if (isIdentified) {
                 String compoundName = compoundType.getName();
                 String name;
-                if (compoundName.equals("<anon>")) {
-                    name = "T.anon" + anonCnt.getAndIncrement();
-                } else if (compoundType.getTag() == CompoundType.Tag.NONE) {
-                    String outputName = "T." + compoundName;
+                if (compoundType.getTag() == CompoundType.Tag.NONE) {
+                    String outputName = "type." + compoundName;
                     name = LLVM.needsQuotes(compoundName) ? LLVM.quoteString(outputName) : outputName;
                 } else {
-                    String outputName = "T." + compoundType.getTag() + "." + compoundName;
+                    String outputName = compoundType.getTag() + "." + compoundName;
                     name = LLVM.needsQuotes(compoundName) ? LLVM.quoteString(outputName) : outputName;
                 }
                 identifiedType = module.identifiedType(name);
