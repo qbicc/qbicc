@@ -35,6 +35,7 @@
         <module>native</module>
         <module>objectmonitor</module>
         <module>optimization</module>
+        <module>patcher</module>
         <module>reachability</module>
         <module>thread-local</module>
         <module>try-catch</module>

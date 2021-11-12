@@ -114,6 +114,9 @@ import org.qbicc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
 import org.qbicc.plugin.opt.InliningBasicBlockBuilder;
 import org.qbicc.plugin.opt.PhiOptimizerVisitor;
 import org.qbicc.plugin.opt.SimpleOptBasicBlockBuilder;
+import org.qbicc.plugin.patcher.Patcher;
+import org.qbicc.plugin.patcher.PatcherResolverBasicBlockBuilder;
+import org.qbicc.plugin.patcher.PatcherTypeResolver;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
 import org.qbicc.plugin.serialization.ClassObjectSerializer;
@@ -342,9 +345,13 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addTypeBuilderFactory(NativeTypeBuilder::new);
                                 builder.addTypeBuilderFactory(ThreadLocalTypeBuilder::new);
                                 builder.addTypeBuilderFactory(CoreAnnotationTypeBuilder::new);
+                                builder.addTypeBuilderFactory(Patcher::getTypeBuilder);
+
+                                builder.setClassContextListener(Patcher::initialize);
 
                                 builder.addNativeMethodConfiguratorFactory(NativeBindingMethodConfigurator::new);
 
+                                builder.addResolverFactory(PatcherTypeResolver::create);
                                 builder.addResolverFactory(ConstTypeResolver::new);
                                 builder.addResolverFactory(FunctionTypeResolver::new);
                                 builder.addResolverFactory(PointerTypeResolver::new);
@@ -377,6 +384,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NoGcMultiNewArrayBasicBlockBuilder::new);
                                 }
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, PatcherResolverBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MemberResolvingBasicBlockBuilder::new);

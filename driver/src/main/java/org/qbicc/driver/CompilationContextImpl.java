@@ -84,17 +84,20 @@ final class CompilationContextImpl implements CompilationContext {
     private volatile BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> copier;
     private final Vm vm;
     private final NativeMethodConfigurator nativeMethodConfigurator;
+    private final Consumer<ClassContext> classContextListener;
 
-    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory, BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder, BiFunction<ClassContext, String, byte[]> bootstrapResourceFinder, Function<CompilationContext, Vm> vmFactory, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories, List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories, NativeMethodConfigurator nativeMethodConfigurator) {
+    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory, BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder, BiFunction<ClassContext, String, byte[]> bootstrapResourceFinder, Function<CompilationContext, Vm> vmFactory, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories, List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories, NativeMethodConfigurator nativeMethodConfigurator, Consumer<ClassContext> classContextListener) {
         this.baseDiagnosticContext = baseDiagnosticContext;
         this.platform = platform;
         this.typeSystem = typeSystem;
         this.literalFactory = literalFactory;
         this.outputDir = outputDir;
         this.resolverFactories = resolverFactories;
+        this.classContextListener = classContextListener;
         bootstrapClassContext = new ClassContextImpl(this, null, bootstrapFinder, bootstrapResourceFinder);
         this.typeBuilderFactories = typeBuilderFactories;
         this.nativeMethodConfigurator = nativeMethodConfigurator;
+        handleNewClassContext(bootstrapClassContext);
         // last!
         this.vm = vmFactory.apply(this);
     }
@@ -257,7 +260,12 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     public ClassContext constructClassContext(final VmClassLoader classLoaderObject) {
-        return classLoaderContexts.computeIfAbsent(classLoaderObject, classLoader -> new ClassContextImpl(this, classLoader, vm::loadClass, vm::loadResource));
+        return classLoaderContexts.computeIfAbsent(classLoaderObject, classLoader -> handleNewClassContext(new ClassContextImpl(this, classLoader, vm::loadClass, vm::loadResource)));
+    }
+
+    private ClassContext handleNewClassContext(ClassContext classContext) {
+        classContextListener.accept(classContext);
+        return classContext;
     }
 
     public MethodElement getVMHelperMethod(String name) {
