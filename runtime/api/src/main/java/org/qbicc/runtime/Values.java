@@ -25,21 +25,21 @@ public final class Values {
     public static native boolean isAlwaysTrue(boolean expr);
     public static native boolean isAlwaysFalse(boolean expr);
 
-    public static native <T> boolean compareAndSwapVolatile(T expr, T expect, T update);
-    public static native boolean compareAndSwapVolatile(int expr, int expect, int update);
-    public static native boolean compareAndSwapVolatile(long expr, long expect, long update);
+    public static native <T> boolean compareAndSetVolatile(T expr, T expect, T update);
+    public static native boolean compareAndSetVolatile(int expr, int expect, int update);
+    public static native boolean compareAndSetVolatile(long expr, long expect, long update);
 
-    public static native <T> boolean compareAndSwapAcquire(T expr, T expect, T update);
-    public static native boolean compareAndSwapAcquire(int expr, int expect, int update);
-    public static native boolean compareAndSwapAcquire(long expr, long expect, long update);
+    public static native <T> boolean compareAndSetAcquire(T expr, T expect, T update);
+    public static native boolean compareAndSetAcquire(int expr, int expect, int update);
+    public static native boolean compareAndSetAcquire(long expr, long expect, long update);
 
-    public static native <T> boolean compareAndSwapRelease(T expr, T expect, T update);
-    public static native boolean compareAndSwapRelease(int expr, int expect, int update);
-    public static native boolean compareAndSwapRelease(long expr, long expect, long update);
+    public static native <T> boolean compareAndSetRelease(T expr, T expect, T update);
+    public static native boolean compareAndSetRelease(int expr, int expect, int update);
+    public static native boolean compareAndSetRelease(long expr, long expect, long update);
 
-    public static native <T> boolean compareAndSwap(T expr, T expect, T update);
-    public static native boolean compareAndSwap(int expr, int expect, int update);
-    public static native boolean compareAndSwap(long expr, long expect, long update);
+    public static native <T> boolean compareAndSet(T expr, T expect, T update);
+    public static native boolean compareAndSet(int expr, int expect, int update);
+    public static native boolean compareAndSet(long expr, long expect, long update);
 
     public static native <T> T getAndSetVolatile(T expr, T newValue);
     public static native int getAndSetVolatile(int expr, int newValue);
