@@ -70,6 +70,7 @@ import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.NullableType;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.ReferenceType;
@@ -1287,8 +1288,7 @@ public final class CoreIntrinsics {
             Value arg = arguments.get(0);
             long size;
             /* Class should be ClassOf(TypeLiteral) */
-            if (arg instanceof ClassOf && ((ClassOf) arg).getInput() instanceof TypeLiteral) {
-                TypeLiteral input = (TypeLiteral) (((ClassOf) arg).getInput());
+            if (arg instanceof ClassOf co && co.getInput() instanceof TypeLiteral input && !(input.getValue() instanceof ObjectType)) {
                 size = input.getValue().getSize();
             } else {
                 ctxt.error(builder.getLocation(), "unexpected type for sizeof(Class)");
