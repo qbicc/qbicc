@@ -43,7 +43,9 @@ import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
@@ -767,7 +769,11 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_AALOAD: {
                         v2 = pop1();
                         v1 = pop1();
-                        v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED);
+                        if (v1.getType() instanceof ArrayType) {
+                            v1 = gf.extractElement(v1, v2);
+                        } else {
+                            v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED);
+                        }
                         push1(v1);
                         break;
                     }
@@ -775,7 +781,11 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_LALOAD: {
                         v2 = pop1();
                         v1 = pop1();
-                        v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED);
+                        if (v1.getType() instanceof ArrayType) {
+                            v1 = gf.extractElement(v1, v2);
+                        } else {
+                            v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED);
+                        }
                         push2(v1);
                         break;
                     }
@@ -786,7 +796,11 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_CALOAD: {
                         v2 = pop1();
                         v1 = pop1();
-                        v1 = promote(gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED));
+                        if (v1.getType() instanceof ArrayType) {
+                            v1 = promote(gf.extractElement(v1, v2));
+                        } else {
+                            v1 = promote(gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED));
+                        }
                         push1(v1);
                         break;
                     }
@@ -835,32 +849,52 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v3 = pop1();
                         v2 = pop1();
                         v1 = pop1();
-                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
+                        if (v1.getType() instanceof ArrayType) {
+                            replaceAll(v1, gf.insertElement(v1, v2, v3));
+                        } else {
+                            gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
+                        }
                         break;
                     case OP_BASTORE:
                         v3 = pop1();
                         v2 = pop1();
                         v1 = pop1();
-                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getSignedInteger8Type()), MemoryAtomicityMode.UNORDERED);
+                        if (v1.getType() instanceof ArrayType) {
+                            replaceAll(v1, gf.insertElement(v1, v2, gf.truncate(v3, ts.getSignedInteger8Type())));
+                        } else {
+                            gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getSignedInteger8Type()), MemoryAtomicityMode.UNORDERED);
+                        }
                         break;
                     case OP_SASTORE:
                         v3 = pop1();
                         v2 = pop1();
                         v1 = pop1();
-                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getSignedInteger16Type()), MemoryAtomicityMode.UNORDERED);
+                        if (v1.getType() instanceof ArrayType) {
+                            replaceAll(v1, gf.insertElement(v1, v2, gf.truncate(v3, ts.getSignedInteger16Type())));
+                        } else {
+                            gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getSignedInteger16Type()), MemoryAtomicityMode.UNORDERED);
+                        }
                         break;
                     case OP_CASTORE:
                         v3 = pop1();
                         v2 = pop1();
                         v1 = pop1();
-                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getUnsignedInteger16Type()), MemoryAtomicityMode.UNORDERED);
+                        if (v1.getType() instanceof ArrayType) {
+                            replaceAll(v1, gf.insertElement(v1, v2, gf.truncate(v3, ts.getUnsignedInteger16Type())));
+                        } else {
+                            gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getUnsignedInteger16Type()), MemoryAtomicityMode.UNORDERED);
+                        }
                         break;
                     case OP_LASTORE:
                     case OP_DASTORE:
                         v3 = pop2();
                         v2 = pop1();
                         v1 = pop1();
-                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
+                        if (v1.getType() instanceof ArrayType) {
+                            replaceAll(v1, gf.insertElement(v1, v2, v3));
+                        } else {
+                            gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
+                        }
                         break;
                     case OP_POP:
                         pop1();
@@ -1470,10 +1504,15 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getFieldrefConstantClassIndex(fieldRef));
                         TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
                         String name = getNameOfFieldRef(fieldRef);
-                        // todo: signature context
-                        ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(pop1()), owner, name, desc);
-                        Value value = promote(gf.load(handle, handle.getDetectedMode()), desc);
-                        push(value, desc.isClass2());
+                        v1 = pop1();
+                        if (v1.getType() instanceof CompoundType ct) {
+                            final CompoundType.Member member = ct.getMember(name);
+                            push(promote(gf.extractMember(v1, member)), desc.isClass2());
+                        } else {
+                            ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
+                            Value value = promote(gf.load(handle, handle.getDetectedMode()), desc);
+                            push(value, desc.isClass2());
+                        }
                         break;
                     }
                     case OP_PUTFIELD: {
@@ -1484,8 +1523,13 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         String name = getNameOfFieldRef(fieldRef);
                         v2 = pop(desc.isClass2());
                         v1 = pop1();
-                        ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
-                        gf.store(handle, storeTruncate(v2, desc), handle.getDetectedMode());
+                        if (v1.getType() instanceof CompoundType ct) {
+                            final CompoundType.Member member = ct.getMember(name);
+                            replaceAll(v1, gf.insertMember(v1, member, storeTruncate(v2, desc)));
+                        } else {
+                            ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
+                            gf.store(handle, storeTruncate(v2, desc), handle.getDetectedMode());
+                        }
                         break;
                     }
                     case OP_INVOKEVIRTUAL:

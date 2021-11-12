@@ -15,6 +15,7 @@ import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.ConstantLiteral;
+import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -284,9 +285,14 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
         if (type instanceof ArrayObjectType) {
             return super.newArray((ArrayObjectType) type, size);
-        } else if (type instanceof ArrayType) {
+        } else if (type instanceof ArrayType at) {
             // it's a native array
-            return stackAllocate(((ArrayType) type).getElementType(), size, ctxt.getLiteralFactory().literalOf(1));
+            if (size instanceof IntegerLiteral il) {
+                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getArrayType(at.getElementType(), il.longValue()));
+            } else {
+                ctxt.error(getLocation(), "Native arrays must have a literal length");
+                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(at);
+            }
         }
         return super.newArray(desc, size);
     }
