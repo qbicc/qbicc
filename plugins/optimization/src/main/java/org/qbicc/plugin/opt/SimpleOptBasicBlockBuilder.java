@@ -466,11 +466,8 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value addressOf(ValueHandle handle) {
-        if (handle instanceof PointerHandle ph) {
-            final Value offsetValue = ph.getOffsetValue();
-            if (offsetValue.getType() instanceof IntegerType it && offsetValue.isDefEq(ctxt.getLiteralFactory().literalOf(it, 0))) {
-                return ((PointerHandle) handle).getPointerValue();
-            }
+        if (handle instanceof PointerHandle ph && isZero(ph.getOffsetValue())) {
+            return ((PointerHandle) handle).getPointerValue();
         }
         return super.addressOf(handle);
     }
