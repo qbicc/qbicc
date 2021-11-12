@@ -26,6 +26,7 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.NullLiteral;
+import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
@@ -339,8 +340,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value bitCast(Value input, WordType toType) {
-        if (input instanceof BitCast) {
-            final BitCast inputNode = (BitCast) input;
+        if (input instanceof final BitCast inputNode) {
             if (inputNode.getInput().getType().equals(toType)) {
                 // BitCast(BitCast(a, x), type-of a) -> a
                 return inputNode.getInput();
@@ -348,8 +348,40 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
             // BitCast(BitCast(a, x), y) -> BitCast(a, y)
             return bitCast(inputNode.getInput(), toType);
+        } else if (input.getType() instanceof PointerType inPtrType && toType instanceof PointerType outPtrType) {
+            // pointer to struct/array -> pointer to first member/element
+            if (inPtrType.getPointeeType() instanceof CompoundType) {
+                final IntegerLiteral z = ctxt.getLiteralFactory().literalOf(0);
+                ValueHandle outVal = addressOfFirst(pointerHandle(input, z), outPtrType.getPointeeType());
+                if (outVal != null) {
+                    return addressOf(outVal);
+                }
+            }
         }
         return super.bitCast(input, toType);
+    }
+
+    private ValueHandle addressOfFirst(final ValueHandle input, final ValueType outputType) {
+        // if the output type matches the first member or element of input, return its handle
+        if (input.getValueType() instanceof CompoundType ct && ct.getMemberCount() > 0) {
+            final CompoundType.Member memberZero = ct.getMember(0);
+            if (memberZero.getOffset() == 0) {
+                ValueHandle nextHandle = memberOf(input, memberZero);
+                if (outputType.equals(memberZero.getType())) {
+                    return nextHandle;
+                } else {
+                    return addressOfFirst(nextHandle, outputType);
+                }
+            }
+        } else if (input.getValueType() instanceof ArrayType at && at.getElementCount() > 0) {
+            ValueHandle nextHandle = elementOf(input, ctxt.getLiteralFactory().literalOf(0));
+            if (outputType.equals(at.getElementType())) {
+                return nextHandle;
+            } else {
+                return addressOfFirst(nextHandle, outputType);
+            }
+        }
+        return null;
     }
 
     @Override
@@ -358,8 +390,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (result != null) {
             return result;
         }
-        if (input instanceof Convert) {
-            Convert inputNode = (Convert) input;
+        if (input instanceof Convert inputNode) {
             Value inputInput = inputNode.getInput();
             ValueType inputInputType = inputInput.getType();
             if (inputInputType.equals(toType)) {
