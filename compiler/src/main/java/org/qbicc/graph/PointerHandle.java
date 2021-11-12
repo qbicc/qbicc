@@ -1,5 +1,7 @@
 package org.qbicc.graph;
 
+import java.util.Objects;
+
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.object.Function;
 import org.qbicc.type.PointerType;
@@ -11,22 +13,24 @@ import org.qbicc.type.definition.element.ExecutableElement;
  */
 public final class PointerHandle extends AbstractValueHandle {
     private final Value pointerValue;
+    private final Value offsetValue;
     private final PointerType pointerType;
 
-    PointerHandle(Node callSite, ExecutableElement element, int line, int bci, Value pointerValue) {
+    PointerHandle(Node callSite, ExecutableElement element, int line, int bci, Value pointerValue, Value offsetValue) {
         super(callSite, element, line, bci);
         this.pointerValue = pointerValue;
         pointerType = (PointerType) pointerValue.getType();
+        this.offsetValue = offsetValue;
     }
 
     @Override
     public int getValueDependencyCount() {
-        return 1;
+        return 2;
     }
 
     @Override
     public Value getValueDependency(int index) throws IndexOutOfBoundsException {
-        return index == 0 ? pointerValue : Util.throwIndexOutOfBounds(index);
+        return index == 0 ? pointerValue : index == 1 ? offsetValue : Util.throwIndexOutOfBounds(index);
     }
 
     @Override
@@ -57,12 +61,13 @@ public final class PointerHandle extends AbstractValueHandle {
 
     @Override
     public boolean isConstantLocation() {
-        return pointerValue.isConstant();
+        return pointerValue.isConstant() && offsetValue.isConstant();
     }
 
     @Override
     public boolean isValueConstant() {
-        return pointerValue.isConstant();
+        // todo: read-only section pointers
+        return false;
     }
 
     @Override
@@ -75,7 +80,7 @@ public final class PointerHandle extends AbstractValueHandle {
     }
 
     int calcHashCode() {
-        return pointerValue.hashCode();
+        return Objects.hash(pointerValue, offsetValue);
     }
 
     @Override
@@ -85,6 +90,10 @@ public final class PointerHandle extends AbstractValueHandle {
 
     public Value getPointerValue() {
         return pointerValue;
+    }
+
+    public Value getOffsetValue() {
+        return offsetValue;
     }
 
     @Override
@@ -97,12 +106,15 @@ public final class PointerHandle extends AbstractValueHandle {
         super.toString(b);
         b.append('(');
         pointerValue.toString(b);
+        b.append('[');
+        offsetValue.toString(b);
+        b.append(']');
         b.append(')');
         return b;
     }
 
     public boolean equals(PointerHandle other) {
-        return this == other || other != null && pointerValue.equals(other.pointerValue);
+        return this == other || other != null && pointerValue.equals(other.pointerValue) && offsetValue.equals(other.offsetValue);
     }
 
     @Override

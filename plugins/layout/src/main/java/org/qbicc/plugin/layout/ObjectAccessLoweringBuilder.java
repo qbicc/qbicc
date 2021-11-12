@@ -20,7 +20,6 @@ import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.UnsignedIntegerType;
-import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.FieldElement;
 
 /**
@@ -151,7 +150,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     @Override
     public ValueHandle visit(Void param, UnsafeHandle node) {
         UnsignedIntegerType u8 = ctxt.getTypeSystem().getUnsignedInteger8Type();
-        ValueHandle valueHandle = elementOf(pointerHandle(bitCast(addressOf(node.getBase()), u8.getPointer())), node.getOffset());
+        ValueHandle valueHandle = pointerHandle(bitCast(addressOf(node.getBase()), u8.getPointer()), node.getOffset());
         return pointerHandle(bitCast(addressOf(valueHandle), node.getOutputType().getPointer()));
     }
 

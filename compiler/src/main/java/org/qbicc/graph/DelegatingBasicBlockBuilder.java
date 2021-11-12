@@ -5,8 +5,6 @@ import java.util.Set;
 
 import org.qbicc.context.Location;
 import org.qbicc.graph.literal.BlockLiteral;
-import org.qbicc.object.Function;
-import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -128,8 +126,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().unsafeHandle(base, offset, outputType);
     }
 
-    public ValueHandle pointerHandle(Value pointer) {
-        return getDelegate().pointerHandle(pointer);
+    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
+        return getDelegate().pointerHandle(pointer, offsetValue);
     }
 
     public ValueHandle referenceHandle(Value reference) {

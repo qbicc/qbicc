@@ -13,8 +13,6 @@ import org.qbicc.context.Location;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
-import org.qbicc.object.Function;
-import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -407,8 +405,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new UnsafeHandle(callSite, element, line, bci, base, offset, outputType);
     }
 
-    public ValueHandle pointerHandle(Value pointer) {
-        return new PointerHandle(callSite, element, line, bci, pointer);
+    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
+        return new PointerHandle(callSite, element, line, bci, pointer, offsetValue);
     }
 
     public ValueHandle referenceHandle(Value reference) {

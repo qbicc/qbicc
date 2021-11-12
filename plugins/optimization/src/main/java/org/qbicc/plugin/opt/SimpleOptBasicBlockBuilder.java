@@ -406,9 +406,9 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public Value add(Value v1, Value v2) {
         // todo: maybe opt is not the right place for this
         if (v1.getType() instanceof PointerType) {
-            return addressOf(elementOf(pointerHandle(v1), v2));
+            return addressOf(pointerHandle(v1, v2));
         } else if (v2.getType() instanceof PointerType) {
-            return addressOf(elementOf(pointerHandle(v2), v1));
+            return addressOf(pointerHandle(v2, v1));
         }
         return super.add(v1, v2);
     }
@@ -417,7 +417,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public Value sub(Value v1, Value v2) {
         // todo: maybe opt is not the right place for this
         if (v1.getType() instanceof PointerType) {
-            return addressOf(elementOf(pointerHandle(v1), negate(v2)));
+            return addressOf(pointerHandle(v1, negate(v2)));
         }
         return super.sub(v1, v2);
     }
@@ -435,18 +435,21 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value addressOf(ValueHandle handle) {
-        if (handle instanceof PointerHandle) {
-            return ((PointerHandle) handle).getPointerValue();
+        if (handle instanceof PointerHandle ph) {
+            final Value offsetValue = ph.getOffsetValue();
+            if (offsetValue.getType() instanceof IntegerType it && offsetValue.isDefEq(ctxt.getLiteralFactory().literalOf(it, 0))) {
+                return ((PointerHandle) handle).getPointerValue();
+            }
         }
         return super.addressOf(handle);
     }
 
     @Override
-    public ValueHandle pointerHandle(Value pointer) {
+    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
         if (pointer instanceof AddressOf) {
             return pointer.getValueHandle();
         }
-        return super.pointerHandle(pointer);
+        return super.pointerHandle(pointer, offsetValue);
     }
 
     private static boolean isAlwaysNull(final Value value) {
