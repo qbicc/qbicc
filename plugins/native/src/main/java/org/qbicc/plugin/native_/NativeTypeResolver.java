@@ -32,6 +32,8 @@ public class NativeTypeResolver implements DescriptorTypeResolver.Delegating {
                 return classCtxt.findDefinedType("java/lang/Object").load().getClassType().getReference().getTypeType();
             } else if (rewrittenName.equals(Native.VOID)) {
                 return ctxt.getTypeSystem().getVoidType();
+            } else if (rewrittenName.equals(Native.OBJECT)) {
+                return ctxt.getTypeSystem().getVariadicType();
             } else if (rewrittenName.equals(Native.PTR)) {
                 return ctxt.getTypeSystem().getVoidType().getPointer();
             }

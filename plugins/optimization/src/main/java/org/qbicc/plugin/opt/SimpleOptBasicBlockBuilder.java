@@ -1,5 +1,9 @@
 package org.qbicc.plugin.opt;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.BasicBlock;
@@ -10,9 +14,7 @@ import org.qbicc.graph.Cmp;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Extend;
-import org.qbicc.graph.NewArray;
 import org.qbicc.graph.PointerHandle;
-import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -48,18 +50,45 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value extractElement(Value array, Value index) {
-        if (array instanceof ArrayLiteral && index instanceof IntegerLiteral) {
-            return ((ArrayLiteral) array).getValues().get(((IntegerLiteral) index).intValue());
+        final Value value = array.extractElement(ctxt.getLiteralFactory(), index);
+        if (value != null) {
+            return value;
+        } else {
+            return super.extractElement(array, index);
         }
-        return super.extractElement(array, index);
     }
 
     @Override
     public Value extractMember(Value compound, CompoundType.Member member) {
-        if (compound instanceof CompoundLiteral) {
-            return ((CompoundLiteral) compound).getValues().get(member);
+        final Value value = compound.extractMember(ctxt.getLiteralFactory(), member);
+        if (value != null) {
+            return value;
+        } else {
+            return super.extractMember(compound, member);
         }
-        return super.extractMember(compound, member);
+    }
+
+    @Override
+    public Value insertElement(Value array, Value index, Value value) {
+        if (array instanceof ArrayLiteral al && index instanceof IntegerLiteral il && value instanceof Literal lit) {
+            final LiteralFactory lf = ctxt.getLiteralFactory();
+            Literal[] values = al.getValues().toArray(Literal[]::new);
+            values[il.intValue()] = lit;
+            return lf.literalOf(al.getType(), List.of(values));
+        }
+        return super.insertElement(array, index, value);
+    }
+
+    @Override
+    public Value insertMember(Value compound, CompoundType.Member member, Value value) {
+        if (compound instanceof CompoundLiteral cl && value instanceof Literal lit) {
+            final LiteralFactory lf = ctxt.getLiteralFactory();
+            final Map<CompoundType.Member, Literal> values = cl.getValues();
+            final HashMap<CompoundType.Member, Literal> copy = new HashMap<>(values);
+            copy.put(member, lit);
+            return lf.literalOf(cl.getType(), Map.copyOf(copy));
+        }
+        return super.insertMember(compound, member, value);
     }
 
     private Value literalCast(Value value, WordType toType, boolean truncate) {

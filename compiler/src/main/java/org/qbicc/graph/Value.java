@@ -1,5 +1,7 @@
 package org.qbicc.graph;
 
+import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.ValueType;
 
@@ -39,6 +41,28 @@ public interface Value extends Node {
 
     default boolean isDefNaN() {
         return false;
+    }
+
+    /**
+     * Extract an element from this array value if it has a known value for the given index.
+     *
+     * @param lf the literal factory (must not be {@code null})
+     * @param index the element index value (must not be {@code null})
+     * @return the extracted value, or {@code null} if the value is not known
+     */
+    default Value extractElement(LiteralFactory lf, Value index) {
+        return null;
+    }
+
+    /**
+     * Extract a member from this compound value if it has a known value for the given member.
+     *
+     * @param lf the literal factory (must not be {@code null})
+     * @param member the member (must not be {@code null})
+     * @return the extracted value, or {@code null} if the value is not known
+     */
+    default Value extractMember(LiteralFactory lf, CompoundType.Member member) {
+        return null;
     }
 
     default boolean isDefNotNaN() {

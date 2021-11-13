@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
+import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.type.ArrayType;
 
@@ -31,6 +32,17 @@ public final class ArrayLiteral extends Literal {
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    @Override
+    public Value extractElement(LiteralFactory lf, Value index) {
+        if (index instanceof IntegerLiteral il) {
+            final int realIndex = il.intValue();
+            if (0 <= realIndex && realIndex < values.size()) {
+                return values.get(realIndex);
+            }
+        }
+        return null;
     }
 
     public boolean isZero() {

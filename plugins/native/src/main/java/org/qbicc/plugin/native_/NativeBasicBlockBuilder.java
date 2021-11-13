@@ -17,8 +17,10 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.object.Section;
+import org.qbicc.type.ArrayType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.ValueType;
+import org.qbicc.type.VariadicType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -79,8 +81,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
      */
     private List<Value> mapArguments(ValueHandle handle, List<Value> arguments) {
         ValueType valueType = handle.getValueType();
-        if (valueType instanceof FunctionType) {
-            FunctionType fnType = (FunctionType) valueType;
+        if (valueType instanceof FunctionType fnType) {
             if (fnType.isVariadic()) {
                 // build up an argument list from the varargs array
                 int size = arguments.size();
@@ -92,31 +93,21 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                     throw new IllegalStateException("Argument list size does not match function prototype size");
                 }
                 Value varArgArray = arguments.get(size - 1);
-                if (varArgArray instanceof NewArray) {
-                    ValueHandle arrayHandle = referenceHandle(varArgArray);
-                    Value sizeVal = ((NewArray) varArgArray).getSize();
-                    // see through casts
-                    while (sizeVal instanceof CastValue) {
-                        sizeVal = ((CastValue) sizeVal).getInput();
+                if (varArgArray.getType() instanceof ArrayType at && at.getElementType() instanceof VariadicType) {
+                    final long varCnt = at.getElementCount();
+                    // original param count, minus the variadic type, plus the number of given arguments
+                    List<Value> realArgs = new ArrayList<>((int) (pc - 1 + varCnt));
+                    for (int i = 0; i < size - 1; i++) {
+                        realArgs.add(arguments.get(i));
                     }
-                    if (sizeVal instanceof IntegerLiteral) {
-                        int varCnt = ((IntegerLiteral) sizeVal).intValue();
-                        // original param count, minus the variadic type, plus the number of given arguments
-                        List<Value> realArgs = new ArrayList<>(pc - 1 + varCnt);
-                        for (int i = 0; i < size - 1; i++) {
-                            realArgs.add(arguments.get(i));
-                        }
-                        // array creation is expected to be optimized away
-                        LiteralFactory lf = ctxt.getLiteralFactory();
-                        for (int i = 0; i < varCnt; i++) {
-                            realArgs.add(load(elementOf(arrayHandle, lf.literalOf(i)), MemoryAtomicityMode.NONE));
-                        }
-                        return realArgs;
-                    } else {
-                        // usage error
-                        ctxt.error(getLocation(), "Variadic call only allowed with array of constant size");
-                        return arguments;
+                    // array creation is expected to be optimized away
+                    LiteralFactory lf = ctxt.getLiteralFactory();
+                    for (int i = 0; i < varCnt; i++) {
+                        realArgs.add(varArgArray.extractElement(lf, lf.literalOf(i)));
                     }
+                    return realArgs;
+                } else {
+                    ctxt.error(getLocation(), "Variadic function argument type must be `CNative.object...`");
                 }
             }
         }

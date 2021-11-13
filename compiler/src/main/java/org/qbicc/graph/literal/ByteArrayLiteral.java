@@ -2,8 +2,11 @@ package org.qbicc.graph.literal;
 
 import java.util.Arrays;
 
+import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.type.ArrayType;
+import org.qbicc.type.IntegerType;
+import org.qbicc.type.SignedIntegerType;
 
 /**
  * A literal array of bytes.  This is not a Java array object literal (use {@code ObjectLiteral}).
@@ -29,6 +32,23 @@ public final class ByteArrayLiteral extends Literal {
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    public Value extractElement(LiteralFactory lf, final Value index) {
+        if (index instanceof IntegerLiteral il) {
+            final int realIndex = il.intValue();
+            if (0 <= realIndex && realIndex < values.length) {
+                final byte realVal = values[realIndex];
+                if (type.getElementType() instanceof IntegerType it) {
+                    if (it instanceof SignedIntegerType) {
+                        return new IntegerLiteral(it, realVal);
+                    } else {
+                        return new IntegerLiteral(it, realVal & 0xff);
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     public boolean isZero() {
