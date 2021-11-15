@@ -1,8 +1,7 @@
 package org.qbicc.plugin.llvm;
 
 import static org.qbicc.machine.llvm.Types.*;
-import static org.qbicc.machine.llvm.Values.ZERO;
-import static org.qbicc.machine.llvm.Values.diExpression;
+import static org.qbicc.machine.llvm.Values.*;
 
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -627,7 +626,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Type javaInputType = node.getInput().getType();
         LLValue inputType = map(javaInputType);
         LLValue llvmInput = map(node.getInput());
-        return builder.fneg(inputType, llvmInput).asLocal();
+        if (isFloating(javaInputType)) {
+            return builder.fneg(inputType, llvmInput).asLocal();
+        } else {
+            return builder.sub(inputType, ZERO, llvmInput).asLocal();
+        }
     }
 
     public LLValue visit(Void param, NotNull node) {
