@@ -5,7 +5,6 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,7 +36,6 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Variable;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.BooleanLiteral;
-import org.qbicc.graph.literal.ByteArrayLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -52,7 +50,6 @@ import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.object.Data;
-import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Section;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
@@ -772,7 +769,7 @@ public final class CoreIntrinsics {
         StaticIntrinsic getInstructionAddress = (builder, target, arguments) -> {
             GlobalVariable gmdVariable = (GlobalVariable) builder.globalVariable(mdTypes.getAndRegisterGlobalMethodData(builder.getCurrentElement()));
             Value tablePointer = builder.load(builder.memberOf(gmdVariable, gmdType.getMember("instructionTable")), MemoryAtomicityMode.UNORDERED);
-            return builder.load(builder.elementOf(builder.pointerHandle(tablePointer), arguments.get(0)), MemoryAtomicityMode.UNORDERED);
+            return builder.load(builder.pointerHandle(tablePointer, arguments.get(0)), MemoryAtomicityMode.UNORDERED);
         };
 
         intrinsics.registerIntrinsic(Phase.LOWER, mdDesc, "getInstructionAddress", intToLongDesc, getInstructionAddress);
@@ -780,7 +777,7 @@ public final class CoreIntrinsics {
         StaticIntrinsic getSourceCodeInfoIndex = (builder, target, arguments) -> {
             GlobalVariable gmdVariable = (GlobalVariable) builder.globalVariable(mdTypes.getAndRegisterGlobalMethodData(builder.getCurrentElement()));
             Value tablePointer = builder.load(builder.memberOf(gmdVariable, gmdType.getMember("sourceCodeIndexTable")), MemoryAtomicityMode.UNORDERED);
-            return builder.load(builder.elementOf(builder.pointerHandle(tablePointer), arguments.get(0)), MemoryAtomicityMode.UNORDERED);
+            return builder.load(builder.pointerHandle(tablePointer, arguments.get(0)), MemoryAtomicityMode.UNORDERED);
         };
 
         intrinsics.registerIntrinsic(Phase.LOWER, mdDesc, "getSourceCodeInfoIndex", intToIntDesc, getSourceCodeInfoIndex);
@@ -789,7 +786,7 @@ public final class CoreIntrinsics {
             GlobalVariable gmdVariable = (GlobalVariable) builder.globalVariable(mdTypes.getAndRegisterGlobalMethodData(builder.getCurrentElement()));
             Value tablePointer = builder.load(builder.memberOf(gmdVariable, gmdType.getMember("sourceCodeInfoTable")), MemoryAtomicityMode.UNORDERED);
 
-            ValueHandle scInfoHandle = builder.elementOf(builder.pointerHandle(builder.bitCast(tablePointer, scInfoType.getPointer())), arguments.get(0));
+            ValueHandle scInfoHandle = builder.pointerHandle(builder.bitCast(tablePointer, scInfoType.getPointer()), arguments.get(0));
             return builder.load(builder.memberOf(scInfoHandle, scInfoType.getMember("methodInfoIndex")), MemoryAtomicityMode.UNORDERED);
         };
 
@@ -799,7 +796,7 @@ public final class CoreIntrinsics {
             GlobalVariable gmdVariable = (GlobalVariable) builder.globalVariable(mdTypes.getAndRegisterGlobalMethodData(builder.getCurrentElement()));
             Value tablePointer = builder.load(builder.memberOf(gmdVariable, gmdType.getMember("sourceCodeInfoTable")), MemoryAtomicityMode.UNORDERED);
 
-            ValueHandle scInfoHandle = builder.elementOf(builder.pointerHandle(builder.bitCast(tablePointer, scInfoType.getPointer())), arguments.get(0));
+            ValueHandle scInfoHandle = builder.pointerHandle(builder.bitCast(tablePointer, scInfoType.getPointer()), arguments.get(0));
             return builder.load(builder.memberOf(scInfoHandle, scInfoType.getMember("lineNumber")), MemoryAtomicityMode.UNORDERED);
         };
 
@@ -809,7 +806,7 @@ public final class CoreIntrinsics {
             GlobalVariable gmdVariable = (GlobalVariable) builder.globalVariable(mdTypes.getAndRegisterGlobalMethodData(builder.getCurrentElement()));
             Value tablePointer = builder.load(builder.memberOf(gmdVariable, gmdType.getMember("sourceCodeInfoTable")), MemoryAtomicityMode.UNORDERED);
 
-            ValueHandle scInfoHandle = builder.elementOf(builder.pointerHandle(builder.bitCast(tablePointer, scInfoType.getPointer())), arguments.get(0));
+            ValueHandle scInfoHandle = builder.pointerHandle(builder.bitCast(tablePointer, scInfoType.getPointer()), arguments.get(0));
             return builder.load(builder.memberOf(scInfoHandle, scInfoType.getMember("bcIndex")), MemoryAtomicityMode.UNORDERED);
         };
 
@@ -819,7 +816,7 @@ public final class CoreIntrinsics {
             GlobalVariable gmdVariable = (GlobalVariable) builder.globalVariable(mdTypes.getAndRegisterGlobalMethodData(builder.getCurrentElement()));
             Value tablePointer = builder.load(builder.memberOf(gmdVariable, gmdType.getMember("sourceCodeInfoTable")), MemoryAtomicityMode.UNORDERED);
 
-            ValueHandle scInfoHandle = builder.elementOf(builder.pointerHandle(builder.bitCast(tablePointer, scInfoType.getPointer())), arguments.get(0));
+            ValueHandle scInfoHandle = builder.pointerHandle(builder.bitCast(tablePointer, scInfoType.getPointer()), arguments.get(0));
             return builder.load(builder.memberOf(scInfoHandle, scInfoType.getMember("inlinedAtIndex")), MemoryAtomicityMode.UNORDERED);
         };
 
@@ -829,7 +826,7 @@ public final class CoreIntrinsics {
             GlobalVariable gmdVariable = (GlobalVariable) builder.globalVariable(mdTypes.getAndRegisterGlobalMethodData(builder.getCurrentElement()));
             Value tablePointer = builder.load(builder.memberOf(gmdVariable, gmdType.getMember("methodInfoTable")), MemoryAtomicityMode.UNORDERED);
 
-            ValueHandle minfoHandle = builder.elementOf(builder.pointerHandle(builder.bitCast(tablePointer, minfoType.getPointer())), arguments.get(0));
+            ValueHandle minfoHandle = builder.pointerHandle(builder.bitCast(tablePointer, minfoType.getPointer()), arguments.get(0));
             return builder.load(builder.memberOf(minfoHandle, minfoType.getMember("fileName")), MemoryAtomicityMode.UNORDERED);
         };
 
@@ -839,7 +836,7 @@ public final class CoreIntrinsics {
             GlobalVariable gmdVariable = (GlobalVariable) builder.globalVariable(mdTypes.getAndRegisterGlobalMethodData(builder.getCurrentElement()));
             Value tablePointer = builder.load(builder.memberOf(gmdVariable, gmdType.getMember("methodInfoTable")), MemoryAtomicityMode.UNORDERED);
 
-            ValueHandle minfoHandle = builder.elementOf(builder.pointerHandle(builder.bitCast(tablePointer, minfoType.getPointer())), arguments.get(0));
+            ValueHandle minfoHandle = builder.pointerHandle(builder.bitCast(tablePointer, minfoType.getPointer()), arguments.get(0));
             return builder.load(builder.memberOf(minfoHandle, minfoType.getMember("methodName")), MemoryAtomicityMode.UNORDERED);
         };
 
@@ -849,7 +846,7 @@ public final class CoreIntrinsics {
             GlobalVariable gmdVariable = (GlobalVariable) builder.globalVariable(mdTypes.getAndRegisterGlobalMethodData(builder.getCurrentElement()));
             Value tablePointer = builder.load(builder.memberOf(gmdVariable, gmdType.getMember("methodInfoTable")), MemoryAtomicityMode.UNORDERED);
 
-            ValueHandle minfoHandle = builder.elementOf(builder.pointerHandle(builder.bitCast(tablePointer, minfoType.getPointer())), arguments.get(0));
+            ValueHandle minfoHandle = builder.pointerHandle(builder.bitCast(tablePointer, minfoType.getPointer()), arguments.get(0));
             return builder.load(builder.memberOf(minfoHandle, minfoType.getMember("methodDesc")), MemoryAtomicityMode.UNORDERED);
         };
 
@@ -859,7 +856,7 @@ public final class CoreIntrinsics {
             GlobalVariable gmdVariable = (GlobalVariable) builder.globalVariable(mdTypes.getAndRegisterGlobalMethodData(builder.getCurrentElement()));
             Value tablePointer = builder.load(builder.memberOf(gmdVariable, gmdType.getMember("methodInfoTable")), MemoryAtomicityMode.UNORDERED);
 
-            ValueHandle minfoHandle = builder.elementOf(builder.pointerHandle(builder.bitCast(tablePointer, minfoType.getPointer())), arguments.get(0));
+            ValueHandle minfoHandle = builder.pointerHandle(builder.bitCast(tablePointer, minfoType.getPointer()), arguments.get(0));
             return builder.load(builder.memberOf(minfoHandle, minfoType.getMember("typeId")), MemoryAtomicityMode.UNORDERED);
         };
 
@@ -869,7 +866,7 @@ public final class CoreIntrinsics {
             GlobalVariable gmdVariable = (GlobalVariable) builder.globalVariable(mdTypes.getAndRegisterGlobalMethodData(builder.getCurrentElement()));
             Value tablePointer = builder.load(builder.memberOf(gmdVariable, gmdType.getMember("methodInfoTable")), MemoryAtomicityMode.UNORDERED);
 
-            ValueHandle minfoHandle = builder.elementOf(builder.pointerHandle(builder.bitCast(tablePointer, minfoType.getPointer())), arguments.get(0));
+            ValueHandle minfoHandle = builder.pointerHandle(builder.bitCast(tablePointer, minfoType.getPointer()), arguments.get(0));
             return builder.load(builder.memberOf(minfoHandle, minfoType.getMember("modifiers")), MemoryAtomicityMode.UNORDERED);
         };
 
@@ -1217,24 +1214,24 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(ptrDesc, "asArray", MethodDescriptor.synthesize(classContext, ArrayTypeDescriptor.of(classContext, nObjDesc), List.of()), identity);
 
         InstanceIntrinsic get = (builder, instance, target, arguments) ->
-            builder.load(builder.elementOf(builder.pointerHandle(instance), arguments.get(0)), MemoryAtomicityMode.NONE);
+            builder.load(builder.pointerHandle(instance, arguments.get(0)), MemoryAtomicityMode.NONE);
 
         intrinsics.registerIntrinsic(ptrDesc, "get", MethodDescriptor.synthesize(classContext, nObjDesc, List.of(BaseTypeDescriptor.I)), get);
 
         InstanceIntrinsic set = (builder, instance, target, arguments) -> {
-            builder.store(builder.elementOf(builder.pointerHandle(instance), arguments.get(0)), arguments.get(1), MemoryAtomicityMode.NONE);
+            builder.store(builder.pointerHandle(instance, arguments.get(0)), arguments.get(1), MemoryAtomicityMode.NONE);
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getExecutable().getType().getReturnType());
         };
 
         intrinsics.registerIntrinsic(ptrDesc, "set", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.I, nObjDesc)), set);
 
-        InstanceIntrinsic plus = (builder, instance, target, arguments) -> builder.addressOf(builder.elementOf(builder.pointerHandle(instance), arguments.get(0)));
+        InstanceIntrinsic plus = (builder, instance, target, arguments) -> builder.addressOf(builder.pointerHandle(instance, arguments.get(0)));
 
         intrinsics.registerIntrinsic(ptrDesc, "plus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.I)), plus);
         intrinsics.registerIntrinsic(ptrDesc, "plus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(ptrDiffTDesc)), plus);
         intrinsics.registerIntrinsic(ptrDesc, "plus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(sizeTDesc)), plus);
 
-        InstanceIntrinsic minus = (builder, instance, target, arguments) -> builder.addressOf(builder.elementOf(builder.pointerHandle(instance), builder.negate(arguments.get(0))));
+        InstanceIntrinsic minus = (builder, instance, target, arguments) -> builder.addressOf(builder.pointerHandle(instance, builder.negate(arguments.get(0))));
 
         intrinsics.registerIntrinsic(ptrDesc, "minus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.I)), minus);
         intrinsics.registerIntrinsic(ptrDesc, "minus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(ptrDiffTDesc)), minus);
@@ -1390,7 +1387,7 @@ public final class CoreIntrinsics {
             final IntegerLiteral z = lf.literalOf(0);
             final ProgramObjectLiteral global = lf.literalOf(ctxt.getImplicitSection(builder.getCurrentElement()).declareData(data));
             // get the zeroth array element of the zeroth pointer element of the global
-            return builder.addressOf(builder.elementOf(builder.elementOf(builder.pointerHandle(global), z), z));
+            return builder.addressOf(builder.elementOf(builder.pointerHandle(global), z));
         };
 
         intrinsics.registerIntrinsic(cNativeDesc, "utf8z", MethodDescriptor.synthesize(classContext, constCharPtrDesc, List.of(strDesc)), utf8z);

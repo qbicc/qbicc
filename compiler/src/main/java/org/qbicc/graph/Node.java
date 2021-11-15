@@ -801,7 +801,7 @@ public interface Node {
             }
 
             public ValueHandle visit(Copier param, PointerHandle node) {
-                return param.getBlockBuilder().pointerHandle(param.copyValue(node.getPointerValue()));
+                return param.getBlockBuilder().pointerHandle(param.copyValue(node.getPointerValue()), param.copyValue(node.getOffsetValue()));
             }
 
             public ValueHandle visit(Copier param, ReferenceHandle node) {

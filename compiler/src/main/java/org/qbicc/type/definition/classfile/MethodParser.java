@@ -49,6 +49,7 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
@@ -771,6 +772,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v1 = pop1();
                         if (v1.getType() instanceof ArrayType) {
                             v1 = gf.extractElement(v1, v2);
+                        } else if (v1.getType() instanceof PointerType) {
+                            v1 = gf.load(gf.pointerHandle(v1, v2), MemoryAtomicityMode.NONE);
                         } else {
                             v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED);
                         }
@@ -783,6 +786,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v1 = pop1();
                         if (v1.getType() instanceof ArrayType) {
                             v1 = gf.extractElement(v1, v2);
+                        } else if (v1.getType() instanceof PointerType) {
+                            v1 = gf.load(gf.pointerHandle(v1, v2), MemoryAtomicityMode.NONE);
                         } else {
                             v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED);
                         }
@@ -798,6 +803,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v1 = pop1();
                         if (v1.getType() instanceof ArrayType) {
                             v1 = promote(gf.extractElement(v1, v2));
+                        } else if (v1.getType() instanceof PointerType) {
+                            v1 = promote(gf.load(gf.pointerHandle(v1, v2), MemoryAtomicityMode.NONE));
                         } else {
                             v1 = promote(gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED));
                         }
@@ -851,38 +858,46 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v1 = pop1();
                         if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
+                        } else if (v1.getType() instanceof PointerType) {
+                            gf.store(gf.pointerHandle(v1, v2), v3, MemoryAtomicityMode.NONE);
                         } else {
                             gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
                         }
                         break;
                     case OP_BASTORE:
-                        v3 = pop1();
+                        v3 = gf.truncate(pop1(), ts.getSignedInteger8Type());
                         v2 = pop1();
                         v1 = pop1();
                         if (v1.getType() instanceof ArrayType) {
-                            replaceAll(v1, gf.insertElement(v1, v2, gf.truncate(v3, ts.getSignedInteger8Type())));
+                            replaceAll(v1, gf.insertElement(v1, v2, v3));
+                        } else if (v1.getType() instanceof PointerType) {
+                            gf.store(gf.pointerHandle(v1, v2), v3, MemoryAtomicityMode.NONE);
                         } else {
-                            gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getSignedInteger8Type()), MemoryAtomicityMode.UNORDERED);
+                            gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
                         }
                         break;
                     case OP_SASTORE:
-                        v3 = pop1();
+                        v3 = gf.truncate(pop1(), ts.getSignedInteger16Type());
                         v2 = pop1();
                         v1 = pop1();
                         if (v1.getType() instanceof ArrayType) {
-                            replaceAll(v1, gf.insertElement(v1, v2, gf.truncate(v3, ts.getSignedInteger16Type())));
+                            replaceAll(v1, gf.insertElement(v1, v2, v3));
+                        } else if (v1.getType() instanceof PointerType) {
+                            gf.store(gf.pointerHandle(v1, v2), v3, MemoryAtomicityMode.NONE);
                         } else {
-                            gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getSignedInteger16Type()), MemoryAtomicityMode.UNORDERED);
+                            gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
                         }
                         break;
                     case OP_CASTORE:
-                        v3 = pop1();
+                        v3 = gf.truncate(pop1(), ts.getUnsignedInteger16Type());
                         v2 = pop1();
                         v1 = pop1();
                         if (v1.getType() instanceof ArrayType) {
-                            replaceAll(v1, gf.insertElement(v1, v2, gf.truncate(v3, ts.getUnsignedInteger16Type())));
+                            replaceAll(v1, gf.insertElement(v1, v2, v3));
+                        } else if (v1.getType() instanceof PointerType) {
+                            gf.store(gf.pointerHandle(v1, v2), v3, MemoryAtomicityMode.NONE);
                         } else {
-                            gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getUnsignedInteger16Type()), MemoryAtomicityMode.UNORDERED);
+                            gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
                         }
                         break;
                     case OP_LASTORE:
@@ -892,6 +907,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v1 = pop1();
                         if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
+                        } else if (v1.getType() instanceof PointerType) {
+                            gf.store(gf.pointerHandle(v1, v2), v3, MemoryAtomicityMode.NONE);
                         } else {
                             gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
                         }

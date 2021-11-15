@@ -21,6 +21,8 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
+import org.qbicc.graph.literal.IntegerLiteral;
+import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
@@ -54,7 +56,8 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
             DataDeclaration decl = section.declareData(null, "_qbicc_bound_thread", type);
             decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
-            Value ptrVal = load(pointerHandle(ctxt.getLiteralFactory().literalOf(decl)), MemoryAtomicityMode.NONE);
+            final LiteralFactory lf = ctxt.getLiteralFactory();
+            Value ptrVal = load(pointerHandle(lf.literalOf(decl)), MemoryAtomicityMode.NONE);
             return valueConvert(ptrVal, type);
         } else {
             return parameter(type, "thr", 0);
@@ -105,7 +108,8 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         Function function = ctxt.getExactFunction(node.getExecutable());
         node.getExecutable();
         FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);
-        return pointerHandle(ctxt.getLiteralFactory().literalOf(decl));
+        final LiteralFactory lf = ctxt.getLiteralFactory();
+        return pointerHandle(lf.literalOf(decl));
     }
 
     @Override
@@ -114,7 +118,8 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         Function function = ctxt.getExactFunction(node.getExecutable());
         node.getExecutable();
         FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);
-        return pointerHandle(ctxt.getLiteralFactory().literalOf(decl));
+        final LiteralFactory lf = ctxt.getLiteralFactory();
+        return pointerHandle(lf.literalOf(decl));
     }
 
     @Override
@@ -130,7 +135,8 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         Function function = ctxt.getExactFunction(node.getExecutable());
         node.getExecutable();
         FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);
-        return pointerHandle(ctxt.getLiteralFactory().literalOf(decl));
+        final LiteralFactory lf = ctxt.getLiteralFactory();
+        return pointerHandle(lf.literalOf(decl), lf.literalOf(0));
     }
 
     @Override
@@ -182,7 +188,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         // Use the receiver's typeId to get the itable dictionary for its class
         Value typeId = fb.load(fb.instanceFieldOf(fb.referenceHandle(node.getInstance()), CoreClasses.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
         Value itableDict = fb.load(elementOf(globalVariable(rootITables), typeId), MemoryAtomicityMode.UNORDERED);
-        ValueHandle zeroElementHandle = fb.elementOf(fb.pointerHandle(itableDict), ctxt.getLiteralFactory().literalOf(0));
+        ValueHandle zeroElementHandle = fb.pointerHandle(itableDict);
 
         // Search loop to find the itableDictEntry with the typeId of the target interface.
         // If we hit the sentinel (typeid 0), then there was an IncompatibleClassChangeError
@@ -194,7 +200,8 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         BasicBlock initial = goto_(loop);
         begin(loop);
         PhiValue phi = phi(ctxt.getTypeSystem().getSignedInteger32Type(), loop);
-        phi.setValueForBlock(ctxt, getCurrentElement(), initial, ctxt.getLiteralFactory().literalOf(0));
+        IntegerLiteral zero = ctxt.getLiteralFactory().literalOf(0);
+        phi.setValueForBlock(ctxt, getCurrentElement(), initial, zero);
         Value candidateId = fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, phi), dt.getItableDictType().getMember("typeId")), MemoryAtomicityMode.UNORDERED);
         if_(isEq(candidateId, ctxt.getLiteralFactory().literalOf(info.getInterface().getTypeId())), exitMatched, checkForICCE);
         try {
@@ -223,7 +230,8 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         Function function = ctxt.getExactFunction(node.getExecutable());
         node.getExecutable();
         FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);
-        return pointerHandle(ctxt.getLiteralFactory().literalOf(decl));
+        final LiteralFactory lf = ctxt.getLiteralFactory();
+        return pointerHandle(lf.literalOf(decl));
     }
 
     @Override

@@ -1140,13 +1140,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             ValueHandle nextHandle = node.getValueHandle();
             LLValue index = param.map(node.getIndex());
             LLValue indexType = param.map(node.getIndex().getType());
-            if (nextHandle instanceof PointerHandle) {
-                PointerHandle ptrHandle = (PointerHandle) nextHandle;
-                // special case: element-of-pointer
-                GetElementPtr gep = param.gep(param.map(ptrHandle.getPointerValue()), ptrHandle);
-                gep.comment("index [" + node.getIndex() + "]");
-                return gep.arg(false, indexType, index);
-            }
             return nextHandle.accept(this, param).arg(false, indexType, index);
         }
 
@@ -1166,7 +1159,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
         @Override
         public GetElementPtr visit(LLVMNodeVisitor param, PointerHandle node) {
-            return param.gep(param.map(node.getPointerValue()), node).arg(false, i32, ZERO);
+            LLValue offset = param.map(node.getOffsetValue());
+            LLValue offsetType = param.map(node.getOffsetValue().getType());
+            return param.gep(param.map(node.getPointerValue()), node).arg(false, offsetType, offset);
         }
 
         @Override
@@ -1204,7 +1199,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
         @Override
         public LLValue visit(LLVMNodeVisitor param, PointerHandle node) {
-            return param.map(node.getPointerValue());
+            final Value offsetValue = node.getOffsetValue();
+            if (offsetValue.getType() instanceof IntegerType it && offsetValue.isDefEq(param.ctxt.getLiteralFactory().literalOf(it, 0))) {
+                return param.map(node.getPointerValue());
+            } else {
+                return node.accept(GET_HANDLE_ELEMENT_POINTER, param).asLocal();
+            }
         }
     };
 

@@ -29,9 +29,7 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
-import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
-import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 
@@ -97,7 +95,8 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         TypeSystem tps = ctxt.getTypeSystem();
         FunctionType functionType = tps.getFunctionType(numericType, numericType, numericType);
         FunctionDeclaration declaration = ctxt.getImplicitSection(getRootElement()).declareFunction(null, funcName, functionType);
-        return getFirstBuilder().callNoSideEffects(pointerHandle(ctxt.getLiteralFactory().literalOf(declaration)), List.of(v1, v2));
+        final LiteralFactory lf = ctxt.getLiteralFactory();
+        return getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v1, v2));
     }
 
     @Override
@@ -111,7 +110,8 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         }
         String functionName = "llvm.bswap.i" + minBits;
         FunctionDeclaration declaration = ctxt.getImplicitSection(getRootElement()).declareFunction(null, functionName, functionType);
-        return getFirstBuilder().callNoSideEffects(pointerHandle(ctxt.getLiteralFactory().literalOf(declaration)), List.of(v));
+        final LiteralFactory lf = ctxt.getLiteralFactory();
+        return getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v));
     }
 
     @Override
@@ -122,7 +122,8 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         int minBits = inputType.getMinBits();
         String functionName = "llvm.bitreverse.i" + minBits;
         FunctionDeclaration declaration = ctxt.getImplicitSection(getRootElement()).declareFunction(null, functionName, functionType);
-        return getFirstBuilder().callNoSideEffects(pointerHandle(ctxt.getLiteralFactory().literalOf(declaration)), List.of(v));
+        final LiteralFactory lf = ctxt.getLiteralFactory();
+        return getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v));
     }
 
     @Override
@@ -179,7 +180,8 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         int minBits = inputType.getMinBits();
         String functionName = "llvm.ctpop.i" + minBits;
         FunctionDeclaration declaration = ctxt.getImplicitSection(getRootElement()).declareFunction(null, functionName, functionType);
-        Value result = getFirstBuilder().callNoSideEffects(pointerHandle(ctxt.getLiteralFactory().literalOf(declaration)), List.of(v));
+        final LiteralFactory lf = ctxt.getLiteralFactory();
+        Value result = getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v));
         // LLVM always returns the same type as the input
         if (minBits < 32) {
             result = getFirstBuilder().extend(result, tps.getUnsignedInteger32Type());

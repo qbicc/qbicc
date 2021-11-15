@@ -6,14 +6,11 @@ import java.util.Set;
 import org.qbicc.context.Locatable;
 import org.qbicc.context.Location;
 import org.qbicc.graph.literal.BlockLiteral;
-import org.qbicc.object.Function;
-import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.ObjectType;
-import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
@@ -284,7 +281,18 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType);
 
-    ValueHandle pointerHandle(Value pointer);
+    ValueHandle pointerHandle(Value pointer, Value offsetValue);
+
+    /**
+     * Convenience method to construct a pointer handle with a zero offset.
+     * <b>Do not override this method.</b>
+     *
+     * @param pointer the pointer value (must not be {@code null})
+     * @return the zero-offset pointer handle (must not be {@code null})
+     */
+    default ValueHandle pointerHandle(Value pointer) {
+        return pointerHandle(pointer, getCurrentElement().getEnclosingType().getContext().getLiteralFactory().literalOf(0));
+    }
 
     ValueHandle referenceHandle(Value reference);
 

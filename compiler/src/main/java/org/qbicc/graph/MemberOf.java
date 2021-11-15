@@ -17,13 +17,7 @@ public final class MemberOf extends AbstractValueHandle {
 
     MemberOf(Node callSite, ExecutableElement element, int line, int bci, ValueHandle structureHandle, CompoundType.Member member) {
         super(callSite, element, line, bci);
-
-        if (structureHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof Deref deref) {
-            /* unwrap value since this dereference should not cause an error */
-            this.structureHandle = new PointerHandle(callSite, element, line, bci, deref.getInput());
-        } else {
-            this.structureHandle = structureHandle;
-        }
+        this.structureHandle = structureHandle;
         this.member = member;
         pointerType = member.getType().getPointer().withQualifiersFrom(structureHandle.getPointerType());
         structType = (CompoundType) structureHandle.getValueType();

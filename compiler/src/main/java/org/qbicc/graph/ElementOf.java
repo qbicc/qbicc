@@ -24,9 +24,7 @@ public final class ElementOf extends AbstractValueHandle {
         ValueType inputType = inputHandle.getValueType();
         PointerType pointerType;
 
-        if (inputHandle instanceof PointerHandle) {
-            pointerType = inputType.getPointer();
-        } else if (inputType instanceof ArrayType) {
+        if (inputType instanceof ArrayType) {
             pointerType = ((ArrayType) inputType).getElementType().getPointer();
         } else if (inputType instanceof ArrayObjectType) {
             pointerType = ((ArrayObjectType) inputType).getElementType().getPointer();
