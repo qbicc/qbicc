@@ -431,28 +431,6 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
     }
 
-    // special pointer behavior
-
-    @Override
-    public Value add(Value v1, Value v2) {
-        // todo: maybe opt is not the right place for this
-        if (v1.getType() instanceof PointerType) {
-            return addressOf(pointerHandle(v1, v2));
-        } else if (v2.getType() instanceof PointerType) {
-            return addressOf(pointerHandle(v2, v1));
-        }
-        return super.add(v1, v2);
-    }
-
-    @Override
-    public Value sub(Value v1, Value v2) {
-        // todo: maybe opt is not the right place for this
-        if (v1.getType() instanceof PointerType) {
-            return addressOf(pointerHandle(v1, negate(v2)));
-        }
-        return super.sub(v1, v2);
-    }
-
     @Override
     public Value negate(Value v) {
         if (isCmp(v)) {
