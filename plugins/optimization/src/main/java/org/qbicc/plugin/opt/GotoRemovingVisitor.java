@@ -37,6 +37,7 @@ public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, 
         if (target.getIncoming().size() == 1 && Objects.equals(node.getCallSite(), target.getTerminator().getCallSite())) {
             // delete the goto target and fold it into the current block
             deleted.add(target);
+            param.copyNode(node.getDependency());
             return param.copyTerminator(target.getTerminator());
         } else {
             return getDelegateTerminatorVisitor().visit(param, node);
@@ -71,12 +72,15 @@ public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, 
             && node.getTrueBranch().getIncoming().size() == 1
             && node.getFalseBranch().getIncoming().size() == 1
             && g1.getResumeTarget().getIncoming().size() == 2
+            && Objects.equals(node.getCallSite(), g1.getResumeTarget().getTerminator().getCallSite())
+            && Objects.equals(node.getCallSite(), g2.getResumeTarget().getTerminator().getCallSite())
         ) {
             // either branch works, because we want the successor's successor
             final BasicBlock tb = node.getTrueBranch();
             // delete the if's successor's successor and fold it into the current block
             final BasicBlock successor = tb.getTerminator().getSuccessor(0);
             deleted.add(successor);
+            param.copyNode(node.getDependency());
             return param.copyTerminator(successor.getTerminator());
         } else {
             return getDelegateTerminatorVisitor().visit(param, node);
@@ -106,8 +110,13 @@ public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, 
         // the block being entered
         BasicBlock block = node.getPinnedBlock();
         if (deleted.contains(block)) {
-            // prepend the deleted predecessors' nodes
-            return param.copyNode(block.getIncoming().iterator().next().getTerminator().getDependency());
+            if (block.getIncoming().size() == 2) {
+                // prepend the deleted predecessor's predecessors' nodes
+                return param.copyNode(block.getIncoming().iterator().next().getIncoming().iterator().next().getTerminator().getDependency());
+            } else {
+                // prepend the deleted predecessors' nodes
+                return param.copyNode(block.getIncoming().iterator().next().getTerminator().getDependency());
+            }
         }
         return getDelegateActionVisitor().visit(param, node);
     }
