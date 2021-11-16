@@ -14,6 +14,7 @@ import org.qbicc.graph.Cmp;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Extend;
+import org.qbicc.graph.Neg;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
@@ -26,14 +27,13 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.NullLiteral;
+import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
-import org.qbicc.type.SignedIntegerType;
-import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 
@@ -124,8 +124,8 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (result != null) {
             return result;
         }
-        if (value instanceof Truncate) {
-            return truncate(((Truncate) value).getInput(), toType);
+        if (value instanceof Truncate trunc) {
+            return truncate(trunc.getInput(), toType);
         }
         return super.truncate(value, toType);
     }
@@ -158,10 +158,10 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return isEq(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType()), input);
         }
 
-        if (isCmp(v1) && isLiteral(v2, 0)) {
+        if (isCmp(v1) && isEqualToLiteral(v2, 0)) {
             return isEq(cmpLeft(v1), cmpRight(v1));
         }
-        if (isCmp(v2) && isLiteral(v1, 0)) {
+        if (isCmp(v2) && isEqualToLiteral(v1, 0)) {
             return isEq(cmpLeft(v2), cmpRight(v2));
         }
 
@@ -196,10 +196,10 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             }
         }
 
-        if (isCmp(v1) && isLiteral(v2, 0)) {
+        if (isCmp(v1) && isEqualToLiteral(v2, 0)) {
             return isNe(cmpLeft(v1), cmpRight(v1));
         }
-        if (isCmp(v2) && isLiteral(v1, 0)) {
+        if (isCmp(v2) && isEqualToLiteral(v1, 0)) {
             return isNe(cmpLeft(v2), cmpRight(v2));
         }
 
@@ -207,32 +207,23 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value isLt(Value v1, Value v2) {
-        // todo: replace with constant detection
         LiteralFactory lf = ctxt.getLiteralFactory();
-        if (v1 instanceof IntegerLiteral && v2 instanceof IntegerLiteral) {
-            ValueType type = v1.getType();
-            if (type.equals(v2.getType())) {
-                long l1 = ((IntegerLiteral) v1).longValue();
-                long l2 = ((IntegerLiteral) v2).longValue();
-                if (type instanceof SignedIntegerType) {
-                    return lf.literalOf(l1 < l2);
-                } else {
-                    assert type instanceof UnsignedIntegerType;
-                    return lf.literalOf(Long.compareUnsigned(l1, l2) < 0);
-                }
-            }
+        if (v1.isDefLt(v2)) {
+            return lf.literalOf(true);
+        } else if (v1.isDefGe(v2)) {
+            return lf.literalOf(false);
         }
 
-        if (isCmp(v1) && isLiteral(v2, 1)) {
+        if (isCmp(v1) && isEqualToLiteral(v2, 1)) {
             return isLe(cmpLeft(v1), cmpRight(v1));
         }
-        if (isCmp(v2) && isLiteral(v1, -1)) {
+        if (isCmp(v2) && isEqualToLiteral(v1, -1)) {
             return isGe(cmpLeft(v2), cmpRight(v2));
         }
-        if (isCmp(v1) && isLiteral(v2, 0)) {
+        if (isCmp(v1) && isEqualToLiteral(v2, 0)) {
             return isLt(cmpLeft(v1), cmpRight(v1));
         }
-        if (isCmp(v2) && isLiteral(v1, 0)) {
+        if (isCmp(v2) && isEqualToLiteral(v1, 0)) {
             return isLt(cmpRight(v2), cmpLeft(v2));
         }
 
@@ -240,32 +231,23 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value isGt(Value v1, Value v2) {
-        // todo: replace with constant detection
         LiteralFactory lf = ctxt.getLiteralFactory();
-        if (v1 instanceof IntegerLiteral && v2 instanceof IntegerLiteral) {
-            ValueType type = v1.getType();
-            if (type.equals(v2.getType())) {
-                long l1 = ((IntegerLiteral) v1).longValue();
-                long l2 = ((IntegerLiteral) v2).longValue();
-                if (type instanceof SignedIntegerType) {
-                    return lf.literalOf(l1 > l2);
-                } else {
-                    assert type instanceof UnsignedIntegerType;
-                    return lf.literalOf(Long.compareUnsigned(l1, l2) > 0);
-                }
-            }
+        if (v1.isDefGt(v2)) {
+            return lf.literalOf(true);
+        } else if (v1.isDefLe(v2)) {
+            return lf.literalOf(false);
         }
 
-        if (isCmp(v2) && isLiteral(v1, 1)) {
+        if (isCmp(v2) && isEqualToLiteral(v1, 1)) {
             return isLe(cmpLeft(v2), cmpRight(v2));
         }
-        if (isCmp(v1) && isLiteral(v2, -1)) {
+        if (isCmp(v1) && isEqualToLiteral(v2, -1)) {
             return isGe(cmpLeft(v1), cmpRight(v1));
         }
-        if (isCmp(v1) && isLiteral(v2, 0)) {
+        if (isCmp(v1) && isEqualToLiteral(v2, 0)) {
             return isGt(cmpLeft(v1), cmpRight(v1));
         }
-        if (isCmp(v2) && isLiteral(v1, 0)) {
+        if (isCmp(v2) && isEqualToLiteral(v1, 0)) {
             return isGt(cmpRight(v2), cmpLeft(v2));
         }
 
@@ -273,32 +255,23 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value isLe(Value v1, Value v2) {
-        // todo: replace with constant detection
         LiteralFactory lf = ctxt.getLiteralFactory();
-        if (v1 instanceof IntegerLiteral && v2 instanceof IntegerLiteral) {
-            ValueType type = v1.getType();
-            if (type.equals(v2.getType())) {
-                long l1 = ((IntegerLiteral) v1).longValue();
-                long l2 = ((IntegerLiteral) v2).longValue();
-                if (type instanceof SignedIntegerType) {
-                    return lf.literalOf(l1 <= l2);
-                } else {
-                    assert type instanceof UnsignedIntegerType;
-                    return lf.literalOf(Long.compareUnsigned(l1, l2) <= 0);
-                }
-            }
+        if (v1.isDefLe(v2)) {
+            return lf.literalOf(true);
+        } else if (v1.isDefGt(v2)) {
+            return lf.literalOf(false);
         }
 
-        if (isCmp(v2) && isLiteral(v1, 1)) {
+        if (isCmp(v2) && isEqualToLiteral(v1, 1)) {
             return isGt(cmpLeft(v2), cmpRight(v2));
         }
-        if (isCmp(v1) && isLiteral(v2, -1)) {
+        if (isCmp(v1) && isEqualToLiteral(v2, -1)) {
             return isLt(cmpLeft(v1), cmpRight(v1));
         }
-        if (isCmp(v1) && isLiteral(v2, 0)) {
+        if (isCmp(v1) && isEqualToLiteral(v2, 0)) {
             return isLe(cmpLeft(v1), cmpRight(v1));
         }
-        if (isCmp(v2) && isLiteral(v1, 0)) {
+        if (isCmp(v2) && isEqualToLiteral(v1, 0)) {
             return isLe(cmpRight(v2), cmpLeft(v2));
         }
 
@@ -306,32 +279,23 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value isGe(Value v1, Value v2) {
-        // todo: replace with constant detection
         LiteralFactory lf = ctxt.getLiteralFactory();
-        if (v1 instanceof IntegerLiteral && v2 instanceof IntegerLiteral) {
-            ValueType type = v1.getType();
-            if (type.equals(v2.getType())) {
-                long l1 = ((IntegerLiteral) v1).longValue();
-                long l2 = ((IntegerLiteral) v2).longValue();
-                if (type instanceof SignedIntegerType) {
-                    return lf.literalOf(l1 >= l2);
-                } else {
-                    assert type instanceof UnsignedIntegerType;
-                    return lf.literalOf(Long.compareUnsigned(l1, l2) >= 0);
-                }
-            }
+        if (v1.isDefGe(v2)) {
+            return lf.literalOf(true);
+        } else if (v1.isDefLt(v2)) {
+            return lf.literalOf(false);
         }
 
-        if (isCmp(v1) && isLiteral(v2, -1)) {
+        if (isCmp(v1) && isEqualToLiteral(v2, -1)) {
             return isGe(cmpLeft(v1), cmpRight(v1));
         }
-        if (isCmp(v2) && isLiteral(v1, -1)) {
+        if (isCmp(v2) && isEqualToLiteral(v1, -1)) {
             return isLt(cmpLeft(v2), cmpRight(v2));
         }
-        if (isCmp(v1) && isLiteral(v2, 0)) {
+        if (isCmp(v1) && isEqualToLiteral(v2, 0)) {
             return isGe(cmpLeft(v1), cmpRight(v1));
         }
-        if (isCmp(v2) && isLiteral(v1, 0)) {
+        if (isCmp(v2) && isEqualToLiteral(v1, 0)) {
             return isGe(cmpRight(v2), cmpLeft(v2));
         }
 
@@ -339,8 +303,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value bitCast(Value input, WordType toType) {
-        if (input instanceof BitCast) {
-            final BitCast inputNode = (BitCast) input;
+        if (input instanceof final BitCast inputNode) {
             if (inputNode.getInput().getType().equals(toType)) {
                 // BitCast(BitCast(a, x), type-of a) -> a
                 return inputNode.getInput();
@@ -348,8 +311,40 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
             // BitCast(BitCast(a, x), y) -> BitCast(a, y)
             return bitCast(inputNode.getInput(), toType);
+        } else if (input.getType() instanceof PointerType inPtrType && toType instanceof PointerType outPtrType) {
+            // pointer to struct/array -> pointer to first member/element
+            if (inPtrType.getPointeeType() instanceof CompoundType) {
+                final IntegerLiteral z = ctxt.getLiteralFactory().literalOf(0);
+                ValueHandle outVal = addressOfFirst(pointerHandle(input, z), outPtrType.getPointeeType());
+                if (outVal != null) {
+                    return addressOf(outVal);
+                }
+            }
         }
         return super.bitCast(input, toType);
+    }
+
+    private ValueHandle addressOfFirst(final ValueHandle input, final ValueType outputType) {
+        // if the output type matches the first member or element of input, return its handle
+        if (input.getValueType() instanceof CompoundType ct && ct.getMemberCount() > 0) {
+            final CompoundType.Member memberZero = ct.getMember(0);
+            if (memberZero.getOffset() == 0) {
+                ValueHandle nextHandle = memberOf(input, memberZero);
+                if (outputType.equals(memberZero.getType())) {
+                    return nextHandle;
+                } else {
+                    return addressOfFirst(nextHandle, outputType);
+                }
+            }
+        } else if (input.getValueType() instanceof ArrayType at && at.getElementCount() > 0) {
+            ValueHandle nextHandle = elementOf(input, ctxt.getLiteralFactory().literalOf(0));
+            if (outputType.equals(at.getElementType())) {
+                return nextHandle;
+            } else {
+                return addressOfFirst(nextHandle, outputType);
+            }
+        }
+        return null;
     }
 
     @Override
@@ -358,14 +353,9 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (result != null) {
             return result;
         }
-        if (input instanceof Convert) {
-            Convert inputNode = (Convert) input;
+        if (input instanceof Convert inputNode) {
             Value inputInput = inputNode.getInput();
             ValueType inputInputType = inputInput.getType();
-            if (inputInputType.equals(toType)) {
-                // Convert(Convert(a, x), type-of a) -> a
-                return inputInput;
-            }
             if (inputInputType instanceof PointerType && toType instanceof PointerType) {
                 // Convert(Convert(a, x), y) -> BitCast(a, y) when a and y are pointer types
                 return bitCast(inputInput, toType);
@@ -379,8 +369,17 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value select(final Value condition, final Value trueValue, final Value falseValue) {
-        if (condition instanceof BooleanLiteral) {
-            return ((BooleanLiteral) condition).booleanValue() ? trueValue : falseValue;
+        if (isEqualToLiteral(trueValue, 1) && isEqualToLiteral(falseValue, 0)) {
+            return extend(condition, (WordType) trueValue.getType());
+        } else if (isEqualToLiteral(trueValue, 0) && isEqualToLiteral(falseValue, 1)) {
+            return extend(xor(condition, ctxt.getLiteralFactory().literalOf(true)), (WordType) trueValue.getType());
+        }
+        final BooleanLiteral trueLit = ctxt.getLiteralFactory().literalOf(true);
+        final BooleanLiteral falseLit = ctxt.getLiteralFactory().literalOf(false);
+        if (condition.isDefEq(trueLit) || condition.isDefNe(falseLit)) {
+            return trueValue;
+        } else if (condition.isDefEq(falseLit) || condition.isDefNe(trueLit)) {
+            return falseValue;
         } else if (trueValue.equals(falseValue)) {
             return trueValue;
         } else {
@@ -389,41 +388,58 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public BasicBlock if_(final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget) {
-        if (condition instanceof BooleanLiteral) {
-            if (((BooleanLiteral) condition).booleanValue()) {
-                return goto_(trueTarget);
-            } else {
-                return goto_(falseTarget);
-            }
+        final BooleanLiteral trueLit = ctxt.getLiteralFactory().literalOf(true);
+        final BooleanLiteral falseLit = ctxt.getLiteralFactory().literalOf(false);
+        if (condition.isDefEq(trueLit) || condition.isDefNe(falseLit)) {
+            return goto_(trueTarget);
+        } else if (condition.isDefEq(falseLit) || condition.isDefNe(trueLit)) {
+            return goto_(falseTarget);
+        } else if (trueTarget == falseTarget) {
+            return goto_(trueTarget);
         } else {
             return getDelegate().if_(condition, trueTarget, falseTarget);
         }
     }
 
-    // special pointer behavior
-
     @Override
     public Value add(Value v1, Value v2) {
-        // todo: maybe opt is not the right place for this
-        if (v1.getType() instanceof PointerType) {
-            return addressOf(pointerHandle(v1, v2));
-        } else if (v2.getType() instanceof PointerType) {
-            return addressOf(pointerHandle(v2, v1));
+        if (v1.getType() instanceof IntegerType) {
+            // integer opts
+            assert v2.getType() instanceof IntegerType;
+            if (isZero(v1)) {
+                return v2;
+            } else if (isZero(v2)) {
+                return v1;
+            } else if (v1 instanceof Neg n1) {
+                return sub(v2, n1.getInput());
+            } else if (v2 instanceof Neg n2) {
+                return sub(v1, n2.getInput());
+            }
         }
         return super.add(v1, v2);
     }
 
     @Override
     public Value sub(Value v1, Value v2) {
-        // todo: maybe opt is not the right place for this
-        if (v1.getType() instanceof PointerType) {
-            return addressOf(pointerHandle(v1, negate(v2)));
+        if (v1.getType() instanceof IntegerType) {
+            // integer opts
+            assert v2.getType() instanceof IntegerType;
+            if (isZero(v1)) {
+                return negate(v2);
+            } else if (isZero(v2)) {
+                return v1;
+            } else if (v2 instanceof Neg n2) {
+                return add(v1, n2.getInput());
+            }
         }
         return super.sub(v1, v2);
     }
 
     @Override
     public Value negate(Value v) {
+        if (v instanceof Neg neg) {
+            return neg.getInput();
+        }
         if (isCmp(v)) {
             return cmp(cmpRight(v), cmpLeft(v));
         }
@@ -435,11 +451,8 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value addressOf(ValueHandle handle) {
-        if (handle instanceof PointerHandle ph) {
-            final Value offsetValue = ph.getOffsetValue();
-            if (offsetValue.getType() instanceof IntegerType it && offsetValue.isDefEq(ctxt.getLiteralFactory().literalOf(it, 0))) {
-                return ((PointerHandle) handle).getPointerValue();
-            }
+        if (handle instanceof PointerHandle ph && isZero(ph.getOffsetValue())) {
+            return ((PointerHandle) handle).getPointerValue();
         }
         return super.addressOf(handle);
     }
@@ -447,7 +460,12 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     @Override
     public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
         if (pointer instanceof AddressOf) {
-            return pointer.getValueHandle();
+            if (isZero(offsetValue)) {
+                return pointer.getValueHandle();
+            } else if (pointer.getValueHandle() instanceof PointerHandle ph) {
+                // merge the offset value
+                return pointerHandle(ph.getPointerValue(), add(ph.getOffsetValue(), offsetValue));
+            }
         }
         return super.pointerHandle(pointer, offsetValue);
     }
@@ -457,7 +475,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private boolean isZero(final Value value) {
-        return value instanceof Literal && ((Literal) value).isZero();
+        return value.isDefEq(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(value.getType()));
     }
 
     private static boolean isCmp(final Value value) {
@@ -472,8 +490,8 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return ((Cmp) value).getRightInput();
     }
 
-    private boolean isLiteral(final Value value, final int literal) {
-        return literal == 0 ? isZero(value) : value instanceof IntegerLiteral &&
-            ((IntegerLiteral) value).equals(ctxt.getLiteralFactory().literalOf(literal));
+    private boolean isEqualToLiteral(final Value value, final int literal) {
+        return value.getType() instanceof IntegerType it &&
+            value.isDefEq(ctxt.getLiteralFactory().literalOf(it, literal));
     }
 }

@@ -56,6 +56,7 @@ import org.qbicc.plugin.coreclasses.BasicInitializationBasicBlockBuilder;
 import org.qbicc.plugin.coreclasses.BasicInitializationManualInitializer;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.constants.ConstantBasicBlockBuilder;
+import org.qbicc.plugin.correctness.StaticChecksBasicBlockBuilder;
 import org.qbicc.plugin.llvm.LLVMCompatibleBasicBlockBuilder;
 import org.qbicc.plugin.conversion.MethodCallFixupBasicBlockBuilder;
 import org.qbicc.plugin.conversion.NumericalConversionBasicBlockBuilder;
@@ -396,6 +397,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
                                 builder.addPostHook(Phase.ADD, ReachabilityInfo::reportStats);
                                 builder.addPostHook(Phase.ADD, ReachabilityInfo::clear);
 
@@ -424,6 +426,8 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, LocalVariableFindingBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
+
                                 builder.addPostHook(Phase.ANALYZE, ReachabilityInfo::reportStats);
                                 // todo: restore when adapted for run time initializers
                                 //builder.addPostHook(Phase.ANALYZE, new ClassInitializerRegister());
@@ -467,6 +471,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                                 // MethodDataStringsSerializer should be the last BBB in the list
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, MethodDataStringsSerializer::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
 
                                 builder.addPreHook(Phase.GENERATE, new SupersDisplayEmitter());
                                 builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
