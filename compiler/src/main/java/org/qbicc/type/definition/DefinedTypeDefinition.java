@@ -11,10 +11,6 @@ import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.classfile.BootstrapMethod;
 import org.qbicc.type.definition.classfile.ClassFile;
-import org.qbicc.type.definition.element.ConstructorElement;
-import org.qbicc.type.definition.element.FieldElement;
-import org.qbicc.type.definition.element.InitializerElement;
-import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.generic.ClassSignature;
@@ -24,11 +20,7 @@ import org.qbicc.type.generic.TypeParameterContext;
 /**
  *
  */
-public interface DefinedTypeDefinition extends FieldResolver,
-                                               MethodResolver,
-                                               ConstructorResolver,
-                                               InitializerResolver,
-                                               TypeParameterContext,
+public interface DefinedTypeDefinition extends TypeParameterContext,
                                                Locatable {
 
     LoadedTypeDefinition load() throws VerifyFailedException;
@@ -155,10 +147,6 @@ public interface DefinedTypeDefinition extends FieldResolver,
         }
     }
 
-    default FieldElement resolveField(int index, final DefinedTypeDefinition enclosing) {
-        return load().getField(index);
-    }
-
     // ==================
     // Methods
     // ==================
@@ -172,10 +160,6 @@ public interface DefinedTypeDefinition extends FieldResolver,
         }
     }
 
-    default MethodElement resolveMethod(int index, final DefinedTypeDefinition enclosing) {
-        return load().getMethod(index);
-    }
-
     // ==================
     // Constructors
     // ==================
@@ -187,18 +171,6 @@ public interface DefinedTypeDefinition extends FieldResolver,
         for (int i = 0; i < count; i ++) {
             consumer.accept(this, i);
         }
-    }
-
-    default ConstructorElement resolveConstructor(int index, final DefinedTypeDefinition enclosing) {
-        return load().getConstructor(index);
-    }
-
-    // ==================
-    // Initializer
-    // ==================
-
-    default InitializerElement resolveInitializer(int index, final DefinedTypeDefinition enclosing) {
-        return load().getInitializer();
     }
 
     // ==================
