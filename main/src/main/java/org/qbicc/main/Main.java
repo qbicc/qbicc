@@ -722,9 +722,9 @@ public class Main implements Callable<DiagnosticContext> {
             boolean optMemoryTracking;
             @CommandLine.Option(names = "--opt-inlining", negatable = true, defaultValue = "false", description = "Enable/disable inliner")
             boolean optInlining;
-            @CommandLine.Option(names = "--opt-phis", negatable = true, defaultValue = "true", description = "Enable/disable `phi` elimination")
+            @CommandLine.Option(names = "--no-opt-phis", negatable = true, defaultValue = "true", description = "Enable/disable `phi` elimination")
             boolean optPhis;
-            @CommandLine.Option(names = "--opt-gotos", negatable = true, defaultValue = "true", description = "Enable/disable `goto` elimination")
+            @CommandLine.Option(names = "--no-opt-gotos", negatable = true, defaultValue = "true", description = "Enable/disable `goto` elimination")
             boolean optGotos;
         }
 
