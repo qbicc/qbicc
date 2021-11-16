@@ -34,6 +34,10 @@ public interface CToolChain extends Tool {
         String cpuName = cpu.getSimpleName();
         OS os = platform.getOs();
         String osName = os.getName();
+        String cc = System.getenv("CC");
+        if (cc != null) {
+            names.add(cc);
+        }
         if (os == OS.LINUX && (os != Platform.HOST_PLATFORM.getOs() || cpu != Platform.HOST_PLATFORM.getCpu())) {
             names.add(cpuName + "-" + osName + "-gnu-gcc");
         }
