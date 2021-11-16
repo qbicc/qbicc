@@ -60,6 +60,12 @@ public final class LLVM {
 
     public static final LLValue zeroinitializer = new SingleWord("zeroinitializer");
 
+    public static final LLValue ptr = new OpaquePointer(0);
+
+    public static LLValue ptr(int addrSpace) {
+        return new OpaquePointer(addrSpace);
+    }
+
     public static LLValue ptrTo(LLValue type, int addrSpace) {
         return new PointerTo((AbstractValue) type, addrSpace);
     }

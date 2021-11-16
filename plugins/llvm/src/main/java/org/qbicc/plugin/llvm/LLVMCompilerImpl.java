@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import java.util.Set;
 
@@ -40,7 +39,7 @@ public class LLVMCompilerImpl implements LLVMCompiler {
         if (useCcForIr) {
             llcInvoker = null;
         } else {
-            llcInvoker = createLlcInvoker(ctxt, config.isPie(), config.getLlcOptions());
+            llcInvoker = createLlcInvoker(ctxt, config);
             if (llcInvoker != null) {
                 if (emitAssembly) {
                     llcInvoker.setOutputFormat(OutputFormat.ASM);
@@ -144,7 +143,7 @@ public class LLVMCompilerImpl implements LLVMCompiler {
         return ccInvoker;
     }
 
-    private static LlcInvoker createLlcInvoker(CompilationContext context, boolean isPie, List<String> llcOptions) {
+    private static LlcInvoker createLlcInvoker(CompilationContext context, LLVMConfiguration config) {
         LlvmToolChain llvmToolChain = context.getAttachment(Driver.LLVM_TOOL_KEY);
         if (llvmToolChain == null) {
             context.error("No LLVM tool chain is available");
@@ -152,8 +151,10 @@ public class LLVMCompilerImpl implements LLVMCompiler {
         }
         LlcInvoker llcInvoker = llvmToolChain.newLlcInvoker();
         llcInvoker.setMessageHandler(ToolMessageHandler.reporting(context));
-        llcInvoker.setRelocationModel(isPie ? RelocationModel.Pic : RelocationModel.Static);
-        llcInvoker.setOptions(llcOptions);
+        llcInvoker.setRelocationModel(config.isPie() ? RelocationModel.Pic : RelocationModel.Static);
+        llcInvoker.setOptions(config.getLlcOptions());
+        llcInvoker.setOutputFormat(OutputFormat.ASM);
+        llcInvoker.setOpaquePointers(config.isOpaquePointers());
         return llcInvoker;
     }
 }

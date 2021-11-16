@@ -171,6 +171,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
     final List<InvocationNode> invocationNodes = new ArrayList<>();
     final Map<Invoke, Set<Phi>> invokeResultsToMap = new HashMap<>();
     private final Map<Set<Value>, Set<Value>> cache = new HashMap<>();
+    private final boolean opaquePointers;
 
     private boolean personalityAdded;
 
@@ -186,6 +187,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
         entryBlock = methodBody.getEntryBlock();
         builder = LLBuilder.newBuilder(func.getRootBlock());
         personalityAdded = false;
+        opaquePointers = moduleVisitor.opaquePointers;
     }
 
     // begin
@@ -1470,6 +1472,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
         } else if (value instanceof WordCastValue wcv && wcv.getType() instanceof IntegerType out && wcv.getInput().getType() instanceof IntegerType in && out.getMinBits() == in.getMinBits()) {
             // no node generated for signedness casts
             return map(wcv.getInput());
+        } else if (opaquePointers && value instanceof BitCast bc &&
+            (bc.getType() instanceof PointerType && bc.getInput().getType() instanceof PointerType ||
+             bc.getType() instanceof ReferenceType && bc.getInput().getType() instanceof ReferenceType)
+        ) {
+            // all pointers are the same
+            return map(bc.getInput());
         }
         LLValue mapped = mappedValues.get(value);
         if (mapped != null) {

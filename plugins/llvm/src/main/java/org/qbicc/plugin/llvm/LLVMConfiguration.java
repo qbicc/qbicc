@@ -17,6 +17,7 @@ public final class LLVMConfiguration {
     private final boolean emitIr;
     private final boolean emitAssembly;
     private final boolean compileOutput;
+    private final boolean opaquePointers;
     private final List<String> llcOptions;
     private final ReferenceStrategy referenceStrategy;
 
@@ -34,6 +35,7 @@ public final class LLVMConfiguration {
             llcOptions = List.copyOf(builder.llcOptions);
         }
         compileOutput = builder.compileOutput;
+        opaquePointers = builder.opaquePointers;
         referenceStrategy = builder.referenceStrategy;
     }
 
@@ -69,6 +71,10 @@ public final class LLVMConfiguration {
         return compileOutput;
     }
 
+    public boolean isOpaquePointers() {
+        return opaquePointers;
+    }
+
     public List<String> getLlcOptions() {
         return llcOptions;
     }
@@ -89,6 +95,7 @@ public final class LLVMConfiguration {
         private boolean emitIr;
         private boolean emitAssembly;
         private boolean compileOutput;
+        private boolean opaquePointers;
         private List<String> llcOptions;
         private ReferenceStrategy referenceStrategy = ReferenceStrategy.POINTER_AS1;
 
@@ -110,6 +117,9 @@ public final class LLVMConfiguration {
 
         public Builder setMajorVersion(int majorVersion) {
             this.majorVersion = majorVersion;
+            if (majorVersion >= 16) {
+                opaquePointers = true;
+            }
             return this;
         }
 
@@ -155,6 +165,17 @@ public final class LLVMConfiguration {
 
         public Builder setCompileOutput(boolean compileOutput) {
             this.compileOutput = compileOutput;
+            return this;
+        }
+
+        public boolean isOpaquePointers() {
+            return opaquePointers;
+        }
+
+        public Builder setOpaquePointers(boolean opaquePointers) {
+            if (majorVersion < 16) {
+                this.opaquePointers = opaquePointers;
+            }
             return this;
         }
 
