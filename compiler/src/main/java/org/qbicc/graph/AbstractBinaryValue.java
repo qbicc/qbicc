@@ -26,7 +26,12 @@ abstract class AbstractBinaryValue extends AbstractValue implements BinaryValue 
     }
 
     int calcHashCode() {
-        return Objects.hash(getClass(), left, right);
+        if (this instanceof CommutativeBinaryValue) {
+            return getClass().hashCode() * 19 + (left.hashCode() ^ right.hashCode());
+        } else {
+            assert this instanceof NonCommutativeBinaryValue;
+            return Objects.hash(getClass(), left, right);
+        }
     }
 
     public boolean equals(final Object other) {
@@ -34,7 +39,9 @@ abstract class AbstractBinaryValue extends AbstractValue implements BinaryValue 
     }
 
     boolean equals(final AbstractBinaryValue other) {
-        return this == other || getClass() == other.getClass() && left.equals(other.left) && right.equals(other.right);
+        return this == other || getClass() == other.getClass()
+            && (left.equals(other.left) && right.equals(other.right)
+                || this instanceof CommutativeBinaryValue && left.equals(other.right) && right.equals(other.left));
     }
 
     @Override
