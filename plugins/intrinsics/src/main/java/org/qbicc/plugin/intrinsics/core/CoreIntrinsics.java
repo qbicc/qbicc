@@ -1601,8 +1601,8 @@ public final class CoreIntrinsics {
             Value expr = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), CoreClasses.get(ctxt).getArrayClassField()), MemoryAtomicityMode.UNORDERED);
             Value expect = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(jlc.getType().getReference());
             Value update = arguments.get(1);
-            ValueHandle valuesCompareAndSwap = builder.staticMethod(valsDesc, "compareAndSwap", casDesc);
-            return builder.call(valuesCompareAndSwap, List.of(expr, expect, update));
+            ValueHandle valuesCompareAndSet = builder.staticMethod(valsDesc, "compareAndSet", casDesc);
+            return builder.call(valuesCompareAndSet, List.of(expr, expect, update));
         };
         intrinsics.registerIntrinsic(objModDesc, "set_array_class", clsClsBooleanDesc, setArrayClass);
 
@@ -1737,8 +1737,8 @@ public final class CoreIntrinsics {
             Value expr = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField), MemoryAtomicityMode.NONE);
             Value expect = ctxt.getLiteralFactory().literalOf(0L);
             Value update = builder.valueConvert(arguments.get(1), (SignedIntegerType)nativeObjectMonitorField.getType());
-            ValueHandle valuesCompareAndSwap = builder.staticMethod(valsDesc, "compareAndSwap", casDesc);
-            return builder.call(valuesCompareAndSwap, List.of(expr, expect, update));
+            ValueHandle valuesCompareAndSet = builder.staticMethod(valsDesc, "compareAndSet", casDesc);
+            return builder.call(valuesCompareAndSet, List.of(expr, expect, update));
         };
         intrinsics.registerIntrinsic(objModDesc, "set_nativeObjectMonitor", setNomDesc, setNom);
     }
@@ -1801,11 +1801,11 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(valsDesc, "isAlwaysFalse", boolBoolDesc, isAlwaysFalse);
 
 
-        // compareAndSwap*
-        class CompareAndSwapIntrinsic implements StaticIntrinsic {
+        // compareAndSet*
+        class CompareAndSetIntrinsic implements StaticIntrinsic {
             private final MemoryAtomicityMode successMode;
             private final MemoryAtomicityMode failureMode;
-            CompareAndSwapIntrinsic(final MemoryAtomicityMode successMode, final MemoryAtomicityMode failureMode) {
+            CompareAndSetIntrinsic(final MemoryAtomicityMode successMode, final MemoryAtomicityMode failureMode) {
                 this.successMode = successMode;
                 this.failureMode = failureMode;
             }
@@ -1825,22 +1825,22 @@ public final class CoreIntrinsics {
             }
         }
 
-        StaticIntrinsic compareAndSwapVolatile = new CompareAndSwapIntrinsic(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT, MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
-        StaticIntrinsic compareAndSwapAcquire = new CompareAndSwapIntrinsic(MemoryAtomicityMode.ACQUIRE, MemoryAtomicityMode.MONOTONIC);
-        StaticIntrinsic compareAndSwapRelease = new CompareAndSwapIntrinsic(MemoryAtomicityMode.RELEASE, MemoryAtomicityMode.MONOTONIC);
-        StaticIntrinsic compareAndSwap = new CompareAndSwapIntrinsic(MemoryAtomicityMode.MONOTONIC, MemoryAtomicityMode.MONOTONIC);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapVolatile", boolObjObjObjDescriptor, compareAndSwapVolatile);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapVolatile",  boolIntIntIntDescriptor, compareAndSwapVolatile);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapVolatile", boolLongLongLongDescriptor, compareAndSwapVolatile);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapAcquire", boolObjObjObjDescriptor, compareAndSwapAcquire);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapAcquire", boolIntIntIntDescriptor, compareAndSwapAcquire);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapAcquire", boolLongLongLongDescriptor, compareAndSwapAcquire);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapRelease", boolObjObjObjDescriptor, compareAndSwapRelease);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapRelease", boolIntIntIntDescriptor, compareAndSwapRelease);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapRelease", boolLongLongLongDescriptor, compareAndSwapRelease);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSwap", boolObjObjObjDescriptor, compareAndSwap);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSwap", boolIntIntIntDescriptor, compareAndSwap);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSwap", boolLongLongLongDescriptor, compareAndSwap);
+        StaticIntrinsic compareAndSetVolatile = new CompareAndSetIntrinsic(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT, MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
+        StaticIntrinsic compareAndSetAcquire = new CompareAndSetIntrinsic(MemoryAtomicityMode.ACQUIRE, MemoryAtomicityMode.MONOTONIC);
+        StaticIntrinsic compareAndSetRelease = new CompareAndSetIntrinsic(MemoryAtomicityMode.RELEASE, MemoryAtomicityMode.MONOTONIC);
+        StaticIntrinsic compareAndSet = new CompareAndSetIntrinsic(MemoryAtomicityMode.MONOTONIC, MemoryAtomicityMode.MONOTONIC);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSetVolatile", boolObjObjObjDescriptor, compareAndSetVolatile);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSetVolatile",  boolIntIntIntDescriptor, compareAndSetVolatile);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSetVolatile", boolLongLongLongDescriptor, compareAndSetVolatile);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSetAcquire", boolObjObjObjDescriptor, compareAndSetAcquire);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSetAcquire", boolIntIntIntDescriptor, compareAndSetAcquire);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSetAcquire", boolLongLongLongDescriptor, compareAndSetAcquire);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSetRelease", boolObjObjObjDescriptor, compareAndSetRelease);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSetRelease", boolIntIntIntDescriptor, compareAndSetRelease);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSetRelease", boolLongLongLongDescriptor, compareAndSetRelease);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSet", boolObjObjObjDescriptor, compareAndSet);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSet", boolIntIntIntDescriptor, compareAndSet);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSet", boolLongLongLongDescriptor, compareAndSet);
 
         class GetAndSetIntrinsic implements StaticIntrinsic {
             private final MemoryAtomicityMode mode;
