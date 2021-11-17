@@ -49,7 +49,7 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         this.maximumLineNumber = 1;
     }
 
-    InvokableElement(Builder builder) {
+    InvokableElement(BuilderImpl builder) {
         super(builder);
         this.descriptor = builder.descriptor;
         this.signature = builder.signature;
@@ -206,7 +206,27 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         return annotations;
     }
 
-    public static abstract class Builder extends AnnotatedElement.Builder implements ExecutableElement.Builder {
+    public interface Builder extends AnnotatedElement.Builder, ExecutableElement.Builder {
+        void setDescriptor(MethodDescriptor descriptor);
+
+        void setSignature(final MethodSignature signature);
+
+        void setParameters(final List<ParameterElement> parameters);
+
+        void setReturnVisibleTypeAnnotations(final TypeAnnotationList returnVisibleTypeAnnotations);
+
+        void setReturnInvisibleTypeAnnotations(final TypeAnnotationList returnInvisibleTypeAnnotations);
+
+        void setMethodBodyFactory(final MethodBodyFactory factory, final int index);
+
+        void setMinimumLineNumber(int minimumLineNumber);
+
+        void setMaximumLineNumber(int maximumLineNumber);
+
+        InvokableElement build();
+    }
+
+    static abstract class BuilderImpl extends AnnotatedElement.BuilderImpl implements Builder {
         List<ParameterElement> parameters = List.of();
         MethodDescriptor descriptor = MethodDescriptor.VOID_METHOD_DESCRIPTOR;
         MethodSignature signature = MethodSignature.VOID_METHOD_SIGNATURE;
@@ -218,7 +238,7 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         int maximumLineNumber = 1;
         FunctionType type;
 
-        Builder() {}
+        BuilderImpl() {}
 
         public void setDescriptor(MethodDescriptor descriptor) {
             this.descriptor = Assert.checkNotNullParam("descriptor", descriptor);

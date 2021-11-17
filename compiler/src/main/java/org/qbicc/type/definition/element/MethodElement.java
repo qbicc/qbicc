@@ -24,7 +24,7 @@ public final class MethodElement extends InvokableElement implements NamedElemen
         this.name = null;
     }
 
-    MethodElement(Builder builder) {
+    MethodElement(BuilderImpl builder) {
         super(builder);
         this.name = builder.name;
     }
@@ -70,7 +70,7 @@ public final class MethodElement extends InvokableElement implements NamedElemen
     }
 
     public static Builder builder() {
-        return new Builder();
+        return new BuilderImpl();
     }
 
     public boolean overrides(final MethodElement other) {
@@ -83,10 +83,16 @@ public final class MethodElement extends InvokableElement implements NamedElemen
             && getEnclosingType().load().getType().isSubtypeOf(other.getEnclosingType().load().getType());
     }
 
-    public static final class Builder extends InvokableElement.Builder implements NamedElement.Builder {
+    public interface Builder extends InvokableElement.Builder, NamedElement.Builder {
+        void setName(final String name);
+
+        MethodElement build();
+    }
+
+    static final class BuilderImpl extends InvokableElement.BuilderImpl implements Builder {
         String name;
 
-        Builder() {}
+        BuilderImpl() {}
 
         public void setName(final String name) {
             this.name = name;

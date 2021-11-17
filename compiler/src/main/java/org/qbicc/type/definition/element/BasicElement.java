@@ -26,7 +26,7 @@ public abstract class BasicElement implements Element {
         index = 0;
     }
 
-    BasicElement(Builder builder) {
+    BasicElement(BuilderImpl builder) {
         enclosingType = Assert.checkNotNullParam("builder.enclosingType", builder.enclosingType);
         sourceFileName = builder.sourceFileName;
         modifiers = builder.modifiers;
@@ -65,15 +65,29 @@ public abstract class BasicElement implements Element {
         return enclosingType;
     }
 
-    public static abstract class Builder implements Element.Builder {
+    interface Builder extends Element.Builder {
+        void setSourceFileName(String sourceFileName);
+
+        void setModifiers(int modifiers);
+
+        void addModifiers(int modifiers);
+
+        void setIndex(int index);
+
+        void setEnclosingType(DefinedTypeDefinition enclosingType);
+
+        BasicElement build();
+    }
+
+    static abstract class BuilderImpl implements Builder {
         DefinedTypeDefinition enclosingType;
         String sourceFileName;
         int modifiers;
         int index;
 
-        Builder() {}
+        BuilderImpl() {}
 
-        Builder(final BasicElement original) {
+        BuilderImpl(final BasicElement original) {
             enclosingType = original.enclosingType;
             sourceFileName = original.sourceFileName;
             modifiers = original.modifiers;

@@ -12,7 +12,7 @@ public final class NestedClassElement extends BasicElement implements MemberElem
     private final String name;
     private final DefinedTypeDefinition correspondingType;
 
-    NestedClassElement(final Builder builder) {
+    NestedClassElement(final BuilderImpl builder) {
         super(builder);
         this.name = Assert.checkNotNullParam("builder.name", builder.name);
         this.correspondingType = Assert.checkNotNullParam("builder.correspondingType", builder.correspondingType);
@@ -31,14 +31,22 @@ public final class NestedClassElement extends BasicElement implements MemberElem
     }
 
     public static Builder builder() {
-        return new Builder();
+        return new BuilderImpl();
     }
 
-    public static final class Builder extends BasicElement.Builder implements MemberElement.Builder, NamedElement.Builder {
+    public interface Builder extends BasicElement.Builder, MemberElement.Builder, NamedElement.Builder {
+        void setName(final String name);
+
+        void setCorrespondingType(final DefinedTypeDefinition correspondingType);
+
+        NestedClassElement build();
+    }
+
+    static final class BuilderImpl extends BasicElement.BuilderImpl implements Builder {
         private String name;
         private DefinedTypeDefinition correspondingType;
 
-        Builder() {}
+        BuilderImpl() {}
 
         public void setName(final String name) {
             this.name = name;

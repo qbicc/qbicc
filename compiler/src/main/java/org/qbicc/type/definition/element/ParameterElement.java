@@ -10,7 +10,7 @@ import org.qbicc.type.generic.TypeParameterContext;
 public final class ParameterElement extends VariableElement {
     public static final ParameterElement[] NO_PARAMETERS = new ParameterElement[0];
 
-    ParameterElement(final Builder builder) {
+    ParameterElement(final BuilderImpl builder) {
         super(builder);
     }
 
@@ -19,11 +19,11 @@ public final class ParameterElement extends VariableElement {
     }
 
     public static Builder builder() {
-        return new Builder();
+        return new BuilderImpl();
     }
 
     public static Builder builder(ParameterElement original) {
-        return new Builder(original);
+        return new BuilderImpl(original);
     }
 
     ValueType resolveTypeDescriptor(final ClassContext classContext, TypeParameterContext paramCtxt) {
@@ -35,10 +35,14 @@ public final class ParameterElement extends VariableElement {
                         getInvisibleTypeAnnotations());
     }
 
-    public static final class Builder extends VariableElement.Builder {
-        Builder() {}
+    public interface Builder extends VariableElement.Builder {
+        ParameterElement build();
+    }
 
-        Builder(ParameterElement original) {
+    static final class BuilderImpl extends VariableElement.BuilderImpl implements Builder {
+        BuilderImpl() {}
+
+        BuilderImpl(ParameterElement original) {
             super(original);
         }
 

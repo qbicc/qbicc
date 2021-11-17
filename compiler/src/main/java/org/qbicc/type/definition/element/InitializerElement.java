@@ -21,7 +21,7 @@ public final class InitializerElement extends BasicElement implements Executable
     final int maximumLineNumber;
     boolean inProgress;
 
-    InitializerElement(Builder builder) {
+    InitializerElement(BuilderImpl builder) {
         super(builder);
         this.methodBodyFactory = builder.methodBodyFactory;
         this.methodBodyFactoryIndex = builder.methodBodyFactoryIndex;
@@ -110,7 +110,7 @@ public final class InitializerElement extends BasicElement implements Executable
     }
 
     public static Builder builder() {
-        return new Builder();
+        return new BuilderImpl();
     }
 
     @Override
@@ -118,13 +118,23 @@ public final class InitializerElement extends BasicElement implements Executable
         return "Initializer(" + getEnclosingType().getInternalName() + ")";
     }
 
-    public static final class Builder extends BasicElement.Builder implements ExecutableElement.Builder {
+    public interface Builder extends BasicElement.Builder, ExecutableElement.Builder {
+        void setMethodBodyFactory(final MethodBodyFactory factory, final int index);
+
+        void setMinimumLineNumber(int minimumLineNumber);
+
+        void setMaximumLineNumber(int maximumLineNumber);
+
+        InitializerElement build();
+    }
+
+    static final class BuilderImpl extends BasicElement.BuilderImpl implements Builder {
         MethodBodyFactory methodBodyFactory;
         int methodBodyFactoryIndex;
         int minimumLineNumber = 1;
         int maximumLineNumber = 1;
 
-        Builder() {}
+        BuilderImpl() {}
 
         public void setMethodBodyFactory(final MethodBodyFactory factory, final int index) {
             this.methodBodyFactory = Assert.checkNotNullParam("factory", factory);

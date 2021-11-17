@@ -10,7 +10,7 @@ import org.qbicc.type.generic.TypeParameterContext;
 public final class GlobalVariableElement extends VariableElement {
     private final String section;
 
-    GlobalVariableElement(final Builder builder) {
+    GlobalVariableElement(final BuilderImpl builder) {
         super(builder);
         section = builder.section;
     }
@@ -24,13 +24,19 @@ public final class GlobalVariableElement extends VariableElement {
     }
 
     public static Builder builder() {
-        return new Builder();
+        return new BuilderImpl();
     }
 
-    public static final class Builder extends VariableElement.Builder {
+    public interface Builder extends VariableElement.Builder {
+        void setSection(String section);
+
+        GlobalVariableElement build();
+    }
+
+    static final class BuilderImpl extends VariableElement.BuilderImpl implements Builder {
         private String section = CompilationContext.IMPLICIT_SECTION_NAME;
 
-        Builder() {
+        BuilderImpl() {
             setTypeParameterContext(TypeParameterContext.EMPTY);
         }
 
