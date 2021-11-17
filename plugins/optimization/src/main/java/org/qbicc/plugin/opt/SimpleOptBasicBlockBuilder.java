@@ -19,6 +19,7 @@ import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.WordCastValue;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.CompoundLiteral;
@@ -32,6 +33,7 @@ import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.NullableType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
@@ -143,16 +145,16 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return ctxt.getLiteralFactory().literalOf(false);
         }
 
-        if (v1 instanceof Extend && isZero(v2)) {
-            Value input = ((Extend) v1).getInput();
-            // icmp eq iX (*ext iY foo to iX), iX 0
+        if ((v1 instanceof Extend || v1 instanceof BitCast && v1.getType() instanceof NullableType) && isZero(v2)) {
+            Value input = ((WordCastValue) v1).getInput();
+            // icmp eq iX (*ext/bitcast iY foo to iX), iX 0
             //   ↓
             // icmp eq iY foo, iY 0
             return isEq(input, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType()));
         }
-        if (v2 instanceof Extend && isZero(v1)) {
-            Value input = ((Extend) v2).getInput();
-            // icmp eq iX 0, iX (*ext iY foo to iX)
+        if ((v2 instanceof Extend || v2 instanceof BitCast && v2.getType() instanceof NullableType) && isZero(v1)) {
+            Value input = ((WordCastValue) v2).getInput();
+            // icmp eq iX 0, iX (*ext/bitcast iY foo to iX)
             //   ↓
             // icmp eq iY 0, iY foo
             return isEq(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType()), input);
@@ -175,23 +177,23 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return ctxt.getLiteralFactory().literalOf(true);
         }
 
-        if (v1 instanceof Extend && isZero(v2)) {
-            Value input = ((Extend) v1).getInput();
+        if ((v1 instanceof Extend || v1 instanceof BitCast && v1.getType() instanceof NullableType) && isZero(v2)) {
+            Value input = ((WordCastValue) v1).getInput();
             if (input.getType() instanceof BooleanType) {
                 // icmp ne iX (zext i1 foo to iX), iX 0
                 return input;
             } else {
-                // icmp ne iX (*ext iY foo to iX), iX 0
+                // icmp ne iX (*ext/bitcast iY foo to iX), iX 0
                 return isNe(input, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType()));
             }
         }
-        if (v2 instanceof Extend && isZero(v1)) {
-            Value input = ((Extend) v2).getInput();
+        if ((v2 instanceof Extend || v2 instanceof BitCast && v2.getType() instanceof NullableType) && isZero(v1)) {
+            Value input = ((WordCastValue) v2).getInput();
             if (input.getType() instanceof BooleanType) {
                 // icmp ne iX 0, iX (zext i1 foo to iX)
                 return input;
             } else {
-                // icmp ne iX 0, iX (*ext iY foo to iX)
+                // icmp ne iX 0, iX (*ext/bitcast iY foo to iX)
                 return isNe(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType()), input);
             }
         }
