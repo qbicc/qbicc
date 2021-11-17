@@ -102,6 +102,16 @@ public interface Vm {
     DefinedTypeDefinition loadClass(ClassContext classContext, String name) throws Thrown;
 
     /**
+     * Load a resource. Resources are not cached. The current thread must be bound to a VM thread.
+     *
+     * @param classContext the class context instance (must not be {@code null})
+     * @param name the resource name (must not be {@code null})
+     * @return the resource bytes, or {@code null} if it is not found
+     * @throws Thrown if the internal JVM has thrown an exception while loading the resource
+     */
+    byte[] loadResource(ClassContext classContext, String name) throws Thrown;
+
+    /**
      * Allocate an object without initializing it (all fields/elements will be {@code null}, {@code false}, or zero).
      * If the given {@code type} is not initialized, it will be.
      *

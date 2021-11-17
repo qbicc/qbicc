@@ -158,7 +158,7 @@ public class Driver implements Closeable {
 
         java.util.function.Function<CompilationContext, Vm> vmFactory = Assert.checkNotNullParam("builder.vmFactory", builder.vmFactory);
         NativeMethodConfigurator nativeMethodConfigurator = constructNativeMethodConfigurator(builder);
-        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, this::defaultFinder, vmFactory, outputDir, resolverFactories, typeBuilderFactories, nativeMethodConfigurator);
+        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, this::defaultFinder, this::defaultResourceFinder, vmFactory, outputDir, resolverFactories, typeBuilderFactories, nativeMethodConfigurator);
         // start with ADD
         compilationContext.setBlockFactory(addBuilderFactory);
 
@@ -245,6 +245,26 @@ public class Driver implements Closeable {
             } catch (Exception e) {
                 log.warnf(e, "An exception was thrown while loading class \"%s\" from the bootstrap loader", name);
                 classContext.getCompilationContext().warning("Failed to load class \"%s\" from the bootstrap loader due to an exception: %s", name, e);
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private byte[] defaultResourceFinder(ClassContext classContext, String name) {
+        ByteBuffer buffer;
+        for (ClassPathItem item : bootClassPath) {
+            try (ClassPathElement.Resource resource = item.findResource(name)) {
+                if (resource == ClassPathElement.NON_EXISTENT) {
+                    continue;
+                }
+                buffer = resource.getBuffer();
+                byte[] bytes = new byte[buffer.remaining()];
+                buffer.get(bytes);
+                return bytes;
+            } catch (Exception e) {
+                log.warnf(e, "An exception was thrown while loading resource \"%s\" from the bootstrap loader", name);
+                classContext.getCompilationContext().warning("Failed to load resource \"%s\" from the bootstrap loader due to an exception: %s", name, e);
                 return null;
             }
         }

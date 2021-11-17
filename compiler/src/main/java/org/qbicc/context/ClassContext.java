@@ -198,6 +198,11 @@ public interface ClassContext extends DescriptorTypeResolver {
             }
 
             @Override
+            public byte[] getResource(String resourceName) {
+                return null;
+            }
+
+            @Override
             public DefinedTypeDefinition.Builder newTypeBuilder() {
                 return null;
             }
@@ -207,6 +212,14 @@ public interface ClassContext extends DescriptorTypeResolver {
             }
         };
     }
+
+    /**
+     * Get the entirety of the resource with the given name, or {@code null} if no such resource could be found.
+     *
+     * @param resourceName the resource name (must not be {@code null})
+     * @return the resource bytes, or {@code null} if the resource was not found
+     */
+    byte[] getResource(String resourceName);
 
     interface Basic extends ClassContext, AutoCloseable {
         void close();

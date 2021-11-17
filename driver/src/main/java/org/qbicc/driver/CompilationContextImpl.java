@@ -86,14 +86,14 @@ final class CompilationContextImpl implements CompilationContext {
     private final Vm vm;
     private final NativeMethodConfigurator nativeMethodConfigurator;
 
-    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory, BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder, Function<CompilationContext, Vm> vmFactory, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories, List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories, NativeMethodConfigurator nativeMethodConfigurator) {
+    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory, BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder, BiFunction<ClassContext, String, byte[]> bootstrapResourceFinder, Function<CompilationContext, Vm> vmFactory, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories, List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories, NativeMethodConfigurator nativeMethodConfigurator) {
         this.baseDiagnosticContext = baseDiagnosticContext;
         this.platform = platform;
         this.typeSystem = typeSystem;
         this.literalFactory = literalFactory;
         this.outputDir = outputDir;
         this.resolverFactories = resolverFactories;
-        bootstrapClassContext = new ClassContextImpl(this, null, bootstrapFinder);
+        bootstrapClassContext = new ClassContextImpl(this, null, bootstrapFinder, bootstrapResourceFinder);
         this.typeBuilderFactories = typeBuilderFactories;
         this.nativeMethodConfigurator = nativeMethodConfigurator;
         // last!
@@ -258,7 +258,7 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     public ClassContext constructClassContext(final VmClassLoader classLoaderObject) {
-        return classLoaderContexts.computeIfAbsent(classLoaderObject, classLoader -> new ClassContextImpl(this, classLoader, vm::loadClass));
+        return classLoaderContexts.computeIfAbsent(classLoaderObject, classLoader -> new ClassContextImpl(this, classLoader, vm::loadClass, vm::loadResource));
     }
 
     public MethodElement getVMHelperMethod(String name) {
