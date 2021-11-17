@@ -815,20 +815,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         for (int i = 0; i < cnt; i ++) {
             if (fieldAttributeNameEquals(index, i, "RuntimeVisibleAnnotations")) {
                 ByteBuffer data = getFieldRawAttributeContent(index, i);
-                int ac = data.getShort() & 0xffff;
-                Annotation[] annotations = new Annotation[ac];
-                for (int j = 0; j < ac; j ++) {
-                    annotations[j] = Annotation.parse(this, ctxt, data);
-                }
-                builder.setVisibleAnnotations(List.of(annotations));
+                builder.setVisibleAnnotations(Annotation.parseList(this, ctxt, data));
             } else if (fieldAttributeNameEquals(index, i, "RuntimeInvisibleAnnotations")) {
                 ByteBuffer data = getFieldRawAttributeContent(index, i);
-                int ac = data.getShort() & 0xffff;
-                Annotation[] annotations = new Annotation[ac];
-                for (int j = 0; j < ac; j ++) {
-                    annotations[j] = Annotation.parse(this, ctxt, data);
-                }
-                builder.setInvisibleAnnotations(List.of(annotations));
+                builder.setInvisibleAnnotations(Annotation.parseList(this, ctxt, data));
             } else if (fieldAttributeNameEquals(index, i, "Signature")) {
                 int sigIdx = getFieldRawAttributeShort(index, i, 0);
                 signature = TypeSignature.parse(ctxt, getUtf8ConstantAsBuffer(sigIdx));
@@ -1085,20 +1075,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         for (int i = 0; i < cnt; i ++) {
             if (methodAttributeNameEquals(index, i, "RuntimeVisibleAnnotations")) {
                 ByteBuffer data = getMethodRawAttributeContent(index, i);
-                int ac = data.getShort() & 0xffff;
-                Annotation[] annotations = new Annotation[ac];
-                for (int j = 0; j < ac; j ++) {
-                    annotations[j] = Annotation.parse(this, ctxt, data);
-                }
-                builder.setVisibleAnnotations(List.of(annotations));
+                builder.setVisibleAnnotations(Annotation.parseList(this, ctxt, data));
             } else if (methodAttributeNameEquals(index, i, "RuntimeInvisibleAnnotations")) {
                 ByteBuffer data = getMethodRawAttributeContent(index, i);
-                int ac = data.getShort() & 0xffff;
-                Annotation[] annotations = new Annotation[ac];
-                for (int j = 0; j < ac; j ++) {
-                    annotations[j] = Annotation.parse(this, ctxt, data);
-                }
-                builder.setInvisibleAnnotations(List.of(annotations));
+                builder.setInvisibleAnnotations(Annotation.parseList(this, ctxt, data));
             } else if (methodAttributeNameEquals(index, i, "RuntimeVisibleTypeAnnotations")) {
                 TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getMethodRawAttributeContent(index, i));
                 builder.setReturnVisibleTypeAnnotations(list);

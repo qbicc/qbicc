@@ -2,6 +2,7 @@ package org.qbicc.type.annotation;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -54,5 +55,14 @@ public final class Annotation extends AnnotationValue {
             values.put(name, AnnotationValue.parse(classFile, classContext, buf));
         }
         return new Annotation(typeDescriptor, values);
+    }
+
+    public static List<Annotation> parseList(final ClassFile classFile, final ClassContext classContext, final ByteBuffer buf) {
+        int ac = buf.getShort() & 0xffff;
+        Annotation[] annotations = new Annotation[ac];
+        for (int j = 0; j < ac; j ++) {
+            annotations[j] = parse(classFile, classContext, buf);
+        }
+        return List.of(annotations);
     }
 }
