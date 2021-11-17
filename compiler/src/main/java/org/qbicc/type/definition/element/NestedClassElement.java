@@ -40,6 +40,26 @@ public final class NestedClassElement extends BasicElement implements MemberElem
         void setCorrespondingType(final DefinedTypeDefinition correspondingType);
 
         NestedClassElement build();
+
+        interface Delegating extends BasicElement.Builder.Delegating, MemberElement.Builder.Delegating, NamedElement.Builder.Delegating, Builder {
+            @Override
+            Builder getDelegate();
+
+            @Override
+            default void setName(final String name) {
+                getDelegate().setName(name);
+            }
+
+            @Override
+            default void setCorrespondingType(final DefinedTypeDefinition correspondingType) {
+                getDelegate().setCorrespondingType(correspondingType);
+            }
+
+            @Override
+            default NestedClassElement build() {
+                return getDelegate().build();
+            }
+        }
     }
 
     static final class BuilderImpl extends BasicElement.BuilderImpl implements Builder {

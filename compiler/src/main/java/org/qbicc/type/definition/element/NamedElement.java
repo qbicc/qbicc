@@ -17,5 +17,20 @@ public interface NamedElement extends Element {
         void setName(final String name);
 
         NamedElement build();
+
+        interface Delegating extends Element.Builder.Delegating, Builder {
+            @Override
+            Builder getDelegate();
+
+            @Override
+            default void setName(final String name) {
+                getDelegate().setName(name);
+            }
+
+            @Override
+            default NamedElement build() {
+                return getDelegate().build();
+            }
+        }
     }
 }

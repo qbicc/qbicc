@@ -28,6 +28,16 @@ public final class ConstructorElement extends InvokableElement {
 
     public interface Builder extends InvokableElement.Builder {
         ConstructorElement build();
+
+        interface Delegating extends InvokableElement.Builder.Delegating, Builder {
+            @Override
+            Builder getDelegate();
+
+            @Override
+            default ConstructorElement build() {
+                return getDelegate().build();
+            }
+        }
     }
 
     static final class BuilderImpl extends InvokableElement.BuilderImpl implements Builder {

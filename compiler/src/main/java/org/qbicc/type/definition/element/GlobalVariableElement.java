@@ -31,6 +31,21 @@ public final class GlobalVariableElement extends VariableElement {
         void setSection(String section);
 
         GlobalVariableElement build();
+
+        interface Delegating extends VariableElement.Builder.Delegating, Builder {
+            @Override
+            Builder getDelegate();
+
+            @Override
+            default void setSection(String section) {
+                getDelegate().setSection(section);
+            }
+
+            @Override
+            default GlobalVariableElement build() {
+                return getDelegate().build();
+            }
+        }
     }
 
     static final class BuilderImpl extends VariableElement.BuilderImpl implements Builder {

@@ -130,6 +130,51 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         void setType(final ValueType type);
 
         VariableElement build();
+
+        interface Delegating extends AnnotatedElement.Builder.Delegating, NamedElement.Builder.Delegating, Builder {
+            @Override
+            Builder getDelegate();
+
+            @Override
+            default void setDescriptor(TypeDescriptor typeDescriptor) {
+                getDelegate().setDescriptor(typeDescriptor);
+            }
+
+            @Override
+            default void setSignature(TypeSignature typeSignature) {
+                getDelegate().setSignature(typeSignature);
+            }
+
+            @Override
+            default void setVisibleTypeAnnotations(TypeAnnotationList annotations) {
+                getDelegate().setVisibleTypeAnnotations(annotations);
+            }
+
+            @Override
+            default void setInvisibleTypeAnnotations(TypeAnnotationList annotations) {
+                getDelegate().setInvisibleTypeAnnotations(annotations);
+            }
+
+            @Override
+            default void setTypeParameterContext(TypeParameterContext typeParameterContext) {
+                getDelegate().setTypeParameterContext(typeParameterContext);
+            }
+
+            @Override
+            default void setType(final ValueType type) {
+                getDelegate().setType(type);
+            }
+
+            @Override
+            default void setName(final String name) {
+                getDelegate().setName(name);
+            }
+
+            @Override
+            default VariableElement build() {
+                return getDelegate().build();
+            }
+        }
     }
 
     static abstract class BuilderImpl extends AnnotatedElement.BuilderImpl implements Builder {

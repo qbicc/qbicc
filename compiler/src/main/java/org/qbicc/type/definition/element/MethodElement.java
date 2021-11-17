@@ -87,6 +87,21 @@ public final class MethodElement extends InvokableElement implements NamedElemen
         void setName(final String name);
 
         MethodElement build();
+
+        interface Delegating extends InvokableElement.Builder.Delegating, NamedElement.Builder.Delegating, Builder {
+            @Override
+            Builder getDelegate();
+
+            @Override
+            default void setName(final String name) {
+                getDelegate().setName(name);
+            }
+
+            @Override
+            default MethodElement build() {
+                return getDelegate().build();
+            }
+        }
     }
 
     static final class BuilderImpl extends InvokableElement.BuilderImpl implements Builder {

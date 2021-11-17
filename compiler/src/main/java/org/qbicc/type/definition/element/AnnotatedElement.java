@@ -39,6 +39,26 @@ public abstract class AnnotatedElement extends BasicElement {
         void setInvisibleAnnotations(List<Annotation> annotations);
 
         AnnotatedElement build();
+
+        interface Delegating extends BasicElement.Builder.Delegating, Builder {
+            @Override
+            Builder getDelegate();
+
+            @Override
+            default void setVisibleAnnotations(List<Annotation> annotations) {
+                getDelegate().setVisibleAnnotations(annotations);
+            }
+
+            @Override
+            default void setInvisibleAnnotations(List<Annotation> annotations) {
+                getDelegate().setInvisibleAnnotations(annotations);
+            }
+
+            @Override
+            default AnnotatedElement build() {
+                return getDelegate().build();
+            }
+        }
     }
 
     static abstract class BuilderImpl extends BasicElement.BuilderImpl implements Builder {

@@ -55,6 +55,21 @@ public final class FieldElement extends VariableElement implements MemberElement
         void setInitialValue(final Literal initialValue);
 
         FieldElement build();
+
+        interface Delegating extends VariableElement.Builder.Delegating, MemberElement.Builder.Delegating, Builder {
+            @Override
+            Builder getDelegate();
+
+            @Override
+            default void setInitialValue(final Literal initialValue) {
+                getDelegate().setInitialValue(initialValue);
+            }
+
+            @Override
+            default FieldElement build() {
+                return getDelegate().build();
+            }
+        }
     }
 
     static final class BuilderImpl extends VariableElement.BuilderImpl implements Builder {
