@@ -11,10 +11,12 @@ import org.qbicc.type.generic.TypeParameterContext;
 public final class FieldElement extends VariableElement implements MemberElement {
     public static final FieldElement[] NO_FIELDS = new FieldElement[0];
     private final Literal initialValue;
+    private final InitializerElement runTimeInitializer;
 
     FieldElement(BuilderImpl builder) {
         super(builder);
         this.initialValue = builder.initialValue;
+        this.runTimeInitializer = builder.runTimeInitializer;
     }
 
     public String toString() {
@@ -39,6 +41,10 @@ public final class FieldElement extends VariableElement implements MemberElement
         return initialValue;
     }
 
+    public InitializerElement getRunTimeInitializer() {
+        return runTimeInitializer;
+    }
+
     public static Builder builder() {
         return new BuilderImpl();
     }
@@ -54,6 +60,8 @@ public final class FieldElement extends VariableElement implements MemberElement
     public interface Builder extends VariableElement.Builder, MemberElement.Builder {
         void setInitialValue(final Literal initialValue);
 
+        void setRunTimeInitializer(InitializerElement runTimeInitializer);
+
         FieldElement build();
 
         interface Delegating extends VariableElement.Builder.Delegating, MemberElement.Builder.Delegating, Builder {
@@ -63,6 +71,11 @@ public final class FieldElement extends VariableElement implements MemberElement
             @Override
             default void setInitialValue(final Literal initialValue) {
                 getDelegate().setInitialValue(initialValue);
+            }
+
+            @Override
+            default void setRunTimeInitializer(InitializerElement runTimeInitializer) {
+                getDelegate().setRunTimeInitializer(runTimeInitializer);
             }
 
             @Override
@@ -76,9 +89,14 @@ public final class FieldElement extends VariableElement implements MemberElement
         BuilderImpl() {}
 
         private Literal initialValue;
+        private InitializerElement runTimeInitializer;
 
         public void setInitialValue(final Literal initialValue) {
             this.initialValue = initialValue;
+        }
+
+        public void setRunTimeInitializer(InitializerElement runTimeInitializer) {
+            this.runTimeInitializer = runTimeInitializer;
         }
 
         public FieldElement build() {
