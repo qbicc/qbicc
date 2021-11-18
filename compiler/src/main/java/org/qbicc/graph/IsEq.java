@@ -19,7 +19,7 @@ public final class IsEq extends AbstractBooleanCompare implements CommutativeBin
         } else if (input.equals(getRightInput()) && getLeftInput() instanceof Literal) {
             return getLeftInput();
         } else {
-            return input;
+            return super.getValueIfTrue(input);
         }
     }
 

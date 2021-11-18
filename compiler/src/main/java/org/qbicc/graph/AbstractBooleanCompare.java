@@ -21,11 +21,17 @@ public abstract class AbstractBooleanCompare extends AbstractBinaryValue impleme
 
     @Override
     public Value getValueIfTrue(Value input) {
+        if (equals(input)) {
+            return getElement().getEnclosingType().getContext().getLiteralFactory().literalOf(true);
+        }
         return input;
     }
 
     @Override
     public Value getValueIfFalse(Value input) {
+        if (equals(input)) {
+            return getElement().getEnclosingType().getContext().getLiteralFactory().literalOf(false);
+        }
         return input;
     }
 }

@@ -100,14 +100,24 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
                     // reroute dynCheck directly to fail
                     dynCheck.setTarget(fail);
                     begin(pass);
-                    return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(outputType);
+                    if (input.isNullable()) {
+                        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(outputType);
+                    } else {
+                        // not actually reachable
+                        throw new BlockEarlyTermination(unreachable());
+                    }
                 }
             } else {
                 if (!info.isReachableClass(vtd)) {
                     // reroute dynCheck directly to fail
                     dynCheck.setTarget(fail);
                     begin(pass);
-                    return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(outputType);
+                    if (input.isNullable()) {
+                        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(outputType);
+                    } else {
+                        // not actually reachable
+                        throw new BlockEarlyTermination(unreachable());
+                    }
                 }
             }
         }

@@ -2,7 +2,7 @@ package org.qbicc.graph;
 
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.ReferenceType;
+import org.qbicc.type.NullableType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -15,14 +15,14 @@ public final class IsNe extends AbstractBooleanCompare implements CommutativeBin
 
     @Override
     public Value getValueIfTrue(Value input) {
-        if (input.getType() instanceof ReferenceType) {
+        if (input.getType() instanceof NullableType) {
             if (input.equals(getLeftInput()) && getRightInput() instanceof ZeroInitializerLiteral ||
                 input.equals(getRightInput()) && getLeftInput() instanceof ZeroInitializerLiteral) {
                 // todo: maybe require a BBB input instead
                 return new NotNull(input.getCallSite(), input.getElement(), input.getSourceLine(), input.getBytecodeIndex(), input);
             }
         }
-        return input;
+        return super.getValueIfTrue(input);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

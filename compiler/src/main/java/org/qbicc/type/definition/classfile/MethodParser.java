@@ -493,6 +493,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     }
 
     void replaceAll(Value from, Value to) {
+        if (from == to) {
+            return;
+        }
         for (int i = 0; i < sp; i ++) {
             if (stack[i] == from) {
                 stack[i] = to;
@@ -862,6 +865,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             gf.store(gf.pointerHandle(v1, v2), v3, MemoryAtomicityMode.NONE);
                         } else {
                             gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
+                            if (v1.getType() instanceof ReferenceType) {
+                                replaceAll(v1, gf.notNull(v1));
+                            }
                         }
                         break;
                     case OP_BASTORE:
@@ -874,6 +880,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             gf.store(gf.pointerHandle(v1, v2), v3, MemoryAtomicityMode.NONE);
                         } else {
                             gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
+                            if (v1.getType() instanceof ReferenceType) {
+                                replaceAll(v1, gf.notNull(v1));
+                            }
                         }
                         break;
                     case OP_SASTORE:
@@ -886,6 +895,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             gf.store(gf.pointerHandle(v1, v2), v3, MemoryAtomicityMode.NONE);
                         } else {
                             gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
+                            if (v1.getType() instanceof ReferenceType) {
+                                replaceAll(v1, gf.notNull(v1));
+                            }
                         }
                         break;
                     case OP_CASTORE:
@@ -898,6 +910,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             gf.store(gf.pointerHandle(v1, v2), v3, MemoryAtomicityMode.NONE);
                         } else {
                             gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
+                            if (v1.getType() instanceof ReferenceType) {
+                                replaceAll(v1, gf.notNull(v1));
+                            }
                         }
                         break;
                     case OP_LASTORE:
@@ -911,6 +926,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             gf.store(gf.pointerHandle(v1, v2), v3, MemoryAtomicityMode.NONE);
                         } else {
                             gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
+                            if (v1.getType() instanceof ReferenceType) {
+                                replaceAll(v1, gf.notNull(v1));
+                            }
                         }
                         break;
                     case OP_POP:
@@ -1529,6 +1547,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
                             Value value = promote(gf.load(handle, handle.getDetectedMode()), desc);
                             push(value, desc.isClass2());
+                            if (v1.getType() instanceof ReferenceType) {
+                                replaceAll(v1, gf.notNull(v1));
+                            }
                         }
                         break;
                     }
@@ -1546,6 +1567,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         } else {
                             ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
                             gf.store(handle, storeTruncate(v2, desc), handle.getDetectedMode());
+                            if (v1.getType() instanceof ReferenceType) {
+                                replaceAll(v1, gf.notNull(v1));
+                            }
                         }
                         break;
                     }
@@ -1613,6 +1637,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             if (returnType != BaseTypeDescriptor.V) {
                                 push(promote(result, returnType), desc.getReturnType().isClass2());
                             }
+                        }
+                        if (v1 != null && v1.getType() instanceof ReferenceType) {
+                            replaceAll(v1, gf.notNull(v1));
                         }
                         break;
                     }
@@ -1760,7 +1787,11 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         break;
                     }
                     case OP_ARRAYLENGTH:
-                        push1(gf.load(gf.lengthOf(gf.referenceHandle(pop1())), MemoryAtomicityMode.UNORDERED));
+                        v1 = pop1();
+                        push1(gf.load(gf.lengthOf(gf.referenceHandle(v1)), MemoryAtomicityMode.UNORDERED));
+                        if (v1.getType() instanceof ReferenceType) {
+                            replaceAll(v1, gf.notNull(v1));
+                        }
                         break;
                     case OP_ATHROW:
                         gf.throw_(pop1());
@@ -1779,10 +1810,18 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         break;
                     }
                     case OP_MONITORENTER:
-                        gf.monitorEnter(pop1());
+                        v1 = pop1();
+                        gf.monitorEnter(v1);
+                        if (v1.getType() instanceof ReferenceType) {
+                            replaceAll(v1, gf.notNull(v1));
+                        }
                         break;
                     case OP_MONITOREXIT:
-                        gf.monitorExit(pop1());
+                        v1 = pop1();
+                        gf.monitorExit(v1);
+                        if (v1.getType() instanceof ReferenceType) {
+                            replaceAll(v1, gf.notNull(v1));
+                        }
                         break;
                     case OP_MULTIANEWARRAY:
                         TypeDescriptor desc = getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff);
