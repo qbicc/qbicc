@@ -76,35 +76,32 @@ public final class VMHelpers {
     // Invariant: value is not null
     @NoSideEffects
     @Hidden
-    private static boolean isAssignableTo(Object value, type_id toTypeId, uint8_t toDimensions) {
-        type_id valueTypeId = ObjectModel.type_id_of(value);
-        int intDim = toDimensions.intValue();
-        if (intDim == 0) {
-            return isAssignableToLeaf(valueTypeId, toTypeId);
-        } else if (ObjectModel.is_reference_array(valueTypeId)) {
-            uint8_t valueDims = ObjectModel.dimensions_of(value);
-            if (valueDims == toDimensions) {
-                return isAssignableToLeaf(ObjectModel.element_type_id_of(value), toTypeId);
-            } else if (valueDims.intValue() > toDimensions.intValue()) {
-                return ObjectModel.is_java_lang_object(toTypeId) ||
-                    ObjectModel.is_java_io_serializable(toTypeId) ||
-                    ObjectModel.is_java_lang_cloneable(toTypeId);
-            }
+    public static boolean isAssignableTo(Object value, type_id toTypeId, uint8_t toDimensions) {
+        type_id fromTypeId = ObjectModel.type_id_of(value);
+        if (ObjectModel.is_reference_array(fromTypeId)) {
+            return isTypeIdAssignableTo(ObjectModel.element_type_id_of(value), ObjectModel.dimensions_of(value), toTypeId, toDimensions);
+        } else {
+            return isTypeIdAssignableTo(fromTypeId, zero(), toTypeId, toDimensions);
         }
-        return false;
     }
 
     @NoSideEffects
     @Hidden
-    private static boolean isAssignableToLeaf(type_id valueTypeId, type_id toTypeId) {
-        if (ObjectModel.is_class(toTypeId)) {
-            type_id maxTypeId = ObjectModel.max_subclass_type_id_of(toTypeId);
-            return toTypeId.intValue() <= valueTypeId.intValue() && valueTypeId.intValue() <= maxTypeId.intValue();
+    public static boolean isTypeIdAssignableTo(type_id fromTypeId, uint8_t fromDimensions, type_id toTypeId, uint8_t toDimensions) {
+        return fromDimensions == toDimensions && isAssignableToLeaf(fromTypeId, toTypeId)
+            || fromDimensions.isGt(toDimensions) && isAssignableToLeaf(ObjectModel.get_reference_array_typeid(), toTypeId);
+    }
+
+    @NoSideEffects
+    @Hidden
+    private static boolean isAssignableToLeaf(type_id fromTypeId, type_id toTypeId) {
+        if (ObjectModel.is_primitive(toTypeId) || ObjectModel.is_primitive(fromTypeId)) {
+            return false;
         } else if (ObjectModel.is_interface(toTypeId)) {
-            return ObjectModel.does_implement(valueTypeId, toTypeId);
+            return ObjectModel.does_implement(fromTypeId, toTypeId);
         } else {
-            // PrimitiveObjectArray
-            return valueTypeId == toTypeId;
+            // in the physical type range
+            return toTypeId.isLe(fromTypeId) && fromTypeId.isLe(ObjectModel.max_subclass_type_id_of(toTypeId));
         }
     }
 
