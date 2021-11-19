@@ -151,8 +151,6 @@ public interface BasicBlockBuilder extends Locatable {
 
     ParameterValue parameter(ValueType type, String label, int index);
 
-    Value currentThread();
-
     Value offsetOfField(FieldElement fieldElement);
 
     // sub-value extraction
@@ -245,8 +243,6 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value populationCount(Value v);
 
-    ValueHandle lengthOf(ValueHandle arrayHandle);
-
     /**
      * Get the {@link Class} object for the given type ID value, whose type must be a {@link TypeType} with
      * an upper bound which is a {@link ObjectType}.
@@ -274,6 +270,16 @@ public interface BasicBlockBuilder extends Locatable {
     Value checkcast(Value value, TypeDescriptor desc);
 
     // memory handles
+
+    /**
+     * A handle to the current thread.  The handle's value type is always assignable to a reference to {@code java.lang.Thread}.
+     * The handle is usually not writable, except in a (typically exported) function.
+     *
+     * @return the handle (not {@code null})
+     */
+    ValueHandle currentThread();
+
+    ValueHandle lengthOf(ValueHandle arrayHandle);
 
     ValueHandle memberOf(ValueHandle structHandle, CompoundType.Member member);
 

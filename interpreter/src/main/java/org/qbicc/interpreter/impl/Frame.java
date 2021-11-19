@@ -34,6 +34,7 @@ import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.CountLeadingZeros;
 import org.qbicc.graph.CountTrailingZeros;
+import org.qbicc.graph.CurrentThread;
 import org.qbicc.graph.CurrentThreadRead;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
@@ -1754,6 +1755,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, Load node) {
         ValueHandle valueHandle = node.getValueHandle();
+        if (valueHandle instanceof CurrentThread) {
+            return thread;
+        }
         Memory memory = getMemory(valueHandle);
         int offset = getOffset(valueHandle);
         ValueType type = valueHandle.getValueType();
@@ -2206,6 +2210,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public VmObjectImpl visitUnknown(Frame frame, ValueHandle node) {
             throw invalidHandleTypeForOp();
+        }
+
+        public VmObjectImpl visit(Frame param, CurrentThread node) {
+            return (VmObjectImpl) Vm.requireCurrentThread();
         }
 
         @Override

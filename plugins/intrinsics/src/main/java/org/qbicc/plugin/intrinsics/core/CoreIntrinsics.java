@@ -588,7 +588,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(jltDesc, "registerNatives", voidDesc, nopStatic);
 
         /* public static native Thread currentThread(); */
-        StaticIntrinsic currentThread = (builder, target, arguments) -> builder.currentThread();
+        StaticIntrinsic currentThread = (builder, target, arguments) -> builder.load(builder.currentThread(), MemoryAtomicityMode.NONE);
         intrinsics.registerIntrinsic(jltDesc, "currentThread", returnJlt, currentThread);
 
         /* VMHelpers.java - threadWrapper: helper method for java.lang.Thread.start0 */
@@ -1642,7 +1642,7 @@ public final class CoreIntrinsics {
             ValueHandle initializers = builder.memberOf(builder.globalVariable(clinitStates), clinitStates_t.getMember("class_initializers"));
             Value typeIdInit = builder.load(builder.elementOf(initializers, typeId), MemoryAtomicityMode.UNORDERED);
 
-            return builder.call(builder.pointerHandle(typeIdInit), List.of(builder.currentThread()));
+            return builder.call(builder.pointerHandle(typeIdInit), List.of(builder.load(builder.currentThread(), MemoryAtomicityMode.NONE)));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "call_class_initializer", typeIdVoidDesc, callClassInitializer);
 

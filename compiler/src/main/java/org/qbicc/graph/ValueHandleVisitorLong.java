@@ -16,6 +16,10 @@ public interface ValueHandleVisitorLong<T> {
         return visitUnknown(param, node);
     }
 
+    default long visit(T param, CurrentThread node) {
+        return visitUnknown(param, node);
+    }
+
     default long visit(T param, ElementOf node) {
         return visitUnknown(param, node);
     }
@@ -87,6 +91,11 @@ public interface ValueHandleVisitorLong<T> {
 
         @Override
         default long visit(T param, ConstructorElementHandle node) {
+            return getDelegateValueHandleVisitor().visit(param, node);
+        }
+
+        @Override
+        default long visit(T param, CurrentThread node) {
             return getDelegateValueHandleVisitor().visit(param, node);
         }
 
