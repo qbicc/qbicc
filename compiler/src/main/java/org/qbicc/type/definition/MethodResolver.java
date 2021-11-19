@@ -6,5 +6,5 @@ import org.qbicc.type.definition.element.MethodElement;
  *
  */
 public interface MethodResolver {
-    MethodElement resolveMethod(int index, DefinedTypeDefinition enclosing);
+    MethodElement resolveMethod(int index, DefinedTypeDefinition enclosing, MethodElement.Builder builder);
 }

@@ -22,11 +22,9 @@ public class ThrowExceptionHelper {
         this.ctxt = ctxt;
 
         /* Inject a field "unwindException" of type Unwind$_Unwind_Exception in j.l.Thread */
-        FieldElement.Builder builder = FieldElement.builder();
-        builder.setName("unwindException");
         ClassContext classContext = ctxt.getBootstrapClassContext();
         ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/unwind/Unwind$struct__Unwind_Exception");
-        builder.setDescriptor(desc);
+        FieldElement.Builder builder = FieldElement.builder("unwindException", desc);
         builder.setSignature(TypeSignature.synthesize(classContext, desc));
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_RESOLVE | ClassFile.I_ACC_NO_REFLECT);
         DefinedTypeDefinition jltDefined = classContext.findDefinedType("java/lang/Thread");

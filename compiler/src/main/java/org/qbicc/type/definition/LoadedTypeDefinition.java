@@ -143,6 +143,10 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         return idx == - 1 ? null : getField(idx);
     }
 
+    /**
+     * @deprecated This will be replaced with patcher hooks which will inject the field as the class is being defined.
+     */
+    @Deprecated
     void injectField(FieldElement field);
 
     /**

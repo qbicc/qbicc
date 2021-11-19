@@ -46,11 +46,6 @@ public final class NestedClassElement extends BasicElement implements MemberElem
             Builder getDelegate();
 
             @Override
-            default void setName(final String name) {
-                getDelegate().setName(name);
-            }
-
-            @Override
             default void setCorrespondingType(final DefinedTypeDefinition correspondingType) {
                 getDelegate().setCorrespondingType(correspondingType);
             }
@@ -68,12 +63,18 @@ public final class NestedClassElement extends BasicElement implements MemberElem
 
         BuilderImpl() {}
 
-        public void setName(final String name) {
+        public void setCorrespondingType(final DefinedTypeDefinition correspondingType) {
+            this.correspondingType = correspondingType;
+        }
+
+        @Override
+        public void setName(String name) {
             this.name = name;
         }
 
-        public void setCorrespondingType(final DefinedTypeDefinition correspondingType) {
-            this.correspondingType = correspondingType;
+        @Override
+        public String getName() {
+            return name;
         }
 
         public NestedClassElement build() {

@@ -207,7 +207,7 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
     }
 
     public interface Builder extends AnnotatedElement.Builder, ExecutableElement.Builder {
-        void setDescriptor(MethodDescriptor descriptor);
+        MethodDescriptor getDescriptor();
 
         void setSignature(final MethodSignature signature);
 
@@ -230,8 +230,8 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
             Builder getDelegate();
 
             @Override
-            default void setDescriptor(MethodDescriptor descriptor) {
-                getDelegate().setDescriptor(descriptor);
+            default MethodDescriptor getDescriptor() {
+                return getDelegate().getDescriptor();
             }
 
             @Override
@@ -277,8 +277,8 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
     }
 
     static abstract class BuilderImpl extends AnnotatedElement.BuilderImpl implements Builder {
+        final MethodDescriptor descriptor;
         List<ParameterElement> parameters = List.of();
-        MethodDescriptor descriptor = MethodDescriptor.VOID_METHOD_DESCRIPTOR;
         MethodSignature signature = MethodSignature.VOID_METHOD_SIGNATURE;
         TypeAnnotationList returnVisibleTypeAnnotations = TypeAnnotationList.empty();
         TypeAnnotationList returnInvisibleTypeAnnotations = TypeAnnotationList.empty();
@@ -288,10 +288,12 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         int maximumLineNumber = 1;
         FunctionType type;
 
-        BuilderImpl() {}
+        BuilderImpl(MethodDescriptor descriptor) {
+            this.descriptor = descriptor;
+        }
 
-        public void setDescriptor(MethodDescriptor descriptor) {
-            this.descriptor = Assert.checkNotNullParam("descriptor", descriptor);
+        public MethodDescriptor getDescriptor() {
+            return descriptor;
         }
 
         public void setSignature(final MethodSignature signature) {

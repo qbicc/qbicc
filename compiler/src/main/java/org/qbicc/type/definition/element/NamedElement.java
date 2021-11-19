@@ -14,7 +14,7 @@ public interface NamedElement extends Element {
     }
 
     interface Builder extends Element.Builder {
-        void setName(final String name);
+        String getName();
 
         NamedElement build();
 
@@ -23,8 +23,8 @@ public interface NamedElement extends Element {
             Builder getDelegate();
 
             @Override
-            default void setName(final String name) {
-                getDelegate().setName(name);
+            default String getName() {
+                return getDelegate().getName();
             }
 
             @Override

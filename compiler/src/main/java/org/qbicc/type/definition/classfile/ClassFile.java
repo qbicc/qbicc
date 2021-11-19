@@ -11,6 +11,7 @@ import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.InitializerResolver;
 import org.qbicc.type.definition.MethodResolver;
 import org.qbicc.type.descriptor.Descriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.methodhandle.MethodHandleConstant;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
@@ -614,6 +615,12 @@ public interface ClassFile extends FieldResolver,
      */
     int getFieldCount();
 
+    int getFieldModifiers(int idx);
+
+    String getFieldName(int idx);
+
+    TypeDescriptor getFieldDescriptor(int idx);
+
     int getFieldAttributeCount(int idx) throws IndexOutOfBoundsException;
 
     boolean fieldAttributeNameEquals(int fieldIdx, int attrIdx, String expected) throws IndexOutOfBoundsException;
@@ -632,6 +639,10 @@ public interface ClassFile extends FieldResolver,
      * @return the number of methods physically present in the class file
      */
     int getMethodCount();
+
+    int getMethodModifiers(int idx);
+    String getMethodName(int idx);
+    MethodDescriptor getMethodDescriptor(int idx);
 
     int getMethodAttributeCount(int idx) throws IndexOutOfBoundsException;
 

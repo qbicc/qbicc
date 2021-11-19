@@ -2,6 +2,7 @@ package org.qbicc.type.definition.element;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 
 /**
@@ -23,8 +24,8 @@ public final class GlobalVariableElement extends VariableElement {
         return section;
     }
 
-    public static Builder builder() {
-        return new BuilderImpl();
+    public static Builder builder(String name, TypeDescriptor descriptor) {
+        return new BuilderImpl(name, descriptor);
     }
 
     public interface Builder extends VariableElement.Builder {
@@ -51,7 +52,8 @@ public final class GlobalVariableElement extends VariableElement {
     static final class BuilderImpl extends VariableElement.BuilderImpl implements Builder {
         private String section = CompilationContext.IMPLICIT_SECTION_NAME;
 
-        BuilderImpl() {
+        BuilderImpl(String name, TypeDescriptor typeDescriptor) {
+            super(name, typeDescriptor);
             setTypeParameterContext(TypeParameterContext.EMPTY);
         }
 

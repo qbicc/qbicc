@@ -21,7 +21,6 @@ import org.qbicc.type.definition.InitializerResolver;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.FieldElement;
-import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.generic.BaseTypeSignature;
@@ -38,8 +37,7 @@ public final class CoreClasses {
 
     private static final String INTERNAL_ARRAY = "internal_array";
 
-    private static final InitializerResolver EMPTY_INIT = (index, enclosing) -> {
-        InitializerElement.Builder builder = InitializerElement.builder();
+    private static final InitializerResolver EMPTY_INIT = (index, enclosing, builder) -> {
         builder.setEnclosingType(enclosing);
         return builder.build();
     };
@@ -76,17 +74,15 @@ public final class CoreClasses {
         ClassContext classContext = ctxt.getBootstrapClassContext();
         DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
         DefinedTypeDefinition jlcDef = classContext.findDefinedType("java/lang/Class");
-        ClassTypeDescriptor jclDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+        ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         LoadedTypeDefinition jlo = jloDef.load();
         LoadedTypeDefinition jlc = jlcDef.load();
         final TypeSystem ts = ctxt.getTypeSystem();
 
         // inject a field to hold the object header bits
-        FieldElement.Builder builder = FieldElement.builder();
+        FieldElement.Builder builder = FieldElement.builder("header", BaseTypeDescriptor.V);
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_VOLATILE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
-        builder.setName("header");
         builder.setEnclosingType(jloDef);
-        builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
         builder.setType(HeaderBits.get(ctxt).getHeaderType());
         FieldElement field = builder.build();
@@ -94,11 +90,9 @@ public final class CoreClasses {
         objectHeaderField = field;
 
         // inject a field to hold the object typeId
-        builder = FieldElement.builder();
+        builder = FieldElement.builder("typeId", BaseTypeDescriptor.V);
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
-        builder.setName("typeId");
         builder.setEnclosingType(jloDef);
-        builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
         builder.setType(jlo.getClassType().getTypeType());
         field = builder.build();
@@ -106,11 +100,9 @@ public final class CoreClasses {
         objectTypeIdField = field;
 
         // inject a field to hold the object pthread_mutex_t
-        builder = FieldElement.builder();
+        builder = FieldElement.builder("nativeObjectMonitor", BaseTypeDescriptor.V);
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
-        builder.setName("nativeObjectMonitor");
         builder.setEnclosingType(jloDef);
-        builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
         builder.setType(ts.getSignedInteger64Type());
         field = builder.build();
@@ -118,11 +110,9 @@ public final class CoreClasses {
         objectNativeObjectMonitorField = field;
 
         // now inject a field of ClassObjectType into Class to hold the corresponding run time type
-        builder = FieldElement.builder();
+        builder = FieldElement.builder("id", BaseTypeDescriptor.V);
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
-        builder.setName("id");
         builder.setEnclosingType(jlcDef);
-        builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
         builder.setType(jlo.getClassType().getTypeType());
         field = builder.build();
@@ -130,11 +120,9 @@ public final class CoreClasses {
         classTypeIdField = field;
 
         // now inject a field of int into Class to hold the corresponding run time dimensionality
-        builder = FieldElement.builder();
+        builder = FieldElement.builder("dimension", BaseTypeDescriptor.V);
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
-        builder.setName("dimension");
         builder.setEnclosingType(jlcDef);
-        builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
         builder.setType(ts.getUnsignedInteger8Type());
         field = builder.build();
@@ -142,12 +130,10 @@ public final class CoreClasses {
         classDimensionField = field;
 
         // now inject a field of type java/lang/Class into Class to hold reference to array class of this class
-        builder = FieldElement.builder();
+        builder = FieldElement.builder("arrayClass", jlcDesc);
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
-        builder.setName("arrayClass");
         builder.setEnclosingType(jlcDef);
-        builder.setDescriptor(jclDesc);
-        builder.setSignature(TypeSignature.synthesize(classContext, jclDesc));
+        builder.setSignature(TypeSignature.synthesize(classContext, jlcDesc));
         builder.setType(jlc.getClassType().getReference());
         field = builder.build();
         jlc.injectField(field);
@@ -170,7 +156,7 @@ public final class CoreClasses {
         typeBuilder.setContext(classContext);
         typeBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PUBLIC | ClassFile.I_ACC_NO_REFLECT);
         typeBuilder.setName("base_array_type");
-        typeBuilder.addField(CoreClasses::makeLengthField, 0);
+        typeBuilder.addField(CoreClasses::makeLengthField, 0, "length", BaseTypeDescriptor.I);
         typeBuilder.setInitializer(EMPTY_INIT, 0);
         DefinedTypeDefinition baseType = typeBuilder.build();
 
@@ -217,58 +203,46 @@ public final class CoreClasses {
         DefinedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object");
         if (realMemberType instanceof ReferenceType) {
             // also need a dimensions field
-            typeBuilder.addField(CoreClasses::makeDimensionsField, idx++);
+            typeBuilder.addField(CoreClasses::makeDimensionsField, idx++, "dims", BaseTypeDescriptor.V);
             // also need a type ID field
-            typeBuilder.addField((index, encl) -> makeElementTypeIdField(index, jlo, encl), idx++);
+            typeBuilder.addField((index, encl, builder) -> makeElementTypeIdField(index, jlo, encl, builder), idx++, "elementType", BaseTypeDescriptor.V);
         }
-        typeBuilder.addField((index, enclosing) -> makeContentField(index, enclosing, realMemberType), idx);
+        typeBuilder.addField((index, enclosing, builder) -> makeContentField(index, enclosing, realMemberType, builder), idx, "content", BaseTypeDescriptor.V);
         typeBuilder.setInitializer(EMPTY_INIT, 0);
         return typeBuilder.build();
     }
 
-    private static FieldElement makeDimensionsField(final int index, final DefinedTypeDefinition enclosing) {
-        FieldElement.Builder fieldBuilder = FieldElement.builder();
+    private static FieldElement makeDimensionsField(final int index, final DefinedTypeDefinition enclosing, FieldElement.Builder fieldBuilder) {
         fieldBuilder.setEnclosingType(enclosing);
-        fieldBuilder.setDescriptor(BaseTypeDescriptor.V);
         fieldBuilder.setSignature(BaseTypeSignature.V);
         fieldBuilder.setIndex(index);
-        fieldBuilder.setName("dims");
         fieldBuilder.setType(enclosing.getContext().getTypeSystem().getUnsignedInteger8Type());
         fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         return fieldBuilder.build();
     }
 
-    private static FieldElement makeLengthField(final int index, final DefinedTypeDefinition enclosing) {
-        FieldElement.Builder fieldBuilder = FieldElement.builder();
+    private static FieldElement makeLengthField(final int index, final DefinedTypeDefinition enclosing, FieldElement.Builder fieldBuilder) {
         fieldBuilder.setEnclosingType(enclosing);
-        fieldBuilder.setDescriptor(BaseTypeDescriptor.I);
         fieldBuilder.setSignature(BaseTypeSignature.I);
         fieldBuilder.setIndex(index);
-        fieldBuilder.setName("length");
         fieldBuilder.setType(enclosing.getContext().getTypeSystem().getSignedInteger32Type());
         fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         return fieldBuilder.build();
     }
 
-    private static FieldElement makeElementTypeIdField(final int index, final DefinedTypeDefinition jlo, final DefinedTypeDefinition enclosing) {
-        FieldElement.Builder fieldBuilder = FieldElement.builder();
+    private static FieldElement makeElementTypeIdField(final int index, final DefinedTypeDefinition jlo, final DefinedTypeDefinition enclosing, FieldElement.Builder fieldBuilder) {
         fieldBuilder.setEnclosingType(enclosing);
-        fieldBuilder.setDescriptor(BaseTypeDescriptor.V);
         fieldBuilder.setSignature(BaseTypeSignature.V);
         fieldBuilder.setIndex(index);
-        fieldBuilder.setName("elementType");
         fieldBuilder.setType(jlo.load().getClassType().getTypeType());
         fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         return fieldBuilder.build();
     }
 
-    private static FieldElement makeContentField(final int index, final DefinedTypeDefinition enclosing, final ValueType realMemberType) {
-        FieldElement.Builder fieldBuilder = FieldElement.builder();
+    private static FieldElement makeContentField(final int index, final DefinedTypeDefinition enclosing, final ValueType realMemberType, FieldElement.Builder fieldBuilder) {
         fieldBuilder.setEnclosingType(enclosing);
-        fieldBuilder.setDescriptor(BaseTypeDescriptor.V);
         fieldBuilder.setSignature(BaseTypeSignature.V);
         fieldBuilder.setIndex(index);
-        fieldBuilder.setName("content");
         fieldBuilder.setType(enclosing.getContext().getTypeSystem().getArrayType(realMemberType, 0));
         fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         return fieldBuilder.build();

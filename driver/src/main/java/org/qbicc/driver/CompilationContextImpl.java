@@ -32,7 +32,6 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.machine.arch.Platform;
-import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.Section;
 import org.qbicc.type.ClassObjectType;
@@ -451,8 +450,7 @@ final class CompilationContextImpl implements CompilationContext {
                     typeBuilder.setName("__qbicc-default-type__");
                     typeBuilder.setContext(bootstrapClassContext);
                     typeBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PUBLIC | ClassFile.I_ACC_NO_REFLECT);
-                    typeBuilder.setInitializer((index, enclosing) -> {
-                        InitializerElement.Builder builder = InitializerElement.builder();
+                    typeBuilder.setInitializer((index, enclosing, builder) -> {
                         builder.setEnclosingType(enclosing);
                         return builder.build();
                     }, 0);
@@ -480,12 +478,10 @@ final class CompilationContextImpl implements CompilationContext {
             synchronized (exceptionFieldHolder) {
                 fieldElement = exceptionFieldHolder.get();
                 if (fieldElement == null) {
-                    FieldElement.Builder builder = FieldElement.builder();
-                    builder.setName("thrown");
                     ClassContext classContext = this.bootstrapClassContext;
-                    DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
                     ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Throwable");
-                    builder.setDescriptor(desc);
+                    FieldElement.Builder builder = FieldElement.builder("thrown", desc);
+                    DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
                     builder.setSignature(TypeSignature.synthesize(classContext, desc));
                     builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
                     builder.setEnclosingType(jlt);

@@ -35,11 +35,9 @@ public class ClassObjectSerializer implements Consumer<CompilationContext> {
 
         // create the GlobalVariable for shared access to the Class array
         ArrayTypeDescriptor desc = ArrayTypeDescriptor.of(ctxt.getBootstrapClassContext(), jlc.getDescriptor());
-        GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
-        builder.setName("qbicc_jlc_lookup_table");
+        GlobalVariableElement.Builder builder = GlobalVariableElement.builder("qbicc_jlc_lookup_table", desc);
         builder.setType(rootArrayType);
         builder.setEnclosingType(jlc);
-        builder.setDescriptor(desc);
         builder.setSignature(TypeSignature.synthesize(ctxt.getBootstrapClassContext(), desc));
         GlobalVariableElement classArrayGlobal = builder.build();
         bth.setClassArrayGlobal(classArrayGlobal);

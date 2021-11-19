@@ -1,6 +1,7 @@
 package org.qbicc.type.definition.element;
 
 import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  *
@@ -69,8 +70,8 @@ public final class MethodElement extends InvokableElement implements NamedElemen
         return visitor.visit(param, this);
     }
 
-    public static Builder builder() {
-        return new BuilderImpl();
+    public static Builder builder(String name, MethodDescriptor descriptor) {
+        return new BuilderImpl(name, descriptor);
     }
 
     public boolean overrides(final MethodElement other) {
@@ -84,18 +85,12 @@ public final class MethodElement extends InvokableElement implements NamedElemen
     }
 
     public interface Builder extends InvokableElement.Builder, NamedElement.Builder {
-        void setName(final String name);
 
         MethodElement build();
 
         interface Delegating extends InvokableElement.Builder.Delegating, NamedElement.Builder.Delegating, Builder {
             @Override
             Builder getDelegate();
-
-            @Override
-            default void setName(final String name) {
-                getDelegate().setName(name);
-            }
 
             @Override
             default MethodElement build() {
@@ -105,12 +100,15 @@ public final class MethodElement extends InvokableElement implements NamedElemen
     }
 
     static final class BuilderImpl extends InvokableElement.BuilderImpl implements Builder {
-        String name;
+        final String name;
 
-        BuilderImpl() {}
-
-        public void setName(final String name) {
+        BuilderImpl(String name, MethodDescriptor descriptor) {
+            super(descriptor);
             this.name = name;
+        }
+
+        public String getName() {
+            return name;
         }
 
         public MethodElement build() {

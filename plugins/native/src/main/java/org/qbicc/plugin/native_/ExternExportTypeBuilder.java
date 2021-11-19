@@ -31,6 +31,8 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  * A delegating type builder which handles interactions with {@code @extern} and {@code @export} methods and fields.
@@ -82,12 +84,12 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
         getDelegate().setInvisibleAnnotations(annotations);
     }
 
-    public void addField(final FieldResolver resolver, final int index) {
+    public void addField(final FieldResolver resolver, final int index, String name, TypeDescriptor descriptor) {
         delegate.addField(new FieldResolver() {
             @Override
-            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing) {
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
                 NativeInfo nativeInfo = NativeInfo.get(ctxt);
-                FieldElement resolved = resolver.resolveField(index, enclosing);
+                FieldElement resolved = resolver.resolveField(index, enclosing, builder);
                 // look for annotations
                 for (Annotation annotation : resolved.getInvisibleAnnotations()) {
                     ClassTypeDescriptor desc = annotation.getDescriptor();
@@ -149,14 +151,14 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                     new NativeDataInfo(resolved, fieldType, ctxt.getLiteralFactory().literalOf(data))
                 );
             }
-        }, index);
+        }, index, name, descriptor);
     }
 
-    public void addMethod(final MethodResolver resolver, final int index) {
+    public void addMethod(final MethodResolver resolver, final int index, String name, MethodDescriptor descriptor) {
         delegate.addMethod(new MethodResolver() {
-            public MethodElement resolveMethod(final int index, final DefinedTypeDefinition enclosing) {
+            public MethodElement resolveMethod(final int index, final DefinedTypeDefinition enclosing, MethodElement.Builder builder) {
                 NativeInfo nativeInfo = NativeInfo.get(ctxt);
-                MethodElement origMethod = resolver.resolveMethod(index, enclosing);
+                MethodElement origMethod = resolver.resolveMethod(index, enclosing, builder);
                 String name = origMethod.getName();
                 // look for annotations that indicate that this method requires special handling
                 for (Annotation annotation : origMethod.getInvisibleAnnotations()) {
@@ -234,11 +236,9 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                         }
                     }
                 }
-                FunctionElement.Builder builder = FunctionElement.builder();
-                builder.setName(name);
+                FunctionElement.Builder builder = FunctionElement.builder(name, origMethod.getDescriptor());
                 builder.setModifiers(origMethod.getModifiers());
                 builder.setEnclosingType(origMethod.getEnclosingType());
-                builder.setDescriptor(origMethod.getDescriptor());
                 builder.setSignature(origMethod.getSignature());
                 FunctionType fnType = origMethod.getType();
                 int parameterCount = fnType.getParameterCount();
@@ -300,6 +300,6 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 CProbe.FunctionInfo functionInfo = result.getFunctionInfo(origMethod.getName());
                 return functionInfo.getResolvedName();
             }
-        }, index);
+        }, index, name, descriptor);
     }
 }

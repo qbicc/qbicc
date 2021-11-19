@@ -6,6 +6,7 @@ import org.qbicc.type.FunctionType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  * An element that represents some function.
@@ -34,12 +35,11 @@ public final class FunctionElement extends InvokableElement implements NamedElem
         return "function " + getName();
     }
 
-    public static Builder builder() {
-        return new BuilderImpl();
+    public static Builder builder(String name, MethodDescriptor descriptor) {
+        return new BuilderImpl(name, descriptor);
     }
 
     public interface Builder extends InvokableElement.Builder, NamedElement.Builder {
-        void setName(String name);
 
         FunctionElement build();
 
@@ -68,11 +68,6 @@ public final class FunctionElement extends InvokableElement implements NamedElem
             }
 
             @Override
-            default void setName(final String name) {
-                getDelegate().setName(name);
-            }
-
-            @Override
             default void setVisibleAnnotations(List<Annotation> annotations) {
                 getDelegate().setVisibleAnnotations(annotations);
             }
@@ -95,13 +90,16 @@ public final class FunctionElement extends InvokableElement implements NamedElem
     }
 
     static final class BuilderImpl extends InvokableElement.BuilderImpl implements Builder {
-        private String name;
+        private final String name;
 
-        BuilderImpl() {}
+        BuilderImpl(String name, MethodDescriptor descriptor) {
+            super(descriptor);
+            this.name = name;
+        }
 
         @Override
-        public void setName(String name) {
-            this.name = Assert.checkNotNullParam("name", name);
+        public String getName() {
+            return name;
         }
 
         @Override

@@ -1,5 +1,7 @@
 package org.qbicc.type.definition.element;
 
+import org.qbicc.type.descriptor.MethodDescriptor;
+
 /**
  *
  */
@@ -22,8 +24,8 @@ public final class ConstructorElement extends InvokableElement {
         return packageName+"."+getEnclosingType().getDescriptor().getClassName()+getDescriptor();
     }
 
-    public static Builder builder() {
-        return new BuilderImpl();
+    public static Builder builder(MethodDescriptor descriptor) {
+        return new BuilderImpl(descriptor);
     }
 
     public interface Builder extends InvokableElement.Builder {
@@ -41,7 +43,9 @@ public final class ConstructorElement extends InvokableElement {
     }
 
     static final class BuilderImpl extends InvokableElement.BuilderImpl implements Builder {
-        BuilderImpl() {}
+        BuilderImpl(MethodDescriptor descriptor) {
+            super(descriptor);
+        }
 
         public ConstructorElement build() {
             return new ConstructorElement(this);

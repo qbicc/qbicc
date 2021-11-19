@@ -2,6 +2,7 @@ package org.qbicc.type.definition.element;
 
 import org.qbicc.type.ValueType;
 import org.qbicc.context.ClassContext;
+import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 
 /**
@@ -18,8 +19,8 @@ public final class ParameterElement extends VariableElement {
         return visitor.visit(param, this);
     }
 
-    public static Builder builder() {
-        return new BuilderImpl();
+    public static Builder builder(String name, TypeDescriptor descriptor) {
+        return new BuilderImpl(name, descriptor);
     }
 
     public static Builder builder(ParameterElement original) {
@@ -50,7 +51,9 @@ public final class ParameterElement extends VariableElement {
     }
 
     static final class BuilderImpl extends VariableElement.BuilderImpl implements Builder {
-        BuilderImpl() {}
+        BuilderImpl(String name, TypeDescriptor typeDescriptor) {
+            super(name, typeDescriptor);
+        }
 
         BuilderImpl(ParameterElement original) {
             super(original);

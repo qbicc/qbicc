@@ -13,6 +13,8 @@ import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  * A type builder which applies the core annotations.
@@ -46,11 +48,11 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
     }
 
     @Override
-    public void addMethod(MethodResolver resolver, int index) {
+    public void addMethod(MethodResolver resolver, int index, String name, MethodDescriptor descriptor) {
         Delegating.super.addMethod(new MethodResolver() {
             @Override
-            public MethodElement resolveMethod(int index, DefinedTypeDefinition enclosing) {
-                MethodElement methodElement = resolver.resolveMethod(index, enclosing);
+            public MethodElement resolveMethod(int index, DefinedTypeDefinition enclosing, MethodElement.Builder builder) {
+                MethodElement methodElement = resolver.resolveMethod(index, enclosing, builder);
                 for (Annotation annotation : methodElement.getInvisibleAnnotations()) {
                     if (annotation.getDescriptor().equals(noSideEffects)) {
                         methodElement.setModifierFlags(ClassFile.I_ACC_NO_SIDE_EFFECTS);
@@ -77,15 +79,15 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
                 }
                 return methodElement;
             }
-        }, index);
+        }, index, name, descriptor);
     }
 
     @Override
-    public void addField(FieldResolver resolver, int index) {
+    public void addField(FieldResolver resolver, int index, String name, TypeDescriptor descriptor) {
         Delegating.super.addField(new FieldResolver() {
             @Override
-            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing) {
-                FieldElement fieldElement = resolver.resolveField(index, enclosing);
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+                FieldElement fieldElement = resolver.resolveField(index, enclosing, builder);
                 for (Annotation annotation : fieldElement.getInvisibleAnnotations()) {
                     if (annotation.getDescriptor().equals(noReflect)) {
                         fieldElement.setModifierFlags(ClassFile.I_ACC_NO_REFLECT);
@@ -93,15 +95,15 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
                 }
                 return fieldElement;
             }
-        }, index);
+        }, index, name, descriptor);
     }
 
     @Override
-    public void addConstructor(ConstructorResolver resolver, int index) {
+    public void addConstructor(ConstructorResolver resolver, int index, MethodDescriptor descriptor) {
         Delegating.super.addConstructor(new ConstructorResolver() {
             @Override
-            public ConstructorElement resolveConstructor(int index, DefinedTypeDefinition enclosing) {
-                ConstructorElement constructorElement = resolver.resolveConstructor(index, enclosing);
+            public ConstructorElement resolveConstructor(int index, DefinedTypeDefinition enclosing, ConstructorElement.Builder builder) {
+                ConstructorElement constructorElement = resolver.resolveConstructor(index, enclosing, builder);
                 for (Annotation annotation : constructorElement.getInvisibleAnnotations()) {
                     if (annotation.getDescriptor().equals(noSideEffects)) {
                         constructorElement.setModifierFlags(ClassFile.I_ACC_NO_SIDE_EFFECTS);
@@ -126,6 +128,6 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
                 }
                 return constructorElement;
             }
-        }, index);
+        }, index, descriptor);
     }
 }

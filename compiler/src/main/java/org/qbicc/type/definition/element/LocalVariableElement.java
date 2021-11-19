@@ -2,6 +2,7 @@ package org.qbicc.type.definition.element;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.ValueType;
+import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 
 /**
@@ -44,8 +45,8 @@ public final class LocalVariableElement extends VariableElement {
         return super.resolveTypeDescriptor(classContext, paramCtxt);
     }
 
-    public static Builder builder() {
-        return new BuilderImpl();
+    public static Builder builder(String name, TypeDescriptor typeDescriptor) {
+        return new BuilderImpl(name, typeDescriptor);
     }
 
     public interface Builder extends VariableElement.Builder {
@@ -88,7 +89,8 @@ public final class LocalVariableElement extends VariableElement {
         private int line;
         private int bci = -1;
 
-        BuilderImpl() {
+        BuilderImpl(String name, TypeDescriptor typeDescriptor) {
+            super(name, typeDescriptor);
         }
 
         public void setReflectsParameter(boolean reflectsParameter) {

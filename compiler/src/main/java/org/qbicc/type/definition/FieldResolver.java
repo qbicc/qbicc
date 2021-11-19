@@ -6,5 +6,5 @@ import org.qbicc.type.definition.element.FieldElement;
  *
  */
 public interface FieldResolver {
-    FieldElement resolveField(int index, DefinedTypeDefinition enclosing);
+    FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder);
 }
