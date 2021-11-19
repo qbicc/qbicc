@@ -6,11 +6,13 @@ import java.util.Map;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.AddressOf;
+import org.qbicc.graph.And;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.Cmp;
+import org.qbicc.graph.Comp;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Extend;
@@ -138,11 +140,34 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return result != null ? result : super.extend(value, toType);
     }
 
+    @Override
+    public Value complement(Value v) {
+        if (v instanceof Comp c) {
+            return c.getInput();
+        }
+        final LiteralFactory lf = ctxt.getLiteralFactory();
+        if (v instanceof IntegerLiteral il) {
+            return lf.literalOf(il.getType(), ~il.longValue());
+        }
+        if (v.isDefEq(lf.literalOf(true))) {
+            return lf.literalOf(false);
+        } else if (v.isDefEq(lf.literalOf(false))) {
+            return lf.literalOf(true);
+        }
+        return getDelegate().complement(v);
+    }
+
     public Value isEq(final Value v1, final Value v2) {
         if (v1.isDefEq(v2)) {
             return ctxt.getLiteralFactory().literalOf(true);
         } else if (!v1.isNullable() && isAlwaysNull(v2) || isAlwaysNull(v1) && !v2.isNullable() || v1.isDefNe(v2)) {
             return ctxt.getLiteralFactory().literalOf(false);
+        }
+
+        if (v2.isDefEq(ctxt.getLiteralFactory().literalOf(false))) {
+            return complement(v1);
+        } else if (v1.isDefEq(ctxt.getLiteralFactory().literalOf(false))) {
+            return complement(v2);
         }
 
         if ((v1 instanceof Extend || v1 instanceof BitCast && v1.getType() instanceof NullableType) && isZero(v2)) {
@@ -175,6 +200,12 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return ctxt.getLiteralFactory().literalOf(false);
         } else if (!v1.isNullable() && isAlwaysNull(v2) || isAlwaysNull(v1) && !v2.isNullable() || v1.isDefNe(v2)) {
             return ctxt.getLiteralFactory().literalOf(true);
+        }
+
+        if (v2.isDefEq(ctxt.getLiteralFactory().literalOf(true))) {
+            return complement(v1);
+        } else if (v1.isDefEq(ctxt.getLiteralFactory().literalOf(true))) {
+            return complement(v2);
         }
 
         if ((v1 instanceof Extend || v1 instanceof BitCast && v1.getType() instanceof NullableType) && isZero(v2)) {
@@ -304,6 +335,119 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.isGe(v1, v2);
     }
 
+    @Override
+    public Value and(Value v1, Value v2) {
+        final LiteralFactory lf = ctxt.getLiteralFactory();
+        if (v1.getType() instanceof BooleanType) {
+            // boolean reductions
+            final BooleanLiteral trueLit = lf.literalOf(true);
+            final BooleanLiteral falseLit = lf.literalOf(false);
+            if (v1.isDefEq(trueLit) || v1.isDefNe(falseLit)) {
+                return v2;
+            } else if (v2.isDefEq(trueLit) || v2.isDefNe(falseLit)) {
+                return v1;
+            } else if (v1.isDefEq(falseLit) || v1.isDefNe(trueLit) || v2.isDefEq(falseLit) || v2.isDefNe(trueLit)) {
+                return falseLit;
+            } else if (v1 instanceof Comp c1 && v2 instanceof Comp c2) {
+                // DeMorgan's theorem
+                return complement(or(c1.getInput(), c2.getInput()));
+            }
+        } else if (v1.getType() instanceof IntegerType it) {
+            // integer reductions
+            if (v1 instanceof IntegerLiteral l1 && v2 instanceof IntegerLiteral l2) {
+                return lf.literalOf(it, l1.longValue() & l2.longValue());
+            }
+            final IntegerLiteral zero = lf.literalOf(it, 0);
+            if (v1.isDefEq(zero) || v2.isDefEq(zero)) {
+                return zero;
+            }
+            final IntegerLiteral allOnes = lf.literalOf(it, -1L);
+            if (v1.isDefEq(allOnes)) {
+                return v2;
+            } else if (v2.isDefEq(allOnes)) {
+                return v1;
+            }
+        }
+        return getDelegate().and(v1, v2);
+    }
+
+    @Override
+    public Value or(Value v1, Value v2) {
+        final LiteralFactory lf = ctxt.getLiteralFactory();
+        if (v1.getType() instanceof BooleanType) {
+            // boolean reductions
+            final BooleanLiteral trueLit = lf.literalOf(true);
+            final BooleanLiteral falseLit = lf.literalOf(false);
+            if (v1.isDefNe(trueLit) || v1.isDefEq(falseLit)) {
+                return v2;
+            } else if (v2.isDefNe(trueLit) || v2.isDefEq(falseLit)) {
+                return v1;
+            } else if (v1.isDefNe(falseLit) || v1.isDefEq(trueLit) || v2.isDefNe(falseLit) || v2.isDefEq(trueLit)) {
+                return trueLit;
+            } else if (v1 instanceof Comp c1 && v2 instanceof Comp c2) {
+                // DeMorgan's theorem
+                return complement(and(c1.getInput(), c2.getInput()));
+            }
+        } else if (v1.getType() instanceof IntegerType it) {
+            if (v1 instanceof IntegerLiteral l1 && v2 instanceof IntegerLiteral l2) {
+                return lf.literalOf(it, l1.longValue() | l2.longValue());
+            }
+            // integer reductions
+            final IntegerLiteral allOnes = lf.literalOf(it, -1L);
+            if (v1.isDefEq(allOnes) || v2.isDefEq(allOnes)) {
+                return allOnes;
+            }
+            final IntegerLiteral zero = lf.literalOf(it, 0);
+            if (v1.isDefEq(zero)) {
+                return v2;
+            } else if (v2.isDefEq(zero)) {
+                return v1;
+            }
+        }
+        // use distributive law to reduce number of ops: AB ⋀ AC -> A ⋀ (B ⋁ C)
+        if (v1 instanceof And a1 && v2 instanceof And a2) {
+            final Value a1Left = a1.getLeftInput();
+            final Value a2Left = a2.getLeftInput();
+            final Value a1Right = a1.getRightInput();
+            final Value a2Right = a2.getRightInput();
+            if (a1Left.isDefEq(a2Left) || a2Left.isDefEq(a1Left)) {
+                return and(a1Left, or(a1Right, a2Right));
+            } else if (a1Left.isDefEq(a2Right) || a2Right.isDefEq(a1Left)) {
+                return and(a1Left, or(a1Right, a2Left));
+            } else if (a1Right.isDefEq(a2Left) || a2Left.isDefEq(a1Right)) {
+                return and(a1Right, or(a1Left, a2Right));
+            } else if (a1Right.isDefEq(a2Right) || a2Right.isDefEq(a1Right)) {
+                return and(a1Right, or(a1Left, a2Left));
+            }
+        }
+        return getDelegate().or(v1, v2);
+    }
+
+    @Override
+    public Value xor(Value v1, Value v2) {
+        if (v1.getType() instanceof BooleanType) {
+            return isNe(v1, v2);
+        }
+        final LiteralFactory lf = ctxt.getLiteralFactory();
+        IntegerType it = (IntegerType) v1.getType();
+        if (v1 instanceof IntegerLiteral l1 && v2 instanceof IntegerLiteral l2) {
+            return lf.literalOf(it, l1.longValue() ^ l2.longValue());
+        }
+        final IntegerLiteral allOnes = lf.literalOf(it, -1L);
+        if (v1.isDefEq(allOnes)) {
+            return complement(v2);
+        } else if (v2.isDefEq(allOnes)) {
+            return complement(v1);
+        }
+        final IntegerLiteral zero = lf.literalOf(it, 0);
+        if (v1.isDefEq(zero)) {
+            return v2;
+        } else if (v2.isDefEq(zero)) {
+            return v1;
+        }
+        return getDelegate().xor(v1, v2);
+    }
+
     public Value bitCast(Value input, WordType toType) {
         if (input instanceof final BitCast inputNode) {
             if (inputNode.getInput().getType().equals(toType)) {
@@ -384,6 +528,10 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return falseValue;
         } else if (trueValue.equals(falseValue)) {
             return trueValue;
+        } else if (trueValue.isDefEq(trueLit) && falseValue.isDefEq(falseLit)) {
+            return condition;
+        } else if (trueValue.isDefEq(falseLit) && falseValue.isDefEq(trueLit)) {
+            return complement(condition);
         } else {
             return getDelegate().select(condition, trueValue, falseValue);
         }

@@ -14,9 +14,11 @@ import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
@@ -315,6 +317,14 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
 
     public Value negate(final Value v) {
         return new Neg(callSite, element, line, bci, v);
+    }
+
+    public Value complement(Value v) {
+        Assert.checkNotNullParam("v", v);
+        if (! (v.getType() instanceof IntegerType || v.getType() instanceof BooleanType)) {
+            throw new IllegalArgumentException("Invalid input type");
+        }
+        return new Comp(callSite, element, line, bci, v);
     }
 
     public Value byteSwap(final Value v) {

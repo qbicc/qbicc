@@ -30,6 +30,7 @@ import org.qbicc.graph.Cmp;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
+import org.qbicc.graph.Comp;
 import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.CountLeadingZeros;
@@ -1451,6 +1452,20 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         VmObjectImpl original = (VmObjectImpl) require(node.getInput());
         return original.clone();
     }
+
+    public Object visit(final VmThreadImpl param, final Comp node) {
+        Value input = node.getInput();
+        ValueType inputType = input.getType();
+        if (isInt64(inputType)) {
+            return box(unboxLong(input) ^ ~0L, node.getType());
+        } else if (isInt32(inputType)) {
+            return box(unboxInt(input) ^ ~0, node.getType());
+        } else if (isBool(inputType)) {
+            return Boolean.valueOf(!unboxBool(input));
+        }
+        throw badInputType();
+    }
+
     @Override
     public Object visit(VmThreadImpl thread, CmpAndSwap node) {
         ValueHandle valueHandle = node.getValueHandle();

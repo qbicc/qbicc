@@ -530,6 +530,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().negate(v);
     }
 
+    public Value complement(final Value v) {
+        return getDelegate().complement(v);
+    }
+
     public Value byteSwap(final Value v) {
         return getDelegate().byteSwap(v);
     }

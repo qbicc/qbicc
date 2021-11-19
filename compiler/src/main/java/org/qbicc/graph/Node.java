@@ -533,6 +533,10 @@ public interface Node {
                 return param.getBlockBuilder().cmpL(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
+            public Value visit(Copier param, Comp node) {
+                return param.getBlockBuilder().complement(param.copyValue(node.getInput()));
+            }
+
             public Value visit(final Copier param, final CompoundLiteral node) {
                 return node;
             }

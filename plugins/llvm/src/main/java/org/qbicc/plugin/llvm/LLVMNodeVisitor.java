@@ -28,6 +28,7 @@ import org.qbicc.graph.Cmp;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
+import org.qbicc.graph.Comp;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.DebugAddressDeclaration;
 import org.qbicc.graph.Deref;
@@ -432,6 +433,19 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
                 map(ctxt.getLiteralFactory().literalOf(0))
             ).asLocal()
         ).asLocal();
+    }
+
+    public LLValue visit(final Void param, final Comp node) {
+        final Value input = node.getInput();
+        final LLValue inputType = map(input.getType());
+        final LLValue llvmInput = map(input);
+        if (input.getType() instanceof BooleanType) {
+            return builder.xor(inputType, llvmInput, TRUE).asLocal();
+        } else if (input.getType() instanceof IntegerType it) {
+            return builder.xor(inputType, llvmInput, intConstant(it.asUnsigned().truncateValue(0xFFFF_FFFF_FFFF_FFFFL))).asLocal();
+        } else {
+            throw new IllegalStateException();
+        }
     }
 
     public LLValue visit(final Void param, final IsEq node) {
