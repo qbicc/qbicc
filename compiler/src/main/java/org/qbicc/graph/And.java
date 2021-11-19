@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import org.qbicc.type.BooleanType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -12,6 +13,14 @@ public final class And extends AbstractBinaryValue implements CommutativeBinaryV
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    @Override
+    public Value getValueIfTrue(Value input) {
+        assert getType() instanceof BooleanType;
+        // both inputs must be true
+        // TODO: merge values algorithm
+        return getLeftInput().getValueIfTrue(getRightInput().getValueIfTrue(input));
     }
 
     @Override
