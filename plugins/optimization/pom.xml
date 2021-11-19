@@ -21,6 +21,12 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-driver</artifactId>
         </dependency>
+        <!-- test -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-test-utils</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>
