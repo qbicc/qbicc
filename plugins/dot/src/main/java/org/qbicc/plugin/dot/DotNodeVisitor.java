@@ -35,6 +35,7 @@ import org.qbicc.graph.CmpL;
 import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.CountLeadingZeros;
 import org.qbicc.graph.CountTrailingZeros;
+import org.qbicc.graph.CurrentThread;
 import org.qbicc.graph.DebugAddressDeclaration;
 import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.ExtractElement;
@@ -356,6 +357,15 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "constructor\\n" + node.getExecutable());
         nl(param);
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
+        return name;
+    }
+
+    public String visit(final Appendable param, final CurrentThread node) {
+        String name = register(node);
+        appendTo(param, name);
+        nl(param);
+        attr(param, "label", "currentThread");
+        nl(param);
         return name;
     }
 

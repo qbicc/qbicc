@@ -216,6 +216,6 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private Node storeException(final Thrown t) {
         // todo: rework when landing pads are done
-        return store(instanceFieldOf(referenceHandle(currentThread()), ctxt.getExceptionField()), ctxt.getLiteralFactory().literalOf(t.getThrowable()), MemoryAtomicityMode.UNORDERED);
+        return store(instanceFieldOf(referenceHandle(load(currentThread(),MemoryAtomicityMode.NONE)), ctxt.getExceptionField()), ctxt.getLiteralFactory().literalOf(t.getThrowable()), MemoryAtomicityMode.UNORDERED);
     }
 }

@@ -114,6 +114,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().checkcast(value, desc);
     }
 
+    public ValueHandle currentThread() {
+        return getDelegate().currentThread();
+    }
+
     public ValueHandle memberOf(final ValueHandle structHandle, final CompoundType.Member member) {
         return getDelegate().memberOf(structHandle, member);
     }
@@ -228,10 +232,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public ParameterValue parameter(final ValueType type, String label, final int index) {
         return getDelegate().parameter(type, label, index);
-    }
-
-    public Value currentThread() {
-        return getDelegate().currentThread();
     }
 
     public Value offsetOfField(final FieldElement fieldElement) {

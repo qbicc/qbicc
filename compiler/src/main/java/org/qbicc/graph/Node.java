@@ -545,13 +545,17 @@ public interface Node {
                 return param.getBlockBuilder().constructorOf(param.copyValue(node.getInstance()), node.getExecutable(), node.getCallSiteDescriptor(), node.getCallSiteType());
             }
 
+            public ValueHandle visit(Copier param, CurrentThread node) {
+                return param.getBlockBuilder().currentThread();
+            }
+
             public Value visit(final Copier param, final Convert node) {
                 return param.getBlockBuilder().valueConvert(param.copyValue(node.getInput()), node.getType());
             }
 
             public Value visit(final Copier param, final CurrentThreadRead node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().currentThread();
+                return param.getBlockBuilder().load(param.getBlockBuilder().currentThread(), MemoryAtomicityMode.NONE);
             }
 
             public Value visit(final Copier param, final Div node) {

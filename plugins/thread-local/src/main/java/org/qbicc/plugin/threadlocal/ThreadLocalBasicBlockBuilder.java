@@ -3,6 +3,7 @@ package org.qbicc.plugin.threadlocal;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.FieldElement;
@@ -37,7 +38,7 @@ public class ThreadLocalBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             }
             BasicBlockBuilder b = getFirstBuilder();
             // thread local values are never visible outside of the current thread
-            return instanceFieldOf(referenceHandle(currentThread()), threadLocalField);
+            return instanceFieldOf(referenceHandle(load(currentThread(), MemoryAtomicityMode.NONE)), threadLocalField);
         } else {
             return super.staticField(fieldElement);
         }

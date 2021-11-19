@@ -385,6 +385,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("CheckCast of unresolved type");
     }
 
+    public ValueHandle currentThread() {
+        ReferenceType refType = element.getEnclosingType().getContext().getCompilationContext().getBootstrapClassContext().findDefinedType("java/lang/Thread").load().getType().getReference();
+        return new CurrentThread(element, line, bci, refType);
+    }
+
     public Value deref(final Value value) {
         return new Deref(callSite, element, line, bci, value);
     }
@@ -499,11 +504,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
 
     public ParameterValue parameter(final ValueType type, String label, final int index) {
         return new ParameterValue(callSite, element, type, label, index);
-    }
-
-    public Value currentThread() {
-        ClassObjectType type = element.getEnclosingType().getContext().findDefinedType("java/lang/Thread").load().getClassType();
-        return asDependency(new CurrentThreadRead(callSite, element, line, bci, requireDependency(), type.getReference()));
     }
 
     public Value offsetOfField(FieldElement fieldElement) {
@@ -689,9 +689,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         begin(setupHandler);
         ClassContext classContext = element.getEnclosingType().getContext();
         CompilationContext ctxt = classContext.getCompilationContext();
-        Value thr = getFirstBuilder().currentThread();
+        BasicBlockBuilder fb = getFirstBuilder();
+        Value thr = fb.load(fb.currentThread(), MemoryAtomicityMode.NONE);
         FieldElement exceptionField = ctxt.getExceptionField();
-        ValueHandle handle = instanceFieldOf(referenceHandle(getFirstBuilder().notNull(thr)), exceptionField);
+        ValueHandle handle = instanceFieldOf(referenceHandle(fb.notNull(thr)), exceptionField);
         LiteralFactory lf = ctxt.getLiteralFactory();
         Value exceptionValue = notNull(getAndSet(handle, lf.zeroInitializerLiteralOfType(handle.getValueType()), MemoryAtomicityMode.NONE));
         BasicBlock sourceBlock = goto_(exceptionHandler.getHandler());
