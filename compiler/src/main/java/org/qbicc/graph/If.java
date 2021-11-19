@@ -26,13 +26,10 @@ public final class If extends AbstractTerminator implements Terminator {
     @Override
     public Value getOutboundValue(PhiValue phi) {
         Value outboundValue = super.getOutboundValue(phi);
-        if (condition instanceof BooleanValue) {
-            BooleanValue booleanValue = (BooleanValue) condition;
-            if (phi.getPinnedBlock().equals(getTrueBranch())) {
-                return booleanValue.getValueIfTrue(outboundValue);
-            } else if (phi.getPinnedBlock().equals(getFalseBranch())) {
-                return booleanValue.getValueIfFalse(outboundValue);
-            }
+        if (phi.getPinnedBlock().equals(getTrueBranch())) {
+            return condition.getValueIfTrue(outboundValue);
+        } else if (phi.getPinnedBlock().equals(getFalseBranch())) {
+            return condition.getValueIfFalse(outboundValue);
         }
         return outboundValue;
     }
