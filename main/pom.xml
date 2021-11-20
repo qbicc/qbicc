@@ -155,6 +155,10 @@
             <artifactId>qbicc-plugin-optimization</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.qbicc</groupId>
+            <artifactId>qbicc-plugin-patcher</artifactId>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-reachability</artifactId>
         </dependency>

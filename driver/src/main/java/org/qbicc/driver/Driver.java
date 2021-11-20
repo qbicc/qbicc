@@ -16,6 +16,7 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import io.smallrye.common.constraint.Assert;
+import io.smallrye.common.function.Functions;
 import org.jboss.logging.Logger;
 import org.jboss.logging.MDC;
 import org.qbicc.context.AttachmentKey;
@@ -87,6 +88,7 @@ public class Driver implements Closeable {
     final Path outputDir;
     final float threadsPerCpu;
     final long stackSize;
+    final Consumer<ClassContext> classContextListener;
 
     Driver(final Builder builder) {
         initialContext = Assert.checkNotNullParam("builder.initialContext", builder.initialContext);
@@ -155,10 +157,11 @@ public class Driver implements Closeable {
 
         List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories = new ArrayList<>(builder.resolverFactories);
         Collections.reverse(resolverFactories);
+        classContextListener = builder.classContextListener;
 
         java.util.function.Function<CompilationContext, Vm> vmFactory = Assert.checkNotNullParam("builder.vmFactory", builder.vmFactory);
         NativeMethodConfigurator nativeMethodConfigurator = constructNativeMethodConfigurator(builder);
-        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, this::defaultFinder, this::defaultResourceFinder, vmFactory, outputDir, resolverFactories, typeBuilderFactories, nativeMethodConfigurator);
+        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, this::defaultFinder, this::defaultResourceFinder, vmFactory, outputDir, resolverFactories, typeBuilderFactories, nativeMethodConfigurator, classContextListener);
         // start with ADD
         compilationContext.setBlockFactory(addBuilderFactory);
 
@@ -626,6 +629,7 @@ public class Driver implements Closeable {
         long stackSize = 0x1000000L;
 
         String mainClass;
+        Consumer<ClassContext> classContextListener = Functions.discardingConsumer();
 
         Builder() {}
 
@@ -814,6 +818,11 @@ public class Driver implements Closeable {
         public Builder addNativeMethodConfiguratorFactory(UnaryOperator<NativeMethodConfigurator> factory) {
             Assert.checkNotNullParam("factory", factory);
             nativeMethodConfiguratorFactories.add(factory);
+            return this;
+        }
+
+        public Builder setClassContextListener(Consumer<ClassContext> classContextListener) {
+            this.classContextListener = Assert.checkNotNullParam("classContextListener", classContextListener);
             return this;
         }
 
