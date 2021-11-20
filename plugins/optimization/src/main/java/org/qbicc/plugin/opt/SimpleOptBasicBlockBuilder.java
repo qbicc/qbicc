@@ -552,6 +552,27 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
+    public BasicBlock switch_(Value value, int[] checkValues, BlockLabel[] targets, BlockLabel defaultTarget) {
+        if (value.getType() instanceof IntegerType it) {
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            boolean defaultMatches = true;
+            for (int checkValue : checkValues) {
+                IntegerLiteral checkValueLit = lf.literalOf(it, checkValue);
+                if (value.isDefEq(checkValueLit)) {
+                    return goto_(targets[checkValue]);
+                }
+                if (defaultMatches && ! value.isDefNe(checkValueLit)) {
+                    defaultMatches = false;
+                }
+            }
+            if (defaultMatches) {
+                return goto_(defaultTarget);
+            }
+        }
+        return getDelegate().switch_(value, checkValues, targets, defaultTarget);
+    }
+
+    @Override
     public Value add(Value v1, Value v2) {
         if (v1.getType() instanceof IntegerType) {
             // integer opts
