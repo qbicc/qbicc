@@ -13,22 +13,4 @@ import org.qbicc.type.BooleanType;
  */
 public interface BooleanValue extends Value {
     BooleanType getType();
-
-    /**
-     * Get the actual value of the given input if this value evaluates to {@code true}.
-     * If the input is equal to this value, then the result must be the {@code true} literal.
-     *
-     * @param input the input value (must not be {@code null})
-     * @return the value if {@code true} (not {@code null})
-     */
-    Value getValueIfTrue(Value input);
-
-    /**
-     * Get the actual value of the given input if this value evaluates to {@code false}.
-     * If the input is equal to this value, then the result must be the {@code false} literal.
-     *
-     * @param input the input value (must not be {@code null})
-     * @return the value if {@code false} (not {@code null})
-     */
-    Value getValueIfFalse(Value input);
 }

@@ -4,7 +4,6 @@ import java.util.Objects;
 
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ObjectType;
-import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -13,15 +12,17 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public final class InstanceOf extends AbstractValue implements InstanceOperation, OrderedNode, BooleanValue {
     private final Node dependency;
     private final Value input;
+    private final Value valueIfTrue;
     private final ObjectType checkType;
     private final int checkDimensions;
     private final BooleanType booleanType;
 
     InstanceOf(final Node callSite, final ExecutableElement element, final int line, final int bci, Node dependency, final Value input,
-               final ObjectType checkType, final int checkDimensions, final BooleanType booleanType) {
+               Value valueIfTrue, final ObjectType checkType, final int checkDimensions, final BooleanType booleanType) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.input = input;
+        this.valueIfTrue = valueIfTrue;
         this.checkType = checkType;
         this.checkDimensions = checkDimensions;
         this.booleanType = booleanType;
@@ -36,7 +37,7 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
      }
 
     int calcHashCode() {
-        return Objects.hash(dependency, input, checkType, checkDimensions);
+        return Objects.hash(dependency, input, checkType) * 31 + checkDimensions;
     }
 
     @Override
@@ -83,10 +84,7 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
 
     @Override
     public Value getValueIfTrue(Value input) {
-        return input.equals(this.input) ?
-            new NotNull(getCallSite(), getElement(), getSourceLine(), getBytecodeIndex(),
-                new BitCast(getCallSite(), getElement(), getSourceLine(), getBytecodeIndex(), input, ((ReferenceType)input.getType()).narrow(checkType)))
-            : input;
+        return input.equals(this.input) ? valueIfTrue : super.getValueIfTrue(input);
     }
 
     @Override

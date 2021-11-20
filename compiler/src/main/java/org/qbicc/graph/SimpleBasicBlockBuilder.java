@@ -14,9 +14,11 @@ import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
@@ -317,6 +319,14 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new Neg(callSite, element, line, bci, v);
     }
 
+    public Value complement(Value v) {
+        Assert.checkNotNullParam("v", v);
+        if (! (v.getType() instanceof IntegerType || v.getType() instanceof BooleanType)) {
+            throw new IllegalArgumentException("Invalid input type");
+        }
+        return new Comp(callSite, element, line, bci, v);
+    }
+
     public Value byteSwap(final Value v) {
         return new ByteSwap(callSite, element, line, bci, v);
     }
@@ -358,7 +368,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value instanceOf(final Value input, final ObjectType expectedType, final int expectedDimensions) {
-        return asDependency(new InstanceOf(callSite, element, line, bci, requireDependency(), input, expectedType, expectedDimensions, typeSystem.getBooleanType()));
+        final BasicBlockBuilder fb = getFirstBuilder();
+        return asDependency(new InstanceOf(callSite, element, line, bci, requireDependency(), input, fb.notNull(fb.bitCast(input, ((ReferenceType)input.getType()).narrow(expectedType))), expectedType, expectedDimensions, typeSystem.getBooleanType()));
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {
