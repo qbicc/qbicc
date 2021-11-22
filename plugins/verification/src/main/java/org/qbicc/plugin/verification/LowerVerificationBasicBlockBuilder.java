@@ -57,7 +57,7 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
         return nop();
     }
 
-    public Node classInitCheck(final ObjectType objectType) {
+    public Node initCheck(final ObjectType objectType) {
         invalidNode("classInitCheck");
         return nop();
     }

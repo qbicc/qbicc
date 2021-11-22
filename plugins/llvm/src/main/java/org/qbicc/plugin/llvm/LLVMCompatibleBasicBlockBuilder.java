@@ -403,7 +403,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Node classInitCheck(ObjectType objectType) {
+    public Node initCheck(ObjectType objectType) {
         // either this is handled by an earlier BBB, or else init was 100% build time
         return nop();
     }

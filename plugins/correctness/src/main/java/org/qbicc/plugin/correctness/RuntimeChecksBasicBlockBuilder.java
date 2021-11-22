@@ -129,7 +129,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     @Override
     public Value new_(final ClassObjectType type) {
-        initCheck(type);
+        doInitCheck(type);
         return super.new_(type);
     }
 
@@ -262,7 +262,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                 if (! node.getVariableElement().isStatic()) {
                     throwIncompatibleClassChangeError();
                 }
-                initCheck(node.getVariableElement().getEnclosingType().load().getType());
+                doInitCheck(node.getVariableElement().getEnclosingType().load().getType());
                 return null;
             }
 
@@ -342,20 +342,20 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                     throwIncompatibleClassChangeError();
                     throw Assert.unreachableCode();
                 }
-                initCheck(node.getExecutable().getEnclosingType().load().getType());
+                doInitCheck(node.getExecutable().getEnclosingType().load().getType());
                 // return value unused in this case
                 return null;
             }
         }, null);
     }
 
-    private void initCheck(ObjectType objectType) {
+    private void doInitCheck(ObjectType objectType) {
         if (objectType.equals(originalElement.getEnclosingType().load().getType())) {
             // Same type, must already be initialized.
             return;
         }
         // TODO: further tuning of places init checks can be skipped
-        classInitCheck(objectType);
+        initCheck(objectType);
     }
 
     private void nullCheck(Value value) {

@@ -5,11 +5,11 @@ import java.util.Objects;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
-public class ClassInitCheck extends AbstractNode implements Action, OrderedNode {
+public class InitCheck extends AbstractNode implements Action, OrderedNode {
     private final Node dependency;
     private final ObjectType objectType;
 
-    ClassInitCheck(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final ObjectType objectType) {
+    InitCheck(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final ObjectType objectType) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.objectType = objectType;
@@ -20,12 +20,12 @@ public class ClassInitCheck extends AbstractNode implements Action, OrderedNode 
     }
 
     int calcHashCode() {
-        return Objects.hash(ClassInitCheck.class, dependency, objectType);
+        return Objects.hash(InitCheck.class, dependency, objectType);
     }
 
     @Override
     String getNodeName() {
-        return "ClassInitCheck";
+        return "InitCheck";
     }
 
     @Override
@@ -34,7 +34,7 @@ public class ClassInitCheck extends AbstractNode implements Action, OrderedNode 
     }
 
     public boolean equals(Object other) {
-        return other instanceof ClassInitCheck && equals((ClassInitCheck) other);
+        return other instanceof InitCheck && equals((InitCheck) other);
     }
 
     @Override
@@ -46,7 +46,7 @@ public class ClassInitCheck extends AbstractNode implements Action, OrderedNode 
         return b;
     }
 
-    public boolean equals(final ClassInitCheck other) {
+    public boolean equals(final InitCheck other) {
         return this == other || other != null
                && dependency.equals(other.dependency)
                && objectType == other.objectType;

@@ -31,12 +31,12 @@ public class LowerClassInitCheckBlockBuilder extends DelegatingBasicBlockBuilder
         this.ctxt = ctxt;
     }
  
-    public Node classInitCheck(final ObjectType objectType) {
-        initCheck(objectType);
+    public Node initCheck(final ObjectType objectType) {
+        doInitCheck(objectType);
         return nop();
     }
 
-    private void initCheck(ObjectType objectType) {
+    private void doInitCheck(ObjectType objectType) {
         SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
         
         final BlockLabel callInit = new BlockLabel();

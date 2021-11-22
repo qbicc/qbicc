@@ -339,9 +339,9 @@ public interface Node {
                 return param.getBlockBuilder().monitorExit(param.copyValue(node.getInstance()));
             }
 
-            public Node visit(Copier param, ClassInitCheck node) {
+            public Node visit(Copier param, InitCheck node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().classInitCheck(node.getObjectType());
+                return param.getBlockBuilder().initCheck(node.getObjectType());
             }
 
             public Node visit(Copier param, DebugAddressDeclaration node) {
