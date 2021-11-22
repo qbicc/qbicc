@@ -1439,8 +1439,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Void visit(VmThreadImpl thread, InitCheck node) {
-        ObjectType objectType = node.getObjectType();
         VmImpl vm = thread.getVM();
+        if (node.getElement().hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
+            throw new Thrown(vm.linkageErrorClass.newInstance("Cannot call run-time initializer"));
+        }
+        ObjectType objectType = node.getObjectType();
         ClassContext context = objectType.getDefinition().getContext();
         VmClassImpl clazz = vm.getClassLoaderForContext(context).loadClassRunTime(objectType.getDefinition().getInternalName());
         vm.initialize(clazz);
