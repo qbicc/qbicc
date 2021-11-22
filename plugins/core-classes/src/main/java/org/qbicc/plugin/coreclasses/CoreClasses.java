@@ -99,12 +99,12 @@ public final class CoreClasses {
         jlo.injectField(field);
         objectTypeIdField = field;
 
-        // inject a field to hold the object pthread_mutex_t
-        builder = FieldElement.builder("nativeObjectMonitor", BaseTypeDescriptor.V);
-        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+        // inject a field to hold the object monitor ref
+        // todo: make selectable by platform
+        builder = FieldElement.builder("nativeObjectMonitor", ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/Monitor"));
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         builder.setEnclosingType(jloDef);
-        builder.setSignature(BaseTypeSignature.V);
-        builder.setType(ts.getSignedInteger64Type());
+        builder.setSignature(TypeSignature.synthesize(classContext, builder.getDescriptor()));
         field = builder.build();
         jlo.injectField(field);
         objectNativeObjectMonitorField = field;

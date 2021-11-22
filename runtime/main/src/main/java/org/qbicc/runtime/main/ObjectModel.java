@@ -334,15 +334,5 @@ public class ObjectModel {
      * @return the pthread mutex of the object
      */
     @Hidden
-    public static native pthread_mutex_t_ptr get_nativeObjectMonitor(Object reference);
-
-    /**
-     * Set the native object monitor (mutex) for the referenced object. This method is atomic and will return true on success.
-     *
-     * @param reference the object reference (must not be {@code null})
-     * @param nom mutex for the referenced object (must not be {@code null})
-     * @return true if successful
-     */
-    @Hidden
-    public static native boolean set_nativeObjectMonitor(Object reference, pthread_mutex_t_ptr nom);
+    public static native Monitor getMonitor(Object reference);
 }

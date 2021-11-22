@@ -63,7 +63,7 @@ public class BasicInitializationBasicBlockBuilder extends DelegatingBasicBlockBu
         ValueHandle handle = referenceHandle(allocated);
         store(instanceFieldOf(handle, coreClasses.getObjectTypeIdField()), lf.literalOfType(type), MemoryAtomicityMode.UNORDERED);
         FieldElement monitorField = coreClasses.getObjectNativeObjectMonitorField();
-        store(instanceFieldOf(handle, monitorField), ctxt.getLiteralFactory().literalOf((IntegerType)monitorField.getType(), 0L), MemoryAtomicityMode.NONE);
+        store(instanceFieldOf(handle, monitorField), ctxt.getLiteralFactory().zeroInitializerLiteralOfType(monitorField.getType()), MemoryAtomicityMode.NONE);
         return handle;
     }
 

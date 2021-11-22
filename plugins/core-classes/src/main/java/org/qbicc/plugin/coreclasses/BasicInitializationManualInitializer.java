@@ -34,7 +34,7 @@ public class BasicInitializationManualInitializer implements Consumer<VmObject> 
         FieldElement typeIdField = coreClasses.getObjectTypeIdField();
         memory.storeType(vmObject.indexOf(typeIdField), objectTypeId, MemoryAtomicityMode.UNORDERED);
         FieldElement nativeMonitorField = coreClasses.getObjectNativeObjectMonitorField();
-        memory.store64(vmObject.indexOf(nativeMonitorField), 0, MemoryAtomicityMode.UNORDERED);
+        memory.storeRef(vmObject.indexOf(nativeMonitorField), null, MemoryAtomicityMode.UNORDERED);
         if (vmObject instanceof VmArray) {
             FieldElement lengthField = coreClasses.getArrayLengthField();
             memory.store32(vmObject.indexOf(lengthField), ((VmArray) vmObject).getLength(), MemoryAtomicityMode.UNORDERED);

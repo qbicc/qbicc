@@ -1025,6 +1025,7 @@ public final class CoreIntrinsics {
         ClassContext classContext = ctxt.getBootstrapClassContext();
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+        ClassTypeDescriptor monitorDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/Monitor");
 
         // Object#getClass()Ljava/lang/Class; --> field read of the "typeId" field
         MethodDescriptor getClassDesc = MethodDescriptor.synthesize(classContext, jlcDesc, List.of());
@@ -1035,12 +1036,6 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(Phase.ADD, objDesc, "getClass", getClassDesc, getClassIntrinsic);
-
-        // TODO: replace this do nothing stub of notifyAll with real implementation
-        MethodDescriptor notifyAllDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
-        InstanceIntrinsic notifyAllIntrinsic = (builder, instance, target, arguments) -> 
-            ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType()); // Do nothing
-        intrinsics.registerIntrinsic(objDesc, "notifyAll", notifyAllDesc, notifyAllIntrinsic);
 
         InstanceIntrinsic clone = (builder, instance, target, arguments) -> {
             ValueType instanceType = instance.getType();
@@ -1442,9 +1437,7 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor clsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor jlsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor uint8Desc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$uint8_t");
-        ClassTypeDescriptor pthreadMutexPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/posix/PThread$pthread_mutex_t_ptr");
-        ClassTypeDescriptor pthreadPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/posix/PThread$pthread_t_ptr");
-        ClassTypeDescriptor jltDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
+        ClassTypeDescriptor monitorDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/Monitor");
 
         MethodDescriptor objTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objDesc));
         MethodDescriptor objUint8Desc = MethodDescriptor.synthesize(classContext, uint8Desc, List.of(objDesc));
@@ -1748,25 +1741,46 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "set_initialized", typeIdVoidDesc, set_initialized);
 
         FieldElement nativeObjectMonitorField = CoreClasses.get(ctxt).getObjectNativeObjectMonitorField();
-        // PThread.pthread_mutex_t_ptr get_nativeObjectMonitor(Object reference);
-        MethodDescriptor nomOfDesc = MethodDescriptor.synthesize(classContext, pthreadMutexPtrDesc, List.of(objDesc));
-        StaticIntrinsic nomOf = (builder, target, arguments) -> {
-            Value mutexSlot = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField), MemoryAtomicityMode.NONE);
-            PointerType returnType = (PointerType)target.getExecutable().getType().getReturnType();
-            return builder.valueConvert(mutexSlot, returnType);
-        };
-        intrinsics.registerIntrinsic(objModDesc, "get_nativeObjectMonitor", nomOfDesc, nomOf);
 
-        // boolean set_nativeObjectMonitor(Object object, PThread.pthread_mutex_t_ptr nom);
-        MethodDescriptor setNomDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc, pthreadMutexPtrDesc));
-        StaticIntrinsic setNom = (builder, target, arguments) -> {
-            ValueHandle casTarget = builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField);
-            Value expect = ctxt.getLiteralFactory().literalOf(0L);
-            Value update = builder.valueConvert(arguments.get(1), (SignedIntegerType)nativeObjectMonitorField.getType());
-            Value result = builder.cmpAndSwap(casTarget, expect, update, MemoryAtomicityMode.ACQUIRE_RELEASE, MemoryAtomicityMode.ACQUIRE, CmpAndSwap.Strength.STRONG);
-            return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, update.getType()).getMember(1));
+        MethodDescriptor getMonitorDesc = MethodDescriptor.synthesize(classContext, monitorDesc, List.of(objDesc));
+
+        StaticIntrinsic getMonitor = (builder, target, arguments) -> {
+            ValueHandle handle = builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField);
+            Value monitor = builder.load(handle, MemoryAtomicityMode.ACQUIRE);
+            BlockLabel makeNew = new BlockLabel();
+            BlockLabel finish = new BlockLabel();
+            BlockLabel tryCas = new BlockLabel();
+            ReferenceType monitorType = (ReferenceType) nativeObjectMonitorField.getType();
+            BasicBlock incoming = builder.if_(builder.isEq(monitor, lf.zeroInitializerLiteralOfType(monitorType)), makeNew, finish);
+            builder.begin(makeNew);
+            Value newMonitor;
+            try {
+                newMonitor = builder.new_(monitorDesc);
+                builder.call(builder.constructorOf(newMonitor, monitorDesc, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+                builder.goto_(tryCas);
+                builder.begin(tryCas);
+                try {
+                    Value cas = builder.cmpAndSwap(handle, lf.nullLiteralOfType(monitorType), newMonitor, MemoryAtomicityMode.ACQUIRE_RELEASE, MemoryAtomicityMode.ACQUIRE, CmpAndSwap.Strength.STRONG);
+                    Value success = builder.extractMember(cas, CmpAndSwap.getResultType(ctxt, monitorType).getMember(1));
+                    builder.if_(success, finish, tryCas);
+                } catch (BlockEarlyTermination ignored) {
+                    newMonitor = null;
+                }
+            } catch (BlockEarlyTermination ignored) {
+                newMonitor = null;
+            }
+            builder.begin(finish);
+            if (newMonitor == null) {
+                // inner block was terminated early; propagate the one possible value (an error would already be reported)
+            } else {
+                PhiValue realMonitor = builder.phi(monitorType, finish, PhiValue.Flag.NOT_NULL);
+                realMonitor.setValueForBlock(ctxt, builder.getCurrentElement(), tryCas, newMonitor);
+                realMonitor.setValueForBlock(ctxt, builder.getCurrentElement(), incoming, builder.notNull(monitor));
+                monitor = realMonitor;
+            }
+            return monitor;
         };
-        intrinsics.registerIntrinsic(objModDesc, "set_nativeObjectMonitor", setNomDesc, setNom);
+        intrinsics.registerIntrinsic(objModDesc, "getMonitor", getMonitorDesc, getMonitor);
     }
 
     static void registerOrgQbiccRuntimeMainIntrinsics(final CompilationContext ctxt) {
