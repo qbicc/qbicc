@@ -23,7 +23,7 @@ import org.qbicc.graph.Call;
 import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.CheckCast;
-import org.qbicc.graph.ClassInitCheck;
+import org.qbicc.graph.InitCheck;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Clone;
 import org.qbicc.graph.Cmp;
@@ -1438,7 +1438,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     // Other
 
     @Override
-    public Void visit(VmThreadImpl thread, ClassInitCheck node) {
+    public Void visit(VmThreadImpl thread, InitCheck node) {
         ObjectType objectType = node.getObjectType();
         VmImpl vm = thread.getVM();
         ClassContext context = objectType.getDefinition().getContext();

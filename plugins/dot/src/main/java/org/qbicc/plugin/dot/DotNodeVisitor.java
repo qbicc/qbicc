@@ -25,7 +25,7 @@ import org.qbicc.graph.Call;
 import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.CastValue;
-import org.qbicc.graph.ClassInitCheck;
+import org.qbicc.graph.InitCheck;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Clone;
 import org.qbicc.graph.Cmp;
@@ -714,7 +714,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return name;
     }
 
-    public String visit(Appendable param, ClassInitCheck node) {
+    public String visit(Appendable param, InitCheck node) {
         String name = register(node);
         appendTo(param, name);
         attr(param, "shape", "rectangle");

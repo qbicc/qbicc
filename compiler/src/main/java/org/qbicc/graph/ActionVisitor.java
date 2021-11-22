@@ -12,7 +12,7 @@ public interface ActionVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, ClassInitCheck node) {
+    default R visit(T param, InitCheck node) {
         return visitUnknown(param, node);
     }
 
@@ -47,7 +47,7 @@ public interface ActionVisitor<T, R> {
             return getDelegateActionVisitor().visit(param, node);
         }
 
-        default R visit(T param, ClassInitCheck node) {
+        default R visit(T param, InitCheck node) {
             return getDelegateActionVisitor().visit(param, node);
         }
 
