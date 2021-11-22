@@ -60,4 +60,12 @@ public interface ClassContext extends DescriptorTypeResolver {
      * @return the resource bytes, or {@code null} if the resource was not found
      */
     byte[] getResource(String resourceName);
+
+    /**
+     * Get the entirety of all of the resources with the given name within this class context.
+     *
+     * @param resourceName the resource name (must not be {@code null})
+     * @return the resource list (not {@code null})
+     */
+    List<byte[]> getResources(String resourceName);
 }

@@ -748,6 +748,11 @@ public final class VmImpl implements Vm {
         return null;
     }
 
+    public List<byte[]> loadResources(final ClassContext classContext, final String name) throws Thrown {
+        // todo: implement by calling getAllBytes() on the class loader resource streams
+        return List.of();
+    }
+
     public VmObject allocateObject(final ClassObjectType type) {
         DefinedTypeDefinition def = type.getDefinition();
         ClassContext context = def.getContext();
