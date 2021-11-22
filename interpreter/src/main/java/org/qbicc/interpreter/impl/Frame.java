@@ -2190,6 +2190,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public Memory visit(Frame frame, InstanceFieldOf node) {
+            FieldElement variableElement = node.getVariableElement();
+            if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
+                throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run time field"));
+            }
             return node.getValueHandle().accept(this, frame);
         }
 
@@ -2206,6 +2210,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public Memory visit(Frame frame, StaticField node) {
             FieldElement variableElement = node.getVariableElement();
+            if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
+                throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run time field"));
+            }
             DefinedTypeDefinition enclosingType = variableElement.getEnclosingType();
             VmClassImpl clazz = (VmClassImpl) enclosingType.load().getVmClass();
             return clazz.getStaticMemory();
