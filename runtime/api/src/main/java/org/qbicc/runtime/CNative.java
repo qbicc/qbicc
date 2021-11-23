@@ -820,15 +820,6 @@ public final class CNative {
          * Dereference the pointer, returning what the pointer points to. This operation
          * does not necessarily directly translate to a physical memory operation.
          *
-         *
-         * @return the pointed-to value
-         */
-        public native T loadUnshared();
-
-        /**
-         * Dereference the pointer, returning what the pointer points to. This operation
-         * does not necessarily directly translate to a physical memory operation.
-         *
          * @deprecated use loadUnshared
          *
          * @return the pointed-to value
@@ -837,19 +828,12 @@ public final class CNative {
         public native T deref();
 
         /**
-         * Overwrite the value that is pointed to by this pointer.
-         *
-         * @param value the value to write
-         */
-        public native void storeUnshared(T value);
-
-        /**
          * Get an array view of this pointer value. The array points to the same address as
          * this pointer, but has an incomplete type (no size). If the object being pointed to
          * has an incomplete type, using this method will result in a compilation error.
          * <p>
-         * Writing to this array has the same effect as calling {@link #set(int, Object)} on the corresponding
-         * pointer; reading from this array has the same effect as calling {@link #get(int)}.
+         * Writing to this array has the same effect as calling {@link #plus(int) plus(index)}{@code .}{@link #storeUnshared storeUnshared(val)} on the corresponding
+         * pointer; reading from this array has the same effect as calling {@link #plus(int) plus(index)}{@code .}{@link #loadUnshared}.
          * <p>
          * Native arrays have no run time bounds checking.
          *
@@ -873,6 +857,85 @@ public final class CNative {
             plus(arrayIdx).storeUnshared(newVal);
         }
 
+        public native T loadUnshared();
+        public native T loadPlain();
+        public native T loadOpaque();
+        public native T loadSingleAcquire();
+        public native T loadAcquire();
+        public native T loadVolatile();
+
+        public native void storeUnshared(T value);
+        public native void storePlain(T value);
+        public native void storeOpaque(T value);
+        public native void storeSingleRelease(T value);
+        public native void storeRelease(T value);
+        public native void storeVolatile(T value);
+
+        public native boolean compareAndSetOpaque(T expect, T update);
+        public native boolean compareAndSetAcquire(T expect, T update);
+        public native boolean compareAndSetRelease(T expect, T update);
+        public native boolean compareAndSet(T expect, T update);
+
+        public native boolean weakCompareAndSetOpaque(T expect, T update);
+        public native boolean weakCompareAndSetAcquire(T expect, T update);
+        public native boolean weakCompareAndSetRelease(T expect, T update);
+        public native boolean weakCompareAndSet(T expect, T update);
+
+        public native T compareAndSwapOpaque(T expect, T update);
+        public native T compareAndSwapAcquire(T expect, T update);
+        public native T compareAndSwapRelease(T expect, T update);
+        public native T compareAndSwap(T expect, T update);
+
+        public native T weakCompareAndSwapOpaque(T expect, T update);
+        public native T weakCompareAndSwapAcquire(T expect, T update);
+        public native T weakCompareAndSwapRelease(T expect, T update);
+        public native T weakCompareAndSwap(T expect, T update);
+
+        public native T getAndSetOpaque(T newVal);
+        public native T getAndSetAcquire(T newVal);
+        public native T getAndSetRelease(T newVal);
+        public native T getAndSet(T newVal);
+
+        public native T getAndSetMinOpaque(T otherVal);
+        public native T getAndSetMinAcquire(T otherVal);
+        public native T getAndSetMinRelease(T otherVal);
+        public native T getAndSetMin(T otherVal);
+
+        public native T getAndSetMaxOpaque(T otherVal);
+        public native T getAndSetMaxAcquire(T otherVal);
+        public native T getAndSetMaxRelease(T otherVal);
+        public native T getAndSetMax(T otherVal);
+
+        public native T getAndAddOpaque(T addend);
+        public native T getAndAddAcquire(T addend);
+        public native T getAndAddRelease(T addend);
+        public native T getAndAdd(T addend);
+
+        public native T getAndSubtractOpaque(T subtrahend);
+        public native T getAndSubtractAcquire(T subtrahend);
+        public native T getAndSubtractRelease(T subtrahend);
+        public native T getAndSubtract(T subtrahend);
+
+        public native T getAndBitwiseAndOpaque(T bits);
+        public native T getAndBitwiseAndAcquire(T bits);
+        public native T getAndBitwiseAndRelease(T bits);
+        public native T getAndBitwiseAnd(T bits);
+
+        public native T getAndBitwiseOrOpaque(T bits);
+        public native T getAndBitwiseOrAcquire(T bits);
+        public native T getAndBitwiseOrRelease(T bits);
+        public native T getAndBitwiseOr(T bits);
+
+        public native T getAndBitwiseXorOpaque(T bits);
+        public native T getAndBitwiseXorAcquire(T bits);
+        public native T getAndBitwiseXorRelease(T bits);
+        public native T getAndBitwiseXor(T bits);
+
+        public native T getAndBitwiseNandOpaque(T bits);
+        public native T getAndBitwiseNandAcquire(T bits);
+        public native T getAndBitwiseNandRelease(T bits);
+        public native T getAndBitwiseNand(T bits);
+
         /**
          * Get a pointer which is offset from the base by the given number of elements.
          *
@@ -882,44 +945,37 @@ public final class CNative {
         public native <P extends ptr<T>> P plus(int offset);
 
         /**
-         * Get the difference between this pointer and another pointer of the same type.
+         * Get a pointer which is offset from the base by the given number of elements.
+         *
+         * @param offset the element offset
+         * @return the offset pointer
+         */
+        public native <P extends ptr<T>> P plus(long offset);
+
+        /**
+         * Get a pointer which is offset from the base by the given number of elements.
+         *
+         * @param offset the element offset
+         * @return the offset pointer
+         */
+        public native <P extends ptr<T>> P minus(int offset);
+
+        /**
+         * Get a pointer which is offset from the base by the given number of elements.
+         *
+         * @param offset the element offset
+         * @return the offset pointer
+         */
+        public native <P extends ptr<T>> P minus(long offset);
+
+        /**
+         * Get the difference between this pointer and another pointer of the same type. This is the number
+         * of elements spanned by the two pointers. Pointers of {@code void} type are considered to have a size of 1.
          *
          * @param other the other pointer
          * @return the difference between the two pointers
          */
         public native ptrdiff_t minus(ptr<T> other);
-
-        /**
-         * Get a pointer to an arbitrary type which is offset from the base by the given signed difference.
-         *
-         * @param offset the pointer offset
-         * @return the offset pointer
-         */
-        public native <R extends object, P extends ptr<R>> P plus(ptrdiff_t offset);
-
-        /**
-         * Get a pointer to an arbitrary type which is offset from the base by the given unsigned offset.
-         *
-         * @param offset the pointer offset
-         * @return the offset pointer
-         */
-        public native <R extends object, P extends ptr<R>> P plus(size_t offset);
-
-        /**
-         * Get a pointer to an arbitrary type which is offset from the base by the negation of the given signed difference.
-         *
-         * @param offset the pointer offset
-         * @return the offset pointer
-         */
-        public native <R extends object, P extends ptr<R>> P minus(ptrdiff_t offset);
-
-        /**
-         * Get a pointer to an arbitrary type which is offset from the base by the negation of the given unsigned offset.
-         *
-         * @param offset the pointer offset
-         * @return the offset pointer
-         */
-        public native <R extends object, P extends ptr<R>> P minus(size_t offset);
 
         /**
          * Select a subfield from this pointer, which must be passed back through {@link #addr_of} in order

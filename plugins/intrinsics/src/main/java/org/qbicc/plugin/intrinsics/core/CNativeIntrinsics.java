@@ -1,8 +1,11 @@
 package org.qbicc.plugin.intrinsics.core;
 
+import static org.qbicc.graph.atomic.AccessModes.*;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -12,12 +15,15 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.ClassOf;
+import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.MemberSelector;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -411,25 +417,27 @@ final class CNativeIntrinsics {
         ClassTypeDescriptor ptrDiffTDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stddef$ptrdiff_t");
         ClassTypeDescriptor sizeTDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stddef$size_t");
 
+        MethodDescriptor emptyToObjDesc = MethodDescriptor.synthesize(classContext, objDesc, List.of());
+        MethodDescriptor objToVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(objDesc));
+        MethodDescriptor objObjToBoolDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc, objDesc));
+        MethodDescriptor objObjToObjDesc = MethodDescriptor.synthesize(classContext, objDesc, List.of(objDesc, objDesc));
+        MethodDescriptor objToObjDesc = MethodDescriptor.synthesize(classContext, objDesc, List.of(objDesc));
+
         InstanceIntrinsic identity = (builder, instance, target, arguments) -> instance;
 
         intrinsics.registerIntrinsic(ptrDesc, "asArray", MethodDescriptor.synthesize(classContext, ArrayTypeDescriptor.of(classContext, objDesc), List.of()), identity);
 
-        InstanceIntrinsic loadUnshared = (builder, instance, target, arguments) -> builder.load(builder.pointerHandle(instance), MemoryAtomicityMode.NONE);
-        intrinsics.registerIntrinsic(ptrDesc, "deref", MethodDescriptor.synthesize(classContext, objDesc, List.of()), loadUnshared);
-        intrinsics.registerIntrinsic(ptrDesc, "loadUnshared", MethodDescriptor.synthesize(classContext, objDesc, List.of()), loadUnshared);
-
         InstanceIntrinsic get = (builder, instance, target, arguments) ->
-            builder.load(builder.pointerHandle(instance, arguments.get(0)), MemoryAtomicityMode.NONE);
+            builder.load(builder.pointerHandle(instance, arguments.get(0)), SingleUnshared);
 
         intrinsics.registerIntrinsic(ptrDesc, "get", MethodDescriptor.synthesize(classContext, objDesc, List.of(BaseTypeDescriptor.I)), get);
 
         InstanceIntrinsic set = (builder, instance, target, arguments) -> {
-            builder.store(builder.pointerHandle(instance, arguments.get(0)), arguments.get(1), MemoryAtomicityMode.NONE);
+            builder.store(builder.pointerHandle(instance, arguments.get(0)), arguments.get(1), SingleUnshared);
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getExecutable().getType().getReturnType());
         };
 
-        intrinsics.registerIntrinsic(ptrDesc, "set", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.I, nObjDesc)), set);
+        intrinsics.registerIntrinsic(ptrDesc, "set", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.I, objDesc)), set);
 
         InstanceIntrinsic plus = (builder, instance, target, arguments) -> builder.addressOf(builder.pointerHandle(instance, arguments.get(0)));
 
@@ -446,6 +454,190 @@ final class CNativeIntrinsics {
         InstanceIntrinsic sel = (builder, instance, target, arguments) -> builder.selectMember(instance);
 
         intrinsics.registerIntrinsic(ptrDesc, "sel", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), sel);
+
+        // memory accesses
+
+        Map<String, ReadAccessMode> readModeMap = Map.of(
+            "Unshared", SingleUnshared,
+            "Plain", SinglePlain,
+            "Opaque", SingleOpaque,
+            "SingleAcquire", SingleAcquire,
+            "SingleRelease", SinglePlain,
+            "Acquire", GlobalAcquire,
+            "Release", GlobalPlain,
+            "", GlobalSeqCst,
+            "Volatile", GlobalSeqCst
+        );
+
+        Map<String, WriteAccessMode> writeModeMap = Map.of(
+            "Unshared", SingleUnshared,
+            "Plain", SinglePlain,
+            "Opaque", SingleOpaque,
+            "SingleAcquire", SinglePlain,
+            "SingleRelease", SingleRelease,
+            "Acquire", GlobalPlain,
+            "Release", GlobalRelease,
+            "", GlobalSeqCst,
+            "Volatile", GlobalSeqCst
+        );
+
+        Literal zeroVoid = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
+
+        // loadXxx()
+
+        for (String name : List.of("Unshared", "Plain", "Opaque", "SingleAcquire", "Acquire", "Volatile")) {
+            ReadAccessMode mode = readModeMap.get(name);
+            InstanceIntrinsic load = (builder, instance, target, arguments) -> builder.load(builder.pointerHandle(instance), mode);
+            intrinsics.registerIntrinsic(ptrDesc, "load" + name, emptyToObjDesc, load);
+        }
+
+        // TODO: deprecated alias for loadUnshared; remove after release of class libraries
+        intrinsics.registerIntrinsic(ptrDesc, "deref", MethodDescriptor.synthesize(classContext, objDesc, List.of()), (builder, instance, target, arguments) ->
+            builder.load(builder.pointerHandle(instance), SingleUnshared));
+
+        // storeXxx()
+
+        for (String name : List.of("Unshared", "Plain", "Opaque", "SingleRelease", "Release", "Volatile")) {
+            WriteAccessMode mode = writeModeMap.get(name);
+            InstanceIntrinsic store = (builder, instance, target, arguments) -> {
+                builder.store(builder.pointerHandle(instance), arguments.get(0), mode);
+                return zeroVoid;
+            };
+            intrinsics.registerIntrinsic(ptrDesc, "store" + name, objToVoidDesc, store);
+        }
+
+        // compareAndSetXxx()
+
+        for (String name : List.of("Opaque", "Acquire", "Release", "")) {
+            ReadAccessMode readMode = readModeMap.get(name);
+            WriteAccessMode writeMode = writeModeMap.get(name);
+            InstanceIntrinsic cas = (builder, instance, target, arguments) -> {
+                PointerType pt = (PointerType) instance.getType();
+                Value res = builder.cmpAndSwap(builder.pointerHandle(instance), arguments.get(0), arguments.get(1), readMode, writeMode, CmpAndSwap.Strength.STRONG);
+                return builder.extractMember(res, CmpAndSwap.getResultType(ctxt, pt.getPointeeType()).getMember(1));
+            };
+            intrinsics.registerIntrinsic(ptrDesc, "compareAndSet" + name, objObjToBoolDesc, cas);
+        }
+
+        // compareAndSwapXxx()
+
+        for (String name : List.of("Opaque", "Acquire", "Release", "")) {
+            ReadAccessMode readMode = readModeMap.get(name);
+            WriteAccessMode writeMode = writeModeMap.get(name);
+            InstanceIntrinsic cas = (builder, instance, target, arguments) -> {
+                PointerType pt = (PointerType) instance.getType();
+                Value res = builder.cmpAndSwap(builder.pointerHandle(instance), arguments.get(0), arguments.get(1), readMode, writeMode, CmpAndSwap.Strength.STRONG);
+                return builder.extractMember(res, CmpAndSwap.getResultType(ctxt, pt.getPointeeType()).getMember(0));
+            };
+            intrinsics.registerIntrinsic(ptrDesc, "compareAndSwap" + name, objObjToObjDesc, cas);
+        }
+
+        // weakCompareAndSetXxx()
+
+        for (String name : List.of("Opaque", "Acquire", "Release", "")) {
+            ReadAccessMode readMode = readModeMap.get(name);
+            WriteAccessMode writeMode = writeModeMap.get(name);
+            InstanceIntrinsic cas = (builder, instance, target, arguments) -> {
+                PointerType pt = (PointerType) instance.getType();
+                Value res = builder.cmpAndSwap(builder.pointerHandle(instance), arguments.get(0), arguments.get(1), readMode, writeMode, CmpAndSwap.Strength.WEAK);
+                return builder.extractMember(res, CmpAndSwap.getResultType(ctxt, pt.getPointeeType()).getMember(1));
+            };
+            intrinsics.registerIntrinsic(ptrDesc, "weakCompareAndSet" + name, objObjToBoolDesc, cas);
+        }
+
+        // weakCompareAndSwapXxx()
+
+        for (String name : List.of("Opaque", "Acquire", "Release", "")) {
+            ReadAccessMode readMode = readModeMap.get(name);
+            WriteAccessMode writeMode = writeModeMap.get(name);
+            InstanceIntrinsic cas = (builder, instance, target, arguments) -> {
+                PointerType pt = (PointerType) instance.getType();
+                Value res = builder.cmpAndSwap(builder.pointerHandle(instance), arguments.get(0), arguments.get(1), readMode, writeMode, CmpAndSwap.Strength.WEAK);
+                return builder.extractMember(res, CmpAndSwap.getResultType(ctxt, pt.getPointeeType()).getMember(0));
+            };
+            intrinsics.registerIntrinsic(ptrDesc, "weakCompareAndSwap" + name, objObjToObjDesc, cas);
+        }
+
+        // getAndSetXxx()
+
+        for (String name : List.of("Opaque", "Acquire", "Release", "")) {
+            ReadAccessMode readMode = readModeMap.get(name);
+            WriteAccessMode writeMode = writeModeMap.get(name);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndSet(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            intrinsics.registerIntrinsic(ptrDesc, "getAndSet" + name, objToObjDesc, op);
+        }
+
+        // getAndSetMinXxx()
+
+        for (String name : List.of("Opaque", "Acquire", "Release", "")) {
+            ReadAccessMode readMode = readModeMap.get(name);
+            WriteAccessMode writeMode = writeModeMap.get(name);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndSetMin(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            intrinsics.registerIntrinsic(ptrDesc, "getAndSetMin" + name, objToObjDesc, op);
+        }
+
+        // getAndSetMaxXxx()
+
+        for (String name : List.of("Opaque", "Acquire", "Release", "")) {
+            ReadAccessMode readMode = readModeMap.get(name);
+            WriteAccessMode writeMode = writeModeMap.get(name);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndSetMax(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            intrinsics.registerIntrinsic(ptrDesc, "getAndSetMax" + name, objToObjDesc, op);
+        }
+
+        // getAndAddXxx()
+
+        for (String name : List.of("Opaque", "Acquire", "Release", "")) {
+            ReadAccessMode readMode = readModeMap.get(name);
+            WriteAccessMode writeMode = writeModeMap.get(name);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndAdd(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            intrinsics.registerIntrinsic(ptrDesc, "getAndAdd" + name, objToObjDesc, op);
+        }
+
+        // getAndSubtractXxx()
+
+        for (String name : List.of("Opaque", "Acquire", "Release", "")) {
+            ReadAccessMode readMode = readModeMap.get(name);
+            WriteAccessMode writeMode = writeModeMap.get(name);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndSub(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            intrinsics.registerIntrinsic(ptrDesc, "getAndSubtract" + name, objToObjDesc, op);
+        }
+
+        // getAndBitwiseAndXxx()
+
+        for (String name : List.of("Opaque", "Acquire", "Release", "")) {
+            ReadAccessMode readMode = readModeMap.get(name);
+            WriteAccessMode writeMode = writeModeMap.get(name);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndBitwiseAnd(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            intrinsics.registerIntrinsic(ptrDesc, "getAndBitwiseAnd" + name, objToObjDesc, op);
+        }
+
+        // getAndBitwiseOrXxx()
+
+        for (String name : List.of("Opaque", "Acquire", "Release", "")) {
+            ReadAccessMode readMode = readModeMap.get(name);
+            WriteAccessMode writeMode = writeModeMap.get(name);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndBitwiseOr(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            intrinsics.registerIntrinsic(ptrDesc, "getAndBitwiseOr" + name, objToObjDesc, op);
+        }
+
+        // getAndBitwiseXorXxx()
+
+        for (String name : List.of("Opaque", "Acquire", "Release", "")) {
+            ReadAccessMode readMode = readModeMap.get(name);
+            WriteAccessMode writeMode = writeModeMap.get(name);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndBitwiseXor(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            intrinsics.registerIntrinsic(ptrDesc, "getAndBitwiseXor" + name, objToObjDesc, op);
+        }
+
+        // getAndBitwiseNandXxx()
+
+        for (String name : List.of("Opaque", "Acquire", "Release", "")) {
+            ReadAccessMode readMode = readModeMap.get(name);
+            WriteAccessMode writeMode = writeModeMap.get(name);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndBitwiseNand(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            intrinsics.registerIntrinsic(ptrDesc, "getAndBitwiseNand" + name, objToObjDesc, op);
+        }
     }
 
     static Value smartConvert(BasicBlockBuilder builder, Value input, WordType toType, boolean cRules) {
