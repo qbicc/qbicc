@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-conversion</artifactId>
 
+    <name>Qbicc Plugin: Conversion</name>
+    <description>Smart converters for value types</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

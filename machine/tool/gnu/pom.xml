@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-machine-tool-gnu</artifactId>
 
+    <name>Qbicc Machine: Tooling: GNU</name>
+    <description>Support for the GNU compiler suite</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

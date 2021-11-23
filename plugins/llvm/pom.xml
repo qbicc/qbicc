@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-llvm</artifactId>
 
+    <name>Qbicc Plugin: LLVM</name>
+    <description>Support for the LLVM backend</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

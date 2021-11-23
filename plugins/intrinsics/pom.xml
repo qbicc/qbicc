@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-intrinsics</artifactId>
 
+    <name>Qbicc Plugin: Intrinsics</name>
+    <description>Support for registration of inlined intrinsics</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

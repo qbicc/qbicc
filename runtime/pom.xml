@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-runtime-parent</artifactId>
 
+    <name>Qbicc Run Time: Parent</name>
+    <description>Qbicc aggregate for run time libraries</description>
+
     <packaging>pom</packaging>
 
     <properties>

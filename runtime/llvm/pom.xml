@@ -12,7 +12,7 @@
 
     <artifactId>qbicc-runtime-llvm</artifactId>
 
-    <name>Qbicc LLVM Run Time</name>
+    <name>Qbicc Run Time: LLVM</name>
     <description>Qbicc LLVM Run Time support module</description>
 
     <dependencies>

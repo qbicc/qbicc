@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-layout</artifactId>
 
+    <name>Qbicc Plugin: Layout</name>
+    <description>Support for object field layouts</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

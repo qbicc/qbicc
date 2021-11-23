@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-machine-probe</artifactId>
 
+    <name>Qbicc Machine: Probe</name>
+    <description>The Qbicc backend compiler probe utility</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

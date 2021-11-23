@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-runtime-gc-nogc</artifactId>
 
+    <name>Qbicc Run Time: GC: No GC</name>
+    <description>Qbicc no-GC GC implementation</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-patcher</artifactId>
 
+    <name>Qbicc Plugin: Patcher</name>
+    <description>Support for conditional transformation of classes</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

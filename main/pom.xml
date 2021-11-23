@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-main</artifactId>
 
+    <name>Qbicc: Main</name>
+    <description>The main entry point for Qbicc</description>
+
     <properties>
         <!-- These properties get set in the final application -->
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>

@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-dispatch</artifactId>
 
+    <name>Qbicc Plugin: Dispatch</name>
+    <description>Support for method call dispatch</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

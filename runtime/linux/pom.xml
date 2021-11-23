@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-runtime-linux</artifactId>
 
+    <name>Qbicc Run Time: Linux</name>
+    <description>Qbicc base run time Linux support</description>
+
     <dependencies>
         <dependency>
             <groupId>org.qbicc</groupId>

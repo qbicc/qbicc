@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-verification</artifactId>
 
+    <name>Qbicc Plugin: Verification</name>
+    <description>Support for final verification checks</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

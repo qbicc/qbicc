@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-gc-parent</artifactId>
 
+    <name>Qbicc Plugin: GC: Parent</name>
+    <description>Aggregate POM for plugins supporting GC implementations</description>
+
     <packaging>pom</packaging>
 
     <modules>

@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-machine-file-parent</artifactId>
 
+    <name>Qbicc Machine: File: Parent</name>
+    <description>Qbicc binary file support aggregate POM</description>
+
     <packaging>pom</packaging>
 
     <modules>

@@ -12,7 +12,7 @@
 
     <artifactId>qbicc-test-utils</artifactId>
 
-    <name>Qbicc testing utilities</name>
+    <name>Qbicc: Testing Utilities</name>
     <description>Qbicc testing utilities</description>
 
     <dependencies>

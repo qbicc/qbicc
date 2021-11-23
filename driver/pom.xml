@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-driver</artifactId>
 
+    <name>Qbicc: Driver</name>
+    <description>The Qbicc compiler driver</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

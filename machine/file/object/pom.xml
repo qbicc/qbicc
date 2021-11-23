@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-machine-file-object</artifactId>
 
+    <name>Qbicc Machine: File: Object API</name>
+    <description>Qbicc API for object file access</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

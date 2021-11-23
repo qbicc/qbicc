@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-instanceof-checkcast</artifactId>
 
+    <name>Qbicc Plugin: InstanceOf-CheckCast</name>
+    <description>Support for dynamic type casts and checks</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

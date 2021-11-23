@@ -13,6 +13,9 @@
 
     <artifactId>qbicc-integration-tests</artifactId>
 
+    <name>Qbicc Integration Tests</name>
+    <description>Qbicc integration tests</description>
+
     <properties>
         <junit.jupiter.version>5.8.1</junit.jupiter.version>
         <jboss-logging.version>3.4.2.Final</jboss-logging.version>

@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-native</artifactId>
 
+    <name>Qbicc Plugin: Native</name>
+    <description>Support for FFI and native run time integration</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

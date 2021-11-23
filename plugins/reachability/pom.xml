@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-reachability</artifactId>
 
+    <name>Qbicc Plugin: Reachability</name>
+    <description>Support for evaluating program reachability</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

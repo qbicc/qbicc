@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-runtime-unwind</artifactId>
 
+    <name>Qbicc Run Time: Unwind</name>
+    <description>Qbicc base run time stack unwind support</description>
+
     <dependencies>
         <dependency>
             <groupId>org.qbicc</groupId>

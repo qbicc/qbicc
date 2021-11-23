@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-runtime-main</artifactId>
 
+    <name>Qbicc Run Time: Main</name>
+    <description>Qbicc run time main entry point</description>
+
     <dependencies>
         <dependency>
             <groupId>org.qbicc</groupId>

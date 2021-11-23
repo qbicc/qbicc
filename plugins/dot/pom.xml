@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-dot</artifactId>
 
+    <name>Qbicc Plugin: GraphViz</name>
+    <description>Support for producing program flow graphs</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

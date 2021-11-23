@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-interpreter</artifactId>
 
+    <name>Qbicc: Interpreter</name>
+    <description>The Qbicc build-time interpreter</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

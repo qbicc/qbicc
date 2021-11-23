@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-machine-llvm</artifactId>
 
+    <name>Qbicc Machine: LLVM</name>
+    <description>Qbicc support LLVM IR generation</description>
+
     <dependencies>
         <dependency>
             <groupId>io.smallrye.common</groupId>

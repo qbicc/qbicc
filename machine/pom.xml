@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-machine-parent</artifactId>
 
+    <name>Qbicc Machine: Parent</name>
+    <description>The aggregate POM for Qbicc machine support</description>
+
     <packaging>pom</packaging>
 
     <modules>

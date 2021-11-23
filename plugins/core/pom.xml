@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-core</artifactId>
 
+    <name>Qbicc Plugin: Core</name>
+    <description>Support for primary run time API</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

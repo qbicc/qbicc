@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-machine-file-elf</artifactId>
 
+    <name>Qbicc Machine: File: ELF</name>
+    <description>Qbicc support for ELF object file access</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

@@ -14,6 +14,11 @@
         <version>39</version>
     </parent>
 
+    <name>Qbicc Parent</name>
+    <description>The Qbicc parent and aggregation POM</description>
+
+    <url>http://qbicc.org</url>
+
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
@@ -53,6 +58,15 @@
         <url>https://github.com/qbicc/qbicc/issues</url>
         <system>GitHub Issues</system>
     </issueManagement>
+
+    <developers>
+        <developer>
+            <name>The Qbicc team</name>
+            <email>david.lloyd@redhat.com</email>
+            <organization>The Qbicc project team</organization>
+            <organizationUrl>https://qbicc.org</organizationUrl>
+        </developer>
+    </developers>
 
     <modules>
         <module>compiler</module>

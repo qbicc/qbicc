@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-unwind</artifactId>
 
+    <name>Qbicc Plugin: Unwind</name>
+    <description>Support for libunwind-based exception throwing</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

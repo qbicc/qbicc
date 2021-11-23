@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-gc-nogc</artifactId>
 
+    <name>Qbicc Plugin: GC: No GC</name>
+    <description>Plugin supporting the No GC implementation</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

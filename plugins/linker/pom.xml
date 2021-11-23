@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-linker</artifactId>
 
+    <name>Qbicc Plugin: Linker</name>
+    <description>Plugin responsible for linking the final executable</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

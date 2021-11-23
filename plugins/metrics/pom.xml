@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-metrics</artifactId>
 
+    <name>Qbicc Plugin: Metrics</name>
+    <description>Support for tracking times and counts during compilation</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

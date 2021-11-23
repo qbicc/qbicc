@@ -12,4 +12,7 @@
 
     <artifactId>qbicc-machine-file-bin</artifactId>
 
+    <name>Qbicc Machine: File: Binary</name>
+    <description>Qbicc support for binary file access</description>
+
 </project>

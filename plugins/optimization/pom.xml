@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-optimization</artifactId>
 
+    <name>Qbicc Plugin: Optimization</name>
+    <description>Support for general program optimization</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

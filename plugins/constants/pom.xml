@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-constants</artifactId>
 
+    <name>Qbicc Plugin: Constants</name>
+    <description>Support for constant value replacement</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

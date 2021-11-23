@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-main-method</artifactId>
 
+    <name>Qbicc Plugin: Main Method</name>
+    <description>Support for run time main method invocation</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

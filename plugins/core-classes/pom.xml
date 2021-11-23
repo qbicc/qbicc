@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-core-classes</artifactId>
 
+    <name>Qbicc Plugin: Core Classes</name>
+    <description>Support for core object fields and initialization</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

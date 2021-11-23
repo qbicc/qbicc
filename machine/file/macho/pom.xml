@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-machine-file-macho</artifactId>
 
+    <name>Qbicc Machine: File: MachO</name>
+    <description>Qbicc support for Mach-O object file access</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

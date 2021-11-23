@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-try-catch</artifactId>
 
+    <name>Qbicc Plugin: Try-Catch</name>
+    <description>Support for try-catch and exceptions</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

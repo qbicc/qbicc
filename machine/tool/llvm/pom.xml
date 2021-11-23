@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-machine-tool-llvm</artifactId>
 
+    <name>Qbicc Machine: Tooling: LLVM</name>
+    <description>Support for the LLVM IR compiler</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

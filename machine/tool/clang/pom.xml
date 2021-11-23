@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-machine-tool-clang</artifactId>
 
+    <name>Qbicc Machine: Tooling: Clang</name>
+    <description>Support for the clang compiler</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

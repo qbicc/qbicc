@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-machine-arch</artifactId>
 
+    <name>Qbicc Machine: Architecture</name>
+    <description>Qbicc API for OS/CPU/ABI identification</description>
+
     <dependencies>
         <dependency>
             <groupId>io.smallrye.common</groupId>

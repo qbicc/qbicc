@@ -10,6 +10,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>qbicc-plugin-methodinfo</artifactId>
+
+    <name>Qbicc Plugin: Method Info</name>
+    <description>Support for method info tables for stack walking</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-runtime-posix</artifactId>
 
+    <name>Qbicc Run Time: POSIX</name>
+    <description>Qbicc base run time POSIX support</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

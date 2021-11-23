@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-thread-local</artifactId>
 
+    <name>Qbicc Plugin: Thread Local</name>
+    <description>Support for true thread-local fields</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

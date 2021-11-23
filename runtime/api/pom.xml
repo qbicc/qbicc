@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-runtime-api</artifactId>
 
+    <name>Qbicc Run Time: API</name>
+    <description>Qbicc base run time API</description>
+
     <dependencies>
     </dependencies>
 </project>

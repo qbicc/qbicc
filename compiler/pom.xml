@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-compiler</artifactId>
 
+    <name>Qbicc: Compiler</name>
+    <description>The main Qbicc compiler</description>
+
     <properties>
         <!-- Dependency versions -->
         <version.junit.junit>4.11</version.junit.junit>

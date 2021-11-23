@@ -12,6 +12,9 @@
 
     <artifactId>qbicc-plugin-objectmonitor</artifactId>
 
+    <name>Qbicc Plugin: Object Monitor</name>
+    <description>Support for object monitors</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
