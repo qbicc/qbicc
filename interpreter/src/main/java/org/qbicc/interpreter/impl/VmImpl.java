@@ -61,9 +61,11 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.AnnotatedElement;
 import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -674,6 +676,24 @@ public final class VmImpl implements Vm {
                 boolean speculativeResolve = ((Boolean) args.get(2)).booleanValue();
                 self.resolve(ourThread, caller, speculativeResolve);
                 return self;
+            });
+            methodHandleNatives.registerInvokable("objectFieldOffset", (thread, target, args) -> {
+                VmMemberNameImpl name = (VmMemberNameImpl) args.get(0);
+                VmThreadImpl threadImpl = (VmThreadImpl) thread;
+                name.resolve(threadImpl, (VmClassImpl) threadImpl.currentFrame.enclosing.element.getEnclosingType().load().getVmClass(), false);
+                // todo: fragile until layouts are unified
+                Element resolved = name.getResolved();
+                if (resolved instanceof FieldElement field) {
+                    LayoutInfo layoutInfo;
+                    if (field.isStatic()) {
+                        throw new Thrown(threadImpl.getVM().errorClass.newInstance("Wrong field kind"));
+                    } else {
+                        layoutInfo = Layout.getForInterpreter(ctxt).getInstanceLayoutInfo(field.getEnclosingType());
+                    }
+                    return Long.valueOf(layoutInfo.getMember(field).getOffset());
+                } else {
+                    throw new Thrown(threadImpl.getVM().errorClass.newInstance("Internal error"));
+                }
             });
 
             // Now execute system initialization
