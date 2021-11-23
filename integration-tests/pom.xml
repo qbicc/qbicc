@@ -12,6 +12,8 @@
     </parent>
 
     <artifactId>qbicc-integration-tests</artifactId>
+    <name>Qbicc integration tests</name>
+    <description>Integration tests for the Qbicc compiler</description>
 
     <properties>
         <junit.jupiter.version>5.8.1</junit.jupiter.version>

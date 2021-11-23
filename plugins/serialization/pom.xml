@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-serialization</artifactId>
+    <name>Qbicc plugin: serialization</name>
+    <description>Qbicc compiler plugin for serializing the build-time heap</description>
 
     <dependencies>
         <dependency>

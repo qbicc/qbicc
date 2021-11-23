@@ -11,7 +11,8 @@
     </parent>
 
     <artifactId>qbicc-machine-tool-gnu</artifactId>
-
+    <name>Qbicc machine: gnu tool</name>
+    <description>GNU compiler tool chain for Qbicc</description>
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

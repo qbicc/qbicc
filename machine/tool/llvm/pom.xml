@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-machine-tool-llvm</artifactId>
+    <name>Qbicc machine: llvm tool</name>
+    <description>LLVM compiler tool chain for Qbicc</description>
 
     <dependencies>
         <dependency>

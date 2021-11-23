@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-runtime-posix</artifactId>
+    <name>Qbicc runtime:  posix</name>
+    <description>Qbicc runtime plugin for posix compliant target platforms</description>
 
     <dependencies>
         <dependency>

@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-machine-probe</artifactId>
+    <name>Qbicc machine: probe</name>
+    <description>Support for probing a target platform for Qbicc</description>
 
     <dependencies>
         <dependency>

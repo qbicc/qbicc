@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-compiler</artifactId>
+    <name>Qbicc compiler</name>
+    <description>Qbicc core compiler</description>
 
     <properties>
         <!-- Dependency versions -->

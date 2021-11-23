@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-intrinsics</artifactId>
+    <name>Qbicc plugin: intrinsics</name>
+    <description>Qbicc compiler plugin for generating the graphs for intrinsic methods</description>
 
     <dependencies>
         <dependency>

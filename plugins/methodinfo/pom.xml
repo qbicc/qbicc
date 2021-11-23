@@ -10,6 +10,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>qbicc-plugin-methodinfo</artifactId>
+    <name>Qbicc plugin: method info</name>
+    <description>Qbicc compiler plugin for generating method information</description>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-reachability</artifactId>
+    <name>Qbicc plugin: reachability</name>
+    <description>Qbicc compiler plugin for performing reachability analysis</description>
 
     <dependencies>
         <dependency>

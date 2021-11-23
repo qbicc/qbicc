@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-lowering</artifactId>
+    <name>Qbicc plugin: lowering </name>
+    <description>Qbicc compiler plugin for lowering high level nodes into lower level nodes</description>
 
     <dependencies>
         <dependency>

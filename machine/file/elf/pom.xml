@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-machine-file-elf</artifactId>
+    <name>Qbicc machine: elf file</name>
+    <description>Definition of elf object files for Qbicc</description>
 
     <dependencies>
         <dependency>

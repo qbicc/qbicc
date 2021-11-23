@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-unwind</artifactId>
+    <name>Qbicc plugin:  unwind</name>
+    <description>Qbicc compiler plugin for stack unwinding</description>
 
     <dependencies>
         <dependency>

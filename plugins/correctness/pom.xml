@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-correctness</artifactId>
+    <name>Qbicc plugin: correctness</name>
+    <description>Qbicc compiler plugin for inserting checks for correctness</description>
 
     <dependencies>
         <dependency>

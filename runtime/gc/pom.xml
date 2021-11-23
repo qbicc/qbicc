@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-runtime-gc-parent</artifactId>
+    <name>Qbicc runtime:  gc</name>
+    <description>Qbicc runtime parent plugin for memory management</description>
 
     <packaging>pom</packaging>
 

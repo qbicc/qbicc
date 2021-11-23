@@ -13,6 +13,8 @@
     <packaging>pom</packaging>
 
     <artifactId>qbicc-plugin-parent</artifactId>
+    <name>Qbicc plugins</name>
+    <description>The parent plugin for all Qbicc compiler plugins</description>
 
     <modules>
         <module>constants</module>

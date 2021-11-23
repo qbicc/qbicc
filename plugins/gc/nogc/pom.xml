@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-gc-nogc</artifactId>
+    <name>Qbicc plugin: No GC</name>
+    <description>Qbicc compiler plugin for a trivial memory manager that allocates memory but never collects it</description>
 
     <dependencies>
         <dependency>

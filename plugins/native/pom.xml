@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-native</artifactId>
+    <name>Qbicc plugin: native</name>
+    <description>Qbicc compiler plugin for processing native types and methods</description>
 
     <dependencies>
         <dependency>

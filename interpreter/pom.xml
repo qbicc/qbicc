@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-interpreter</artifactId>
+    <name>Qbicc interpreter</name>
+    <description>An interpreter for Qbicc graphs to support build-time evaluation of Java program constructs</description>
 
     <dependencies>
         <dependency>

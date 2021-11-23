@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-core-classes</artifactId>
+    <name>Qbicc plugin: core classes</name>
+    <description>Qbicc compiler plugin for defining core classes</description>
 
     <dependencies>
         <dependency>

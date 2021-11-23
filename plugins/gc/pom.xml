@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-gc-parent</artifactId>
+    <name>Qbicc plugin: GC</name>
+    <description>Qbicc compiler parent plugin for memory management</description>
 
     <packaging>pom</packaging>
 

@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-objectmonitor</artifactId>
+    <name>Qbicc plugin:  object monitor</name>
+    <description>Qbicc compiler plugin for monitorenter/monitorexit</description>
 
     <dependencies>
         <dependency>

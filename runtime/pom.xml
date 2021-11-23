@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-runtime-parent</artifactId>
+    <name>Qbicc runtime:  parent</name>
+    <description>Qbicc runtime parent plugin</description>
 
     <packaging>pom</packaging>
 

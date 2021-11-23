@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-constants</artifactId>
+    <name>Qbicc plugin: constants</name>
+    <description>Qbicc compiler plugin for injecting build time constants from static fields</description>
 
     <dependencies>
         <dependency>

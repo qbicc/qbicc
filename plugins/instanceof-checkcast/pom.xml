@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-instanceof-checkcast</artifactId>
+    <name>Qbicc plugin: dynamic type tests</name>
+    <description>Qbicc compiler plugin for dynamic type tests (checkcast, instanceof)</description>
 
     <dependencies>
         <dependency>

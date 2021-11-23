@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-machine-tool-api</artifactId>
+    <name>Qbicc machine: api</name>
+    <description>Compiler tool chain APIs for Qbicc</description>
 
     <dependencies>
         <dependency>

@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-machine-arch</artifactId>
+    <name>Qbicc machine: arch</name>
+    <description>Definition of platforms (OS, machine architecture, ABI, object file format) for Qbicc</description>
 
     <dependencies>
         <dependency>

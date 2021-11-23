@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-optimization</artifactId>
+    <name>Qbicc plugin:  optimization</name>
+    <description>Qbicc compiler plugin for optimization passes</description>
 
     <dependencies>
         <dependency>

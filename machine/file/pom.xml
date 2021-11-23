@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-machine-file-parent</artifactId>
+    <name>Qbicc machine: file</name>
+    <description>Definition of object file formats for Qbicc</description>
 
     <packaging>pom</packaging>
 

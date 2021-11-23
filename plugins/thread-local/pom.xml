@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-thread-local</artifactId>
+    <name>Qbicc plugin: thread local</name>
+    <description>Qbicc compiler plugin for expanding thread-local accesses</description>
 
     <dependencies>
         <dependency>

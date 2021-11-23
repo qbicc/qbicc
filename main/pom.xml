@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-main</artifactId>
+    <name>Qbicc main</name>
+    <description>The main entry point for the Qbicc compiler</description>
 
     <properties>
         <!-- These properties get set in the final application -->

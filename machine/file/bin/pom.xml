@@ -11,5 +11,7 @@
     </parent>
 
     <artifactId>qbicc-machine-file-bin</artifactId>
+    <name>Qbicc machine: binary file</name>
+    <description>Definition of binary files for Qbicc</description>
 
 </project>

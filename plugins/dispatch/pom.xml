@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-dispatch</artifactId>
+    <name>Qbicc plugin: dispatch</name>
+    <description>Qbicc compiler plugin for implementing method dispatch</description>
 
     <dependencies>
         <dependency>

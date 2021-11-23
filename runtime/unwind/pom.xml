@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-runtime-unwind</artifactId>
+    <name>Qbicc runtime:  unwind</name>
+    <description>Qbicc runtime plugin for using libunwind</description>
 
     <dependencies>
         <dependency>

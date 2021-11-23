@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-linker</artifactId>
+    <name>Qbicc plugin: linker </name>
+    <description>Qbicc compiler plugin for linking an executable</description>
 
     <dependencies>
         <dependency>

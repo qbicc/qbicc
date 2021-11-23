@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-main-method</artifactId>
+    <name>Qbicc plugin: main method</name>
+    <description>Qbicc compiler plugin for generating the invocation of the user program's main method</description>
 
     <dependencies>
         <dependency>

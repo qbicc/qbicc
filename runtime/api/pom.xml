@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-runtime-api</artifactId>
+    <name>Qbicc runtime: api</name>
+    <description>Qbicc runtime plugin that defines the runtime API</description>
 
     <dependencies>
     </dependencies>

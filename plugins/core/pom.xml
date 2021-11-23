@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-core</artifactId>
+    <name>Qbicc plugin: core</name>
+    <description>Qbicc compiler plugin for processing core annotations</description>
 
     <dependencies>
         <dependency>

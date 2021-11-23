@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-runtime-gc-nogc</artifactId>
+    <name>Qbicc runtime:  no gc</name>
+    <description>Qbicc runtime plugin that implements a trivial "allocate but don't collect" memory manager</description>
 
     <dependencies>
         <dependency>

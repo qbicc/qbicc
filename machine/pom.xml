@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-machine-parent</artifactId>
+    <name>Qbicc machine</name>
+    <description>Parent project for Qbicc machine-specific modules</description>
 
     <packaging>pom</packaging>
 

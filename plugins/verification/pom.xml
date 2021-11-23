@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-verification</artifactId>
+    <name>Qbicc plugin: verification</name>
+    <description>Qbicc compiler plugin for enforcing constraints imposed by bytecode verification</description>
 
     <dependencies>
         <dependency>

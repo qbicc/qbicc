@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-machine-tool-clang</artifactId>
+    <name>Qbicc machine: clang tool</name>
+    <description>Clang compiler tool chain for Qbicc</description>
 
     <dependencies>
         <dependency>

@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-layout</artifactId>
+    <name>Qbicc plugin: layout </name>
+    <description>Qbicc compiler plugin for computing the layout of fields</description>
 
     <dependencies>
         <dependency>

@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-driver</artifactId>
+    <name>Qbicc driver</name>
+    <description>Qbicc compiler driver</description>
 
     <dependencies>
         <dependency>

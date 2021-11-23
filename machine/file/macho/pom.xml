@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-machine-file-macho</artifactId>
+    <name>Qbicc machine: binary file</name>
+    <description>Definition of macho files for Qbicc</description>
 
     <dependencies>
         <dependency>

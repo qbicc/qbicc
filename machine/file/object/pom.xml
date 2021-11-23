@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-machine-file-object</artifactId>
+    <name>Qbicc machine: object file</name>
+    <description>Definition of generic object files for Qbicc</description>
 
     <dependencies>
         <dependency>

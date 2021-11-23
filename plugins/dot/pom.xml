@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-dot</artifactId>
+    <name>Qbicc plugin: dot</name>
+    <description>Qbicc compiler plugin for generating dot graphs from compiler graphs</description>
 
     <dependencies>
         <dependency>

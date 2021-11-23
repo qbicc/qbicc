@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-machine-llvm</artifactId>
+    <name>Qbicc machine: llvm</name>
+    <description>LLVM backend code generation support for Qbicc</description>
 
     <dependencies>
         <dependency>

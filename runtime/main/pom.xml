@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-runtime-main</artifactId>
+    <name>Qbicc runtime: main</name>
+    <description>Qbicc runtime plugin that provides the main method and core support functions</description>
 
     <dependencies>
         <dependency>

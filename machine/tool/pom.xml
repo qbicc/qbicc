@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-machine-tool-parent</artifactId>
+    <name>Qbicc machine: tool</name>
+    <description>Generic compiler tool chain for Qbicc</description>
 
     <packaging>pom</packaging>
 

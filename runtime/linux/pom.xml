@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-runtime-linux</artifactId>
+    <name>Qbicc runtime: linux</name>
+    <description>Qbicc runtime plugin for linux platforms</description>
 
     <dependencies>
         <dependency>

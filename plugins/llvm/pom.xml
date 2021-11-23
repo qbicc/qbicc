@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-llvm</artifactId>
+    <name>Qbicc plugin: LLVM </name>
+    <description>Qbicc compiler plugin for lowering Qbicc nodes into LLVM IR</description>
 
     <dependencies>
         <dependency>

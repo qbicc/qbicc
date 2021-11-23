@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-try-catch</artifactId>
+    <name>Qbicc plugin:  try/catch</name>
+    <description>Qbicc compiler plugin for handling try/catch constructs</description>
 
     <dependencies>
         <dependency>

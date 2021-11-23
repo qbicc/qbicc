@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-patcher</artifactId>
+    <name>Qbicc plugin: patcher</name>
+    <description>Qbicc compiler plugin for processing Patch annotations</description>
 
     <dependencies>
         <dependency>

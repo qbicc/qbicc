@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-metrics</artifactId>
+    <name>Qbicc plugin: metrics</name>
+    <description>Qbicc compiler plugin for collecting metrics</description>
 
     <dependencies>
         <dependency>

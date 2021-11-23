@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>qbicc-plugin-conversion</artifactId>
+    <name>Qbicc plugin: conversion</name>
+    <description>Qbicc compiler plugin for value conversion</description>
 
     <dependencies>
         <dependency>
