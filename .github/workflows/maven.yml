@@ -41,26 +41,8 @@ jobs:
 
       - name: Install qbicc
         run: |
-          mvn install -pl '!integration-tests'
-        working-directory: ./myqbicc
-
-      - name: Clone qbicc Class Library
-        uses: actions/checkout@v2
-        with:
-          repository: qbicc/qbicc-class-library
-          path: qbicc-class-library
-          submodules: true
-
-      - name: Install qbicc Class Library
-        run: |
           mvn install
-        working-directory: ./qbicc-class-library
-
-      - name: Test qbicc
-        run: |
-          mvn test -pl integration-tests
         working-directory: ./myqbicc
-        timeout-minutes: 40
 
       - name: Prepare failure archive (if maven failed)
         if: failure()
