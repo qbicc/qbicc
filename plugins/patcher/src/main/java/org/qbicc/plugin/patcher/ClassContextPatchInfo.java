@@ -21,7 +21,6 @@ import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
 final class ClassContextPatchInfo {
-    private static final String PATCHER_PKG = "org/qbicc/runtime/patcher";
 
     private final Map<String, ClassPatchInfo> classPatchInfoMap;
     private final Map<String, String> patchClassMapping;
@@ -127,10 +126,10 @@ final class ClassContextPatchInfo {
                 for (int j = 0; j < ac; j ++) {
                     Annotation annotation = Annotation.parse(classFile, classContext, buf);
                     ClassTypeDescriptor descriptor = annotation.getDescriptor();
-                    if (descriptor.packageAndClassNameEquals(PATCHER_PKG, "RunTimeAspect")) {
+                    if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "RunTimeAspect")) {
                         // this annotation is not conditional
                         runTimeAspect = true;
-                    } else if (descriptor.packageAndClassNameEquals(PATCHER_PKG, "Patch") && annotation.getValue("value") instanceof StringAnnotationValue sav) {
+                    } else if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Patch") && annotation.getValue("value") instanceof StringAnnotationValue sav) {
                         if (patchedClassName != null) {
                             classContext.getCompilationContext().warning("Patch class \"%s\" has more than one annotation designating the class to patch", className);
                             continue;
@@ -145,7 +144,7 @@ final class ClassContextPatchInfo {
                             patchedClassPackage = string.substring(0, idx);
                             patchedClassName = string.substring(idx + 1);
                         }
-                    } else if (descriptor.packageAndClassNameEquals(PATCHER_PKG, "PatchClass") && annotation.getValue("value") instanceof ClassAnnotationValue cav) {
+                    } else if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "PatchClass") && annotation.getValue("value") instanceof ClassAnnotationValue cav) {
                         if (patchedClassName != null) {
                             classContext.getCompilationContext().warning("Patch class \"%s\" has more than one annotation designating the class to patch", className);
                             continue;
@@ -199,7 +198,7 @@ final class ClassContextPatchInfo {
                         for (int k = 0; k < ac; k ++) {
                             Annotation annotation = Annotation.parse(classFile, classContext, buf);
                             ClassTypeDescriptor descriptor = annotation.getDescriptor();
-                            if (descriptor.packageAndClassNameEquals(PATCHER_PKG, "Add")) {
+                            if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Add")) {
                                 if (kind == K_ALIAS) {
                                     if (ce.evaluateConditions(classContext, () -> getMethodLocation(internalName, patchMethodName), annotation)) {
                                         kind = K_ADD;
@@ -208,7 +207,7 @@ final class ClassContextPatchInfo {
                                     wrongAnnotationWarning(classContext, getMethodLocation(internalName, patchMethodName));
                                     continue outer;
                                 }
-                            } else if (descriptor.packageAndClassNameEquals(PATCHER_PKG, "Remove")) {
+                            } else if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Remove")) {
                                 if (kind == K_ALIAS) {
                                     if (ce.evaluateConditions(classContext, () -> getMethodLocation(internalName, patchMethodName), annotation)) {
                                         kind = K_REMOVE;
@@ -217,7 +216,7 @@ final class ClassContextPatchInfo {
                                     wrongAnnotationWarning(classContext, getMethodLocation(internalName, patchMethodName));
                                     continue outer;
                                 }
-                            } else if (descriptor.packageAndClassNameEquals(PATCHER_PKG, "Replace")) {
+                            } else if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Replace")) {
                                 if (kind == K_ALIAS) {
                                     if (ce.evaluateConditions(classContext, () -> getMethodLocation(internalName, patchMethodName), annotation)) {
                                         kind = K_REPLACE;
@@ -226,7 +225,7 @@ final class ClassContextPatchInfo {
                                     wrongAnnotationWarning(classContext, getMethodLocation(internalName, patchMethodName));
                                     continue outer;
                                 }
-                            } else if (descriptor.packageAndClassNameEquals(PATCHER_PKG, "Patch") && annotation.getValue("value") instanceof StringAnnotationValue sav) {
+                            } else if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Patch") && annotation.getValue("value") instanceof StringAnnotationValue sav) {
                                 if (ctor) {
                                     classContext.getCompilationContext().warning(getMethodLocation(internalName, patchMethodName), "Constructors cannot have specified names");
                                 } else {
@@ -277,7 +276,7 @@ final class ClassContextPatchInfo {
                         for (int k = 0; k < ac; k ++) {
                             Annotation annotation = Annotation.parse(classFile, classContext, buf);
                             ClassTypeDescriptor descriptor = annotation.getDescriptor();
-                            if (descriptor.packageAndClassNameEquals(PATCHER_PKG, "Add")) {
+                            if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Add")) {
                                 if (kind == K_ALIAS) {
                                     if (ce.evaluateConditions(classContext, () -> getFieldLocation(internalName, fieldName), annotation)) {
                                         kind = K_ADD;
@@ -286,7 +285,7 @@ final class ClassContextPatchInfo {
                                     wrongAnnotationWarning(classContext, getFieldLocation(internalName, patchFieldName));
                                     continue outer;
                                 }
-                            } else if (descriptor.packageAndClassNameEquals(PATCHER_PKG, "Remove")) {
+                            } else if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Remove")) {
                                 if (kind == K_ALIAS) {
                                     if (ce.evaluateConditions(classContext, () -> getFieldLocation(internalName, fieldName), annotation)) {
                                         kind = K_REMOVE;
@@ -295,7 +294,7 @@ final class ClassContextPatchInfo {
                                     wrongAnnotationWarning(classContext, getFieldLocation(internalName, patchFieldName));
                                     continue outer;
                                 }
-                            } else if (descriptor.packageAndClassNameEquals(PATCHER_PKG, "Replace")) {
+                            } else if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Replace")) {
                                 if (kind == K_ALIAS) {
                                     if (ce.evaluateConditions(classContext, () -> getFieldLocation(internalName, fieldName), annotation)) {
                                         kind = K_REPLACE;
@@ -304,7 +303,7 @@ final class ClassContextPatchInfo {
                                     wrongAnnotationWarning(classContext, getFieldLocation(internalName, patchFieldName));
                                     continue outer;
                                 }
-                            } else if (descriptor.packageAndClassNameEquals(PATCHER_PKG, "Patch") && annotation.getValue("value") instanceof StringAnnotationValue sav) {
+                            } else if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Patch") && annotation.getValue("value") instanceof StringAnnotationValue sav) {
                                 patchFieldName = sav.getString();
                             }
                         }
