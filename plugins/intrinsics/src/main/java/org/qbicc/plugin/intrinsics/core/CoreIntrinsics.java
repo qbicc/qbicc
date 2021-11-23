@@ -29,13 +29,11 @@ import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.PhiValue;
-import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Variable;
 import org.qbicc.graph.VirtualMethodElementHandle;
-import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -117,7 +115,6 @@ public final class CoreIntrinsics {
         registerJavaLangRuntimeIntrinsics(ctxt);
         registerOrgQbiccObjectModelIntrinsics(ctxt);
         registerOrgQbiccRuntimeMainIntrinsics(ctxt);
-        registerOrgQbiccRuntimeValuesIntrinsics(ctxt);
         registerJavaLangMathIntrinsics(ctxt);
         registerJavaUtilConcurrentAtomicLongIntrinsics(ctxt);
         registerOrgQbiccRuntimePosixPthreadCastPtr(ctxt);
@@ -1417,7 +1414,6 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor jlsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor uint8Desc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$uint8_t");
         ClassTypeDescriptor pthreadMutexPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/posix/PThread$pthread_mutex_t_ptr");
-        ClassTypeDescriptor valsDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/Values");
         ClassTypeDescriptor pthreadPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/posix/PThread$pthread_t_ptr");
         ClassTypeDescriptor jltDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
 
@@ -1598,11 +1594,12 @@ public final class CoreIntrinsics {
 
         StaticIntrinsic setArrayClass = (builder, target, arguments) -> {
             LoadedTypeDefinition jlc = classContext.findDefinedType("java/lang/Class").load();
-            Value expr = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), CoreClasses.get(ctxt).getArrayClassField()), MemoryAtomicityMode.UNORDERED);
-            Value expect = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(jlc.getType().getReference());
+            ReferenceType refType = jlc.getType().getReference();
+            Value expect = ctxt.getLiteralFactory().nullLiteralOfType(refType);
             Value update = arguments.get(1);
-            ValueHandle valuesCompareAndSet = builder.staticMethod(valsDesc, "compareAndSet", casDesc);
-            return builder.call(valuesCompareAndSet, List.of(expr, expect, update));
+            Value result = builder.cmpAndSwap(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), CoreClasses.get(ctxt).getArrayClassField()), expect, update, MemoryAtomicityMode.ACQUIRE_RELEASE, MemoryAtomicityMode.ACQUIRE, CmpAndSwap.Strength.STRONG);
+            // extract the flag
+            return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, refType).getMember(1));
         };
         intrinsics.registerIntrinsic(objModDesc, "set_array_class", clsClsBooleanDesc, setArrayClass);
 
@@ -1734,213 +1731,13 @@ public final class CoreIntrinsics {
         // boolean set_nativeObjectMonitor(Object object, PThread.pthread_mutex_t_ptr nom);
         MethodDescriptor setNomDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc, pthreadMutexPtrDesc));
         StaticIntrinsic setNom = (builder, target, arguments) -> {
-            Value expr = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField), MemoryAtomicityMode.NONE);
+            ValueHandle casTarget = builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField);
             Value expect = ctxt.getLiteralFactory().literalOf(0L);
             Value update = builder.valueConvert(arguments.get(1), (SignedIntegerType)nativeObjectMonitorField.getType());
-            ValueHandle valuesCompareAndSet = builder.staticMethod(valsDesc, "compareAndSet", casDesc);
-            return builder.call(valuesCompareAndSet, List.of(expr, expect, update));
+            Value result = builder.cmpAndSwap(casTarget, expect, update, MemoryAtomicityMode.ACQUIRE_RELEASE, MemoryAtomicityMode.ACQUIRE, CmpAndSwap.Strength.STRONG);
+            return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, update.getType()).getMember(1));
         };
         intrinsics.registerIntrinsic(objModDesc, "set_nativeObjectMonitor", setNomDesc, setNom);
-    }
-
-    static void registerOrgQbiccRuntimeValuesIntrinsics(final CompilationContext ctxt) {
-        Intrinsics intrinsics = Intrinsics.get(ctxt);
-        ClassContext classContext = ctxt.getBootstrapClassContext();
-
-        // descriptors
-
-        ClassTypeDescriptor valsDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/Values");
-        ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
-
-        MethodDescriptor objBoolDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc));
-        MethodDescriptor boolBoolDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(BaseTypeDescriptor.Z));
-        MethodDescriptor longBoolDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(BaseTypeDescriptor.J));
-        MethodDescriptor intBoolDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(BaseTypeDescriptor.I));
-        MethodDescriptor shortBoolDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(BaseTypeDescriptor.S));
-        MethodDescriptor byteBoolDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(BaseTypeDescriptor.B));
-        MethodDescriptor charBoolDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(BaseTypeDescriptor.C));
-        MethodDescriptor floatBoolDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(BaseTypeDescriptor.F));
-        MethodDescriptor doubleBoolDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(BaseTypeDescriptor.D));
-
-        MethodDescriptor objObjObjDescriptor = MethodDescriptor.synthesize(classContext, objDesc, Collections.nCopies(2, objDesc));
-        MethodDescriptor longLongLongDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, Collections.nCopies(2, BaseTypeDescriptor.J));
-        MethodDescriptor intIntIntDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, Collections.nCopies(2, BaseTypeDescriptor.I));
-
-        MethodDescriptor objObjVoidDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, Collections.nCopies(2, objDesc));
-        MethodDescriptor longLongVoidDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, Collections.nCopies(2, BaseTypeDescriptor.J));
-        MethodDescriptor intIntVoidDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, Collections.nCopies(2, BaseTypeDescriptor.I));
-
-        MethodDescriptor objObjDescriptor = MethodDescriptor.synthesize(classContext, objDesc, List.of(objDesc));
-        MethodDescriptor longLongDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.J));
-        MethodDescriptor intIntDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.J));
-
-        MethodDescriptor boolObjObjObjDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, Collections.nCopies(3, objDesc));
-        MethodDescriptor boolLongLongLongDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, Collections.nCopies(3, BaseTypeDescriptor.J));
-        MethodDescriptor boolIntIntIntDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, Collections.nCopies(3, BaseTypeDescriptor.I));
-
-        // isConstant
-
-        StaticIntrinsic isConstant = (builder, target, arguments) -> literalOf(ctxt, arguments.get(0) instanceof Literal);
-
-        intrinsics.registerIntrinsic(valsDesc, "isConstant", objBoolDesc, isConstant);
-        intrinsics.registerIntrinsic(valsDesc, "isConstant", boolBoolDesc, isConstant);
-        intrinsics.registerIntrinsic(valsDesc, "isConstant", longBoolDesc, isConstant);
-        intrinsics.registerIntrinsic(valsDesc, "isConstant", intBoolDesc, isConstant);
-        intrinsics.registerIntrinsic(valsDesc, "isConstant", shortBoolDesc, isConstant);
-        intrinsics.registerIntrinsic(valsDesc, "isConstant", byteBoolDesc, isConstant);
-        intrinsics.registerIntrinsic(valsDesc, "isConstant", charBoolDesc, isConstant);
-        intrinsics.registerIntrinsic(valsDesc, "isConstant", floatBoolDesc, isConstant);
-        intrinsics.registerIntrinsic(valsDesc, "isConstant", doubleBoolDesc, isConstant);
-
-        // isAlways*
-
-        StaticIntrinsic isAlwaysTrue = (builder, target, arguments) -> literalOf(ctxt, arguments.get(0) instanceof BooleanLiteral && ((BooleanLiteral) arguments.get(0)).booleanValue());
-        intrinsics.registerIntrinsic(valsDesc, "isAlwaysTrue", boolBoolDesc, isAlwaysTrue);
-
-        StaticIntrinsic isAlwaysFalse = (builder, target, arguments) -> literalOf(ctxt, arguments.get(0) instanceof BooleanLiteral && ((BooleanLiteral) arguments.get(0)).booleanValue());
-        intrinsics.registerIntrinsic(valsDesc, "isAlwaysFalse", boolBoolDesc, isAlwaysFalse);
-
-
-        // compareAndSet*
-        class CompareAndSetIntrinsic implements StaticIntrinsic {
-            private final MemoryAtomicityMode successMode;
-            private final MemoryAtomicityMode failureMode;
-            CompareAndSetIntrinsic(final MemoryAtomicityMode successMode, final MemoryAtomicityMode failureMode) {
-                this.successMode = successMode;
-                this.failureMode = failureMode;
-            }
-
-            @Override
-            public Value emitIntrinsic(BasicBlockBuilder builder, StaticMethodElementHandle element, List<Value> arguments) {
-                ValueHandle target = getTarget(ctxt, builder, arguments.get(0));
-                if (target == null) {
-                    return ctxt.getLiteralFactory().literalOf(false);
-                }
-                Value expect = arguments.get(1);
-                Value update = arguments.get(2);
-                Value result = builder.cmpAndSwap(target, expect, update, successMode, failureMode, CmpAndSwap.Strength.STRONG);
-                Value resultValue = builder.extractMember(result, ((CmpAndSwap)result).getResultValueType());
-                /* set was successful when expected value is returned */
-                return builder.isEq(resultValue, expect);
-            }
-        }
-
-        StaticIntrinsic compareAndSetVolatile = new CompareAndSetIntrinsic(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT, MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
-        StaticIntrinsic compareAndSetAcquire = new CompareAndSetIntrinsic(MemoryAtomicityMode.ACQUIRE, MemoryAtomicityMode.MONOTONIC);
-        StaticIntrinsic compareAndSetRelease = new CompareAndSetIntrinsic(MemoryAtomicityMode.RELEASE, MemoryAtomicityMode.MONOTONIC);
-        StaticIntrinsic compareAndSet = new CompareAndSetIntrinsic(MemoryAtomicityMode.MONOTONIC, MemoryAtomicityMode.MONOTONIC);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSetVolatile", boolObjObjObjDescriptor, compareAndSetVolatile);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSetVolatile",  boolIntIntIntDescriptor, compareAndSetVolatile);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSetVolatile", boolLongLongLongDescriptor, compareAndSetVolatile);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSetAcquire", boolObjObjObjDescriptor, compareAndSetAcquire);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSetAcquire", boolIntIntIntDescriptor, compareAndSetAcquire);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSetAcquire", boolLongLongLongDescriptor, compareAndSetAcquire);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSetRelease", boolObjObjObjDescriptor, compareAndSetRelease);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSetRelease", boolIntIntIntDescriptor, compareAndSetRelease);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSetRelease", boolLongLongLongDescriptor, compareAndSetRelease);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSet", boolObjObjObjDescriptor, compareAndSet);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSet", boolIntIntIntDescriptor, compareAndSet);
-        intrinsics.registerIntrinsic(valsDesc, "compareAndSet", boolLongLongLongDescriptor, compareAndSet);
-
-        class GetAndSetIntrinsic implements StaticIntrinsic {
-            private final MemoryAtomicityMode mode;
-
-            GetAndSetIntrinsic(MemoryAtomicityMode mode) {
-                this.mode = mode;
-            }
-
-            @Override
-            public Value emitIntrinsic(BasicBlockBuilder builder, StaticMethodElementHandle element, List<Value> arguments) {
-                ValueHandle target = getTarget(ctxt, builder, arguments.get(0));
-                if (target == null) {
-                    return arguments.get(0);
-                }
-                return builder.getAndSet(target, arguments.get(1), mode);
-            }
-        }
-
-        StaticIntrinsic getAndSetVolatile = new GetAndSetIntrinsic(MemoryAtomicityMode.VOLATILE);
-
-        intrinsics.registerIntrinsic(valsDesc, "getAndSetVolatile", objObjObjDescriptor, getAndSetVolatile);
-        intrinsics.registerIntrinsic(valsDesc, "getAndSetVolatile", longLongLongDescriptor, getAndSetVolatile);
-        intrinsics.registerIntrinsic(valsDesc, "getAndSetVolatile", intIntIntDescriptor, getAndSetVolatile);
-
-        // todo: determine the real atomicity mode for "relaxed"
-        StaticIntrinsic getAndSetRelaxed = new GetAndSetIntrinsic(MemoryAtomicityMode.MONOTONIC);
-
-        intrinsics.registerIntrinsic(valsDesc, "getAndSetRelaxed", objObjObjDescriptor, getAndSetRelaxed);
-        intrinsics.registerIntrinsic(valsDesc, "getAndSetRelaxed", longLongLongDescriptor, getAndSetRelaxed);
-        intrinsics.registerIntrinsic(valsDesc, "getAndSetRelaxed", intIntIntDescriptor, getAndSetRelaxed);
-
-        // set*
-
-        Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
-
-        class SetIntrinsic implements StaticIntrinsic {
-            private final MemoryAtomicityMode mode;
-
-            SetIntrinsic(MemoryAtomicityMode mode) {
-                this.mode = mode;
-            }
-
-            @Override
-            public Value emitIntrinsic(BasicBlockBuilder builder, StaticMethodElementHandle element, List<Value> arguments) {
-                ValueHandle target = getTarget(ctxt, builder, arguments.get(0));
-                if (target == null) {
-                    builder.nop();
-                } else {
-                    builder.store(target, arguments.get(1), mode);
-                }
-                return voidLiteral;
-            }
-        }
-
-        StaticIntrinsic setVolatile = new SetIntrinsic(MemoryAtomicityMode.VOLATILE);
-
-        intrinsics.registerIntrinsic(valsDesc, "setVolatile", objObjVoidDescriptor, setVolatile);
-        intrinsics.registerIntrinsic(valsDesc, "setVolatile", intIntVoidDescriptor, setVolatile);
-        intrinsics.registerIntrinsic(valsDesc, "setVolatile", longLongVoidDescriptor, setVolatile);
-
-        // todo: determine the real atomicity mode for "relaxed"
-        StaticIntrinsic setRelaxed = new SetIntrinsic(MemoryAtomicityMode.MONOTONIC);
-
-        intrinsics.registerIntrinsic(valsDesc, "setRelaxed", objObjVoidDescriptor, setRelaxed);
-        intrinsics.registerIntrinsic(valsDesc, "setRelaxed", intIntVoidDescriptor, setRelaxed);
-        intrinsics.registerIntrinsic(valsDesc, "setRelaxed", longLongVoidDescriptor, setRelaxed);
-
-        // todo: exitConstructorBarrier
-
-        // get*
-
-        class GetIntrinsic implements StaticIntrinsic {
-            private final MemoryAtomicityMode mode;
-
-            GetIntrinsic(MemoryAtomicityMode mode) {
-                this.mode = mode;
-            }
-
-            @Override
-            public Value emitIntrinsic(BasicBlockBuilder builder, StaticMethodElementHandle element, List<Value> arguments) {
-                ValueHandle target = getTarget(ctxt, builder, arguments.get(0));
-                if (target == null) {
-                    return arguments.get(0);
-                }
-                return builder.load(target, mode);
-            }
-        }
-
-        StaticIntrinsic getVolatile = new GetIntrinsic(MemoryAtomicityMode.VOLATILE);
-
-        intrinsics.registerIntrinsic(valsDesc, "getVolatile", objObjDescriptor, getVolatile);
-        intrinsics.registerIntrinsic(valsDesc, "getVolatile", intIntDescriptor, getVolatile);
-        intrinsics.registerIntrinsic(valsDesc, "getVolatile", longLongDescriptor, getVolatile);
-
-        // todo: determine the real atomicity mode for "relaxed"
-        StaticIntrinsic getRelaxed = new GetIntrinsic(MemoryAtomicityMode.MONOTONIC);
-
-        intrinsics.registerIntrinsic(valsDesc, "getRelaxed", objObjDescriptor, getRelaxed);
-        intrinsics.registerIntrinsic(valsDesc, "getRelaxed", intIntDescriptor, getRelaxed);
-        intrinsics.registerIntrinsic(valsDesc, "getRelaxed", objObjDescriptor, getRelaxed);
     }
 
     static void registerOrgQbiccRuntimeMainIntrinsics(final CompilationContext ctxt) {
