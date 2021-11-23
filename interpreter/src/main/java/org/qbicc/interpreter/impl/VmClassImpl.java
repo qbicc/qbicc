@@ -476,6 +476,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                         state = this.state = State.INITIALIZATION_FAILED;
                         log.debug("Failed to initialize a class", t);
                     } catch (Throwable t) {
+                        vm.getCompilationContext().error(t, "Crash in interpreter while initializing %s", this);
                         state = this.state = State.INITIALIZATION_FAILED;
                     }
                 }

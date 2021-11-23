@@ -43,7 +43,7 @@ import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
@@ -57,12 +57,10 @@ import org.qbicc.type.definition.element.MethodElement;
  */
 public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
-    private final ExecutableElement originalElement;
 
     public RuntimeChecksBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
-        this.originalElement = delegate.getCurrentElement();
     }
 
     @Override
@@ -129,7 +127,6 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     @Override
     public Value new_(final ClassObjectType type) {
-        doInitCheck(type);
         return super.new_(type);
     }
 
@@ -262,7 +259,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                 if (! node.getVariableElement().isStatic()) {
                     throwIncompatibleClassChangeError();
                 }
-                doInitCheck(node.getVariableElement().getEnclosingType().load().getType());
+                InitializerElement init = node.getVariableElement().getRunTimeInitializer();
+                if (init != null) {
+                    initCheck(init);
+                }
                 return null;
             }
 
@@ -342,20 +342,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                     throwIncompatibleClassChangeError();
                     throw Assert.unreachableCode();
                 }
-                doInitCheck(node.getExecutable().getEnclosingType().load().getType());
                 // return value unused in this case
                 return null;
             }
         }, null);
-    }
-
-    private void doInitCheck(ObjectType objectType) {
-        if (objectType.equals(originalElement.getEnclosingType().load().getType())) {
-            // Same type, must already be initialized.
-            return;
-        }
-        // TODO: further tuning of places init checks can be skipped
-        initCheck(objectType);
     }
 
     private void nullCheck(Value value) {

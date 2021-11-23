@@ -56,6 +56,7 @@ import org.qbicc.graph.GetAndSub;
 import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
+import org.qbicc.graph.InitializerHandle;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.InstanceOf;
 import org.qbicc.graph.InterfaceMethodElementHandle;
@@ -1369,6 +1370,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         DefinedTypeDefinition def = element.getEnclosingType();
         VmClassLoaderImpl cl = thread.vm.getClassLoaderForContext(def.getContext());
         VmClassImpl clazz = cl.loadClass(def.getInternalName());
+        clazz.initialize(thread);
         VmInvokable invokable = clazz.getOrCompile(element);
         return invokable.invokeAny(thread, receiver, arguments);
     }
@@ -1443,11 +1445,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         if (node.getElement().hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
             throw new Thrown(vm.linkageErrorClass.newInstance("Cannot call run-time initializer"));
         }
-        ObjectType objectType = node.getObjectType();
-        ClassContext context = objectType.getDefinition().getContext();
-        VmClassImpl clazz = vm.getClassLoaderForContext(context).loadClassRunTime(objectType.getDefinition().getInternalName());
-        vm.initialize(clazz);
-        return null;
+        // init checks for build time initializers are not used
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -1473,6 +1472,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, CmpAndSwap node) {
         ValueHandle valueHandle = node.getValueHandle();
+        if (valueHandle instanceof StaticField sf) {
+            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
+        }
         Memory memory = getMemory(valueHandle);
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
@@ -1540,6 +1542,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, GetAndAdd node) {
         ValueHandle valueHandle = node.getValueHandle();
+        if (valueHandle instanceof StaticField sf) {
+            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
+        }
         Memory memory = getMemory(valueHandle);
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
@@ -1561,6 +1566,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, GetAndBitwiseAnd node) {
         ValueHandle valueHandle = node.getValueHandle();
+        if (valueHandle instanceof StaticField sf) {
+            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
+        }
         Memory memory = getMemory(valueHandle);
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
@@ -1584,6 +1592,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, GetAndBitwiseNand node) {
         ValueHandle valueHandle = node.getValueHandle();
+        if (valueHandle instanceof StaticField sf) {
+            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
+        }
         Memory memory = getMemory(valueHandle);
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
@@ -1607,6 +1618,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, GetAndBitwiseOr node) {
         ValueHandle valueHandle = node.getValueHandle();
+        if (valueHandle instanceof StaticField sf) {
+            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
+        }
         Memory memory = getMemory(valueHandle);
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
@@ -1630,6 +1644,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, GetAndBitwiseXor node) {
         ValueHandle valueHandle = node.getValueHandle();
+        if (valueHandle instanceof StaticField sf) {
+            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
+        }
         Memory memory = getMemory(valueHandle);
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
@@ -1653,6 +1670,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, GetAndSet node) {
         ValueHandle valueHandle = node.getValueHandle();
+        if (valueHandle instanceof StaticField sf) {
+            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
+        }
         Memory memory = getMemory(valueHandle);
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
@@ -1682,6 +1702,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, GetAndSetMax node) {
         ValueHandle valueHandle = node.getValueHandle();
+        if (valueHandle instanceof StaticField sf) {
+            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
+        }
         Memory memory = getMemory(valueHandle);
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
@@ -1717,6 +1740,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, GetAndSetMin node) {
         ValueHandle valueHandle = node.getValueHandle();
+        if (valueHandle instanceof StaticField sf) {
+            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
+        }
         Memory memory = getMemory(valueHandle);
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
@@ -1752,6 +1778,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, GetAndSub node) {
         ValueHandle valueHandle = node.getValueHandle();
+        if (valueHandle instanceof StaticField sf) {
+            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
+        }
         Memory memory = getMemory(valueHandle);
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
@@ -1775,6 +1804,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         ValueHandle valueHandle = node.getValueHandle();
         if (valueHandle instanceof CurrentThread) {
             return thread;
+        }
+        if (valueHandle instanceof StaticField sf) {
+            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
         Memory memory = getMemory(valueHandle);
         int offset = getOffset(valueHandle);
@@ -1830,7 +1862,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     public Object visit(VmThreadImpl thread, New node) {
         DefinedTypeDefinition enclosingType = node.getElement().getEnclosingType();
         VmClassLoaderImpl cl = thread.vm.getClassLoaderForContext(enclosingType.getContext());
-        return cl.loadClass(node.getClassObjectType().getDefinition().getInternalName()).newInstance();
+        VmClassImpl clazz = cl.loadClass(node.getClassObjectType().getDefinition().getInternalName());
+        clazz.initialize(thread);
+        return clazz.newInstance();
     }
 
     @Override
@@ -1927,6 +1961,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         ValueHandle valueHandle = node.getValueHandle();
         Value value = node.getValue();
         MemoryAtomicityMode mode = node.getMode();
+        if (valueHandle instanceof StaticField sf) {
+            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
+        }
         store(valueHandle, value, mode);
         return null;
     }
@@ -2138,6 +2175,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public ExecutableElement visit(Frame param, GlobalVariable node) {
+            throw unsatisfiedLink();
+        }
+
+        @Override
+        public ExecutableElement visit(Frame param, InitializerHandle node) {
             throw unsatisfiedLink();
         }
 

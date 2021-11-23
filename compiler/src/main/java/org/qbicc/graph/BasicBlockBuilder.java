@@ -21,6 +21,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -338,6 +339,8 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle functionOf(FunctionElement function);
 
+    ValueHandle initializerOf(InitializerElement initializer);
+
     ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type);
 
     // memory
@@ -398,7 +401,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode);
 
-    Node initCheck(ObjectType objectType);
+    Node initCheck(InitializerElement initializer);
 
     Node fence(MemoryAtomicityMode fenceType);
 

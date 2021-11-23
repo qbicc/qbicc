@@ -36,6 +36,10 @@ public interface ValueHandleVisitorLong<T> {
         return visitUnknown(param, node);
     }
 
+    default long visit(T param, InitializerHandle node) {
+        return visitUnknown(param, node);
+    }
+
     default long visit(T param, InstanceFieldOf node) {
         return visitUnknown(param, node);
     }
@@ -116,6 +120,11 @@ public interface ValueHandleVisitorLong<T> {
 
         @Override
         default long visit(T param, GlobalVariable node) {
+            return getDelegateValueHandleVisitor().visit(param, node);
+        }
+
+        @Override
+        default long visit(T param, InitializerHandle node) {
             return getDelegateValueHandleVisitor().visit(param, node);
         }
 

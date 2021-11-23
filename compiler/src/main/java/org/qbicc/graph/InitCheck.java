@@ -2,25 +2,25 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
-import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.InitializerElement;
 
 public class InitCheck extends AbstractNode implements Action, OrderedNode {
     private final Node dependency;
-    private final ObjectType objectType;
+    private final InitializerElement initializerElement;
 
-    InitCheck(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final ObjectType objectType) {
+    InitCheck(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final InitializerElement initializerElement) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
-        this.objectType = objectType;
+        this.initializerElement = initializerElement;
     }
 
-    public ObjectType getObjectType() {
-        return objectType;
+    public InitializerElement getInitializerElement() {
+        return initializerElement;
     }
 
     int calcHashCode() {
-        return Objects.hash(InitCheck.class, dependency, objectType);
+        return Objects.hash(InitCheck.class, dependency, initializerElement);
     }
 
     @Override
@@ -34,22 +34,22 @@ public class InitCheck extends AbstractNode implements Action, OrderedNode {
     }
 
     public boolean equals(Object other) {
-        return other instanceof InitCheck && equals((InitCheck) other);
+        return other instanceof InitCheck ic && equals(ic);
+    }
+
+    public boolean equals(final InitCheck other) {
+        return this == other || other != null
+            && dependency.equals(other.dependency)
+            && initializerElement.equals(other.initializerElement);
     }
 
     @Override
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        objectType.toString(b);
+        b.append(initializerElement);
         b.append(')');
         return b;
-    }
-
-    public boolean equals(final InitCheck other) {
-        return this == other || other != null
-               && dependency.equals(other.dependency)
-               && objectType == other.objectType;
     }
 
     public <T, R> R accept(final ActionVisitor<T, R> visitor, final T param) {
