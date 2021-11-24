@@ -114,6 +114,7 @@ final class ClassContextPatchInfo {
         }
         ClassFile classFile = ClassFile.of(classContext, ByteBuffer.wrap(classBytes));
         // determine whether the class is a run time aspect
+        Annotation replaceInit = null;
         InitializerResolver initResolver = null;
         int initIndex = 0;
         int cnt = classFile.getAttributeCount();
@@ -129,6 +130,10 @@ final class ClassContextPatchInfo {
                     Annotation annotation = Annotation.parse(classFile, classContext, buf);
                     ClassTypeDescriptor descriptor = annotation.getDescriptor();
                     if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "RunTimeAspect")) {
+                        if (replaceInit != null) {
+                            classContext.getCompilationContext().error("Patch class \"%s\" cannot both replace the initializer and provide a run time aspect", className);
+                            return;
+                        }
                         // this annotation is not conditional
                         runTimeAspect = true;
                     } else if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Patch") && annotation.getValue("value") instanceof StringAnnotationValue sav) {
@@ -158,6 +163,12 @@ final class ClassContextPatchInfo {
                             classContext.getCompilationContext().error("Patch class \"%s\" designates a non-class to patch", className);
                             return;
                         }
+                    } else if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "ReplaceInit")) {
+                        if (runTimeAspect) {
+                            classContext.getCompilationContext().error("Patch class \"%s\" cannot both replace the initializer and provide a run time aspect", className);
+                            return;
+                        }
+                        replaceInit = annotation;
                     }
                 }
             }
@@ -169,6 +180,7 @@ final class ClassContextPatchInfo {
         String patchedClassInternalName = patchedClassPackage.isEmpty() ? patchedClassName : patchedClassPackage + '/' + patchedClassName;
         patchClassMapping.put(internalName, patchedClassInternalName);
         ClassPatchInfo classPatchInfo = getOrAdd(patchedClassInternalName);
+        boolean foundInit = false;
         synchronized (classPatchInfo) {
             // do methods *first* because included may be the field initializer
             cnt = classFile.getMethodCount();
@@ -180,14 +192,17 @@ final class ClassContextPatchInfo {
                 if (patchMethodName.equals("<clinit>")) {
                     // initializer
                     initResolver = classFile;
+                    foundInit = true;
                     if (runTimeAspect) {
                         // wrap the resolver so we only resolve one time when multiple fields point to it
                         initResolver = new OnceRunTimeInitializerResolver(initResolver);
                         // but pass the same index for all because we do not know which field will be reached first
                         initIndex = i;
                         continue;
+                    } else if (replaceInit != null) {
+                        classPatchInfo.replaceInitializer(new InitializerPatchInfo(i, initResolver, internalName, replaceInit));
                     } else {
-                        classContext.getCompilationContext().warning(getMethodLocation(internalName, patchMethodName), "Patching build time initializer is not yet supported");
+                        classContext.getCompilationContext().warning(getMethodLocation(internalName, patchMethodName), "Patch class initializer will be ignored");
                     }
                 }
                 boolean ctor = patchMethodName.equals("<init>");
@@ -256,6 +271,10 @@ final class ClassContextPatchInfo {
                 } else {
                     assert kind == K_ALIAS;
                 }
+            }
+            if (! foundInit && replaceInit != null) {
+                // delete the initializer altogether
+                classPatchInfo.deleteInitializer();
             }
 
             // now examine the fields and produce patch info for each
