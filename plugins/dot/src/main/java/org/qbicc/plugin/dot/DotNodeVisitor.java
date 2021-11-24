@@ -80,6 +80,7 @@ import org.qbicc.graph.Load;
 import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.Max;
 import org.qbicc.graph.MemberOf;
+import org.qbicc.graph.MemberSelector;
 import org.qbicc.graph.Min;
 import org.qbicc.graph.Mod;
 import org.qbicc.graph.MonitorEnter;
@@ -1059,6 +1060,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final Max node) {
         return node(param, "max", node);
+    }
+
+    public String visit(final Appendable param, final MemberSelector node) {
+        return node(param, "sel", node);
     }
 
     public String visit(final Appendable param, final Min node) {

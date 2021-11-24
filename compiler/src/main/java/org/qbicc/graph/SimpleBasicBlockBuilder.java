@@ -384,6 +384,9 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
 
     public Value checkcast(final Value value, final Value toType, final Value toDimensions, final CheckCast.CastType kind, final ObjectType expectedType) {
         ValueType inputType = value.getType();
+        if (inputType instanceof VoidType) {
+            return value;
+        }
         if (! (inputType instanceof ReferenceType)) {
             throw new IllegalArgumentException("Only references can be checkcast");
         }
@@ -400,6 +403,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
 
     public Value checkcast(final Value value, final TypeDescriptor desc) {
         throw new IllegalStateException("CheckCast of unresolved type");
+    }
+
+    public Value selectMember(Value pointerValue) {
+        TypeSystem ts = element.getEnclosingType().getContext().getTypeSystem();
+        return new MemberSelector(callSite, element, line, bci, pointerValue, ts.getVoidType());
     }
 
     public ValueHandle currentThread() {

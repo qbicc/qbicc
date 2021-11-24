@@ -120,6 +120,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().checkcast(value, desc);
     }
 
+    public Value selectMember(Value pointerValue) {
+        return getDelegate().selectMember(pointerValue);
+    }
+
     public ValueHandle currentThread() {
         return getDelegate().currentThread();
     }

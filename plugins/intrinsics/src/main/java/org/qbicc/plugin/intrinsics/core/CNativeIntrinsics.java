@@ -14,6 +14,7 @@ import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.Load;
+import org.qbicc.graph.MemberSelector;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -111,6 +112,9 @@ final class CNativeIntrinsics {
 
         StaticIntrinsic addrOf = (builder, target, arguments) -> {
             Value value = arguments.get(0);
+            if (value instanceof MemberSelector ms) {
+                return ms.getInput();
+            }
             if (value instanceof BitCast) {
                 value = ((BitCast)value).getInput();
             }
@@ -134,6 +138,7 @@ final class CNativeIntrinsics {
         intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, int16ptrDesc, List.of(BaseTypeDescriptor.S)), addrOf);
         intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, boolPtrDesc, List.of(BaseTypeDescriptor.Z)), addrOf);
         intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(nObjDesc)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(objDesc)), addrOf);
 
         StaticIntrinsic refToPtr = (builder, target, arguments) -> {
             Value value = arguments.get(0);
@@ -435,6 +440,10 @@ final class CNativeIntrinsics {
         intrinsics.registerIntrinsic(ptrDesc, "minus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.I)), minus);
         intrinsics.registerIntrinsic(ptrDesc, "minus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(ptrDiffTDesc)), minus);
         intrinsics.registerIntrinsic(ptrDesc, "minus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(sizeTDesc)), minus);
+
+        InstanceIntrinsic sel = (builder, instance, target, arguments) -> builder.selectMember(instance);
+
+        intrinsics.registerIntrinsic(ptrDesc, "sel", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), sel);
     }
 
     static Value smartConvert(BasicBlockBuilder builder, Value input, WordType toType, boolean cRules) {
