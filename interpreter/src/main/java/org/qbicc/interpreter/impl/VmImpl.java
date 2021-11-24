@@ -598,6 +598,9 @@ public final class VmImpl implements Vm {
             // phase 3
             // TODO: Haven't tried yet...still working on phase2
             // invokeExact(systemType.getMethod(systemType.findSingleMethodIndex(me -> me.nameEquals("initPhase3"))), null, List.of());
+
+            // Initialize early to avoid deadlocks
+            initialize(bootstrapClassLoader.loadClass("java/lang/ref/Reference"));
         }
     }
 
