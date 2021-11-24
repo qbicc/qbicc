@@ -568,7 +568,7 @@ public class Main implements Callable<DiagnosticContext> {
             return;
         }
         Builder mainBuilder = builder();
-        mainBuilder.appendBootPaths(List.of(ClassPathEntry.ofClassLibraries(optionsProcessor.rtVersion)))
+        mainBuilder.setClassLibVersion(optionsProcessor.rtVersion)
             .appendBootPaths(optionsProcessor.appendedBootPathEntries)
             .prependBootPaths(optionsProcessor.prependedBootPathEntries)
             .addAppPaths(optionsProcessor.appPathEntries)
