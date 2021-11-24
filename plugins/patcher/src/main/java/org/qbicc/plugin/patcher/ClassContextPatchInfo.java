@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.Diagnostic;
 import org.qbicc.context.Location;
-import org.qbicc.plugin.core.ConditionEvaluation;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.ClassAnnotationValue;
 import org.qbicc.type.annotation.StringAnnotationValue;
@@ -52,6 +51,10 @@ final class ClassContextPatchInfo {
         } else {
             return desc;
         }
+    }
+
+    ArrayTypeDescriptor transform(ArrayTypeDescriptor desc) {
+        return ArrayTypeDescriptor.of(classContext, transform(desc.getElementTypeDescriptor()));
     }
 
     ClassTypeDescriptor transform(ClassTypeDescriptor ctd) {
@@ -103,7 +106,6 @@ final class ClassContextPatchInfo {
     private static final int K_REPLACE = 3;
 
     void processClass(final ClassContext classContext, final String className) {
-        ConditionEvaluation ce = ConditionEvaluation.get(classContext.getCompilationContext());
         String internalName = className.replace('.', '/');
         byte[] classBytes = classContext.getResource(internalName + ".class");
         if (classBytes == null) {
@@ -177,6 +179,7 @@ final class ClassContextPatchInfo {
                 String methodName = patchMethodName;
                 if (patchMethodName.equals("<clinit>")) {
                     // initializer
+                    initResolver = classFile;
                     if (runTimeAspect) {
                         // wrap the resolver so we only resolve one time when multiple fields point to it
                         initResolver = new OnceRunTimeInitializerResolver(initResolver);
@@ -201,27 +204,21 @@ final class ClassContextPatchInfo {
                             ClassTypeDescriptor descriptor = annotation.getDescriptor();
                             if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Add")) {
                                 if (kind == K_ALIAS) {
-                                    if (ce.evaluateConditions(classContext, () -> getMethodLocation(internalName, patchMethodName), annotation)) {
-                                        kind = K_ADD;
-                                    }
+                                    kind = K_ADD;
                                 } else {
                                     wrongAnnotationWarning(classContext, getMethodLocation(internalName, patchMethodName));
                                     continue outer;
                                 }
                             } else if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Remove")) {
                                 if (kind == K_ALIAS) {
-                                    if (ce.evaluateConditions(classContext, () -> getMethodLocation(internalName, patchMethodName), annotation)) {
-                                        kind = K_REMOVE;
-                                    }
+                                    kind = K_REMOVE;
                                 } else {
                                     wrongAnnotationWarning(classContext, getMethodLocation(internalName, patchMethodName));
                                     continue outer;
                                 }
                             } else if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Replace")) {
                                 if (kind == K_ALIAS) {
-                                    if (ce.evaluateConditions(classContext, () -> getMethodLocation(internalName, patchMethodName), annotation)) {
-                                        kind = K_REPLACE;
-                                    }
+                                    kind = K_REPLACE;
                                 } else {
                                     wrongAnnotationWarning(classContext, getMethodLocation(internalName, patchMethodName));
                                     continue outer;

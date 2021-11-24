@@ -29,7 +29,7 @@ public @interface Add {
     Class<? extends BooleanSupplier>[] unless() default {};
 
     @Target(ElementType.FIELD)
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     @interface List {
         Add[] value();
     }

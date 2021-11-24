@@ -1,11 +1,15 @@
 package org.qbicc.plugin.patcher;
 
+import java.util.List;
+
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.type.descriptor.ArrayTypeDescriptor;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
@@ -28,6 +32,26 @@ public final class PatcherResolverBasicBlockBuilder extends DelegatingBasicBlock
             return delegate;
         }
         return new PatcherResolverBasicBlockBuilder(info, delegate);
+    }
+
+    @Override
+    public Value new_(ClassTypeDescriptor desc) {
+        return super.new_(info.transform(desc));
+    }
+
+    @Override
+    public Value newArray(ArrayTypeDescriptor desc, Value size) {
+        return super.newArray(info.transform(desc), size);
+    }
+
+    @Override
+    public Value multiNewArray(ArrayTypeDescriptor desc, List<Value> dimensions) {
+        return super.multiNewArray(info.transform(desc), dimensions);
+    }
+
+    @Override
+    public Value checkcast(Value value, TypeDescriptor desc) {
+        return super.checkcast(value, info.transform(desc));
     }
 
     @Override

@@ -37,7 +37,7 @@ public @interface AccessWith {
     Class<? extends BooleanSupplier>[] unless() default {};
 
     @Target(ElementType.FIELD)
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     @interface List {
         AccessWith[] value();
     }
