@@ -109,7 +109,7 @@ public class Patcher {
     public static DefinedTypeDefinition.Builder getTypeBuilder(ClassContext classContext, DefinedTypeDefinition.Builder delegate) {
         Patcher patcher = get(classContext.getCompilationContext());
         ClassContextPatchInfo contextInfo = patcher.get(classContext);
-        return contextInfo != null ? new PatchedTypeBuilder(contextInfo, delegate) : delegate;
+        return contextInfo != null ? new PatchedTypeBuilder(classContext, contextInfo, delegate) : delegate;
     }
 
     ClassContextPatchInfo get(ClassContext classContext) {
@@ -147,7 +147,7 @@ public class Patcher {
     public void addField(final ClassContext classContext, final String internalName, final String fieldName, final TypeDescriptor descriptor, final FieldResolver resolver, final int index, int addModifiers, final InitializerResolver initResolver, final int initIndex) {
         ClassPatchInfo classInfo = getOrAdd(classContext).getOrAdd(internalName);
         synchronized (classInfo) {
-            classInfo.addField(new FieldPatchInfo(index, addModifiers, initResolver, initIndex, resolver, descriptor, fieldName));
+            classInfo.addField(new FieldPatchInfo(internalName, index, addModifiers, initResolver, initIndex, resolver, descriptor, fieldName, null));
         }
     }
 
@@ -162,7 +162,7 @@ public class Patcher {
     public void deleteField(final ClassContext classContext, final String internalName, final String fieldName, final TypeDescriptor descriptor) {
         ClassPatchInfo classInfo = getOrAdd(classContext).getOrAdd(internalName);
         synchronized (classInfo) {
-            classInfo.deleteField(fieldName, descriptor);
+            classInfo.deleteField(fieldName, descriptor, internalName, null);
         }
     }
 
@@ -185,49 +185,49 @@ public class Patcher {
     public void replaceField(final ClassContext classContext, final String internalName, final String fieldName, final TypeDescriptor descriptor, final FieldResolver resolver, final int index, int addModifiers, final InitializerResolver initResolver, final int initIndex) {
         ClassPatchInfo classInfo = getOrAdd(classContext).getOrAdd(internalName);
         synchronized (classInfo) {
-            classInfo.replaceField(new FieldPatchInfo(index, addModifiers, initResolver, initIndex, resolver, descriptor, fieldName));
+            classInfo.replaceField(new FieldPatchInfo(internalName, index, addModifiers, initResolver, initIndex, resolver, descriptor, fieldName, null));
         }
     }
 
     public void addConstructor(final ClassContext classContext, final String internalName, final MethodDescriptor descriptor, final ConstructorResolver resolver, final int index, int addModifiers) {
         ClassPatchInfo classInfo = getOrAdd(classContext).getOrAdd(internalName);
         synchronized (classInfo) {
-            classInfo.addConstructor(new ConstructorPatchInfo(index, addModifiers, resolver, descriptor));
+            classInfo.addConstructor(new ConstructorPatchInfo(index, addModifiers, resolver, descriptor, internalName, null));
         }
     }
 
     public void deleteConstructor(final ClassContext classContext, final String internalName, final MethodDescriptor descriptor) {
         ClassPatchInfo classInfo = getOrAdd(classContext).getOrAdd(internalName);
         synchronized (classInfo) {
-            classInfo.deleteConstructor(descriptor);
+            classInfo.deleteConstructor(descriptor, internalName, null);
         }
     }
 
     public void replaceConstructor(final ClassContext classContext, final String internalName, final MethodDescriptor descriptor, final ConstructorResolver resolver, final int index, int addModifiers) {
         ClassPatchInfo classInfo = getOrAdd(classContext).getOrAdd(internalName);
         synchronized (classInfo) {
-            classInfo.replaceConstructor(new ConstructorPatchInfo(index, addModifiers, resolver, descriptor));
+            classInfo.replaceConstructor(new ConstructorPatchInfo(index, addModifiers, resolver, descriptor, internalName, null));
         }
     }
 
     public void addMethod(final ClassContext classContext, final String internalName, final String methodName, final MethodDescriptor descriptor, final MethodResolver resolver, final int index, int addModifiers) {
         ClassPatchInfo classInfo = getOrAdd(classContext).getOrAdd(internalName);
         synchronized (classInfo) {
-            classInfo.addMethod(new MethodPatchInfo(index, addModifiers, resolver, descriptor, methodName));
+            classInfo.addMethod(new MethodPatchInfo(index, addModifiers, resolver, descriptor, methodName, internalName, null));
         }
     }
 
     public void deleteMethod(final ClassContext classContext, final String internalName, final String methodName, final MethodDescriptor descriptor) {
         ClassPatchInfo classInfo = getOrAdd(classContext).getOrAdd(internalName);
         synchronized (classInfo) {
-            classInfo.deleteMethod(methodName, descriptor);
+            classInfo.deleteMethod(methodName, descriptor, internalName, null);
         }
     }
 
     public void replaceMethod(final ClassContext classContext, final String internalName, final String methodName, final MethodDescriptor descriptor, final MethodResolver resolver, final int index, int addModifiers) {
         ClassPatchInfo classInfo = getOrAdd(classContext).getOrAdd(internalName);
         synchronized (classInfo) {
-            classInfo.replaceMethod(new MethodPatchInfo(index, addModifiers, resolver, descriptor, methodName));
+            classInfo.replaceMethod(new MethodPatchInfo(index, addModifiers, resolver, descriptor, methodName, internalName, null));
         }
     }
 

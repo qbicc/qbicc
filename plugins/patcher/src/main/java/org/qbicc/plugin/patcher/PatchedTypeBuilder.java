@@ -1,5 +1,7 @@
 package org.qbicc.plugin.patcher;
 
+import org.qbicc.context.ClassContext;
+import org.qbicc.plugin.core.ConditionEvaluation;
 import org.qbicc.type.definition.ConstructorResolver;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
@@ -15,11 +17,13 @@ import org.qbicc.type.descriptor.TypeDescriptor;
  *
  */
 final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegating {
+    private final ClassContext classContext;
     private final ClassContextPatchInfo contextInfo;
     private final DefinedTypeDefinition.Builder delegate;
     private ClassPatchInfo classPatchInfo;
 
-    PatchedTypeBuilder(ClassContextPatchInfo contextInfo, DefinedTypeDefinition.Builder delegate) {
+    PatchedTypeBuilder(ClassContext classContext, ClassContextPatchInfo contextInfo, DefinedTypeDefinition.Builder delegate) {
+        this.classContext = classContext;
         this.contextInfo = contextInfo;
         this.delegate = delegate;
     }
@@ -54,19 +58,22 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
     public void addField(FieldResolver resolver, int index, String name, TypeDescriptor descriptor) {
         ClassPatchInfo classPatchInfo = this.classPatchInfo;
         if (classPatchInfo != null) {
+            ConditionEvaluation ce = ConditionEvaluation.get(classContext.getCompilationContext());
+            FieldPatchInfo patchInfo;
             synchronized (classPatchInfo) {
-                if (classPatchInfo.isDeletedField(name, descriptor)) {
+                FieldDeleteInfo delInfo = classPatchInfo.getDeletedFieldInfo(name, descriptor);
+                if (delInfo != null && ce.evaluateConditions(classContext, delInfo, delInfo.getAnnotation())) {
                     // skip completely
                     return;
                 }
-                FieldPatchInfo fieldInfo = classPatchInfo.getReplacementFieldInfo(name, descriptor);
-                if (fieldInfo == null) {
-                    getDelegate().addField(resolver, index, name, descriptor);
-                } else if (fieldInfo.getAdditionalModifiers() == 0) {
-                    getDelegate().addField(fieldInfo.getFieldResolver(), fieldInfo.getIndex(), name, descriptor);
-                } else {
-                    getDelegate().addField(new PatcherFieldResolver(fieldInfo), fieldInfo.getIndex(), name, descriptor);
-                }
+                patchInfo = classPatchInfo.getReplacementFieldInfo(name, descriptor);
+            }
+            if (patchInfo == null || !ce.evaluateConditions(classContext, patchInfo, patchInfo.getAnnotation())) {
+                getDelegate().addField(resolver, index, name, descriptor);
+            } else if (patchInfo.getAdditionalModifiers() == 0) {
+                getDelegate().addField(patchInfo.getFieldResolver(), patchInfo.getIndex(), name, descriptor);
+            } else {
+                getDelegate().addField(new PatcherFieldResolver(patchInfo), patchInfo.getIndex(), name, descriptor);
             }
         } else {
             getDelegate().addField(resolver, index, name, descriptor);
@@ -77,19 +84,22 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
     public void addConstructor(ConstructorResolver resolver, int index, MethodDescriptor descriptor) {
         ClassPatchInfo classPatchInfo = this.classPatchInfo;
         if (classPatchInfo != null) {
+            ConditionEvaluation ce = ConditionEvaluation.get(classContext.getCompilationContext());
+            ConstructorPatchInfo constructorInfo;
             synchronized (classPatchInfo) {
-                if (classPatchInfo.isDeletedConstructor(descriptor)) {
+                ConstructorDeleteInfo delInfo = classPatchInfo.getDeletedConstructorInfo(descriptor);
+                if (delInfo != null && ce.evaluateConditions(classContext, delInfo, delInfo.getAnnotation())) {
                     // skip completely
                     return;
                 }
-                ConstructorPatchInfo constructorInfo = classPatchInfo.getReplacementConstructorInfo(descriptor);
-                if (constructorInfo == null) {
-                    getDelegate().addConstructor(resolver, index, descriptor);
-                } else if (constructorInfo.getAdditionalModifiers() == 0) {
-                    getDelegate().addConstructor(constructorInfo.getConstructorResolver(), constructorInfo.getIndex(), descriptor);
-                } else {
-                    getDelegate().addConstructor(new PatcherConstructorResolver(constructorInfo), constructorInfo.getIndex(), descriptor);
-                }
+                constructorInfo = classPatchInfo.getReplacementConstructorInfo(descriptor);
+            }
+            if (constructorInfo == null || !ce.evaluateConditions(classContext, constructorInfo, constructorInfo.getAnnotation())) {
+                getDelegate().addConstructor(resolver, index, descriptor);
+            } else if (constructorInfo.getAdditionalModifiers() == 0) {
+                getDelegate().addConstructor(constructorInfo.getConstructorResolver(), constructorInfo.getIndex(), descriptor);
+            } else {
+                getDelegate().addConstructor(new PatcherConstructorResolver(constructorInfo), constructorInfo.getIndex(), descriptor);
             }
         } else {
             getDelegate().addConstructor(resolver, index, descriptor);
@@ -100,15 +110,17 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
     public void addMethod(MethodResolver resolver, int index, String name, MethodDescriptor descriptor) {
         ClassPatchInfo classPatchInfo = this.classPatchInfo;
         if (classPatchInfo != null) {
+            ConditionEvaluation ce = ConditionEvaluation.get(classContext.getCompilationContext());
             MethodPatchInfo methodInfo;
             synchronized (classPatchInfo) {
-                if (classPatchInfo.isDeletedMethod(name, descriptor)) {
+                MethodDeleteInfo delInfo = classPatchInfo.getDeletedMethodInfo(name, descriptor);
+                if (delInfo != null && ce.evaluateConditions(classContext, delInfo, delInfo.getAnnotation())) {
                     // skip completely
                     return;
                 }
                 methodInfo = classPatchInfo.getReplacementMethodInfo(name, descriptor);
             }
-            if (methodInfo == null) {
+            if (methodInfo == null || !ce.evaluateConditions(classContext, methodInfo, methodInfo.getAnnotation())) {
                 getDelegate().addMethod(resolver, index, name, descriptor);
             } else if (methodInfo.getAdditionalModifiers() == 0) {
                 getDelegate().addMethod(methodInfo.getMethodResolver(), methodInfo.getIndex(), name, descriptor);

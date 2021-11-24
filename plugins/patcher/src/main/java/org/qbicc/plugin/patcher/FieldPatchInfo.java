@@ -1,5 +1,8 @@
 package org.qbicc.plugin.patcher;
 
+import org.qbicc.context.Locatable;
+import org.qbicc.context.Location;
+import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.InitializerResolver;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -7,15 +10,15 @@ import org.qbicc.type.descriptor.TypeDescriptor;
 /**
  *
  */
-final class FieldPatchInfo extends MemberPatchInfo {
+final class FieldPatchInfo extends MemberPatchInfo implements Locatable {
     private final InitializerResolver initializerResolver;
     private final int initializerResolverIndex;
     private final FieldResolver fieldResolver;
     private final TypeDescriptor descriptor;
     private final String name;
 
-    FieldPatchInfo(int index, int modifiers, InitializerResolver initializerResolver, int initializerResolverIndex, FieldResolver fieldResolver, TypeDescriptor descriptor, String name) {
-        super(index, modifiers);
+    FieldPatchInfo(String internalName, int index, int modifiers, InitializerResolver initializerResolver, int initializerResolverIndex, FieldResolver fieldResolver, TypeDescriptor descriptor, String name, Annotation annotation) {
+        super(index, modifiers, internalName, annotation);
         this.initializerResolver = initializerResolver;
         this.initializerResolverIndex = initializerResolverIndex;
         this.fieldResolver = fieldResolver;
@@ -41,5 +44,10 @@ final class FieldPatchInfo extends MemberPatchInfo {
 
     public String getName() {
         return name;
+    }
+
+    @Override
+    public Location getLocation() {
+        return ClassContextPatchInfo.getFieldLocation(getInternalName(), name);
     }
 }

@@ -5,9 +5,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
+import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
@@ -18,13 +18,13 @@ final class ClassPatchInfo {
     private boolean committed;
     private Map<String, FieldPatchInfo> replacedFields;
     private List<FieldPatchInfo> injectedFields;
-    private Map<String, TypeDescriptor> deletedFields;
+    private Map<String, FieldDeleteInfo> deletedFields;
     private Map<MethodDescriptor, ConstructorPatchInfo> replacedConstructors;
     private List<ConstructorPatchInfo> injectedConstructors;
-    private Set<MethodDescriptor> deletedConstructors;
+    private Map<MethodDescriptor, ConstructorDeleteInfo> deletedConstructors;
     private Map<String, Map<MethodDescriptor, MethodPatchInfo>> replacedMethods;
     private List<MethodPatchInfo> injectedMethods;
-    private Map<String, Set<MethodDescriptor>> deletedMethods;
+    private Map<String, Map<MethodDescriptor, MethodDeleteInfo>> deletedMethods;
 
     ClassPatchInfo() {
         replacedFields = Map.of();
@@ -32,7 +32,7 @@ final class ClassPatchInfo {
         deletedFields = Map.of();
         replacedConstructors = Map.of();
         injectedConstructors = List.of();
-        deletedConstructors = Set.of();
+        deletedConstructors = Map.of();
         replacedMethods = Map.of();
         injectedMethods = List.of();
         deletedMethods = Map.of();
@@ -54,19 +54,20 @@ final class ClassPatchInfo {
 
     // remove
 
-    boolean isDeletedField(String fieldName, TypeDescriptor descriptor) {
+    FieldDeleteInfo getDeletedFieldInfo(final String name, final TypeDescriptor descriptor) {
         assert Thread.holdsLock(this);
-        return Objects.equals(deletedFields.get(fieldName), descriptor);
+        FieldDeleteInfo info = deletedFields.get(name);
+        return info == null ? null : info.getDescriptor().equals(descriptor) ? info : null;
     }
 
-    boolean isDeletedConstructor(final MethodDescriptor descriptor) {
+    ConstructorDeleteInfo getDeletedConstructorInfo(final MethodDescriptor descriptor) {
         assert Thread.holdsLock(this);
-        return deletedConstructors.contains(descriptor);
+        return deletedConstructors.get(descriptor);
     }
 
-    boolean isDeletedMethod(String methodName, final MethodDescriptor descriptor) {
+    MethodDeleteInfo getDeletedMethodInfo(final String name, final MethodDescriptor descriptor) {
         assert Thread.holdsLock(this);
-        return deletedMethods.getOrDefault(methodName, Set.of()).contains(descriptor);
+        return deletedMethods.getOrDefault(name, Map.of()).get(descriptor);
     }
 
     // replace
@@ -111,10 +112,10 @@ final class ClassPatchInfo {
         injectedFields = listWith(injectedFields, fieldPatchInfo);
     }
 
-    void deleteField(final String name, final TypeDescriptor descriptor) {
+    void deleteField(final String name, final TypeDescriptor descriptor, String internalName, Annotation annotation) {
         assert Thread.holdsLock(this);
         checkCommitted();
-        deletedFields = mapWith(deletedFields, name, descriptor);
+        deletedFields = mapWith(deletedFields, name, new FieldDeleteInfo(internalName, descriptor, name, annotation));
     }
 
     void replaceField(final FieldPatchInfo fieldPatchInfo) {
@@ -130,10 +131,10 @@ final class ClassPatchInfo {
         injectedConstructors = listWith(injectedConstructors, constructorPatchInfo);
     }
 
-    void deleteConstructor(final MethodDescriptor descriptor) {
+    void deleteConstructor(final MethodDescriptor descriptor, String internalName, Annotation annotation) {
         assert Thread.holdsLock(this);
         checkCommitted();
-        deletedConstructors = setWith(deletedConstructors, descriptor);
+        deletedConstructors = mapWith(deletedConstructors, descriptor, new ConstructorDeleteInfo(internalName, descriptor, annotation));
     }
 
     void replaceConstructor(final ConstructorPatchInfo constructorPatchInfo) {
@@ -149,10 +150,10 @@ final class ClassPatchInfo {
         injectedMethods = listWith(injectedMethods, methodPatchInfo);
     }
 
-    void deleteMethod(final String name, final MethodDescriptor descriptor) {
+    void deleteMethod(final String name, final MethodDescriptor descriptor, String internalName, Annotation annotation) {
         assert Thread.holdsLock(this);
         checkCommitted();
-        deletedMethods = mapWith(deletedMethods, name, setWith(deletedMethods.getOrDefault(name, Set.of()), descriptor));
+        deletedMethods = mapWith(deletedMethods, name, mapWith(deletedMethods.getOrDefault(name, Map.of()), descriptor, new MethodDeleteInfo(internalName, name, descriptor, annotation)));
     }
 
     void replaceMethod(final MethodPatchInfo methodPatchInfo) {
