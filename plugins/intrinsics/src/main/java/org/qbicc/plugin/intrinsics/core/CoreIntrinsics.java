@@ -1153,6 +1153,30 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, boolPtrDesc, List.of(BaseTypeDescriptor.Z)), addrOf);
         intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(nObjDesc)), addrOf);
 
+        StaticIntrinsic refToPtr = (builder, target, arguments) -> {
+            Value value = arguments.get(0);
+            if (value.getType() instanceof ReferenceType rt) {
+                return builder.valueConvert(value, rt.getUpperBound().getPointer().asCollected());
+            } else {
+                ctxt.error(builder.getLocation(), "Cannot convert non-reference to pointer");
+                return ctxt.getLiteralFactory().nullLiteralOfType(ctxt.getTypeSystem().getVoidType().getPointer());
+            }
+        };
+
+        intrinsics.registerIntrinsic(cNativeDesc, "refToPtr", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(objDesc)), refToPtr);
+
+        StaticIntrinsic ptrToRef = (builder, target, arguments) -> {
+            Value value = arguments.get(0);
+            if (value.getType() instanceof PointerType pt && pt.getPointeeType() instanceof ObjectType ot) {
+                return builder.valueConvert(value, ot.getReference());
+            } else {
+                ctxt.error(builder.getLocation(), "Cannot convert non-Object-pointer to reference");
+                return ctxt.getLiteralFactory().nullLiteralOfType(ctxt.getTypeSystem().getVoidType().getPointer());
+            }
+        };
+
+        intrinsics.registerIntrinsic(cNativeDesc, "ptrToRef", MethodDescriptor.synthesize(classContext, objDesc, List.of(ptrDesc)), ptrToRef);
+
         StaticIntrinsic attachNewThread = (builder, target, arguments) -> {
             //java.lang.Thread.nextThreadID
             Value thread = builder.new_(thrDesc);
@@ -1217,16 +1241,16 @@ public final class CoreIntrinsics {
 
         InstanceIntrinsic identity = (builder, instance, target, arguments) -> instance;
 
-        intrinsics.registerIntrinsic(ptrDesc, "asArray", MethodDescriptor.synthesize(classContext, ArrayTypeDescriptor.of(classContext, nObjDesc), List.of()), identity);
+        intrinsics.registerIntrinsic(ptrDesc, "asArray", MethodDescriptor.synthesize(classContext, ArrayTypeDescriptor.of(classContext, objDesc), List.of()), identity);
 
         InstanceIntrinsic loadUnshared = (builder, instance, target, arguments) -> builder.load(builder.pointerHandle(instance), MemoryAtomicityMode.NONE);
-        intrinsics.registerIntrinsic(ptrDesc, "deref", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), loadUnshared);
-        intrinsics.registerIntrinsic(ptrDesc, "loadUnshared", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), loadUnshared);
+        intrinsics.registerIntrinsic(ptrDesc, "deref", MethodDescriptor.synthesize(classContext, objDesc, List.of()), loadUnshared);
+        intrinsics.registerIntrinsic(ptrDesc, "loadUnshared", MethodDescriptor.synthesize(classContext, objDesc, List.of()), loadUnshared);
 
         InstanceIntrinsic get = (builder, instance, target, arguments) ->
             builder.load(builder.pointerHandle(instance, arguments.get(0)), MemoryAtomicityMode.NONE);
 
-        intrinsics.registerIntrinsic(ptrDesc, "get", MethodDescriptor.synthesize(classContext, nObjDesc, List.of(BaseTypeDescriptor.I)), get);
+        intrinsics.registerIntrinsic(ptrDesc, "get", MethodDescriptor.synthesize(classContext, objDesc, List.of(BaseTypeDescriptor.I)), get);
 
         InstanceIntrinsic set = (builder, instance, target, arguments) -> {
             builder.store(builder.pointerHandle(instance, arguments.get(0)), arguments.get(1), MemoryAtomicityMode.NONE);
@@ -1363,12 +1387,6 @@ public final class CoreIntrinsics {
             ctxt.getLiteralFactory().constantLiteralOfType(ctxt.getTypeSystem().getPoisonType());
 
         intrinsics.registerIntrinsic(cNativeDesc, "constant", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), constant);
-
-        StaticIntrinsic bitCast = (builder, target, arguments) ->
-            builder.bitCast(arguments.get(0), (WordType) target.getExecutable().getType().getReturnType());
-
-        intrinsics.registerIntrinsic(cNativeDesc, "ptrToRef", MethodDescriptor.synthesize(classContext, objDesc, List.of(ptrDesc)), bitCast);
-        intrinsics.registerIntrinsic(cNativeDesc, "refToPtr", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(objDesc)), bitCast);
 
         final ConcurrentHashMap<Literal, Data> utf8zCache = new ConcurrentHashMap<>();
         final AtomicInteger cnt = new AtomicInteger();

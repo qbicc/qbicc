@@ -41,10 +41,10 @@ public final class NoGcHelpers {
     }
 
     @Hidden
-    public static void clear(Object ptr, long size) { memset(refToPtr(ptr), word(0), word(size)); }
+    public static void clear(Object ptr, long size) { memset((void_ptr)(ptr<?>)refToPtr(ptr), word(0), word(size)); }
 
     @Hidden
     public static void copy(Object to, Object from, long size) {
-        memcpy(refToPtr(to), refToPtr(from), word(size));
+        memcpy((void_ptr)(ptr<?>)refToPtr(to), (const_void_ptr)(ptr<?>)refToPtr(from), word(size));
     }
 }

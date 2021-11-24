@@ -8,6 +8,7 @@ import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
+import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.UnsafeHandle;
 import org.qbicc.graph.Value;
@@ -16,6 +17,8 @@ import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.PhysicalObjectType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
@@ -138,6 +141,17 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
             info = layout.getInstanceLayoutInfo(upperBound.getDefinition());
         }
         return pointerHandle(valueConvert(node.getReferenceValue(), info.getCompoundType().getPointer().asCollected()));
+    }
+
+    @Override
+    public ValueHandle visit(Void param, PointerHandle node) {
+        PointerType pointerType = node.getPointerType();
+        if (pointerType.getPointeeType() instanceof PhysicalObjectType pot) {
+            Layout layout = Layout.get(ctxt);
+            LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
+            return pointerHandle(valueConvert(node.getPointerValue(), info.getCompoundType().getPointer().asCollected()));
+        }
+        return ValueHandleVisitor.super.visit(param, node);
     }
 
     @Override
