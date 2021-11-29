@@ -70,7 +70,7 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
             }
             return super.pointerHandle(pointer, offsetValue);
         }
-        ctxt.error(getLocation(), "`pointerHandle` value mut have pointer type");
+        ctxt.error(getLocation(), "`pointerHandle` value must have pointer type");
         throw new BlockEarlyTermination(unreachable());
     }
 
