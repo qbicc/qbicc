@@ -1167,11 +1167,17 @@ public final class CoreIntrinsics {
 
         StaticIntrinsic ptrToRef = (builder, target, arguments) -> {
             Value value = arguments.get(0);
-            if (value.getType() instanceof PointerType pt && pt.getPointeeType() instanceof ObjectType ot) {
-                return builder.valueConvert(value, ot.getReference());
+            if (value.getType() instanceof PointerType pt) {
+                if (pt.getPointeeType() instanceof ObjectType ot) {
+                    return builder.valueConvert(value, ot.getReference());
+                } else {
+                    // we don't know the exact type; use Object
+                    ReferenceType objRef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load().getType().getReference();
+                    return builder.valueConvert(value, objRef);
+                }
             } else {
-                ctxt.error(builder.getLocation(), "Cannot convert non-Object-pointer to reference");
-                return ctxt.getLiteralFactory().nullLiteralOfType(ctxt.getTypeSystem().getVoidType().getPointer());
+                ctxt.error(builder.getLocation(), "Cannot convert non-pointer to reference");
+                throw new BlockEarlyTermination(builder.unreachable());
             }
         };
 
