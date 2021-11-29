@@ -596,8 +596,8 @@ public final class CoreIntrinsics {
 
             DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
             LoadedTypeDefinition jltVal = jlt.load();
-            ValueType jltType = jltVal.getType().getReference();
-            Value threadObject = builder.bitCast(threadVoidPtr, (WordType)jltType);
+            ReferenceType jltType = jltVal.getType().getReference();
+            Value threadObject = builder.valueConvert(threadVoidPtr, jltType);
             ValueHandle threadObjectHandle = builder.referenceHandle(threadObject);
 
             /* set current thread */
@@ -625,7 +625,7 @@ public final class CoreIntrinsics {
 
         /* private native void start0(); */
         InstanceIntrinsic start0 = (builder, instance, target, arguments) -> {
-            ValueType voidPointerType = ctxt.getTypeSystem().getVoidType().getPointer();
+            PointerType voidPointerType = ctxt.getTypeSystem().getVoidType().getPointer();
 
             /* set java.lang.Thread.threadStatus to runnable and alive */
             ValueHandle threadStatusHandle = builder.instanceFieldOf(builder.referenceHandle(instance), jltDesc, "threadStatus", BaseTypeDescriptor.I);
@@ -640,7 +640,7 @@ public final class CoreIntrinsics {
             builder.call(threadWrapperValueHandle, List.of(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(voidPointerType)));
 
             /* pass java.lang.Thread object as ptr<void> */
-            Value threadVoidPtr = builder.bitCast(instance, (WordType)voidPointerType);
+            Value threadVoidPtr = builder.valueConvert(instance, voidPointerType);
 
             /* start pthread in VMHelpers */
             MethodDescriptor JLT_start0Desc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(voidUnaryfunctionPtrDesc, voidPtrDesc));

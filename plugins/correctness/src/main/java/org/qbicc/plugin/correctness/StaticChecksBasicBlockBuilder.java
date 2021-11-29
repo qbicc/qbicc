@@ -10,8 +10,10 @@ import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.PointerType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -72,6 +74,18 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
         }
         ctxt.error(getLocation(), "`pointerHandle` value must have pointer type");
         throw new BlockEarlyTermination(unreachable());
+    }
+
+    @Override
+    public Value bitCast(Value value, WordType toType) {
+        if (value.getType() instanceof ReferenceType && toType instanceof PointerType) {
+            ctxt.error(getLocation(), "Cannot bitcast references to pointers");
+        } else if (value.getType() instanceof PointerType && toType instanceof ReferenceType) {
+            ctxt.error(getLocation(), "Cannot bitcast pointers to references");
+        } else if (value.getType().getSize() != toType.getSize()) {
+            ctxt.error(getLocation(), "Cannot bitcast between differently-sized types");
+        }
+        return super.bitCast(value, toType);
     }
 
     private Value tryExtend(final Value unsignedValue, final UnsignedIntegerType inputType) {
