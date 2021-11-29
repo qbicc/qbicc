@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
@@ -46,10 +47,11 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
 
         ValueType targetType = target.getValueType();
         /* expected and update value both be assignable to the handle. */
-        if (! targetType.isImplicitlyConvertibleFrom(expectedValue.getType())
-             || !targetType.isImplicitlyConvertibleFrom(updateValue.getType())
-        ) {
-            throw new IllegalArgumentException("The target, expected and new value types must agree.");
+        if (!(expectedValue instanceof NullLiteral || targetType.isImplicitlyConvertibleFrom(expectedValue.getType()))) {
+            throw new IllegalArgumentException("The target and expected value types must agree.");
+        }
+        if (!(updateValue instanceof NullLiteral || targetType.isImplicitlyConvertibleFrom(updateValue.getType()))) {
+            throw new IllegalArgumentException("The target and update value types must agree.");
         }
 
         /* failure ordering must not be RELEASE or ACQUIRE_RELEASE */
