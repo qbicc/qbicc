@@ -120,7 +120,14 @@ final class VmInvokableImpl implements VmInvokable {
 
     @Override
     public Object invokeAny(VmThread thread, VmObject target, List<Object> args) {
-        return run((VmThreadImpl) thread, target, args);
+        VmThreadImpl threadImpl = (VmThreadImpl) thread;
+        Thread old = threadImpl.getBoundThread();
+        threadImpl.setBoundThread(Thread.currentThread());
+        try {
+            return run(threadImpl, target, args);
+        } finally {
+            threadImpl.setBoundThread(old);
+        }
     }
 
     Object run(VmThreadImpl thread, VmObject target, List<Object> args) {

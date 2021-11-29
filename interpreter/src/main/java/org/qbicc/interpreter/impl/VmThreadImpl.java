@@ -8,6 +8,7 @@ import org.qbicc.type.definition.element.FieldElement;
 
 final class VmThreadImpl extends VmObjectImpl implements VmThread {
     final VmImpl vm;
+    volatile Thread boundThread;
     Frame currentFrame;
 
     VmThreadImpl(VmClassImpl clazz, VmImpl vm) {
@@ -52,5 +53,13 @@ final class VmThreadImpl extends VmObjectImpl implements VmThread {
             throw new IllegalArgumentException("Invalid thread priority: "+priority);
         }
         memory.store32(offset, priority, MemoryAtomicityMode.UNORDERED);
+    }
+
+    void setBoundThread(Thread boundThread) {
+        this.boundThread = boundThread;
+    }
+
+    Thread getBoundThread() {
+        return boundThread;
     }
 }
