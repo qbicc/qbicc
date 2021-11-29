@@ -17,14 +17,11 @@
     <description>Qbicc integration tests</description>
 
     <properties>
-        <junit.jupiter.version>5.8.1</junit.jupiter.version>
-        <jboss-logging.version>3.4.2.Final</jboss-logging.version>
         <includeTags>simple-apps,snippets</includeTags>
         <excludeTags>none</excludeTags>
         <skip.integration.tests>false</skip.integration.tests>
     </properties>
     <dependencies>
-
         <dependency>
             <groupId>org.qbicc</groupId>
             <artifactId>qbicc-main</artifactId>
@@ -35,21 +32,18 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>${junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
-            <version>${junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.jboss.logging</groupId>
             <artifactId>jboss-logging</artifactId>
-            <version>${jboss-logging.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
