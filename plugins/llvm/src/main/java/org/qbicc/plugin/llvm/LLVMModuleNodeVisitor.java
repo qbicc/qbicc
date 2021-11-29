@@ -198,17 +198,6 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             } else {
                 res = struct;
             }
-        } else if (type instanceof TypeType) {
-            int size = ctxt.getTypeSystem().getTypeIdSize();
-            if (size == 1) {
-                res = i8;
-            } else if (size == 2) {
-                res = i16;
-            } else if (size == 4) {
-                res = i32;
-            } else {
-                throw new IllegalStateException("Unsupported size for type IDs: " + size);
-            }
         } else {
             throw new IllegalStateException("Can't map Type("+ type.toString() + ")");
         }
