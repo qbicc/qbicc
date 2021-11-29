@@ -1244,7 +1244,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
     GetElementPtr gep(LLValue ptr, ValueHandle handle) {
         PointerType pointerType = handle.getPointerType();
-        return builder.getelementptr(map(pointerType.getPointeeType()), map(pointerType), ptr);
+        ValueType pointeeType = pointerType.getPointeeType();
+        return builder.getelementptr(pointeeType instanceof VoidType ? i8 : map(pointeeType), map(pointerType), ptr);
     }
 
     private OrderingConstraint getOC(MemoryAtomicityMode mode) {
