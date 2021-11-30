@@ -189,11 +189,24 @@ final class NativeInfo {
                         CProbe.Type.Builder tb = CProbe.Type.builder();
                         tb.setName(simpleName);
                         tb.setQualifier(q);
-                        for (int i = 0; i < fc; i ++) {
+                        eachField: for (int i = 0; i < fc; i ++) {
                             // compound type
                             FieldElement field = vt.getField(i);
+                            String fieldName = field.getName();
                             if (! field.isStatic()) {
-                                tb.addMember(field.getName());
+                                for (Annotation annotation : field.getInvisibleAnnotations()) {
+                                    ClassTypeDescriptor annDesc = annotation.getDescriptor();
+                                    if (annDesc.getPackageName().equals(Native.NATIVE_PKG)) {
+                                        if (annDesc.getClassName().equals(Native.ANN_NAME)) {
+                                            fieldName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                                        } else if (annDesc.getClassName().equals(Native.ANN_INCOMPLETE)) {
+                                            if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
+                                                continue eachField;
+                                            }
+                                        }
+                                    }
+                                }
+                                tb.addMember(fieldName);
                             }
                         }
                         if (q == Qualifier.UNION) {
