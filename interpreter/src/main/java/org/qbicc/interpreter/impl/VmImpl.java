@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 
 import io.smallrye.common.constraint.Assert;
@@ -424,6 +425,21 @@ public final class VmImpl implements Vm {
                 return null;
             });
 
+            VmClassImpl lockSupportClass = bootstrapClassLoader.loadClass("java/util/concurrent/locks/LockSupport");
+
+            lockSupportClass.registerInvokable("park", 0, (thread, target, args) -> {
+                LockSupport.park();
+                return null;
+            });
+            lockSupportClass.registerInvokable("park", 1, (thread, target, args) -> {
+                LockSupport.park(args.get(0));
+                return null;
+            });
+            lockSupportClass.registerInvokable("unpark", 1, (thread, target, args) -> {
+                VmThreadImpl threadArg = (VmThreadImpl) args.get(0);
+                LockSupport.unpark(threadArg.getBoundThread());
+                return null;
+            });
 
             // VMHelpers
             VmClassImpl vmHelpersClass = bootstrapClassLoader.loadClass("org/qbicc/runtime/main/VMHelpers");
