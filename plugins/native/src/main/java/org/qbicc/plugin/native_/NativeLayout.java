@@ -1,21 +1,24 @@
 package org.qbicc.plugin.native_;
 
-import io.smallrye.common.constraint.Assert;
-import org.qbicc.context.AttachmentKey;
-import org.qbicc.context.CompilationContext;
-import org.qbicc.type.CompoundType;
-import org.qbicc.type.TypeSystem;
-import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.LoadedTypeDefinition;
-import org.qbicc.type.definition.element.FieldElement;
-
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.plugin.core.ConditionEvaluation;
+import org.qbicc.type.CompoundType;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.StringAnnotationValue;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 
 public final class NativeLayout {
     private static final AttachmentKey<NativeLayout> KEY = new AttachmentKey<>();
@@ -50,10 +53,38 @@ public final class NativeLayout {
         int cnt = validated.getFieldCount();
         Map<FieldElement, CompoundType.Member> fieldToMember = new HashMap<>(cnt);
         int previousFieldOffset = 0;
-        for (int i = 0; i < cnt; i ++) {
+        ConditionEvaluation conditionEvaluation = ConditionEvaluation.get(ctxt);
+        eachField: for (int i = 0; i < cnt; i ++) {
             FieldElement field = validated.getField(i);
-            Assert.assertFalse(field.isStatic());
-            CompoundType.Member member = computeMember(allocated, field, previousFieldOffset);
+            if (field.isStatic()) {
+                // ignore static field
+                continue;
+            }
+            TypeSystem ts = ctxt.getTypeSystem();
+            ValueType fieldType = field.getType();
+            int size = (int) fieldType.getSize();
+            int align = fieldType.getAlign();
+            String fieldName = field.getName();
+            for (Annotation annotation : field.getInvisibleAnnotations()) {
+                ClassTypeDescriptor annDesc = annotation.getDescriptor();
+                if (annDesc.getPackageName().equals(Native.NATIVE_PKG)) {
+                    if (annDesc.getClassName().equals(Native.ANN_NAME)) {
+                        fieldName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                    } else if (annDesc.getClassName().equals(Native.ANN_INCOMPLETE)) {
+                        if (conditionEvaluation.evaluateConditions(type.getContext(), field, annotation)) {
+                            continue eachField;
+                        }
+                    }
+                }
+            }
+            int idx;
+            if (size != 0) {
+                idx = find(allocated, align, size, previousFieldOffset);
+                allocated.set(idx, idx + size);
+            } else {
+                idx = find(allocated, align, ts.getMaxAlignment(), previousFieldOffset);
+            }
+            CompoundType.Member member = ts.getCompoundTypeMember(fieldName, fieldType, idx, align);
             if (member.getAlign() > minAlignment) {
                 minAlignment = member.getAlign();
             }
@@ -67,21 +98,6 @@ public final class NativeLayout {
         CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.NONE, type.getInternalName().replace('/', '.'), size, minAlignment, () -> membersList);
         CompoundType appearing = layouts.putIfAbsent(validated, compoundType);
         return appearing != null ? appearing : compoundType;
-    }
-
-    private CompoundType.Member computeMember(final BitSet allocated, final FieldElement field, int prevFieldOffset) {
-        TypeSystem ts = ctxt.getTypeSystem();
-        ValueType fieldType = field.getType();
-        int size = (int) fieldType.getSize();
-        int align = fieldType.getAlign();
-        int idx;
-        if (size != 0) {
-            idx = find(allocated, align, size, prevFieldOffset);
-            allocated.set(idx, idx + size);
-        } else {
-            idx = find(allocated, align, ts.getMaxAlignment(), prevFieldOffset);
-        }
-        return ts.getCompoundTypeMember(field.getName(), fieldType, idx, align);
     }
 
     /**
