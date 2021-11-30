@@ -9,7 +9,6 @@ import org.qbicc.graph.AsmHandle;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.ClassOf;
-import org.qbicc.graph.Deref;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.NewArray;
@@ -86,9 +85,7 @@ public final class LLVMIntrinsics {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             ValueHandle vaListHandle;
             Value vaList = arguments.get(0);
-            if (vaList instanceof Deref deref) {
-                vaListHandle = fb.pointerHandle(deref.getInput());
-            } else if (vaList instanceof Load load) {
+            if (vaList instanceof Load load) {
                 vaListHandle = load.getValueHandle();
             } else {
                 ctxt.error(builder.getLocation(), "Invalid ap argument to va_start: must have an address");
@@ -103,9 +100,7 @@ public final class LLVMIntrinsics {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             ValueHandle vaListHandle;
             Value vaList = arguments.get(0);
-            if (vaList instanceof Deref deref) {
-                vaListHandle = fb.pointerHandle(deref.getInput());
-            } else if (vaList instanceof Load load) {
+            if (vaList instanceof Load load) {
                 vaListHandle = load.getValueHandle();
             } else {
                 ctxt.error(builder.getLocation(), "Invalid ap argument to va_end: must have an address");
@@ -120,9 +115,7 @@ public final class LLVMIntrinsics {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             ValueHandle destHandle;
             Value destList = arguments.get(0);
-            if (destList instanceof Deref deref) {
-                destHandle = fb.pointerHandle(deref.getInput());
-            } else if (destList instanceof Load load) {
+            if (destList instanceof Load load) {
                 destHandle = load.getValueHandle();
             } else {
                 ctxt.error(builder.getLocation(), "Invalid dest argument to va_copy: must have an address");
@@ -130,10 +123,8 @@ public final class LLVMIntrinsics {
             }
             ValueHandle srcHandle;
             Value srcList = arguments.get(1);
-            if (srcList instanceof Deref deref) {
-                srcHandle = fb.pointerHandle(deref.getInput());
-            } else if (srcList instanceof Load load) {
-                srcHandle = load.getValueHandle();
+            if (srcList instanceof Load load2) {
+                srcHandle = load2.getValueHandle();
             } else {
                 ctxt.error(builder.getLocation(), "Invalid src argument to va_copy: must have an address");
                 return voidLiteral;
@@ -148,9 +139,7 @@ public final class LLVMIntrinsics {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             ValueHandle vaListHandle;
             Value vaList = arguments.get(0);
-            if (vaList instanceof Deref deref) {
-                vaListHandle = fb.pointerHandle(deref.getInput());
-            } else if (vaList instanceof Load load) {
+            if (vaList instanceof Load load) {
                 vaListHandle = load.getValueHandle();
             } else {
                 ctxt.error(builder.getLocation(), "Invalid ap argument to va_arg: must have an address");

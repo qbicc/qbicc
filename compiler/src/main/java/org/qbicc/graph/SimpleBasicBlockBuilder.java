@@ -402,10 +402,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new CurrentThread(element, line, bci, refType);
     }
 
-    public Value deref(final Value value) {
-        return new Deref(callSite, element, line, bci, value);
-    }
-
     public Value vaArg(Value vaList, ValueType type) {
         return asDependency(new VaArg(callSite, element, line, bci, requireDependency(), vaList, type));
     }

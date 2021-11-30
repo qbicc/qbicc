@@ -1217,8 +1217,11 @@ public final class CoreIntrinsics {
 
         InstanceIntrinsic identity = (builder, instance, target, arguments) -> instance;
 
-        intrinsics.registerIntrinsic(ptrDesc, "deref", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), identity);
         intrinsics.registerIntrinsic(ptrDesc, "asArray", MethodDescriptor.synthesize(classContext, ArrayTypeDescriptor.of(classContext, nObjDesc), List.of()), identity);
+
+        InstanceIntrinsic loadUnshared = (builder, instance, target, arguments) -> builder.load(builder.pointerHandle(instance), MemoryAtomicityMode.NONE);
+        intrinsics.registerIntrinsic(ptrDesc, "deref", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), loadUnshared);
+        intrinsics.registerIntrinsic(ptrDesc, "loadUnshared", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), loadUnshared);
 
         InstanceIntrinsic get = (builder, instance, target, arguments) ->
             builder.load(builder.pointerHandle(instance, arguments.get(0)), MemoryAtomicityMode.NONE);
@@ -1769,7 +1772,7 @@ public final class CoreIntrinsics {
             if (target instanceof Variable) {
                 ValueType valueType = target.getValueType();
                 if (valueType instanceof PointerType) {
-                    ctxt.error(builder.getLocation(), "Ambiguous target for operation; to target the pointer value, use deref(val); to target the variable use addr_of(val)");
+                    ctxt.error(builder.getLocation(), "Ambiguous target for operation; to target the pointer value, use loadUnshared(val); to target the variable use addr_of(val)");
                 }
             }
             return target;

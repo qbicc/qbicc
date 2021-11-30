@@ -29,7 +29,7 @@ public final class Errno {
         }
 
         public void set(c_int value) {
-            __errno_location().derefAssign(value);
+            __errno_location().storeUnshared(value);
         }
     }
 
@@ -41,7 +41,7 @@ public final class Errno {
         }
 
         public void set(c_int value) {
-            __error().derefAssign(value);
+            __error().storeUnshared(value);
         }
     }
 
@@ -53,7 +53,7 @@ public final class Errno {
         }
 
         public void set(c_int value) {
-            _Errno().derefAssign(value);
+            _Errno().storeUnshared(value);
         }
     }
 

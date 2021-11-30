@@ -599,10 +599,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().classOf(typeId, dimensions);
     }
 
-    public Value deref(Value value) {
-        return getDelegate().deref(value);
-    }
-
     public Value vaArg(Value vaList, ValueType type) {
         return getDelegate().vaArg(vaList, type);
     }

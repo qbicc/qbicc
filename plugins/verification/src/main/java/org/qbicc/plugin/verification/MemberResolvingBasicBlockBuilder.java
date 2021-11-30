@@ -11,7 +11,7 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.Load;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.ConstantLiteral;
@@ -207,13 +207,6 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         } else if (value instanceof UndefinedLiteral) {
             // it may be something we can't really cast.
             return ctxt.getLiteralFactory().undefinedLiteralOfType(castType);
-        } else if (value.getType() instanceof PointerType pt && castType.equals(pt.getPointeeType())) {
-            /* Pointer<x> -> x */
-            if (castType instanceof CompoundType) {
-                return super.deref(value);
-            } else {
-                return super.load(super.pointerHandle(value), MemoryAtomicityMode.UNORDERED);
-            }
         } else if (castType instanceof ObjectType) {
             ObjectType originalToType = (ObjectType) castType;
             ObjectType toType = originalToType;
@@ -237,6 +230,8 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // we can't just bitcast it really, in fact it's an error unless the actual value is zero
             if (value instanceof Literal && ((Literal) value).isZero()) {
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(castType);
+            } else if (castType.equals(value.getType())) {
+                return value;
             } else {
                 ctxt.error(getLocation(), "Disallowed cast of value from %s to %s", value.getType(), castType);
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(castType);
