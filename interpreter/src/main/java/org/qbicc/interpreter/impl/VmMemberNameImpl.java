@@ -102,6 +102,10 @@ class VmMemberNameImpl extends VmObjectImpl {
         }
     }
 
+    Element getResolved() {
+        return resolved;
+    }
+
     MethodDescriptor createFromMethodType(ClassContext classContext, VmThreadImpl thread, VmObjectImpl methodType) {
         VmClassImpl mtClass = methodType.getVmClass();
         if (! mtClass.getName().equals("java.lang.invoke.MethodType")) {

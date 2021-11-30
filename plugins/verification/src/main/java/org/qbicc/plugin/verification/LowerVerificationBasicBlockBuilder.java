@@ -9,11 +9,10 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.ObjectType;
+import org.qbicc.type.definition.element.InitializerElement;
 
 /**
  * A block builder that forbids lowering of high-level (first phase) nodes in order to keep the back end(s) as simple
@@ -57,7 +56,7 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
         return nop();
     }
 
-    public Node initCheck(final ObjectType objectType) {
+    public Node initCheck(InitializerElement initializer) {
         invalidNode("classInitCheck");
         return nop();
     }

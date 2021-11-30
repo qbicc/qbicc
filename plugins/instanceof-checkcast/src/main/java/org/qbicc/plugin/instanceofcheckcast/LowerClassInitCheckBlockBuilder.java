@@ -13,9 +13,10 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.ObjectType;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
@@ -31,26 +32,29 @@ public class LowerClassInitCheckBlockBuilder extends DelegatingBasicBlockBuilder
         this.ctxt = ctxt;
     }
  
-    public Node initCheck(final ObjectType objectType) {
-        doInitCheck(objectType);
-        return nop();
-    }
+    public Node initCheck(InitializerElement initializer) {
+        if (initializer.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
+            // generate a run time init check
 
-    private void doInitCheck(ObjectType objectType) {
+            // and call the initializer
+            call(initializerOf(initializer), List.of());
+        }
+        // else ignore
+
         SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
-        
+
         final BlockLabel callInit = new BlockLabel();
         final BlockLabel goAhead = new BlockLabel();
         final LiteralFactory lf = ctxt.getLiteralFactory();
 
-        Value typeId = lf.literalOfType(objectType);
+        Value typeId = lf.literalOfType(initializer.getEnclosingType().load().getType());
 
         GlobalVariableElement clinitStates = tables.getAndRegisterGlobalClinitStateStruct(getCurrentElement());
         CompoundType clinitStates_t = (CompoundType) clinitStates.getType();
         ValueHandle init_state_array = memberOf(globalVariable(clinitStates), clinitStates_t.getMember("init_state"));
         Value state = load(elementOf(init_state_array, typeId), MemoryAtomicityMode.ACQUIRE);
 
-        
+
         if_(isEq(state, lf.literalOf(0)), callInit, goAhead);
         try {
             begin(callInit);
@@ -62,5 +66,6 @@ public class LowerClassInitCheckBlockBuilder extends DelegatingBasicBlockBuilder
             //continue
         }
         begin(goAhead);
+        return nop();
     }
 }

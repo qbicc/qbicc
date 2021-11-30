@@ -25,12 +25,12 @@ import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NumericType;
-import org.qbicc.type.ObjectType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder {
@@ -403,7 +403,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Node initCheck(ObjectType objectType) {
+    public Node initCheck(InitializerElement initializer) {
         // either this is handled by an earlier BBB, or else init was 100% build time
         return nop();
     }

@@ -719,7 +719,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         appendTo(param, name);
         attr(param, "shape", "rectangle");
         attr(param, "style", "diagonals, filled");
-        attr(param, "label", "check init " + node.getObjectType());
+        attr(param, "label", "check init " + node.getInitializerElement());
         attr(param, "fixedsize", "shape");
         nl(param);
         dependencyList.add(name);

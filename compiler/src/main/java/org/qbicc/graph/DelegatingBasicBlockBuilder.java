@@ -17,6 +17,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -206,6 +207,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().functionOf(function);
     }
 
+    public ValueHandle initializerOf(InitializerElement initializer) {
+        return getDelegate().initializerOf(initializer);
+    }
+
     public ValueHandle asm(final String instruction, final String constraints, final Set<AsmHandle.Flag> flags, FunctionType type) {
         return getDelegate().asm(instruction, constraints, flags, type);
     }
@@ -354,8 +359,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().store(handle, value, mode);
     }
 
-    public Node initCheck(final ObjectType objectType) {
-        return getDelegate().initCheck(objectType);
+    public Node initCheck(InitializerElement initializer) {
+        return getDelegate().initCheck(initializer);
     }
 
     public Node fence(final MemoryAtomicityMode fenceType) {

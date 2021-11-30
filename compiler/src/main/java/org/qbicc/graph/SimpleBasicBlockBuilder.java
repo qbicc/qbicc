@@ -33,6 +33,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -497,6 +498,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new FunctionElementHandle(element, line, bci, function);
     }
 
+    public ValueHandle initializerOf(InitializerElement initializer) {
+        return new InitializerHandle(element, line, bci, initializer, MethodDescriptor.VOID_METHOD_DESCRIPTOR, typeSystem.getFunctionType(typeSystem.getVoidType()));
+    }
+
     public ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type) {
         return new AsmHandle(callSite, element, line, bci, instruction, constraints, flags, type);
     }
@@ -642,8 +647,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new Store(callSite, element, line, bci, requireDependency(), handle, value, mode));
     }
 
-    public Node initCheck(final ObjectType objectType) {
-        return asDependency(new InitCheck(callSite, element, line, bci, requireDependency(), objectType));
+    public Node initCheck(InitializerElement initializer) {
+        return asDependency(new InitCheck(callSite, element, line, bci, requireDependency(), initializer));
     }
 
     public Node fence(final MemoryAtomicityMode fenceType) {
