@@ -8,6 +8,8 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Locatable;
+import org.qbicc.interpreter.InterpreterHaltedException;
+import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
@@ -101,14 +103,22 @@ public final class ConditionEvaluation {
             int ci = loaded.findConstructorIndex(MethodDescriptor.VOID_METHOD_DESCRIPTOR);
             if (ci == -1) {
                 ctxt.error(locatable.getLocation(), "Conditional class `%s` has no suitable constructor", niceName);
+                return errorCondition;
             }
             ConstructorElement constructor = loaded.getConstructor(ci);
             VmClass vmClass = loaded.getVmClass();
             VmThread vmThread = Vm.requireCurrentThread();
             Vm vm = vmThread.getVM();
             // construct the new instance
-            VmObject obj = vm.newInstance(vmClass, constructor, List.of());
-            result = (Boolean) vm.invokeVirtual(getGetAsBoolean(), obj, List.of());
+            try {
+                VmObject obj = vm.newInstance(vmClass, constructor, List.of());
+                result = (Boolean) vm.invokeVirtual(getGetAsBoolean(), obj, List.of());
+            } catch (InterpreterHaltedException e) {
+                return errorCondition;
+            } catch (Thrown t) {
+                ctxt.error(locatable.getLocation(), "Failed to evaluate condition class `%s`: %s", t.getMessage());
+                return errorCondition;
+            }
             Boolean appearing = cachedResults.putIfAbsent(definedType, result);
             if (appearing != null) {
                 // always go with first result in case they don't agree

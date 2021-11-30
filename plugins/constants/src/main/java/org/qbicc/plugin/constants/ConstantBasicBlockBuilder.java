@@ -23,6 +23,7 @@ import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.interpreter.InterpreterHaltedException;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
@@ -144,7 +145,12 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             VmThread thread = Vm.requireCurrentThread();
             Vm vm = thread.getVM();
             // may throw!
-            Object resultObj = vm.invokeExact(method, null, List.of(args));
+            Object resultObj;
+            try {
+                resultObj = vm.invokeExact(method, null, List.of(args));
+            } catch (InterpreterHaltedException e) {
+                throw new BlockEarlyTermination(unreachable());
+            }
             if (resultObj instanceof Boolean result) {
                 return ctxt.getLiteralFactory().literalOf(result.booleanValue());
             } else if (resultObj instanceof Byte result) {

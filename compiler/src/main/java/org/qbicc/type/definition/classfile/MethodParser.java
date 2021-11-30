@@ -36,6 +36,7 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.interpreter.InterpreterHaltedException;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
@@ -1667,6 +1668,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         VmObject bootstrapHandleObj;
                         try {
                             bootstrapHandleObj = vm.createMethodHandle(ctxt, bootstrapHandle);
+                        } catch (InterpreterHaltedException ignored) {
+                            throw new BlockEarlyTermination(gf.unreachable());
                         } catch (Thrown thrown) {
                             ctxt.getCompilationContext().warning(gf.getLocation(), "Failed to create bootstrap method handle: %s", thrown);
                             // todo: we should consider putting stack traces into the location of the diagnostics
@@ -1714,6 +1717,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             }
                             MethodElement invokeWithArguments = mhDef.getMethod(iwaIdx);
                             callSite = (VmObject) vm.invokeExact(invokeWithArguments, bootstrapHandleObj, List.of(array));
+                        } catch (InterpreterHaltedException ignored) {
+                            throw new BlockEarlyTermination(gf.unreachable());
                         } catch (Thrown thrown) {
                             ctxt.getCompilationContext().warning(gf.getLocation(), "Failed to invoke bootstrap method handle: %s", thrown);
                             // todo: we should consider putting stack traces into the location of the diagnostics
