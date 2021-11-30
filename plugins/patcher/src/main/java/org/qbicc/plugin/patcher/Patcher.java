@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,8 +53,8 @@ public class Patcher {
     public static void initialize(ClassContext classContext) {
         Patcher patcher = get(classContext.getCompilationContext());
         ClassContextPatchInfo contextInfo = patcher.getOrAdd(classContext);
-        byte[] patchInfo = classContext.getResource("META-INF/qbicc/qbicc-patch-info");
-        if (patchInfo != null) {
+        List<byte[]> resources = classContext.getResources("META-INF/qbicc/qbicc-patch-info");
+        for (byte[] patchInfo : resources) {
             try (ByteArrayInputStream is = new ByteArrayInputStream(patchInfo)) {
                 try (InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8)) {
                     try (BufferedReader reader = new BufferedReader(isr)) {
