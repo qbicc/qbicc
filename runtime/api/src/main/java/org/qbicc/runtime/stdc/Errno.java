@@ -25,7 +25,7 @@ public final class Errno {
         private static native int_ptr __errno_location();
 
         public c_int get() {
-            return __errno_location().loadUnshared();
+            return __errno_location().deref();
         }
 
         public void set(c_int value) {
@@ -37,7 +37,7 @@ public final class Errno {
         private static native int_ptr __error();
 
         public c_int get() {
-            return __error().loadUnshared();
+            return __error().deref();
         }
 
         public void set(c_int value) {
@@ -49,7 +49,7 @@ public final class Errno {
         private static native int_ptr _Errno();
 
         public c_int get() {
-            return _Errno().loadUnshared();
+            return _Errno().deref();
         }
 
         public void set(c_int value) {

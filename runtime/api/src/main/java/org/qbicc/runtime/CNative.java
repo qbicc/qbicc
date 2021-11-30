@@ -820,6 +820,17 @@ public final class CNative {
         public native T loadUnshared();
 
         /**
+         * Dereference the pointer, returning what the pointer points to. This operation
+         * does not necessarily directly translate to a physical memory operation.
+         *
+         * @deprecated use loadUnshared
+         *
+         * @return the pointed-to value
+         */
+        @Deprecated
+        public native T deref();
+
+        /**
          * Overwrite the value that is pointed to by this pointer.
          *
          * @param value the value to write

@@ -1223,6 +1223,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(ptrDesc, "asArray", MethodDescriptor.synthesize(classContext, ArrayTypeDescriptor.of(classContext, nObjDesc), List.of()), identity);
 
         InstanceIntrinsic loadUnshared = (builder, instance, target, arguments) -> builder.load(builder.pointerHandle(instance), MemoryAtomicityMode.NONE);
+        intrinsics.registerIntrinsic(ptrDesc, "deref", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), loadUnshared);
         intrinsics.registerIntrinsic(ptrDesc, "loadUnshared", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), loadUnshared);
 
         InstanceIntrinsic get = (builder, instance, target, arguments) ->
