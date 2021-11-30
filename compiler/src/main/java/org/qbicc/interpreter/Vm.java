@@ -112,6 +112,16 @@ public interface Vm {
     byte[] loadResource(ClassContext classContext, String name) throws Thrown;
 
     /**
+     * Load all resources with the given name. Resources are not cached. The current thread must be bound to a VM thread.
+     *
+     * @param classContext the class context instance (must not be {@code null})
+     * @param name the resource name (must not be {@code null})
+     * @return the list of resource contents as bytes, (not {@code null})
+     * @throws Thrown if the internal JVM has thrown an exception while loading the resource
+     */
+    List<byte[]> loadResources(ClassContext classContext, String name) throws Thrown;
+
+    /**
      * Allocate an object without initializing it (all fields/elements will be {@code null}, {@code false}, or zero).
      * If the given {@code type} is not initialized, it will be.
      *

@@ -161,7 +161,7 @@ public class Driver implements Closeable {
 
         java.util.function.Function<CompilationContext, Vm> vmFactory = Assert.checkNotNullParam("builder.vmFactory", builder.vmFactory);
         NativeMethodConfigurator nativeMethodConfigurator = constructNativeMethodConfigurator(builder);
-        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, this::defaultFinder, this::defaultResourceFinder, vmFactory, outputDir, resolverFactories, typeBuilderFactories, nativeMethodConfigurator, classContextListener);
+        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, this::defaultFinder, this::defaultResourceFinder, this::defaultResourcesFinder, vmFactory, outputDir, resolverFactories, typeBuilderFactories, nativeMethodConfigurator, classContextListener);
         // start with ADD
         compilationContext.setBlockFactory(addBuilderFactory);
 
@@ -272,6 +272,27 @@ public class Driver implements Closeable {
             }
         }
         return null;
+    }
+
+    private List<byte[]> defaultResourcesFinder(final ClassContext classContext, final String name) {
+        ByteBuffer buffer;
+        ArrayList<byte[]> list = new ArrayList<>();
+        for (ClassPathItem item : bootClassPath) {
+            try (ClassPathElement.Resource resource = item.findResource(name)) {
+                if (resource == ClassPathElement.NON_EXISTENT) {
+                    continue;
+                }
+                buffer = resource.getBuffer();
+                byte[] bytes = new byte[buffer.remaining()];
+                buffer.get(bytes);
+                list.add(bytes);
+            } catch (Exception e) {
+                log.warnf(e, "An exception was thrown while loading resource \"%s\" from the bootstrap loader", name);
+                classContext.getCompilationContext().warning("Failed to load resource \"%s\" from the bootstrap loader due to an exception: %s", name, e);
+                // might as well continue though
+            }
+        }
+        return List.copyOf(list);
     }
 
     public CompilationContext getCompilationContext() {
