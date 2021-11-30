@@ -33,22 +33,8 @@ public final class ConditionEvaluation {
 
     private final Map<DefinedTypeDefinition, Boolean> cachedResults = new ConcurrentHashMap<>();
 
-    private final MethodElement getAsBoolean;
-
     private ConditionEvaluation(final CompilationContext ctxt) {
         this.ctxt = ctxt;
-        DefinedTypeDefinition bsDef = ctxt.getBootstrapClassContext().findDefinedType("java/util/function/BooleanSupplier");
-        if (bsDef == null) {
-            ctxt.error("Unable to load JDK interface `BooleanSupplier`");
-            throw new IllegalStateException("Cannot initialize plugin");
-        }
-        LoadedTypeDefinition booleanSupplier = bsDef.load();
-        int mi = booleanSupplier.findMethodIndex(me -> me.getName().equals("getAsBoolean"));
-        if (mi == -1) {
-            ctxt.error("Unable to locate JDK interface method `BooleanSupplier#getAsBoolean`");
-            throw new IllegalStateException("Cannot initialize plugin");
-        }
-        getAsBoolean = booleanSupplier.getMethod(mi);
     }
 
     public static ConditionEvaluation get(CompilationContext ctxt) {
@@ -63,6 +49,9 @@ public final class ConditionEvaluation {
     }
 
     public boolean evaluateConditions(ClassContext classContext, Locatable locatable, Annotation conditionalAnnotation) {
+        if (conditionalAnnotation == null) {
+            return true;
+        }
         ArrayAnnotationValue whenValue = (ArrayAnnotationValue) conditionalAnnotation.getValue("when");
         ArrayAnnotationValue unlessValue = (ArrayAnnotationValue) conditionalAnnotation.getValue("unless");
 
@@ -103,7 +92,7 @@ public final class ConditionEvaluation {
                 ctxt.error(locatable.getLocation(), "Conditional class `%s` must be a class, not an interface", niceName);
                 return errorCondition;
             }
-            final LoadedTypeDefinition booleanSupplier = getAsBoolean.getEnclosingType().load();
+            final LoadedTypeDefinition booleanSupplier = getGetAsBoolean().getEnclosingType().load();
             if (! loaded.getClassType().isSubtypeOf(booleanSupplier.getInterfaceType())) {
                 ctxt.error(locatable.getLocation(), "Conditional class `%s` must implement `BooleanSupplier`", niceName);
                 return errorCondition;
@@ -119,7 +108,7 @@ public final class ConditionEvaluation {
             Vm vm = vmThread.getVM();
             // construct the new instance
             VmObject obj = vm.newInstance(vmClass, constructor, List.of());
-            result = (Boolean) vm.invokeVirtual(getAsBoolean, obj, List.of());
+            result = (Boolean) vm.invokeVirtual(getGetAsBoolean(), obj, List.of());
             Boolean appearing = cachedResults.putIfAbsent(definedType, result);
             if (appearing != null) {
                 // always go with first result in case they don't agree
@@ -130,5 +119,20 @@ public final class ConditionEvaluation {
             ctxt.error(locatable.getLocation(), "Annotation conditional class `%s` is not of a valid type", rawDescriptor);
             return errorCondition;
         }
+    }
+
+    private MethodElement getGetAsBoolean() {
+        DefinedTypeDefinition bsDef = ctxt.getBootstrapClassContext().findDefinedType("java/util/function/BooleanSupplier");
+        if (bsDef == null) {
+            ctxt.error("Unable to load JDK interface `BooleanSupplier`");
+            throw new IllegalStateException();
+        }
+        LoadedTypeDefinition booleanSupplier = bsDef.load();
+        int mi = booleanSupplier.findMethodIndex(me -> me.getName().equals("getAsBoolean"));
+        if (mi == -1) {
+            ctxt.error("Unable to locate JDK interface method `BooleanSupplier#getAsBoolean`");
+            throw new IllegalStateException();
+        }
+        return booleanSupplier.getMethod(mi);
     }
 }

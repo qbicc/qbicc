@@ -190,13 +190,14 @@ final class ClassContextPatchInfo {
                 boolean ctor = patchMethodName.equals("<init>");
                 int attrCnt = classFile.getMethodAttributeCount(i);
                 int kind = K_ALIAS;
+                Annotation annotation = null;
                 for (int j = 0; j < attrCnt; j ++) {
                     if (classFile.methodAttributeNameEquals(i, j, "RuntimeInvisibleAnnotations")) {
                         // found annotations
                         ByteBuffer buf = classFile.getMethodRawAttributeContent(i, j);
                         int ac = buf.getShort() & 0xffff;
                         for (int k = 0; k < ac; k ++) {
-                            Annotation annotation = Annotation.parse(classFile, classContext, buf);
+                            annotation = Annotation.parse(classFile, classContext, buf);
                             ClassTypeDescriptor descriptor = annotation.getDescriptor();
                             if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Add")) {
                                 if (kind == K_ALIAS) {
@@ -239,21 +240,21 @@ final class ClassContextPatchInfo {
                 MethodDescriptor methodDesc = classFile.getMethodDescriptor(i);
                 if (kind == K_ADD) {
                     if (ctor) {
-                        classPatchInfo.addConstructor(new ConstructorPatchInfo(i, addModifiers, classFile, methodDesc));
+                        classPatchInfo.addConstructor(new ConstructorPatchInfo(i, addModifiers, classFile, methodDesc, internalName, annotation));
                     } else {
-                        classPatchInfo.addMethod(new MethodPatchInfo(i, addModifiers, classFile, methodDesc, methodName));
+                        classPatchInfo.addMethod(new MethodPatchInfo(i, addModifiers, classFile, methodDesc, methodName, internalName, annotation));
                     }
                 } else if (kind == K_REMOVE) {
                     if (ctor) {
-                        classPatchInfo.deleteConstructor(methodDesc);
+                        classPatchInfo.deleteConstructor(methodDesc, internalName, annotation);
                     } else {
-                        classPatchInfo.deleteMethod(methodName, methodDesc);
+                        classPatchInfo.deleteMethod(methodName, methodDesc, internalName, annotation);
                     }
                 } else if (kind == K_REPLACE) {
                     if (ctor) {
-                        classPatchInfo.replaceConstructor(new ConstructorPatchInfo(i, 0, classFile, methodDesc));
+                        classPatchInfo.replaceConstructor(new ConstructorPatchInfo(i, 0, classFile, methodDesc, internalName, annotation));
                     } else {
-                        classPatchInfo.replaceMethod(new MethodPatchInfo(i, 0, classFile, methodDesc, methodName));
+                        classPatchInfo.replaceMethod(new MethodPatchInfo(i, 0, classFile, methodDesc, methodName, internalName, annotation));
                     }
                 } else {
                     assert kind == K_ALIAS;
@@ -268,37 +269,32 @@ final class ClassContextPatchInfo {
                 int fieldMods = classFile.getFieldModifiers(i);
                 int attrCnt = classFile.getFieldAttributeCount(i);
                 int kind = K_ALIAS;
+                Annotation annotation = null;
                 for (int j = 0; j < attrCnt; j ++) {
                     if (classFile.fieldAttributeNameEquals(i, j, "RuntimeInvisibleAnnotations")) {
                         // found annotations
                         ByteBuffer buf = classFile.getFieldRawAttributeContent(i, j);
                         int ac = buf.getShort() & 0xffff;
                         for (int k = 0; k < ac; k ++) {
-                            Annotation annotation = Annotation.parse(classFile, classContext, buf);
+                            annotation = Annotation.parse(classFile, classContext, buf);
                             ClassTypeDescriptor descriptor = annotation.getDescriptor();
                             if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Add")) {
                                 if (kind == K_ALIAS) {
-                                    if (ce.evaluateConditions(classContext, () -> getFieldLocation(internalName, fieldName), annotation)) {
-                                        kind = K_ADD;
-                                    }
+                                    kind = K_ADD;
                                 } else {
                                     wrongAnnotationWarning(classContext, getFieldLocation(internalName, patchFieldName));
                                     continue outer;
                                 }
                             } else if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Remove")) {
                                 if (kind == K_ALIAS) {
-                                    if (ce.evaluateConditions(classContext, () -> getFieldLocation(internalName, fieldName), annotation)) {
-                                        kind = K_REMOVE;
-                                    }
+                                    kind = K_REMOVE;
                                 } else {
                                     wrongAnnotationWarning(classContext, getFieldLocation(internalName, patchFieldName));
                                     continue outer;
                                 }
                             } else if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Replace")) {
                                 if (kind == K_ALIAS) {
-                                    if (ce.evaluateConditions(classContext, () -> getFieldLocation(internalName, fieldName), annotation)) {
-                                        kind = K_REPLACE;
-                                    }
+                                    kind = K_REPLACE;
                                 } else {
                                     wrongAnnotationWarning(classContext, getFieldLocation(internalName, patchFieldName));
                                     continue outer;
@@ -314,19 +310,19 @@ final class ClassContextPatchInfo {
                 boolean isStatic = (fieldMods & ClassFile.ACC_STATIC) != 0;
                 if (kind == K_ADD) {
                     if (isStatic && runTimeAspect) {
-                        classPatchInfo.addField(new FieldPatchInfo(i, addModifiers, initResolver, initIndex, classFile, fieldDesc, fieldName));
+                        classPatchInfo.addField(new FieldPatchInfo(internalName, i, addModifiers, initResolver, initIndex, classFile, fieldDesc, fieldName, annotation));
                     } else {
                         // instance fields cannot have initializers
-                        classPatchInfo.addField(new FieldPatchInfo(i, addModifiers, null, 0, classFile, fieldDesc, fieldName));
+                        classPatchInfo.addField(new FieldPatchInfo(internalName, i, addModifiers, null, 0, classFile, fieldDesc, fieldName, annotation));
                     }
                 } else if (kind == K_REMOVE) {
-                    classPatchInfo.deleteField(fieldName, fieldDesc);
+                    classPatchInfo.deleteField(fieldName, fieldDesc, internalName, annotation);
                 } else if (kind == K_REPLACE) {
                     if (isStatic) {
-                        classPatchInfo.addField(new FieldPatchInfo(i, 0, initResolver, initIndex, classFile, fieldDesc, fieldName));
+                        classPatchInfo.replaceField(new FieldPatchInfo(internalName, i, 0, initResolver, initIndex, classFile, fieldDesc, fieldName, annotation));
                     } else {
                         // instance fields cannot have initializers
-                        classPatchInfo.addField(new FieldPatchInfo(i, 0, null, 0, classFile, fieldDesc, fieldName));
+                        classPatchInfo.replaceField(new FieldPatchInfo(internalName, i, 0, null, 0, classFile, fieldDesc, fieldName, annotation));
                     }
                 } else {
                     assert kind == K_ALIAS;
@@ -339,7 +335,7 @@ final class ClassContextPatchInfo {
         return classContext.getCompilationContext().warning(loc, "Patch field must be annotated with no more than one of `@Add`, `@Remove`, or `@Replace`");
     }
 
-    private static Location getFieldLocation(final String internalName, final String fieldName) {
+    static Location getFieldLocation(final String internalName, final String fieldName) {
         return Location.builder()
             .setMemberKind(Location.MemberKind.FIELD)
             .setMemberName(fieldName)
@@ -347,7 +343,7 @@ final class ClassContextPatchInfo {
             .build();
     }
 
-    private static Location getMethodLocation(final String internalName, final String methodName) {
+    static Location getMethodLocation(final String internalName, final String methodName) {
         return Location.builder()
             .setMemberKind(methodName.equals("<init>") ? Location.MemberKind.CONSTRUCTOR : Location.MemberKind.METHOD)
             .setMemberName(methodName)
