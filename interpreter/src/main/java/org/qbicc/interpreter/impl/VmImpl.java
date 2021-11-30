@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -128,6 +129,10 @@ public final class VmImpl implements Vm {
     final VmBooleanArrayClassImpl booleanArrayClass;
 
     final int refArrayContentOffset; // special
+
+    // exceptions
+    final VmThrowableClassImpl interruptedException;
+    final VmThrowableClassImpl illegalMonitorStateException;
 
     // error classes
     final VmThrowableClassImpl errorClass;
@@ -272,6 +277,12 @@ public final class VmImpl implements Vm {
         errorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/Error").load(), null);
         errorClass.postConstruct(this);
 
+        // exceptions
+        interruptedException = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/InterruptedException").load(), null);
+        interruptedException.postConstruct(this);
+        illegalMonitorStateException = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/IllegalMonitorStateException").load(), null);
+        illegalMonitorStateException.postConstruct(this);
+
         // errors
         linkageErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/LinkageError").load(), null);
         linkageErrorClass.postConstruct(this);
@@ -305,6 +316,8 @@ public final class VmImpl implements Vm {
         bootstrapClassLoader.registerClass("java/lang/Throwable", throwableClass);
         bootstrapClassLoader.registerClass("java/lang/ClassLoader", classLoaderClass);
 
+        bootstrapClassLoader.registerClass("java/lang/InterruptedException", interruptedException);
+        bootstrapClassLoader.registerClass("java/lang/IllegalMonitorStateException", illegalMonitorStateException);
         bootstrapClassLoader.registerClass("java/lang/Error", errorClass);
         bootstrapClassLoader.registerClass("java/lang/LinkageError", linkageErrorClass);
         bootstrapClassLoader.registerClass("java/lang/IncompatibleClassChangeError", incompatibleClassChangeErrorClass);
@@ -356,6 +369,61 @@ public final class VmImpl implements Vm {
 
             // Register all hooks
             VmClassLoaderImpl bootstrapClassLoader = this.bootstrapClassLoader;
+
+            // Object
+            VmClassImpl objectClass = bootstrapClassLoader.loadClass("java/lang/Object");
+
+            objectClass.registerInvokable("wait", 0, (thread, target, args) -> {
+                try {
+                    ((VmObjectImpl)target).getCondition().await();
+                } catch (IllegalMonitorStateException e) {
+                    throw new Thrown(illegalMonitorStateException.newInstance());
+                } catch (InterruptedException e) {
+                    throw new Thrown(interruptedException.newInstance());
+                }
+                return null;
+            });
+            objectClass.registerInvokable("wait", 1, (thread, target, args) -> {
+                try {
+                    ((VmObjectImpl)target).getCondition().await(((Long) args.get(0)).longValue(), TimeUnit.MILLISECONDS);
+                } catch (IllegalMonitorStateException e) {
+                    throw new Thrown(illegalMonitorStateException.newInstance());
+                } catch (InterruptedException e) {
+                    throw new Thrown(interruptedException.newInstance());
+                }
+                return null;
+            });
+            objectClass.registerInvokable("wait", 2, (thread, target, args) -> {
+                try {
+                    long millis = ((Long) args.get(0)).longValue();
+                    if ((((Integer) args.get(1)).intValue()) > 0 && millis < Long.MAX_VALUE) {
+                        millis++;
+                    }
+                    ((VmObjectImpl)target).getCondition().await(millis, TimeUnit.MILLISECONDS);
+                } catch (IllegalMonitorStateException e) {
+                    throw new Thrown(illegalMonitorStateException.newInstance());
+                } catch (InterruptedException e) {
+                    throw new Thrown(interruptedException.newInstance());
+                }
+                return null;
+            });
+            objectClass.registerInvokable("notify", (thread, target, args) -> {
+                try {
+                    ((VmObjectImpl)target).getCondition().signal();
+                } catch (IllegalMonitorStateException e) {
+                    throw new Thrown(illegalMonitorStateException.newInstance());
+                }
+                return null;
+            });
+            objectClass.registerInvokable("notifyAll", (thread, target, args) -> {
+                try {
+                    ((VmObjectImpl)target).getCondition().signalAll();
+                } catch (IllegalMonitorStateException e) {
+                    throw new Thrown(illegalMonitorStateException.newInstance());
+                }
+                return null;
+            });
+
 
             // VMHelpers
             VmClassImpl vmHelpersClass = bootstrapClassLoader.loadClass("org/qbicc/runtime/main/VMHelpers");
