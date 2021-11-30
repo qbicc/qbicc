@@ -14,19 +14,24 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.interpreter.VmObject;
 import org.qbicc.type.definition.ConstructorResolver;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.InitializerResolver;
 import org.qbicc.type.definition.MethodResolver;
+import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
 public class Patcher {
+    static final String PATCHER_PKG = "org/qbicc/runtime/patcher";
+
     private static final AttachmentKey<Patcher> KEY = new AttachmentKey<>();
 
     private final CompilationContext ctxt;
     private final Map<ClassContext, ClassContextPatchInfo> patchInfoMap = new ConcurrentHashMap<>();
+    private final Map<FieldElement, VmObject> accessors = new ConcurrentHashMap<>();
 
     private Patcher(CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -226,4 +231,11 @@ public class Patcher {
         }
     }
 
+    void registerAccessor(FieldElement element, VmObject accessor) {
+        accessors.putIfAbsent(element, accessor);
+    }
+
+    VmObject lookUpAccessor(FieldElement element) {
+        return accessors.get(element);
+    }
 }

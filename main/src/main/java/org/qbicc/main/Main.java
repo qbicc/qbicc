@@ -114,6 +114,8 @@ import org.qbicc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
 import org.qbicc.plugin.opt.InliningBasicBlockBuilder;
 import org.qbicc.plugin.opt.PhiOptimizerVisitor;
 import org.qbicc.plugin.opt.SimpleOptBasicBlockBuilder;
+import org.qbicc.plugin.patcher.AccessorBasicBlockBuilder;
+import org.qbicc.plugin.patcher.AccessorTypeBuilder;
 import org.qbicc.plugin.patcher.Patcher;
 import org.qbicc.plugin.patcher.PatcherResolverBasicBlockBuilder;
 import org.qbicc.plugin.patcher.PatcherTypeResolver;
@@ -346,6 +348,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addTypeBuilderFactory(ThreadLocalTypeBuilder::new);
                                 builder.addTypeBuilderFactory(CoreAnnotationTypeBuilder::new);
                                 builder.addTypeBuilderFactory(Patcher::getTypeBuilder);
+                                builder.addTypeBuilderFactory(AccessorTypeBuilder::new);
 
                                 builder.setClassContextListener(Patcher::initialize);
 
@@ -388,6 +391,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MemberResolvingBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, AccessorBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, StructMemberAccessBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, PointerBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassInitializingBasicBlockBuilder::new);
