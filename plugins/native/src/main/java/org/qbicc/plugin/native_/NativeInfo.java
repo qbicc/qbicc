@@ -22,7 +22,6 @@ import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.probe.Qualifier;
 import org.qbicc.plugin.core.ConditionEvaluation;
 import org.qbicc.plugin.layout.LayoutInfo;
-import org.qbicc.plugin.layout.NativeLayout;
 import org.qbicc.plugin.linker.Linker;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.TypeSystem;
@@ -113,9 +112,7 @@ final class NativeInfo {
                 resolved = ref.get();
                 if (resolved == null) {
                     LoadedTypeDefinition validated = definedType.load();
-                    LayoutInfo layout = NativeLayout.get(ctxt).getLayoutInfo(validated);
-                    resolved = layout.getCompoundType();
-                    ref.set(resolved);
+                    ref.set(NativeLayout.get(ctxt).getLayoutInfo(validated));
                 }
             }
         }

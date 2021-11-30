@@ -1,4 +1,4 @@
-package org.qbicc.plugin.layout;
+package org.qbicc.plugin.native_;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.AttachmentKey;
@@ -21,7 +21,7 @@ public final class NativeLayout {
     private static final AttachmentKey<NativeLayout> KEY = new AttachmentKey<>();
     private final CompilationContext ctxt;
 
-    private final Map<LoadedTypeDefinition, LayoutInfo> layouts = new ConcurrentHashMap<>();
+    private final Map<LoadedTypeDefinition, CompoundType> layouts = new ConcurrentHashMap<>();
 
     private NativeLayout(final CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -39,9 +39,9 @@ public final class NativeLayout {
         return layout;
     }
 
-    public LayoutInfo getLayoutInfo(DefinedTypeDefinition type) {
+    public CompoundType getLayoutInfo(DefinedTypeDefinition type) {
         LoadedTypeDefinition validated = type.load();
-        LayoutInfo layoutInfo = layouts.get(validated);
+        CompoundType layoutInfo = layouts.get(validated);
         if (layoutInfo != null) {
             return layoutInfo;
         }
@@ -65,9 +65,8 @@ public final class NativeLayout {
         Arrays.sort(membersArray);
         List<CompoundType.Member> membersList = List.of(membersArray);
         CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.NONE, type.getInternalName().replace('/', '.'), size, minAlignment, () -> membersList);
-        layoutInfo = new LayoutInfo(allocated, compoundType, fieldToMember);
-        LayoutInfo appearing = layouts.putIfAbsent(validated, layoutInfo);
-        return appearing != null ? appearing : layoutInfo;
+        CompoundType appearing = layouts.putIfAbsent(validated, compoundType);
+        return appearing != null ? appearing : compoundType;
     }
 
     private CompoundType.Member computeMember(final BitSet allocated, final FieldElement field, int prevFieldOffset) {
