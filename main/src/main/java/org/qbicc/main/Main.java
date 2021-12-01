@@ -512,7 +512,7 @@ public class Main implements Callable<DiagnosticContext> {
         return ClassPathEntry.of(new DefaultArtifact("org.qbicc", artifactId, "jar", MainProperties.QBICC_VERSION));
     }
 
-    private void resolveClassPath(DiagnosticContext ctxt, Consumer<ClassPathItem> classPathItemConsumer, final List<ClassPathEntry> bootPaths) throws IOException {
+    private void resolveClassPath(DiagnosticContext ctxt, Consumer<ClassPathItem> classPathItemConsumer, final List<ClassPathEntry> paths) throws IOException {
         QbiccMavenResolver resolver = new QbiccMavenResolver(new QbiccServiceLocator());
         File globalSettings = resolver.getGlobalSettings();
         File userSettings = resolver.getUserSettings();
@@ -523,8 +523,7 @@ public class Main implements Callable<DiagnosticContext> {
             throw new IOException(e);
         }
         RepositorySystemSession session = resolver.createSession(settings);
-        DependencyFilter filter = (node, parents) -> true;
-        List<ClassPathItem> result = resolver.requestArtifacts(session, settings, bootPaths, ctxt, filter);
+        List<ClassPathItem> result = resolver.requestArtifacts(session, settings, paths, ctxt);
         result.forEach(classPathItemConsumer);
     }
 

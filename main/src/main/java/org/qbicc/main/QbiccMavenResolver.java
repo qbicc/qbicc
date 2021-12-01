@@ -208,7 +208,7 @@ final class QbiccMavenResolver {
         return List.copyOf(authorizedRepos);
     }
 
-    List<ClassPathItem> requestArtifacts(RepositorySystemSession session, Settings settings, List<ClassPathEntry> classPathList, DiagnosticContext ctxt, DependencyFilter filter) throws IOException {
+    List<ClassPathItem> requestArtifacts(RepositorySystemSession session, Settings settings, List<ClassPathEntry> classPathList, DiagnosticContext ctxt) throws IOException {
         List<RemoteRepository> remoteRepositoryList = createRemoteRepositoryList(settings);
         CollectRequest collectRequest = new CollectRequest((Dependency)null, null, system.newResolutionRepositories(session, remoteRepositoryList));
         Map<String, Map<String, ClassPathEntry>> gaToCpe = new HashMap<>();
@@ -228,7 +228,7 @@ final class QbiccMavenResolver {
                 // otherwise, do not add it to the requests list
             }
         }
-        DependencyRequest depReq = new DependencyRequest(collectRequest, filter);
+        DependencyRequest depReq = new DependencyRequest(collectRequest, null);
         DependencyResult dependencyResult;
         try {
             dependencyResult = system.resolveDependencies(session, depReq);
