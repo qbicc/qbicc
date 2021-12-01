@@ -7,35 +7,32 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
-import org.jboss.shrinkwrap.resolver.api.ResolutionException;
-import org.jboss.shrinkwrap.resolver.api.maven.Maven;
-import org.jboss.shrinkwrap.resolver.api.maven.MavenResolvedArtifact;
-import org.jboss.shrinkwrap.resolver.api.maven.PackagingType;
-import org.jboss.shrinkwrap.resolver.api.maven.ScopeType;
-import org.jboss.shrinkwrap.resolver.api.maven.coordinate.MavenCoordinate;
-import org.jboss.shrinkwrap.resolver.api.maven.coordinate.MavenCoordinates;
-import org.jboss.shrinkwrap.resolver.api.maven.coordinate.MavenDependencies;
+import io.smallrye.common.constraint.Assert;
+import org.apache.maven.settings.Settings;
+import org.apache.maven.settings.building.SettingsBuildingException;
+import org.eclipse.aether.RepositorySystemSession;
+import org.eclipse.aether.artifact.DefaultArtifact;
+import org.eclipse.aether.graph.DependencyFilter;
+import org.jboss.logmanager.Level;
+import org.jboss.logmanager.LogManager;
+import org.jboss.logmanager.Logger;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Diagnostic;
 import org.qbicc.context.DiagnosticContext;
 import org.qbicc.driver.BaseDiagnosticContext;
 import org.qbicc.driver.BuilderStage;
-import org.qbicc.driver.ClassPathElement;
 import org.qbicc.driver.ClassPathItem;
 import org.qbicc.driver.Driver;
 import org.qbicc.driver.ElementBodyCopier;
@@ -52,19 +49,18 @@ import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.tool.CToolChain;
-import org.qbicc.plugin.coreclasses.BasicInitializationBasicBlockBuilder;
-import org.qbicc.plugin.coreclasses.BasicInitializationManualInitializer;
-import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.constants.ConstantBasicBlockBuilder;
-import org.qbicc.plugin.correctness.StaticChecksBasicBlockBuilder;
-import org.qbicc.plugin.llvm.LLVMCompatibleBasicBlockBuilder;
 import org.qbicc.plugin.conversion.MethodCallFixupBasicBlockBuilder;
 import org.qbicc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import org.qbicc.plugin.core.CoreAnnotationTypeBuilder;
+import org.qbicc.plugin.coreclasses.BasicInitializationBasicBlockBuilder;
+import org.qbicc.plugin.coreclasses.BasicInitializationManualInitializer;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.correctness.RuntimeChecksBasicBlockBuilder;
+import org.qbicc.plugin.correctness.StaticChecksBasicBlockBuilder;
 import org.qbicc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
-import org.qbicc.plugin.dispatch.DispatchTableEmitter;
 import org.qbicc.plugin.dispatch.DispatchTableBuilder;
+import org.qbicc.plugin.dispatch.DispatchTableEmitter;
 import org.qbicc.plugin.dot.DotGenerator;
 import org.qbicc.plugin.gc.nogc.NoGcBasicBlockBuilder;
 import org.qbicc.plugin.gc.nogc.NoGcMultiNewArrayBasicBlockBuilder;
@@ -82,6 +78,7 @@ import org.qbicc.plugin.lowering.LocalVariableFindingBasicBlockBuilder;
 import org.qbicc.plugin.lowering.LocalVariableLoweringBasicBlockBuilder;
 import org.qbicc.plugin.layout.ObjectAccessLoweringBuilder;
 import org.qbicc.plugin.linker.LinkStage;
+import org.qbicc.plugin.llvm.LLVMCompatibleBasicBlockBuilder;
 import org.qbicc.plugin.llvm.LLVMCompileStage;
 import org.qbicc.plugin.llvm.LLVMGenerator;
 import org.qbicc.plugin.lowering.BooleanAccessBasicBlockBuilder;
@@ -110,8 +107,8 @@ import org.qbicc.plugin.native_.StructMemberAccessBasicBlockBuilder;
 import org.qbicc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
 import org.qbicc.plugin.opt.GotoRemovingVisitor;
 import org.qbicc.plugin.opt.InitializedStaticFieldBasicBlockBuilder;
-import org.qbicc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
 import org.qbicc.plugin.opt.InliningBasicBlockBuilder;
+import org.qbicc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
 import org.qbicc.plugin.opt.PhiOptimizerVisitor;
 import org.qbicc.plugin.opt.SimpleOptBasicBlockBuilder;
 import org.qbicc.plugin.patcher.AccessorBasicBlockBuilder;
@@ -119,8 +116,8 @@ import org.qbicc.plugin.patcher.AccessorTypeBuilder;
 import org.qbicc.plugin.patcher.Patcher;
 import org.qbicc.plugin.patcher.PatcherResolverBasicBlockBuilder;
 import org.qbicc.plugin.patcher.PatcherTypeResolver;
-import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
+import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.serialization.ClassObjectSerializer;
 import org.qbicc.plugin.serialization.MethodDataStringsSerializer;
 import org.qbicc.plugin.serialization.ObjectLiteralSerializingVisitor;
@@ -134,10 +131,6 @@ import org.qbicc.plugin.verification.LowerVerificationBasicBlockBuilder;
 import org.qbicc.plugin.verification.MemberResolvingBasicBlockBuilder;
 import org.qbicc.tool.llvm.LlvmToolChain;
 import org.qbicc.type.TypeSystem;
-import io.smallrye.common.constraint.Assert;
-import org.jboss.logmanager.Level;
-import org.jboss.logmanager.LogManager;
-import org.jboss.logmanager.Logger;
 import picocli.CommandLine;
 import picocli.CommandLine.ParameterException;
 import picocli.CommandLine.ParseResult;
@@ -162,12 +155,6 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean smallTypeIds;
 
     Main(Builder builder) {
-        ArrayList<ClassPathEntry> bootPaths = new ArrayList<>(builder.bootPathsPrepend.size() + 1 + builder.bootPathsAppend.size());
-        bootPaths.addAll(builder.bootPathsPrepend);
-        bootPaths.add(ClassPathEntry.ofClassLibraries(builder.classLibVersion));
-        bootPaths.addAll(builder.bootPathsAppend);
-        this.bootPaths = bootPaths;
-        appPaths = List.copyOf(builder.appPaths);
         outputPath = builder.outputPath;
         diagnosticsHandler = builder.diagnosticsHandler;
         // todo: this becomes optional
@@ -181,6 +168,23 @@ public class Main implements Callable<DiagnosticContext> {
         optGotos = builder.optGotos;
         platform = builder.platform;
         smallTypeIds = builder.smallTypeIds;
+        ArrayList<ClassPathEntry> bootPaths = new ArrayList<>(builder.bootPathsPrepend.size() + 6 + builder.bootPathsAppend.size());
+        bootPaths.addAll(builder.bootPathsPrepend);
+        // add core things
+        bootPaths.add(getCoreComponent("qbicc-runtime-api"));
+        bootPaths.add(getCoreComponent("qbicc-runtime-linux"));
+        bootPaths.add(getCoreComponent("qbicc-runtime-llvm"));
+        bootPaths.add(getCoreComponent("qbicc-runtime-main"));
+        bootPaths.add(getCoreComponent("qbicc-runtime-posix"));
+        bootPaths.add(getCoreComponent("qbicc-runtime-unwind"));
+        boolean nogc = gc.equals("none");
+        if (nogc) {
+            bootPaths.add(getCoreComponent("qbicc-runtime-gc-nogc"));
+        }
+        bootPaths.add(ClassPathEntry.ofClassLibraries(builder.classLibVersion));
+        bootPaths.addAll(builder.bootPathsAppend);
+        this.bootPaths = bootPaths;
+        appPaths = List.copyOf(builder.appPaths);
     }
 
     public DiagnosticContext call() {
@@ -202,16 +206,9 @@ public class Main implements Callable<DiagnosticContext> {
         int errors = initialContext.errors();
         if (errors == 0) {
             builder.setOutputDirectory(outputPath);
-            HashSet<MavenCoordinate> addedCoordinates = new HashSet<>();
             // process the class paths
             try {
-                resolveClassPath(builder::addBootClassPathItem, bootPaths, addedCoordinates);
-                // add core things
-                addCoreComponent(builder, addedCoordinates, "qbicc-runtime-unwind");
-                addCoreComponent(builder, addedCoordinates, "qbicc-runtime-main");
-                if (nogc) {
-                    addCoreComponent(builder, addedCoordinates, "qbicc-runtime-gc-nogc");
-                }
+                resolveClassPath(initialContext, builder::addBootClassPathItem, bootPaths);
             } catch (IOException e) {
                 // todo: close class path items?
                 return;
@@ -512,56 +509,24 @@ public class Main implements Callable<DiagnosticContext> {
         return;
     }
 
-    private void addCoreComponent(final Driver.Builder builder, final HashSet<MavenCoordinate> addedCoordinates, final String artifact) throws IOException {
-        resolveClassPath(builder::addBootClassPathItem, List.of(ClassPathEntry.of(MavenCoordinates.createCoordinate("org.qbicc", artifact, MainProperties.QBICC_VERSION, PackagingType.JAR, null))), addedCoordinates);
+    private ClassPathEntry getCoreComponent(final String artifactId) {
+        return ClassPathEntry.of(new DefaultArtifact("org.qbicc", artifactId, "jar", MainProperties.QBICC_VERSION));
     }
 
-    private void resolveClassPath(Consumer<ClassPathItem> classPathItemConsumer, final List<ClassPathEntry> bootPaths, Set<MavenCoordinate> addedCoordinates) throws IOException {
-        for (ClassPathEntry bootPath : bootPaths) {
-            if (bootPath instanceof ClassPathEntry.FilePath fp) {
-                if (Files.isDirectory(fp.getPath())) {
-                    classPathItemConsumer.accept(new ClassPathItem(fp.getPath().toString(), List.of(ClassPathElement.forDirectory(fp.getPath())), List.of()));
-                } else {
-                    classPathItemConsumer.accept(new ClassPathItem(fp.getPath().toString(), List.of(ClassPathElement.forJarFile(fp.getPath())), List.of()));
-                }
-            } else if (bootPath instanceof ClassPathEntry.MavenArtifact ma) {
-                processCoordinate(classPathItemConsumer, addedCoordinates, ma.getArtifact());
-            } else if (bootPath instanceof ClassPathEntry.ClassLibraries cl) {
-                processCoordinate(classPathItemConsumer, addedCoordinates, MavenCoordinates.createCoordinate("org.qbicc.rt", "qbicc-rt", cl.getVersion(), PackagingType.POM, null));
-            }
-        }
-    }
-
-    private void processCoordinate(final Consumer<ClassPathItem> classPathItemConsumer, final Set<MavenCoordinate> addedCoordinates, final MavenCoordinate mavenCoordinate) throws IOException {
+    private void resolveClassPath(DiagnosticContext ctxt, Consumer<ClassPathItem> classPathItemConsumer, final List<ClassPathEntry> bootPaths) throws IOException {
+        QbiccMavenResolver resolver = new QbiccMavenResolver(new QbiccServiceLocator());
+        File globalSettings = resolver.getGlobalSettings();
+        File userSettings = resolver.getUserSettings();
+        Settings settings;
         try {
-            // todo: work offline switch
-            MavenResolvedArtifact[] artifacts = Maven.configureResolver().withMavenCentralRepo(true).addDependency(MavenDependencies.createDependency(mavenCoordinate, null, false)).resolve().withTransitivity().asResolvedArtifact();
-            for (MavenResolvedArtifact artifact : artifacts) {
-                // try to avoid duplication to a reasonable extent
-                MavenCoordinate coordinate = artifact.getCoordinate();
-                if (addedCoordinates.add(coordinate)) {
-                    // try to get the source artifact for debug info
-                    List<ClassPathElement> sourceList;
-                    MavenCoordinate sourceCoordinate = MavenCoordinates.createCoordinate(coordinate.getGroupId(), coordinate.getArtifactId(), coordinate.getVersion(), PackagingType.JAVA_SOURCE, coordinate.getClassifier());
-                    try {
-                        MavenResolvedArtifact sourceArtifact = Maven.resolver().addDependency(MavenDependencies.createDependency(sourceCoordinate, ScopeType.COMPILE, false)).resolve().withoutTransitivity().asSingleResolvedArtifact();
-                        sourceList = List.of(ClassPathElement.forJarFile(sourceArtifact.asFile()));
-                    } catch (ResolutionException ignored) {
-                        // no source item
-                        sourceList = List.of();
-                    }
-                    File file = artifact.asFile();
-                    // skip non-JAR things like POMs
-                    if (file.getName().endsWith(".jar")) {
-                        classPathItemConsumer.accept(new ClassPathItem(coordinate.toCanonicalForm(), List.of(ClassPathElement.forJarFile(file)), sourceList));
-                    }
-                }
-            }
-        } catch (ResolutionException e) {
-            System.err.printf("Failed to resolve Maven artifact %s: ", mavenCoordinate.toCanonicalForm());
-            e.printStackTrace(System.err);
+            settings = resolver.createSettings(ctxt, globalSettings, userSettings);
+        } catch (SettingsBuildingException e) {
             throw new IOException(e);
         }
+        RepositorySystemSession session = resolver.createSession(settings);
+        DependencyFilter filter = (node, parents) -> true;
+        List<ClassPathItem> result = resolver.requestArtifacts(session, settings, bootPaths, ctxt, filter);
+        result.forEach(classPathItemConsumer);
     }
 
     public static void main(String[] args) {

@@ -3,8 +3,8 @@ package org.qbicc.main;
 import java.nio.file.Path;
 
 import io.smallrye.common.constraint.Assert;
-import org.jboss.shrinkwrap.resolver.api.maven.coordinate.MavenCoordinate;
-import org.jboss.shrinkwrap.resolver.api.maven.coordinate.MavenCoordinates;
+import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.artifact.DefaultArtifact;
 import picocli.CommandLine;
 
 /**
@@ -18,7 +18,7 @@ public abstract class ClassPathEntry {
         return new FilePath(path);
     }
 
-    public static MavenArtifact of(MavenCoordinate artifact) {
+    public static MavenArtifact of(Artifact artifact) {
         Assert.checkNotNullParam("artifact", artifact);
         return new MavenArtifact(artifact);
     }
@@ -51,13 +51,13 @@ public abstract class ClassPathEntry {
     }
 
     public static final class MavenArtifact extends ClassPathEntry {
-        private final MavenCoordinate artifact;
+        private final Artifact artifact;
 
-        MavenArtifact(MavenCoordinate artifact) {
+        MavenArtifact(Artifact artifact) {
             this.artifact = artifact;
         }
 
-        public MavenCoordinate getArtifact() {
+        public Artifact getArtifact() {
             return artifact;
         }
 
@@ -67,7 +67,7 @@ public abstract class ClassPathEntry {
 
             @Override
             public MavenArtifact convert(String value) {
-                return ClassPathEntry.of(MavenCoordinates.createCoordinate(value));
+                return ClassPathEntry.of(new DefaultArtifact(value));
             }
         }
     }

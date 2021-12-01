@@ -98,7 +98,7 @@ public interface DiagnosticContext {
     }
 
     default Diagnostic error(Diagnostic parent, String fmt, Object... args) {
-        return msg(parent, null, Diagnostic.Level.ERROR, fmt, args);
+        return msg(parent, Location.NO_LOC, Diagnostic.Level.ERROR, fmt, args);
     }
 
     default Diagnostic error(String fmt, Object... args) {
@@ -151,7 +151,7 @@ public interface DiagnosticContext {
     }
 
     default Diagnostic warning(Diagnostic parent, String fmt, Object... args) {
-        return msg(parent, null, Diagnostic.Level.WARNING, fmt, args);
+        return msg(parent, Location.NO_LOC, Diagnostic.Level.WARNING, fmt, args);
     }
 
     default Diagnostic warning(String fmt, Object... args) {
@@ -204,7 +204,7 @@ public interface DiagnosticContext {
     }
 
     default Diagnostic note(Diagnostic parent, String fmt, Object... args) {
-        return msg(parent, null, Diagnostic.Level.NOTE, fmt, args);
+        return msg(parent, Location.NO_LOC, Diagnostic.Level.NOTE, fmt, args);
     }
 
     default Diagnostic note(String fmt, Object... args) {
@@ -236,7 +236,7 @@ public interface DiagnosticContext {
     }
 
     default Diagnostic info(Diagnostic parent, String fmt, Object... args) {
-        return msg(parent, null, Diagnostic.Level.INFO, fmt, args);
+        return msg(parent, Location.NO_LOC, Diagnostic.Level.INFO, fmt, args);
     }
 
     default Diagnostic info(String fmt, Object... args) {
@@ -268,7 +268,7 @@ public interface DiagnosticContext {
     }
 
     default Diagnostic debug(Diagnostic parent, String fmt, Object... args) {
-        return msg(parent, null, Diagnostic.Level.DEBUG, fmt, args);
+        return msg(parent, Location.NO_LOC, Diagnostic.Level.DEBUG, fmt, args);
     }
 
     default Diagnostic debug(String fmt, Object... args) {
