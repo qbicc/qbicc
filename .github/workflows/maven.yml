@@ -41,7 +41,7 @@ jobs:
 
       - name: Install qbicc
         run: |
-          mvn install
+          mvn --batch-mode install
         working-directory: ./myqbicc
 
       - name: Prepare failure archive (if maven failed)
