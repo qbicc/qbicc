@@ -23,6 +23,8 @@ import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.FieldElement;
 
 /**
@@ -34,6 +36,48 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     public ObjectAccessLoweringBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
+    }
+
+    @Override
+    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
+        BasicBlockBuilder fb = getFirstBuilder();
+        PointerType pointerType = (PointerType) pointer.getType();
+        if (pointerType.getPointeeType() instanceof PhysicalObjectType pot) {
+            Layout layout = Layout.get(ctxt);
+            LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
+            return fb.pointerHandle(fb.valueConvert(pointer, info.getCompoundType().getPointer().asCollected()));
+        }
+        return getDelegate().pointerHandle(pointer, offsetValue);
+    }
+
+    @Override
+    public Value valueConvert(Value value, WordType toType) {
+        if (toType instanceof PointerType pt) {
+            if (pt.getPointeeType() instanceof PhysicalObjectType pot) {
+                BasicBlockBuilder fb = getFirstBuilder();
+                Layout layout = Layout.get(ctxt);
+                LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
+                PointerType newType = info.getCompoundType().getPointer().asCollected();
+                if (value.getType() instanceof PointerType) {
+                    return fb.bitCast(value, newType);
+                } else {
+                    return fb.valueConvert(value, newType);
+                }
+            }
+        }
+        return getDelegate().valueConvert(value, toType);
+    }
+
+    @Override
+    public Value stackAllocate(ValueType type, Value count, Value align) {
+        if (type instanceof PhysicalObjectType pot) {
+            BasicBlockBuilder fb = getFirstBuilder();
+            Layout layout = Layout.get(ctxt);
+            LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
+            PointerType newType = info.getCompoundType().getPointer().asCollected();
+            return fb.stackAllocate(newType, count, align);
+        }
+        return super.stackAllocate(type, count, align);
     }
 
     @Override
