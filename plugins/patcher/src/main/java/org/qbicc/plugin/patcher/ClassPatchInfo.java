@@ -25,6 +25,8 @@ final class ClassPatchInfo {
     private Map<String, Map<MethodDescriptor, MethodPatchInfo>> replacedMethods;
     private List<MethodPatchInfo> injectedMethods;
     private Map<String, Map<MethodDescriptor, MethodDeleteInfo>> deletedMethods;
+    private InitializerPatchInfo replacedInitializer;
+    private boolean deletedInitializer;
 
     ClassPatchInfo() {
         replacedFields = Map.of();
@@ -70,6 +72,11 @@ final class ClassPatchInfo {
         return deletedMethods.getOrDefault(name, Map.of()).get(descriptor);
     }
 
+    boolean isDeletedInitializer() {
+        assert Thread.holdsLock(this);
+        return deletedInitializer;
+    }
+
     // replace
 
     FieldPatchInfo getReplacementFieldInfo(final String fieldName, TypeDescriptor descriptor) {
@@ -85,6 +92,11 @@ final class ClassPatchInfo {
     MethodPatchInfo getReplacementMethodInfo(final String name, final MethodDescriptor descriptor) {
         assert Thread.holdsLock(this);
         return replacedMethods.getOrDefault(name, Map.of()).get(descriptor);
+    }
+
+    InitializerPatchInfo getReplacementInitializerInfo() {
+        assert Thread.holdsLock(this);
+        return replacedInitializer;
     }
 
     // add
@@ -162,6 +174,17 @@ final class ClassPatchInfo {
         final String name = methodPatchInfo.getName();
         final MethodDescriptor descriptor = methodPatchInfo.getDescriptor();
         replacedMethods = mapWith(replacedMethods, name, mapWith(replacedMethods.getOrDefault(name, Map.of()), descriptor, methodPatchInfo));
+    }
+
+    void deleteInitializer() {
+        assert Thread.holdsLock(this);
+        deletedInitializer = true;
+    }
+
+    void replaceInitializer(final InitializerPatchInfo initializerPatchInfo) {
+        assert Thread.holdsLock(this);
+        checkCommitted();
+        replacedInitializer = initializerPatchInfo;
     }
 
     private void checkCommitted() {

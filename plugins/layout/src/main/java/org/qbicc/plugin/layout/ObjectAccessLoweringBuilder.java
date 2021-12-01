@@ -2,24 +2,16 @@ package org.qbicc.plugin.layout;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
-import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.ElementOf;
-import org.qbicc.graph.InstanceFieldOf;
-import org.qbicc.graph.MemoryAtomicityMode;
-import org.qbicc.graph.Node;
-import org.qbicc.graph.PointerHandle;
-import org.qbicc.graph.ReferenceHandle;
-import org.qbicc.graph.UnsafeHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PointerType;
-import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.UnsignedIntegerType;
@@ -80,141 +72,47 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
         return super.stackAllocate(type, count, align);
     }
 
-    @Override
-    public Value load(ValueHandle handle, MemoryAtomicityMode mode) {
-        return super.load(transform(handle), mode);
-    }
-
-    @Override
-    public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
-        return super.store(transform(handle), value, mode);
-    }
-
-    @Override
-    public Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return super.getAndAdd(transform(target), update, atomicityMode);
-    }
-
-    @Override
-    public Value getAndBitwiseAnd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return super.getAndBitwiseAnd(transform(target), update, atomicityMode);
-    }
-
-    @Override
-    public Value getAndBitwiseNand(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return super.getAndBitwiseNand(transform(target), update, atomicityMode);
-    }
-
-    @Override
-    public Value getAndBitwiseOr(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return super.getAndBitwiseOr(transform(target), update, atomicityMode);
-    }
-
-    @Override
-    public Value getAndBitwiseXor(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return super.getAndBitwiseXor(transform(target), update, atomicityMode);
-    }
-
-    @Override
-    public Value getAndSet(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return super.getAndSet(transform(target), update, atomicityMode);
-    }
-
-    @Override
-    public Value getAndSetMax(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return super.getAndSetMax(transform(target), update, atomicityMode);
-    }
-
-    @Override
-    public Value getAndSetMin(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return super.getAndSetMin(transform(target), update, atomicityMode);
-    }
-
-    @Override
-    public Value getAndSub(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return super.getAndSub(transform(target), update, atomicityMode);
-    }
-
-    @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode, CmpAndSwap.Strength strength) {
-        return super.cmpAndSwap(transform(target), expect, update, successMode, failureMode, strength);
-    }
-
-    @Override
-    public Value addressOf(ValueHandle handle) {
-        return super.addressOf(transform(handle));
-    }
-
-    private ValueHandle transform(ValueHandle input) {
-        return input.accept(this, null);
-    }
-
-    @Override
-    public ValueHandle visit(Void param, ElementOf node) {
-        ValueHandle inputHandle = node.getValueHandle();
-        if (inputHandle instanceof ReferenceHandle) {
-            // Transform array object element handles
-            CoreClasses coreClasses = CoreClasses.get(ctxt);
-            ObjectType upperBound = (ObjectType) inputHandle.getValueType();
-            if (upperBound instanceof ArrayObjectType) {
-                FieldElement contentField = coreClasses.getArrayContentField(upperBound);
-                if (upperBound instanceof ReferenceArrayObjectType) {
-                    ValueHandle elementHandle = elementOf(transform(instanceFieldOf(inputHandle, contentField)), node.getIndex());
-                    Value addr = addressOf(elementHandle);
-                    ReferenceType elementType = ((ReferenceArrayObjectType) upperBound).getElementType();
-                    return transform(pointerHandle(bitCast(addr, elementType.getPointer().asCollected())));
-                } else {
-                    assert upperBound instanceof PrimitiveArrayObjectType;
-                    return elementOf(transform(instanceFieldOf(inputHandle, contentField)), node.getIndex());
-                }
-            }
+    public ValueHandle elementOf(ValueHandle array, Value index) {
+        if (array.getValueType() instanceof CompoundType ct && ct.getMemberCount() > 0) {
+            // ElementOf a CompoundType -> ElementOf the last Member
+            CompoundType.Member lastMember = ct.getMember(ct.getMemberCount() - 1);
+            BasicBlockBuilder fb = getFirstBuilder();
+            return fb.elementOf(fb.memberOf(array, lastMember), index);
         }
-        // normal array, probably
-        return elementOf(transform(inputHandle), node.getIndex());
+        return getDelegate().elementOf(array, index);
     }
 
     @Override
-    public ValueHandle visit(Void param, ReferenceHandle node) {
+    public ValueHandle referenceHandle(Value reference) {
+        BasicBlockBuilder fb = getFirstBuilder();
         // convert reference to pointer
         Layout layout = Layout.get(ctxt);
-        ObjectType upperBound = node.getValueType();
+        ReferenceType referenceType = (ReferenceType) reference.getType();
+        ObjectType upperBound = referenceType.getUpperBound();
         LayoutInfo info;
-        if (upperBound instanceof ArrayObjectType) {
+        if (upperBound instanceof ReferenceArrayObjectType raot) {
+            info = layout.getArrayLayoutInfo(CoreClasses.get(ctxt).getArrayContentField(upperBound).getEnclosingType(), raot.getElementObjectType());
+        } else if (upperBound instanceof ArrayObjectType) {
             info = layout.getInstanceLayoutInfo(CoreClasses.get(ctxt).getArrayContentField(upperBound).getEnclosingType());
         } else {
             info = layout.getInstanceLayoutInfo(upperBound.getDefinition());
         }
-        return pointerHandle(valueConvert(node.getReferenceValue(), info.getCompoundType().getPointer().asCollected()));
+        return fb.pointerHandle(fb.valueConvert(reference, info.getCompoundType().getPointer().asCollected()));
     }
 
     @Override
-    public ValueHandle visit(Void param, PointerHandle node) {
-        PointerType pointerType = node.getPointerType();
-        if (pointerType.getPointeeType() instanceof PhysicalObjectType pot) {
-            Layout layout = Layout.get(ctxt);
-            LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
-            return pointerHandle(valueConvert(node.getPointerValue(), info.getCompoundType().getPointer().asCollected()));
-        }
-        return ValueHandleVisitor.super.visit(param, node);
-    }
-
-    @Override
-    public ValueHandle visit(Void param, InstanceFieldOf node) {
+    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
+        BasicBlockBuilder fb = getFirstBuilder();
         Layout layout = Layout.get(ctxt);
-        FieldElement element = node.getVariableElement();
-        return memberOf(transform(node.getValueHandle()), layout.getInstanceLayoutInfo(element.getEnclosingType()).getMember(element));
+        LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(field.getEnclosingType());
+        return fb.memberOf(instance, layoutInfo.getMember(field));
     }
 
     @Override
-    public ValueHandle visit(Void param, UnsafeHandle node) {
+    public ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType) {
+        BasicBlockBuilder fb = getFirstBuilder();
         UnsignedIntegerType u8 = ctxt.getTypeSystem().getUnsignedInteger8Type();
-        ValueHandle valueHandle = pointerHandle(bitCast(addressOf(node.getBase()), u8.getPointer()), node.getOffset());
-        return pointerHandle(bitCast(addressOf(valueHandle), node.getOutputType().getPointer()));
-    }
-
-    @Override
-    public ValueHandle visitUnknown(Void param, ValueHandle node) {
-        // all other handles are fine as-is
-        return node;
+        ValueHandle valueHandle = fb.pointerHandle(fb.bitCast(fb.addressOf(base), u8.getPointer()), offset);
+        return fb.pointerHandle(fb.bitCast(fb.addressOf(valueHandle), outputType.getPointer()));
     }
 }

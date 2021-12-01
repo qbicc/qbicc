@@ -74,6 +74,7 @@ import org.qbicc.plugin.intrinsics.core.CoreIntrinsics;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.llvm.LLVMDefaultModuleCompileStage;
 import org.qbicc.plugin.llvm.LLVMIntrinsics;
+import org.qbicc.plugin.lowering.BooleanAccessCopier;
 import org.qbicc.plugin.lowering.LocalVariableFindingBasicBlockBuilder;
 import org.qbicc.plugin.lowering.LocalVariableLoweringBasicBlockBuilder;
 import org.qbicc.plugin.layout.ObjectAccessLoweringBuilder;
@@ -81,7 +82,6 @@ import org.qbicc.plugin.linker.LinkStage;
 import org.qbicc.plugin.llvm.LLVMCompatibleBasicBlockBuilder;
 import org.qbicc.plugin.llvm.LLVMCompileStage;
 import org.qbicc.plugin.llvm.LLVMGenerator;
-import org.qbicc.plugin.lowering.BooleanAccessBasicBlockBuilder;
 import org.qbicc.plugin.lowering.FunctionLoweringElementHandler;
 import org.qbicc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.StaticFieldLoweringBasicBlockBuilder;
@@ -454,6 +454,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (optPhis) {
                                     builder.addCopyFactory(Phase.LOWER, PhiOptimizerVisitor::new);
                                 }
+                                builder.addCopyFactory(Phase.LOWER, BooleanAccessCopier::new);
                                 builder.addCopyFactory(Phase.LOWER, ObjectLiteralSerializingVisitor::new);
 
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ThrowLoweringBasicBlockBuilder::new);
@@ -463,8 +464,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForLowerPhase);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InvocationLoweringBasicBlockBuilder::new);
-                                // BooleanAccessBasicBlockBuilder must come before object and static field access lowering
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, BooleanAccessBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LocalVariableLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, StaticFieldLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InstanceOfCheckCastBasicBlockBuilder::new);

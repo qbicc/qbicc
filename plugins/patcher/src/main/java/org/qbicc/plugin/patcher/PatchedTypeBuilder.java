@@ -50,8 +50,25 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
 
     @Override
     public void setInitializer(InitializerResolver resolver, int index) {
-        // todo: build-time initializer patching
-        getDelegate().setInitializer(resolver, index);
+        ClassPatchInfo classPatchInfo = this.classPatchInfo;
+        if (classPatchInfo != null) {
+            InitializerPatchInfo patchInfo;
+            synchronized (classPatchInfo) {
+                if (classPatchInfo.isDeletedInitializer()) {
+                    getDelegate().setInitializer(resolver, -1);
+                    return;
+                }
+                patchInfo = classPatchInfo.getReplacementInitializerInfo();
+            }
+            ConditionEvaluation ce = ConditionEvaluation.get(classContext.getCompilationContext());
+            if (patchInfo == null || !ce.evaluateConditions(classContext, patchInfo, patchInfo.getAnnotation())) {
+                getDelegate().setInitializer(resolver, index);
+            } else {
+                getDelegate().setInitializer(patchInfo.getInitializerResolver(), patchInfo.getIndex());
+            }
+        } else {
+            getDelegate().setInitializer(resolver, index);
+        }
     }
 
     @Override

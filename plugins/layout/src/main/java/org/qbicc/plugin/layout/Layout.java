@@ -13,6 +13,8 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.ObjectType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -28,6 +30,7 @@ public final class Layout {
 
     private final Map<LoadedTypeDefinition, LayoutInfo> instanceLayouts = new ConcurrentHashMap<>();
     private final Map<LoadedTypeDefinition, LayoutInfo> staticLayouts = new ConcurrentHashMap<>();
+    private final Map<ObjectType, LayoutInfo> arrayLayouts = new ConcurrentHashMap<>();
     private final CompilationContext ctxt;
 
     private Layout(final CompilationContext ctxt) {
@@ -56,6 +59,44 @@ public final class Layout {
             }
         }
         return layout;
+    }
+
+    /**
+     * Get the layout info for a reference array which is narrowed to the given type.
+     *
+     * @param arrayClass the array class definition (must not be {@code null})
+     * @param elementType the element type (must not be {@code null})
+     * @return the layout info (not {@code null})
+     */
+    public LayoutInfo getArrayLayoutInfo(DefinedTypeDefinition arrayClass, ObjectType elementType) {
+        LayoutInfo layoutInfo = arrayLayouts.get(elementType);
+        if (layoutInfo != null) {
+            return layoutInfo;
+        }
+        // start with the prototype
+        LayoutInfo protoInfo = getInstanceLayoutInfo(arrayClass);
+        CompoundType protoCompound = protoInfo.getCompoundType();
+        int memberCount = protoCompound.getMemberCount();
+        if (memberCount < 1) {
+            throw new IllegalArgumentException();
+        }
+        CompoundType.Member lastMember = protoCompound.getMember(memberCount - 1);
+        if (lastMember.getType() instanceof ArrayType at) {
+            if (at.getElementCount() == 0 && at.getElementType() instanceof ReferenceType) {
+                // replace
+                CompoundType.Member[] newMembers = protoCompound.getMembers().toArray(CompoundType.Member[]::new);
+                TypeSystem ts = ctxt.getTypeSystem();
+                CompoundType.Member newLastMember = ts.getCompoundTypeMember(lastMember.getName(), ts.getArrayType(elementType.getReference(), 0), lastMember.getOffset(), lastMember.getAlign());
+                newMembers[memberCount - 1] = newLastMember;
+                CompoundType newType = ts.getCompoundType(CompoundType.Tag.CLASS, elementType.getReferenceArrayObject().toFriendlyString(), protoCompound.getSize(), protoCompound.getAlign(), () -> List.of(newMembers));
+                Map<FieldElement, CompoundType.Member> newMapping = new HashMap<>(protoInfo.getFieldsMap());
+                newMapping.replaceAll((fe, m) -> m == lastMember ? newLastMember : m);
+                layoutInfo = new LayoutInfo(protoInfo.getAllocatedBits(), newType, newMapping);
+                LayoutInfo appearing = arrayLayouts.putIfAbsent(elementType, layoutInfo);
+                return appearing != null ? appearing : layoutInfo;
+            }
+        }
+        throw new IllegalArgumentException();
     }
 
     public LayoutInfo getInstanceLayoutInfo(DefinedTypeDefinition type) {
