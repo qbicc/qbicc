@@ -415,7 +415,7 @@ public final class CNative {
      * @param ptr the pointer (may be {@code null})
      * @return the reference (may be {@code null})
      */
-    public static native Object ptrToRef(ptr<?> ptr);
+    public static native <T> T ptrToRef(ptr<T> ptr);
 
     /**
      * <b>Warning:</b> this is a potentially dangerous operation and should only be performed by internal components.
@@ -424,7 +424,7 @@ public final class CNative {
      * @param ref the reference (may be {@code null})
      * @return the pointer (may be {@code null})
      */
-    public static native <P extends ptr<?>> P refToPtr(Object ref);
+    public static native <T, P extends ptr<T>> P refToPtr(T ref);
 
     // built-in
 
@@ -809,7 +809,7 @@ public final class CNative {
      *
      * @param <T> the invariant pointer type
      */
-    public static abstract class ptr<T extends object> extends word {
+    public static abstract class ptr<T> extends word {
         /**
          * Dereference the pointer, returning what the pointer points to. This operation
          * does not necessarily directly translate to a physical memory operation.
@@ -842,7 +842,7 @@ public final class CNative {
          * this pointer, but has an incomplete type (no size). If the object being pointed to
          * has an incomplete type, using this method will result in a compilation error.
          * <p>
-         * Writing to this array has the same effect as calling {@link #set(int, object)} on the corresponding
+         * Writing to this array has the same effect as calling {@link #set(int, Object)} on the corresponding
          * pointer; reading from this array has the same effect as calling {@link #get(int)}.
          * <p>
          * Native arrays have no run time bounds checking.

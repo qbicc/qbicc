@@ -8,6 +8,7 @@ import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
+import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.UnsafeHandle;
 import org.qbicc.graph.Value;
@@ -16,10 +17,14 @@ import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.PhysicalObjectType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.FieldElement;
 
 /**
@@ -31,6 +36,48 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     public ObjectAccessLoweringBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
+    }
+
+    @Override
+    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
+        BasicBlockBuilder fb = getFirstBuilder();
+        PointerType pointerType = (PointerType) pointer.getType();
+        if (pointerType.getPointeeType() instanceof PhysicalObjectType pot) {
+            Layout layout = Layout.get(ctxt);
+            LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
+            return fb.pointerHandle(fb.valueConvert(pointer, info.getCompoundType().getPointer().asCollected()));
+        }
+        return getDelegate().pointerHandle(pointer, offsetValue);
+    }
+
+    @Override
+    public Value valueConvert(Value value, WordType toType) {
+        if (toType instanceof PointerType pt) {
+            if (pt.getPointeeType() instanceof PhysicalObjectType pot) {
+                BasicBlockBuilder fb = getFirstBuilder();
+                Layout layout = Layout.get(ctxt);
+                LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
+                PointerType newType = info.getCompoundType().getPointer().asCollected();
+                if (value.getType() instanceof PointerType) {
+                    return fb.bitCast(value, newType);
+                } else {
+                    return fb.valueConvert(value, newType);
+                }
+            }
+        }
+        return getDelegate().valueConvert(value, toType);
+    }
+
+    @Override
+    public Value stackAllocate(ValueType type, Value count, Value align) {
+        if (type instanceof PhysicalObjectType pot) {
+            BasicBlockBuilder fb = getFirstBuilder();
+            Layout layout = Layout.get(ctxt);
+            LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
+            PointerType newType = info.getCompoundType().getPointer().asCollected();
+            return fb.stackAllocate(newType, count, align);
+        }
+        return super.stackAllocate(type, count, align);
     }
 
     @Override
@@ -138,6 +185,17 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
             info = layout.getInstanceLayoutInfo(upperBound.getDefinition());
         }
         return pointerHandle(valueConvert(node.getReferenceValue(), info.getCompoundType().getPointer().asCollected()));
+    }
+
+    @Override
+    public ValueHandle visit(Void param, PointerHandle node) {
+        PointerType pointerType = node.getPointerType();
+        if (pointerType.getPointeeType() instanceof PhysicalObjectType pot) {
+            Layout layout = Layout.get(ctxt);
+            LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
+            return pointerHandle(valueConvert(node.getPointerValue(), info.getCompoundType().getPointer().asCollected()));
+        }
+        return ValueHandleVisitor.super.visit(param, node);
     }
 
     @Override
