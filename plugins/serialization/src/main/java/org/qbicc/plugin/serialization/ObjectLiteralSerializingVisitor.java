@@ -10,8 +10,6 @@ import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.interpreter.VmString;
-import org.qbicc.object.DataDeclaration;
-import org.qbicc.object.Section;
 
 /**
  * A visitor that finds object literals, serializes them to the initial heap
@@ -34,21 +32,13 @@ public class ObjectLiteralSerializingVisitor implements NodeVisitor.Delegating<N
     public Value visit(final Node.Copier param, final StringLiteral node) {
         VmString vString = ctxt.getVm().intern(node.getValue());
         ProgramObjectLiteral literal = BuildtimeHeap.get(ctxt).serializeVmObject(vString);
-
-        Section section = ctxt.getImplicitSection(param.getBlockBuilder().getRootElement());
-        DataDeclaration decl = section.declareData(literal.getProgramObject());
-
-        ProgramObjectLiteral refToLiteral = ctxt.getLiteralFactory().literalOf(decl);
-        return param.getBlockBuilder().notNull(ctxt.getLiteralFactory().bitcastLiteral(refToLiteral, node.getType()));
+        ctxt.getImplicitSection(param.getBlockBuilder().getRootElement()).declareData(literal.getProgramObject());
+        return param.getBlockBuilder().notNull(ctxt.getLiteralFactory().bitcastLiteral(literal, node.getType()));
     }
 
     public Value visit(final Node.Copier param, final ObjectLiteral node) {
         ProgramObjectLiteral literal = BuildtimeHeap.get(ctxt).serializeVmObject(node.getValue());
-
-        Section section = ctxt.getImplicitSection(param.getBlockBuilder().getRootElement());
-        DataDeclaration decl = section.declareData(literal.getProgramObject());
-
-        ProgramObjectLiteral refToLiteral = ctxt.getLiteralFactory().literalOf(decl);
-        return param.getBlockBuilder().notNull(ctxt.getLiteralFactory().bitcastLiteral(refToLiteral, node.getType()));
+        ctxt.getImplicitSection(param.getBlockBuilder().getRootElement()).declareData(literal.getProgramObject());
+        return param.getBlockBuilder().notNull(ctxt.getLiteralFactory().bitcastLiteral(literal, node.getType()));
     }
 }
