@@ -23,7 +23,10 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
+import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
+import org.qbicc.interpreter.VmString;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
@@ -32,7 +35,9 @@ import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.dispatch.DispatchTables;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
+import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.type.ReferenceType;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
@@ -136,12 +141,16 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             // No realized invocation targets are possible for this method!
             throw new BlockEarlyTermination(unreachable());
         }
+        if (!node.getExecutable().hasMethodBodyFactory() && node.getExecutable().hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+            // Convert native method that wasn't intercepted by an intrinsic to a runtime link error
+            throw new BlockEarlyTermination(raiseLinkError(node.getExecutable()));
+        }
+
         final BasicBlockBuilder fb = getFirstBuilder();
         // insert "this" and current thread
         args.addAll(0, List.of(fb.load(fb.currentThread(), MemoryAtomicityMode.NONE), node.getInstance()));
         ctxt.enqueue(node.getExecutable());
         Function function = ctxt.getExactFunction(node.getExecutable());
-        node.getExecutable();
         FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);
         final LiteralFactory lf = ctxt.getLiteralFactory();
         return pointerHandle(lf.literalOf(decl), lf.literalOf(0));
@@ -231,12 +240,15 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     @Override
     public ValueHandle visit(ArrayList<Value> args, StaticMethodElementHandle node) {
+        if (!node.getExecutable().hasMethodBodyFactory() && node.getExecutable().hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+            // Convert native method that wasn't intercepted by an intrinsic to a runtime link error
+            throw new BlockEarlyTermination(raiseLinkError(node.getExecutable()));
+        }
         final BasicBlockBuilder fb = getFirstBuilder();
         // insert current thread only
         args.add(0, fb.load(fb.currentThread(), MemoryAtomicityMode.NONE));
         ctxt.enqueue(node.getExecutable());
         Function function = ctxt.getExactFunction(node.getExecutable());
-        node.getExecutable();
         FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);
         final LiteralFactory lf = ctxt.getLiteralFactory();
         return pointerHandle(lf.literalOf(decl));
@@ -246,5 +258,16 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     public ValueHandle visitUnknown(ArrayList<Value> args, ValueHandle node) {
         // no conversion needed
         return node;
+    }
+
+    private BasicBlock raiseLinkError(MethodElement target) {
+        // Perform the transformation done by ObjectLiteralSerializingVisitor.visit(StringLiteral) because this BBB runs during LOWER
+        VmString vString = ctxt.getVm().intern(target.getEnclosingType().getInternalName().replace("/", ".")+"."+target.getName());
+        ProgramObjectLiteral literal = BuildtimeHeap.get(ctxt).serializeVmObject(vString);
+        ctxt.getImplicitSection(originalElement).declareData(literal.getProgramObject());
+        Literal arg = ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getType().getReference());
+
+        MethodElement helper = ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError");
+        return callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(arg));
     }
 }

@@ -4,7 +4,6 @@ import java.util.List;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.driver.Phase;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
@@ -28,9 +27,7 @@ import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.plugin.coreclasses.CoreClasses;
-import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
@@ -41,7 +38,6 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -205,12 +201,6 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         return super.divide(v1, v2);
     }
 
-    private void throwUnsatisfiedLinkError(String target) {
-        MethodElement helper = ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError");
-        StringLiteral arg = ctxt.getLiteralFactory().literalOf(target, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getType().getReference());
-        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(arg)));
-    }
-
     private void throwIncompatibleClassChangeError() {
         MethodElement helper = ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError");
         throw new BlockEarlyTermination(callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of()));
@@ -234,8 +224,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                 ValueType arrayType = arrayHandle.getValueType();
                 if (arrayType instanceof ArrayObjectType) {
                     indexOutOfBoundsCheck(arrayHandle, node.getIndex());
-                    if (arrayType instanceof ReferenceArrayObjectType && storedValue != null) {
-                        ReferenceArrayObjectType referenceArrayType = (ReferenceArrayObjectType) arrayType;
+                    if (arrayType instanceof ReferenceArrayObjectType referenceArrayType && storedValue != null) {
                         Value toTypeId = load(instanceFieldOf(arrayHandle, CoreClasses.get(ctxt).getRefArrayElementTypeIdField()), MemoryAtomicityMode.UNORDERED);
                         Value toDimensions = ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), referenceArrayType.getDimensionCount() - 1);
                         return checkcast(storedValue, toTypeId, toDimensions, CheckCast.CastType.ArrayStore, referenceArrayType.getElementObjectType());
@@ -314,12 +303,6 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
             private Value visit(InstanceMethodElementHandle node) {
                 MethodElement target = node.getExecutable();
-                if (! target.hasMethodBodyFactory() && target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
-                    null == Intrinsics.get(ctxt).getInstanceIntrinsic(Phase.ANALYZE, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor()) &&
-                    null == Intrinsics.get(ctxt).getInstanceIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
-                    throwUnsatisfiedLinkError(target.getEnclosingType().getInternalName().replace("/", ".")+"."+target.getName());
-                    throw Assert.unreachableCode();
-                }
                 if (target.isStatic()) {
                     throwIncompatibleClassChangeError();
                     throw Assert.unreachableCode();
@@ -332,12 +315,6 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             @Override
             public Value visit(Void param, StaticMethodElementHandle node) {
                 MethodElement target = node.getExecutable();
-                if (! target.hasMethodBodyFactory() && target.hasAllModifiersOf(ClassFile.ACC_NATIVE) && !target.getEnclosingType().internalPackageAndNameEquals("org/qbicc/runtime", "CNative") &&
-                    null == Intrinsics.get(ctxt).getStaticIntrinsic(Phase.ANALYZE, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor()) &&
-                    null == Intrinsics.get(ctxt).getStaticIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
-                    throwUnsatisfiedLinkError(target.getEnclosingType().getInternalName().replace("/", ".")+"."+target.getName());
-                    throw Assert.unreachableCode();
-                }
                 if (target.isVirtual()) {
                     throwIncompatibleClassChangeError();
                     throw Assert.unreachableCode();
