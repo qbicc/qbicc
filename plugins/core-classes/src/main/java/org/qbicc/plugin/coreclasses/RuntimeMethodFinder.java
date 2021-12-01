@@ -13,8 +13,13 @@ public class RuntimeMethodFinder {
     private static final AttachmentKey<RuntimeMethodFinder> KEY = new AttachmentKey<>();
     private final CompilationContext ctxt;
 
+    final LoadedTypeDefinition VMHelpers;
+    final LoadedTypeDefinition ObjectModel;
+
     private RuntimeMethodFinder(CompilationContext ctxt) {
         this.ctxt = ctxt;
+        this.VMHelpers = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/VMHelpers").load();
+        this.ObjectModel = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/ObjectModel").load();
     }
 
     public static RuntimeMethodFinder get(CompilationContext ctxt) {
@@ -27,6 +32,19 @@ public class RuntimeMethodFinder {
             }
         }
         return helpers;
+    }
+
+    public MethodElement getMethod(String methodName) {
+        int idx = VMHelpers.findMethodIndex(e -> methodName.equals(e.getName()));
+        if (idx != -1) {
+            return VMHelpers.getMethod(idx);
+        }
+        idx = ObjectModel.findMethodIndex(e -> methodName.equals(e.getName()));
+        if (idx != -1) {
+            return ObjectModel.getMethod(idx);
+        }
+        ctxt.error("Can't find the runtime helper method %s", methodName);
+        return null;
     }
 
     public MethodElement getMethod(String runtimeClass, String helperName) {

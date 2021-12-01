@@ -268,6 +268,9 @@ final class CompilationContextImpl implements CompilationContext {
         return classContext;
     }
 
+    /**
+     * @deprecated
+     */
     public MethodElement getVMHelperMethod(String name) {
         DefinedTypeDefinition dtd = bootstrapClassContext.findDefinedType("org/qbicc/runtime/main/VMHelpers");
         if (dtd == null) {
@@ -283,6 +286,9 @@ final class CompilationContextImpl implements CompilationContext {
         return helpers.getMethod(idx);
     }
 
+    /**
+     * @deprecated
+     */
     public MethodElement getOMHelperMethod(String name) {
         DefinedTypeDefinition dtd = bootstrapClassContext.findDefinedType("org/qbicc/runtime/main/ObjectModel");
         if (dtd == null) {

@@ -22,6 +22,7 @@ import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
+import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
@@ -162,6 +163,7 @@ public class DispatchTables {
         if (cls.isAbstract()) {
             return;
         }
+        RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
         VTableInfo info = getVTableInfo(cls);
         MethodElement[] vtable = info.getVtable();
         Section section = ctxt.getImplicitSection(cls);
@@ -169,7 +171,7 @@ public class DispatchTables {
         for (int i = 0; i < vtable.length; i++) {
             FunctionType funType = ctxt.getFunctionTypeForElement(vtable[i]);
             if (vtable[i].isAbstract() || vtable[i].hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
-                MethodElement stub = ctxt.getVMHelperMethod(vtable[i].isAbstract() ? "raiseAbstractMethodError" : "raiseUnsatisfiedLinkError");
+                MethodElement stub = methodFinder.getMethod(vtable[i].isAbstract() ? "raiseAbstractMethodError" : "raiseUnsatisfiedLinkError");
                 Function stubImpl = ctxt.getExactFunction(stub);
                 FunctionDeclaration decl = section.declareFunction(stub, stubImpl.getName(), stubImpl.getValueType());
                 ProgramObjectLiteral literal = ctxt.getLiteralFactory().literalOf(decl);
@@ -236,6 +238,7 @@ public class DispatchTables {
         Section cSection = ctxt.getImplicitSection(cls);
 
         ArrayList<Literal> itableLiterals = new ArrayList<>(myITables.size() + 1);
+        RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
         for (ITableInfo itableInfo : myITables) {
             MethodElement[] itable = itableInfo.getItable();
             LoadedTypeDefinition currentInterface = itableInfo.getInterface();
@@ -245,12 +248,12 @@ public class DispatchTables {
                 MethodElement methImpl = cls.resolveMethodElementVirtual(itable[i].getName(), itable[i].getDescriptor());
                 FunctionType implType = ctxt.getFunctionTypeForElement(methImpl);
                 if (methImpl == null) {
-                    MethodElement icceStub = ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError");
+                    MethodElement icceStub = methodFinder.getMethod("raiseIncompatibleClassChangeError");
                     Function icceImpl = ctxt.getExactFunction(icceStub);
                     ProgramObjectLiteral iceeLiteral = lf.literalOf(cSection.declareFunction(icceImpl));
                     valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(iceeLiteral, implType.getPointer()));
                 } else if (methImpl.isAbstract()) {
-                    MethodElement ameStub = ctxt.getVMHelperMethod("raiseAbstractMethodError");
+                    MethodElement ameStub = methodFinder.getMethod("raiseAbstractMethodError");
                     Function ameImpl = ctxt.getExactFunction(ameStub);
                     ProgramObjectLiteral ameLiteral = lf.literalOf(cSection.declareFunction(ameImpl));
                     valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(ameLiteral, implType.getPointer()));
@@ -260,7 +263,7 @@ public class DispatchTables {
                         if (!methImpl.isNative() && ReachabilityInfo.get(ctxt).isInvokableMethod(methImpl)) {
                             ctxt.error(methImpl, "Missing method implementation for vtable of %s", cls.getInternalName());
                         } else {
-                            MethodElement uleStub = ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError");
+                            MethodElement uleStub = methodFinder.getMethod("raiseUnsatisfiedLinkError");
                             Function uleImpl = ctxt.getExactFunction(uleStub);
                             ProgramObjectLiteral uleLiteral = lf.literalOf(cSection.declareFunction(uleImpl));
                             valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(uleLiteral, implType.getPointer()));

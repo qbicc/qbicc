@@ -16,7 +16,6 @@ import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.object.Function;
-import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.Section;
 import org.qbicc.type.FunctionType;
@@ -52,8 +51,14 @@ public interface CompilationContext extends DiagnosticContext {
 
     ClassContext constructClassContext(VmClassLoader classLoaderObject);
 
+    /**
+     * @deprecated
+     */
     MethodElement getVMHelperMethod(String helperName);
 
+    /**
+     * @deprecated
+     */
     MethodElement getOMHelperMethod(String helperName);
 
     void enqueue(ExecutableElement element);

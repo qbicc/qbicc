@@ -25,6 +25,7 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -212,7 +213,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         @Override
         public Void visit(ReachabilityContext param, ClassOf node) {
             if (visitUnknown(param, (Node)node)) {
-                MethodElement methodElement = param.ctxt.getVMHelperMethod("classof_from_typeid");
+                MethodElement methodElement = RuntimeMethodFinder.get(param.ctxt).getMethod("classof_from_typeid");
                 param.ctxt.enqueue(methodElement);
                 if (node.getInput() instanceof TypeLiteral tl && tl.getValue() instanceof ClassObjectType cot) {
                     param.analysis.processClassInitialization(cot.getDefinition().load());

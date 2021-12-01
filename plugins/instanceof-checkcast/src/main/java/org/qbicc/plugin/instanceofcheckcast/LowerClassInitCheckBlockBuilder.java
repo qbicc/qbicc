@@ -12,6 +12,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -58,7 +59,7 @@ public class LowerClassInitCheckBlockBuilder extends DelegatingBasicBlockBuilder
         if_(isEq(state, lf.literalOf(0)), callInit, goAhead);
         try {
             begin(callInit);
-            MethodElement helper = ctxt.getVMHelperMethod("initialize_class");
+            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("initialize_class");
             BasicBlockBuilder fb = getFirstBuilder();
             fb.call(fb.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(fb.load(fb.currentThread(), MemoryAtomicityMode.NONE), typeId));
             goto_(goAhead);

@@ -223,6 +223,7 @@ public final class CoreIntrinsics {
         ClassContext classContext = ctxt.getBootstrapClassContext();
         CoreClasses coreClasses = CoreClasses.get(ctxt);
         SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
+        RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
 
         ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor jlclDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ClassLoader");
@@ -250,7 +251,7 @@ public final class CoreIntrinsics {
         InstanceIntrinsic cast = (builder, instance, target, arguments) -> {
             // TODO: Once we support java.lang.Class literals, we should add a check here to
             //  emit a CheckCast node instead of a call to the helper method if `instance` is a Class literal.
-            MethodElement helper = ctxt.getVMHelperMethod("checkcast_class");
+            MethodElement helper = methodFinder.getMethod("checkcast_class");
             builder.getFirstBuilder().call(builder.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(arguments.get(0), instance));
 
             // Generics erasure issue. The return type of Class<T>.cast is T, but it gets wiped to Object.
@@ -266,21 +267,21 @@ public final class CoreIntrinsics {
 
         InstanceIntrinsic isArray = (builder, instance, target, arguments) -> {
             Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance),  coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
-            MethodElement isRefArray = ctxt.getOMHelperMethod("is_reference_array");
-            MethodElement isPrimArray = ctxt.getOMHelperMethod("is_prim_array");
+            MethodElement isRefArray = methodFinder.getMethod("is_reference_array");
+            MethodElement isPrimArray = methodFinder.getMethod("is_prim_array");
             return builder.or(builder.getFirstBuilder().call(builder.staticMethod(isRefArray, isRefArray.getDescriptor(), isRefArray.getType()), List.of(id)),
                               builder.getFirstBuilder().call(builder.staticMethod(isPrimArray, isPrimArray.getDescriptor(), isPrimArray.getType()), List.of(id)));
         };
 
         InstanceIntrinsic isInterface = (builder, instance, target, arguments) -> {
             Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance),  coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
-            MethodElement isIntf = ctxt.getOMHelperMethod("is_interface");
+            MethodElement isIntf = methodFinder.getMethod("is_interface");
             return builder.getFirstBuilder().call(builder.staticMethod(isIntf, isIntf.getDescriptor(), isIntf.getType()), List.of(id));
         };
 
         InstanceIntrinsic isPrimitive = (builder, instance, target, arguments) -> {
             Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance), coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
-            MethodElement isPrim = ctxt.getOMHelperMethod("is_primitive");
+            MethodElement isPrim = methodFinder.getMethod("is_primitive");
             return builder.getFirstBuilder().call(builder.staticMethod(isPrim, isPrim.getDescriptor(), isPrim.getType()), List.of(id));
         };
 
@@ -288,7 +289,7 @@ public final class CoreIntrinsics {
             Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance), coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
             LiteralFactory lf = ctxt.getLiteralFactory();
             TypeSystem ts = ctxt.getTypeSystem();
-            MethodElement helper = ctxt.getVMHelperMethod("get_superclass");
+            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("get_superclass");
             return builder.getFirstBuilder().call(builder.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(id));
         };
 
@@ -315,7 +316,7 @@ public final class CoreIntrinsics {
 
         StaticIntrinsic classForName0 = (builder, target, arguments) -> {
             // ignore fourth argument
-            MethodElement vmhForName = ctxt.getVMHelperMethod("classForName");
+            MethodElement vmhForName = RuntimeMethodFinder.get(ctxt).getMethod("classForName");
             return builder.call(builder.staticMethod(vmhForName, vmhForName.getDescriptor(), vmhForName.getType()), arguments.subList(0, 3));
         };
 
@@ -1029,7 +1030,7 @@ public final class CoreIntrinsics {
         MethodDescriptor getClassDesc = MethodDescriptor.synthesize(classContext, jlcDesc, List.of());
 
         InstanceIntrinsic getClassIntrinsic = (builder, instance, target, arguments) -> {
-            MethodElement helper = ctxt.getVMHelperMethod("get_class");
+            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("get_class");
             return builder.getFirstBuilder().call(builder.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(instance));
         };
 
@@ -1432,6 +1433,7 @@ public final class CoreIntrinsics {
         ClassContext classContext = ctxt.getBootstrapClassContext();
         CoreClasses coreClasses = CoreClasses.get(ctxt);
         SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
+        RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
         LiteralFactory lf = ctxt.getLiteralFactory();
 
         ClassTypeDescriptor objModDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/ObjectModel");
@@ -1572,7 +1574,7 @@ public final class CoreIntrinsics {
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_type_id_from_class", clsTypeId, getTypeIdFromClass);
 
-        MethodElement getOrCreateArrayClass = ctxt.getOMHelperMethod("get_or_create_class_for_refarray");
+        MethodElement getOrCreateArrayClass = methodFinder.getMethod("get_or_create_class_for_refarray");
         StaticIntrinsic getClassFromTypeId = (builder, target, arguments) -> {
             /** Pseudo code for this intrinsic:
              *    Class<?> componentClass = qbicc_jlc_lookup_table[typeId];
