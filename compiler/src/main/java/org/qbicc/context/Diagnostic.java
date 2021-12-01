@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.smallrye.common.constraint.Assert;
+
 /**
  * A single diagnostic message.
  */
@@ -16,6 +18,7 @@ public final class Diagnostic {
     private final List<Diagnostic> children = new ArrayList<>(0);
 
     public Diagnostic(final Diagnostic parent, final Location location, final Level level, final String format, final Object... args) {
+        Assert.checkNotNullParam("location", location);
         this.parent = parent;
         this.level = level;
         this.format = format;
