@@ -18,10 +18,6 @@
     <dependencies>
         <dependency>
             <groupId>org.qbicc</groupId>
-            <artifactId>qbicc-compiler</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.qbicc</groupId>
             <artifactId>qbicc-runtime-api</artifactId>
         </dependency>
         <dependency>

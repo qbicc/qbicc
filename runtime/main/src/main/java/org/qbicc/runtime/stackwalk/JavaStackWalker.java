@@ -1,9 +1,11 @@
 package org.qbicc.runtime.stackwalk;
 
 import org.qbicc.runtime.Hidden;
-import org.qbicc.type.definition.classfile.ClassFile;
 
 public class JavaStackWalker implements StackFrameVisitor {
+    private static final int I_ACC_HIDDEN = 1 << 18;
+
+
     private Throwable exceptionObject;
     private JavaStackFrameVisitor visitor;
     private int javaFrameCount;
@@ -40,10 +42,7 @@ public class JavaStackWalker implements StackFrameVisitor {
                 }
             }
         }
-        if (MethodData.hasAllModifiersOf(minfoIndex, ClassFile.I_ACC_HIDDEN)) {
-            return true;
-        }
-        return false;
+        return MethodData.hasAllModifiersOf(minfoIndex, I_ACC_HIDDEN);
     }
 
     public void visitFrame(int frameIndex, long ip, long sp) {
