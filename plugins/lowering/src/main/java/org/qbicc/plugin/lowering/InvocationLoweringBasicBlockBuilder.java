@@ -33,6 +33,7 @@ import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.Section;
 import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.plugin.coreclasses.CoreClasses;
+import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.plugin.dispatch.DispatchTables;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
@@ -192,7 +193,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         DispatchTables.ITableInfo info = dt.getITableInfo(target.getEnclosingType().load());
         if (info == null) {
             // No realized invocation targets are possible for this method!
-            MethodElement method = ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError");
+            MethodElement method = RuntimeMethodFinder.get(ctxt).getMethod("raiseIncompatibleClassChangeError");
             throw new BlockEarlyTermination(fb.callNoReturn(staticMethod(method, method.getDescriptor(), method.getType()), List.of()));
         }
 
@@ -227,7 +228,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             phi.setValueForBlock(ctxt, getCurrentElement(), body, fb.add(phi, ctxt.getLiteralFactory().literalOf(1)));
 
             begin(failLabel);
-            MethodElement method = ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError");
+            MethodElement method = RuntimeMethodFinder.get(ctxt).getMethod("raiseIncompatibleClassChangeError");
             callNoReturn(staticMethod(method, method.getDescriptor(), method.getType()), List.of());
         } catch (BlockEarlyTermination ignored) {
             // ignore; continue to generate validEntry block
@@ -267,7 +268,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         ctxt.getImplicitSection(originalElement).declareData(literal.getProgramObject());
         Literal arg = ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getType().getReference());
 
-        MethodElement helper = ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError");
+        MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseUnsatisfiedLinkError");
         return callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(arg));
     }
 }

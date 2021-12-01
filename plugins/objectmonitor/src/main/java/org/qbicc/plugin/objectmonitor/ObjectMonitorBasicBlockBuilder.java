@@ -6,6 +6,7 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
+import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
@@ -32,7 +33,7 @@ public class ObjectMonitorBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
     
     private Value generateObjectMonitorFunctionCall(final Value object, String functionName) {
-        MethodElement methodElement = ctxt.getVMHelperMethod(functionName);
+        MethodElement methodElement = RuntimeMethodFinder.get(ctxt).getMethod(functionName);
         List<Value> args = List.of(object);
         return getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement, methodElement.getDescriptor(), methodElement.getType()), args);
     }

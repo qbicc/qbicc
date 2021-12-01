@@ -16,39 +16,39 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
     public void accept(final CompilationContext ctxt) {
         RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
         // Helpers for dynamic type checking
-        ctxt.enqueue(ctxt.getVMHelperMethod("arrayStoreCheck"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("checkcast_class"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("checkcast_typeId"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("instanceof_class"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("instanceof_typeId"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("get_class"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("classof_from_typeid"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("get_superclass"));
+        ctxt.enqueue(methodFinder.getMethod("arrayStoreCheck"));
+        ctxt.enqueue(methodFinder.getMethod("checkcast_class"));
+        ctxt.enqueue(methodFinder.getMethod("checkcast_typeId"));
+        ctxt.enqueue(methodFinder.getMethod("instanceof_class"));
+        ctxt.enqueue(methodFinder.getMethod("instanceof_typeId"));
+        ctxt.enqueue(methodFinder.getMethod("get_class"));
+        ctxt.enqueue(methodFinder.getMethod("classof_from_typeid"));
+        ctxt.enqueue(methodFinder.getMethod("get_superclass"));
 
         // Helpers to create and throw common runtime exceptions
-        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseAbstractMethodError"));
-        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseArithmeticException"));
-        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseArrayIndexOutOfBoundsException"));
-        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseArrayStoreException"));
-        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseClassCastException"));
-        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError"));
-        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseNegativeArraySizeException"));
-        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseNullPointerException"));
-        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError"));
+        ctxt.registerEntryPoint(methodFinder.getMethod("raiseAbstractMethodError"));
+        ctxt.registerEntryPoint(methodFinder.getMethod("raiseArithmeticException"));
+        ctxt.registerEntryPoint(methodFinder.getMethod("raiseArrayIndexOutOfBoundsException"));
+        ctxt.registerEntryPoint(methodFinder.getMethod("raiseArrayStoreException"));
+        ctxt.registerEntryPoint(methodFinder.getMethod("raiseClassCastException"));
+        ctxt.registerEntryPoint(methodFinder.getMethod("raiseIncompatibleClassChangeError"));
+        ctxt.registerEntryPoint(methodFinder.getMethod("raiseNegativeArraySizeException"));
+        ctxt.registerEntryPoint(methodFinder.getMethod("raiseNullPointerException"));
+        ctxt.registerEntryPoint(methodFinder.getMethod("raiseUnsatisfiedLinkError"));
 
         // Object monitors
-        ctxt.enqueue(ctxt.getVMHelperMethod("monitor_enter"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("monitor_exit"));
+        ctxt.enqueue(methodFinder.getMethod("monitor_enter"));
+        ctxt.enqueue(methodFinder.getMethod("monitor_exit"));
 
         // class initialization
-        ctxt.enqueue(ctxt.getVMHelperMethod("initialize_class"));
+        ctxt.enqueue(methodFinder.getMethod("initialize_class"));
 
         // helper to create j.l.Class instance of an array class at runtime
-        ctxt.enqueue(ctxt.getOMHelperMethod("get_or_create_class_for_refarray"));
+        ctxt.enqueue(methodFinder.getMethod("get_or_create_class_for_refarray"));
 
         // java.lang.Thread
-        ctxt.enqueue(ctxt.getVMHelperMethod("JLT_start0"));
-        ctxt.enqueue(ctxt.getVMHelperMethod("threadWrapper"));
+        ctxt.enqueue(methodFinder.getMethod("JLT_start0"));
+        ctxt.enqueue(methodFinder.getMethod("threadWrapper"));
 
         // Helpers for stack walk
         ctxt.enqueue(methodFinder.getMethod("org/qbicc/runtime/stackwalk/MethodData", "fillStackTraceElements"));

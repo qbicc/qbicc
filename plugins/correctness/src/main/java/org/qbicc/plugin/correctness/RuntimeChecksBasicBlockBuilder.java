@@ -28,6 +28,7 @@ import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.plugin.coreclasses.CoreClasses;
+import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
@@ -191,7 +192,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             if_(isEq(v2, zero), throwIt, goAhead);
             try {
                 begin(throwIt);
-                MethodElement helper = ctxt.getVMHelperMethod("raiseArithmeticException");
+                MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseArithmeticException");
                 callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of());
             } catch (BlockEarlyTermination ignored) {
                 // continue
@@ -202,12 +203,12 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     private void throwIncompatibleClassChangeError() {
-        MethodElement helper = ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError");
+        MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseIncompatibleClassChangeError");
         throw new BlockEarlyTermination(callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of()));
     }
 
     private void throwClassCastException() {
-        MethodElement helper = ctxt.getVMHelperMethod("raiseClassCastException");
+        MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseClassCastException");
         throw new BlockEarlyTermination(callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of()));
     }
 
@@ -336,7 +337,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         if_(isEq(value, lf.zeroInitializerLiteralOfType(value.getType())), throwIt, goAhead);
         try {
             begin(throwIt);
-            MethodElement helper = ctxt.getVMHelperMethod("raiseNullPointerException");
+            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseNullPointerException");
             callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of());
         } catch (BlockEarlyTermination ignored) {
             //continue
@@ -361,7 +362,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         }
         try {
             begin(throwIt);
-            MethodElement helper = ctxt.getVMHelperMethod("raiseArrayIndexOutOfBoundsException");
+            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseArrayIndexOutOfBoundsException");
             callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
@@ -376,7 +377,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         if_(isLt(size, zero), throwIt, goAhead);
         try {
             begin(throwIt);
-            MethodElement helper = ctxt.getVMHelperMethod("raiseNegativeArraySizeException");
+            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseNegativeArraySizeException");
             callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
