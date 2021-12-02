@@ -51,7 +51,7 @@
         <version.httpcomponents.httpclient>4.5.13</version.httpcomponents.httpclient>
         <version.httpcomponents.httpcore>4.4.14</version.httpcomponents.httpcore>
         <version.javax.inject>1</version.javax.inject>
-        <version.jsoup>1.14.2</version.jsoup>
+        <version.jsoup>1.14.3</version.jsoup>
         <version.slf4j>1.7.32</version.slf4j>
 
         <!-- this is the class lib version; the class lib cannot be used in a POM but is used in resources -->
