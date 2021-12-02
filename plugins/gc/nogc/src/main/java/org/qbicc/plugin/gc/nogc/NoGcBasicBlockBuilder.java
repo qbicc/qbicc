@@ -103,6 +103,10 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         NoGc noGc = NoGc.get(ctxt);
         Layout layout = Layout.get(ctxt);
         if (objType instanceof ClassObjectType) {
+            // TODO: This implementation is actually not correct, because it is cloning based
+            //       on the static type of the value; not the actual runtime type.
+            //       I would remove it entirely, except it is actually needed to pass one of our
+            //       integration tests (which is using Enums).
             ClassObjectType type = (ClassObjectType) objType;
             LayoutInfo info = layout.getInstanceLayoutInfo(type.getDefinition());
             LiteralFactory lf = ctxt.getLiteralFactory();
