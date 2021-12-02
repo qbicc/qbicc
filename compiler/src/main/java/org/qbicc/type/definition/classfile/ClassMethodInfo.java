@@ -245,9 +245,10 @@ final class ClassMethodInfo {
         for (int i = 0; i < attrCnt; i ++) {
             int nameIdx = codeAttr.getShort() & 0xffff;
             int len = codeAttr.getInt();
+            int end = codeAttr.position() + len;
             if (classFile.utf8ConstantEquals(nameIdx, "LineNumberTable")) {
-                lineNumberTable.appendTableFromAttribute(codeAttr.duplicate().limit(codeAttr.position() + len).slice());
-                codeAttr.position(codeAttr.position() + len);
+                lineNumberTable.appendTableFromAttribute(codeAttr.duplicate().limit(end).slice());
+                codeAttr.position(end);
             } else if ((lvt = classFile.utf8ConstantEquals(nameIdx, "LocalVariableTable")) || classFile.utf8ConstantEquals(nameIdx, "LocalVariableTypeTable")) {
                 int cnt = codeAttr.getShort() & 0xffff;
                 // sanity check the length
@@ -304,19 +305,23 @@ final class ClassMethodInfo {
                         }
                     }
                 }
+                codeAttr.position(end);
             } else if (classFile.utf8ConstantEquals(nameIdx, "StackMapTable")) {
                 // do not reorder
                 stackMapTableLen = codeAttr.getShort() & 0xffff;
                 stackMapTableOffs = codeAttr.position();
+                codeAttr.position(end);
             } else if (classFile.utf8ConstantEquals(nameIdx, "RuntimeVisibleTypeAnnotations")) {
                 visibleTypeAnnotationsLen = codeAttr.getShort() & 0xffff;
                 visibleTypeAnnotationsOffs = codeAttr.position();
+                codeAttr.position(end);
             } else if (classFile.utf8ConstantEquals(nameIdx, "RuntimeInvisibleTypeAnnotations")) {
                 invisibleTypeAnnotationsLen = codeAttr.getShort() & 0xffff;
                 invisibleTypeAnnotationsOffs = codeAttr.position();
+                codeAttr.position(end);
             } else {
                 // skip it
-                codeAttr.position(codeAttr.position() + len);
+                codeAttr.position(end);
             }
         }
         for (int i = 0; i < maxLocals; i ++) {
