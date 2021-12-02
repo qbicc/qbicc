@@ -34,6 +34,7 @@ import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
@@ -158,9 +159,15 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public Value newArray(final ArrayObjectType arrayType, final Value size) {
+    public Value newArray(final PrimitiveArrayObjectType arrayType, final Value size) {
         arraySizeCheck(size);
         return super.newArray(arrayType, size);
+    }
+
+    @Override
+    public Value newReferenceArray(final ReferenceArrayObjectType arrayType, final Value size) {
+        arraySizeCheck(size);
+        return super.newReferenceArray(arrayType, size);
     }
 
     @Override

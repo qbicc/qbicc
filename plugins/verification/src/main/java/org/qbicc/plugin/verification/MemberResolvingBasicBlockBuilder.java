@@ -26,6 +26,7 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
+import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
@@ -278,8 +279,10 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public Value newArray(final ArrayTypeDescriptor desc, final Value size) {
         ClassContext cc = getClassContext();
         ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
-        if (type instanceof ArrayObjectType) {
-            return super.newArray((ArrayObjectType) type, size);
+        if (type instanceof PrimitiveArrayObjectType pat) {
+            return super.newArray(pat, size);
+        } else if (type instanceof ReferenceArrayObjectType rat) {
+            return super.newReferenceArray(rat, size);
         } else if (type instanceof ArrayType at) {
             // it's a native array
             if (size instanceof IntegerLiteral il) {

@@ -11,6 +11,7 @@ import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
@@ -48,7 +49,17 @@ public class BasicInitializationBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value newArray(ArrayObjectType arrayType, Value size) {
+    public Value newReferenceArray(ReferenceArrayObjectType arrayType, Value size) {
+        Value allocated = super.newReferenceArray(arrayType, size);
+        ValueType allocatedType = allocated.getType();
+        if (allocatedType instanceof ReferenceType) {
+            initializeArrayHeader(arrayType, allocated, size);
+        }
+        return allocated;
+    }
+
+    @Override
+    public Value newArray(PrimitiveArrayObjectType arrayType, Value size) {
         Value allocated = super.newArray(arrayType, size);
         ValueType allocatedType = allocated.getType();
         if (allocatedType instanceof ReferenceType) {

@@ -1,19 +1,19 @@
 package org.qbicc.graph;
 
-import org.qbicc.type.PrimitiveArrayObjectType;
+import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
- * A {@code new} allocation operation for array objects.
+ * A {@code new} allocation operation for reference array objects.
  */
-public final class NewArray extends AbstractValue implements OrderedNode {
+public final class NewReferenceArray extends AbstractValue implements OrderedNode {
     private final Node dependency;
-    private final PrimitiveArrayObjectType type;
+    private final ReferenceArrayObjectType type;
     private final Value size;
 
-    NewArray(final Node callSite, final ExecutableElement element, final int line, final int bci, Node dependency, final PrimitiveArrayObjectType type, final Value size) {
+    NewReferenceArray(final Node callSite, final ExecutableElement element, final int line, final int bci, Node dependency, final ReferenceArrayObjectType type, final Value size) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.type = type;
@@ -36,7 +36,7 @@ public final class NewArray extends AbstractValue implements OrderedNode {
         return type.getElementType();
     }
 
-    public PrimitiveArrayObjectType getArrayType() {
+    public ReferenceArrayObjectType getArrayType() {
         return type;
     }
 
@@ -58,7 +58,7 @@ public final class NewArray extends AbstractValue implements OrderedNode {
 
     @Override
     String getNodeName() {
-        return "NewArray";
+        return "NewReferenceArray";
     }
 
     public boolean equals(final Object other) {

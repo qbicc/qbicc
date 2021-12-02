@@ -12,6 +12,8 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.PrimitiveArrayObjectType;
+import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.element.InitializerElement;
 
 /**
@@ -66,8 +68,13 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
         return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(type.getReference());
     }
 
-    public Value newArray(final ArrayObjectType arrayType, final Value size) {
+    public Value newArray(final PrimitiveArrayObjectType arrayType, final Value size) {
         invalidNode("newArray");
+        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(arrayType.getReference());
+    }
+
+    public Value newReferenceArray(final ReferenceArrayObjectType arrayType, final Value size) {
+        invalidNode("newReferenceArray");
         return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(arrayType.getReference());
     }
 

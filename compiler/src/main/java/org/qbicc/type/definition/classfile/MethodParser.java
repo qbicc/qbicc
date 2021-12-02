@@ -51,6 +51,7 @@ import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
+import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
@@ -1772,7 +1773,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         break;
                     }
                     case OP_NEWARRAY:
-                        ArrayObjectType arrayType;
+                        PrimitiveArrayObjectType arrayType;
                         switch (buffer.get() & 0xff) {
                             case T_BOOLEAN: arrayType = ts.getBooleanType().getPrimitiveArrayObjectType(); break;
                             case T_CHAR: arrayType = ts.getUnsignedInteger16Type().getPrimitiveArrayObjectType(); break;

@@ -90,6 +90,7 @@ import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.Neg;
 import org.qbicc.graph.New;
 import org.qbicc.graph.NewArray;
+import org.qbicc.graph.NewReferenceArray;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NonCommutativeBinaryValue;
@@ -1119,6 +1120,12 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final NewArray node) {
         String name = node(param, "new array\\n" + node.getArrayType().toString(), node);
+        addEdge(param, node, node.getSize(), EdgeType.VALUE_DEPENDENCY, "size");
+        return name;
+    }
+
+    public String visit(final Appendable param, final NewReferenceArray node) {
+        String name = node(param, "new reference array\\n" + node.getArrayType().toString(), node);
         addEdge(param, node, node.getSize(), EdgeType.VALUE_DEPENDENCY, "size");
         return name;
     }
