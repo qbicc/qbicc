@@ -27,7 +27,6 @@ import org.eclipse.aether.impl.OfflineController;
 import org.eclipse.aether.impl.RemoteRepositoryManager;
 import org.eclipse.aether.impl.RepositoryConnectorProvider;
 import org.eclipse.aether.impl.RepositoryEventDispatcher;
-import org.eclipse.aether.impl.SyncContextFactory;
 import org.eclipse.aether.impl.UpdateCheckManager;
 import org.eclipse.aether.impl.UpdatePolicyAnalyzer;
 import org.eclipse.aether.impl.VersionRangeResolver;
@@ -45,14 +44,17 @@ import org.eclipse.aether.internal.impl.DefaultRepositoryConnectorProvider;
 import org.eclipse.aether.internal.impl.DefaultRepositoryEventDispatcher;
 import org.eclipse.aether.internal.impl.DefaultRepositoryLayoutProvider;
 import org.eclipse.aether.internal.impl.DefaultRepositorySystem;
-import org.eclipse.aether.internal.impl.DefaultSyncContextFactory;
+import org.eclipse.aether.internal.impl.DefaultTrackingFileManager;
 import org.eclipse.aether.internal.impl.DefaultTransporterProvider;
 import org.eclipse.aether.internal.impl.DefaultUpdateCheckManager;
 import org.eclipse.aether.internal.impl.DefaultUpdatePolicyAnalyzer;
 import org.eclipse.aether.internal.impl.EnhancedLocalRepositoryManagerFactory;
 import org.eclipse.aether.internal.impl.Maven2RepositoryLayoutFactory;
 import org.eclipse.aether.internal.impl.SimpleLocalRepositoryManagerFactory;
+import org.eclipse.aether.internal.impl.TrackingFileManager;
 import org.eclipse.aether.internal.impl.collect.DefaultDependencyCollector;
+import org.eclipse.aether.internal.impl.synccontext.DefaultSyncContextFactory;
+import org.eclipse.aether.internal.impl.synccontext.NamedLockFactorySelector;
 import org.eclipse.aether.spi.connector.RepositoryConnectorFactory;
 import org.eclipse.aether.spi.connector.checksum.ChecksumPolicyProvider;
 import org.eclipse.aether.spi.connector.layout.RepositoryLayoutFactory;
@@ -65,6 +67,7 @@ import org.eclipse.aether.spi.locator.Service;
 import org.eclipse.aether.spi.locator.ServiceLocator;
 import org.eclipse.aether.spi.log.Logger;
 import org.eclipse.aether.spi.log.LoggerFactory;
+import org.eclipse.aether.spi.synccontext.SyncContextFactory;
 import org.eclipse.aether.transport.wagon.WagonProvider;
 import org.eclipse.aether.transport.wagon.WagonTransporterFactory;
 
@@ -72,6 +75,7 @@ import org.eclipse.aether.transport.wagon.WagonTransporterFactory;
  * Our implementation of {@link ServiceLocator} for Maven resolution.
  */
 final class QbiccServiceLocator implements ServiceLocator {
+
     private static final Map<Class<?>, List<Supplier<Object>>> serviceClasses = Map.ofEntries(
         Map.entry(ArtifactDescriptorReader.class, List.of(DefaultArtifactDescriptorReader::new)),
         Map.entry(ArtifactResolver.class, List.of(DefaultArtifactResolver::new)),
@@ -85,6 +89,7 @@ final class QbiccServiceLocator implements ServiceLocator {
         Map.entry(MetadataGeneratorFactory.class, List.of(SnapshotMetadataGeneratorFactory::new, VersionsMetadataGeneratorFactory::new)),
         Map.entry(MetadataResolver.class, List.of(DefaultMetadataResolver::new)),
         Map.entry(ModelBuilder.class, List.of(() -> new DefaultModelBuilderFactory().newInstance())),
+        Map.entry(NamedLockFactorySelector.class, List.of(NamedLockFactorySelector::new)),
         Map.entry(OfflineController.class, List.of(DefaultOfflineController::new)),
         Map.entry(RemoteRepositoryManager .class, List.of(DefaultRemoteRepositoryManager::new)),
         Map.entry(RepositoryConnectorFactory.class, List.of(BasicRepositoryConnectorFactory::new)),
@@ -94,6 +99,8 @@ final class QbiccServiceLocator implements ServiceLocator {
         Map.entry(RepositoryLayoutProvider.class, List.of(DefaultRepositoryLayoutProvider::new)),
         Map.entry(RepositorySystem.class, List.of(DefaultRepositorySystem::new)),
         Map.entry(SyncContextFactory.class, List.of(DefaultSyncContextFactory::new)),
+        Map.entry(org.eclipse.aether.impl.SyncContextFactory.class, List.of(org.eclipse.aether.internal.impl.synccontext.legacy.DefaultSyncContextFactory::new)),
+        Map.entry(TrackingFileManager.class, List.of(DefaultTrackingFileManager::new)),
         Map.entry(TransporterFactory.class, List.of(WagonTransporterFactory::new)),
         Map.entry(TransporterProvider.class, List.of(DefaultTransporterProvider::new)),
         Map.entry(UpdateCheckManager.class, List.of(DefaultUpdateCheckManager::new)),
