@@ -362,7 +362,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         if_(isLt(index, zero), throwIt, notNegative);
         try {
             begin(notNegative);
-            final Value length = load(getFirstBuilder().lengthOf(array), MemoryAtomicityMode.UNORDERED);
+            final Value length = load(instanceFieldOf(array, CoreClasses.get(ctxt).getArrayLengthField()), MemoryAtomicityMode.UNORDERED);
             if_(isGe(index, length), throwIt, goAhead);
         } catch (BlockEarlyTermination ignored) {
             // continue

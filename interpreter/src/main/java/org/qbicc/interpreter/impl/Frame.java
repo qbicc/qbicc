@@ -1865,7 +1865,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         VmClassLoaderImpl cl = thread.vm.getClassLoaderForContext(enclosingType.getContext());
         VmClassImpl clazz = cl.loadClass(node.getClassObjectType().getDefinition().getInternalName());
         clazz.initialize(thread);
-        return clazz.newInstance();
+        return thread.vm.manuallyInitialize(clazz.newInstance());
     }
 
     @Override
@@ -1881,7 +1881,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     private VmArrayImpl newArray(VmThreadImpl thread, ArrayObjectType arrayType, int size) {
         VmClassImpl clazz = requireClass(arrayType);
         if (clazz instanceof VmArrayClassImpl) {
-            return ((VmArrayClassImpl) clazz).newInstance(size);
+            return thread.vm.manuallyInitialize(((VmArrayClassImpl) clazz).newInstance(size));
         } else {
             throw unsupportedType();
         }
