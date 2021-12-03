@@ -4,7 +4,6 @@ import org.qbicc.runtime.CNative;
 import org.qbicc.runtime.Hidden;
 
 import static org.qbicc.runtime.CNative.*;
-import static org.qbicc.runtime.posix.PThread.*;
 import static org.qbicc.runtime.stdc.Stdint.*;
 
 /**
@@ -22,20 +21,20 @@ public class ObjectModel {
      * @return instance of java.lang.Class
      */
     @Hidden
-    public static Class<?> get_or_create_array_class(Class<?> componentClass, uint8_t dimensions) {
-        Class<?> arrayClass = CompilerIntrinsics.get_array_class_of(componentClass);
+    public static Class<?> getOrCreateArrayClass(Class<?> componentClass, uint8_t dimensions) {
+        Class<?> arrayClass = CompilerIntrinsics.getArrayClassOf(componentClass);
         if (arrayClass == null) {
             String className;
-            type_id componentTypeId = CompilerIntrinsics.get_type_id_from_class(componentClass);
-            if (CompilerIntrinsics.is_reference_array(componentTypeId) || CompilerIntrinsics.is_prim_array(componentTypeId)) {
+            type_id componentTypeId = CompilerIntrinsics.getTypeIdFromClass(componentClass);
+            if (CompilerIntrinsics.isReferenceArray(componentTypeId) || CompilerIntrinsics.isPrimArray(componentTypeId)) {
                 className = "[" + componentClass.getName();
-                arrayClass = CompilerIntrinsics.create_class(className, CompilerIntrinsics.get_reference_array_typeid(), dimensions);
+                arrayClass = CompilerIntrinsics.createClass(className, CompilerIntrinsics.getReferenceArrayTypeId(), dimensions);
             } else {
                 className = "[L" + componentClass.getName() + ";";
-                arrayClass = CompilerIntrinsics.create_class(className, CompilerIntrinsics.get_reference_array_typeid(), dimensions);
+                arrayClass = CompilerIntrinsics.createClass(className, CompilerIntrinsics.getReferenceArrayTypeId(), dimensions);
             }
-            if (!CompilerIntrinsics.set_array_class(componentClass, arrayClass)) {
-                arrayClass = CompilerIntrinsics.get_array_class_of(componentClass);
+            if (!CompilerIntrinsics.setArrayClass(componentClass, arrayClass)) {
+                arrayClass = CompilerIntrinsics.getArrayClassOf(componentClass);
             }
         }
         return arrayClass;
@@ -49,12 +48,12 @@ public class ObjectModel {
      * @return instance of java.lang.Class
      */
     @Hidden
-    public static Class<?> get_array_class_of_dimension(Class<?> leafClass, uint8_t dimensions) {
+    public static Class<?> getArrayClassOfDimension(Class<?> leafClass, uint8_t dimensions) {
         if (dimensions.intValue() == 1) {
-            return get_or_create_array_class(leafClass, dimensions);
+            return getOrCreateArrayClass(leafClass, dimensions);
         }
-        Class<?> cls = get_array_class_of_dimension(leafClass, CNative.word(dimensions.intValue()-1));
-        return get_or_create_array_class(cls, dimensions);
+        Class<?> cls = getArrayClassOfDimension(leafClass, CNative.word(dimensions.intValue()-1));
+        return getOrCreateArrayClass(cls, dimensions);
     }
 
     /**
@@ -65,9 +64,9 @@ public class ObjectModel {
      * @return boolean
      */
     @Hidden
-    public static boolean is_reference_array_class(Class<?> cls) {
-        type_id typeId = CompilerIntrinsics.get_type_id_from_class(cls);
-        return CompilerIntrinsics.is_reference_array(typeId);
+    public static boolean isReferenceArrayClass(Class<?> cls) {
+        type_id typeId = CompilerIntrinsics.getTypeIdFromClass(cls);
+        return CompilerIntrinsics.isReferenceArray(typeId);
     }
 
     /**
@@ -78,8 +77,8 @@ public class ObjectModel {
      * @return instance of java.lang.Class
      */
     @Hidden
-    public static Class<?> get_or_create_class_for_refarray(Class<?> leafClass, uint8_t dimensions) {
-        return get_array_class_of_dimension(leafClass, dimensions);
+    public static Class<?> getOrCreateClassForRefArray(Class<?> leafClass, uint8_t dimensions) {
+        return getArrayClassOfDimension(leafClass, dimensions);
     }
 
     static final int Flag_typeid_has_clinit = 1;
@@ -87,17 +86,19 @@ public class ObjectModel {
     static final int Flag_typeid_has_default_methods = 4;
 
     @Hidden
-    public static boolean has_class_initializer(type_id typeId) {
-        return (CompilerIntrinsics.get_typeid_flags(typeId) & Flag_typeid_has_clinit) == Flag_typeid_has_clinit;
+    public static boolean hasClassInitializer(type_id typeId) {
+        return (CompilerIntrinsics.getTypeIdFlags(typeId) & Flag_typeid_has_clinit) == Flag_typeid_has_clinit;
     }
 
     @Hidden
-    public static boolean declares_default_methods(type_id typeId) {
-        return (CompilerIntrinsics.get_typeid_flags(typeId) & Flag_typeid_declares_default_methods) == Flag_typeid_declares_default_methods;
+    public static boolean declaresDefaultMethods(type_id typeId) {
+        return (CompilerIntrinsics.getTypeIdFlags(typeId) & Flag_typeid_declares_default_methods) == Flag_typeid_declares_default_methods;
     }
 
     @Hidden
-    public static boolean has_default_methods(type_id typeId) {
-        return (CompilerIntrinsics.get_typeid_flags(typeId) & Flag_typeid_has_default_methods) == Flag_typeid_has_default_methods;
+    public static boolean hasDefaultMethods(type_id typeId) {
+        return (CompilerIntrinsics.getTypeIdFlags(typeId) & Flag_typeid_has_default_methods) == Flag_typeid_has_default_methods;
     }
+
+    public static native void_ptr threadWrapperNative(void_ptr threadParam);
 }

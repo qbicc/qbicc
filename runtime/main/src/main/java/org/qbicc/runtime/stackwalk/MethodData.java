@@ -19,7 +19,7 @@ public final class MethodData {
 
     public static Class<?> getClass(int minfoIndex) {
         type_id typeId = word(getTypeId(minfoIndex));
-        return CompilerIntrinsics.get_class_from_type_id(typeId, word(0));
+        return CompilerIntrinsics.getClassFromTypeId(typeId, word(0));
     }
 
     public static boolean hasAllModifiersOf(int minfoIndex, int mask) {

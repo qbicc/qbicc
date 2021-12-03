@@ -17,13 +17,13 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
         RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
         // Helpers for dynamic type checking
         ctxt.enqueue(methodFinder.getMethod("arrayStoreCheck"));
-        ctxt.enqueue(methodFinder.getMethod("checkcast_class"));
-        ctxt.enqueue(methodFinder.getMethod("checkcast_typeId"));
-        ctxt.enqueue(methodFinder.getMethod("instanceof_class"));
-        ctxt.enqueue(methodFinder.getMethod("instanceof_typeId"));
-        ctxt.enqueue(methodFinder.getMethod("get_class"));
-        ctxt.enqueue(methodFinder.getMethod("classof_from_typeid"));
-        ctxt.enqueue(methodFinder.getMethod("get_superclass"));
+        ctxt.enqueue(methodFinder.getMethod("checkcastClass"));
+        ctxt.enqueue(methodFinder.getMethod("checkcastTypeId"));
+        ctxt.enqueue(methodFinder.getMethod("instanceofClass"));
+        ctxt.enqueue(methodFinder.getMethod("instanceofTypeId"));
+        ctxt.enqueue(methodFinder.getMethod("getClass"));
+        ctxt.enqueue(methodFinder.getMethod("getClassFromTypeId"));
+        ctxt.enqueue(methodFinder.getMethod("getSuperClass"));
 
         // Helpers to create and throw common runtime exceptions
         ctxt.registerEntryPoint(methodFinder.getMethod("raiseAbstractMethodError"));
@@ -37,14 +37,14 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
         ctxt.registerEntryPoint(methodFinder.getMethod("raiseUnsatisfiedLinkError"));
 
         // Object monitors
-        ctxt.enqueue(methodFinder.getMethod("monitor_enter"));
-        ctxt.enqueue(methodFinder.getMethod("monitor_exit"));
+        ctxt.enqueue(methodFinder.getMethod("monitorEnter"));
+        ctxt.enqueue(methodFinder.getMethod("monitorExit"));
 
         // class initialization
-        ctxt.enqueue(methodFinder.getMethod("initialize_class"));
+        ctxt.enqueue(methodFinder.getMethod("initializeClass"));
 
         // helper to create j.l.Class instance of an array class at runtime
-        ctxt.enqueue(methodFinder.getMethod("get_or_create_class_for_refarray"));
+        ctxt.enqueue(methodFinder.getMethod("getOrCreateClassForRefArray"));
 
         // java.lang.Thread
         ctxt.enqueue(methodFinder.getMethod("JLT_start0"));

@@ -444,7 +444,7 @@ public final class VmImpl implements Vm {
             // VMHelpers
             VmClassImpl vmHelpersClass = bootstrapClassLoader.loadClass("org/qbicc/runtime/main/VMHelpers");
 
-            vmHelpersClass.registerInvokable("get_class", (thread, target, args) -> ((VmObjectImpl) args.get(0)).getVmClass());
+            vmHelpersClass.registerInvokable("getClass", (thread, target, args) -> ((VmObjectImpl) args.get(0)).getVmClass());
             vmHelpersClass.registerInvokable("classForName", (thread, target, args) -> {
                 VmClassLoaderImpl classLoader = (VmClassLoaderImpl) args.get(2);
                 if (classLoader == null) {
@@ -477,8 +477,8 @@ public final class VmImpl implements Vm {
             // ObjectModel
             VmClassImpl compIntr = bootstrapClassLoader.loadClass("org/qbicc/runtime/main/CompilerIntrinsics");
 
-            compIntr.registerInvokable("type_id_of", (thread, target, args) -> ((VmObjectImpl) args.get(0)).getObjectTypeId());
-            compIntr.registerInvokable("get_type_id_from_class", (thread, target, args) -> ((VmClassImpl) args.get(0)).getInstanceObjectTypeId());
+            compIntr.registerInvokable("typeIdOf", (thread, target, args) -> ((VmObjectImpl) args.get(0)).getObjectTypeId());
+            compIntr.registerInvokable("getTypeIdFromClass", (thread, target, args) -> ((VmClassImpl) args.get(0)).getInstanceObjectTypeId());
 
             // Unsafe
             VmClassImpl unsafeClass = bootstrapClassLoader.loadClass("jdk/internal/misc/Unsafe");

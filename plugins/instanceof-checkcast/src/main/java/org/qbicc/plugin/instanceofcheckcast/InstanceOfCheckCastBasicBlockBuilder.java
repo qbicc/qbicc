@@ -138,7 +138,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             if (!inlinedTest) {
                 String helperName;
                 if (kind.equals(CheckCast.CastType.Cast)) {
-                    helperName = toType instanceof TypeLiteral ? "checkcast_typeId" : "checkcast_class";
+                    helperName = toType instanceof TypeLiteral ? "checkcastTypeId" : "checkcastClass";
                 } else {
                     helperName = "arrayStoreCheck";
                 }
@@ -202,7 +202,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             final BlockLabel passInline = new BlockLabel();
             boolean inlinedTest = generateTypeTest(input, expectedType, expectedDimensions, passInline, fail);
             if (!inlinedTest) {
-                MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("instanceof_typeId");
+                MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("instanceofTypeId");
                 passResult = getFirstBuilder().call(getFirstBuilder().staticMethod(helper, helper.getDescriptor(), helper.getType()),
                     List.of(input, lf.literalOfType(expectedType), lf.literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), expectedDimensions)));
                 passLabel = notNull;
@@ -233,10 +233,10 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
         if (dimensions.isDefEq(ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), 0))) {
             // call the intrinsic directly, inlining the calculation
-            methodElement = methodFinder.getMethod("get_class_from_type_id_simple");
+            methodElement = methodFinder.getMethod("getClassFromTypeIdSimple");
             return notNull(getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement, methodElement.getDescriptor(), methodElement.getType()), List.of(typeId)));
         } else {
-            methodElement = methodFinder.getMethod("classof_from_typeid");
+            methodElement = methodFinder.getMethod("getClassFromTypeId");
             return notNull(getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement, methodElement.getDescriptor(), methodElement.getType()), List.of(typeId, dimensions)));
         }
     }

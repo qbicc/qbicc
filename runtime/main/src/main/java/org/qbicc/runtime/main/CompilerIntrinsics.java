@@ -13,7 +13,7 @@ import org.qbicc.runtime.stdc.Stdint.*;
 @SuppressWarnings("unused")
 public class CompilerIntrinsics {
     @Hidden
-    public static native Object emit_new_ref_array(type_id elemTypeId, uint8_t dimensions, int size);
+    public static native Object emitNewReferenceArray(type_id elemTypeId, uint8_t dimensions, int size);
 
     /**
      * TODO
@@ -35,25 +35,25 @@ public class CompilerIntrinsics {
      * Classes and interfaces have dimensionality 0.
      */
     @Hidden
-    public static native uint8_t get_dimensions_from_class(Class<?> cls);
+    public static native uint8_t getDimensionsFromClass(Class<?> cls);
 
     /**
      * Get the concrete type ID for the represented type from a java.lang.Class instance.
      */
     @Hidden
-    public static native type_id get_type_id_from_class(Class<?> cls);
+    public static native type_id getTypeIdFromClass(Class<?> cls);
 
     /**
      * Get the java.lang.Class instance for the type ID.
      */
     @Hidden
-    public static native Class<?> get_class_from_type_id(type_id typeId, uint8_t dimensions);
+    public static native Class<?> getClassFromTypeId(type_id typeId, uint8_t dimensions);
 
     /**
      * Get the java.lang.Class instance for the type ID for non-array classes.
      */
     @Hidden
-    public static native Class<?> get_class_from_type_id_simple(type_id typeId);
+    public static native Class<?> getClassFromTypeIdSimple(type_id typeId);
 
     /**
      * Returns java.lang.Class instance representing array class of a given class
@@ -62,7 +62,7 @@ public class CompilerIntrinsics {
      * @return instance of java.lang.Class
      */
     @Hidden
-    public static native Class<?> get_array_class_of(Class<?> componentClass);
+    public static native Class<?> getArrayClassOf(Class<?> componentClass);
 
     /**
      * Tries to atomically set the java.lang.Class#arrayClass field of a component class
@@ -73,68 +73,68 @@ public class CompilerIntrinsics {
      * @return boolean true if atomic operation succeeds, false otherwise
      */
     @Hidden
-    public static native boolean set_array_class(Class<?> componentClass, Class<?> arrayClass);
+    public static native boolean setArrayClass(Class<?> componentClass, Class<?> arrayClass);
 
     /**
      * Is the argument typeId the typeId for java.lang.Object?
      */
     @Hidden
-    public static native boolean is_java_lang_object(type_id typeId);
+    public static native boolean isJavaLangObject(type_id typeId);
 
     /**
      * Is the argument typeId the typeId for java.lang.Cloneable?
      */
     @Hidden
-    public static native boolean is_java_lang_cloneable(type_id typeId);
+    public static native boolean isJavaLangCloneable(type_id typeId);
 
     /**
      * Is the argument typeId the typeId for java.io.Serializable?
      */
     @Hidden
-    public static native boolean is_java_io_serializable(type_id typeId);
+    public static native boolean isJavaIoSerializable(type_id typeId);
 
     /**
      * Is the argument typeId the typeId of a Class?
      */
     @Hidden
-    public static native boolean is_class(type_id typeId);
+    public static native boolean isClass(type_id typeId);
 
     /**
      * Is the argument typeId the typeId of an Interface?
      */
     @Hidden
-    public static native boolean is_interface(type_id typeId);
+    public static native boolean isInterface(type_id typeId);
 
     /**
      * Is the argument typeId the typeId of a primitive array?
      */
     @Hidden
-    public static native boolean is_prim_array(type_id typeId);
+    public static native boolean isPrimArray(type_id typeId);
 
     /**
      * Is the argument typeId the typeId of a primitive?
      */
     @Hidden
-    public static native boolean is_primitive(type_id typeId);
+    public static native boolean isPrimitive(type_id typeId);
 
     /**
      * Is the argument typeId the typeId use for reference arrays?
      */
     @Hidden
-    public static native boolean is_reference_array(type_id typeId);
+    public static native boolean isReferenceArray(type_id typeId);
 
     /**
      * Returns the typeId used for reference arrays
      */
     @Hidden
-    public static native type_id get_reference_array_typeid();
+    public static native type_id getReferenceArrayTypeId();
 
     /**
      * Get the number of typeIds in the system.
      * This will be 1 higher than the highest typeid
      */
     @Hidden
-    public static native type_id get_number_of_typeids();
+    public static native type_id getNumberOfTypeIds();
 
     /**
      * Allocates an instance of java.lang.Class in the runtime heap
@@ -145,7 +145,7 @@ public class CompilerIntrinsics {
      * @return instance of java.lang.Class
      */
     @Hidden
-    public static native Class<?> create_class(String name, type_id id, uint8_t dimension);
+    public static native Class<?> createClass(String name, type_id id, uint8_t dimension);
 
     /**
      * Get the concrete type ID value from the referenced object.  Note that all reference arrays will have the same
@@ -155,7 +155,7 @@ public class CompilerIntrinsics {
      * @return the type ID of the object
      */
     @Hidden
-    public static native type_id type_id_of(Object reference);
+    public static native type_id typeIdOf(Object reference);
 
     /**
      * Get the dimensionality of the referenced array.
@@ -164,7 +164,7 @@ public class CompilerIntrinsics {
      * @return the dimensionality of the array
      */
     @Hidden
-    public static native uint8_t dimensions_of(Object arrayReference); // Object not Object[] because we use this in the impl of cast
+    public static native uint8_t dimensionsOf(Object arrayReference); // Object not Object[] because we use this in the impl of cast
 
     /**
      * Get the element type ID value of the referenced array.
@@ -173,19 +173,19 @@ public class CompilerIntrinsics {
      * @return the array element type ID
      */
     @Hidden
-    public static native type_id element_type_id_of(Object arrayReference); // Object not Object[] because we use this in the impl of cast
+    public static native type_id elementTypeIdOf(Object arrayReference); // Object not Object[] because we use this in the impl of cast
 
     /**
      * Get the maxTypeId assigned to subclasses of the argument typeId
      */
     @Hidden
-    public static native type_id max_subclass_type_id_of(type_id typeId);
+    public static native type_id maxSubClassTypeIdOf(type_id typeId);
 
     /**
      * Does a typeId implement the argument interface?
      */
     @Hidden
-    public static native boolean does_implement(type_id valueTypeId, type_id interfaceTypeId);
+    public static native boolean doesImplement(type_id valueTypeId, type_id interfaceTypeId);
 
     /**
      * Call the class initializer for this class if it hasn't already been
@@ -198,7 +198,7 @@ public class CompilerIntrinsics {
      * @param typeId the class to initialize
      */
     @Hidden
-    public static native void call_class_initializer(type_id typeId);
+    public static native void callClassInitializer(type_id typeId);
 
     /**
      * Get the `flags` field from the qbicc_typeid_array for the given
@@ -214,7 +214,7 @@ public class CompilerIntrinsics {
      * @return the flags value
      */
     @Hidden
-    public static native int get_typeid_flags(type_id typeId);
+    public static native int getTypeIdFlags(type_id typeId);
 
     /**
      * Fetch the superclass `type_id` from the current `type_id`
@@ -222,16 +222,16 @@ public class CompilerIntrinsics {
      * @return superclass's type_id
      */
     @Hidden
-    public static native type_id get_superclass_typeid(type_id typeId);
+    public static native type_id getSuperClassTypeId(type_id typeId);
 
     @Hidden
-    public static native type_id get_first_interface_typeid();
+    public static native type_id getFirstInterfaceTypeId();
 
     @Hidden
-    public static native int get_number_of_bytes_in_interface_bits_array();
+    public static native int getNumberOfBytesInInterfaceBitsArray();
 
     @Hidden
-    public static native byte get_byte_of_interface_bits(type_id typeId, int index);
+    public static native byte getByteOfInterfaceBits(type_id typeId, int index);
 
     /**
      * Check the `clinit_states` native structure to see if this typeid is initialized.
@@ -243,7 +243,7 @@ public class CompilerIntrinsics {
      * @return true if initialized.  False if the state machine needs to validate.
      */
     @Hidden
-    public static native boolean is_initialized(type_id typdId);
+    public static native boolean isInitialized(type_id typdId);
 
     /**
      * Set the class initialized.
@@ -252,7 +252,7 @@ public class CompilerIntrinsics {
      * @param typdId the class to mark initialized
      */
     @Hidden
-    public static native void set_initialized(type_id typdId);
+    public static native void setInitialized(type_id typdId);
 
     /**
      * Get the native object monitor (mutex) slot from the referenced object. These are intended for object monitor synchronization.
@@ -261,7 +261,7 @@ public class CompilerIntrinsics {
      * @return the pthread mutex of the object
      */
     @Hidden
-    public static native PThread.pthread_mutex_t_ptr get_nativeObjectMonitor(Object reference);
+    public static native PThread.pthread_mutex_t_ptr getNativeObjectMonitor(Object reference);
 
     /**
      * Set the native object monitor (mutex) for the referenced object. This method is atomic and will return true on success.
@@ -271,5 +271,5 @@ public class CompilerIntrinsics {
      * @return true if successful
      */
     @Hidden
-    public static native boolean set_nativeObjectMonitor(Object reference, PThread.pthread_mutex_t_ptr nom);
+    public static native boolean setNativeObjectMonitor(Object reference, PThread.pthread_mutex_t_ptr nom);
 }

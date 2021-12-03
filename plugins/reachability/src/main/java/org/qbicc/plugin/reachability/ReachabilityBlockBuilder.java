@@ -212,7 +212,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         @Override
         public Void visit(ReachabilityContext param, ClassOf node) {
             if (visitUnknown(param, (Node)node)) {
-                MethodElement methodElement = RuntimeMethodFinder.get(param.ctxt).getMethod("classof_from_typeid");
+                MethodElement methodElement = RuntimeMethodFinder.get(param.ctxt).getMethod("getClassFromTypeId");
                 param.ctxt.enqueue(methodElement);
                 if (node.getInput() instanceof TypeLiteral tl && tl.getValue() instanceof ClassObjectType cot) {
                     param.analysis.processClassInitialization(cot.getDefinition().load());

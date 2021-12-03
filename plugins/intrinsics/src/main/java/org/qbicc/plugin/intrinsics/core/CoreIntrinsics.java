@@ -255,7 +255,7 @@ public final class CoreIntrinsics {
         InstanceIntrinsic cast = (builder, instance, target, arguments) -> {
             // TODO: Once we support java.lang.Class literals, we should add a check here to
             //  emit a CheckCast node instead of a call to the helper method if `instance` is a Class literal.
-            MethodElement helper = methodFinder.getMethod("checkcast_class");
+            MethodElement helper = methodFinder.getMethod("checkcastClass");
             builder.getFirstBuilder().call(builder.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(arguments.get(0), instance));
 
             // Generics erasure issue. The return type of Class<T>.cast is T, but it gets wiped to Object.
@@ -271,21 +271,21 @@ public final class CoreIntrinsics {
 
         InstanceIntrinsic isArray = (builder, instance, target, arguments) -> {
             Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance),  coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
-            MethodElement isRefArray = methodFinder.getMethod("is_reference_array");
-            MethodElement isPrimArray = methodFinder.getMethod("is_prim_array");
+            MethodElement isRefArray = methodFinder.getMethod("isReferenceArray");
+            MethodElement isPrimArray = methodFinder.getMethod("isPrimArray");
             return builder.or(builder.getFirstBuilder().call(builder.staticMethod(isRefArray, isRefArray.getDescriptor(), isRefArray.getType()), List.of(id)),
                               builder.getFirstBuilder().call(builder.staticMethod(isPrimArray, isPrimArray.getDescriptor(), isPrimArray.getType()), List.of(id)));
         };
 
         InstanceIntrinsic isInterface = (builder, instance, target, arguments) -> {
             Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance),  coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
-            MethodElement isIntf = methodFinder.getMethod("is_interface");
+            MethodElement isIntf = methodFinder.getMethod("isInterface");
             return builder.getFirstBuilder().call(builder.staticMethod(isIntf, isIntf.getDescriptor(), isIntf.getType()), List.of(id));
         };
 
         InstanceIntrinsic isPrimitive = (builder, instance, target, arguments) -> {
             Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance), coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
-            MethodElement isPrim = methodFinder.getMethod("is_primitive");
+            MethodElement isPrim = methodFinder.getMethod("isPrimitive");
             return builder.getFirstBuilder().call(builder.staticMethod(isPrim, isPrim.getDescriptor(), isPrim.getType()), List.of(id));
         };
 
@@ -293,7 +293,7 @@ public final class CoreIntrinsics {
             Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance), coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
             LiteralFactory lf = ctxt.getLiteralFactory();
             TypeSystem ts = ctxt.getTypeSystem();
-            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("get_superclass");
+            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("getSuperClass");
             return builder.getFirstBuilder().call(builder.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(id));
         };
 
@@ -313,7 +313,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus", emptyToBool, desiredAssertionStatus);
         intrinsics.registerIntrinsic(jlcDesc, "initClassName", emptyToString, initClassName);
         intrinsics.registerIntrinsic(jlcDesc, "getPrimitiveClass", stringToClass, getPrimitiveClass);
-        intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "getSuperclass", emptyToClass, getSuperclass);
+        intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "getSuperClass", emptyToClass, getSuperclass);
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isArray", emptyToBool, isArray);
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isInterface", emptyToBool, isInterface);
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isPrimitive", emptyToBool, isPrimitive);
@@ -573,6 +573,7 @@ public final class CoreIntrinsics {
 
         ClassTypeDescriptor jltDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
         ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/VM");
+        ClassTypeDescriptor vmHelpersDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/VMHelpers");
         ClassTypeDescriptor compIntrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/CompilerIntrinsics");
         ClassTypeDescriptor pthreadPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/posix/PThread$pthread_t_ptr");
         ClassTypeDescriptor voidPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$void_ptr");
@@ -637,7 +638,7 @@ public final class CoreIntrinsics {
 
             /* pass threadWrapper as function_ptr - TODO this will eventually be replaced by a call to CNative.addr_of_function */
             MethodDescriptor threadWrapperDesc = MethodDescriptor.synthesize(classContext, voidPtrDesc, List.of(voidPtrDesc));
-            ValueHandle threadWrapperValueHandle = builder.staticMethod(compIntrDesc, "threadWrapper", threadWrapperDesc);
+            ValueHandle threadWrapperValueHandle = builder.staticMethod(vmHelpersDesc, "threadWrapper", threadWrapperDesc);
             Value threadWrapperFunctionPointer = builder.addressOf(threadWrapperValueHandle);
 
             /* call threadWrapper with null parameter so it does nothing - TODO this is a workaround to create a declares statement for threadWrapper in java.lang.Thread */
@@ -648,7 +649,7 @@ public final class CoreIntrinsics {
 
             /* start pthread in VMHelpers */
             MethodDescriptor JLT_start0Desc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(voidUnaryfunctionPtrDesc, voidPtrDesc));
-            builder.call(builder.staticMethod(compIntrDesc, "JLT_start0", JLT_start0Desc), List.of(threadWrapperFunctionPointer, threadVoidPtr));
+            builder.call(builder.staticMethod(vmHelpersDesc, "JLT_start0", JLT_start0Desc), List.of(threadWrapperFunctionPointer, threadVoidPtr));
 
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
         };
@@ -1034,7 +1035,7 @@ public final class CoreIntrinsics {
         MethodDescriptor getClassDesc = MethodDescriptor.synthesize(classContext, jlcDesc, List.of());
 
         InstanceIntrinsic getClassIntrinsic = (builder, instance, target, arguments) -> {
-            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("get_class");
+            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("getClass");
             return builder.getFirstBuilder().call(builder.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(instance));
         };
 
@@ -1122,14 +1123,14 @@ public final class CoreIntrinsics {
         StaticIntrinsic typeOf = (builder, target, arguments) ->
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), CoreClasses.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
 
-        intrinsics.registerIntrinsic(cNativeDesc, "type_id_of", objTypeIdDesc, typeOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "typeIdOf", objTypeIdDesc, typeOf);
 
         FieldElement elementTypeField = CoreClasses.get(ctxt).getRefArrayElementTypeIdField();
 
         StaticIntrinsic elementTypeOf = (builder, target, arguments) ->
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), elementTypeField), MemoryAtomicityMode.UNORDERED);
 
-        intrinsics.registerIntrinsic(cNativeDesc, "element_type_id_of", objArrayTypeIdDesc, elementTypeOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "elementTypeIdOf", objArrayTypeIdDesc, elementTypeOf);
 
         StaticIntrinsic addrOf = (builder, target, arguments) -> {
             Value value = arguments.get(0);
@@ -1447,7 +1448,7 @@ public final class CoreIntrinsics {
             ReferenceArrayObjectType upperBound = classContext.findDefinedType("java/lang/Object").load().getType().getReferenceArrayObject();
             return builder.newReferenceArray(upperBound, arguments.get(0), arguments.get(1), arguments.get(2));
         };
-        intrinsics.registerIntrinsic(Phase.ADD, ciDesc, "emit_new_ref_array", newRefArrayDesc, newRefArray);
+        intrinsics.registerIntrinsic(Phase.ADD, ciDesc, "emitNewReferenceArray", newRefArrayDesc, newRefArray);
     }
 
     static void registerOrgQbiccObjectModelIntrinsics(final CompilationContext ctxt) {
@@ -1489,46 +1490,46 @@ public final class CoreIntrinsics {
 
         StaticIntrinsic typeOf = (builder, target, arguments) ->
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "type_id_of", objTypeIdDesc, typeOf);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "typeIdOf", objTypeIdDesc, typeOf);
 
         FieldElement elementTypeField = coreClasses.getRefArrayElementTypeIdField();
         StaticIntrinsic elementTypeOf = (builder, target, arguments) -> {
             ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), elementTypeField.getEnclosingType().load().getType().getReference()));
             return builder.load(builder.instanceFieldOf(handle, elementTypeField), MemoryAtomicityMode.UNORDERED);
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "element_type_id_of", objTypeIdDesc, elementTypeOf);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "elementTypeIdOf", objTypeIdDesc, elementTypeOf);
 
         FieldElement dimensionsField = coreClasses.getRefArrayDimensionsField();
         StaticIntrinsic dimensionsOf = (builder, target, arguments) -> {
             ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), dimensionsField.getEnclosingType().load().getType().getReference()));
             return builder.load(builder.instanceFieldOf(handle, dimensionsField), MemoryAtomicityMode.UNORDERED);
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "dimensions_of", objUint8Desc, dimensionsOf);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "dimensionsOf", objUint8Desc, dimensionsOf);
 
-        StaticIntrinsic maxSubclassId = (builder, target, arguments) -> {
+        StaticIntrinsic maxSubClassId = (builder, target, arguments) -> {
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
             ValueHandle typeIdStruct = builder.elementOf(builder.globalVariable(typeIdGlobal), arguments.get(0));
             return builder.load(builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("maxSubTypeId")), MemoryAtomicityMode.UNORDERED);
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "max_subclass_type_id_of", typeIdTypeIdDesc, maxSubclassId);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "maxSubClassTypeIdOf", typeIdTypeIdDesc, maxSubClassId);
 
         StaticIntrinsic isObject = (builder, target, arguments) -> {
             LoadedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").load();
             return builder.isEq(arguments.get(0), lf.literalOfType(jlo.getType()));
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "is_java_lang_object", typeIdBooleanDesc, isObject);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "isJavaLangObject", typeIdBooleanDesc, isObject);
 
         StaticIntrinsic isCloneable = (builder, target, arguments) -> {
             LoadedTypeDefinition jlc = classContext.findDefinedType("java/lang/Cloneable").load();
             return builder.isEq(arguments.get(0), lf.literalOfType(jlc.getType()));
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "is_java_lang_cloneable", typeIdBooleanDesc, isCloneable);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "isJavaLangCloneable", typeIdBooleanDesc, isCloneable);
 
         StaticIntrinsic isSerializable = (builder, target, arguments) -> {
             LoadedTypeDefinition jis = classContext.findDefinedType("java/io/Serializable").load();
             return builder.isEq(arguments.get(0), lf.literalOfType(jis.getType()));
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "is_java_io_serializable", typeIdBooleanDesc, isSerializable);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "isJavaIoSerializable", typeIdBooleanDesc, isSerializable);
 
         StaticIntrinsic isClass = (builder, target, arguments) -> {
             LoadedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").load();
@@ -1538,12 +1539,12 @@ public final class CoreIntrinsics {
             Value isNotInterface = builder.isLt(arguments.get(0), lf.literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), tables.getFirstInterfaceTypeId()));
             return builder.or(isObj, builder.and(isAboveRef, isNotInterface));
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "is_class", typeIdBooleanDesc, isClass);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "isClass", typeIdBooleanDesc, isClass);
 
         StaticIntrinsic isInterface = (builder, target, arguments) ->
             builder.isLe(lf.literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), tables.getFirstInterfaceTypeId()), arguments.get(0));
 
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "is_interface", typeIdBooleanDesc, isInterface);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "isInterface", typeIdBooleanDesc, isInterface);
 
         StaticIntrinsic isPrimArray = (builder, target, arguments) -> {
             ValueType firstPrimArray = coreClasses.getArrayLoadedTypeDefinition("[Z").getType();
@@ -1551,7 +1552,7 @@ public final class CoreIntrinsics {
             return builder.and(builder.isGe(arguments.get(0), lf.literalOfType(firstPrimArray)),
                 builder.isLe(arguments.get(0), lf.literalOfType(lastPrimArray)));
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "is_prim_array", typeIdBooleanDesc, isPrimArray);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "isPrimArray", typeIdBooleanDesc, isPrimArray);
 
         StaticIntrinsic isPrimitive = (builder, target, arguments) -> {
             ValueType firstPrimType = Primitive.getPrimitiveFor('Z').getType();
@@ -1559,18 +1560,18 @@ public final class CoreIntrinsics {
             return builder.and(builder.isGe(arguments.get(0), lf.literalOfType(firstPrimType)),
                                builder.isLe(arguments.get(0), lf.literalOfType(lastPrimType)));
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "is_primitive", typeIdBooleanDesc, isPrimitive);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "isPrimitive", typeIdBooleanDesc, isPrimitive);
 
         StaticIntrinsic isRefArray = (builder, target, arguments) -> {
             ValueType refArray = coreClasses.getArrayLoadedTypeDefinition("[ref").getType();
             return builder.isEq(arguments.get(0), lf.literalOfType(refArray));
         };
 
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "is_reference_array", typeIdBooleanDesc, isRefArray);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "isReferenceArray", typeIdBooleanDesc, isRefArray);
 
         StaticIntrinsic getRefArrayTypeId = (builder, target, arguments) ->
             ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), coreClasses.getRefArrayContentField().getEnclosingType().load().getTypeId());
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "get_reference_array_typeid", emptyTotypeIdDesc, getRefArrayTypeId);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getReferenceArrayTypeId", emptyTotypeIdDesc, getRefArrayTypeId);
 
         StaticIntrinsic doesImplement = (builder, target, arguments) -> {
             IntegerType typeIdLiteralType = ctxt.getTypeSystem().getTypeIdLiteralType();
@@ -1586,23 +1587,23 @@ public final class CoreIntrinsics {
             Value mask = builder.truncate(builder.shl(lf.literalOf(typeIdLiteralType, 1), implementsBit), ctxt.getTypeSystem().getSignedInteger8Type());
             return builder.isEq(mask, builder.and(mask, dataByte));
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "does_implement", typeIdTypeIdBooleanDesc, doesImplement);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "doesImplement", typeIdTypeIdBooleanDesc, doesImplement);
 
         StaticIntrinsic getDimFromClass = (builder, target, arguments) ->
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassDimensionField()), MemoryAtomicityMode.UNORDERED);
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "get_dimensions_from_class", clsUint8, getDimFromClass);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getDimensionsFromClass", clsUint8, getDimFromClass);
 
         StaticIntrinsic getTypeIdFromClass = (builder, target, arguments) ->
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "get_type_id_from_class", clsTypeId, getTypeIdFromClass);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getTypeIdFromClass", clsTypeId, getTypeIdFromClass);
 
-        MethodElement getOrCreateArrayClass = methodFinder.getMethod("get_or_create_class_for_refarray");
+        MethodElement getOrCreateArrayClass = methodFinder.getMethod("getOrCreateClassForRefArray");
         StaticIntrinsic getClassFromTypeId = (builder, target, arguments) -> {
             /** Pseudo code for this intrinsic:
              *    Class<?> componentClass = qbicc_jlc_lookup_table[typeId];
              *    Class<?> result = componentClass;
              *    if (dims > 0) {
-             *        result = get_or_create_class_for_refarray(componentClass, dims);
+             *        result = getOrCreateClassForRefArray(componentClass, dims);
              *    }
              *    return result;
              */
@@ -1628,7 +1629,7 @@ public final class CoreIntrinsics {
             builder.begin(fallThrough);
             return phi;
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "get_class_from_type_id", typeIdClsDesc, getClassFromTypeId);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getClassFromTypeId", typeIdClsDesc, getClassFromTypeId);
 
         StaticIntrinsic getClassFromTypeIdSimple = (builder, target, arguments) -> {
             BuildtimeHeap buildtimeHeap = BuildtimeHeap.get(ctxt);
@@ -1637,11 +1638,11 @@ public final class CoreIntrinsics {
             return builder.load(builder.elementOf(builder.globalVariable(classArrayGlobal), arguments.get(0)), MemoryAtomicityMode.UNORDERED);
         };
 
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "get_class_from_type_id_simple", typeIdToClassDesc, getClassFromTypeIdSimple);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getClassFromTypeIdSimple", typeIdToClassDesc, getClassFromTypeIdSimple);
 
         StaticIntrinsic getArrayClassOf = (builder, target, arguments) ->
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), CoreClasses.get(ctxt).getArrayClassField()), MemoryAtomicityMode.UNORDERED);
-        intrinsics.registerIntrinsic(ciDesc, "get_array_class_of", clsClsDesc, getArrayClassOf);
+        intrinsics.registerIntrinsic(ciDesc, "getArrayClassOf", clsClsDesc, getArrayClassOf);
 
         StaticIntrinsic setArrayClass = (builder, target, arguments) -> {
             LoadedTypeDefinition jlc = classContext.findDefinedType("java/lang/Class").load();
@@ -1652,7 +1653,7 @@ public final class CoreIntrinsics {
             // extract the flag
             return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, refType).getMember(1));
         };
-        intrinsics.registerIntrinsic(ciDesc, "set_array_class", clsClsBooleanDesc, setArrayClass);
+        intrinsics.registerIntrinsic(ciDesc, "setArrayClass", clsClsBooleanDesc, setArrayClass);
 
 
         FieldElement jlcName = classContext.findDefinedType("java/lang/Class").load().findField("name");
@@ -1669,10 +1670,10 @@ public final class CoreIntrinsics {
             builder.store(handle, arguments.get(2), handle.getDetectedMode());
             return instance;
         };
-        intrinsics.registerIntrinsic(Phase.ADD, ciDesc, "create_class", createClassDesc, createClass);
+        intrinsics.registerIntrinsic(Phase.ADD, ciDesc, "createClass", createClassDesc, createClass);
 
         StaticIntrinsic getNumberOfTypeIds = (builder, target, arguments) -> lf.literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), tables.get_number_of_typeids());
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "get_number_of_typeids", emptyTotypeIdDesc, getNumberOfTypeIds);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getNumberOfTypeIds", emptyTotypeIdDesc, getNumberOfTypeIds);
 
         StaticIntrinsic callClassInitializer = (builder, target, arguments) -> {
             Value typeId = arguments.get(0);
@@ -1692,7 +1693,7 @@ public final class CoreIntrinsics {
 
             return builder.call(builder.pointerHandle(typeIdInit), List.of(builder.load(builder.currentThread(), MemoryAtomicityMode.NONE)));
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "call_class_initializer", typeIdVoidDesc, callClassInitializer);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "callClassInitializer", typeIdVoidDesc, callClassInitializer);
 
         // int get_typeid_flags(CNative.type_id typeID);
         StaticIntrinsic get_typeid_flags = (builder, target, arguments) -> {
@@ -1703,10 +1704,10 @@ public final class CoreIntrinsics {
             Value flagValue = builder.load(flags, MemoryAtomicityMode.UNORDERED);
             return flagValue;
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "get_typeid_flags", typeIdIntDesc, get_typeid_flags);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getTypeIdFlags", typeIdIntDesc, get_typeid_flags);
 
-        // public static native CNative.type_id get_superclass_typeid(CNative.type_id typeId);
-        StaticIntrinsic get_superclass_typeid = (builder, target, arguments) -> {
+        // public static native CNative.type_id getSuperClassTypeId(CNative.type_id typeId);
+        StaticIntrinsic getSuperClassTypeId = (builder, target, arguments) -> {
             Value typeId = arguments.get(0);
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
             ValueHandle typeIdStruct = builder.elementOf(builder.globalVariable(typeIdGlobal), typeId);
@@ -1714,22 +1715,22 @@ public final class CoreIntrinsics {
             Value superTypeIdValue = builder.load(superTypeId, MemoryAtomicityMode.UNORDERED);
             return superTypeIdValue;
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "get_superclass_typeid", typeIdTypeIdDesc, get_superclass_typeid);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getSuperClassTypeId", typeIdTypeIdDesc, getSuperClassTypeId);
 
-        // public static native CNative.type_id get_first_interface_typeid();
-        StaticIntrinsic get_first_interface_typeid = (builder, target, arguments) -> {
+        // public static native CNative.type_id getFirstInterfaceTypeId();
+        StaticIntrinsic getFirstInterfaceTypeid = (builder, target, arguments) -> {
             return lf.literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), tables.getFirstInterfaceTypeId());
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "get_first_interface_typeid", emptyTotypeIdDesc, get_first_interface_typeid);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getFirstInterfaceTypeid", emptyTotypeIdDesc, getFirstInterfaceTypeid);
 
-        // public static native int get_number_of_bytes_in_interface_bits_array();
-        StaticIntrinsic get_number_of_bytes_in_interface_bits_array = (builder, target, arguments) -> {
+        // public static native int getNumberOfBytesInInterfaceBitsArray();
+        StaticIntrinsic getNumberOfBytesInInterfaceBitsArray = (builder, target, arguments) -> {
             return lf.literalOf(tables.getNumberOfBytesInInterfaceBitsArray());
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "get_number_of_bytes_in_interface_bits_array", IntDesc, get_number_of_bytes_in_interface_bits_array);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getNumberOfBytesInInterfaceBitsArray", IntDesc, getNumberOfBytesInInterfaceBitsArray);
 
-        // public static native byte get_byte_of_interface_bits(CNative.type_id typeId, int index);
-        StaticIntrinsic get_byte_of_interface_bits = (builder, target, arguments) -> {
+        // public static native byte getByteOfInterfaceBits(CNative.type_id typeId, int index);
+        StaticIntrinsic getByteOfInterfaceBits = (builder, target, arguments) -> {
             Value typeId = arguments.get(0);
             Value index = arguments.get(1);
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
@@ -1738,10 +1739,10 @@ public final class CoreIntrinsics {
             Value dataByte = builder.load(builder.elementOf(bits, index), MemoryAtomicityMode.UNORDERED);
             return dataByte;
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "get_byte_of_interface_bits", typeIdIntToByteDesc, get_byte_of_interface_bits);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getByteOfInterfaceBits", typeIdIntToByteDesc, getByteOfInterfaceBits);
 
-        // public static native boolean is_initialized(CNative.type_id typdId);
-        StaticIntrinsic is_initialized = (builder, target, arguments) -> {
+        // public static native boolean isInitialized(CNative.type_id typdId);
+        StaticIntrinsic isInitialized = (builder, target, arguments) -> {
             Value typeId = arguments.get(0);
 
             GlobalVariableElement clinitStates = tables.getAndRegisterGlobalClinitStateStruct(builder.getCurrentElement());
@@ -1751,10 +1752,10 @@ public final class CoreIntrinsics {
 
             return builder.isEq(state, lf.literalOf(1));
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "is_initialized", typeIdBooleanDesc, is_initialized);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "isInitialized", typeIdBooleanDesc, isInitialized);
 
-        // public static native void set_initialized(CNative.type_id typdId);
-        StaticIntrinsic set_initialized = (builder, target, arguments) -> {
+        // public static native void setInitialized(CNative.type_id typdId);
+        StaticIntrinsic setInitialized = (builder, target, arguments) -> {
             Value typeId = arguments.get(0);
 
             GlobalVariableElement clinitStates = tables.getAndRegisterGlobalClinitStateStruct(builder.getCurrentElement());
@@ -1767,19 +1768,19 @@ public final class CoreIntrinsics {
             return lf.zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
 
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "set_initialized", typeIdVoidDesc, set_initialized);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "setInitialized", typeIdVoidDesc, setInitialized);
 
         FieldElement nativeObjectMonitorField = CoreClasses.get(ctxt).getObjectNativeObjectMonitorField();
-        // PThread.pthread_mutex_t_ptr get_nativeObjectMonitor(Object reference);
+        // PThread.pthread_mutex_t_ptr getNativeObjectMonitor(Object reference);
         MethodDescriptor nomOfDesc = MethodDescriptor.synthesize(classContext, pthreadMutexPtrDesc, List.of(objDesc));
         StaticIntrinsic nomOf = (builder, target, arguments) -> {
             Value mutexSlot = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField), MemoryAtomicityMode.NONE);
             PointerType returnType = (PointerType)target.getExecutable().getType().getReturnType();
             return builder.valueConvert(mutexSlot, returnType);
         };
-        intrinsics.registerIntrinsic(ciDesc, "get_nativeObjectMonitor", nomOfDesc, nomOf);
+        intrinsics.registerIntrinsic(ciDesc, "getNativeObjectMonitor", nomOfDesc, nomOf);
 
-        // boolean set_nativeObjectMonitor(Object object, PThread.pthread_mutex_t_ptr nom);
+        // boolean setNativeObjectMonitor(Object object, PThread.pthread_mutex_t_ptr nom);
         MethodDescriptor setNomDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc, pthreadMutexPtrDesc));
         StaticIntrinsic setNom = (builder, target, arguments) -> {
             ValueHandle casTarget = builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField);
@@ -1788,7 +1789,7 @@ public final class CoreIntrinsics {
             Value result = builder.cmpAndSwap(casTarget, expect, update, MemoryAtomicityMode.ACQUIRE_RELEASE, MemoryAtomicityMode.ACQUIRE, CmpAndSwap.Strength.STRONG);
             return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, update.getType()).getMember(1));
         };
-        intrinsics.registerIntrinsic(ciDesc, "set_nativeObjectMonitor", setNomDesc, setNom);
+        intrinsics.registerIntrinsic(ciDesc, "setNativeObjectMonitor", setNomDesc, setNom);
     }
 
     static void registerOrgQbiccRuntimeMainIntrinsics(final CompilationContext ctxt) {

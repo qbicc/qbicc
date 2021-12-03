@@ -11,6 +11,7 @@ import org.qbicc.runtime.Hidden;
  * the actual monitor implementation for some targets. This implementation is guaranteed to be based on
  * {@link java.util.concurrent.locks.LockSupport LockSupport}'s {@code park} mechanism.
  */
+@SuppressWarnings("unused")
 public final class Monitor {
     private static final long MAX_MILLIS = Long.MAX_VALUE / 1_000_000L;
 

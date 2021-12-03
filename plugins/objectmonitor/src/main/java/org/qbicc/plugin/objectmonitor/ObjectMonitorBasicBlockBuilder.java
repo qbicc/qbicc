@@ -16,8 +16,8 @@ import org.qbicc.type.definition.element.MethodElement;
 public class ObjectMonitorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    private final String monitorEnterFunctionName = "monitor_enter";
-    private final String monitorExitFunctionName = "monitor_exit";
+    private final String monitorEnterFunctionName = "monitorEnter";
+    private final String monitorExitFunctionName = "monitorExit";
 
     public ObjectMonitorBasicBlockBuilder(CompilationContext ctxt, BasicBlockBuilder delegate) {
         super(delegate);
