@@ -91,6 +91,7 @@ import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.ValueReturn;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.atomic.GlobalAccessMode;
+import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.machine.llvm.AsmFlag;
@@ -578,10 +579,19 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         org.qbicc.machine.llvm.op.Load loadInsn = builder.load(map(valueHandle.getPointerType()), map(valueHandle.getValueType()), ptr);
         loadInsn.align(node.getType().getAlign());
-        if (node.getMode() == MemoryAtomicityMode.ACQUIRE) {
-            loadInsn.atomic(OrderingConstraint.acquire);
-        } else if (node.getMode() == MemoryAtomicityMode.UNORDERED) {
+        ReadAccessMode accessMode = node.getAccessMode();
+        if (SingleUnshared.includes(accessMode)) {
+            // do nothing; not atomic
+        } else if (SinglePlain.includes(accessMode)) {
             loadInsn.atomic(OrderingConstraint.unordered);
+        } else if (SingleOpaque.includes(accessMode)) {
+            loadInsn.atomic(OrderingConstraint.monotonic);
+        } else if (SingleAcquire.includes(accessMode)) {
+            loadInsn.atomic(OrderingConstraint.acquire);
+        } else if (SingleSeqCst.includes(accessMode)) {
+            loadInsn.atomic(OrderingConstraint.seq_cst);
+        } else {
+            throw new IllegalArgumentException("LLVM load does not directly support access mode " + accessMode);
         }
         return loadInsn.asLocal();
     }

@@ -1,10 +1,13 @@
 package org.qbicc.interpreter.impl;
 
+import static org.qbicc.graph.atomic.AccessModes.*;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.Arrays;
 
 import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.type.ValueType;
@@ -50,10 +53,12 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public final int load8(int index, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
+    public final int load8(int index, ReadAccessMode mode) {
+        if (GlobalPlain.includes(mode)) {
             return (int) h8.get(data, index);
-        } else if (mode == MemoryAtomicityMode.ACQUIRE) {
+        } else if (SingleOpaque.includes(mode)) {
+            return (int) h8.getOpaque(data, index);
+        } else if (GlobalAcquire.includes(mode)) {
             return (int) h8.getAcquire(data, index);
         } else {
             return (int) h8.getVolatile(data, index);
@@ -61,20 +66,22 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public abstract int load16(int index, MemoryAtomicityMode mode);
+    public abstract int load16(int index, ReadAccessMode mode);
 
     @Override
-    public abstract int load32(int index, MemoryAtomicityMode mode);
+    public abstract int load32(int index, ReadAccessMode mode);
 
     @Override
-    public abstract long load64(int index, MemoryAtomicityMode mode);
+    public abstract long load64(int index, ReadAccessMode mode);
 
     @Override
-    public VmObject loadRef(int index, MemoryAtomicityMode mode) {
+    public VmObject loadRef(int index, ReadAccessMode mode) {
         checkAlign(index, 2);
-        if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
+        if (GlobalPlain.includes(mode)) {
             return (VmObject) ht.get(things, index >> 1);
-        } else if (mode == MemoryAtomicityMode.ACQUIRE) {
+        } else if (SingleOpaque.includes(mode)) {
+            return (VmObject) ht.getOpaque(things, index >> 1);
+        } else if (GlobalAcquire.includes(mode)) {
             return (VmObject) ht.getAcquire(things, index >> 1);
         } else {
             return (VmObject) ht.getVolatile(things, index >> 1);
@@ -82,11 +89,13 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public ValueType loadType(int index, MemoryAtomicityMode mode) {
+    public ValueType loadType(int index, ReadAccessMode mode) {
         checkAlign(index, 2);
-        if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
+        if (GlobalPlain.includes(mode)) {
             return (ValueType) ht.get(things, index >> 1);
-        } else if (mode == MemoryAtomicityMode.ACQUIRE) {
+        } else if (SingleOpaque.includes(mode)) {
+            return (ValueType) ht.getOpaque(things, index >> 1);
+        } else if (GlobalAcquire.includes(mode)) {
             return (ValueType) ht.getAcquire(things, index >> 1);
         } else {
             return (ValueType) ht.getVolatile(things, index >> 1);

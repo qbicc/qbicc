@@ -1,11 +1,13 @@
 package org.qbicc.interpreter.impl;
 
 import static java.nio.ByteOrder.BIG_ENDIAN;
+import static org.qbicc.graph.atomic.AccessModes.*;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 
 import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.atomic.ReadAccessMode;
 
 final class BigEndianMemoryImpl extends MemoryImpl {
     static final BigEndianMemoryImpl EMPTY = new BigEndianMemoryImpl(0);
@@ -23,10 +25,12 @@ final class BigEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public int load16(int index, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
+    public int load16(int index, ReadAccessMode mode) {
+        if (GlobalPlain.includes(mode)) {
             return (int) h16.get(data, index);
-        } else if (mode == MemoryAtomicityMode.ACQUIRE) {
+        } else if (SingleOpaque.includes(mode)) {
+            return (int) h16.getOpaque(data, index);
+        } else if (GlobalAcquire.includes(mode)) {
             return (int) h16.getAcquire(data, index);
         } else {
             return (int) h16.getVolatile(data, index);
@@ -34,10 +38,12 @@ final class BigEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public int load32(int index, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
+    public int load32(int index, ReadAccessMode mode) {
+        if (GlobalPlain.includes(mode)) {
             return (int) h32.get(data, index);
-        } else if (mode == MemoryAtomicityMode.ACQUIRE) {
+        } else if (SingleOpaque.includes(mode)) {
+            return (int) h32.getOpaque(data, index);
+        } else if (GlobalAcquire.includes(mode)) {
             return (int) h32.getAcquire(data, index);
         } else {
             return (int) h32.getVolatile(data, index);
@@ -45,10 +51,12 @@ final class BigEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public long load64(int index, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
+    public long load64(int index, ReadAccessMode mode) {
+        if (GlobalPlain.includes(mode)) {
             return (long) h64.get(data, index);
-        } else if (mode == MemoryAtomicityMode.ACQUIRE) {
+        } else if (SingleOpaque.includes(mode)) {
+            return (long) h64.getOpaque(data, index);
+        } else if (GlobalAcquire.includes(mode)) {
             return (long) h64.getAcquire(data, index);
         } else {
             return (long) h64.getVolatile(data, index);

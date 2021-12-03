@@ -15,6 +15,7 @@ import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
@@ -50,7 +51,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value load(ValueHandle handle, MemoryAtomicityMode mode) {
+    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
         if (handle instanceof StaticField) {
             final FieldElement fieldElement = ((StaticField) handle).getVariableElement();
             Value constantValue = Constants.get(ctxt).getConstantValue(fieldElement);
@@ -64,7 +65,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
         }
-        return getDelegate().load(handle, mode);
+        return getDelegate().load(handle, accessMode);
     }
 
     @Override

@@ -5,6 +5,7 @@ import java.util.Set;
 
 import org.qbicc.context.Location;
 import org.qbicc.graph.atomic.GlobalAccessMode;
+import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
@@ -318,8 +319,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().clone(object);
     }
 
-    public Value load(final ValueHandle handle, final MemoryAtomicityMode mode) {
-        return getDelegate().load(handle, mode);
+    public Value load(final ValueHandle handle, final ReadAccessMode accessMode) {
+        return getDelegate().load(handle, accessMode);
     }
 
     public Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {

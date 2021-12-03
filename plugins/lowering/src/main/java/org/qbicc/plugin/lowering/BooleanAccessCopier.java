@@ -56,7 +56,7 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
         ValueHandle origHandle = node.getValueHandle();
         ValueHandle copyHandle = param.copyValueHandle(origHandle);
         BasicBlockBuilder b = param.getBlockBuilder();
-        Value loaded = b.load(copyHandle, node.getMode());
+        Value loaded = b.load(copyHandle, node.getAccessMode());
         if (origHandle.getValueType() instanceof BooleanType bt && copyHandle.getValueType() instanceof IntegerType) {
             return b.truncate(loaded, bt);
         } else {

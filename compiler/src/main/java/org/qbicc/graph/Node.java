@@ -710,7 +710,7 @@ public interface Node {
 
             public Value visit(final Copier param, final Load node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().load(param.copyValueHandle(node.getValueHandle()), node.getMode());
+                return param.getBlockBuilder().load(param.copyValueHandle(node.getValueHandle()), node.getAccessMode());
             }
 
             public ValueHandle visit(Copier param, LocalVariable node) {

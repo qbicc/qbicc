@@ -1,11 +1,14 @@
 package org.qbicc.graph;
 
+import static org.qbicc.graph.atomic.AccessModes.*;
+
 import java.util.List;
 import java.util.Set;
 
 import org.qbicc.context.Locatable;
 import org.qbicc.context.Location;
 import org.qbicc.graph.atomic.GlobalAccessMode;
+import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
@@ -378,7 +381,16 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value clone(Value object);
 
-    Value load(ValueHandle handle, MemoryAtomicityMode mode);
+    default Value load(ValueHandle handle) {
+        return load(handle, SinglePlain);
+    }
+
+    Value load(ValueHandle handle, ReadAccessMode mode);
+
+    @Deprecated
+    default Value load(ValueHandle handle, MemoryAtomicityMode mode) {
+        return load(handle, mode.getAccessMode().getReadAccess());
+    }
 
     Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
 

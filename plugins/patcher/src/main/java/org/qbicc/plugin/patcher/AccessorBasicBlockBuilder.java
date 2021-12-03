@@ -12,6 +12,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.type.definition.element.FieldElement;
@@ -42,7 +43,7 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value load(ValueHandle handle, MemoryAtomicityMode mode) {
+    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
         if (handle instanceof StaticField staticField) {
             FieldElement field = staticField.getVariableElement();
             VmObject accessor = getAccessor(field);
@@ -56,7 +57,7 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 return fb.call(fb.virtualMethodOf(lf.literalOf(accessor), accessor.getVmClass().getTypeDefinition().getDescriptor(), getter, desc), List.of());
             }
         }
-        return super.load(handle, mode);
+        return super.load(handle, accessMode);
     }
 
     @Override

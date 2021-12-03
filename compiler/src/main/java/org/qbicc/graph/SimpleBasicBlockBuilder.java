@@ -11,6 +11,7 @@ import java.util.Set;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.atomic.GlobalAccessMode;
+import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
@@ -601,7 +602,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new Clone(callSite, element, line, bci, requireDependency(), object));
     }
 
-    public Value load(final ValueHandle handle, final MemoryAtomicityMode mode) {
+    public Value load(final ValueHandle handle, final ReadAccessMode mode) {
         return asDependency(new Load(callSite, element, line, bci, requireDependency(), handle, mode));
     }
 

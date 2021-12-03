@@ -25,6 +25,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
+import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -62,9 +63,9 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public Value load(ValueHandle handle, MemoryAtomicityMode mode) {
+    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
         check(handle);
-        return super.load(handle, mode);
+        return super.load(handle, accessMode);
     }
 
     @Override

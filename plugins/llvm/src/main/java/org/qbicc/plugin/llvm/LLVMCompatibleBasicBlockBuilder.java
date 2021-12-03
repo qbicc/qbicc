@@ -1,5 +1,7 @@
 package org.qbicc.plugin.llvm;
 
+import static org.qbicc.graph.atomic.AccessModes.*;
+
 import java.util.List;
 
 import org.qbicc.context.CompilationContext;
@@ -12,6 +14,7 @@ import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -224,13 +227,22 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Value load(ValueHandle handle, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.VOLATILE) {
-            Value loaded = super.load(handle, MemoryAtomicityMode.ACQUIRE);
-            fence(MemoryAtomicityMode.ACQUIRE);
+    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
+        Value loaded;
+        if (accessMode.includes(GlobalAcquire)) {
+            // we have to emit a global fence
+            loaded = super.load(handle, SingleOpaque);
+            fence(GlobalAcquire);
             return loaded;
+        } else if (accessMode.includes(GlobalPlain)) {
+            // emit equivalent single load
+            return super.load(handle, SinglePlain);
+        } else if (accessMode.includes(GlobalUnshared)) {
+            // emit equivalent single load
+            return super.load(handle, SingleUnshared);
         } else {
-            return super.load(handle, mode);
+            // supported by LLVM already
+            return super.load(handle, accessMode);
         }
     }
 

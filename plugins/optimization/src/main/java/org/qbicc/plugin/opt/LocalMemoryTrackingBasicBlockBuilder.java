@@ -1,5 +1,7 @@
 package org.qbicc.plugin.opt;
 
+import static org.qbicc.graph.atomic.AccessModes.*;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,12 +19,14 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
+import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.atomic.GlobalAccessMode;
+import org.qbicc.graph.atomic.ReadAccessMode;
 
 /**
  *
  */
-public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<MemoryAtomicityMode, Value> {
+public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<AccessMode, Value> {
     private final CompilationContext ctxt;
     private final Map<ValueHandle, Value> knownValues = new HashMap<>();
 
@@ -39,17 +43,17 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value load(ValueHandle handle, MemoryAtomicityMode mode) {
+    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
         // todo: hopefully we can be slightly more aggressive than this
-        if (mode != MemoryAtomicityMode.NONE && mode != MemoryAtomicityMode.UNORDERED) {
+        if (! GlobalPlain.includes(accessMode)) {
             knownValues.clear();
         } else {
-            Value value = handle.accept(this, mode);
+            Value value = handle.accept(this, accessMode);
             if (value != null) {
                 return value;
             }
         }
-        Value loaded = super.load(handle, mode);
+        Value loaded = super.load(handle, accessMode);
         knownValues.put(handle, loaded);
         return loaded;
     }
@@ -185,12 +189,12 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value visitUnknown(MemoryAtomicityMode param, ValueHandle node) {
+    public Value visitUnknown(AccessMode param, ValueHandle node) {
         return knownValues.get(node);
     }
 
     @Override
-    public Value visit(MemoryAtomicityMode param, ElementOf node) {
+    public Value visit(AccessMode param, ElementOf node) {
         Value value = knownValues.get(node);
         if (value != null) {
             return value;
@@ -205,7 +209,7 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value visit(MemoryAtomicityMode param, MemberOf node) {
+    public Value visit(AccessMode param, MemberOf node) {
         Value value = knownValues.get(node);
         if (value != null) {
             return value;

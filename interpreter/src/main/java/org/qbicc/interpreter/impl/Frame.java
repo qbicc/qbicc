@@ -124,6 +124,7 @@ import org.qbicc.graph.ValueVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.atomic.GlobalAccessMode;
+import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
@@ -1815,7 +1816,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         Memory memory = getMemory(valueHandle);
         int offset = getOffset(valueHandle);
         ValueType type = valueHandle.getValueType();
-        MemoryAtomicityMode mode = node.getMode();
+        ReadAccessMode mode = node.getAccessMode();
         if (isInt8(type)) {
             return Byte.valueOf((byte) memory.load8(offset, mode));
         } else if (isInt16(type)) {

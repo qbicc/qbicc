@@ -2,29 +2,70 @@ package org.qbicc.interpreter;
 
 
 import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.type.ValueType;
 
 /**
  * A base for a relatively-indexed piece of memory.
  */
 public interface Memory {
-    int load8(int index, MemoryAtomicityMode mode);
+    @Deprecated
+    default int load8(int index, MemoryAtomicityMode mode) {
+        return load8(index, mode.getAccessMode().getReadAccess());
+    }
 
-    int load16(int index, MemoryAtomicityMode mode);
+    int load8(int index, ReadAccessMode mode);
 
-    int load32(int index, MemoryAtomicityMode mode);
+    @Deprecated
+    default int load16(int index, MemoryAtomicityMode mode) {
+        return load16(index, mode.getAccessMode().getReadAccess());
+    }
 
+    int load16(int index, ReadAccessMode mode);
+
+    @Deprecated
+    default int load32(int index, MemoryAtomicityMode mode) {
+        return load32(index, mode.getAccessMode().getReadAccess());
+    }
+
+    int load32(int index, ReadAccessMode mode);
+
+    @Deprecated
     default float loadFloat(int index, MemoryAtomicityMode mode) {
         return Float.intBitsToFloat(load32(index, mode));
     }
 
-    long load64(int index, MemoryAtomicityMode mode);
+    default float loadFloat(int index, ReadAccessMode mode) {
+        return Float.intBitsToFloat(load32(index, mode));
+    }
 
-    VmObject loadRef(int index, MemoryAtomicityMode mode);
+    @Deprecated
+    default long load64(int index, MemoryAtomicityMode mode) {
+        return load64(index, mode.getAccessMode().getReadAccess());
+    }
 
-    ValueType loadType(int index, MemoryAtomicityMode mode);
+    long load64(int index, ReadAccessMode mode);
 
+    @Deprecated
+    default VmObject loadRef(int index, MemoryAtomicityMode mode) {
+        return loadRef(index, mode.getAccessMode().getReadAccess());
+    }
+
+    VmObject loadRef(int index, ReadAccessMode mode);
+
+    @Deprecated
+    default ValueType loadType(int index, MemoryAtomicityMode mode) {
+        return loadType(index, mode.getAccessMode().getReadAccess());
+    }
+
+    ValueType loadType(int index, ReadAccessMode mode);
+
+    @Deprecated
     default double loadDouble(int index, MemoryAtomicityMode mode) {
+        return Double.longBitsToDouble(load64(index, mode));
+    }
+
+    default double loadDouble(int index, ReadAccessMode mode) {
         return Double.longBitsToDouble(load64(index, mode));
     }
 
