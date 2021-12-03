@@ -83,6 +83,7 @@ import org.qbicc.graph.Multiply;
 import org.qbicc.graph.Neg;
 import org.qbicc.graph.New;
 import org.qbicc.graph.NewArray;
+import org.qbicc.graph.NewReferenceArray;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OffsetOfField;
@@ -1869,6 +1870,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl thread, NewArray node) {
+        return newArray(thread, node.getArrayType(), unboxInt(node.getSize()));
+    }
+
+    @Override
+    public Object visit(VmThreadImpl thread, NewReferenceArray node) {
         return newArray(thread, node.getArrayType(), unboxInt(node.getSize()));
     }
 

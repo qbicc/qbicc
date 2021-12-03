@@ -10,6 +10,8 @@ import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.PrimitiveArrayObjectType;
+import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.ConstructorElement;
@@ -291,12 +293,16 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().new_(desc);
     }
 
-    public Value newArray(final ArrayObjectType arrayType, final Value size) {
+    public Value newArray(final PrimitiveArrayObjectType arrayType, final Value size) {
         return getDelegate().newArray(arrayType, size);
     }
 
     public Value newArray(final ArrayTypeDescriptor desc, final Value size) {
         return getDelegate().newArray(desc, size);
+    }
+
+    public Value newReferenceArray(final ReferenceArrayObjectType arrayType, Value elemTypeId, Value dimensions, final Value size) {
+        return getDelegate().newReferenceArray(arrayType, elemTypeId, dimensions, size);
     }
 
     public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {

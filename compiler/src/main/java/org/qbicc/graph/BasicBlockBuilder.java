@@ -11,6 +11,8 @@ import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.PrimitiveArrayObjectType;
+import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
@@ -363,9 +365,11 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value new_(ClassTypeDescriptor desc);
 
-    Value newArray(ArrayObjectType arrayType, Value size);
+    Value newArray(PrimitiveArrayObjectType arrayType, Value size);
 
     Value newArray(ArrayTypeDescriptor desc, Value size);
+
+    Value newReferenceArray(ReferenceArrayObjectType arrayType, Value elemTypeId, Value dimensions, Value size);
 
     Value multiNewArray(ArrayObjectType arrayType, List<Value> dimensions);
 

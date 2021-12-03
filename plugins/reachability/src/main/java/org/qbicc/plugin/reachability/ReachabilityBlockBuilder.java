@@ -14,6 +14,7 @@ import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.InterfaceMethodElementHandle;
 import org.qbicc.graph.MultiNewArray;
 import org.qbicc.graph.NewArray;
+import org.qbicc.graph.NewReferenceArray;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.OrderedNode;
@@ -180,12 +181,10 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         }
 
         @Override
-        public Void visit(ReachabilityContext param, NewArray node) {
+        public Void visit(ReachabilityContext param, NewReferenceArray node) {
             if (visitUnknown(param, (Node)node)) {
-                if (node.getArrayType() instanceof ReferenceArrayObjectType at) {
-                    // Force the array's leaf element type to be reachable (and thus assigned a typeId).
-                    param.analysis.processArrayElementType(at.getLeafElementType());
-                }
+                // Force the array's leaf element type to be reachable (and thus assigned a typeId).
+                param.analysis.processArrayElementType(node.getArrayType().getLeafElementType());
             }
             return null;
         }

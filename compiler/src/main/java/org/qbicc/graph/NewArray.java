@@ -1,6 +1,6 @@
 package org.qbicc.graph;
 
-import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -10,10 +10,10 @@ import org.qbicc.type.definition.element.ExecutableElement;
  */
 public final class NewArray extends AbstractValue implements OrderedNode {
     private final Node dependency;
-    private final ArrayObjectType type;
+    private final PrimitiveArrayObjectType type;
     private final Value size;
 
-    NewArray(final Node callSite, final ExecutableElement element, final int line, final int bci, Node dependency, final ArrayObjectType type, final Value size) {
+    NewArray(final Node callSite, final ExecutableElement element, final int line, final int bci, Node dependency, final PrimitiveArrayObjectType type, final Value size) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.type = type;
@@ -36,7 +36,7 @@ public final class NewArray extends AbstractValue implements OrderedNode {
         return type.getElementType();
     }
 
-    public ArrayObjectType getArrayType() {
+    public PrimitiveArrayObjectType getArrayType() {
         return type;
     }
 

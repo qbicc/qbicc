@@ -20,6 +20,8 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.PrimitiveArrayObjectType;
+import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
@@ -574,12 +576,16 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("New of unresolved class");
     }
 
-    public Value newArray(final ArrayObjectType arrayType, final Value size) {
+    public Value newArray(final PrimitiveArrayObjectType arrayType, final Value size) {
         return asDependency(new NewArray(callSite, element, line, bci, requireDependency(), arrayType, size));
     }
 
     public Value newArray(final ArrayTypeDescriptor desc, final Value size) {
         throw new IllegalStateException("New of unresolved array type");
+    }
+
+    public Value newReferenceArray(final ReferenceArrayObjectType arrayType, Value elemTypeId, Value dimensions, final Value size) {
+        return asDependency(new NewReferenceArray(callSite, element, line, bci, requireDependency(), arrayType, elemTypeId, dimensions, size));
     }
 
     public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {

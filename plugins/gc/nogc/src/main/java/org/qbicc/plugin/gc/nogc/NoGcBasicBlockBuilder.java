@@ -17,9 +17,10 @@ import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.PrimitiveArrayObjectType;
+import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
@@ -35,6 +36,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         this.coreClasses = CoreClasses.get(ctxt);
     }
 
+    @Override
     public Value new_(final ClassObjectType type) {
         NoGc noGc = NoGc.get(ctxt);
         Layout layout = Layout.get(ctxt);
@@ -50,21 +52,34 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             MethodElement method = noGc.getAllocateMethod();
             ptrVal = notNull(call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(lf.literalOf(size), align)));
         }
-        Value oop = valueConvert(ptrVal, type.getReference());
 
-        // zero initialize the object's instance fields
+        // zero initialize the allocated storage
         MethodElement method = noGc.getZeroMethod();
         call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(ptrVal, lf.literalOf(info.getCompoundType().getSize())));
 
-        return oop;
+        return valueConvert(ptrVal, type.getReference());
     }
 
-    public Value newArray(final ArrayObjectType arrayType, Value size) {
-        NoGc noGc = NoGc.get(ctxt);
+    @Override
+    public Value newArray(final PrimitiveArrayObjectType arrayType, Value size) {
         Layout layout = Layout.get(ctxt);
-        FieldElement arrayContentField = coreClasses.getArrayContentField(arrayType);
-        LayoutInfo info = layout.getInstanceLayoutInfo(arrayContentField.getEnclosingType());
+        LayoutInfo info = layout.getInstanceLayoutInfo(coreClasses.getArrayContentField(arrayType).getEnclosingType());
         CompoundType compoundType = info.getCompoundType();
+        Value ptrVal = allocateArray(compoundType, size, arrayType.getElementType().getSize());
+        return valueConvert(ptrVal, arrayType.getReference());
+    }
+
+    @Override
+    public Value newReferenceArray(final ReferenceArrayObjectType arrayType, Value elemTypeId, Value dimensions, Value size) {
+        Layout layout = Layout.get(ctxt);
+        LayoutInfo info = layout.getInstanceLayoutInfo(coreClasses.getRefArrayContentField().getEnclosingType());
+        CompoundType compoundType = info.getCompoundType();
+        Value ptrVal = allocateArray(compoundType, size, ctxt.getTypeSystem().getReferenceSize());
+        return valueConvert(ptrVal, arrayType.getReference());
+    }
+
+    private Value allocateArray(CompoundType compoundType, Value size, long elementSize) {
+        NoGc noGc = NoGc.get(ctxt);
         LiteralFactory lf = ctxt.getLiteralFactory();
         IntegerLiteral align = lf.literalOf(compoundType.getAlign());
         IntegerLiteral baseSize = lf.literalOf(compoundType.getSize());
@@ -72,17 +87,17 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (sizeType.getMinBits() < 64) {
             size = extend(size, ctxt.getTypeSystem().getSignedInteger64Type());
         }
-        long elementSize = arrayType.getElementType().getSize();
         assert Long.bitCount(elementSize) == 1;
         int elementShift = Long.numberOfTrailingZeros(elementSize);
         Value realSize = add(baseSize, elementShift == 0 ? size : shl(size, lf.literalOf((IntegerType)size.getType(), elementShift)));
+
+        // Allocate and zero-initialize the storage
         MethodElement method1 = noGc.getAllocateMethod();
         Value ptrVal = notNull(call(staticMethod(method1, method1.getDescriptor(), method1.getType()), List.of(realSize, align)));
-
         MethodElement method = noGc.getZeroMethod();
         call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(ptrVal, realSize));
 
-        return valueConvert(ptrVal, arrayType.getReference());
+        return ptrVal;
     }
 
     public Value clone(final Value object) {
@@ -90,6 +105,10 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         NoGc noGc = NoGc.get(ctxt);
         Layout layout = Layout.get(ctxt);
         if (objType instanceof ClassObjectType) {
+            // TODO: This implementation is actually not correct, because it is cloning based
+            //       on the static type of the value; not the actual runtime type.
+            //       I would remove it entirely, except it is actually needed to pass one of our
+            //       integration tests (which is using Enums).
             ClassObjectType type = (ClassObjectType) objType;
             LayoutInfo info = layout.getInstanceLayoutInfo(type.getDefinition());
             LiteralFactory lf = ctxt.getLiteralFactory();

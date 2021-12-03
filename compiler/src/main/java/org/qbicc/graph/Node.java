@@ -760,6 +760,12 @@ public interface Node {
                 return param.getBlockBuilder().newArray(node.getArrayType(), param.copyValue(node.getSize()));
             }
 
+            public Value visit(final Copier param, final NewReferenceArray node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().newReferenceArray(node.getArrayType(), param.copyValue(node.getElemTypeId()),
+                    param.copyValue(node.getDimensions()), param.copyValue(node.getSize()));
+            }
+
             public Value visit(final Copier param, final NotNull node) {
                 return param.getBlockBuilder().notNull(param.copyValue(node.getInput()));
             }
