@@ -53,6 +53,7 @@ import org.qbicc.plugin.constants.ConstantBasicBlockBuilder;
 import org.qbicc.plugin.conversion.MethodCallFixupBasicBlockBuilder;
 import org.qbicc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import org.qbicc.plugin.core.CoreAnnotationTypeBuilder;
+import org.qbicc.plugin.coreclasses.ArrayLengthBasicBlockBuilder;
 import org.qbicc.plugin.coreclasses.BasicInitializationBasicBlockBuilder;
 import org.qbicc.plugin.coreclasses.BasicInitializationManualInitializer;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -394,7 +395,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassInitializingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, BasicInitializationBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ArrayLengthBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MethodCallFixupBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
                                 if (optMemoryTracking) {
@@ -422,7 +423,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAnalyzePhase);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, InitializedStaticFieldBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, BasicInitializationBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, ThreadLocalBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
                                 if (optMemoryTracking) {
@@ -459,6 +459,7 @@ public class Main implements Callable<DiagnosticContext> {
 
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ThrowLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, BasicInitializationBasicBlockBuilder::new);
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, NoGcBasicBlockBuilder::new);
                                 }
