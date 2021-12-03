@@ -584,8 +584,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("New of unresolved array type");
     }
 
-    public Value newReferenceArray(final ReferenceArrayObjectType arrayType, final Value size) {
-        return asDependency(new NewReferenceArray(callSite, element, line, bci, requireDependency(), arrayType, size));
+    public Value newReferenceArray(final ReferenceArrayObjectType arrayType, Value elemTypeId, Value dimensions, final Value size) {
+        return asDependency(new NewReferenceArray(callSite, element, line, bci, requireDependency(), arrayType, elemTypeId, dimensions, size));
     }
 
     public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {

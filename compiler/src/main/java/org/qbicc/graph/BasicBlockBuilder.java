@@ -369,7 +369,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value newArray(ArrayTypeDescriptor desc, Value size);
 
-    Value newReferenceArray(ReferenceArrayObjectType arrayType, Value size);
+    Value newReferenceArray(ReferenceArrayObjectType arrayType, Value elemTypeId, Value dimensions, Value size);
 
     Value multiNewArray(ArrayObjectType arrayType, List<Value> dimensions);
 

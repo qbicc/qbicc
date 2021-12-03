@@ -24,6 +24,7 @@ import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
@@ -282,7 +283,9 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         if (type instanceof PrimitiveArrayObjectType pat) {
             return super.newArray(pat, size);
         } else if (type instanceof ReferenceArrayObjectType rat) {
-            return super.newReferenceArray(rat, size);
+            Value dimensions =  ctxt.getLiteralFactory().literalOf((IntegerType) CoreClasses.get(ctxt).getRefArrayDimensionsField().getType(), rat.getDimensionCount());
+            Value elemTypeId =  ctxt.getLiteralFactory().literalOfType(rat.getLeafElementType());
+            return super.newReferenceArray(rat, elemTypeId, dimensions, size);
         } else if (type instanceof ArrayType at) {
             // it's a native array
             if (size instanceof IntegerLiteral il) {

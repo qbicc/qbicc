@@ -301,8 +301,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().newArray(desc, size);
     }
 
-    public Value newReferenceArray(final ReferenceArrayObjectType arrayType, final Value size) {
-        return getDelegate().newReferenceArray(arrayType, size);
+    public Value newReferenceArray(final ReferenceArrayObjectType arrayType, Value elemTypeId, Value dimensions, final Value size) {
+        return getDelegate().newReferenceArray(arrayType, elemTypeId, dimensions, size);
     }
 
     public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {

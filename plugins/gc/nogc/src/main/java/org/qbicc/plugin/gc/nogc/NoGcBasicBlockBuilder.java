@@ -70,7 +70,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value newReferenceArray(final ReferenceArrayObjectType arrayType, Value size) {
+    public Value newReferenceArray(final ReferenceArrayObjectType arrayType, Value elemTypeId, Value dimensions, Value size) {
         Layout layout = Layout.get(ctxt);
         LayoutInfo info = layout.getInstanceLayoutInfo(coreClasses.getRefArrayContentField().getEnclosingType());
         CompoundType compoundType = info.getCompoundType();

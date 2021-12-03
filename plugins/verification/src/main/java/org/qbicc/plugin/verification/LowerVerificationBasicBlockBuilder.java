@@ -73,7 +73,7 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
         return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(arrayType.getReference());
     }
 
-    public Value newReferenceArray(final ReferenceArrayObjectType arrayType, final Value size) {
+    public Value newReferenceArray(final ReferenceArrayObjectType arrayType, final Value elemTypeId, final Value dimensions, final Value size) {
         invalidNode("newReferenceArray");
         return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(arrayType.getReference());
     }

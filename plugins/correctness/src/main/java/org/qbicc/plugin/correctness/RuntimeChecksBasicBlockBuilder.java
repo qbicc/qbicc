@@ -165,9 +165,9 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public Value newReferenceArray(final ReferenceArrayObjectType arrayType, final Value size) {
+    public Value newReferenceArray(final ReferenceArrayObjectType arrayType, Value elemTypeId, Value dimensions, final Value size) {
         arraySizeCheck(size);
-        return super.newReferenceArray(arrayType, size);
+        return super.newReferenceArray(arrayType, elemTypeId, dimensions, size);
     }
 
     @Override

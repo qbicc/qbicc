@@ -10,10 +10,8 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.IntegerType;
-import org.qbicc.type.ObjectType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
-import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.FieldElement;
 
@@ -41,57 +39,44 @@ public class BasicInitializationBasicBlockBuilder extends DelegatingBasicBlockBu
     @Override
     public Value new_(ClassObjectType type) {
         Value allocated = super.new_(type);
-        ValueType allocatedType = allocated.getType();
-        if (allocatedType instanceof ReferenceType) {
-            initializeBaseHeader(type, allocated);
-        }
-        return allocated;
-    }
-
-    @Override
-    public Value newReferenceArray(ReferenceArrayObjectType arrayType, Value size) {
-        Value allocated = super.newReferenceArray(arrayType, size);
-        ValueType allocatedType = allocated.getType();
-        if (allocatedType instanceof ReferenceType) {
-            initializeArrayHeader(arrayType, allocated, size);
-        }
+        initializeObjectHeader(CoreClasses.get(ctxt), referenceHandle(allocated), ctxt.getLiteralFactory().literalOfType(type));
         return allocated;
     }
 
     @Override
     public Value newArray(PrimitiveArrayObjectType arrayType, Value size) {
         Value allocated = super.newArray(arrayType, size);
-        ValueType allocatedType = allocated.getType();
-        if (allocatedType instanceof ReferenceType) {
-            initializeArrayHeader(arrayType, allocated, size);
-        }
+        CoreClasses coreClasses = CoreClasses.get(ctxt);
+        ClassObjectType actualType = coreClasses.getArrayContentField(arrayType).getEnclosingType().load().getClassType();
+        initializeArrayHeader(coreClasses, referenceHandle(allocated), ctxt.getLiteralFactory().literalOfType(actualType), size);
         return allocated;
     }
 
-    private ValueHandle initializeBaseHeader(final ClassObjectType type, final Value allocated) {
-        LiteralFactory lf = ctxt.getLiteralFactory();
+    @Override
+    public Value newReferenceArray(ReferenceArrayObjectType arrayType, Value elemTypeId, Value dimensions, Value size) {
+        Value allocated = super.newReferenceArray(arrayType, elemTypeId, dimensions, size);
         CoreClasses coreClasses = CoreClasses.get(ctxt);
-        ValueHandle handle = referenceHandle(allocated);
-        store(instanceFieldOf(handle, coreClasses.getObjectTypeIdField()), lf.literalOfType(type), MemoryAtomicityMode.UNORDERED);
-        FieldElement monitorField = coreClasses.getObjectNativeObjectMonitorField();
-        store(instanceFieldOf(handle, monitorField), ctxt.getLiteralFactory().literalOf((IntegerType)monitorField.getType(), 0L), MemoryAtomicityMode.NONE);
-        return handle;
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        initializeRefArrayHeader(coreClasses, referenceHandle(allocated), elemTypeId, dimensions, size);
+        return allocated;
     }
 
-    private void initializeArrayHeader(final ArrayObjectType arrayType, final Value allocated, final Value size) {
-        CoreClasses coreClasses = CoreClasses.get(ctxt);
-        ClassObjectType actualType = coreClasses.getArrayContentField(arrayType).getEnclosingType().load().getClassType();
-        ValueHandle handle = initializeBaseHeader(actualType, allocated);
+    private void initializeObjectHeader(final CoreClasses coreClasses, final ValueHandle handle, final Value typeId) {
+        store(instanceFieldOf(handle, coreClasses.getObjectTypeIdField()), typeId, MemoryAtomicityMode.UNORDERED);
+        FieldElement monitorField = coreClasses.getObjectNativeObjectMonitorField();
+        store(instanceFieldOf(handle, monitorField), ctxt.getLiteralFactory().literalOf((IntegerType)monitorField.getType(), 0L), MemoryAtomicityMode.NONE);
+    }
+
+    private void initializeArrayHeader(final CoreClasses coreClasses, final ValueHandle handle, final Value typeId, final Value size) {
+        initializeObjectHeader(coreClasses, handle, typeId);
         store(instanceFieldOf(handle, coreClasses.getArrayLengthField()), size, MemoryAtomicityMode.UNORDERED);
+    }
+
+    private void initializeRefArrayHeader(final CoreClasses coreClasses, final ValueHandle handle, Value elemTypeId, Value dimensions, final Value size) {
         LiteralFactory lf = ctxt.getLiteralFactory();
-        if (arrayType instanceof ReferenceArrayObjectType) {
-            // we also have to store the element type and dimensions
-            ReferenceArrayObjectType raot = (ReferenceArrayObjectType) arrayType;
-            int dimensionCount = raot.getDimensionCount();
-            ObjectType leafType = raot.getLeafElementType();
-            FieldElement dimsField = coreClasses.getRefArrayDimensionsField();
-            store(instanceFieldOf(handle, dimsField), lf.literalOf((IntegerType) dimsField.getType(), dimensionCount), MemoryAtomicityMode.UNORDERED);
-            store(instanceFieldOf(handle, coreClasses.getRefArrayElementTypeIdField()), lf.literalOfType(leafType), MemoryAtomicityMode.UNORDERED);
-        }
+        initializeArrayHeader(coreClasses, handle, lf.literalOfType(coreClasses.getReferenceArrayTypeDefinition().load().getClassType()), size);
+        FieldElement dimsField = coreClasses.getRefArrayDimensionsField();
+        store(instanceFieldOf(handle, dimsField), dimensions, MemoryAtomicityMode.UNORDERED);
+        store(instanceFieldOf(handle, coreClasses.getRefArrayElementTypeIdField()), elemTypeId, MemoryAtomicityMode.UNORDERED);
     }
 }
