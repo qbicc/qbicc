@@ -21,7 +21,6 @@ import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
@@ -37,6 +36,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         this.coreClasses = CoreClasses.get(ctxt);
     }
 
+    @Override
     public Value new_(final ClassObjectType type) {
         NoGc noGc = NoGc.get(ctxt);
         Layout layout = Layout.get(ctxt);
@@ -60,6 +60,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return valueConvert(ptrVal, type.getReference());
     }
 
+    @Override
     public Value newArray(final PrimitiveArrayObjectType arrayType, Value size) {
         Layout layout = Layout.get(ctxt);
         LayoutInfo info = layout.getInstanceLayoutInfo(coreClasses.getArrayContentField(arrayType).getEnclosingType());
@@ -68,6 +69,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return valueConvert(ptrVal, arrayType.getReference());
     }
 
+    @Override
     public Value newReferenceArray(final ReferenceArrayObjectType arrayType, Value size) {
         Layout layout = Layout.get(ctxt);
         LayoutInfo info = layout.getInstanceLayoutInfo(coreClasses.getRefArrayContentField().getEnclosingType());
