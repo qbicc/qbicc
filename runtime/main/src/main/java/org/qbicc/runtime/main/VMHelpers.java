@@ -619,10 +619,7 @@ public final class VMHelpers {
         }
     }
 
-    // TODO: Class library compatibility kludge; remove once qbicc 0.3.0 is released
-    public static boolean saveNativeThread(void_ptr thread, PThread.pthread_t_ptr pthreadPtr) {
-        return CompilerIntrinsics.saveNativeThread(thread, pthreadPtr);
-    }
+    // TODO: Class library compatibility kludge; remove once qbicc 0.3.0 is released and CoreIntrnsic for Thread.start0 is updated.
     public static void_ptr threadWrapperNative(void_ptr threadParam) {
         return CompilerIntrinsics.threadWrapperNative(threadParam);
     }

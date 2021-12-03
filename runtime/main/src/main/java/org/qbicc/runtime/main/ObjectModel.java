@@ -99,6 +99,4 @@ public class ObjectModel {
     public static boolean hasDefaultMethods(type_id typeId) {
         return (CompilerIntrinsics.getTypeIdFlags(typeId) & Flag_typeid_has_default_methods) == Flag_typeid_has_default_methods;
     }
-
-    public static native void_ptr threadWrapperNative(void_ptr threadParam);
 }
