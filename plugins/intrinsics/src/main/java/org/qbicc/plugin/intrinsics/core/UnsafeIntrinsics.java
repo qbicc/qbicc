@@ -11,7 +11,9 @@ import java.util.Map;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockEntry;
+import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.Load;
@@ -23,7 +25,6 @@ import org.qbicc.graph.Store;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Variable;
-import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
@@ -32,9 +33,9 @@ import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.plugin.coreclasses.CoreClasses;
+import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.plugin.intrinsics.InstanceIntrinsic;
 import org.qbicc.plugin.intrinsics.Intrinsics;
-import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
@@ -42,6 +43,7 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -465,7 +467,6 @@ public class UnsafeIntrinsics {
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
         ClassTypeDescriptor unsafeDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Unsafe");
-        ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor stringDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
 
@@ -474,81 +475,175 @@ public class UnsafeIntrinsics {
 
         //arrayBaseOffset0
         InstanceIntrinsic arrayBaseOffset = (builder, instance, target, arguments) -> {
-            Value clazz = traverseLoads(arguments.get(0));
             CoreClasses coreClasses = CoreClasses.get(ctxt);
             LiteralFactory lf = ctxt.getLiteralFactory();
-            ArrayObjectType objectType;
-            if (clazz instanceof ClassOf) {
-                ClassOf classOf = (ClassOf) clazz;
-                Value typeId = classOf.getInput();
-                Value dimensions = classOf.getDimensions();
-                if (typeId instanceof TypeLiteral) {
-                    ObjectType valueType = (ObjectType) ((TypeLiteral) typeId).getValue();
-                    if (dimensions instanceof IntegerLiteral) {
-                        int dimensionsValue = ((IntegerLiteral) dimensions).intValue();
-                        if (dimensionsValue > 0) {
-                            // it's a reference array
-                            return builder.offsetOfField(coreClasses.getRefArrayContentField());
-                        }
-                    }
-                    if (valueType instanceof ArrayObjectType) {
-                        objectType = (ArrayObjectType) valueType;
-                        ValueType elementType = objectType.getElementType();
-                        if (elementType instanceof WordType) {
-                            switch (((WordType) elementType).asPrimitive()) {
-                                case BOOLEAN: return builder.offsetOfField(coreClasses.getBooleanArrayContentField());
-                                case BYTE: return builder.offsetOfField(coreClasses.getByteArrayContentField());
-                                case SHORT: return builder.offsetOfField(coreClasses.getShortArrayContentField());
-                                case CHAR: return builder.offsetOfField(coreClasses.getCharArrayContentField());
-                                case INT: return builder.offsetOfField(coreClasses.getIntArrayContentField());
-                                case FLOAT: return builder.offsetOfField(coreClasses.getFloatArrayContentField());
-                                case LONG: return builder.offsetOfField(coreClasses.getLongArrayContentField());
-                                case DOUBLE: return builder.offsetOfField(coreClasses.getDoubleArrayContentField());
-                                default: {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            ctxt.error(builder.getLocation(), "arrayBaseOffset type argument must be a literal of an array object type");
-            return lf.literalOf(0);
+            // reference array
+            FieldElement refArrayContentField = coreClasses.getRefArrayContentField();
+            FieldElement booleanArrayContentField = coreClasses.getBooleanArrayContentField();
+            FieldElement byteArrayContentField = coreClasses.getByteArrayContentField();
+            FieldElement shortArrayContentField = coreClasses.getShortArrayContentField();
+            FieldElement intArrayContentField = coreClasses.getIntArrayContentField();
+            FieldElement longArrayContentField = coreClasses.getLongArrayContentField();
+            FieldElement charArrayContentField = coreClasses.getCharArrayContentField();
+            FieldElement floatArrayContentField = coreClasses.getFloatArrayContentField();
+            FieldElement doubleArrayContentField = coreClasses.getDoubleArrayContentField();
+            // todo: enhance switch to accept any Literal to simplify this considerably
+            BlockLabel isRef = new BlockLabel();
+            BlockLabel isNotRef = new BlockLabel();
+            BlockLabel isBool = new BlockLabel();
+            BlockLabel isNotBool = new BlockLabel();
+            BlockLabel isByte = new BlockLabel();
+            BlockLabel isNotByte = new BlockLabel();
+            BlockLabel isShort = new BlockLabel();
+            BlockLabel isNotShort = new BlockLabel();
+            BlockLabel isInt = new BlockLabel();
+            BlockLabel isNotInt = new BlockLabel();
+            BlockLabel isLong = new BlockLabel();
+            BlockLabel isNotLong = new BlockLabel();
+            BlockLabel isChar = new BlockLabel();
+            BlockLabel isNotChar = new BlockLabel();
+            BlockLabel isFloat = new BlockLabel();
+            BlockLabel isNotFloat = new BlockLabel();
+            BlockLabel isDouble = new BlockLabel();
+            BlockLabel isNotDouble = new BlockLabel();
+            Value classDims = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassDimensionField()), UNORDERED);
+            Value isRefBool = builder.isNe(classDims, lf.zeroInitializerLiteralOfType(classDims.getType()));
+            builder.if_(isRefBool, isRef, isNotRef);
+            builder.begin(isRef);
+            builder.return_(builder.offsetOfField(refArrayContentField));
+            builder.begin(isNotRef);
+            Value typeId = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassTypeIdField()), UNORDERED);
+            Value isBoolBool = builder.isEq(typeId, lf.literalOfType(booleanArrayContentField.getEnclosingType().load().getType()));
+            builder.if_(isBoolBool, isBool, isNotBool);
+            builder.begin(isBool);
+            builder.return_(builder.offsetOfField(booleanArrayContentField));
+            builder.begin(isNotBool);
+            Value isByteBool = builder.isEq(typeId, lf.literalOfType(byteArrayContentField.getEnclosingType().load().getType()));
+            builder.if_(isByteBool, isByte, isNotByte);
+            builder.begin(isByte);
+            builder.return_(builder.offsetOfField(byteArrayContentField));
+            builder.begin(isNotByte);
+            Value isShortBool = builder.isEq(typeId, lf.literalOfType(shortArrayContentField.getEnclosingType().load().getType()));
+            builder.if_(isShortBool, isShort, isNotShort);
+            builder.begin(isShort);
+            builder.return_(builder.offsetOfField(shortArrayContentField));
+            builder.begin(isNotShort);
+            Value isIntBool = builder.isEq(typeId, lf.literalOfType(intArrayContentField.getEnclosingType().load().getType()));
+            builder.if_(isIntBool, isInt, isNotInt);
+            builder.begin(isInt);
+            builder.return_(builder.offsetOfField(intArrayContentField));
+            builder.begin(isNotInt);
+            Value isLongBool = builder.isEq(typeId, lf.literalOfType(longArrayContentField.getEnclosingType().load().getType()));
+            builder.if_(isLongBool, isLong, isNotLong);
+            builder.begin(isLong);
+            builder.return_(builder.offsetOfField(longArrayContentField));
+            builder.begin(isNotLong);
+            Value isCharBool = builder.isEq(typeId, lf.literalOfType(charArrayContentField.getEnclosingType().load().getType()));
+            builder.if_(isCharBool, isChar, isNotChar);
+            builder.begin(isChar);
+            builder.return_(builder.offsetOfField(charArrayContentField));
+            builder.begin(isNotChar);
+            Value isFloatBool = builder.isEq(typeId, lf.literalOfType(floatArrayContentField.getEnclosingType().load().getType()));
+            builder.if_(isFloatBool, isFloat, isNotFloat);
+            builder.begin(isFloat);
+            builder.return_(builder.offsetOfField(floatArrayContentField));
+            builder.begin(isNotFloat);
+            Value isDoubleBool = builder.isEq(typeId, lf.literalOfType(doubleArrayContentField.getEnclosingType().load().getType()));
+            builder.if_(isDoubleBool, isDouble, isNotDouble);
+            builder.begin(isDouble);
+            builder.return_(builder.offsetOfField(doubleArrayContentField));
+            builder.begin(isNotDouble);
+            MethodElement throwCce = RuntimeMethodFinder.get(ctxt).getMethod("raiseClassCastException");
+            throw new BlockEarlyTermination(builder.callNoReturn(builder.staticMethod(throwCce, throwCce.getDescriptor(), throwCce.getType()), List.of()));
         };
 
-        intrinsics.registerIntrinsic(unsafeDesc, "arrayBaseOffset", classToInt, arrayBaseOffset);
+        intrinsics.registerIntrinsic(unsafeDesc, "arrayBaseOffset0", classToInt, arrayBaseOffset);
 
         //arrayIndexScale0
         InstanceIntrinsic arrayIndexScale = (builder, instance, target, arguments) -> {
-            Value clazz = traverseLoads(arguments.get(0));
+            CoreClasses coreClasses = CoreClasses.get(ctxt);
             LiteralFactory lf = ctxt.getLiteralFactory();
-            if (clazz instanceof ClassOf) {
-                ClassOf classOf = (ClassOf) clazz;
-                Value typeId = classOf.getInput();
-                Value dimensions = classOf.getDimensions();
-                if (typeId instanceof TypeLiteral) {
-                    ObjectType valueType = (ObjectType) ((TypeLiteral) typeId).getValue();
-                    if (dimensions instanceof IntegerLiteral) {
-                        int dimensionsValue = ((IntegerLiteral) dimensions).intValue();
-                        if (dimensionsValue > 0) {
-                            // it's a reference array
-                            return lf.literalOf(ctxt.getTypeSystem().getReferenceSize());
-                        }
-                    }
-                    if (valueType instanceof ArrayObjectType) {
-                        ArrayObjectType objectType = (ArrayObjectType) valueType;
-                        ValueType elementType = objectType.getElementType();
-                        if (elementType instanceof WordType) {
-                            return lf.literalOf((int) elementType.getSize());
-                        }
-                    }
-                }
-            }
-            ctxt.error(builder.getLocation(), "arrayIndexScale type argument must be a literal of an array object type");
-            return lf.literalOf(0);
+            // reference array
+            FieldElement refArrayContentField = coreClasses.getRefArrayContentField();
+            FieldElement booleanArrayContentField = coreClasses.getBooleanArrayContentField();
+            FieldElement byteArrayContentField = coreClasses.getByteArrayContentField();
+            FieldElement shortArrayContentField = coreClasses.getShortArrayContentField();
+            FieldElement intArrayContentField = coreClasses.getIntArrayContentField();
+            FieldElement longArrayContentField = coreClasses.getLongArrayContentField();
+            FieldElement charArrayContentField = coreClasses.getCharArrayContentField();
+            FieldElement floatArrayContentField = coreClasses.getFloatArrayContentField();
+            FieldElement doubleArrayContentField = coreClasses.getDoubleArrayContentField();
+            // todo: enhance switch to accept any Literal to simplify this considerably
+            BlockLabel isRef = new BlockLabel();
+            BlockLabel isNotRef = new BlockLabel();
+            BlockLabel isBool = new BlockLabel();
+            BlockLabel isNotBool = new BlockLabel();
+            BlockLabel isByte = new BlockLabel();
+            BlockLabel isNotByte = new BlockLabel();
+            BlockLabel isShort = new BlockLabel();
+            BlockLabel isNotShort = new BlockLabel();
+            BlockLabel isInt = new BlockLabel();
+            BlockLabel isNotInt = new BlockLabel();
+            BlockLabel isLong = new BlockLabel();
+            BlockLabel isNotLong = new BlockLabel();
+            BlockLabel isChar = new BlockLabel();
+            BlockLabel isNotChar = new BlockLabel();
+            BlockLabel isFloat = new BlockLabel();
+            BlockLabel isNotFloat = new BlockLabel();
+            BlockLabel isDouble = new BlockLabel();
+            BlockLabel isNotDouble = new BlockLabel();
+            Value classDims = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassDimensionField()), UNORDERED);
+            Value isRefBool = builder.isNe(classDims, lf.zeroInitializerLiteralOfType(classDims.getType()));
+            builder.if_(isRefBool, isRef, isNotRef);
+            builder.begin(isRef);
+            builder.return_(lf.literalOf(ctxt.getTypeSystem().getReferenceSize()));
+            builder.begin(isNotRef);
+            Value typeId = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassTypeIdField()), UNORDERED);
+            Value isBoolBool = builder.isEq(typeId, lf.literalOfType(booleanArrayContentField.getEnclosingType().load().getType()));
+            builder.if_(isBoolBool, isBool, isNotBool);
+            builder.begin(isBool);
+            builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getBooleanType().getSize()));
+            builder.begin(isNotBool);
+            Value isByteBool = builder.isEq(typeId, lf.literalOfType(byteArrayContentField.getEnclosingType().load().getType()));
+            builder.if_(isByteBool, isByte, isNotByte);
+            builder.begin(isByte);
+            builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getSignedInteger8Type().getSize()));
+            builder.begin(isNotByte);
+            Value isShortBool = builder.isEq(typeId, lf.literalOfType(shortArrayContentField.getEnclosingType().load().getType()));
+            builder.if_(isShortBool, isShort, isNotShort);
+            builder.begin(isShort);
+            builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getSignedInteger16Type().getSize()));
+            builder.begin(isNotShort);
+            Value isIntBool = builder.isEq(typeId, lf.literalOfType(intArrayContentField.getEnclosingType().load().getType()));
+            builder.if_(isIntBool, isInt, isNotInt);
+            builder.begin(isInt);
+            builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getSignedInteger32Type().getSize()));
+            builder.begin(isNotInt);
+            Value isLongBool = builder.isEq(typeId, lf.literalOfType(longArrayContentField.getEnclosingType().load().getType()));
+            builder.if_(isLongBool, isLong, isNotLong);
+            builder.begin(isLong);
+            builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getSignedInteger64Type().getSize()));
+            builder.begin(isNotLong);
+            Value isCharBool = builder.isEq(typeId, lf.literalOfType(charArrayContentField.getEnclosingType().load().getType()));
+            builder.if_(isCharBool, isChar, isNotChar);
+            builder.begin(isChar);
+            builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getUnsignedInteger16Type().getSize()));
+            builder.begin(isNotChar);
+            Value isFloatBool = builder.isEq(typeId, lf.literalOfType(floatArrayContentField.getEnclosingType().load().getType()));
+            builder.if_(isFloatBool, isFloat, isNotFloat);
+            builder.begin(isFloat);
+            builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getFloat32Type().getSize()));
+            builder.begin(isNotFloat);
+            Value isDoubleBool = builder.isEq(typeId, lf.literalOfType(doubleArrayContentField.getEnclosingType().load().getType()));
+            builder.if_(isDoubleBool, isDouble, isNotDouble);
+            builder.begin(isDouble);
+            builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getFloat64Type().getSize()));
+            builder.begin(isNotDouble);
+            MethodElement throwCce = RuntimeMethodFinder.get(ctxt).getMethod("raiseClassCastException");
+            throw new BlockEarlyTermination(builder.callNoReturn(builder.staticMethod(throwCce, throwCce.getDescriptor(), throwCce.getType()), List.of()));
         };
 
-        intrinsics.registerIntrinsic(unsafeDesc, "arrayIndexScale", classToInt, arrayIndexScale);
+        intrinsics.registerIntrinsic(unsafeDesc, "arrayIndexScale0", classToInt, arrayIndexScale);
 
         //objectFieldOffset1
         InstanceIntrinsic objectFieldOffset = (builder, instance, target, arguments) -> {
