@@ -21,11 +21,11 @@ public final class VMHelpers {
 
     @Hidden
     public static Class<?> get_class(Object instance) {
-        type_id typeId = ObjectModel.type_id_of(instance);
+        type_id typeId = CompilerIntrinsics.type_id_of(instance);
         uint8_t dims = word(0);
-        if (ObjectModel.is_reference_array(typeId)) {
-            typeId = ObjectModel.element_type_id_of(instance);
-            dims = ObjectModel.dimensions_of(instance);
+        if (CompilerIntrinsics.is_reference_array(typeId)) {
+            typeId = CompilerIntrinsics.element_type_id_of(instance);
+            dims = CompilerIntrinsics.dimensions_of(instance);
         }
         return classof_from_typeid(typeId, dims);
     }
@@ -36,8 +36,8 @@ public final class VMHelpers {
         if (instance == null) {
             return false;
         }
-        type_id toTypeId = ObjectModel.get_type_id_from_class(cls);
-        uint8_t toDim = ObjectModel.get_dimensions_from_class(cls);
+        type_id toTypeId = CompilerIntrinsics.get_type_id_from_class(cls);
+        uint8_t toDim = CompilerIntrinsics.get_dimensions_from_class(cls);
         return isAssignableTo(instance, toTypeId, toDim);
     }
 
@@ -60,8 +60,8 @@ public final class VMHelpers {
 
     @Hidden
     public static void checkcast_class (Object value, Class<?> cls) {
-        type_id toTypeId = ObjectModel.get_type_id_from_class(cls);
-        uint8_t toDim = ObjectModel.get_dimensions_from_class(cls);
+        type_id toTypeId = CompilerIntrinsics.get_type_id_from_class(cls);
+        uint8_t toDim = CompilerIntrinsics.get_dimensions_from_class(cls);
         checkcast_typeId(value, toTypeId, toDim);
     }
 
@@ -77,9 +77,9 @@ public final class VMHelpers {
     @NoSideEffects
     @Hidden
     public static boolean isAssignableTo(Object value, type_id toTypeId, uint8_t toDimensions) {
-        type_id fromTypeId = ObjectModel.type_id_of(value);
-        if (ObjectModel.is_reference_array(fromTypeId)) {
-            return isTypeIdAssignableTo(ObjectModel.element_type_id_of(value), ObjectModel.dimensions_of(value), toTypeId, toDimensions);
+        type_id fromTypeId = CompilerIntrinsics.type_id_of(value);
+        if (CompilerIntrinsics.is_reference_array(fromTypeId)) {
+            return isTypeIdAssignableTo(CompilerIntrinsics.element_type_id_of(value), CompilerIntrinsics.dimensions_of(value), toTypeId, toDimensions);
         } else {
             return isTypeIdAssignableTo(fromTypeId, zero(), toTypeId, toDimensions);
         }
@@ -89,19 +89,19 @@ public final class VMHelpers {
     @Hidden
     public static boolean isTypeIdAssignableTo(type_id fromTypeId, uint8_t fromDimensions, type_id toTypeId, uint8_t toDimensions) {
         return fromDimensions == toDimensions && isAssignableToLeaf(fromTypeId, toTypeId)
-            || fromDimensions.isGt(toDimensions) && isAssignableToLeaf(ObjectModel.get_reference_array_typeid(), toTypeId);
+            || fromDimensions.isGt(toDimensions) && isAssignableToLeaf(CompilerIntrinsics.get_reference_array_typeid(), toTypeId);
     }
 
     @NoSideEffects
     @Hidden
     private static boolean isAssignableToLeaf(type_id fromTypeId, type_id toTypeId) {
-        if (ObjectModel.is_primitive(toTypeId) || ObjectModel.is_primitive(fromTypeId)) {
+        if (CompilerIntrinsics.is_primitive(toTypeId) || CompilerIntrinsics.is_primitive(fromTypeId)) {
             return false;
-        } else if (ObjectModel.is_interface(toTypeId)) {
-            return ObjectModel.does_implement(fromTypeId, toTypeId);
+        } else if (CompilerIntrinsics.is_interface(toTypeId)) {
+            return CompilerIntrinsics.does_implement(fromTypeId, toTypeId);
         } else {
             // in the physical type range
-            return toTypeId.isLe(fromTypeId) && fromTypeId.isLe(ObjectModel.max_subclass_type_id_of(toTypeId));
+            return toTypeId.isLe(fromTypeId) && fromTypeId.isLe(CompilerIntrinsics.max_subclass_type_id_of(toTypeId));
         }
     }
 
@@ -109,15 +109,15 @@ public final class VMHelpers {
     @Hidden
     @Inline(InlineCondition.NEVER)
     static Class<?> classof_from_typeid(type_id typeId, uint8_t dimensions) {
-        return ObjectModel.get_class_from_type_id(typeId, dimensions);
+        return CompilerIntrinsics.get_class_from_type_id(typeId, dimensions);
     }
 
     @Hidden
     static Class<?> get_superclass(type_id typeId) {
-        if (ObjectModel.is_java_lang_object(typeId) || ObjectModel.is_primitive(typeId) || ObjectModel.is_interface(typeId)) {
+        if (CompilerIntrinsics.is_java_lang_object(typeId) || CompilerIntrinsics.is_primitive(typeId) || CompilerIntrinsics.is_interface(typeId)) {
             return null;
         }
-        type_id superTypeId = ObjectModel.get_superclass_typeid(typeId);
+        type_id superTypeId = CompilerIntrinsics.get_superclass_typeid(typeId);
         uint8_t dims = word(0);
         return classof_from_typeid(superTypeId, dims);
     }
@@ -131,7 +131,7 @@ public final class VMHelpers {
                 classof_from_typeid is not currently implemented. */
             return;
         }
-        pthread_mutex_t_ptr nom = ObjectModel.get_nativeObjectMonitor(object);
+        pthread_mutex_t_ptr nom = CompilerIntrinsics.get_nativeObjectMonitor(object);
         if (nom == null) {
             ptr<?> attrVoid = malloc(sizeof(pthread_mutexattr_t.class));
             if (attrVoid.isNull()) {
@@ -167,11 +167,11 @@ public final class VMHelpers {
                     }
 
                     nom = (pthread_mutex_t_ptr) m;
-                    if (!ObjectModel.set_nativeObjectMonitor(object, nom)) {
+                    if (!CompilerIntrinsics.set_nativeObjectMonitor(object, nom)) {
                         /* atomic assignment failed, mutex has already been initialized for object. */
                         pthread_mutex_destroy(nom);
                         free(mVoid);
-                        nom = ObjectModel.get_nativeObjectMonitor(object);
+                        nom = CompilerIntrinsics.get_nativeObjectMonitor(object);
                     }
                 } finally {
                     pthread_mutexattr_destroy((pthread_mutexattr_t_ptr) attr);
@@ -194,7 +194,7 @@ public final class VMHelpers {
                 classof_from_typeid is not currently implemented. */
             return;
         }
-        pthread_mutex_t_ptr nom = ObjectModel.get_nativeObjectMonitor(object);
+        pthread_mutex_t_ptr nom = CompilerIntrinsics.get_nativeObjectMonitor(object);
         if (nom == null) {
             throw new IllegalMonitorStateException("native monitor could not be found for monitor_exit");
         }
@@ -356,7 +356,7 @@ public final class VMHelpers {
 
     static void ensureClinitStatesArray() {
         if (clinitStates == null) {
-            type_id size = ObjectModel.get_number_of_typeids();
+            type_id size = CompilerIntrinsics.get_number_of_typeids();
             synchronized(ClinitState.class) {
                 if (clinitStates == null) {
                     clinitStates = new ClinitState[size.intValue()];
@@ -395,7 +395,7 @@ public final class VMHelpers {
         // putchar('>');
         // putchar('\n');
         ensureClinitStatesArray();
-        if (ObjectModel.is_initialized(typeid)) {
+        if (CompilerIntrinsics.is_initialized(typeid)) {
             // early exit - is this right for getting the correct memory effects?
             return;
         }
@@ -437,11 +437,11 @@ public final class VMHelpers {
             }
             // LC is released at this point, and in-progress by current thread
             // Static field preparation happens at build time
-            if (ObjectModel.is_class(typeid)) {
+            if (CompilerIntrinsics.is_class(typeid)) {
                 try {
                     // Initialize the super class (and its superclasses if not already initialized)
-                    if (!ObjectModel.is_java_lang_object(typeid)) {
-                        initialize_class(currentThread, ObjectModel.get_superclass_typeid(typeid));
+                    if (!CompilerIntrinsics.is_java_lang_object(typeid)) {
+                        initialize_class(currentThread, CompilerIntrinsics.get_superclass_typeid(typeid));
                     }
                     // Initialize the super interfaces, at least those that declare default methods
                     // We calculate if a class has default methods during image build and we elide
@@ -451,9 +451,9 @@ public final class VMHelpers {
                     if (ObjectModel.has_default_methods(typeid)) {
                         // TODO: The ordering of superinterface intialization isn't correct here as it should start 
                         // recursively based on the directly declared interfaces.  This does all interfaces implemented.
-                        type_id interfaceId = ObjectModel.get_first_interface_typeid();
-                        for (int i = 0; i < ObjectModel.get_number_of_bytes_in_interface_bits_array(); i++) {
-                            byte b = ObjectModel.get_byte_of_interface_bits(typeid, i);
+                        type_id interfaceId = CompilerIntrinsics.get_first_interface_typeid();
+                        for (int i = 0; i < CompilerIntrinsics.get_number_of_bytes_in_interface_bits_array(); i++) {
+                            byte b = CompilerIntrinsics.get_byte_of_interface_bits(typeid, i);
                             if (b == 0) {
                                 // no interfaces in this byte - advance to the next one
                                 interfaceId = CNative.<type_id>word(interfaceId.intValue() + 8);
@@ -483,7 +483,7 @@ public final class VMHelpers {
             Error clinitThrowable = null;
             try {
                 if (ObjectModel.has_class_initializer(typeid)) {
-                    ObjectModel.call_class_initializer(typeid);
+                    CompilerIntrinsics.call_class_initializer(typeid);
                 }
             } catch (Throwable t) {
                 if (t instanceof Error) {
@@ -497,7 +497,7 @@ public final class VMHelpers {
                     // completed successfully
                     state.setInitialized();
                     // update the native data as well for fast checks
-                    ObjectModel.set_initialized(typeid);
+                    CompilerIntrinsics.set_initialized(typeid);
                 } else {
                     state.setFailed(clinitThrowable);
                 }
@@ -551,17 +551,17 @@ public final class VMHelpers {
     // Temporary testing method
     public static void testClinit(Object o) throws Throwable {
         putchar(isInitialized(o) ? 'Y' : 'N');
-        initialize_class(Thread.currentThread(), ObjectModel.type_id_of(o));
+        initialize_class(Thread.currentThread(), CompilerIntrinsics.type_id_of(o));
         setInitialized(o);
         putchar(isInitialized(o) ? 'Y' : 'N');
     }
 
     public static boolean isInitialized(Object o) throws Throwable {
-        return ObjectModel.is_initialized(ObjectModel.type_id_of(o));
+        return CompilerIntrinsics.is_initialized(CompilerIntrinsics.type_id_of(o));
     }
 
     public static void setInitialized(Object o) throws Throwable {
-        ObjectModel.set_initialized(ObjectModel.type_id_of(o));
+        CompilerIntrinsics.set_initialized(CompilerIntrinsics.type_id_of(o));
     }
 
     // Run time class loading
@@ -570,13 +570,6 @@ public final class VMHelpers {
         // TODO: keep a map of run time loadable classes per class loader
         throw new ClassNotFoundException("Run time class loading not yet supported");
     }
-
-    /**
-     * This intrinsic sets up and executes the `public void run()` of threadParam.
-     * @param threadParam - java.lang.Thread object that has been cast to a void pointer to be compatible with pthread_create
-     * @return null - this return value will not be used
-     */
-    public static native void_ptr threadWrapperNative(void_ptr threadParam);
 
     /**
      * Wrapper for threadWrapperNative intrinsic.
@@ -591,16 +584,8 @@ public final class VMHelpers {
             // TODO this is a workaround until addr_of_function is working
             return threadParam;
         }
-        return threadWrapperNative(threadParam);
+        return CompilerIntrinsics.threadWrapperNative(threadParam);
     }
-
-    /**
-     * TODO
-     * @param thread
-     * @param pthreadPtr
-     * @return
-     */
-    public static native boolean saveNativeThread(void_ptr thread, pthread_t_ptr pthreadPtr);
 
     /**
      * Helper for java.lang.Thread.start0 allocates a pthread and creates/runs the thread.
@@ -621,7 +606,7 @@ public final class VMHelpers {
         ptr<pthread_t> pthreadPtr = (ptr<pthread_t>) castPtr(pthreadVoid, pthread_t.class);
 
         /* make GC aware of thread before starting */
-        if (!saveNativeThread(thread, (pthread_t_ptr) pthreadPtr)) {
+        if (!CompilerIntrinsics.saveNativeThread(thread, (pthread_t_ptr) pthreadPtr)) {
             free(pthreadVoid);
             throw new OutOfMemoryError();
         }

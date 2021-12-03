@@ -15,11 +15,13 @@ public class RuntimeMethodFinder {
 
     final LoadedTypeDefinition VMHelpers;
     final LoadedTypeDefinition ObjectModel;
+    final LoadedTypeDefinition CompilerIntrinsics;
 
     private RuntimeMethodFinder(CompilationContext ctxt) {
         this.ctxt = ctxt;
         this.VMHelpers = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/VMHelpers").load();
         this.ObjectModel = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/ObjectModel").load();
+        this.CompilerIntrinsics = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/CompilerIntrinsics").load();
     }
 
     public static RuntimeMethodFinder get(CompilationContext ctxt) {
@@ -42,6 +44,10 @@ public class RuntimeMethodFinder {
         idx = ObjectModel.findMethodIndex(e -> methodName.equals(e.getName()));
         if (idx != -1) {
             return ObjectModel.getMethod(idx);
+        }
+        idx = CompilerIntrinsics.findMethodIndex(e -> methodName.equals(e.getName()));
+        if (idx != -1) {
+            return CompilerIntrinsics.getMethod(idx);
         }
         ctxt.error("Can't find the runtime helper method %s", methodName);
         return null;
