@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.sun.jdi.ClassType;
 import org.jboss.logging.Logger;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
@@ -21,6 +22,7 @@ import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.CmpAndSwap;
+import org.qbicc.graph.Comp;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Load;
@@ -69,6 +71,7 @@ import org.qbicc.type.NullableType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.Primitive;
+import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
@@ -113,6 +116,7 @@ public final class CoreIntrinsics {
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
         registerJavaLangReflectIntrinsics(ctxt);
         registerJavaLangRuntimeIntrinsics(ctxt);
+        registerOrgQbiccCompilerIntrinsics(ctxt);
         registerOrgQbiccObjectModelIntrinsics(ctxt);
         registerOrgQbiccRuntimeMainIntrinsics(ctxt);
         registerJavaLangMathIntrinsics(ctxt);
@@ -1426,6 +1430,24 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(cNativeDesc, "utf8z", MethodDescriptor.synthesize(classContext, constCharPtrDesc, List.of(strDesc)), utf8z);
+    }
+
+    static void registerOrgQbiccCompilerIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+        LiteralFactory lf = ctxt.getLiteralFactory();
+
+        ClassTypeDescriptor ciDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/CompilerIntrinsics");
+        ClassTypeDescriptor typeIdDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$type_id");
+        ClassTypeDescriptor uint8Desc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$uint8_t");
+        ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
+
+        MethodDescriptor newRefArrayDesc =  MethodDescriptor.synthesize(classContext, objDesc, List.of(typeIdDesc, uint8Desc, BaseTypeDescriptor.I));
+        StaticIntrinsic newRefArray = (builder, target, arguments) -> {
+            ReferenceArrayObjectType upperBound = classContext.findDefinedType("java/lang/Object").load().getType().getReferenceArrayObject();
+            return builder.newReferenceArray(upperBound, arguments.get(0), arguments.get(1), arguments.get(2));
+        };
+        intrinsics.registerIntrinsic(Phase.ADD, ciDesc, "emit_new_ref_array", newRefArrayDesc, newRefArray);
     }
 
     static void registerOrgQbiccObjectModelIntrinsics(final CompilationContext ctxt) {
