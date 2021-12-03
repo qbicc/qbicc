@@ -38,6 +38,7 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
 class VmClassImpl extends VmObjectImpl implements VmClass {
@@ -45,6 +46,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     private static final VarHandle interfacesHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "interfaces", VarHandle.class, VmClassImpl.class, List.class);
     private static final VarHandle declaredFieldsHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "declaredFields", VarHandle.class, VmClassImpl.class, VmArrayImpl.class);
+    private static final VarHandle declaredMethodsHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "declaredMethods", VarHandle.class, VmClassImpl.class, VmArrayImpl.class);
 
     private final VmImpl vm;
     /**
@@ -79,6 +81,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     private volatile VmClassImpl superClass;
     private volatile VmArrayClassImpl arrayClass;
     private volatile VmArrayImpl declaredFields; // backs getDeclaredFields0
+    private volatile VmArrayImpl declaredMethods; // backs getDeclaredMethods0
 
     // initialization state
 
@@ -380,6 +383,79 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             return pubFields;
         } else {
             return declaredFields;
+        }
+    }
+
+    @Override
+    public VmArray getDeclaredMethods(boolean publicOnly) {
+        if (declaredMethods == null) {
+            int numMethods = typeDefinition.getMethodCount();
+            VmClassImpl methodClass =vm.getBootstrapClassLoader().loadClass("java/lang/reflect/Method");
+            LoadedTypeDefinition methodClassDef = methodClass.getTypeDefinition();
+            VmClassLoaderImpl classLoader = this.classLoader;
+            if (classLoader == null) {
+                classLoader = vm.getBootstrapClassLoader();
+            }
+            VmArrayImpl methods = vm.manuallyInitialize(methodClass.getArrayClass().newInstance(numMethods));
+            for (int i = 0; i < numMethods; i ++) {
+                MethodElement method = typeDefinition.getMethod(i);
+                VmObjectImpl mObj = vm.manuallyInitialize(methodClass.newInstance());
+
+                MemoryImpl memory = mObj.getMemory();
+                int offset = indexOf(methodClassDef.findField("clazz"));
+                memory.storeRef(offset, this, MemoryAtomicityMode.UNORDERED);
+                offset = indexOf(methodClassDef.findField("name"));
+                memory.storeRef(offset, vm.intern(method.getName()), MemoryAtomicityMode.UNORDERED);
+                offset = indexOf(methodClassDef.findField("parameterTypes"));
+                // param types array
+                MethodDescriptor desc = method.getDescriptor();
+                List<TypeDescriptor> paramTypes = desc.getParameterTypes();
+                VmArrayImpl paramTypesVal = vm.manuallyInitialize(getVmClass().getArrayClass().newInstance(paramTypes.size()));
+                for (int j = 0; j < paramTypes.size(); j ++) {
+                    paramTypesVal.getMemory().storeRef(paramTypesVal.getArrayElementOffset(j), vm.getClassForDescriptor(classLoader, paramTypes.get(j)), MemoryAtomicityMode.UNORDERED);
+                }
+                memory.storeRef(offset, paramTypesVal, MemoryAtomicityMode.UNORDERED);
+                offset = indexOf(methodClassDef.findField("returnType"));
+                memory.storeRef(offset, vm.getClassForDescriptor(classLoader, desc.getReturnType()), MemoryAtomicityMode.UNORDERED);
+                // todo: exceptionTypes (checked only)
+                offset = indexOf(methodClassDef.findField("modifiers"));
+                memory.store32(offset, method.getModifiers() & 0x1fff, MemoryAtomicityMode.UNORDERED);
+                offset = indexOf(methodClassDef.findField("slot"));
+                memory.store32(offset, method.getIndex(), MemoryAtomicityMode.UNORDERED);
+                offset = indexOf(methodClassDef.findField("signature"));
+                memory.storeRef(offset, vm.intern(method.getSignature().toString()), MemoryAtomicityMode.UNORDERED);
+                // todo: annotations
+                // todo: parameterAnnotations
+                // todo: annotationDefault
+            }
+            do {
+                if (declaredMethodsHandle.compareAndSet(this, null, methods)) {
+                    break;
+                }
+                methods = this.declaredFields;
+            } while (declaredFields == null);
+        }
+
+        if (publicOnly) {
+            int numPublic = 0;
+            for (int i=0; i<typeDefinition.getMethodCount(); i++) {
+                if (typeDefinition.getMethod(i).isPublic()) {
+                    numPublic += 1;
+                }
+            }
+            VmClassImpl methodClass =vm.getBootstrapClassLoader().loadClass("java/lang/reflect/Method");
+            VmArrayImpl pubMethods = vm.manuallyInitialize(methodClass.getArrayClass().newInstance(numPublic));
+            int pubIdx = 0;
+            for (int i=0; i<typeDefinition.getMethodCount(); i++) {
+                if (typeDefinition.getMethod(i).isPublic()) {
+                    pubMethods.getMemory().storeRef(pubMethods.getArrayElementOffset(pubIdx++),
+                        declaredMethods.getMemory().loadRef(declaredMethods.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED),
+                        MemoryAtomicityMode.UNORDERED);
+                }
+            }
+            return pubMethods;
+        } else {
+            return declaredMethods;
         }
     }
 

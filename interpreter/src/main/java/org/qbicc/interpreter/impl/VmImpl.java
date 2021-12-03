@@ -551,6 +551,10 @@ public final class VmImpl implements Vm {
                 boolean publicOnly = ((Boolean)args.get(0)).booleanValue();
                 return ((VmClass) target).getDeclaredFields(publicOnly);
             });
+            classClass.registerInvokable("getDeclaredMethods0", ((thread, target, args) -> {
+                boolean publicOnly = ((Boolean)args.get(0)).booleanValue();
+                return ((VmClass) target).getDeclaredMethods(publicOnly);
+            }));
             classClass.registerInvokable("getModifiers", (thread, target, args) -> ((VmClass)target).getTypeDefinition().getModifiers());
             classClass.registerInvokable("getSuperclass", (thread, target, args) -> {
                 LoadedTypeDefinition sc = ((VmClass)target).getTypeDefinition().getSuperClass();
