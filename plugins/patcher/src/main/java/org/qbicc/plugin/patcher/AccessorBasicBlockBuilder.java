@@ -13,6 +13,7 @@ import org.qbicc.graph.StaticField;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.type.definition.element.FieldElement;
@@ -77,9 +78,9 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         checkAtomicAccessor(target);
-        return super.cmpAndSwap(target, expect, update, successMode, failureMode, strength);
+        return super.cmpAndSwap(target, expect, update, readMode, writeMode, strength);
     }
 
     @Override

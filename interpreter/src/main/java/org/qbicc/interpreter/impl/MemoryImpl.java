@@ -8,6 +8,7 @@ import java.util.Arrays;
 
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.type.ValueType;
@@ -147,10 +148,16 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public final int compareAndExchange8(int index, int expect, int update, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public final int compareAndExchange8(int index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load8(index, readMode) & 0xff;
+            if (val == (expect & 0xff)) {
+                store8(index, update, MemoryAtomicityMode.VOLATILE /* writeMode */);
+            }
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h8.compareAndExchangeAcquire(data, index, (byte) expect, (byte) update);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h8.compareAndExchangeRelease(data, index, (byte) expect, (byte) update);
         } else {
             return (int) h8.compareAndExchange(data, index, (byte) expect, (byte) update);
@@ -158,20 +165,26 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public abstract int compareAndExchange16(int index, int expect, int update, MemoryAtomicityMode mode);
+    public abstract int compareAndExchange16(int index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
     @Override
-    public abstract int compareAndExchange32(int index, int expect, int update, MemoryAtomicityMode mode);
+    public abstract int compareAndExchange32(int index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
     @Override
-    public abstract long compareAndExchange64(int index, long expect, long update, MemoryAtomicityMode mode);
+    public abstract long compareAndExchange64(int index, long expect, long update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
     @Override
-    public VmObject compareAndExchangeRef(int index, VmObject expect, VmObject update, MemoryAtomicityMode mode) {
+    public VmObject compareAndExchangeRef(int index, VmObject expect, VmObject update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         checkAlign(index, 2);
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            VmObject val = loadRef(index, readMode);
+            if (val == expect) {
+                storeRef(index, update, MemoryAtomicityMode.VOLATILE /* writeMode */);
+            }
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (VmObject) ht.compareAndExchangeAcquire(things, index >> 1, expect, update);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (VmObject) ht.compareAndExchangeRelease(things, index >> 1, expect, update);
         } else {
             return (VmObject) ht.compareAndExchange(things, index >> 1, expect, update);
@@ -179,11 +192,17 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public ValueType compareAndExchangeType(int index, ValueType expect, ValueType update, MemoryAtomicityMode mode) {
+    public ValueType compareAndExchangeType(int index, ValueType expect, ValueType update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         checkAlign(index, 2);
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            ValueType val = loadType(index, readMode);
+            if (val == expect) {
+                storeType(index, update, MemoryAtomicityMode.VOLATILE /* writeMode */);
+            }
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (ValueType) ht.compareAndExchangeAcquire(things, index >> 1, expect, update);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (ValueType) ht.compareAndExchangeRelease(things, index >> 1, expect, update);
         } else {
             return (ValueType) ht.compareAndExchange(things, index >> 1, expect, update);

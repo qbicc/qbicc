@@ -22,6 +22,7 @@ import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 
 /**
  *
@@ -121,9 +122,9 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         knownValues.clear();
-        return super.cmpAndSwap(target, expect, update, successMode, failureMode, strength);
+        return super.cmpAndSwap(target, expect, update, readMode, writeMode, strength);
     }
 
     @Override

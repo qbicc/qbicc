@@ -9,6 +9,7 @@ import org.qbicc.context.Locatable;
 import org.qbicc.context.Location;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
@@ -410,7 +411,13 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value getAndSub(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
 
-    Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode, CmpAndSwap.Strength strength);
+    Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength);
+
+    @Deprecated
+    default Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode, CmpAndSwap.Strength strength) {
+        // not strictly correct but sufficient for the interim
+        return cmpAndSwap(target, expect, update, failureMode.getAccessMode().getReadAccess(), successMode.getAccessMode().getWriteAccess(), strength);
+    }
 
     Value vaArg(Value vaList, ValueType type);
 

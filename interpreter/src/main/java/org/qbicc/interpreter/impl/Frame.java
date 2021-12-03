@@ -125,6 +125,7 @@ import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
@@ -1485,36 +1486,37 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         ValueType type = node.getValueHandle().getValueType();
         Value expect = node.getExpectedValue();
         Value update = node.getUpdateValue();
-        MemoryAtomicityMode mode = MemoryAtomicityMode.max(node.getFailureAtomicityMode(), node.getSuccessAtomicityMode());
+        ReadAccessMode readAccessMode = node.getReadAccessMode();
+        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
         boolean updated;
         CompoundType resultType = node.getType();
         Memory result = thread.getVM().allocate((int) resultType.getSize());
         if (type instanceof ReferenceType) {
             VmObject expected = (VmObject) require(expect);
-            VmObject resultVal = memory.compareAndExchangeRef(offset, expected, (VmObject) require(update), mode);
+            VmObject resultVal = memory.compareAndExchangeRef(offset, expected, (VmObject) require(update), readAccessMode, writeAccessMode);
             updated = expected == resultVal;
             result.storeRef(resultType.getMember(0).getOffset(), resultVal, MemoryAtomicityMode.UNORDERED);
         } else if (type instanceof IntegerType) {
             int bits = ((IntegerType) type).getMinBits();
             if (bits == 8) {
                 int expected = unboxInt(expect);
-                int unboxedResult = memory.compareAndExchange8(offset, expected, unboxInt(update), mode);
+                int unboxedResult = memory.compareAndExchange8(offset, expected, unboxInt(update), readAccessMode, writeAccessMode);
                 updated = expected == unboxedResult;
                 result.store8(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
             } else if (bits == 16) {
                 int expected = unboxInt(expect);
-                int unboxedResult = memory.compareAndExchange16(offset, expected, unboxInt(update), mode);
+                int unboxedResult = memory.compareAndExchange16(offset, expected, unboxInt(update), readAccessMode, writeAccessMode);
                 updated = expected == unboxedResult;
                 result.store16(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
             } else if (bits == 32) {
                 int expected = unboxInt(expect);
-                int unboxedResult = memory.compareAndExchange32(offset, expected, unboxInt(update), mode);
+                int unboxedResult = memory.compareAndExchange32(offset, expected, unboxInt(update), readAccessMode, writeAccessMode);
                 updated = expected == unboxedResult;
                 result.store32(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
             } else {
                 assert bits == 64;
                 long expected = unboxLong(expect);
-                long unboxedResult = memory.compareAndExchange64(offset, expected, unboxLong(update), mode);
+                long unboxedResult = memory.compareAndExchange64(offset, expected, unboxLong(update), readAccessMode, writeAccessMode);
                 updated = expected == unboxedResult;
                 result.store64(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
             }
@@ -1522,19 +1524,19 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             int bits = ((FloatType) type).getMinBits();
             if (bits == 32) {
                 int expected = Float.floatToRawIntBits(unboxFloat(expect));
-                int unboxedResult = memory.compareAndExchange32(offset, expected, Float.floatToRawIntBits(unboxInt(update)), mode);
+                int unboxedResult = memory.compareAndExchange32(offset, expected, Float.floatToRawIntBits(unboxInt(update)), readAccessMode, writeAccessMode);
                 updated = expected == unboxedResult;
                 result.store32(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
             } else {
                 assert bits == 64;
                 long expected = Double.doubleToRawLongBits(unboxDouble(expect));
-                long unboxedResult = memory.compareAndExchange64(offset, expected, Double.doubleToRawLongBits(unboxDouble(update)), mode);
+                long unboxedResult = memory.compareAndExchange64(offset, expected, Double.doubleToRawLongBits(unboxDouble(update)), readAccessMode, writeAccessMode);
                 updated = expected == unboxedResult;
                 result.store64(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
             }
         } else if (type instanceof BooleanType) {
             int expected = unboxBool(expect) ? 1 : 0;
-            int unboxedResult = memory.compareAndExchange8(offset, expected, unboxBool(update) ? 1 : 0, mode);
+            int unboxedResult = memory.compareAndExchange8(offset, expected, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode);
             updated = expected == unboxedResult;
             result.store8(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
         } else {

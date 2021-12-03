@@ -15,6 +15,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -24,6 +25,7 @@ import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.unwind.UnwindHelper;
 import org.qbicc.type.BooleanType;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
@@ -263,34 +265,54 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode, CmpAndSwap.Strength strength) {
-        boolean volatileSuccess = false, volatileFailure = false;
-        if (successMode == MemoryAtomicityMode.VOLATILE) {
-            volatileSuccess = true;
-            successMode = MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT;
-        }
-        if (failureMode == MemoryAtomicityMode.VOLATILE) {
-            volatileFailure = true;
-            failureMode = MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT;
-        }
-        if (successMode == MemoryAtomicityMode.NONE || successMode == MemoryAtomicityMode.UNORDERED) {
-            successMode = MemoryAtomicityMode.MONOTONIC;
-        }
-        if (failureMode == MemoryAtomicityMode.NONE || failureMode == MemoryAtomicityMode.UNORDERED) {
-            failureMode = MemoryAtomicityMode.MONOTONIC;
-        }
-        Value result = super.cmpAndSwap(target, expect, update, successMode, failureMode, strength);
-        if (volatileSuccess) {
-            if (volatileFailure) {
-                fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
-            } else {
-                // todo: only fence on success
-                fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
-            }
+    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+        BasicBlockBuilder fb = getFirstBuilder();
+        CompoundType resultType = CmpAndSwap.getResultType(ctxt, target.getValueType());
+        ReadAccessMode lowerReadMode = readMode;
+        WriteAccessMode lowerWriteMode = writeMode;
+        Value result;
+        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+            // not actually atomic!
+            // emit fences via load and store logic.
+            Value compareVal = fb.load(target, readMode);
+            BlockLabel success = new BlockLabel();
+            BlockLabel resume = new BlockLabel();
+            Value compareResult = fb.isEq(compareVal, expect);
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            Literal zeroStruct = lf.zeroInitializerLiteralOfType(resultType);
+            Value withCompareVal = fb.insertMember(zeroStruct, resultType.getMember(1), compareVal);
+            result = fb.insertMember(withCompareVal, resultType.getMember(0), compareResult);
+            fb.if_(compareResult, success, resume);
+            fb.begin(success);
+            fb.store(target, update, MemoryAtomicityMode.VOLATILE /* TODO: writeMode */);
+            fb.goto_(resume);
+            fb.begin(resume);
         } else {
-            // todo: only fence on error
-            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
+            boolean readRequiresFence = readMode.includes(GlobalAcquire);
+            if (readRequiresFence) {
+                lowerReadMode = SingleAcquire;
+            }
+            boolean writeRequiresFence = writeMode.includes(GlobalRelease);
+            if (writeRequiresFence) {
+                lowerWriteMode = SingleRelease;
+            }
+            result = super.cmpAndSwap(target, expect, update, lowerReadMode, lowerWriteMode, strength);
+            if (readRequiresFence) {
+                fence(readMode.getGlobalAccess());
+            }
+            if (writeRequiresFence) {
+                // the write side requires a global fence, but only in the success case
+                Value successFlag = fb.extractMember(result, resultType.getMember(1));
+                BlockLabel success = new BlockLabel();
+                BlockLabel resume = new BlockLabel();
+                fb.if_(successFlag, success, resume);
+                fb.begin(success);
+                fb.fence(writeMode.getGlobalAccess());
+                fb.goto_(resume);
+                fb.begin(resume);
+            }
         }
+
         return result;
     }
 

@@ -90,8 +90,10 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.ValueReturn;
 import org.qbicc.graph.Xor;
+import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.machine.llvm.AsmFlag;
@@ -1269,6 +1271,23 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         throw Assert.unreachableCode();
     }
 
+    private OrderingConstraint getOC(AccessMode mode) {
+        if (SinglePlain.includes(mode)) {
+            return OrderingConstraint.unordered;
+        } else if (SingleOpaque.includes(mode)) {
+            return OrderingConstraint.monotonic;
+        } else if (SingleAcquire.includes(mode)) {
+            return OrderingConstraint.acquire;
+        } else if (SingleRelease.includes(mode)) {
+            return OrderingConstraint.release;
+        } else if (SingleAcqRel.includes(mode)) {
+            return OrderingConstraint.acq_rel;
+        } else if (SingleSeqCst.includes(mode)) {
+            return OrderingConstraint.seq_cst;
+        }
+        throw Assert.unreachableCode();
+    }
+
     @Override
     public LLValue visit(final Void param, final CmpAndSwap node) {
         map(node.getDependency());
@@ -1278,8 +1297,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         LLValue expect = map(node.getExpectedValue());
         LLValue update = map(node.getUpdateValue());
-        OrderingConstraint successOrdering = getOC(node.getSuccessAtomicityMode());
-        OrderingConstraint failureOrdering = getOC(node.getFailureAtomicityMode());
+        ReadAccessMode readMode = node.getReadAccessMode();
+        WriteAccessMode writeMode = node.getWriteAccessMode();
+        OrderingConstraint successOrdering = getOC(readMode.combinedWith(writeMode));
+        OrderingConstraint failureOrdering = getOC(readMode);
         org.qbicc.machine.llvm.op.CmpAndSwap cmpAndSwapBuilder = builder.cmpAndSwap(
             ptrType, type, ptr, expect, update, successOrdering, failureOrdering);
         if (node.getStrength() == CmpAndSwap.Strength.WEAK) {

@@ -8,6 +8,7 @@ import java.lang.invoke.VarHandle;
 
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 
 final class BigEndianMemoryImpl extends MemoryImpl {
     static final BigEndianMemoryImpl EMPTY = new BigEndianMemoryImpl(0);
@@ -97,10 +98,16 @@ final class BigEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public int compareAndExchange16(int index, int expect, int update, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public int compareAndExchange16(int index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load16(index, readMode) & 0xffff;
+            if (val == (expect & 0xffff)) {
+                store16(index, update, MemoryAtomicityMode.VOLATILE /* writeMode */);
+            }
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h16.compareAndExchangeAcquire(data, index, (short) expect, (short) update);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h16.compareAndExchangeRelease(data, index, (short) expect, (short) update);
         } else {
             return (int) h16.compareAndExchange(data, index, (short) expect, (short) update);
@@ -108,10 +115,16 @@ final class BigEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public int compareAndExchange32(int index, int expect, int update, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public int compareAndExchange32(int index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load32(index, readMode);
+            if (val == expect) {
+                store32(index, update, MemoryAtomicityMode.VOLATILE /* writeMode */);
+            }
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h32.compareAndExchangeAcquire(data, index, expect, update);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h32.compareAndExchangeRelease(data, index, expect, update);
         } else {
             return (int) h32.compareAndExchange(data, index, expect, update);
@@ -119,10 +132,16 @@ final class BigEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public long compareAndExchange64(int index, long expect, long update, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public long compareAndExchange64(int index, long expect, long update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            long val = load64(index, readMode);
+            if (val == expect) {
+                store64(index, update, MemoryAtomicityMode.VOLATILE /* writeMode */);
+            }
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (long) h64.compareAndExchangeAcquire(data, index, expect, update);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (long) h64.compareAndExchangeRelease(data, index, expect, update);
         } else {
             return (long) h64.compareAndExchange(data, index, expect, update);

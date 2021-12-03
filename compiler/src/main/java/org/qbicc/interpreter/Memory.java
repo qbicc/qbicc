@@ -3,6 +3,7 @@ package org.qbicc.interpreter;
 
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ValueType;
 
 /**
@@ -97,17 +98,47 @@ public interface Memory {
 
     void storeMemory(int destIndex, byte[] src, int srcIndex, int size);
 
-    int compareAndExchange8(int index, int expect, int update, MemoryAtomicityMode mode);
+    @Deprecated
+    default int compareAndExchange8(int index, int expect, int update, MemoryAtomicityMode mode) {
+        return compareAndExchange8(index, expect, update, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int compareAndExchange16(int index, int expect, int update, MemoryAtomicityMode mode);
+    int compareAndExchange8(int index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    int compareAndExchange32(int index, int expect, int update, MemoryAtomicityMode mode);
+    @Deprecated
+    default int compareAndExchange16(int index, int expect, int update, MemoryAtomicityMode mode) {
+        return compareAndExchange16(index, expect, update, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    long compareAndExchange64(int index, long expect, long update, MemoryAtomicityMode mode);
+    int compareAndExchange16(int index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    VmObject compareAndExchangeRef(int index, VmObject expect, VmObject update, MemoryAtomicityMode mode);
+    @Deprecated
+    default int compareAndExchange32(int index, int expect, int update, MemoryAtomicityMode mode) {
+        return compareAndExchange32(index, expect, update, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    ValueType compareAndExchangeType(int index, ValueType expect, ValueType update, MemoryAtomicityMode mode);
+    int compareAndExchange32(int index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default long compareAndExchange64(int index, long expect, long update, MemoryAtomicityMode mode) {
+        return compareAndExchange64(index, expect, update, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    long compareAndExchange64(int index, long expect, long update, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default VmObject compareAndExchangeRef(int index, VmObject expect, VmObject update, MemoryAtomicityMode mode) {
+        return compareAndExchangeRef(index, expect, update, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    VmObject compareAndExchangeRef(int index, VmObject expect, VmObject update, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default ValueType compareAndExchangeType(int index, ValueType expect, ValueType update, MemoryAtomicityMode mode) {
+        return compareAndExchangeType(index, expect, update, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    ValueType compareAndExchangeType(int index, ValueType expect, ValueType update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
     int getAndSet8(int index, int value, MemoryAtomicityMode mode);
 
