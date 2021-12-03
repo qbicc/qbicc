@@ -5,6 +5,7 @@ import java.util.Set;
 
 import org.qbicc.context.Locatable;
 import org.qbicc.context.Location;
+import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
@@ -405,7 +406,12 @@ public interface BasicBlockBuilder extends Locatable {
 
     Node initCheck(InitializerElement initializer);
 
-    Node fence(MemoryAtomicityMode fenceType);
+    @Deprecated
+    default Node fence(MemoryAtomicityMode fenceType) {
+        return fence(fenceType.getAccessMode().getGlobalAccess());
+    }
+
+    Node fence(GlobalAccessMode fenceType);
 
     Node monitorEnter(Value obj);
 

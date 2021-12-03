@@ -351,7 +351,7 @@ public interface Node {
 
             public Node visit(Copier param, Fence node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().fence(node.getAtomicityMode());
+                return param.getBlockBuilder().fence(node.getAccessMode());
             }
 
             public BasicBlock visit(Copier param, CallNoReturn node) {

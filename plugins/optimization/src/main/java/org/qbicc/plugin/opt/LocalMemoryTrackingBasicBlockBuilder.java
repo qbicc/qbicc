@@ -17,6 +17,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
+import org.qbicc.graph.atomic.GlobalAccessMode;
 
 /**
  *
@@ -122,7 +123,7 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Node fence(MemoryAtomicityMode fenceType) {
+    public Node fence(GlobalAccessMode fenceType) {
         knownValues.clear();
         return super.fence(fenceType);
     }

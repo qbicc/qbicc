@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.qbicc.context.Location;
+import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
@@ -369,7 +370,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().initCheck(initializer);
     }
 
-    public Node fence(final MemoryAtomicityMode fenceType) {
+    public Node fence(final GlobalAccessMode fenceType) {
         return getDelegate().fence(fenceType);
     }
 

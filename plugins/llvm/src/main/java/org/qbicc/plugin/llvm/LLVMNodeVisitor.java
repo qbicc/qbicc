@@ -1,5 +1,6 @@
 package org.qbicc.plugin.llvm;
 
+import static org.qbicc.graph.atomic.AccessModes.*;
 import static org.qbicc.machine.llvm.Types.*;
 import static org.qbicc.machine.llvm.Values.*;
 
@@ -89,6 +90,7 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.ValueReturn;
 import org.qbicc.graph.Xor;
+import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.machine.llvm.AsmFlag;
@@ -257,18 +259,17 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
     public Instruction visit(final Void param, final Fence node) {
         map(node.getDependency());
-        MemoryAtomicityMode mode = node.getAtomicityMode();
-        switch (mode) {
-            case ACQUIRE:
-                return builder.fence(OrderingConstraint.acquire);
-            case RELEASE:
-                return builder.fence(OrderingConstraint.release);
-            case ACQUIRE_RELEASE:
-                return builder.fence(OrderingConstraint.acq_rel);
-            case SEQUENTIALLY_CONSISTENT:
-                return builder.fence(OrderingConstraint.seq_cst);
+        GlobalAccessMode gam = node.getAccessMode();
+        // no-op fences are removed already
+        if (GlobalAcquire.includes(gam)) {
+            return builder.fence(OrderingConstraint.acquire);
+        } else if (GlobalRelease.includes(gam)) {
+            return builder.fence(OrderingConstraint.release);
+        } else if (GlobalAcqRel.includes(gam)) {
+            return builder.fence(OrderingConstraint.acq_rel);
+        } else {
+            return builder.fence(OrderingConstraint.seq_cst);
         }
-        throw Assert.unreachableCode();
     }
 
     // terminators

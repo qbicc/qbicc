@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
+import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
@@ -653,7 +654,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new InitCheck(callSite, element, line, bci, requireDependency(), initializer));
     }
 
-    public Node fence(final MemoryAtomicityMode fenceType) {
+    public Node fence(final GlobalAccessMode fenceType) {
         return asDependency(new Fence(callSite, element, line, bci, requireDependency(), fenceType));
     }
 

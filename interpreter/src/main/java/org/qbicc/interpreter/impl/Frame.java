@@ -1,5 +1,7 @@
 package org.qbicc.interpreter.impl;
 
+import static org.qbicc.graph.atomic.AccessModes.*;
+
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -121,6 +123,7 @@ import org.qbicc.graph.ValueReturn;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.Xor;
+import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
@@ -1923,23 +1926,19 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Void visit(VmThreadImpl thread, Fence node) {
-        MemoryAtomicityMode mode = node.getAtomicityMode();
-        switch (mode) {
-            case ACQUIRE_RELEASE:
-            case MONOTONIC:
-            case SEQUENTIALLY_CONSISTENT:
-            case VOLATILE: {
-                VarHandle.fullFence();
-                break;
-            }
-            case ACQUIRE: {
-                VarHandle.acquireFence();
-                break;
-            }
-            case RELEASE: {
-                VarHandle.releaseFence();
-                break;
-            }
+        GlobalAccessMode gam = node.getAccessMode();
+        if (GlobalPlain.includes(gam)) {
+            // do nothing
+        } else if (GlobalLoadLoad.includes(gam)) {
+            VarHandle.loadLoadFence();
+        } else if (GlobalStoreStore.includes(gam)) {
+            VarHandle.storeStoreFence();
+        } else if (GlobalAcquire.includes(gam)) {
+            VarHandle.acquireFence();
+        } else if (GlobalRelease.includes(gam)) {
+            VarHandle.releaseFence();
+        } else {
+            VarHandle.fullFence();
         }
         return null;
     }
