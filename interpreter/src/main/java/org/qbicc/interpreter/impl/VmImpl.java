@@ -444,7 +444,7 @@ public final class VmImpl implements Vm {
             // VMHelpers
             VmClassImpl vmHelpersClass = bootstrapClassLoader.loadClass("org/qbicc/runtime/main/VMHelpers");
 
-            vmHelpersClass.registerInvokable("getClass", (thread, target, args) -> ((VmObjectImpl) args.get(0)).getVmClass());
+            vmHelpersClass.registerInvokable("getClass", 1, (thread, target, args) -> ((VmObjectImpl) args.get(0)).getVmClass());
             vmHelpersClass.registerInvokable("classForName", (thread, target, args) -> {
                 VmClassLoaderImpl classLoader = (VmClassLoaderImpl) args.get(2);
                 if (classLoader == null) {
