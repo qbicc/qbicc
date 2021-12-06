@@ -59,7 +59,7 @@ public class LowerClassInitCheckBlockBuilder extends DelegatingBasicBlockBuilder
         if_(isEq(state, lf.literalOf(0)), callInit, goAhead);
         try {
             begin(callInit);
-            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("initialize_class");
+            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("initializeClass");
             BasicBlockBuilder fb = getFirstBuilder();
             fb.call(fb.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(fb.load(fb.currentThread(), MemoryAtomicityMode.NONE), typeId));
             goto_(goAhead);

@@ -1,7 +1,7 @@
 package org.qbicc.runtime.stackwalk;
 
 import org.qbicc.runtime.CNative;
-import org.qbicc.runtime.main.ObjectModel;
+import org.qbicc.runtime.main.CompilerIntrinsics;
 
 import static org.qbicc.runtime.CNative.*;
 
@@ -19,7 +19,7 @@ public final class MethodData {
 
     public static Class<?> getClass(int minfoIndex) {
         type_id typeId = word(getTypeId(minfoIndex));
-        return ObjectModel.get_class_from_type_id(typeId, word(0));
+        return CompilerIntrinsics.getClassFromTypeId(typeId, word(0));
     }
 
     public static boolean hasAllModifiersOf(int minfoIndex, int mask) {
