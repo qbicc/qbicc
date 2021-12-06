@@ -64,9 +64,9 @@ public class ClassInitializingBasicBlockBuilder extends DelegatingBasicBlockBuil
     }
 
     @Override
-    public Value new_(ClassObjectType type) {
+    public Value new_(ClassObjectType type, Value typeId, Value size, Value align) {
         initialize(type.getDefinition());
-        return super.new_(type);
+        return super.new_(type, typeId, size, align);
     }
 
     private void initializeStaticMember(DefinedTypeDefinition definition) {

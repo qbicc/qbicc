@@ -1115,7 +1115,11 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final New node) {
-        return node(param, "new\\n" + node.getType().getUpperBound().toString(), node);
+        String name = node(param, "new\\n" + node.getType().getUpperBound().toString(), node);
+        addEdge(param, node, node.getTypeId(), EdgeType.VALUE_DEPENDENCY, "typeId");
+        addEdge(param, node, node.getSize(), EdgeType.VALUE_DEPENDENCY, "size");
+        addEdge(param, node, node.getAlign(), EdgeType.VALUE_DEPENDENCY, "align");
+        return name;
     }
 
     public String visit(final Appendable param, final NewArray node) {

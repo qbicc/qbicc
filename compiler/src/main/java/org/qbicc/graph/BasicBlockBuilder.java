@@ -361,7 +361,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value stackAllocate(ValueType type, Value count, Value align);
 
-    Value new_(ClassObjectType type);
+    Value new_(ClassObjectType type, Value typeId, Value size, Value align);
 
     Value new_(ClassTypeDescriptor desc);
 

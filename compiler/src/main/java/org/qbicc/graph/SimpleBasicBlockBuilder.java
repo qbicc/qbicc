@@ -568,8 +568,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new ClassOf(callSite, element, line, bci, typeId, dimensions, type.getReference());
     }
 
-    public Value new_(final ClassObjectType type) {
-        return asDependency(new New(callSite, element, line, bci, requireDependency(), type));
+    public Value new_(final ClassObjectType type, final Value typeId, final Value size, final Value align) {
+        return asDependency(new New(callSite, element, line, bci, requireDependency(), type, typeId, size, align));
     }
 
     public Value new_(final ClassTypeDescriptor desc) {

@@ -28,9 +28,9 @@ public class BasicInitializationBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value new_(ClassObjectType type) {
-        Value allocated = super.new_(type);
-        initializeObjectHeader(CoreClasses.get(ctxt), referenceHandle(allocated), ctxt.getLiteralFactory().literalOfType(type));
+    public Value new_(ClassObjectType type, Value typeId, Value size, Value align) {
+        Value allocated = super.new_(type, typeId, size, align);
+        initializeObjectHeader(CoreClasses.get(ctxt), referenceHandle(allocated), typeId);
         return allocated;
     }
 

@@ -11,6 +11,8 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.plugin.layout.Layout;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -44,7 +46,8 @@ public class LocalThrowHandlingBasicBlockBuilder extends DelegatingBasicBlockBui
             fb.begin(npe);
             ClassContext classContext = ctxt.getBootstrapClassContext();
             LoadedTypeDefinition npeType = classContext.findDefinedType("java/lang/NullPointerException").load();
-            Value ex = fb.new_(npeType.getClassType());
+            CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(npeType).getCompoundType();
+            Value ex = fb.new_(npeType.getClassType(), lf.literalOfType(npeType.getClassType()), lf.literalOf(compoundType.getSize()), lf.literalOf(compoundType.getAlign()));
             // pre-resolver
             ValueHandle ctor = fb.constructorOf(ex, npeType.getDescriptor(), MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of()));
             fb.call(ctor, List.of());

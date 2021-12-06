@@ -285,8 +285,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().lengthOf(arrayHandle);
     }
 
-    public Value new_(final ClassObjectType type) {
-        return getDelegate().new_(type);
+    public Value new_(final ClassObjectType type, final Value typeId, final Value size, final Value align) {
+        return getDelegate().new_(type, typeId, size, align);
     }
 
     public Value new_(final ClassTypeDescriptor desc) {
