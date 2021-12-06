@@ -64,7 +64,7 @@ class BuildtimeHeapAnalyzer {
             }
         }
 
-        Layout interpreterLayout = Layout.getForInterpreter(ctxt);
+        Layout interpreterLayout = Layout.get(ctxt);
         CoreClasses coreClasses = CoreClasses.get(ctxt);
         while (!worklist.isEmpty()) {
             VmObject cur = worklist.pop();

@@ -1,15 +1,19 @@
 package org.qbicc.plugin.lowering;
 
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.BooleanLiteral;
+import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
@@ -22,22 +26,23 @@ import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.type.BooleanType;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.IntegerType;
-import org.qbicc.type.ReferenceType;
-import org.qbicc.type.ValueType;
-import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
+import org.qbicc.type.generic.BaseTypeSignature;
 
 public class Lowering {
     public static final String GLOBAL_REFERENCES = "QBICC_GLOBALS";
 
     private static final AttachmentKey<Lowering> KEY = new AttachmentKey<>();
 
-    private final Map<FieldElement, GlobalVariableElement> globals = new ConcurrentHashMap<>();
+    private final Map<LoadedTypeDefinition, GlobalVariableElement> globals = new ConcurrentHashMap<>();
     private final Map<ExecutableElement, LinkedHashSet<LocalVariableElement>> usedVariables = new ConcurrentHashMap<>();
 
     private Lowering() {}
@@ -46,74 +51,83 @@ public class Lowering {
         return ctxt.computeAttachmentIfAbsent(KEY, Lowering::new);
     }
 
-    public GlobalVariableElement getGlobalForField(FieldElement fieldElement) {
-        GlobalVariableElement global = globals.get(fieldElement);
+    public GlobalVariableElement getStaticsGlobalForType(LoadedTypeDefinition typeDef) {
+        GlobalVariableElement global = globals.get(typeDef);
         if (global != null) {
             return global;
         }
-        DefinedTypeDefinition enclosingType = fieldElement.getEnclosingType();
-        ClassContext classContext = enclosingType.getContext();
+        ClassContext classContext = typeDef.getContext();
         CompilationContext ctxt = classContext.getCompilationContext();
-        ValueType fieldType = fieldElement.getType();
-        String itemName = "static-" + enclosingType.getInternalName().replace('/', '.') + "-" + fieldElement.getName() + "-" + fieldElement.getIndex();
-        final GlobalVariableElement.Builder builder = GlobalVariableElement.builder(itemName, fieldElement.getTypeDescriptor());
-        final ValueType varType = fieldType instanceof BooleanType ? ctxt.getTypeSystem().getUnsignedInteger8Type() : fieldType;
-        builder.setType(varType);
-        builder.setSignature(fieldElement.getTypeSignature());
-        builder.setModifiers(fieldElement.getModifiers());
-        builder.setEnclosingType(enclosingType);
-        final String sectionName;
-        if (fieldElement.getType() instanceof ReferenceType) {
-            sectionName = CompilationContext.IMPLICIT_SECTION_NAME; // TODO: GLOBAL_REFERENCES;
-        } else {
-            sectionName = CompilationContext.IMPLICIT_SECTION_NAME;
-        }
+        String itemName = "statics-" + typeDef.getInternalName().replace('/', '.');
+        LayoutInfo layoutInfo = Layout.get(ctxt).getStaticLayoutInfo(typeDef);
+        final GlobalVariableElement.Builder builder = GlobalVariableElement.builder(itemName, BaseTypeDescriptor.V);
+        CompoundType staticsType = layoutInfo.getCompoundType();
+        builder.setType(staticsType);
+        builder.setSignature(BaseTypeSignature.V);
+        builder.setModifiers(typeDef.getModifiers());
+        builder.setEnclosingType(typeDef);
+        final String sectionName = CompilationContext.IMPLICIT_SECTION_NAME;
         builder.setSection(sectionName);
         global = builder.build();
-        GlobalVariableElement appearing = globals.putIfAbsent(fieldElement, global);
+        GlobalVariableElement appearing = globals.putIfAbsent(typeDef, global);
         if (appearing != null) {
             return appearing;
         }
 
-        Section section = ctxt.getOrAddProgramModule(enclosingType).getOrAddSection(sectionName);
-        Value initialValue = enclosingType.load().getInitialValue(fieldElement);
-        if (initialValue == null) {
-            initialValue = Constants.get(ctxt).getConstantValue(fieldElement);
-        }
-        if (initialValue == null) {
-            initialValue = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(varType);
-        }
-        if (initialValue instanceof OffsetOfField) {
-            // special case: the field holds an offset which is really an integer
-            FieldElement offsetField = ((OffsetOfField) initialValue).getFieldElement();
-            LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(offsetField.getEnclosingType());
-            if (offsetField.isStatic()) {
-                initialValue = ctxt.getLiteralFactory().literalOf(-1);
-            } else {
-                initialValue = ctxt.getLiteralFactory().literalOf(layoutInfo.getMember(offsetField).getOffset());
+        Section section = ctxt.getOrAddProgramModule(typeDef).getOrAddSection(sectionName);
+        // initialize values for all fields
+        int cnt = typeDef.getFieldCount();
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        boolean hasValue = false;
+        Map<CompoundType.Member, Literal> valueMap = new HashMap<>(cnt);
+        for (int i = 0; i < cnt; i ++) {
+            FieldElement field = typeDef.getField(i);
+            if (field.isStatic()) {
+                Value initialValue = ((DefinedTypeDefinition) typeDef).load().getInitialValue(field);
+                if (initialValue == null) {
+                    initialValue = Constants.get(ctxt).getConstantValue(field);
+                    if (initialValue == null) {
+                        initialValue = lf.zeroInitializerLiteralOfType(field.getType());
+                    } else {
+                        hasValue = true;
+                    }
+                } else {
+                    hasValue = true;
+                }
+                CompoundType.Member member = layoutInfo.getMember(field);
+                if (initialValue instanceof OffsetOfField) {
+                    // special case: the field holds an offset which is really an integer
+                    FieldElement offsetField = ((OffsetOfField) initialValue).getFieldElement();
+                    LayoutInfo instanceLayout = Layout.get(ctxt).getInstanceLayoutInfo(offsetField.getEnclosingType());
+                    if (offsetField.isStatic()) {
+                        initialValue = lf.literalOf(-1);
+                    } else {
+                        initialValue = lf.literalOf(instanceLayout.getMember(offsetField).getOffset());
+                    }
+                }
+                if (initialValue.getType() instanceof BooleanType && member.getType() instanceof IntegerType it) {
+                    // widen the initial value
+                    if (initialValue instanceof BooleanLiteral) {
+                        initialValue = lf.literalOf(it, ((BooleanLiteral) initialValue).booleanValue() ? 1 : 0);
+                    } else if (initialValue instanceof ZeroInitializerLiteral) {
+                        initialValue = lf.literalOf(it, 0);
+                    } else {
+                        throw new IllegalArgumentException("Cannot initialize boolean field");
+                    }
+                }
+                if (initialValue instanceof ObjectLiteral ol) {
+                    ProgramObjectLiteral objLit = BuildtimeHeap.get(ctxt).serializeVmObject(ol.getValue());
+                    DataDeclaration decl = section.declareData(objLit.getProgramObject());
+                    decl.setAddrspace(1);
+                    ProgramObjectLiteral refToLiteral = lf.literalOf(decl);
+                    initialValue = lf.valueConvertLiteral(refToLiteral, ol.getType());
+                }
+                valueMap.put(member, (Literal) initialValue);
             }
-        }
-        if (initialValue.getType() instanceof BooleanType) {
-            assert varType instanceof IntegerType;
-            // widen the initial value
-            if (initialValue instanceof BooleanLiteral) {
-                initialValue = ctxt.getLiteralFactory().literalOf((IntegerType) varType, ((BooleanLiteral) initialValue).booleanValue() ? 1 : 0);
-            } else if (initialValue instanceof ZeroInitializerLiteral) {
-                initialValue = ctxt.getLiteralFactory().literalOf((IntegerType) varType, 0);
-            } else {
-                throw new IllegalArgumentException("Cannot initialize boolean field");
-            }
-        }
-        if (initialValue instanceof ObjectLiteral) {
-            ProgramObjectLiteral objLit = BuildtimeHeap.get(ctxt).serializeVmObject(((ObjectLiteral) initialValue).getValue());
-            DataDeclaration decl = section.declareData(objLit.getProgramObject());
-            decl.setAddrspace(1);
-            ProgramObjectLiteral refToLiteral = ctxt.getLiteralFactory().literalOf(decl);
-            initialValue = ctxt.getLiteralFactory().bitcastLiteral(refToLiteral, ((ObjectLiteral) initialValue).getType());
         }
 
-        final Data data = section.addData(fieldElement, itemName, initialValue);
-        data.setLinkage(initialValue instanceof ZeroInitializerLiteral ? Linkage.COMMON : Linkage.EXTERNAL);
+        final Data data = section.addData(null, itemName, hasValue ? lf.literalOf(staticsType, valueMap) : lf.zeroInitializerLiteralOfType(staticsType));
+        data.setLinkage(hasValue ? Linkage.EXTERNAL : Linkage.COMMON);
         data.setDsoLocal();
         return global;
     }

@@ -252,18 +252,6 @@ public final class CoreIntrinsics {
         InstanceIntrinsic desiredAssertionStatus =  (builder, instance, target, arguments) ->
             classContext.getLiteralFactory().literalOf(false);
 
-        InstanceIntrinsic cast = (builder, instance, target, arguments) -> {
-            // TODO: Once we support java.lang.Class literals, we should add a check here to
-            //  emit a CheckCast node instead of a call to the helper method if `instance` is a Class literal.
-            MethodElement helper = methodFinder.getMethod("checkcastClass");
-            builder.getFirstBuilder().call(builder.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(arguments.get(0), instance));
-
-            // Generics erasure issue. The return type of Class<T>.cast is T, but it gets wiped to Object.
-            // If the result of this cast is actually used as a T, there will be a (redundant) checkcast bytecode following this operation.
-            ReferenceType jlot = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load().getType().getReference();
-            return builder.bitCast(arguments.get(0), jlot);
-        };
-
         InstanceIntrinsic initClassName = (builder, instance, target, arguments) -> {
             // not reachable; we always would initialize our class name eagerly
             throw new BlockEarlyTermination(builder.unreachable());
@@ -308,7 +296,6 @@ public final class CoreIntrinsics {
 
         //    static native Class<?> getPrimitiveClass(String name);
 
-        intrinsics.registerIntrinsic(jlcDesc, "cast", objToObj, cast);
         intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus0", classToBool, desiredAssertionStatus0);
         intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus", emptyToBool, desiredAssertionStatus);
         intrinsics.registerIntrinsic(jlcDesc, "initClassName", emptyToString, initClassName);

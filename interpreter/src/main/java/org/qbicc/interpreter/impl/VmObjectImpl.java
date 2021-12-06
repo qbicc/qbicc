@@ -111,7 +111,7 @@ class VmObjectImpl implements VmObject, Referenceable {
     public int indexOf(FieldElement field) throws IllegalArgumentException {
         LoadedTypeDefinition loaded = field.getEnclosingType().load();
         CompilationContext ctxt = loaded.getContext().getCompilationContext();
-        LayoutInfo layoutInfo = Layout.getForInterpreter(ctxt).getInstanceLayoutInfo(loaded);
+        LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(loaded);
         CompoundType.Member member = layoutInfo.getMember(field);
         if (member == null) {
             throw new IllegalArgumentException("Field " + field + " is not present on " + this);

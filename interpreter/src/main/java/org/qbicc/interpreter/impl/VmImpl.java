@@ -52,6 +52,7 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.Primitive;
@@ -59,8 +60,10 @@ import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.AnnotatedElement;
 import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
@@ -177,7 +180,7 @@ public final class VmImpl implements Vm {
         stringClass = new VmStringClassImpl(this, stringDef);
         FieldElement coderField = stringDef.findField("coder");
         FieldElement valueField = stringDef.findField("value");
-        Layout layout = Layout.getForInterpreter(ctxt);
+        Layout layout = Layout.get(ctxt);
         LayoutInfo stringLayout = layout.getInstanceLayoutInfo(stringDef);
         stringCoderOffset = stringLayout.getMember(coderField).getOffset();
         stringValueOffset = stringLayout.getMember(valueField).getOffset();
@@ -490,6 +493,42 @@ public final class VmImpl implements Vm {
             unsafeClass.registerInvokable("shouldBeInitialized0", (thread, target, args) ->
                 Boolean.valueOf(((VmClassImpl) args.get(0)).shouldBeInitialized()));
 
+            unsafeClass.registerInvokable("objectFieldOffset0", (thread, target, args) -> {
+                VmObjectImpl fieldObj = (VmObjectImpl) args.get(0);
+                VmClassImpl fieldClazz = bootstrapClassLoader.loadClass("java/lang/reflect/Field");
+                LoadedTypeDefinition fieldDef = fieldClazz.getTypeDefinition();
+                VmClassImpl clazz = (VmClassImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("clazz")), MemoryAtomicityMode.UNORDERED);
+                VmStringImpl name = (VmStringImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("name")), MemoryAtomicityMode.UNORDERED);
+                LoadedTypeDefinition clazzDef = clazz.getTypeDefinition();
+                FieldElement field = clazzDef.findField(name.getContent());
+                if (field == null || field.isStatic()) {
+                    throw new Thrown(errorClass.newInstance("Invalid argument to objectFieldOffset0"));
+                }
+                field.setModifierFlags(ClassFile.I_ACC_PINNED);
+                LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(clazzDef);
+                CompoundType.Member member = layoutInfo.getMember(field);
+                if (member == null) {
+                    throw new Thrown(errorClass.newInstance("Internal error"));
+                }
+                return Long.valueOf(member.getOffset());
+            });
+            unsafeClass.registerInvokable("objectFieldOffset1", (thread, target, args) -> {
+                VmClassImpl clazz = (VmClassImpl) args.get(0);
+                VmStringImpl name = (VmStringImpl) args.get(1);
+                LoadedTypeDefinition clazzDef = clazz.getTypeDefinition();
+                FieldElement field = clazzDef.findField(name.getContent());
+                if (field == null || field.isStatic()) {
+                    throw new Thrown(errorClass.newInstance("Invalid argument to objectFieldOffset1"));
+                }
+                field.setModifierFlags(ClassFile.I_ACC_PINNED);
+                LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(clazzDef);
+                CompoundType.Member member = layoutInfo.getMember(field);
+                if (member == null) {
+                    throw new Thrown(errorClass.newInstance("Internal error"));
+                }
+                return Long.valueOf(member.getOffset());
+            });
+
             // System
             VmClassImpl systemClass = bootstrapClassLoader.loadClass("java/lang/System");
 
@@ -612,6 +651,15 @@ public final class VmImpl implements Vm {
                 }
                 return null;
             });
+            classClass.registerInvokable("isInstance", (thread, target, args) -> {
+                VmClassImpl clazz = (VmClassImpl) target;
+                VmObject obj = (VmObject) args.get(0);
+                if (obj == null) {
+                    return Boolean.FALSE;
+                }
+                VmClass objClazz = obj.getVmClass();
+                return Boolean.valueOf(objClazz.getObjectType().isSubtypeOf(clazz.getInstanceObjectType()));
+            });
 
             // Array
             VmClassImpl arrayClass = bootstrapClassLoader.loadClass("java/lang/reflect/Array");
@@ -667,6 +715,7 @@ public final class VmImpl implements Vm {
 
             // MethodHandleNatives
             VmClassImpl methodHandleNatives = bootstrapClassLoader.loadClass("java/lang/invoke/MethodHandleNatives");
+            methodHandleNatives.registerInvokable("init", (thread, target, args) -> null);
             methodHandleNatives.registerInvokable("resolve", (thread, target, args) -> {
                 VmThreadImpl ourThread = (VmThreadImpl) thread;
                 VmMemberNameImpl self = (VmMemberNameImpl) args.get(0);
@@ -674,6 +723,24 @@ public final class VmImpl implements Vm {
                 boolean speculativeResolve = ((Boolean) args.get(2)).booleanValue();
                 self.resolve(ourThread, caller, speculativeResolve);
                 return self;
+            });
+            methodHandleNatives.registerInvokable("objectFieldOffset", (thread, target, args) -> {
+                VmMemberNameImpl name = (VmMemberNameImpl) args.get(0);
+                VmThreadImpl threadImpl = (VmThreadImpl) thread;
+                name.resolve(threadImpl, (VmClassImpl) threadImpl.currentFrame.enclosing.element.getEnclosingType().load().getVmClass(), false);
+                // todo: fragile until layouts are unified
+                Element resolved = name.getResolved();
+                if (resolved instanceof FieldElement field) {
+                    LayoutInfo layoutInfo;
+                    if (field.isStatic()) {
+                        throw new Thrown(threadImpl.getVM().errorClass.newInstance("Wrong field kind"));
+                    } else {
+                        layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(field.getEnclosingType());
+                    }
+                    return Long.valueOf(layoutInfo.getMember(field).getOffset());
+                } else {
+                    throw new Thrown(threadImpl.getVM().errorClass.newInstance("Internal error"));
+                }
             });
 
             // Now execute system initialization
@@ -1091,6 +1158,9 @@ public final class VmImpl implements Vm {
     }
 
     VmClassImpl getClassForDescriptor(VmClassLoaderImpl cl, TypeDescriptor descriptor) {
+        if (cl == null) {
+            cl = bootstrapClassLoader;
+        }
         if (descriptor instanceof BaseTypeDescriptor) {
             return getPrimitiveClass(Primitive.getPrimitiveFor((BaseTypeDescriptor) descriptor));
         } else if (descriptor instanceof ArrayTypeDescriptor) {

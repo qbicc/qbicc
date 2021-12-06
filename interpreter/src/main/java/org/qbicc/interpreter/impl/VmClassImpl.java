@@ -3,6 +3,7 @@ package org.qbicc.interpreter.impl;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +34,7 @@ import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
@@ -109,8 +111,8 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         ClassContext classContext = typeDefinition.getContext();
         classLoader = (VmClassLoaderImpl) classContext.getClassLoader();
         CompilationContext ctxt = classContext.getCompilationContext();
-        layoutInfo = typeDefinition.isInterface() ? null : Layout.getForInterpreter(ctxt).getInstanceLayoutInfo(typeDefinition);
-        staticLayoutInfo = Layout.getForInterpreter(ctxt).getInterpreterStaticLayoutInfo(typeDefinition);
+        layoutInfo = typeDefinition.isInterface() ? null : Layout.get(ctxt).getInstanceLayoutInfo(typeDefinition);
+        staticLayoutInfo = Layout.get(ctxt).getStaticLayoutInfo(typeDefinition);
         staticMemory = staticLayoutInfo == null ? vmImpl.allocate(0) : vmImpl.allocate((int) staticLayoutInfo.getCompoundType().getSize());
         initializeConstantStaticFields();
     }
@@ -132,14 +134,14 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     VmClassImpl(final VmImpl vm, final ClassContext classContext, @SuppressWarnings("unused") Class<VmClassClassImpl> classClassOnly) {
         // special ctor for Class.class, where getClass() == Class.class
-        super(vm, VmClassImpl.class, Layout.getForInterpreter(classContext.getCompilationContext()).getInstanceLayoutInfo(classContext.findDefinedType("java/lang/Class").load()));
+        super(vm, VmClassImpl.class, Layout.get(classContext.getCompilationContext()).getInstanceLayoutInfo(classContext.findDefinedType("java/lang/Class").load()));
         this.vm = vm;
         typeDefinition = classContext.findDefinedType("java/lang/Class").load();
         protectionDomain = null;
         classLoader = null;
         CompilationContext ctxt = classContext.getCompilationContext();
-        layoutInfo = Layout.getForInterpreter(ctxt).getInstanceLayoutInfo(typeDefinition);
-        staticLayoutInfo = Layout.getForInterpreter(ctxt).getInterpreterStaticLayoutInfo(typeDefinition);
+        layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(typeDefinition);
+        staticLayoutInfo = Layout.get(ctxt).getStaticLayoutInfo(typeDefinition);
         staticMemory = staticLayoutInfo == null ? vm.allocate(0) : vm.allocate((int) staticLayoutInfo.getCompoundType().getSize());
         superClass = new VmClassImpl(vm, (VmClassClassImpl) this, classContext.findDefinedType("java/lang/Object").load(), null);
         initializeConstantStaticFields();
@@ -336,9 +338,12 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         if (declaredFields == null) {
             int numFields = typeDefinition.getFieldCount();
             VmClassImpl fieldClass =vm.getBootstrapClassLoader().loadClass("java/lang/reflect/Field");
-            VmArrayImpl fields = vm.manuallyInitialize(fieldClass.getArrayClass().newInstance(numFields));
+            ArrayList<VmObjectImpl> fields = new ArrayList<>(numFields);
             for (int i=0; i<numFields; i++) {
                 FieldElement field = typeDefinition.getField(i);
+                if (field.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
+                    continue;
+                }
                 VmObjectImpl fObj = vm.manuallyInitialize(fieldClass.newInstance());
 
                 // Simulate the constructor of java.lang.reflect.Field
@@ -349,17 +354,23 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 memory.storeRef(offset, vm.intern(field.getName()), MemoryAtomicityMode.UNORDERED);
                 offset = indexOf(fieldClass.getTypeDefinition().findField("modifiers"));
                 memory.store32(offset, field.getModifiers(), MemoryAtomicityMode.UNORDERED);
-                // TODO: Field.type
+                offset = indexOf(fieldClass.getTypeDefinition().findField("type"));
+                memory.storeRef(offset, vm.getClassForDescriptor(classLoader, field.getTypeDescriptor()), MemoryAtomicityMode.UNORDERED);
                 // TODO: Field.signature
                 // TODO: Field.annotations
 
-                fields.getMemory().storeRef(fields.getArrayElementOffset(i), fObj, MemoryAtomicityMode.UNORDERED);
+                fields.add(fObj);
+            }
+            VmArrayImpl fieldsArray = vm.manuallyInitialize(fieldClass.getArrayClass().newInstance(numFields));
+            int actualNumFields = fields.size();
+            for (int i = 0; i < actualNumFields; i ++) {
+                fieldsArray.getMemory().storeRef(fieldsArray.getArrayElementOffset(i), fields.get(i), MemoryAtomicityMode.UNORDERED);
             }
             do {
-                if (declaredFieldsHandle.compareAndSet(this, null, fields)) {
+                if (declaredFieldsHandle.compareAndSet(this, null, fieldsArray)) {
                     break;
                 }
-                fields = this.declaredFields;
+                fieldsArray = this.declaredFields;
             } while (declaredFields == null);
         }
 
@@ -396,9 +407,12 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             if (classLoader == null) {
                 classLoader = vm.getBootstrapClassLoader();
             }
-            VmArrayImpl methods = vm.manuallyInitialize(methodClass.getArrayClass().newInstance(numMethods));
+            ArrayList<VmObjectImpl> methods = new ArrayList<>(numMethods);
             for (int i = 0; i < numMethods; i ++) {
                 MethodElement method = typeDefinition.getMethod(i);
+                if (method.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
+                    continue;
+                }
                 VmObjectImpl mObj = vm.manuallyInitialize(methodClass.newInstance());
 
                 MemoryImpl memory = mObj.getMemory();
@@ -427,13 +441,20 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 // todo: annotations
                 // todo: parameterAnnotations
                 // todo: annotationDefault
+
+                methods.add(mObj);
+            }
+            VmArrayImpl methodsArray = vm.manuallyInitialize(methodClass.getArrayClass().newInstance(numMethods));
+            int actualNumMethods = methods.size();
+            for (int i = 0; i < actualNumMethods; i++) {
+                methodsArray.getMemory().storeRef(methodsArray.getArrayElementOffset(i), methods.get(i), MemoryAtomicityMode.UNORDERED);
             }
             do {
-                if (declaredMethodsHandle.compareAndSet(this, null, methods)) {
+                if (declaredMethodsHandle.compareAndSet(this, null, methodsArray)) {
                     break;
                 }
-                methods = this.declaredFields;
-            } while (declaredFields == null);
+                methodsArray = this.declaredMethods;
+            } while (declaredMethods == null);
         }
 
         if (publicOnly) {
@@ -512,7 +533,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     public int indexOfStatic(FieldElement field) throws IllegalArgumentException {
         LoadedTypeDefinition loaded = field.getEnclosingType().load();
         CompilationContext ctxt = loaded.getContext().getCompilationContext();
-        LayoutInfo layoutInfo = Layout.getForInterpreter(ctxt).getInterpreterStaticLayoutInfo(loaded);
+        LayoutInfo layoutInfo = Layout.get(ctxt).getStaticLayoutInfo(loaded);
         if (layoutInfo != null) {
             CompoundType.Member member = layoutInfo.getMember(field);
             if (member != null) {
@@ -601,12 +622,36 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         return target;
     }
 
-    void registerInvokable(final ExecutableElement element, final VmInvokable invokable) {
+    @Override
+    public void registerInvokable(final ExecutableElement element, final VmInvokable invokable) {
         Assert.checkNotNullParam("invokable", invokable);
         synchronized (methodTable) {
             if (methodTable.putIfAbsent(element, invokable) != null) {
                 throw new IllegalStateException("Attempted to register an invokable for an already-compiled method");
             }
+        }
+    }
+
+    @Override
+    public void registerInvokable(String name, MethodDescriptor descriptor, VmInvokable invokable) throws IllegalStateException {
+        if (name.equals("<clinit>")) {
+            if (descriptor.equals(MethodDescriptor.VOID_METHOD_DESCRIPTOR)) {
+                registerInvokable(typeDefinition.getInitializer(), invokable);
+            } else {
+                throw new IllegalArgumentException("Invalid initializer descriptor " + descriptor + " on " + this);
+            }
+        } else if (name.equals("<init>")) {
+            int idx = typeDefinition.findConstructorIndex(descriptor);
+            if (idx == -1) {
+                throw new IllegalArgumentException("No constructor found with descriptor " + descriptor + " on " + this);
+            }
+            registerInvokable(typeDefinition.getConstructor(idx), invokable);
+        } else {
+            int idx = typeDefinition.findMethodIndex(name, descriptor);
+            if (idx == -1) {
+                throw new IllegalArgumentException("No method found with name \"" + name + "\" and descriptor " + descriptor + " on " + this);
+            }
+            registerInvokable(typeDefinition.getMethod(idx), invokable);
         }
     }
 
