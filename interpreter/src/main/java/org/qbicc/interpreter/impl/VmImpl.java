@@ -52,6 +52,7 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.Primitive;
@@ -59,6 +60,7 @@ import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.AnnotatedElement;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.Element;
@@ -490,6 +492,42 @@ public final class VmImpl implements Vm {
             });
             unsafeClass.registerInvokable("shouldBeInitialized0", (thread, target, args) ->
                 Boolean.valueOf(((VmClassImpl) args.get(0)).shouldBeInitialized()));
+
+            unsafeClass.registerInvokable("objectFieldOffset0", (thread, target, args) -> {
+                VmObjectImpl fieldObj = (VmObjectImpl) args.get(0);
+                VmClassImpl fieldClazz = bootstrapClassLoader.loadClass("java/lang/reflect/Field");
+                LoadedTypeDefinition fieldDef = fieldClazz.getTypeDefinition();
+                VmClassImpl clazz = (VmClassImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("clazz")), MemoryAtomicityMode.UNORDERED);
+                VmStringImpl name = (VmStringImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("name")), MemoryAtomicityMode.UNORDERED);
+                LoadedTypeDefinition clazzDef = clazz.getTypeDefinition();
+                FieldElement field = clazzDef.findField(name.getContent());
+                if (field == null || field.isStatic()) {
+                    throw new Thrown(errorClass.newInstance("Invalid argument to objectFieldOffset0"));
+                }
+                field.setModifierFlags(ClassFile.I_ACC_PINNED);
+                LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(clazzDef);
+                CompoundType.Member member = layoutInfo.getMember(field);
+                if (member == null) {
+                    throw new Thrown(errorClass.newInstance("Internal error"));
+                }
+                return Long.valueOf(member.getOffset());
+            });
+            unsafeClass.registerInvokable("objectFieldOffset1", (thread, target, args) -> {
+                VmClassImpl clazz = (VmClassImpl) args.get(0);
+                VmStringImpl name = (VmStringImpl) args.get(1);
+                LoadedTypeDefinition clazzDef = clazz.getTypeDefinition();
+                FieldElement field = clazzDef.findField(name.getContent());
+                if (field == null || field.isStatic()) {
+                    throw new Thrown(errorClass.newInstance("Invalid argument to objectFieldOffset1"));
+                }
+                field.setModifierFlags(ClassFile.I_ACC_PINNED);
+                LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(clazzDef);
+                CompoundType.Member member = layoutInfo.getMember(field);
+                if (member == null) {
+                    throw new Thrown(errorClass.newInstance("Internal error"));
+                }
+                return Long.valueOf(member.getOffset());
+            });
 
             // System
             VmClassImpl systemClass = bootstrapClassLoader.loadClass("java/lang/System");

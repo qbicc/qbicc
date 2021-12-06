@@ -564,7 +564,6 @@ public class UnsafeIntrinsics {
             CoreClasses coreClasses = CoreClasses.get(ctxt);
             LiteralFactory lf = ctxt.getLiteralFactory();
             // reference array
-            FieldElement refArrayContentField = coreClasses.getRefArrayContentField();
             FieldElement booleanArrayContentField = coreClasses.getBooleanArrayContentField();
             FieldElement byteArrayContentField = coreClasses.getByteArrayContentField();
             FieldElement shortArrayContentField = coreClasses.getShortArrayContentField();
@@ -644,62 +643,6 @@ public class UnsafeIntrinsics {
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "arrayIndexScale0", classToInt, arrayIndexScale);
-
-        //objectFieldOffset1
-        InstanceIntrinsic objectFieldOffset = (builder, instance, target, arguments) -> {
-            Value clazz = traverseLoads(arguments.get(0));
-            Value string = traverseLoads(arguments.get(1));
-            LiteralFactory lf = ctxt.getLiteralFactory();
-            ObjectType objectType;
-            if (clazz instanceof ClassOf) {
-                ClassOf classOf = (ClassOf) clazz;
-                Value typeId = classOf.getInput();
-                if (typeId instanceof TypeLiteral) {
-                    ValueType valueType = ((TypeLiteral) typeId).getValue();
-                    if (valueType instanceof ObjectType) {
-                        objectType = (ObjectType) valueType;
-                    } else {
-                        ctxt.error(builder.getLocation(), "objectFieldOffset type argument must be a literal of an object type");
-                        return lf.literalOf(0L);
-                    }
-                } else {
-                    ctxt.error(builder.getLocation(), "objectFieldOffset type argument must be a literal of an object type");
-                    return lf.literalOf(0L);
-                }
-            } else {
-                ctxt.error(builder.getLocation(), "objectFieldOffset type argument must be a literal of an object type");
-                return lf.literalOf(0L);
-            }
-            String fieldName;
-            if (string instanceof StringLiteral) {
-                fieldName = ((StringLiteral) string).getValue();
-            } else if (string instanceof ObjectLiteral) {
-                VmObject vmObject = ((ObjectLiteral) string).getValue();
-                if (! (vmObject instanceof VmString)) {
-                    ctxt.error(builder.getLocation(), "objectFieldOffset string argument must be a literal string");
-                    return lf.literalOf(0L);
-                }
-                fieldName = ((VmString) vmObject).getContent();
-            } else {
-                ctxt.error(builder.getLocation(), "objectFieldOffset string argument must be a literal string");
-                return lf.literalOf(0L);
-            }
-            LoadedTypeDefinition ltd = objectType.getDefinition().load();
-            FieldElement field = ltd.findField(fieldName);
-            if (field == null) {
-                ctxt.error(builder.getLocation(), "No such field \"%s\" on class \"%s\"", fieldName, ltd.getVmClass().getName());
-                return lf.literalOf(0L);
-            }
-            // cast to long to fit method contract
-            return builder.extend(builder.offsetOfField(field), (WordType) target.getExecutable().getType().getReturnType());
-        };
-
-        intrinsics.registerIntrinsic(unsafeDesc, "objectFieldOffset", classStringToLong, objectFieldOffset);
-
-        // TODO: inspect reflection objects
-        //objectFieldOffset0
-        //staticFieldOffset0
-        //staticFieldBase0
     }
 
     private static Value traverseLoads(Value value) {
