@@ -85,6 +85,10 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
      * @return the field handle, or {@code null} if no matching field is found
      */
     default FieldElement resolveField(TypeDescriptor descriptor, String name) {
+        return resolveField(descriptor, name, false);
+    }
+
+    default FieldElement resolveField(TypeDescriptor descriptor, String name, boolean includeNoResolve) {
         Assert.checkNotNullParam("descriptor", descriptor);
         Assert.checkNotNullParam("name", name);
         // JVMS 5.4.3.2. Field Resolution
@@ -92,7 +96,7 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         // 1. If C declares a field with the name and descriptor specified by the field reference,
         // field lookup succeeds. The declared field is the result of the field lookup.
 
-        int idx = getFieldIndex(name);
+        int idx = getFieldIndex(name, includeNoResolve);
         if (idx >= 0) {
             FieldElement field = getField(idx);
             if (field.getTypeDescriptor().equals(descriptor)) {
@@ -109,7 +113,7 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         int interfaceCount = getInterfaceCount();
         for (int i = 0; i < interfaceCount; i ++) {
             LoadedTypeDefinition each = getInterface(i);
-            FieldElement candidate = each.resolveField(descriptor, name);
+            FieldElement candidate = each.resolveField(descriptor, name, includeNoResolve);
             if ( candidate != null ) {
                 return candidate;
             }
@@ -118,7 +122,7 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         // 3. Otherwise, if C has a superclass S, field lookup is applied recursively to S.
 
         LoadedTypeDefinition superType = getSuperClass();
-        return superType != null ? superType.resolveField(descriptor, name) : null;
+        return superType != null ? superType.resolveField(descriptor, name, includeNoResolve) : null;
     }
 
     /**
@@ -128,10 +132,14 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
      * @return the field index
      */
     default int getFieldIndex(String name) {
+        return getFieldIndex(name, false);
+    }
+
+    default int getFieldIndex(String name, boolean includeNoResolve) {
         int cnt = getFieldCount();
         for (int i = 0; i < cnt; i ++) {
             FieldElement field = getField(i);
-            if (field.hasNoModifiersOf(ClassFile.I_ACC_NO_RESOLVE) && field.nameEquals(name)) {
+            if ((includeNoResolve || field.hasNoModifiersOf(ClassFile.I_ACC_NO_RESOLVE)) && field.nameEquals(name)) {
                 return i;
             }
         }
