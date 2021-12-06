@@ -5,7 +5,9 @@ import java.util.List;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  *
@@ -46,4 +48,23 @@ public interface VmClass extends VmObject {
     Literal getValueForStaticField(FieldElement field);
 
     int indexOfStatic(FieldElement field) throws IllegalArgumentException;
+
+    /**
+     * Register an overriding {@code VmInvokable} for the given element.
+     *
+     * @param element the element to override (must not be {@code null})
+     * @param invokable the invokable to call (must not be {@code null})
+     * @throws IllegalStateException if the method was already compiled for interpretation
+     */
+    void registerInvokable(ExecutableElement element, VmInvokable invokable) throws IllegalStateException;
+
+    /**
+     * Register an overriding {@code VmInvokable} for the given element.
+     *
+     * @param name the name of the method or initializer to override (must not be {@code null})
+     * @param descriptor the descriptor of the method or initializer to override (must not be {@code null})
+     * @param invokable the invokable to call (must not be {@code null})
+     * @throws IllegalStateException if the method was already compiled for interpretation
+     */
+    void registerInvokable(String name, MethodDescriptor descriptor, VmInvokable invokable) throws IllegalStateException;
 }
