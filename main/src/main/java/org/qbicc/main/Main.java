@@ -303,9 +303,13 @@ public class Main implements Callable<DiagnosticContext> {
                             }
                             builder.setTypeSystem(tsBuilder.build());
                             // add additional manual initializers by chaining `.andThen(...)`
-                            builder.setVmFactory(cc -> VmImpl.create(cc,
-                                new BasicInitializationManualInitializer(cc)
-                            ));
+                            builder.setVmFactory(cc -> {
+                                CoreClasses.init(cc);
+                                ThrowExceptionHelper.init(cc);
+                                return VmImpl.create(cc,
+                                    new BasicInitializationManualInitializer(cc)
+                                );
+                            });
                             builder.setObjectFileProvider(objectFileProvider);
                             ServiceLoader<DriverPlugin> loader = ServiceLoader.load(DriverPlugin.class);
                             Iterator<DriverPlugin> iterator = loader.iterator();

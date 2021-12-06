@@ -6,6 +6,7 @@ import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.plugin.patcher.Patcher;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.ObjectType;
@@ -17,6 +18,7 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.InitializerResolver;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -41,6 +43,10 @@ public final class CoreClasses {
         builder.setEnclosingType(enclosing);
         return builder.build();
     };
+    private static final String OBJECT_INT_NAME = "java/lang/Object";
+    private static final String CLASS_INT_NAME = "java/lang/Class";
+    private static final String THREAD_INT_NAME = "java/lang/Thread";
+    private static final String THROWABLE_INT_NAME = "java/lang/Throwable";
 
     private final CompilationContext ctxt;
 
@@ -50,6 +56,8 @@ public final class CoreClasses {
     private final FieldElement classTypeIdField;
     private final FieldElement classDimensionField;
     private final FieldElement arrayClassField;
+
+    private final FieldElement thrownField;
 
     private final FieldElement arrayLengthField;
 
@@ -72,72 +80,24 @@ public final class CoreClasses {
     private CoreClasses(final CompilationContext ctxt) {
         this.ctxt = ctxt;
         ClassContext classContext = ctxt.getBootstrapClassContext();
-        DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
-        DefinedTypeDefinition jlcDef = classContext.findDefinedType("java/lang/Class");
-        ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+        DefinedTypeDefinition jloDef = classContext.findDefinedType(OBJECT_INT_NAME);
+        DefinedTypeDefinition jlcDef = classContext.findDefinedType(CLASS_INT_NAME);
+        DefinedTypeDefinition jltDef = classContext.findDefinedType(THREAD_INT_NAME);
+        ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, CLASS_INT_NAME);
         LoadedTypeDefinition jlo = jloDef.load();
         LoadedTypeDefinition jlc = jlcDef.load();
+        LoadedTypeDefinition jlt = jltDef.load();
         final TypeSystem ts = ctxt.getTypeSystem();
 
-        // inject a field to hold the object header bits
-        FieldElement.Builder builder = FieldElement.builder("header", BaseTypeDescriptor.V);
-        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_VOLATILE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
-        builder.setEnclosingType(jloDef);
-        builder.setSignature(BaseTypeSignature.V);
-        builder.setType(HeaderBits.get(ctxt).getHeaderType());
-        FieldElement field = builder.build();
-        jlo.injectField(field);
-        objectHeaderField = field;
+        objectHeaderField = jlo.resolveField(BaseTypeDescriptor.V, "header", true);
+        objectTypeIdField = jlo.resolveField(BaseTypeDescriptor.V, "typeId", true);
+        objectNativeObjectMonitorField = jlo.resolveField(BaseTypeDescriptor.J, "nativeObjectMonitor", true);
 
-        // inject a field to hold the object typeId
-        builder = FieldElement.builder("typeId", BaseTypeDescriptor.V);
-        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
-        builder.setEnclosingType(jloDef);
-        builder.setSignature(BaseTypeSignature.V);
-        builder.setType(jlo.getClassType().getTypeType());
-        field = builder.build();
-        jlo.injectField(field);
-        objectTypeIdField = field;
+        classTypeIdField = jlc.resolveField(BaseTypeDescriptor.V, "id", true);
+        classDimensionField = jlc.resolveField(BaseTypeDescriptor.V, "dimension", true);
+        arrayClassField = jlc.resolveField(jlcDesc, "arrayClass", true);
 
-        // inject a field to hold the object pthread_mutex_t
-        builder = FieldElement.builder("nativeObjectMonitor", BaseTypeDescriptor.V);
-        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
-        builder.setEnclosingType(jloDef);
-        builder.setSignature(BaseTypeSignature.V);
-        builder.setType(ts.getSignedInteger64Type());
-        field = builder.build();
-        jlo.injectField(field);
-        objectNativeObjectMonitorField = field;
-
-        // now inject a field of ClassObjectType into Class to hold the corresponding run time type
-        builder = FieldElement.builder("id", BaseTypeDescriptor.V);
-        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
-        builder.setEnclosingType(jlcDef);
-        builder.setSignature(BaseTypeSignature.V);
-        builder.setType(jlo.getClassType().getTypeType());
-        field = builder.build();
-        jlc.injectField(field);
-        classTypeIdField = field;
-
-        // now inject a field of int into Class to hold the corresponding run time dimensionality
-        builder = FieldElement.builder("dimension", BaseTypeDescriptor.V);
-        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
-        builder.setEnclosingType(jlcDef);
-        builder.setSignature(BaseTypeSignature.V);
-        builder.setType(ts.getUnsignedInteger8Type());
-        field = builder.build();
-        jlc.injectField(field);
-        classDimensionField = field;
-
-        // now inject a field of type java/lang/Class into Class to hold reference to array class of this class
-        builder = FieldElement.builder("arrayClass", jlcDesc);
-        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
-        builder.setEnclosingType(jlcDef);
-        builder.setSignature(TypeSignature.synthesize(classContext, jlcDesc));
-        builder.setType(jlc.getClassType().getReference());
-        field = builder.build();
-        jlc.injectField(field);
-        arrayClassField = field;
+        thrownField = jlt.resolveField(ClassTypeDescriptor.synthesize(classContext, THROWABLE_INT_NAME), "thrown", true);
 
         // now define classes for arrays
         // todo: assign special type ID values to array types
@@ -148,7 +108,7 @@ public final class CoreClasses {
         typeBuilder.setDescriptor(desc);
         ClassTypeSignature superClassSig = (ClassTypeSignature) TypeSignature.synthesize(classContext, jlo.getDescriptor());
         typeBuilder.setSignature(ClassSignature.synthesize(classContext, superClassSig, List.of()));
-        typeBuilder.setSuperClassName("java/lang/Object");
+        typeBuilder.setSuperClassName(OBJECT_INT_NAME);
         typeBuilder.expectInterfaceNameCount(2);
         typeBuilder.addInterfaceName("java/lang/Cloneable");
         typeBuilder.addInterfaceName("java/io/Serializable");
@@ -200,7 +160,7 @@ public final class CoreClasses {
         typeBuilder.setName(internalName);
         // add fields in this order, which is relied upon up above
         int idx = 0;
-        DefinedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object");
+        DefinedTypeDefinition jlo = classContext.findDefinedType(OBJECT_INT_NAME);
         if (realMemberType instanceof ReferenceType) {
             // also need a dimensions field
             typeBuilder.addField(CoreClasses::makeDimensionsField, idx++, "dims", BaseTypeDescriptor.V);
@@ -246,6 +206,100 @@ public final class CoreClasses {
         fieldBuilder.setType(enclosing.getContext().getTypeSystem().getArrayType(realMemberType, 0));
         fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         return fieldBuilder.build();
+    }
+
+    /**
+     * Initialize all of our fields ahead of time using patcher.
+     *
+     * @param ctxt the compilation context (must not be {@code null})
+     */
+    public static void init(CompilationContext ctxt) {
+        Patcher patcher = Patcher.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        // inject a field to hold the object header bits
+        patcher.addField(classContext, OBJECT_INT_NAME, "header", BaseTypeDescriptor.V, new FieldResolver() {
+            @Override
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+                builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_VOLATILE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+                builder.setEnclosingType(enclosing);
+                builder.setSignature(BaseTypeSignature.V);
+                builder.setType(HeaderBits.get(ctxt).getHeaderType());
+                return builder.build();
+            }
+        }, 0, 0, null, 0);
+
+        // inject a field to hold the object typeId
+        patcher.addField(classContext, OBJECT_INT_NAME, "typeId", BaseTypeDescriptor.V, new FieldResolver() {
+            @Override
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+                builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+                builder.setEnclosingType(enclosing);
+                builder.setSignature(BaseTypeSignature.V);
+                builder.setTypeResolver(e -> e.getEnclosingType().load().getClassType().getTypeType());
+                return builder.build();
+            }
+        }, 0, 0, null, 0);
+
+        // inject a field to hold the object monitor
+        patcher.addField(classContext, OBJECT_INT_NAME, "nativeObjectMonitor", BaseTypeDescriptor.J, new FieldResolver() {
+            @Override
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+                builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+                builder.setEnclosingType(enclosing);
+                builder.setSignature(BaseTypeSignature.J);
+                return builder.build();
+            }
+        }, 0, 0, null, 0);
+
+        // now inject a field of ClassObjectType into Class to hold the corresponding run time type
+        patcher.addField(classContext, CLASS_INT_NAME, "id", BaseTypeDescriptor.V, new FieldResolver() {
+            @Override
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+                builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+                builder.setEnclosingType(enclosing);
+                builder.setSignature(BaseTypeSignature.V);
+                builder.setTypeResolver(e -> e.getEnclosingType().load().getSuperClass().getClassType().getTypeType());
+                return builder.build();
+            }
+        }, 0, 0, null, 0);
+
+        // now inject a field of int into Class to hold the corresponding run time dimensionality
+        patcher.addField(classContext, CLASS_INT_NAME, "dimension", BaseTypeDescriptor.V, new FieldResolver() {
+            @Override
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+                builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+                builder.setEnclosingType(enclosing);
+                builder.setSignature(BaseTypeSignature.V);
+                ClassContext classContext = enclosing.getContext();
+                builder.setType(classContext.getTypeSystem().getUnsignedInteger8Type());
+                return builder.build();
+            }
+        }, 0, 0, null, 0);
+
+        // now inject a field of type java/lang/Class into Class to hold reference to array class of this class
+        patcher.addField(classContext, CLASS_INT_NAME, "arrayClass", ClassTypeDescriptor.synthesize(classContext, CLASS_INT_NAME), new FieldResolver() {
+            @Override
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+                builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_VOLATILE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+                builder.setEnclosingType(enclosing);
+                builder.setSignature(TypeSignature.synthesize(classContext, enclosing.getDescriptor()));
+                builder.setTypeResolver(f -> f.getEnclosingType().load().getClassType().getReference());
+                return builder.build();
+            }
+        }, 0, 0, null, 0);
+
+        // inject the thrown exception field
+        ClassTypeDescriptor throwableDesc = ClassTypeDescriptor.synthesize(classContext, THROWABLE_INT_NAME);
+        patcher.addField(classContext, THREAD_INT_NAME, "thrown", throwableDesc, new FieldResolver() {
+            @Override
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+                builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+                builder.setEnclosingType(enclosing);
+                builder.setSignature(TypeSignature.synthesize(classContext, throwableDesc));
+                return builder.build();
+            }
+        }, 0, 0, null, 0);
     }
 
     public static CoreClasses get(CompilationContext ctxt) {
@@ -312,28 +366,18 @@ public final class CoreClasses {
     }
 
     public LoadedTypeDefinition getArrayLoadedTypeDefinition(String arrayType) {
-        switch(arrayType) {
-        case "[Z":
-            return booleanArrayContentField.getEnclosingType().load();
-        case "[B":
-            return byteArrayContentField.getEnclosingType().load();
-        case "[S":
-            return shortArrayContentField.getEnclosingType().load();
-        case "[C":
-            return charArrayContentField.getEnclosingType().load();
-        case "[I":
-            return intArrayContentField.getEnclosingType().load();
-        case "[F":
-            return floatArrayContentField.getEnclosingType().load();
-        case "[J":
-            return longArrayContentField.getEnclosingType().load();
-        case "[D":
-            return doubleArrayContentField.getEnclosingType().load();
-        case "[ref":
-            return refArrayContentField.getEnclosingType().load();
-        default:
-            throw Assert.impossibleSwitchCase("arrayType");
-        }
+        return switch (arrayType) {
+            case "[Z" -> booleanArrayContentField.getEnclosingType().load();
+            case "[B" -> byteArrayContentField.getEnclosingType().load();
+            case "[S" -> shortArrayContentField.getEnclosingType().load();
+            case "[C" -> charArrayContentField.getEnclosingType().load();
+            case "[I" -> intArrayContentField.getEnclosingType().load();
+            case "[F" -> floatArrayContentField.getEnclosingType().load();
+            case "[J" -> longArrayContentField.getEnclosingType().load();
+            case "[D" -> doubleArrayContentField.getEnclosingType().load();
+            case "[ref", "[L" -> refArrayContentField.getEnclosingType().load();
+            default -> throw Assert.impossibleSwitchCase(arrayType);
+        };
     }
 
     /**
@@ -389,6 +433,10 @@ public final class CoreClasses {
 
     public LoadedTypeDefinition getClassTypeDefinition() {
         return classTypeIdField.getEnclosingType().load();
+    }
+
+    public FieldElement getThrownField() {
+        return thrownField;
     }
 
     public LoadedTypeDefinition getArrayBaseTypeDefinition() {
