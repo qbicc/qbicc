@@ -55,7 +55,6 @@ import org.qbicc.type.definition.element.MemberElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.generic.ClassSignature;
-import org.qbicc.type.generic.TypeSignature;
 
 final class CompilationContextImpl implements CompilationContext {
     private static final Logger log = Logger.getLogger("org.qbicc.driver");
@@ -494,13 +493,8 @@ final class CompilationContextImpl implements CompilationContext {
                 if (fieldElement == null) {
                     ClassContext classContext = this.bootstrapClassContext;
                     ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Throwable");
-                    FieldElement.Builder builder = FieldElement.builder("thrown", desc);
                     DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
-                    builder.setSignature(TypeSignature.synthesize(classContext, desc));
-                    builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
-                    builder.setEnclosingType(jlt);
-                    fieldElement = builder.build();
-                    jlt.load().injectField(fieldElement);
+                    fieldElement = jlt.load().resolveField(desc, "thrown", true);
                     exceptionFieldHolder.set(fieldElement);
                 }
             }

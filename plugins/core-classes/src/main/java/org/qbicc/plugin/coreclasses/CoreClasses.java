@@ -45,6 +45,8 @@ public final class CoreClasses {
     };
     private static final String OBJECT_INT_NAME = "java/lang/Object";
     private static final String CLASS_INT_NAME = "java/lang/Class";
+    private static final String THREAD_INT_NAME = "java/lang/Thread";
+    private static final String THROWABLE_INT_NAME = "java/lang/Throwable";
 
     private final CompilationContext ctxt;
 
@@ -54,6 +56,8 @@ public final class CoreClasses {
     private final FieldElement classTypeIdField;
     private final FieldElement classDimensionField;
     private final FieldElement arrayClassField;
+
+    private final FieldElement thrownField;
 
     private final FieldElement arrayLengthField;
 
@@ -78,9 +82,11 @@ public final class CoreClasses {
         ClassContext classContext = ctxt.getBootstrapClassContext();
         DefinedTypeDefinition jloDef = classContext.findDefinedType(OBJECT_INT_NAME);
         DefinedTypeDefinition jlcDef = classContext.findDefinedType(CLASS_INT_NAME);
+        DefinedTypeDefinition jltDef = classContext.findDefinedType(THREAD_INT_NAME);
         ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, CLASS_INT_NAME);
         LoadedTypeDefinition jlo = jloDef.load();
         LoadedTypeDefinition jlc = jlcDef.load();
+        LoadedTypeDefinition jlt = jltDef.load();
         final TypeSystem ts = ctxt.getTypeSystem();
 
         objectHeaderField = jlo.resolveField(BaseTypeDescriptor.V, "header", true);
@@ -90,6 +96,8 @@ public final class CoreClasses {
         classTypeIdField = jlc.resolveField(BaseTypeDescriptor.V, "id", true);
         classDimensionField = jlc.resolveField(BaseTypeDescriptor.V, "dimension", true);
         arrayClassField = jlc.resolveField(jlcDesc, "arrayClass", true);
+
+        thrownField = jlt.resolveField(ClassTypeDescriptor.synthesize(classContext, THROWABLE_INT_NAME), "thrown", true);
 
         // now define classes for arrays
         // todo: assign special type ID values to array types
@@ -280,6 +288,18 @@ public final class CoreClasses {
                 return builder.build();
             }
         }, 0, 0, null, 0);
+
+        // inject the thrown exception field
+        ClassTypeDescriptor throwableDesc = ClassTypeDescriptor.synthesize(classContext, THROWABLE_INT_NAME);
+        patcher.addField(classContext, THREAD_INT_NAME, "thrown", throwableDesc, new FieldResolver() {
+            @Override
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+                builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+                builder.setEnclosingType(enclosing);
+                builder.setSignature(TypeSignature.synthesize(classContext, throwableDesc));
+                return builder.build();
+            }
+        }, 0, 0, null, 0);
     }
 
     public static CoreClasses get(CompilationContext ctxt) {
@@ -413,6 +433,10 @@ public final class CoreClasses {
 
     public LoadedTypeDefinition getClassTypeDefinition() {
         return classTypeIdField.getEnclosingType().load();
+    }
+
+    public FieldElement getThrownField() {
+        return thrownField;
     }
 
     public LoadedTypeDefinition getArrayBaseTypeDefinition() {
