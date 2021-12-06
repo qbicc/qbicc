@@ -613,6 +613,15 @@ public final class VmImpl implements Vm {
                 }
                 return null;
             });
+            classClass.registerInvokable("isInstance", (thread, target, args) -> {
+                VmClassImpl clazz = (VmClassImpl) target;
+                VmObject obj = (VmObject) args.get(0);
+                if (obj == null) {
+                    return Boolean.FALSE;
+                }
+                VmClass objClazz = obj.getVmClass();
+                return Boolean.valueOf(objClazz.getObjectType().isSubtypeOf(clazz.getInstanceObjectType()));
+            });
 
             // Array
             VmClassImpl arrayClass = bootstrapClassLoader.loadClass("java/lang/reflect/Array");
