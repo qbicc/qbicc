@@ -715,6 +715,7 @@ public final class VmImpl implements Vm {
 
             // MethodHandleNatives
             VmClassImpl methodHandleNatives = bootstrapClassLoader.loadClass("java/lang/invoke/MethodHandleNatives");
+            methodHandleNatives.registerInvokable("init", (thread, target, args) -> null);
             methodHandleNatives.registerInvokable("resolve", (thread, target, args) -> {
                 VmThreadImpl ourThread = (VmThreadImpl) thread;
                 VmMemberNameImpl self = (VmMemberNameImpl) args.get(0);
