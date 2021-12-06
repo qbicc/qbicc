@@ -3,6 +3,7 @@ package org.qbicc.interpreter.impl;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +34,7 @@ import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
@@ -336,9 +338,12 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         if (declaredFields == null) {
             int numFields = typeDefinition.getFieldCount();
             VmClassImpl fieldClass =vm.getBootstrapClassLoader().loadClass("java/lang/reflect/Field");
-            VmArrayImpl fields = vm.manuallyInitialize(fieldClass.getArrayClass().newInstance(numFields));
+            ArrayList<VmObjectImpl> fields = new ArrayList<>(numFields);
             for (int i=0; i<numFields; i++) {
                 FieldElement field = typeDefinition.getField(i);
+                if (field.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
+                    continue;
+                }
                 VmObjectImpl fObj = vm.manuallyInitialize(fieldClass.newInstance());
 
                 // Simulate the constructor of java.lang.reflect.Field
@@ -349,17 +354,23 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 memory.storeRef(offset, vm.intern(field.getName()), MemoryAtomicityMode.UNORDERED);
                 offset = indexOf(fieldClass.getTypeDefinition().findField("modifiers"));
                 memory.store32(offset, field.getModifiers(), MemoryAtomicityMode.UNORDERED);
-                // TODO: Field.type
+                offset = indexOf(fieldClass.getTypeDefinition().findField("type"));
+                memory.storeRef(offset, vm.getClassForDescriptor(classLoader, field.getTypeDescriptor()), MemoryAtomicityMode.UNORDERED);
                 // TODO: Field.signature
                 // TODO: Field.annotations
 
-                fields.getMemory().storeRef(fields.getArrayElementOffset(i), fObj, MemoryAtomicityMode.UNORDERED);
+                fields.add(fObj);
+            }
+            VmArrayImpl fieldsArray = vm.manuallyInitialize(fieldClass.getArrayClass().newInstance(numFields));
+            int actualNumFields = fields.size();
+            for (int i = 0; i < actualNumFields; i ++) {
+                fieldsArray.getMemory().storeRef(fieldsArray.getArrayElementOffset(i), fields.get(i), MemoryAtomicityMode.UNORDERED);
             }
             do {
-                if (declaredFieldsHandle.compareAndSet(this, null, fields)) {
+                if (declaredFieldsHandle.compareAndSet(this, null, fieldsArray)) {
                     break;
                 }
-                fields = this.declaredFields;
+                fieldsArray = this.declaredFields;
             } while (declaredFields == null);
         }
 
@@ -396,9 +407,12 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             if (classLoader == null) {
                 classLoader = vm.getBootstrapClassLoader();
             }
-            VmArrayImpl methods = vm.manuallyInitialize(methodClass.getArrayClass().newInstance(numMethods));
+            ArrayList<VmObjectImpl> methods = new ArrayList<>(numMethods);
             for (int i = 0; i < numMethods; i ++) {
                 MethodElement method = typeDefinition.getMethod(i);
+                if (method.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
+                    continue;
+                }
                 VmObjectImpl mObj = vm.manuallyInitialize(methodClass.newInstance());
 
                 MemoryImpl memory = mObj.getMemory();
@@ -427,13 +441,20 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 // todo: annotations
                 // todo: parameterAnnotations
                 // todo: annotationDefault
+
+                methods.add(mObj);
+            }
+            VmArrayImpl methodsArray = vm.manuallyInitialize(methodClass.getArrayClass().newInstance(numMethods));
+            int actualNumMethods = methods.size();
+            for (int i = 0; i < actualNumMethods; i++) {
+                methodsArray.getMemory().storeRef(methodsArray.getArrayElementOffset(i), methods.get(i), MemoryAtomicityMode.UNORDERED);
             }
             do {
-                if (declaredMethodsHandle.compareAndSet(this, null, methods)) {
+                if (declaredMethodsHandle.compareAndSet(this, null, methodsArray)) {
                     break;
                 }
-                methods = this.declaredFields;
-            } while (declaredFields == null);
+                methodsArray = this.declaredMethods;
+            } while (declaredMethods == null);
         }
 
         if (publicOnly) {

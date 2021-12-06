@@ -1119,6 +1119,9 @@ public final class VmImpl implements Vm {
     }
 
     VmClassImpl getClassForDescriptor(VmClassLoaderImpl cl, TypeDescriptor descriptor) {
+        if (cl == null) {
+            cl = bootstrapClassLoader;
+        }
         if (descriptor instanceof BaseTypeDescriptor) {
             return getPrimitiveClass(Primitive.getPrimitiveFor((BaseTypeDescriptor) descriptor));
         } else if (descriptor instanceof ArrayTypeDescriptor) {
