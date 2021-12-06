@@ -305,6 +305,7 @@ public class Main implements Callable<DiagnosticContext> {
                             // add additional manual initializers by chaining `.andThen(...)`
                             builder.setVmFactory(cc -> {
                                 CoreClasses.init(cc);
+                                ThrowExceptionHelper.init(cc);
                                 return VmImpl.create(cc,
                                     new BasicInitializationManualInitializer(cc)
                                 );
