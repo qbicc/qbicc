@@ -110,7 +110,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         classLoader = (VmClassLoaderImpl) classContext.getClassLoader();
         CompilationContext ctxt = classContext.getCompilationContext();
         layoutInfo = typeDefinition.isInterface() ? null : Layout.get(ctxt).getInstanceLayoutInfo(typeDefinition);
-        staticLayoutInfo = Layout.get(ctxt).getInterpreterStaticLayoutInfo(typeDefinition);
+        staticLayoutInfo = Layout.get(ctxt).getStaticLayoutInfo(typeDefinition);
         staticMemory = staticLayoutInfo == null ? vmImpl.allocate(0) : vmImpl.allocate((int) staticLayoutInfo.getCompoundType().getSize());
         initializeConstantStaticFields();
     }
@@ -139,7 +139,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         classLoader = null;
         CompilationContext ctxt = classContext.getCompilationContext();
         layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(typeDefinition);
-        staticLayoutInfo = Layout.get(ctxt).getInterpreterStaticLayoutInfo(typeDefinition);
+        staticLayoutInfo = Layout.get(ctxt).getStaticLayoutInfo(typeDefinition);
         staticMemory = staticLayoutInfo == null ? vm.allocate(0) : vm.allocate((int) staticLayoutInfo.getCompoundType().getSize());
         superClass = new VmClassImpl(vm, (VmClassClassImpl) this, classContext.findDefinedType("java/lang/Object").load(), null);
         initializeConstantStaticFields();
@@ -512,7 +512,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     public int indexOfStatic(FieldElement field) throws IllegalArgumentException {
         LoadedTypeDefinition loaded = field.getEnclosingType().load();
         CompilationContext ctxt = loaded.getContext().getCompilationContext();
-        LayoutInfo layoutInfo = Layout.get(ctxt).getInterpreterStaticLayoutInfo(loaded);
+        LayoutInfo layoutInfo = Layout.get(ctxt).getStaticLayoutInfo(loaded);
         if (layoutInfo != null) {
             CompoundType.Member member = layoutInfo.getMember(field);
             if (member != null) {

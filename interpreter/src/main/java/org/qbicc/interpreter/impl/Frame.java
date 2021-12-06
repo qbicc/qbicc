@@ -1894,7 +1894,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         Layout layout = Layout.get(ctxt);
         LayoutInfo layoutInfo;
         if (fieldElement.isStatic()) {
-            layoutInfo = layout.getInterpreterStaticLayoutInfo(fieldElement.getEnclosingType());
+            layoutInfo = layout.getStaticLayoutInfo(fieldElement.getEnclosingType());
         } else {
             layoutInfo = layout.getInstanceLayoutInfo(fieldElement.getEnclosingType());
         }
@@ -2399,7 +2399,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
             Layout layout = Layout.get(ctxt);
             FieldElement field = node.getVariableElement();
-            LayoutInfo layoutInfo = layout.getInterpreterStaticLayoutInfo(field.getEnclosingType());
+            LayoutInfo layoutInfo = layout.getStaticLayoutInfo(field.getEnclosingType());
             if (layoutInfo == null) {
                 throw new IllegalStateException("No static fields found");
             }

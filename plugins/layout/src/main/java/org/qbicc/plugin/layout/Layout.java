@@ -151,13 +151,12 @@ public final class Layout {
     }
 
     /**
-     * Compute the static layout information of the given type for the interpreter.  The run time does not store
-     * static fields in a structure.
+     * Compute the static layout information of the given type.
      *
      * @param type the type (must not be {@code null})
      * @return the layout info, or {@code null} if there are no static fields
      */
-    public LayoutInfo getInterpreterStaticLayoutInfo(DefinedTypeDefinition type) {
+    public LayoutInfo getStaticLayoutInfo(DefinedTypeDefinition type) {
         LoadedTypeDefinition loaded = type.load();
         LayoutInfo layoutInfo = staticLayouts.get(loaded);
         if (layoutInfo != null) {
@@ -169,10 +168,16 @@ public final class Layout {
         }
         BitSet allocated = new BitSet();
         Map<FieldElement, CompoundType.Member> fieldToMember = new HashMap<>(cnt);
+        TypeSystem ts = ctxt.getTypeSystem();
+        int minAlignment = ts.getPointerAlignment();
         for (int i = 0; i < cnt; i ++) {
             FieldElement field = loaded.getField(i);
             if (! field.isStatic() || field.isThreadLocal()) {
                 continue;
+            }
+            CompoundType.Member member = computeMember(allocated, field);
+            if (member.getAlign() > minAlignment) {
+                minAlignment = member.getAlign();
             }
             fieldToMember.put(field, computeMember(allocated, field));
         }
@@ -180,7 +185,7 @@ public final class Layout {
         CompoundType.Member[] membersArray = fieldToMember.values().toArray(CompoundType.Member[]::new);
         Arrays.sort(membersArray);
         List<CompoundType.Member> membersList = List.of(membersArray);
-        CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.CLASS, type.getInternalName().replace('/', '.'), size, 1, () -> membersList);
+        CompoundType compoundType = ts.getCompoundType(CompoundType.Tag.STRUCT, "statics." + type.getInternalName().replace('/', '.'), size, minAlignment, () -> membersList);
         layoutInfo = new LayoutInfo(allocated, compoundType, fieldToMember);
         LayoutInfo appearing = staticLayouts.putIfAbsent(loaded, layoutInfo);
         return appearing != null ? appearing : layoutInfo;
