@@ -21,7 +21,7 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
         ctxt.enqueue(methodFinder.getMethod("checkcastTypeId"));
         ctxt.enqueue(methodFinder.getMethod("instanceofClass"));
         ctxt.enqueue(methodFinder.getMethod("instanceofTypeId"));
-        ctxt.enqueue(methodFinder.getMethod("getClass"));
+        ctxt.enqueue(methodFinder.getMethod("getClassFromObject"));
         ctxt.enqueue(methodFinder.getMethod("getClassFromTypeId"));
         ctxt.enqueue(methodFinder.getMethod("getSuperClass"));
 

@@ -20,17 +20,6 @@ import static org.qbicc.runtime.stdc.Stdlib.*;
 @SuppressWarnings("unused")
 public final class VMHelpers {
 
-    @Hidden
-    public static Class<?> getClass(Object instance) {
-        type_id typeId = CompilerIntrinsics.typeIdOf(instance);
-        uint8_t dims = word(0);
-        if (CompilerIntrinsics.isReferenceArray(typeId)) {
-            typeId = CompilerIntrinsics.elementTypeIdOf(instance);
-            dims = CompilerIntrinsics.dimensionsOf(instance);
-        }
-        return getClassFromTypeid(typeId, dims);
-    }
-
     @NoSideEffects
     @Hidden
     public static boolean instanceofClass(Object instance, Class<?> cls) {
@@ -104,6 +93,17 @@ public final class VMHelpers {
             // in the physical type range
             return toTypeId.isLe(fromTypeId) && fromTypeId.isLe(CompilerIntrinsics.maxSubClassTypeIdOf(toTypeId));
         }
+    }
+
+    @Hidden
+    public static Class<?> getClassFromObject(Object instance) {
+        type_id typeId = CompilerIntrinsics.typeIdOf(instance);
+        uint8_t dims = word(0);
+        if (CompilerIntrinsics.isReferenceArray(typeId)) {
+            typeId = CompilerIntrinsics.elementTypeIdOf(instance);
+            dims = CompilerIntrinsics.dimensionsOf(instance);
+        }
+        return getClassFromTypeid(typeId, dims);
     }
 
     @NoSideEffects

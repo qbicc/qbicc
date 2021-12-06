@@ -313,7 +313,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus", emptyToBool, desiredAssertionStatus);
         intrinsics.registerIntrinsic(jlcDesc, "initClassName", emptyToString, initClassName);
         intrinsics.registerIntrinsic(jlcDesc, "getPrimitiveClass", stringToClass, getPrimitiveClass);
-        intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "getSuperClass", emptyToClass, getSuperclass);
+        intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "getSuperclass", emptyToClass, getSuperclass);
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isArray", emptyToBool, isArray);
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isInterface", emptyToBool, isInterface);
         intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isPrimitive", emptyToBool, isPrimitive);
@@ -1035,7 +1035,7 @@ public final class CoreIntrinsics {
         MethodDescriptor getClassDesc = MethodDescriptor.synthesize(classContext, jlcDesc, List.of());
 
         InstanceIntrinsic getClassIntrinsic = (builder, instance, target, arguments) -> {
-            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("getClass");
+            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("getClassFromObject");
             return builder.getFirstBuilder().call(builder.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(instance));
         };
 
