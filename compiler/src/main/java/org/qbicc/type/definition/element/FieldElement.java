@@ -1,6 +1,10 @@
 package org.qbicc.type.definition.element;
 
+import java.util.function.Function;
+
+import org.qbicc.context.ClassContext;
 import org.qbicc.graph.literal.Literal;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -13,11 +17,13 @@ public final class FieldElement extends VariableElement implements MemberElement
     public static final FieldElement[] NO_FIELDS = new FieldElement[0];
     private final Literal initialValue;
     private final InitializerElement runTimeInitializer;
+    private final Function<FieldElement, ValueType> typeResolver;
 
     FieldElement(BuilderImpl builder) {
         super(builder);
         this.initialValue = builder.initialValue;
         this.runTimeInitializer = builder.runTimeInitializer;
+        this.typeResolver = builder.typeResolver;
     }
 
     public String toString() {
@@ -46,6 +52,14 @@ public final class FieldElement extends VariableElement implements MemberElement
         return runTimeInitializer;
     }
 
+    @Override
+    ValueType resolveTypeDescriptor(ClassContext classContext, TypeParameterContext paramCtxt) {
+        if (typeResolver != null) {
+            return typeResolver.apply(this);
+        }
+        return super.resolveTypeDescriptor(classContext, paramCtxt);
+    }
+
     public static Builder builder(String name, TypeDescriptor descriptor) {
         return new BuilderImpl(name, descriptor);
     }
@@ -62,6 +76,8 @@ public final class FieldElement extends VariableElement implements MemberElement
         void setInitialValue(final Literal initialValue);
 
         void setRunTimeInitializer(InitializerElement runTimeInitializer);
+
+        void setTypeResolver(Function<FieldElement, ValueType> resolver);
 
         FieldElement build();
 
@@ -80,6 +96,11 @@ public final class FieldElement extends VariableElement implements MemberElement
             }
 
             @Override
+            default void setTypeResolver(Function<FieldElement, ValueType> resolver) {
+                getDelegate().setTypeResolver(resolver);
+            }
+
+            @Override
             default FieldElement build() {
                 return getDelegate().build();
             }
@@ -93,6 +114,7 @@ public final class FieldElement extends VariableElement implements MemberElement
 
         private Literal initialValue;
         private InitializerElement runTimeInitializer;
+        private Function<FieldElement, ValueType> typeResolver;
 
         public void setInitialValue(final Literal initialValue) {
             this.initialValue = initialValue;
@@ -100,6 +122,10 @@ public final class FieldElement extends VariableElement implements MemberElement
 
         public void setRunTimeInitializer(InitializerElement runTimeInitializer) {
             this.runTimeInitializer = runTimeInitializer;
+        }
+
+        public void setTypeResolver(Function<FieldElement, ValueType> typeResolver) {
+            this.typeResolver = typeResolver;
         }
 
         public FieldElement build() {
