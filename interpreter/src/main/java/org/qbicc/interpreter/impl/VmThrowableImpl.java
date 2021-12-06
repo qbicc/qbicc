@@ -36,7 +36,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
         }
         MemoryImpl memory = getMemory();
         LoadedTypeDefinition throwableClassDef = ((VmImpl)Vm.requireCurrent()).throwableClass.getTypeDefinition();
-        Layout interpLayout = Layout.getForInterpreter(throwableClassDef.getContext().getCompilationContext());
+        Layout interpLayout = Layout.get(throwableClassDef.getContext().getCompilationContext());
         LayoutInfo layout = interpLayout.getInstanceLayoutInfo(throwableClassDef);
         int depthIdx = layout.getMember(throwableClassDef.findField("depth")).getOffset();
         memory.store32(depthIdx, backTrace.length, MemoryAtomicityMode.UNORDERED);
@@ -48,7 +48,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
 
     void initStackTraceElements(VmArrayImpl array) {
         VmImpl vm = getVmClass().getVm();
-        Layout interpLayout = Layout.getForInterpreter(vm.getCompilationContext());
+        Layout interpLayout = Layout.get(vm.getCompilationContext());
         // create the stack trace directly
         LoadedTypeDefinition steClassDef = vm.stackTraceElementClass.getTypeDefinition();
         LayoutInfo layout = interpLayout.getInstanceLayoutInfo(steClassDef);

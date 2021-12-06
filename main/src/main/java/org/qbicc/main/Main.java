@@ -447,7 +447,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
 
-                                builder.addPreHook(Phase.LOWER, Layout::unlock);
                                 builder.addPreHook(Phase.LOWER, new ClassObjectSerializer());
                                 builder.addElementHandler(Phase.LOWER, new FunctionLoweringElementHandler());
                                 builder.addElementHandler(Phase.LOWER, new NativeXtorLoweringElementHandler());

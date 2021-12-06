@@ -109,8 +109,8 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         ClassContext classContext = typeDefinition.getContext();
         classLoader = (VmClassLoaderImpl) classContext.getClassLoader();
         CompilationContext ctxt = classContext.getCompilationContext();
-        layoutInfo = typeDefinition.isInterface() ? null : Layout.getForInterpreter(ctxt).getInstanceLayoutInfo(typeDefinition);
-        staticLayoutInfo = Layout.getForInterpreter(ctxt).getInterpreterStaticLayoutInfo(typeDefinition);
+        layoutInfo = typeDefinition.isInterface() ? null : Layout.get(ctxt).getInstanceLayoutInfo(typeDefinition);
+        staticLayoutInfo = Layout.get(ctxt).getInterpreterStaticLayoutInfo(typeDefinition);
         staticMemory = staticLayoutInfo == null ? vmImpl.allocate(0) : vmImpl.allocate((int) staticLayoutInfo.getCompoundType().getSize());
         initializeConstantStaticFields();
     }
@@ -132,14 +132,14 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     VmClassImpl(final VmImpl vm, final ClassContext classContext, @SuppressWarnings("unused") Class<VmClassClassImpl> classClassOnly) {
         // special ctor for Class.class, where getClass() == Class.class
-        super(vm, VmClassImpl.class, Layout.getForInterpreter(classContext.getCompilationContext()).getInstanceLayoutInfo(classContext.findDefinedType("java/lang/Class").load()));
+        super(vm, VmClassImpl.class, Layout.get(classContext.getCompilationContext()).getInstanceLayoutInfo(classContext.findDefinedType("java/lang/Class").load()));
         this.vm = vm;
         typeDefinition = classContext.findDefinedType("java/lang/Class").load();
         protectionDomain = null;
         classLoader = null;
         CompilationContext ctxt = classContext.getCompilationContext();
-        layoutInfo = Layout.getForInterpreter(ctxt).getInstanceLayoutInfo(typeDefinition);
-        staticLayoutInfo = Layout.getForInterpreter(ctxt).getInterpreterStaticLayoutInfo(typeDefinition);
+        layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(typeDefinition);
+        staticLayoutInfo = Layout.get(ctxt).getInterpreterStaticLayoutInfo(typeDefinition);
         staticMemory = staticLayoutInfo == null ? vm.allocate(0) : vm.allocate((int) staticLayoutInfo.getCompoundType().getSize());
         superClass = new VmClassImpl(vm, (VmClassClassImpl) this, classContext.findDefinedType("java/lang/Object").load(), null);
         initializeConstantStaticFields();
@@ -512,7 +512,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     public int indexOfStatic(FieldElement field) throws IllegalArgumentException {
         LoadedTypeDefinition loaded = field.getEnclosingType().load();
         CompilationContext ctxt = loaded.getContext().getCompilationContext();
-        LayoutInfo layoutInfo = Layout.getForInterpreter(ctxt).getInterpreterStaticLayoutInfo(loaded);
+        LayoutInfo layoutInfo = Layout.get(ctxt).getInterpreterStaticLayoutInfo(loaded);
         if (layoutInfo != null) {
             CompoundType.Member member = layoutInfo.getMember(field);
             if (member != null) {

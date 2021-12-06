@@ -1891,7 +1891,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     public Object visit(VmThreadImpl param, OffsetOfField node) {
         FieldElement fieldElement = node.getFieldElement();
         CompilationContext ctxt = element.getEnclosingType().getContext().getCompilationContext();
-        Layout layout = Layout.getForInterpreter(ctxt);
+        Layout layout = Layout.get(ctxt);
         LayoutInfo layoutInfo;
         if (fieldElement.isStatic()) {
             layoutInfo = layout.getInterpreterStaticLayoutInfo(fieldElement.getEnclosingType());
@@ -2340,7 +2340,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                     CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
                     CoreClasses coreClasses = CoreClasses.get(ctxt);
                     FieldElement field = coreClasses.getArrayContentField(physicalBound);
-                    Layout interpLayout = Layout.getForInterpreter(ctxt);
+                    Layout interpLayout = Layout.get(ctxt);
                     int fieldOffset = interpLayout.getInstanceLayoutInfo(field.getEnclosingType()).getMember(field).getOffset();
                     ArrayType contentType = (ArrayType)field.getType();
                     return node.getValueHandle().accept(this, frame) + fieldOffset + index * contentType.getElementSize();
@@ -2363,7 +2363,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public long visit(Frame frame, InstanceFieldOf node) {
             CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
-            Layout layout = Layout.getForInterpreter(ctxt);
+            Layout layout = Layout.get(ctxt);
             FieldElement field = node.getVariableElement();
             LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(field.getEnclosingType());
             try {
@@ -2397,7 +2397,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public long visit(Frame frame, StaticField node) {
             CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
-            Layout layout = Layout.getForInterpreter(ctxt);
+            Layout layout = Layout.get(ctxt);
             FieldElement field = node.getVariableElement();
             LayoutInfo layoutInfo = layout.getInterpreterStaticLayoutInfo(field.getEnclosingType());
             if (layoutInfo == null) {

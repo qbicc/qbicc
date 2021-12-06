@@ -81,7 +81,7 @@ public class BuildtimeHeap {
 
     private BuildtimeHeap(CompilationContext ctxt) {
         this.ctxt = ctxt;
-        this.interpreterLayout = Layout.getForInterpreter(ctxt);
+        this.interpreterLayout = Layout.get(ctxt);
         this.coreClasses = CoreClasses.get(ctxt);
 
         LoadedTypeDefinition ih = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap").load();

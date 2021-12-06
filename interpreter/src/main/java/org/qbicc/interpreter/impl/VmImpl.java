@@ -65,7 +65,6 @@ import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
-import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -179,7 +178,7 @@ public final class VmImpl implements Vm {
         stringClass = new VmStringClassImpl(this, stringDef);
         FieldElement coderField = stringDef.findField("coder");
         FieldElement valueField = stringDef.findField("value");
-        Layout layout = Layout.getForInterpreter(ctxt);
+        Layout layout = Layout.get(ctxt);
         LayoutInfo stringLayout = layout.getInstanceLayoutInfo(stringDef);
         stringCoderOffset = stringLayout.getMember(coderField).getOffset();
         stringValueOffset = stringLayout.getMember(valueField).getOffset();
@@ -688,7 +687,7 @@ public final class VmImpl implements Vm {
                     if (field.isStatic()) {
                         throw new Thrown(threadImpl.getVM().errorClass.newInstance("Wrong field kind"));
                     } else {
-                        layoutInfo = Layout.getForInterpreter(ctxt).getInstanceLayoutInfo(field.getEnclosingType());
+                        layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(field.getEnclosingType());
                     }
                     return Long.valueOf(layoutInfo.getMember(field).getOffset());
                 } else {

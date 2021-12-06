@@ -26,7 +26,6 @@ import org.qbicc.type.definition.element.FieldElement;
  */
 public final class Layout {
     private static final AttachmentKey<Layout> KEY = new AttachmentKey<>();
-    private static final AttachmentKey<Layout> I_KEY = new AttachmentKey<>();
 
     private final Map<LoadedTypeDefinition, LayoutInfo> instanceLayouts = new ConcurrentHashMap<>();
     private final Map<LoadedTypeDefinition, LayoutInfo> staticLayouts = new ConcurrentHashMap<>();
@@ -37,23 +36,11 @@ public final class Layout {
         this.ctxt = ctxt;
     }
 
-    public static void unlock(CompilationContext ctxt) {
-        ctxt.putAttachmentIfAbsent(KEY, new Layout(ctxt));
-    }
-
     public static Layout get(CompilationContext ctxt) {
         Layout layout = ctxt.getAttachment(KEY);
         if (layout == null) {
-            throw new IllegalStateException("Layout is not yet available");
-        }
-        return layout;
-    }
-
-    public static Layout getForInterpreter(CompilationContext ctxt) {
-        Layout layout = ctxt.getAttachment(I_KEY);
-        if (layout == null) {
             layout = new Layout(ctxt);
-            Layout appearing = ctxt.putAttachmentIfAbsent(I_KEY, layout);
+            Layout appearing = ctxt.putAttachmentIfAbsent(KEY, layout);
             if (appearing != null) {
                 layout = appearing;
             }
