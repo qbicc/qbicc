@@ -11,6 +11,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.plugin.coreclasses.BasicHeaderInitializer;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
@@ -22,6 +23,7 @@ import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
@@ -58,16 +60,19 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         MethodElement method = noGc.getZeroMethod();
         call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(ptrVal, size));
 
-        return valueConvert(ptrVal, type.getReference());
+        Value oop = valueConvert(ptrVal, type.getReference());
+        BasicHeaderInitializer.initializeObjectHeader(ctxt, this, referenceHandle(oop), typeId);
+        return oop;
     }
 
     @Override
     public Value newArray(final PrimitiveArrayObjectType arrayType, Value size) {
-        Layout layout = Layout.get(ctxt);
-        LayoutInfo info = layout.getInstanceLayoutInfo(coreClasses.getArrayContentField(arrayType).getEnclosingType());
-        CompoundType compoundType = info.getCompoundType();
+        LoadedTypeDefinition ltd = coreClasses.getArrayContentField(arrayType).getEnclosingType().load();
+        CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(ltd).getCompoundType();
         Value ptrVal = allocateArray(compoundType, size, arrayType.getElementType().getSize());
-        return valueConvert(ptrVal, arrayType.getReference());
+        Value oop = valueConvert(ptrVal, arrayType.getReference());
+        BasicHeaderInitializer.initializeArrayHeader(ctxt, this, referenceHandle(oop), ctxt.getLiteralFactory().literalOfType(ltd.getClassType()), size);
+        return oop;
     }
 
     @Override
@@ -76,7 +81,9 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         LayoutInfo info = layout.getInstanceLayoutInfo(coreClasses.getRefArrayContentField().getEnclosingType());
         CompoundType compoundType = info.getCompoundType();
         Value ptrVal = allocateArray(compoundType, size, ctxt.getTypeSystem().getReferenceSize());
-        return valueConvert(ptrVal, arrayType.getReference());
+        Value oop = valueConvert(ptrVal, arrayType.getReference());
+        BasicHeaderInitializer.initializeRefArrayHeader(ctxt, this, referenceHandle(oop), elemTypeId, dimensions, size);
+        return oop;
     }
 
     private Value allocateArray(CompoundType compoundType, Value size, long elementSize) {

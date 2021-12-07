@@ -16,12 +16,12 @@ import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.element.FieldElement;
 
 /**
- * Initialize manually-created interpreter objects in the same way as {@link BasicInitializationBasicBlockBuilder}.
+ * Initialize manually-created interpreter objects in the same way as {@link BasicHeaderInitializer}.
  */
-public class BasicInitializationManualInitializer implements Consumer<VmObject> {
+public class BasicHeaderManualInitializer implements Consumer<VmObject> {
     private final CompilationContext ctxt;
 
-    public BasicInitializationManualInitializer(CompilationContext ctxt) {
+    public BasicHeaderManualInitializer(CompilationContext ctxt) {
         this.ctxt = ctxt;
     }
 
