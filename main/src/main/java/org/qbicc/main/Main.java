@@ -24,7 +24,6 @@ import org.apache.maven.settings.Settings;
 import org.apache.maven.settings.building.SettingsBuildingException;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.DefaultArtifact;
-import org.eclipse.aether.graph.DependencyFilter;
 import org.jboss.logmanager.Level;
 import org.jboss.logmanager.LogManager;
 import org.jboss.logmanager.Logger;
@@ -54,8 +53,7 @@ import org.qbicc.plugin.conversion.MethodCallFixupBasicBlockBuilder;
 import org.qbicc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import org.qbicc.plugin.core.CoreAnnotationTypeBuilder;
 import org.qbicc.plugin.coreclasses.ArrayLengthBasicBlockBuilder;
-import org.qbicc.plugin.coreclasses.BasicInitializationBasicBlockBuilder;
-import org.qbicc.plugin.coreclasses.BasicInitializationManualInitializer;
+import org.qbicc.plugin.coreclasses.BasicHeaderManualInitializer;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.correctness.RuntimeChecksBasicBlockBuilder;
 import org.qbicc.plugin.correctness.StaticChecksBasicBlockBuilder;
@@ -72,7 +70,6 @@ import org.qbicc.plugin.instanceofcheckcast.SupersDisplayBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayEmitter;
 import org.qbicc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
 import org.qbicc.plugin.intrinsics.core.CoreIntrinsics;
-import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.llvm.LLVMDefaultModuleCompileStage;
 import org.qbicc.plugin.llvm.LLVMIntrinsics;
 import org.qbicc.plugin.lowering.BooleanAccessCopier;
@@ -307,7 +304,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 CoreClasses.init(cc);
                                 ThrowExceptionHelper.init(cc);
                                 return VmImpl.create(cc,
-                                    new BasicInitializationManualInitializer(cc)
+                                    new BasicHeaderManualInitializer(cc)
                                 );
                             });
                             builder.setObjectFileProvider(objectFileProvider);
@@ -462,7 +459,6 @@ public class Main implements Callable<DiagnosticContext> {
 
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ThrowLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, BasicInitializationBasicBlockBuilder::new);
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, NoGcBasicBlockBuilder::new);
                                 }
