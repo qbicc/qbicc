@@ -17,8 +17,11 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.plugin.coreclasses.CoreClasses;
+import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
@@ -271,8 +274,11 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public Value new_(final ClassTypeDescriptor desc) {
         ClassContext cc = getClassContext();
         ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
-        if (type instanceof ClassObjectType) {
-            return super.new_((ClassObjectType) type);
+        if (type instanceof ClassObjectType cot) {
+            Layout layout = Layout.get(ctxt);
+            CompoundType compoundType = layout.getInstanceLayoutInfo(cot.getDefinition()).getCompoundType();
+            LiteralFactory lf = ctxt.getLiteralFactory();
+             return super.new_(cot, lf.literalOfType(cot), lf.literalOf(compoundType.getSize()), lf.literalOf(compoundType.getAlign()));
         }
         return super.new_(desc);
     }

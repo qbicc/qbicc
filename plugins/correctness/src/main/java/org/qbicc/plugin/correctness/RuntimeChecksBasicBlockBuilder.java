@@ -124,8 +124,8 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public Value new_(final ClassObjectType type) {
-        return super.new_(type);
+    public Value new_(final ClassObjectType type, final Value typeId, final Value size, final Value align) {
+        return super.new_(type, typeId, size, align);
     }
 
     @Override

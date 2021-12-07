@@ -10,8 +10,8 @@ import org.qbicc.type.definition.element.ExecutableElement;
  *
  * Note that the type field represents the compile-time type of the array, while the elemTypeId and dimensions
  * represent the actual runtime type of the value.  These will be identical for NewReferenceArray nodes that
- * were originally created via `anewarray`, but may be different for nodes created via intr_emit_new_ref_array
- * (whose static type if Object[], but dynamic type may be any reference array).
+ * were originally created via `anewarray`, but may be different for nodes created via emitNewReferenceArray
+ * (whose static type is Object[], but dynamic type may be any reference array).
  */
 public final class NewReferenceArray extends AbstractValue implements OrderedNode {
     private final Node dependency;

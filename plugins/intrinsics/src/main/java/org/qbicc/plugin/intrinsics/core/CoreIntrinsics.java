@@ -57,6 +57,7 @@ import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables;
 import org.qbicc.plugin.intrinsics.InstanceIntrinsic;
 import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.plugin.intrinsics.StaticIntrinsic;
+import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.methodinfo.MethodDataTypes;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.type.ArrayType;
@@ -356,7 +357,9 @@ public final class CoreIntrinsics {
                 throw new IllegalStateException();
             }
             ConstructorElement ctor = uoe.getConstructor(idx);
-            Value ex = builder.new_(uoeType);
+            Layout layout = Layout.get(ctxt);
+            CompoundType compoundType = layout.getInstanceLayoutInfo(uoe).getCompoundType();
+            Value ex = builder.new_(uoeType, lf.literalOfType(uoeType), lf.literalOf(compoundType.getSize()), lf.literalOf(compoundType.getAlign()));
             builder.call(builder.constructorOf(ex, ctor, ctor.getDescriptor(), ctor.getType()), List.of());
             throw new BlockEarlyTermination(builder.throw_(ex));
         };
@@ -679,7 +682,9 @@ public final class CoreIntrinsics {
                 builder.staticMethod(getFrameCountElement, getFrameCountElement.getDescriptor(), getFrameCountElement.getType()),
                 List.of(instance));
             ClassObjectType jsfcClassType = (ClassObjectType) ctxt.getBootstrapClassContext().findDefinedType(jsfcClass).load().getType();
-            Value visitor = builder.getFirstBuilder().new_(jsfcClassType);
+            CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(jsfcClassType.getDefinition()).getCompoundType();
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            Value visitor = builder.getFirstBuilder().new_(jsfcClassType, lf.literalOfType(jsfcClassType), lf.literalOf(compoundType.getSize()), lf.literalOf(compoundType.getAlign()));
             builder.call(
                 builder.getFirstBuilder().constructorOf(visitor, jsfcConstructor, jsfcConstructor.getDescriptor(), jsfcConstructor.getType()),
                 List.of(frameCount));
@@ -1436,6 +1441,13 @@ public final class CoreIntrinsics {
             return builder.newReferenceArray(upperBound, arguments.get(0), arguments.get(1), arguments.get(2));
         };
         intrinsics.registerIntrinsic(Phase.ADD, ciDesc, "emitNewReferenceArray", newRefArrayDesc, newRefArray);
+
+        MethodDescriptor newDesc = MethodDescriptor.synthesize(classContext, objDesc, List.of(typeIdDesc, BaseTypeDescriptor.J, BaseTypeDescriptor.I));
+        StaticIntrinsic new_ = (builder, target, arguments) -> {
+            ClassObjectType upperBound = classContext.findDefinedType("java/lang/Object").load().getClassType();
+            return builder.new_(upperBound, arguments.get(0), arguments.get(1), arguments.get(2));
+        };
+        intrinsics.registerIntrinsic(Phase.ADD, ciDesc, "emitNew", newDesc, new_);
     }
 
     static void registerOrgQbiccObjectModelIntrinsics(final CompilationContext ctxt) {
@@ -1647,7 +1659,8 @@ public final class CoreIntrinsics {
 
         StaticIntrinsic createClass = (builder, target, arguments) -> {
             ClassObjectType jlcType = (ClassObjectType) ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load().getType();
-            Value instance = builder.new_(jlcType);
+            CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(jlcType.getDefinition()).getCompoundType();
+            Value instance = builder.new_(jlcType, lf.literalOfType(jlcType), lf.literalOf(compoundType.getSize()), lf.literalOf(compoundType.getAlign()));
             ValueHandle instanceHandle = builder.referenceHandle(instance);
             ValueHandle handle = builder.instanceFieldOf(instanceHandle, jlcName);
             builder.store(handle, arguments.get(0), handle.getDetectedMode());

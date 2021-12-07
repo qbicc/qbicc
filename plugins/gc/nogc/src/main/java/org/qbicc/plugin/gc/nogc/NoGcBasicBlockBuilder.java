@@ -10,6 +10,7 @@ import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
@@ -37,25 +38,25 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value new_(final ClassObjectType type) {
+    public Value new_(final ClassObjectType type, final Value typeId, final Value size, final Value align) {
         NoGc noGc = NoGc.get(ctxt);
-        Layout layout = Layout.get(ctxt);
-        LayoutInfo info = layout.getInstanceLayoutInfo(type.getDefinition());
-        CompoundType compoundType = info.getCompoundType();
         LiteralFactory lf = ctxt.getLiteralFactory();
-        IntegerLiteral align = lf.literalOf(compoundType.getAlign());
-        Value ptrVal;
-        if (type.isSubtypeOf(noGc.getStackObjectType()) /*|| objectDoesNotEscape && objectIsSmallEnough */) {
-            ptrVal = stackAllocate(compoundType, lf.literalOf(1), align);
-        } else {
-            long size = compoundType.getSize();
+        Value ptrVal = null;
+        if (typeId instanceof TypeLiteral tl && tl.getValue() instanceof ClassObjectType cot) {
+            // We can only even attempt stack allocation if the typeId is a literal (ie, known precisely at compile time).
+            if (cot.isSubtypeOf(noGc.getStackObjectType()) /*|| objectDoesNotEscape && objectIsSmallEnough */) {
+                CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(cot.getDefinition()).getCompoundType();
+                ptrVal = stackAllocate(compoundType, lf.literalOf(1), align);
+            }
+        }
+        if (ptrVal == null) {
             MethodElement method = noGc.getAllocateMethod();
-            ptrVal = notNull(call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(lf.literalOf(size), align)));
+            ptrVal = notNull(call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(size, align)));
         }
 
         // zero initialize the allocated storage
         MethodElement method = noGc.getZeroMethod();
-        call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(ptrVal, lf.literalOf(info.getCompoundType().getSize())));
+        call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(ptrVal, size));
 
         return valueConvert(ptrVal, type.getReference());
     }

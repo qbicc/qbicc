@@ -12,8 +12,16 @@ import org.qbicc.runtime.stdc.Stdint.*;
  */
 @SuppressWarnings("unused")
 public class CompilerIntrinsics {
+
     @Hidden
     public static native Object emitNewReferenceArray(type_id elemTypeId, uint8_t dimensions, int size);
+
+    @Hidden
+    public static native Object emitNew(type_id typeId, long size, int alignment);
+
+    @Hidden
+    public static native void copyInstanceFields(Object src, Object dst);
+
 
     /**
      * TODO
