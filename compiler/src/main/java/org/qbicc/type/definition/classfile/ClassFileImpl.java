@@ -107,7 +107,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         int minor = scanBuf.getShort() & 0xffff;
         int major = scanBuf.getShort() & 0xffff;
         // todo fix up
-        if (major < 45 || major == 45 && minor < 3 || major > 55 || major == 55 && minor > 0) {
+        if (major < 45 || major == 45 && minor < 3 || major > 61 || major == 61 && minor > 0) {
             throw new DefineFailedException("Unsupported class version " + major + "." + minor);
         }
         int cpCount = (scanBuf.getShort() & 0xffff);
