@@ -38,6 +38,10 @@ public interface Memory {
         store32(index, Float.floatToRawIntBits(value), mode);
     }
 
+    default void store32(int index, long value, MemoryAtomicityMode mode) {
+        store32(index, (int)value, mode);
+    }
+
     void store64(int index, long value, MemoryAtomicityMode mode);
 
     default void store64(int index, double value, MemoryAtomicityMode mode) {
