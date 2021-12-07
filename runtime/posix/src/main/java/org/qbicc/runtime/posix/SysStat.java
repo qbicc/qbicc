@@ -26,6 +26,22 @@ public final class SysStat {
         public blkcnt_t st_blocks;
     }
 
+    public static final class struct_stat64 {
+        public dev_t st_dev;
+        public ino64_t st_ino;
+        public mode_t st_mode;
+        public nlink_t st_nlink;
+        public uid_t st_uid;
+        public gid_t st_gid;
+        public dev_t st_rdev;
+        public off64_t st_size;
+        public time_t st_atime;
+        public time_t st_mtime;
+        public time_t st_ctime;
+        public blksize_t st_blksize;
+        public blkcnt64_t st_blocks;
+    }
+
     public static final mode_t S_IFMT = constant();
     public static final mode_t S_IFBLK = constant();
     public static final mode_t S_IFCHR = constant();

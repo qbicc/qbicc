@@ -58,10 +58,16 @@ public final class SysTypes {
     public static final class blkcnt_t extends word {
     }
 
+    public static final class blkcnt64_t extends word {
+    }
+
     public static final class blksize_t extends word {
     }
 
     public static final class ino_t extends word {
+    }
+
+    public static final class ino64_t extends word {
     }
 
     public static final class nlink_t extends word {
