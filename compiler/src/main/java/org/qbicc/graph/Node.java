@@ -849,7 +849,7 @@ public interface Node {
 
             public Node visit(final Copier param, final Store node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().store(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getValue()), node.getMode());
+                return param.getBlockBuilder().store(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getValue()), node.getAccessMode());
             }
 
             public Value visit(final Copier param, final StringLiteral node) {

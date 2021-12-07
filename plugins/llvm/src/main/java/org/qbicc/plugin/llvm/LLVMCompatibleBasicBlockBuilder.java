@@ -249,18 +249,23 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
+    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
         if (handle.getValueType() instanceof BooleanType) {
             ctxt.error("Invalid boolean-typed handle %s", handle);
         }
         if (value.getType() instanceof BooleanType) {
             ctxt.error("Invalid boolean-typed value %s", value);
         }
-        if (mode == MemoryAtomicityMode.VOLATILE) {
-            fence(MemoryAtomicityMode.RELEASE);
-            return super.store(handle, value, MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
+        if (accessMode.includes(GlobalRelease)) {
+            // we have to emit a global fence
+            fence(GlobalRelease);
+            return super.store(handle, value, SingleSeqCst);
+        } else if (accessMode.includes(GlobalPlain)) {
+            return super.store(handle, value, SinglePlain);
+        } else if (accessMode.includes(GlobalUnshared)) {
+            return super.store(handle, value, SingleUnshared);
         } else {
-            return super.store(handle, value, mode);
+            return super.store(handle, value, accessMode);
         }
     }
 

@@ -1302,7 +1302,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         long elementSize = node.getType().getElementSize();
         for (int i = 0; i < nodeValues.size(); i++) {
             Literal value = nodeValues.get(i);
-            store(memory, (int) (elementSize * i), elementType, value, MemoryAtomicityMode.NONE);
+            store(memory, (int) (elementSize * i), elementType, value, SingleUnshared);
         }
         return memory;
     }
@@ -1968,7 +1968,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     public Void visit(VmThreadImpl thread, Store node) {
         ValueHandle valueHandle = node.getValueHandle();
         Value value = node.getValue();
-        MemoryAtomicityMode mode = node.getMode();
+        WriteAccessMode mode = node.getAccessMode();
         if (valueHandle instanceof StaticField sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
@@ -1983,14 +1983,14 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
      * @param value the value to store
      * @param mode the atomicity mode (must not be {@code null})
      */
-    void store(final ValueHandle valueHandle, final Value value, final MemoryAtomicityMode mode) {
+    void store(final ValueHandle valueHandle, final Value value, final WriteAccessMode mode) {
         Memory memory = getMemory(valueHandle);
         int offset = getOffset(valueHandle);
         ValueType type = valueHandle.getValueType();
         store(memory, offset, type, value, mode);
     }
 
-    void store(final Memory memory, final int offset, final ValueType type, final Value value, final MemoryAtomicityMode mode) {
+    void store(final Memory memory, final int offset, final ValueType type, final Value value, final WriteAccessMode mode) {
         if (isInt8(type)) {
             memory.store8(offset, unboxInt(value), mode);
         } else if (isInt16(type)) {

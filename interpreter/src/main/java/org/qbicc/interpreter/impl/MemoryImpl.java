@@ -104,10 +104,12 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public final void store8(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
+    public final void store8(int index, int value, WriteAccessMode mode) {
+        if (GlobalPlain.includes(mode)) {
             h8.set(data, index, (byte) value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (SingleOpaque.includes(mode)) {
+            h8.setOpaque(data, index, (byte) value);
+        } else if (GlobalRelease.includes(mode)) {
             h8.setRelease(data, index, (byte) value);
         } else {
             h8.setVolatile(data, index, (byte) value);
@@ -115,20 +117,22 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public abstract void store16(int index, int value, MemoryAtomicityMode mode);
+    public abstract void store16(int index, int value, WriteAccessMode mode);
 
     @Override
-    public abstract void store32(int index, int value, MemoryAtomicityMode mode);
+    public abstract void store32(int index, int value, WriteAccessMode mode);
 
     @Override
-    public abstract void store64(int index, long value, MemoryAtomicityMode mode);
+    public abstract void store64(int index, long value, WriteAccessMode mode);
 
     @Override
-    public void storeRef(int index, VmObject value, MemoryAtomicityMode mode) {
+    public void storeRef(int index, VmObject value, WriteAccessMode mode) {
         checkAlign(index, 2);
-        if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
+        if (GlobalPlain.includes(mode)) {
             ht.set(things, index >> 1, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (SingleOpaque.includes(mode)) {
+            ht.setOpaque(things, index >> 1, value);
+        } else if (GlobalRelease.includes(mode)) {
             ht.setRelease(things, index >> 1, value);
         } else {
             ht.setVolatile(things, index >> 1, value);
@@ -136,11 +140,13 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public void storeType(int index, ValueType value, MemoryAtomicityMode mode) {
+    public void storeType(int index, ValueType value, WriteAccessMode mode) {
         checkAlign(index, 2);
-        if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
+        if (GlobalPlain.includes(mode)) {
             ht.set(things, index >> 1, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (SingleOpaque.includes(mode)) {
+            ht.setOpaque(things, index >> 1, value);
+        } else if (GlobalRelease.includes(mode)) {
             ht.setRelease(things, index >> 1, value);
         } else {
             ht.setVolatile(things, index >> 1, value);
@@ -152,7 +158,7 @@ abstract class MemoryImpl implements Memory {
         if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             int val = load8(index, readMode) & 0xff;
             if (val == (expect & 0xff)) {
-                store8(index, update, MemoryAtomicityMode.VOLATILE /* writeMode */);
+                store8(index, update, writeMode);
             }
             return val;
         } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
@@ -179,7 +185,7 @@ abstract class MemoryImpl implements Memory {
         if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             VmObject val = loadRef(index, readMode);
             if (val == expect) {
-                storeRef(index, update, MemoryAtomicityMode.VOLATILE /* writeMode */);
+                storeRef(index, update, writeMode);
             }
             return val;
         } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
@@ -197,7 +203,7 @@ abstract class MemoryImpl implements Memory {
         if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             ValueType val = loadType(index, readMode);
             if (val == expect) {
-                storeType(index, update, MemoryAtomicityMode.VOLATILE /* writeMode */);
+                storeType(index, update, writeMode);
             }
             return val;
         } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {

@@ -252,10 +252,19 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         org.qbicc.machine.llvm.op.Store storeInsn = builder.store(map(valueHandle.getPointerType()), map(node.getValue()), map(node.getValue().getType()), ptr);
         storeInsn.align(valueHandle.getValueType().getAlign());
-        if (node.getMode() == MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT) {
-            storeInsn.atomic(OrderingConstraint.seq_cst);
-        } else if (node.getMode() == MemoryAtomicityMode.UNORDERED) {
+        WriteAccessMode accessMode = node.getAccessMode();
+        if (SingleUnshared.includes(accessMode)) {
+            // do nothing; not atomic
+        } else if (SinglePlain.includes(accessMode)) {
             storeInsn.atomic(OrderingConstraint.unordered);
+        } else if (SingleOpaque.includes(accessMode)) {
+            storeInsn.atomic(OrderingConstraint.monotonic);
+        } else if (SingleRelease.includes(accessMode)) {
+            storeInsn.atomic(OrderingConstraint.release);
+        } else if (SingleSeqCst.includes(accessMode)) {
+            storeInsn.atomic(OrderingConstraint.seq_cst);
+        } else {
+            throw new IllegalArgumentException("LLVM store does not directly support access mode " + accessMode);
         }
         return storeInsn;
     }

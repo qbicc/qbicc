@@ -648,7 +648,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new CmpAndSwap(callSite, element, line, bci, CmpAndSwap.getResultType(ctxt, target.getValueType()), requireDependency(), target, expect, update, readMode, writeMode, strength));
     }
 
-    public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
+    public Node store(ValueHandle handle, Value value, WriteAccessMode mode) {
         return asDependency(new Store(callSite, element, line, bci, requireDependency(), handle, value, mode));
     }
 

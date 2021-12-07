@@ -60,11 +60,11 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
+    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
         ValueHandle root = findRoot(handle);
         knownValues.keySet().removeIf(k -> ! hasSameRoot(k, root));
         knownValues.put(handle, value);
-        return super.store(handle, value, mode);
+        return super.store(handle, value, accessMode);
     }
 
     @Override

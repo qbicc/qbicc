@@ -421,7 +421,16 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value vaArg(Value vaList, ValueType type);
 
-    Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode);
+    default Node store(ValueHandle handle, Value value) {
+        return store(handle, value, SinglePlain);
+    }
+
+    Node store(ValueHandle handle, Value value, WriteAccessMode mode);
+
+    @Deprecated
+    default Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
+        return store(handle, value, mode.getAccessMode().getWriteAccess());
+    }
 
     Node initCheck(InitializerElement initializer);
 

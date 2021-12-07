@@ -65,10 +65,12 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public void store16(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
+    public void store16(int index, int value, WriteAccessMode mode) {
+        if (GlobalPlain.includes(mode)) {
             h16.set(data, index, (short) value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (SingleOpaque.includes(mode)) {
+            h16.setOpaque(data, index, (short) value);
+        } else if (GlobalRelease.includes(mode)) {
             h16.setRelease(data, index, (short) value);
         } else {
             h16.setVolatile(data, index, (short) value);
@@ -76,10 +78,12 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public void store32(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
+    public void store32(int index, int value, WriteAccessMode mode) {
+        if (GlobalPlain.includes(mode)) {
             h32.set(data, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (SingleOpaque.includes(mode)) {
+            h32.setOpaque(data, index, value);
+        } else if (GlobalRelease.includes(mode)) {
             h32.setRelease(data, index, value);
         } else {
             h32.setVolatile(data, index, value);
@@ -87,10 +91,12 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public void store64(int index, long value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.NONE || mode == MemoryAtomicityMode.UNORDERED) {
+    public void store64(int index, long value, WriteAccessMode mode) {
+        if (GlobalPlain.includes(mode)) {
             h64.set(data, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (SingleOpaque.includes(mode)) {
+            h64.setOpaque(data, index, value);
+        } else if (GlobalRelease.includes(mode)) {
             h64.setRelease(data, index, value);
         } else {
             h64.setVolatile(data, index, value);
@@ -102,7 +108,7 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
         if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             int val = load16(index, readMode) & 0xffff;
             if (val == (expect & 0xffff)) {
-                store16(index, update, MemoryAtomicityMode.VOLATILE /* writeMode */);
+                store16(index, update, writeMode);
             }
             return val;
         } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
@@ -119,7 +125,7 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
         if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             int val = load32(index, readMode);
             if (val == expect) {
-                store32(index, update, MemoryAtomicityMode.VOLATILE /* writeMode */);
+                store32(index, update, writeMode);
             }
             return val;
         } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
@@ -136,7 +142,7 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
         if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             long val = load64(index, readMode);
             if (val == expect) {
-                store64(index, update, MemoryAtomicityMode.VOLATILE /* writeMode */);
+                store64(index, update, writeMode);
             }
             return val;
         } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {

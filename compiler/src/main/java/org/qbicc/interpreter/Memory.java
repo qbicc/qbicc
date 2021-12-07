@@ -70,29 +70,74 @@ public interface Memory {
         return Double.longBitsToDouble(load64(index, mode));
     }
 
-    void store8(int index, int value, MemoryAtomicityMode mode);
+    @Deprecated
+    default void store8(int index, int value, MemoryAtomicityMode mode) {
+        store8(index, value, mode.getAccessMode().getWriteAccess());
+    }
 
-    void store16(int index, int value, MemoryAtomicityMode mode);
+    void store8(int index, int value, WriteAccessMode mode);
 
-    void store32(int index, int value, MemoryAtomicityMode mode);
+    @Deprecated
+    default void store16(int index, int value, MemoryAtomicityMode mode) {
+        store16(index, value, mode.getAccessMode().getWriteAccess());
+    }
 
+    void store16(int index, int value, WriteAccessMode mode);
+
+    @Deprecated
+    default void store32(int index, int value, MemoryAtomicityMode mode) {
+        store32(index, value, mode.getAccessMode().getWriteAccess());
+    }
+
+    void store32(int index, int value, WriteAccessMode mode);
+
+    @Deprecated
     default void store32(int index, float value, MemoryAtomicityMode mode) {
         store32(index, Float.floatToRawIntBits(value), mode);
     }
 
+    default void store32(int index, float value, WriteAccessMode mode) {
+        store32(index, Float.floatToRawIntBits(value), mode);
+    }
+
+    @Deprecated
     default void store32(int index, long value, MemoryAtomicityMode mode) {
         store32(index, (int)value, mode);
     }
 
-    void store64(int index, long value, MemoryAtomicityMode mode);
+    default void store32(int index, long value, WriteAccessMode mode) {
+        store32(index, (int)value, mode);
+    }
 
+    @Deprecated
+    default void store64(int index, long value, MemoryAtomicityMode mode) {
+        store64(index, value, mode.getAccessMode().getWriteAccess());
+    }
+
+    void store64(int index, long value, WriteAccessMode mode);
+
+    @Deprecated
     default void store64(int index, double value, MemoryAtomicityMode mode) {
         store64(index, Double.doubleToRawLongBits(value), mode);
     }
 
-    void storeRef(int index, VmObject value, MemoryAtomicityMode mode);
+    default void store64(int index, double value, WriteAccessMode mode) {
+        store64(index, Double.doubleToRawLongBits(value), mode);
+    }
 
-    void storeType(int index, ValueType value, MemoryAtomicityMode mode);
+    @Deprecated
+    default void storeRef(int index, VmObject value, MemoryAtomicityMode mode) {
+        storeRef(index, value, mode.getAccessMode().getWriteAccess());
+    }
+
+    void storeRef(int index, VmObject value, WriteAccessMode mode);
+
+    @Deprecated
+    default void storeType(int index, ValueType value, MemoryAtomicityMode mode) {
+        storeType(index, value, mode.getAccessMode().getWriteAccess());
+    }
+
+    void storeType(int index, ValueType value, WriteAccessMode mode);
 
     void storeMemory(int destIndex, Memory src, int srcIndex, int size);
 

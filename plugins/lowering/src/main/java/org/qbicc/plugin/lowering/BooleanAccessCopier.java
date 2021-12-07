@@ -47,7 +47,7 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
         if (origHandle.getValueType() instanceof BooleanType && copyHandle.getValueType() instanceof IntegerType it) {
             copiedValue = b.extend(copiedValue, it);
         }
-        return b.store(copyHandle, copiedValue, node.getMode());
+        return b.store(copyHandle, copiedValue, node.getAccessMode());
     }
 
     @Override
