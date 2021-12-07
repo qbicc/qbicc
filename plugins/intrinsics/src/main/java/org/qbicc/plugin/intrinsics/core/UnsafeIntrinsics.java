@@ -177,6 +177,8 @@ public class UnsafeIntrinsics {
 
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndSetObject", getCompareAndSetDesc(classContext, objDesc),
             (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, VOLATILE, STRONG));
+        intrinsics.registerIntrinsic(unsafeDesc, "compareAndSetReference", getCompareAndSetDesc(classContext, objDesc),
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, VOLATILE, STRONG));
 
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetInt", getCompareAndSetDesc(classContext, BaseTypeDescriptor.I),
             (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, VOLATILE, WEAK));
@@ -203,6 +205,14 @@ public class UnsafeIntrinsics {
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetObjectPlain", getCompareAndSetDesc(classContext, objDesc),
             (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, MONOTONIC, WEAK));
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetObjectRelease", getCompareAndSetDesc(classContext, objDesc),
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, RELEASE, WEAK));
+        intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetReference", getCompareAndSetDesc(classContext, objDesc),
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, VOLATILE, WEAK));
+        intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetReferenceAcquire", getCompareAndSetDesc(classContext, objDesc),
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, ACQUIRE, WEAK));
+        intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetReferencePlain", getCompareAndSetDesc(classContext, objDesc),
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, MONOTONIC, WEAK));
+        intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetReferenceRelease", getCompareAndSetDesc(classContext, objDesc),
             (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, RELEASE, WEAK));
     }
 
@@ -306,7 +316,8 @@ public class UnsafeIntrinsics {
         for (Map.Entry<String, TypeDescriptor> typeNameAndDesc : Map.of(
             "Int", BaseTypeDescriptor.I,
             "Long", BaseTypeDescriptor.J,
-            "Object", objDesc
+            "Object", objDesc,
+            "Reference", objDesc
         ).entrySet()) {
             for (Map.Entry<String, MemoryAtomicityMode> suffixAndMode : Map.of(
                 "", UNORDERED,
@@ -363,7 +374,8 @@ public class UnsafeIntrinsics {
         for (Map.Entry<String, TypeDescriptor> typeNameAndDesc : Map.of(
             "Int", BaseTypeDescriptor.I,
             "Long", BaseTypeDescriptor.J,
-            "Object", objDesc
+            "Object", objDesc,
+            "Reference", objDesc
         ).entrySet()) {
             for (Map.Entry<String, MemoryAtomicityMode> suffixAndMode : Map.of(
                 "", UNORDERED,

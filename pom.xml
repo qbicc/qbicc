@@ -55,7 +55,7 @@
         <version.slf4j>1.7.32</version.slf4j>
 
         <!-- this is the class lib version; the class lib cannot be used in a POM but is used in resources -->
-        <version.qbicc.classlib>11.alpha.0.1</version.qbicc.classlib>
+        <version.qbicc.classlib>17.alpha.0.1</version.qbicc.classlib>
     </properties>
 
     <packaging>pom</packaging>
