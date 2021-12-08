@@ -21,10 +21,12 @@ import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.VmArray;
+import org.qbicc.interpreter.VmArrayClass;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -218,6 +220,9 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         // todo: Base JDK equivalent core classes with appropriate manual initializer
         try {
             memory.storeRef(getVmClass().getLayoutInfo().getMember(getVmClass().getTypeDefinition().findField("name")).getOffset(), vm.intern(name), MemoryAtomicityMode.UNORDERED);
+            if (layoutInfo != null) {
+                 memory.store32(getVmClass().getLayoutInfo().getMember(CoreClasses.get(vm.getCompilationContext()).getClassInstanceSizeField()).getOffset(), layoutInfo.getCompoundType().getSize(), MemoryAtomicityMode.UNORDERED);
+            }
         } catch (Exception e) {
             // for breakpoints
             throw e;
