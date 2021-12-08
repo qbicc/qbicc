@@ -22,6 +22,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
+import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -58,11 +59,11 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
-    public Value load(ValueHandle handle, MemoryAtomicityMode mode) {
+    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
         if (handle instanceof CurrentThread ct) {
             return parameter(ct.getValueType(), "thr", 0);
         }
-        return super.load(handle, mode);
+        return super.load(handle, accessMode);
     }
 
     @Override

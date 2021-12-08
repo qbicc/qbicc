@@ -351,7 +351,7 @@ public interface Node {
 
             public Node visit(Copier param, Fence node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().fence(node.getAtomicityMode());
+                return param.getBlockBuilder().fence(node.getAccessMode());
             }
 
             public BasicBlock visit(Copier param, CallNoReturn node) {
@@ -522,7 +522,7 @@ public interface Node {
             public Value visit(final Copier param, final CmpAndSwap node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().cmpAndSwap(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getExpectedValue()),
-                    param.copyValue(node.getUpdateValue()), node.getSuccessAtomicityMode(), node.getFailureAtomicityMode(), node.getStrength());
+                    param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode(), node.getStrength());
             }
 
             public Value visit(Copier param, CmpG node) {
@@ -608,47 +608,47 @@ public interface Node {
 
             public Value visit(final Copier param, final GetAndAdd node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndAdd(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+                return param.getBlockBuilder().getAndAdd(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
             }
 
             public Value visit(final Copier param, final GetAndBitwiseAnd node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndBitwiseAnd(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+                return param.getBlockBuilder().getAndBitwiseAnd(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
             }
 
             public Value visit(final Copier param, final GetAndBitwiseNand node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndBitwiseNand(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+                return param.getBlockBuilder().getAndBitwiseNand(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
             }
 
             public Value visit(final Copier param, final GetAndBitwiseOr node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndBitwiseOr(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+                return param.getBlockBuilder().getAndBitwiseOr(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
             }
 
             public Value visit(final Copier param, final GetAndBitwiseXor node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndBitwiseXor(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+                return param.getBlockBuilder().getAndBitwiseXor(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
             }
 
             public Value visit(final Copier param, final GetAndSet node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndSet(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+                return param.getBlockBuilder().getAndSet(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
             }
 
             public Value visit(final Copier param, final GetAndSetMax node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndSetMax(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+                return param.getBlockBuilder().getAndSetMax(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
             }
 
             public Value visit(final Copier param, final GetAndSetMin node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndSetMin(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+                return param.getBlockBuilder().getAndSetMin(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
             }
 
             public Value visit(final Copier param, final GetAndSub node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndSub(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+                return param.getBlockBuilder().getAndSub(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
             }
 
             public Value visit(final Copier param, final InsertElement node) {
@@ -710,7 +710,7 @@ public interface Node {
 
             public Value visit(final Copier param, final Load node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().load(param.copyValueHandle(node.getValueHandle()), node.getMode());
+                return param.getBlockBuilder().load(param.copyValueHandle(node.getValueHandle()), node.getAccessMode());
             }
 
             public ValueHandle visit(Copier param, LocalVariable node) {
@@ -849,7 +849,7 @@ public interface Node {
 
             public Node visit(final Copier param, final Store node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().store(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getValue()), node.getMode());
+                return param.getBlockBuilder().store(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getValue()), node.getAccessMode());
             }
 
             public Value visit(final Copier param, final StringLiteral node) {

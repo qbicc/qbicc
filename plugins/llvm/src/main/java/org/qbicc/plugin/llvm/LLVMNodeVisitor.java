@@ -1,5 +1,6 @@
 package org.qbicc.plugin.llvm;
 
+import static org.qbicc.graph.atomic.AccessModes.*;
 import static org.qbicc.machine.llvm.Types.*;
 import static org.qbicc.machine.llvm.Values.*;
 
@@ -89,6 +90,10 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.ValueReturn;
 import org.qbicc.graph.Xor;
+import org.qbicc.graph.atomic.AccessMode;
+import org.qbicc.graph.atomic.GlobalAccessMode;
+import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.machine.llvm.AsmFlag;
@@ -247,28 +252,36 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         org.qbicc.machine.llvm.op.Store storeInsn = builder.store(map(valueHandle.getPointerType()), map(node.getValue()), map(node.getValue().getType()), ptr);
         storeInsn.align(valueHandle.getValueType().getAlign());
-        if (node.getMode() == MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT) {
-            storeInsn.atomic(OrderingConstraint.seq_cst);
-        } else if (node.getMode() == MemoryAtomicityMode.UNORDERED) {
+        WriteAccessMode accessMode = node.getAccessMode();
+        if (SingleUnshared.includes(accessMode)) {
+            // do nothing; not atomic
+        } else if (SinglePlain.includes(accessMode)) {
             storeInsn.atomic(OrderingConstraint.unordered);
+        } else if (SingleOpaque.includes(accessMode)) {
+            storeInsn.atomic(OrderingConstraint.monotonic);
+        } else if (SingleRelease.includes(accessMode)) {
+            storeInsn.atomic(OrderingConstraint.release);
+        } else if (SingleSeqCst.includes(accessMode)) {
+            storeInsn.atomic(OrderingConstraint.seq_cst);
+        } else {
+            throw new IllegalArgumentException("LLVM store does not directly support access mode " + accessMode);
         }
         return storeInsn;
     }
 
     public Instruction visit(final Void param, final Fence node) {
         map(node.getDependency());
-        MemoryAtomicityMode mode = node.getAtomicityMode();
-        switch (mode) {
-            case ACQUIRE:
-                return builder.fence(OrderingConstraint.acquire);
-            case RELEASE:
-                return builder.fence(OrderingConstraint.release);
-            case ACQUIRE_RELEASE:
-                return builder.fence(OrderingConstraint.acq_rel);
-            case SEQUENTIALLY_CONSISTENT:
-                return builder.fence(OrderingConstraint.seq_cst);
+        GlobalAccessMode gam = node.getAccessMode();
+        // no-op fences are removed already
+        if (GlobalAcquire.includes(gam)) {
+            return builder.fence(OrderingConstraint.acquire);
+        } else if (GlobalRelease.includes(gam)) {
+            return builder.fence(OrderingConstraint.release);
+        } else if (GlobalAcqRel.includes(gam)) {
+            return builder.fence(OrderingConstraint.acq_rel);
+        } else {
+            return builder.fence(OrderingConstraint.seq_cst);
         }
-        throw Assert.unreachableCode();
     }
 
     // terminators
@@ -577,10 +590,19 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         org.qbicc.machine.llvm.op.Load loadInsn = builder.load(map(valueHandle.getPointerType()), map(valueHandle.getValueType()), ptr);
         loadInsn.align(node.getType().getAlign());
-        if (node.getMode() == MemoryAtomicityMode.ACQUIRE) {
-            loadInsn.atomic(OrderingConstraint.acquire);
-        } else if (node.getMode() == MemoryAtomicityMode.UNORDERED) {
+        ReadAccessMode accessMode = node.getAccessMode();
+        if (SingleUnshared.includes(accessMode)) {
+            // do nothing; not atomic
+        } else if (SinglePlain.includes(accessMode)) {
             loadInsn.atomic(OrderingConstraint.unordered);
+        } else if (SingleOpaque.includes(accessMode)) {
+            loadInsn.atomic(OrderingConstraint.monotonic);
+        } else if (SingleAcquire.includes(accessMode)) {
+            loadInsn.atomic(OrderingConstraint.acquire);
+        } else if (SingleSeqCst.includes(accessMode)) {
+            loadInsn.atomic(OrderingConstraint.seq_cst);
+        } else {
+            throw new IllegalArgumentException("LLVM load does not directly support access mode " + accessMode);
         }
         return loadInsn.asLocal();
     }
@@ -591,7 +613,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).add();
         insn.align(valueHandle.getValueType().getAlign());
-        insn.ordering(getOC(node.getAtomicityMode()));
+        insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.asLocal();
     }
 
@@ -601,7 +623,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).and();
         insn.align(valueHandle.getValueType().getAlign());
-        insn.ordering(getOC(node.getAtomicityMode()));
+        insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.asLocal();
     }
 
@@ -611,7 +633,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).or();
         insn.align(valueHandle.getValueType().getAlign());
-        insn.ordering(getOC(node.getAtomicityMode()));
+        insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.asLocal();
     }
 
@@ -621,7 +643,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).xor();
         insn.align(valueHandle.getValueType().getAlign());
-        insn.ordering(getOC(node.getAtomicityMode()));
+        insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.asLocal();
     }
 
@@ -631,7 +653,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).xchg();
         insn.align(valueHandle.getValueType().getAlign());
-        insn.ordering(getOC(node.getAtomicityMode()));
+        insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.asLocal();
     }
 
@@ -1258,6 +1280,23 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         throw Assert.unreachableCode();
     }
 
+    private OrderingConstraint getOC(AccessMode mode) {
+        if (SinglePlain.includes(mode)) {
+            return OrderingConstraint.unordered;
+        } else if (SingleOpaque.includes(mode)) {
+            return OrderingConstraint.monotonic;
+        } else if (SingleAcquire.includes(mode)) {
+            return OrderingConstraint.acquire;
+        } else if (SingleRelease.includes(mode)) {
+            return OrderingConstraint.release;
+        } else if (SingleAcqRel.includes(mode)) {
+            return OrderingConstraint.acq_rel;
+        } else if (SingleSeqCst.includes(mode)) {
+            return OrderingConstraint.seq_cst;
+        }
+        throw Assert.unreachableCode();
+    }
+
     @Override
     public LLValue visit(final Void param, final CmpAndSwap node) {
         map(node.getDependency());
@@ -1267,8 +1306,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         LLValue expect = map(node.getExpectedValue());
         LLValue update = map(node.getUpdateValue());
-        OrderingConstraint successOrdering = getOC(node.getSuccessAtomicityMode());
-        OrderingConstraint failureOrdering = getOC(node.getFailureAtomicityMode());
+        ReadAccessMode readMode = node.getReadAccessMode();
+        WriteAccessMode writeMode = node.getWriteAccessMode();
+        OrderingConstraint successOrdering = getOC(readMode.combinedWith(writeMode));
+        OrderingConstraint failureOrdering = getOC(readMode);
         org.qbicc.machine.llvm.op.CmpAndSwap cmpAndSwapBuilder = builder.cmpAndSwap(
             ptrType, type, ptr, expect, update, successOrdering, failureOrdering);
         if (node.getStrength() == CmpAndSwap.Strength.WEAK) {

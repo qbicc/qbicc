@@ -2,6 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -11,9 +12,9 @@ public class Store extends AbstractNode implements Action, OrderedNode {
     private final Node dependency;
     private final ValueHandle handle;
     private final Value value;
-    private final MemoryAtomicityMode mode;
+    private final WriteAccessMode mode;
 
-    Store(Node callSite, ExecutableElement element, int line, int bci, Node dependency, ValueHandle handle, Value value, MemoryAtomicityMode mode) {
+    Store(Node callSite, ExecutableElement element, int line, int bci, Node dependency, ValueHandle handle, Value value, WriteAccessMode mode) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.handle = handle;
@@ -33,7 +34,7 @@ public class Store extends AbstractNode implements Action, OrderedNode {
         return value;
     }
 
-    public MemoryAtomicityMode getMode() {
+    public WriteAccessMode getAccessMode() {
         return mode;
     }
 

@@ -1,10 +1,15 @@
 package org.qbicc.graph;
 
+import static org.qbicc.graph.atomic.AccessModes.*;
+
 import java.util.List;
 import java.util.Set;
 
 import org.qbicc.context.Locatable;
 import org.qbicc.context.Location;
+import org.qbicc.graph.atomic.GlobalAccessMode;
+import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
@@ -377,35 +382,109 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value clone(Value object);
 
-    Value load(ValueHandle handle, MemoryAtomicityMode mode);
+    default Value load(ValueHandle handle) {
+        return load(handle, SinglePlain);
+    }
 
-    Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    Value load(ValueHandle handle, ReadAccessMode mode);
 
-    Value getAndBitwiseAnd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    @Deprecated
+    default Value load(ValueHandle handle, MemoryAtomicityMode mode) {
+        return load(handle, mode.getAccessMode().getReadAccess());
+    }
 
-    Value getAndBitwiseNand(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    Value getAndAdd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    Value getAndBitwiseOr(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    @Deprecated
+    default Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndAdd(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
 
-    Value getAndBitwiseXor(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    Value getAndBitwiseAnd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    Value getAndSet(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    @Deprecated
+    default Value getAndBitwiseAnd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndBitwiseAnd(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
 
-    Value getAndSetMax(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    Value getAndBitwiseNand(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    Value getAndSetMin(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    @Deprecated
+    default Value getAndBitwiseNand(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndBitwiseNand(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
 
-    Value getAndSub(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    Value getAndBitwiseOr(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode, CmpAndSwap.Strength strength);
+    @Deprecated
+    default Value getAndBitwiseOr(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndBitwiseOr(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
+
+    Value getAndBitwiseXor(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default Value getAndBitwiseXor(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndBitwiseXor(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
+
+    Value getAndSet(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default Value getAndSet(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndSet(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
+
+    Value getAndSetMax(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default Value getAndSetMax(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndSetMax(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
+
+    Value getAndSetMin(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default Value getAndSetMin(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndSetMin(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
+
+    Value getAndSub(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default Value getAndSub(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndSub(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
+
+    Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength);
+
+    @Deprecated
+    default Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode, CmpAndSwap.Strength strength) {
+        // not strictly correct but sufficient for the interim
+        return cmpAndSwap(target, expect, update, failureMode.getAccessMode().getReadAccess(), successMode.getAccessMode().getWriteAccess(), strength);
+    }
 
     Value vaArg(Value vaList, ValueType type);
 
-    Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode);
+    default Node store(ValueHandle handle, Value value) {
+        return store(handle, value, SinglePlain);
+    }
+
+    Node store(ValueHandle handle, Value value, WriteAccessMode mode);
+
+    @Deprecated
+    default Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
+        return store(handle, value, mode.getAccessMode().getWriteAccess());
+    }
 
     Node initCheck(InitializerElement initializer);
 
-    Node fence(MemoryAtomicityMode fenceType);
+    @Deprecated
+    default Node fence(MemoryAtomicityMode fenceType) {
+        return fence(fenceType.getAccessMode().getGlobalAccess());
+    }
+
+    Node fence(GlobalAccessMode fenceType);
 
     Node monitorEnter(Value obj);
 

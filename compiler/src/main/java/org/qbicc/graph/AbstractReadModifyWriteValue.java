@@ -2,6 +2,8 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -9,14 +11,16 @@ abstract class AbstractReadModifyWriteValue extends AbstractValue implements Rea
     private final Node dependency;
     private final ValueHandle target;
     private final Value updateValue;
-    private final MemoryAtomicityMode atomicityMode;
+    private final ReadAccessMode readMode;
+    private final WriteAccessMode writeMode;
 
-    AbstractReadModifyWriteValue(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final ValueHandle target, final Value updateValue, final MemoryAtomicityMode atomicityMode) {
+    AbstractReadModifyWriteValue(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final ValueHandle target, final Value updateValue, ReadAccessMode readMode, WriteAccessMode writeMode) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.target = target;
         this.updateValue = updateValue;
-        this.atomicityMode = atomicityMode;
+        this.readMode = readMode;
+        this.writeMode = writeMode;
         if (! target.isWritable()) {
             throw new IllegalArgumentException("Handle is not writable");
         }
@@ -46,12 +50,22 @@ abstract class AbstractReadModifyWriteValue extends AbstractValue implements Rea
         return updateValue;
     }
 
+    @Override
+    public ReadAccessMode getReadAccessMode() {
+        return readMode;
+    }
+
+    @Override
+    public WriteAccessMode getWriteAccessMode() {
+        return writeMode;
+    }
+
     public MemoryAtomicityMode getAtomicityMode() {
-        return atomicityMode;
+        return null;
     }
 
     int calcHashCode() {
-        return Objects.hash(getClass(), dependency, target, updateValue, atomicityMode);
+        return Objects.hash(getClass(), dependency, target, updateValue, readMode, writeMode);
     }
 
     public boolean equals(final Object other) {
@@ -64,14 +78,16 @@ abstract class AbstractReadModifyWriteValue extends AbstractValue implements Rea
         b.append('(');
         b.append(updateValue);
         b.append(',');
-        b.append(atomicityMode);
+        b.append(readMode);
+        b.append(',');
+        b.append(writeMode);
         b.append(')');
         return b;
     }
 
     private boolean equals(final AbstractReadModifyWriteValue other) {
         return this == other || other.getClass() == getClass() && dependency.equals(other.dependency) && target.equals(other.target)
-            && updateValue.equals(other.updateValue) && atomicityMode == other.atomicityMode;
+            && updateValue.equals(other.updateValue) && readMode.equals(other.readMode) && writeMode.equals(other.writeMode);
     }
 
     public int getValueDependencyCount() {

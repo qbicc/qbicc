@@ -10,6 +10,9 @@ import java.util.Set;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
+import org.qbicc.graph.atomic.GlobalAccessMode;
+import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
@@ -600,52 +603,52 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new Clone(callSite, element, line, bci, requireDependency(), object));
     }
 
-    public Value load(final ValueHandle handle, final MemoryAtomicityMode mode) {
+    public Value load(final ValueHandle handle, final ReadAccessMode mode) {
         return asDependency(new Load(callSite, element, line, bci, requireDependency(), handle, mode));
     }
 
-    public Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return asDependency(new GetAndAdd(callSite, element, line, bci, requireDependency(), target, update, atomicityMode));
+    public Value getAndAdd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return asDependency(new GetAndAdd(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
     }
 
-    public Value getAndBitwiseAnd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return asDependency(new GetAndBitwiseAnd(callSite, element, line, bci, requireDependency(), target, update, atomicityMode));
+    public Value getAndBitwiseAnd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return asDependency(new GetAndBitwiseAnd(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
     }
 
-    public Value getAndBitwiseNand(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return asDependency(new GetAndBitwiseNand(callSite, element, line, bci, requireDependency(), target, update, atomicityMode));
+    public Value getAndBitwiseNand(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return asDependency(new GetAndBitwiseNand(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
     }
 
-    public Value getAndBitwiseOr(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return asDependency(new GetAndBitwiseOr(callSite, element, line, bci, requireDependency(), target, update, atomicityMode));
+    public Value getAndBitwiseOr(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return asDependency(new GetAndBitwiseOr(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
     }
 
-    public Value getAndBitwiseXor(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return asDependency(new GetAndBitwiseXor(callSite, element, line, bci, requireDependency(), target, update, atomicityMode));
+    public Value getAndBitwiseXor(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return asDependency(new GetAndBitwiseXor(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
     }
 
-    public Value getAndSet(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return asDependency(new GetAndSet(callSite, element, line, bci, requireDependency(), target, update, atomicityMode));
+    public Value getAndSet(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return asDependency(new GetAndSet(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
     }
 
-    public Value getAndSetMax(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return asDependency(new GetAndSetMax(callSite, element, line, bci, requireDependency(), target, update, atomicityMode));
+    public Value getAndSetMax(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return asDependency(new GetAndSetMax(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
     }
 
-    public Value getAndSetMin(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return asDependency(new GetAndSetMin(callSite, element, line, bci, requireDependency(), target, update, atomicityMode));
+    public Value getAndSetMin(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return asDependency(new GetAndSetMin(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
     }
 
-    public Value getAndSub(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return asDependency(new GetAndSub(callSite, element, line, bci, requireDependency(), target, update, atomicityMode));
+    public Value getAndSub(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return asDependency(new GetAndSub(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
     }
 
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         CompilationContext ctxt = getCurrentElement().getEnclosingType().getContext().getCompilationContext();
-        return asDependency(new CmpAndSwap(callSite, element, line, bci, CmpAndSwap.getResultType(ctxt, target.getValueType()), requireDependency(), target, expect, update, successMode, failureMode, strength));
+        return asDependency(new CmpAndSwap(callSite, element, line, bci, CmpAndSwap.getResultType(ctxt, target.getValueType()), requireDependency(), target, expect, update, readMode, writeMode, strength));
     }
 
-    public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
+    public Node store(ValueHandle handle, Value value, WriteAccessMode mode) {
         return asDependency(new Store(callSite, element, line, bci, requireDependency(), handle, value, mode));
     }
 
@@ -653,7 +656,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new InitCheck(callSite, element, line, bci, requireDependency(), initializer));
     }
 
-    public Node fence(final MemoryAtomicityMode fenceType) {
+    public Node fence(final GlobalAccessMode fenceType) {
         return asDependency(new Fence(callSite, element, line, bci, requireDependency(), fenceType));
     }
 

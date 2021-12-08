@@ -2,6 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -11,9 +12,9 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public class Load extends AbstractValue implements OrderedNode {
     private final Node dependency;
     private final ValueHandle handle;
-    private final MemoryAtomicityMode mode;
+    private final ReadAccessMode mode;
 
-    Load(Node callSite, ExecutableElement element, int line, int bci, Node dependency, ValueHandle handle, MemoryAtomicityMode mode) {
+    Load(Node callSite, ExecutableElement element, int line, int bci, Node dependency, ValueHandle handle, ReadAccessMode mode) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.handle = handle;
@@ -54,7 +55,7 @@ public class Load extends AbstractValue implements OrderedNode {
         return handle.getValueType();
     }
 
-    public MemoryAtomicityMode getMode() {
+    public ReadAccessMode getAccessMode() {
         return mode;
     }
 

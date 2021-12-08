@@ -9,11 +9,11 @@ import org.qbicc.driver.Driver;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.CastValue;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.machine.probe.CProbe;
@@ -51,7 +51,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
+    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
         Value test = value;
         while (test instanceof CastValue) {
             test = ((CastValue) test).getInput();
@@ -69,7 +69,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
             ctxt.error(getLocation(), "Compilation constants must be static final fields");
             return nop();
         }
-        return super.store(handle, value, mode);
+        return super.store(handle, value, accessMode);
     }
 
     private void processConstant(final FieldElement fieldElement) {

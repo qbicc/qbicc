@@ -3,6 +3,7 @@ package org.qbicc.plugin.intrinsics.core;
 import static org.qbicc.graph.CmpAndSwap.Strength.STRONG;
 import static org.qbicc.graph.CmpAndSwap.Strength.WEAK;
 import static org.qbicc.graph.MemoryAtomicityMode.*;
+import static org.qbicc.graph.atomic.AccessModes.*;
 
 import java.nio.ByteOrder;
 import java.util.List;
@@ -14,8 +15,8 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.CmpAndSwap;
+import org.qbicc.graph.InstanceMethodElementHandle;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.MemoryAtomicityMode;
@@ -25,13 +26,9 @@ import org.qbicc.graph.Store;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Variable;
+import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.ObjectLiteral;
-import org.qbicc.graph.literal.StringLiteral;
-import org.qbicc.graph.literal.TypeLiteral;
-import org.qbicc.interpreter.VmObject;
-import org.qbicc.interpreter.VmString;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.plugin.intrinsics.InstanceIntrinsic;
@@ -40,8 +37,6 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.WordType;
-import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
@@ -403,36 +398,24 @@ public class UnsafeIntrinsics {
     private static void registerFenceIntrinsics(final CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
-        TypeSystem ts = ctxt.getTypeSystem();
 
         ClassTypeDescriptor unsafeDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Unsafe");
 
         MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
 
-        Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ts.getVoidType());
+        record FenceIntrinsic(GlobalAccessMode mode) implements InstanceIntrinsic {
+            public Value emitIntrinsic(BasicBlockBuilder builder, Value instance, InstanceMethodElementHandle target, List<Value> arguments) {
+                builder.fence(mode);
+                ClassContext context = builder.getCurrentElement().getEnclosingType().getContext();
+                return context.getLiteralFactory().zeroInitializerLiteralOfType(context.getTypeSystem().getVoidType());
+            }
+        }
 
-        InstanceIntrinsic storeFence = (builder, instance, target, arguments) -> {
-            builder.fence(RELEASE);
-            return voidLiteral;
-        };
-
-        intrinsics.registerIntrinsic(unsafeDesc, "storeFence", emptyToVoid, storeFence);
-        intrinsics.registerIntrinsic(unsafeDesc, "storeStoreFence", emptyToVoid, storeFence);
-
-        InstanceIntrinsic loadFence = (builder, instance, target, arguments) -> {
-            builder.fence(ACQUIRE);
-            return voidLiteral;
-        };
-
-        intrinsics.registerIntrinsic(unsafeDesc, "loadFence", emptyToVoid, loadFence);
-        intrinsics.registerIntrinsic(unsafeDesc, "loadLoadFence", emptyToVoid, loadFence);
-
-        InstanceIntrinsic fullFence = (builder, instance, target, arguments) -> {
-            builder.fence(SEQUENTIALLY_CONSISTENT);
-            return voidLiteral;
-        };
-
-        intrinsics.registerIntrinsic(unsafeDesc, "fullFence", emptyToVoid, fullFence);
+        intrinsics.registerIntrinsic(unsafeDesc, "storeFence", emptyToVoid, new FenceIntrinsic(GlobalRelease));
+        intrinsics.registerIntrinsic(unsafeDesc, "storeStoreFence", emptyToVoid, new FenceIntrinsic(GlobalStoreStore));
+        intrinsics.registerIntrinsic(unsafeDesc, "loadFence", emptyToVoid, new FenceIntrinsic(GlobalAcquire));
+        intrinsics.registerIntrinsic(unsafeDesc, "loadLoadFence", emptyToVoid, new FenceIntrinsic(GlobalLoadLoad));
+        intrinsics.registerIntrinsic(unsafeDesc, "fullFence", emptyToVoid, new FenceIntrinsic(GlobalSeqCst));
     }
 
     // Platform static (build time available) information

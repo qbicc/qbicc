@@ -1,5 +1,7 @@
 package org.qbicc.plugin.opt;
 
+import static org.qbicc.graph.atomic.AccessModes.*;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,16 +14,19 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.MemberOf;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
+import org.qbicc.graph.atomic.AccessMode;
+import org.qbicc.graph.atomic.GlobalAccessMode;
+import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 
 /**
  *
  */
-public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<MemoryAtomicityMode, Value> {
+public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<AccessMode, Value> {
     private final CompilationContext ctxt;
     private final Map<ValueHandle, Value> knownValues = new HashMap<>();
 
@@ -38,91 +43,91 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value load(ValueHandle handle, MemoryAtomicityMode mode) {
+    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
         // todo: hopefully we can be slightly more aggressive than this
-        if (mode != MemoryAtomicityMode.NONE && mode != MemoryAtomicityMode.UNORDERED) {
+        if (! GlobalPlain.includes(accessMode)) {
             knownValues.clear();
         } else {
-            Value value = handle.accept(this, mode);
+            Value value = handle.accept(this, accessMode);
             if (value != null) {
                 return value;
             }
         }
-        Value loaded = super.load(handle, mode);
+        Value loaded = super.load(handle, accessMode);
         knownValues.put(handle, loaded);
         return loaded;
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
+    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
         ValueHandle root = findRoot(handle);
         knownValues.keySet().removeIf(k -> ! hasSameRoot(k, root));
         knownValues.put(handle, value);
-        return super.store(handle, value, mode);
+        return super.store(handle, value, accessMode);
     }
 
     @Override
-    public Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndAdd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndAdd(target, update, atomicityMode);
+        return super.getAndAdd(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value getAndBitwiseAnd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndBitwiseAnd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndBitwiseAnd(target, update, atomicityMode);
+        return super.getAndBitwiseAnd(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value getAndBitwiseNand(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndBitwiseNand(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndBitwiseNand(target, update, atomicityMode);
+        return super.getAndBitwiseNand(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value getAndBitwiseOr(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndBitwiseOr(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndBitwiseOr(target, update, atomicityMode);
+        return super.getAndBitwiseOr(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value getAndBitwiseXor(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndBitwiseXor(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndBitwiseXor(target, update, atomicityMode);
+        return super.getAndBitwiseXor(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value getAndSet(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndSet(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndSet(target, update, atomicityMode);
+        return super.getAndSet(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value getAndSetMax(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndSetMax(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndSetMax(target, update, atomicityMode);
+        return super.getAndSetMax(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value getAndSetMin(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndSetMin(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndSetMin(target, update, atomicityMode);
+        return super.getAndSetMin(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value getAndSub(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndSub(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndSub(target, update, atomicityMode);
+        return super.getAndSub(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         knownValues.clear();
-        return super.cmpAndSwap(target, expect, update, successMode, failureMode, strength);
+        return super.cmpAndSwap(target, expect, update, readMode, writeMode, strength);
     }
 
     @Override
-    public Node fence(MemoryAtomicityMode fenceType) {
+    public Node fence(GlobalAccessMode fenceType) {
         knownValues.clear();
         return super.fence(fenceType);
     }
@@ -184,12 +189,12 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value visitUnknown(MemoryAtomicityMode param, ValueHandle node) {
+    public Value visitUnknown(AccessMode param, ValueHandle node) {
         return knownValues.get(node);
     }
 
     @Override
-    public Value visit(MemoryAtomicityMode param, ElementOf node) {
+    public Value visit(AccessMode param, ElementOf node) {
         Value value = knownValues.get(node);
         if (value != null) {
             return value;
@@ -204,7 +209,7 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value visit(MemoryAtomicityMode param, MemberOf node) {
+    public Value visit(AccessMode param, MemberOf node) {
         Value value = knownValues.get(node);
         if (value != null) {
             return value;

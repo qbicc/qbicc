@@ -7,6 +7,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.TypeSystem;
@@ -24,19 +26,19 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
     private final Value expectedValue;
     private final Value updateValue;
     private final CompoundType resultType;
-    private final MemoryAtomicityMode successAtomicityMode;
-    private final MemoryAtomicityMode failureAtomicityMode;
+    private final ReadAccessMode readAccessMode;
+    private final WriteAccessMode writeAccessMode;
     private final Strength strength;
 
-    CmpAndSwap(final Node callSite, final ExecutableElement element, final int line, final int bci, final CompoundType resultType, final Node dependency, final ValueHandle target, final Value expectedValue, final Value updateValue, final MemoryAtomicityMode successAtomicityMode, final MemoryAtomicityMode failureAtomicityMode, Strength strength) {
+    CmpAndSwap(final Node callSite, final ExecutableElement element, final int line, final int bci, final CompoundType resultType, final Node dependency, final ValueHandle target, final Value expectedValue, final Value updateValue, final ReadAccessMode readAccessMode, final WriteAccessMode writeAccessMode, Strength strength) {
         super(callSite, element, line, bci);
         this.resultType = Assert.checkNotNullParam("resultType", resultType);
         this.dependency = Assert.checkNotNullParam("dependency", dependency);
         this.target = Assert.checkNotNullParam("target", target);
         this.expectedValue = Assert.checkNotNullParam("expectedValue", expectedValue);
         this.updateValue = Assert.checkNotNullParam("updateValue", updateValue);
-        this.successAtomicityMode = Assert.checkNotNullParam("successAtomicityMode", successAtomicityMode);
-        this.failureAtomicityMode = Assert.checkNotNullParam("failureAtomicityMode", failureAtomicityMode);
+        this.readAccessMode = Assert.checkNotNullParam("readAccessMode", readAccessMode);
+        this.writeAccessMode = Assert.checkNotNullParam("writeAccessMode", writeAccessMode);
         this.strength = Assert.checkNotNullParam("strength", strength);
         if (! target.isWritable()) {
             throw new IllegalArgumentException("Handle is not writable");
@@ -53,16 +55,10 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
         if (!(updateValue instanceof NullLiteral || targetType.isImplicitlyConvertibleFrom(updateValue.getType()))) {
             throw new IllegalArgumentException("The target and update value types must agree.");
         }
-
-        /* failure ordering must not be RELEASE or ACQUIRE_RELEASE */
-        if (failureAtomicityMode.equals(MemoryAtomicityMode.RELEASE) || failureAtomicityMode.equals(MemoryAtomicityMode.ACQUIRE_RELEASE)) {
-            throw new IllegalArgumentException("Failure mode cannot be release or acquire_release");
-        }
-
     }
 
     int calcHashCode() {
-        return Objects.hash(CmpAndSwap.class, dependency, target, expectedValue, updateValue, resultType, successAtomicityMode, failureAtomicityMode);
+        return Objects.hash(CmpAndSwap.class, dependency, target, expectedValue, updateValue, resultType, readAccessMode, writeAccessMode);
     }
 
     @Override
@@ -94,12 +90,12 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
         return updateValue;
     }
 
-    public MemoryAtomicityMode getSuccessAtomicityMode() {
-        return successAtomicityMode;
+    public ReadAccessMode getReadAccessMode() {
+        return readAccessMode;
     }
 
-    public MemoryAtomicityMode getFailureAtomicityMode() {
-        return failureAtomicityMode;
+    public WriteAccessMode getWriteAccessMode() {
+        return writeAccessMode;
     }
 
     public Strength getStrength() {
@@ -120,9 +116,9 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
         b.append(',');
         b.append(strength);
         b.append(',');
-        b.append(successAtomicityMode);
+        b.append(readAccessMode);
         b.append(',');
-        b.append(failureAtomicityMode);
+        b.append(writeAccessMode);
         b.append(')');
         return b;
     }
@@ -130,8 +126,8 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
     public boolean equals(final CmpAndSwap other) {
         return this == other || other != null && dependency.equals(other.dependency) && target.equals(other.target)
             && expectedValue.equals(other.expectedValue) && updateValue.equals(other.updateValue)
-            && resultType.equals(other.resultType) && successAtomicityMode == other.successAtomicityMode
-            && failureAtomicityMode == other.failureAtomicityMode && strength == other.strength;
+            && resultType.equals(other.resultType) && readAccessMode == other.readAccessMode
+            && writeAccessMode == other.writeAccessMode && strength == other.strength;
     }
 
     public int getValueDependencyCount() {
