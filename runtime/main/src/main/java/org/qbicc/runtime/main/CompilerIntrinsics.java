@@ -20,7 +20,7 @@ public class CompilerIntrinsics {
     public static native Object emitNew(type_id typeId, long size, int alignment);
 
     @Hidden
-    public static native void copyInstanceFields(Object src, Object dst);
+    public static native void copyInstanceFields(Class<?> clazz, Object src, Object dst);
 
 
     /**
