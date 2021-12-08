@@ -393,23 +393,68 @@ public interface BasicBlockBuilder extends Locatable {
         return load(handle, mode.getAccessMode().getReadAccess());
     }
 
-    Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    Value getAndAdd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    Value getAndBitwiseAnd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    @Deprecated
+    default Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndAdd(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
 
-    Value getAndBitwiseNand(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    Value getAndBitwiseAnd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    Value getAndBitwiseOr(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    @Deprecated
+    default Value getAndBitwiseAnd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndBitwiseAnd(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
 
-    Value getAndBitwiseXor(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    Value getAndBitwiseNand(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    Value getAndSet(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    @Deprecated
+    default Value getAndBitwiseNand(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndBitwiseNand(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
 
-    Value getAndSetMax(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    Value getAndBitwiseOr(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    Value getAndSetMin(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    @Deprecated
+    default Value getAndBitwiseOr(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndBitwiseOr(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
 
-    Value getAndSub(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode);
+    Value getAndBitwiseXor(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default Value getAndBitwiseXor(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndBitwiseXor(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
+
+    Value getAndSet(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default Value getAndSet(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndSet(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
+
+    Value getAndSetMax(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default Value getAndSetMax(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndSetMax(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
+
+    Value getAndSetMin(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default Value getAndSetMin(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndSetMin(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
+
+    Value getAndSub(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default Value getAndSub(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getAndSub(target, update, atomicityMode.getAccessMode().getReadAccess(), atomicityMode.getAccessMode().getWriteAccess());
+    }
 
     Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength);
 

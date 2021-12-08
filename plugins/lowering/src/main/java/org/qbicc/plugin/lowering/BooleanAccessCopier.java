@@ -97,9 +97,9 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
         BasicBlockBuilder b = param.getBlockBuilder();
         Value copiedUpdate = param.copyValue(node.getUpdateValue());
         if (origHandle.getValueType() instanceof BooleanType bt && copyHandle.getValueType() instanceof IntegerType it) {
-            return b.truncate(b.getAndBitwiseAnd(copyHandle, b.extend(copiedUpdate, it), node.getAtomicityMode()), bt);
+            return b.truncate(b.getAndBitwiseAnd(copyHandle, b.extend(copiedUpdate, it), node.getReadAccessMode(), node.getWriteAccessMode()), bt);
         } else {
-            return b.getAndBitwiseAnd(copyHandle, copiedUpdate, node.getAtomicityMode());
+            return b.getAndBitwiseAnd(copyHandle, copiedUpdate, node.getReadAccessMode(), node.getWriteAccessMode());
         }
     }
 
@@ -111,9 +111,9 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
         BasicBlockBuilder b = param.getBlockBuilder();
         Value copiedUpdate = param.copyValue(node.getUpdateValue());
         if (origHandle.getValueType() instanceof BooleanType bt && copyHandle.getValueType() instanceof IntegerType it) {
-            return b.truncate(b.getAndBitwiseNand(copyHandle, b.extend(copiedUpdate, it), node.getAtomicityMode()), bt);
+            return b.truncate(b.getAndBitwiseNand(copyHandle, b.extend(copiedUpdate, it), node.getReadAccessMode(), node.getWriteAccessMode()), bt);
         } else {
-            return b.getAndBitwiseNand(copyHandle, copiedUpdate, node.getAtomicityMode());
+            return b.getAndBitwiseNand(copyHandle, copiedUpdate, node.getReadAccessMode(), node.getWriteAccessMode());
         }
     }
 
@@ -125,9 +125,9 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
         BasicBlockBuilder b = param.getBlockBuilder();
         Value copiedUpdate = param.copyValue(node.getUpdateValue());
         if (origHandle.getValueType() instanceof BooleanType bt && copyHandle.getValueType() instanceof IntegerType it) {
-            return b.truncate(b.getAndBitwiseOr(copyHandle, b.extend(copiedUpdate, it), node.getAtomicityMode()), bt);
+            return b.truncate(b.getAndBitwiseOr(copyHandle, b.extend(copiedUpdate, it), node.getReadAccessMode(), node.getWriteAccessMode()), bt);
         } else {
-            return b.getAndBitwiseOr(copyHandle, copiedUpdate, node.getAtomicityMode());
+            return b.getAndBitwiseOr(copyHandle, copiedUpdate, node.getReadAccessMode(), node.getWriteAccessMode());
         }
     }
 
@@ -139,9 +139,9 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
         BasicBlockBuilder b = param.getBlockBuilder();
         Value copiedUpdate = param.copyValue(node.getUpdateValue());
         if (origHandle.getValueType() instanceof BooleanType bt && copyHandle.getValueType() instanceof IntegerType it) {
-            return b.truncate(b.getAndBitwiseXor(copyHandle, b.extend(copiedUpdate, it), node.getAtomicityMode()), bt);
+            return b.truncate(b.getAndBitwiseXor(copyHandle, b.extend(copiedUpdate, it), node.getReadAccessMode(), node.getWriteAccessMode()), bt);
         } else {
-            return b.getAndBitwiseXor(copyHandle, copiedUpdate, node.getAtomicityMode());
+            return b.getAndBitwiseXor(copyHandle, copiedUpdate, node.getReadAccessMode(), node.getWriteAccessMode());
         }
     }
 
@@ -153,9 +153,9 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
         BasicBlockBuilder b = param.getBlockBuilder();
         Value copiedUpdate = param.copyValue(node.getUpdateValue());
         if (origHandle.getValueType() instanceof BooleanType bt && copyHandle.getValueType() instanceof IntegerType it) {
-            return b.truncate(b.getAndSet(copyHandle, b.extend(copiedUpdate, it), node.getAtomicityMode()), bt);
+            return b.truncate(b.getAndSet(copyHandle, b.extend(copiedUpdate, it), node.getReadAccessMode(), node.getWriteAccessMode()), bt);
         } else {
-            return b.getAndSet(copyHandle, copiedUpdate, node.getAtomicityMode());
+            return b.getAndSet(copyHandle, copiedUpdate, node.getReadAccessMode(), node.getWriteAccessMode());
         }
     }
 }

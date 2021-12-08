@@ -322,123 +322,251 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
-            Value result = super.getAndAdd(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
-            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
-            return result;
-        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
-            Value result = super.add(super.load(target, atomicityMode), update);
-            super.store(target, result, atomicityMode);
-            return result;
+    public Value getAndAdd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        BasicBlockBuilder fb = getFirstBuilder();
+        ReadAccessMode lowerReadMode = readMode;
+        WriteAccessMode lowerWriteMode = writeMode;
+        Value result;
+        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+            // not actually atomic!
+            // emit fences via load and store logic.
+            result = fb.load(target, readMode);
+            fb.store(target, fb.add(result, update), writeMode);
         } else {
-            return super.getAndAdd(target, update, atomicityMode);
+            boolean readRequiresFence = readMode.includes(GlobalAcquire);
+            if (readRequiresFence) {
+                lowerReadMode = SingleAcquire;
+            }
+            boolean writeRequiresFence = writeMode.includes(GlobalRelease);
+            if (writeRequiresFence) {
+                lowerWriteMode = SingleRelease;
+            }
+            result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
+            if (readRequiresFence) {
+                fence(readMode.getGlobalAccess());
+            }
+            if (writeRequiresFence) {
+                fb.fence(writeMode.getGlobalAccess());
+            }
         }
+        return result;
     }
 
     @Override
-    public Value getAndBitwiseAnd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
-            Value result = super.getAndBitwiseAnd(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
-            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
-            return result;
-        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
-            Value result = super.and(super.load(target, atomicityMode), update);
-            super.store(target, result, atomicityMode);
-            return result;
+    public Value getAndBitwiseAnd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        BasicBlockBuilder fb = getFirstBuilder();
+        ReadAccessMode lowerReadMode = readMode;
+        WriteAccessMode lowerWriteMode = writeMode;
+        Value result;
+        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+            // not actually atomic!
+            // emit fences via load and store logic.
+            result = fb.load(target, readMode);
+            fb.store(target, fb.and(result, update), writeMode);
         } else {
-            return super.getAndBitwiseAnd(target, update, atomicityMode);
+            boolean readRequiresFence = readMode.includes(GlobalAcquire);
+            if (readRequiresFence) {
+                lowerReadMode = SingleAcquire;
+            }
+            boolean writeRequiresFence = writeMode.includes(GlobalRelease);
+            if (writeRequiresFence) {
+                lowerWriteMode = SingleRelease;
+            }
+            result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
+            if (readRequiresFence) {
+                fence(readMode.getGlobalAccess());
+            }
+            if (writeRequiresFence) {
+                fb.fence(writeMode.getGlobalAccess());
+            }
         }
+        return result;
     }
 
     @Override
-    public Value getAndBitwiseOr(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
-            Value result = super.getAndBitwiseOr(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
-            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
-            return result;
-        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
-            Value result = super.or(super.load(target, atomicityMode), update);
-            super.store(target, result, atomicityMode);
-            return result;
+    public Value getAndBitwiseOr(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        BasicBlockBuilder fb = getFirstBuilder();
+        ReadAccessMode lowerReadMode = readMode;
+        WriteAccessMode lowerWriteMode = writeMode;
+        Value result;
+        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+            // not actually atomic!
+            // emit fences via load and store logic.
+            result = fb.load(target, readMode);
+            fb.store(target, fb.or(result, update), writeMode);
         } else {
-            return super.getAndBitwiseOr(target, update, atomicityMode);
+            boolean readRequiresFence = readMode.includes(GlobalAcquire);
+            if (readRequiresFence) {
+                lowerReadMode = SingleAcquire;
+            }
+            boolean writeRequiresFence = writeMode.includes(GlobalRelease);
+            if (writeRequiresFence) {
+                lowerWriteMode = SingleRelease;
+            }
+            result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
+            if (readRequiresFence) {
+                fence(readMode.getGlobalAccess());
+            }
+            if (writeRequiresFence) {
+                fb.fence(writeMode.getGlobalAccess());
+            }
         }
+        return result;
     }
 
     @Override
-    public Value getAndBitwiseXor(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
-            Value result = super.getAndBitwiseXor(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
-            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
-            return result;
-        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
-            Value result = super.xor(super.load(target, atomicityMode), update);
-            super.store(target, result, atomicityMode);
-            return result;
+    public Value getAndBitwiseXor(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        BasicBlockBuilder fb = getFirstBuilder();
+        ReadAccessMode lowerReadMode = readMode;
+        WriteAccessMode lowerWriteMode = writeMode;
+        Value result;
+        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+            // not actually atomic!
+            // emit fences via load and store logic.
+            result = fb.load(target, readMode);
+            fb.store(target, fb.xor(result, update), writeMode);
         } else {
-            return super.getAndBitwiseXor(target, update, atomicityMode);
+            boolean readRequiresFence = readMode.includes(GlobalAcquire);
+            if (readRequiresFence) {
+                lowerReadMode = SingleAcquire;
+            }
+            boolean writeRequiresFence = writeMode.includes(GlobalRelease);
+            if (writeRequiresFence) {
+                lowerWriteMode = SingleRelease;
+            }
+            result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
+            if (readRequiresFence) {
+                fence(readMode.getGlobalAccess());
+            }
+            if (writeRequiresFence) {
+                fb.fence(writeMode.getGlobalAccess());
+            }
         }
+        return result;
     }
 
     @Override
-    public Value getAndSet(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
-            Value result = super.getAndSet(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
-            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
-            return result;
-        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
-            Value result = super.load(target, atomicityMode);
-            super.store(target, update, atomicityMode);
-            return result;
+    public Value getAndSet(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        BasicBlockBuilder fb = getFirstBuilder();
+        ReadAccessMode lowerReadMode = readMode;
+        WriteAccessMode lowerWriteMode = writeMode;
+        Value result;
+        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+            // not actually atomic!
+            // emit fences via load and store logic.
+            result = fb.load(target, readMode);
+            fb.store(target, update, writeMode);
         } else {
-            return super.getAndSet(target, update, atomicityMode);
+            boolean readRequiresFence = readMode.includes(GlobalAcquire);
+            if (readRequiresFence) {
+                lowerReadMode = SingleAcquire;
+            }
+            boolean writeRequiresFence = writeMode.includes(GlobalRelease);
+            if (writeRequiresFence) {
+                lowerWriteMode = SingleRelease;
+            }
+            result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
+            if (readRequiresFence) {
+                fence(readMode.getGlobalAccess());
+            }
+            if (writeRequiresFence) {
+                fb.fence(writeMode.getGlobalAccess());
+            }
         }
+        return result;
     }
 
     @Override
-    public Value getAndSetMax(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
-            Value result = super.getAndSetMax(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
-            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
-            return result;
-        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
-            Value result = super.max(super.load(target, atomicityMode), update);
-            super.store(target, result, atomicityMode);
-            return result;
+    public Value getAndSetMax(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        BasicBlockBuilder fb = getFirstBuilder();
+        ReadAccessMode lowerReadMode = readMode;
+        WriteAccessMode lowerWriteMode = writeMode;
+        Value result;
+        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+            // not actually atomic!
+            // emit fences via load and store logic.
+            result = fb.load(target, readMode);
+            fb.store(target, fb.max(result, update), writeMode);
         } else {
-            return super.getAndSetMax(target, update, atomicityMode);
+            boolean readRequiresFence = readMode.includes(GlobalAcquire);
+            if (readRequiresFence) {
+                lowerReadMode = SingleAcquire;
+            }
+            boolean writeRequiresFence = writeMode.includes(GlobalRelease);
+            if (writeRequiresFence) {
+                lowerWriteMode = SingleRelease;
+            }
+            result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
+            if (readRequiresFence) {
+                fence(readMode.getGlobalAccess());
+            }
+            if (writeRequiresFence) {
+                fb.fence(writeMode.getGlobalAccess());
+            }
         }
+        return result;
     }
 
     @Override
-    public Value getAndSetMin(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
-            Value result = super.getAndSetMin(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
-            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
-            return result;
-        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
-            Value result = super.min(super.load(target, atomicityMode), update);
-            super.store(target, result, atomicityMode);
-            return result;
+    public Value getAndSetMin(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        BasicBlockBuilder fb = getFirstBuilder();
+        ReadAccessMode lowerReadMode = readMode;
+        WriteAccessMode lowerWriteMode = writeMode;
+        Value result;
+        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+            // not actually atomic!
+            // emit fences via load and store logic.
+            result = fb.load(target, readMode);
+            fb.store(target, fb.min(result, update), writeMode);
         } else {
-            return super.getAndSetMin(target, update, atomicityMode);
+            boolean readRequiresFence = readMode.includes(GlobalAcquire);
+            if (readRequiresFence) {
+                lowerReadMode = SingleAcquire;
+            }
+            boolean writeRequiresFence = writeMode.includes(GlobalRelease);
+            if (writeRequiresFence) {
+                lowerWriteMode = SingleRelease;
+            }
+            result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
+            if (readRequiresFence) {
+                fence(readMode.getGlobalAccess());
+            }
+            if (writeRequiresFence) {
+                fb.fence(writeMode.getGlobalAccess());
+            }
         }
+        return result;
     }
 
     @Override
-    public Value getAndSub(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
-            Value result = super.getAndSub(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
-            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
-            return result;
-        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
-            Value result = super.sub(super.load(target, atomicityMode), update);
-            super.store(target, result, atomicityMode);
-            return result;
+    public Value getAndSub(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        BasicBlockBuilder fb = getFirstBuilder();
+        ReadAccessMode lowerReadMode = readMode;
+        WriteAccessMode lowerWriteMode = writeMode;
+        Value result;
+        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+            // not actually atomic!
+            // emit fences via load and store logic.
+            result = fb.load(target, readMode);
+            fb.store(target, fb.sub(result, update), writeMode);
         } else {
-            return super.getAndSub(target, update, atomicityMode);
+            boolean readRequiresFence = readMode.includes(GlobalAcquire);
+            if (readRequiresFence) {
+                lowerReadMode = SingleAcquire;
+            }
+            boolean writeRequiresFence = writeMode.includes(GlobalRelease);
+            if (writeRequiresFence) {
+                lowerWriteMode = SingleRelease;
+            }
+            result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
+            if (readRequiresFence) {
+                fence(readMode.getGlobalAccess());
+            }
+            if (writeRequiresFence) {
+                fb.fence(writeMode.getGlobalAccess());
+            }
         }
+        return result;
     }
 
     @Override

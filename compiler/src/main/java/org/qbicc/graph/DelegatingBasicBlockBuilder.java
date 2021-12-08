@@ -324,40 +324,40 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().load(handle, accessMode);
     }
 
-    public Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return getDelegate().getAndAdd(target, update, atomicityMode);
+    public Value getAndAdd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return getDelegate().getAndAdd(target, update, readMode, writeMode);
     }
 
-    public Value getAndBitwiseAnd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return getDelegate().getAndBitwiseAnd(target, update, atomicityMode);
+    public Value getAndBitwiseAnd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return getDelegate().getAndBitwiseAnd(target, update, readMode, writeMode);
     }
 
-    public Value getAndBitwiseNand(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return getDelegate().getAndBitwiseNand(target, update, atomicityMode);
+    public Value getAndBitwiseNand(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return getDelegate().getAndBitwiseNand(target, update, readMode, writeMode);
     }
 
-    public Value getAndBitwiseOr(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return getDelegate().getAndBitwiseOr(target, update, atomicityMode);
+    public Value getAndBitwiseOr(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return getDelegate().getAndBitwiseOr(target, update, readMode, writeMode);
     }
 
-    public Value getAndBitwiseXor(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return getDelegate().getAndBitwiseXor(target, update, atomicityMode);
+    public Value getAndBitwiseXor(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return getDelegate().getAndBitwiseXor(target, update, readMode, writeMode);
     }
 
-    public Value getAndSet(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return getDelegate().getAndSet(target, update, atomicityMode);
+    public Value getAndSet(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return getDelegate().getAndSet(target, update, readMode, writeMode);
     }
 
-    public Value getAndSetMax(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return getDelegate().getAndSetMax(target, update, atomicityMode);
+    public Value getAndSetMax(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return getDelegate().getAndSetMax(target, update, readMode, writeMode);
     }
 
-    public Value getAndSetMin(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return getDelegate().getAndSetMin(target, update, atomicityMode);
+    public Value getAndSetMin(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return getDelegate().getAndSetMin(target, update, readMode, writeMode);
     }
 
-    public Value getAndSub(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
-        return getDelegate().getAndSub(target, update, atomicityMode);
+    public Value getAndSub(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return getDelegate().getAndSub(target, update, readMode, writeMode);
     }
 
     public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {

@@ -613,7 +613,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).add();
         insn.align(valueHandle.getValueType().getAlign());
-        insn.ordering(getOC(node.getAtomicityMode()));
+        insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.asLocal();
     }
 
@@ -623,7 +623,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).and();
         insn.align(valueHandle.getValueType().getAlign());
-        insn.ordering(getOC(node.getAtomicityMode()));
+        insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.asLocal();
     }
 
@@ -633,7 +633,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).or();
         insn.align(valueHandle.getValueType().getAlign());
-        insn.ordering(getOC(node.getAtomicityMode()));
+        insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.asLocal();
     }
 
@@ -643,7 +643,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).xor();
         insn.align(valueHandle.getValueType().getAlign());
-        insn.ordering(getOC(node.getAtomicityMode()));
+        insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.asLocal();
     }
 
@@ -653,7 +653,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).xchg();
         insn.align(valueHandle.getValueType().getAlign());
-        insn.ordering(getOC(node.getAtomicityMode()));
+        insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.asLocal();
     }
 

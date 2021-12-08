@@ -216,10 +216,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public final int getAndSet8(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public final int getAndSet8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load8(index, readMode);
+            store8(index, value, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h8.getAndSetAcquire(data, index, (byte) value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h8.getAndSetRelease(data, index, (byte) value);
         } else {
             return (int) h8.getAndSet(data, index, (byte) value);
@@ -227,19 +231,23 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public abstract int getAndSet16(int index, int value, MemoryAtomicityMode mode);
+    public abstract int getAndSet16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
     @Override
-    public abstract int getAndSet32(int index, int value, MemoryAtomicityMode mode);
+    public abstract int getAndSet32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
     @Override
-    public abstract long getAndSet64(int index, long value, MemoryAtomicityMode mode);
+    public abstract long getAndSet64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
     @Override
-    public VmObject getAndSetRef(int index, VmObject value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public VmObject getAndSetRef(int index, VmObject value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            VmObject val = loadRef(index, readMode);
+            storeRef(index, value, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (VmObject) ht.getAndSetAcquire(things, index >> 1, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (VmObject) ht.getAndSetRelease(things, index >> 1, value);
         } else {
             return (VmObject) ht.getAndSet(things, index >> 1, value);
@@ -247,10 +255,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public ValueType getAndSetType(int index, ValueType value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public ValueType getAndSetType(int index, ValueType value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            ValueType val = loadType(index, readMode);
+            storeType(index, value, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (ValueType) ht.getAndSetAcquire(things, index >> 1, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (ValueType) ht.getAndSetRelease(things, index >> 1, value);
         } else {
             return (ValueType) ht.getAndSet(things, index >> 1, value);
@@ -258,10 +270,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public final int getAndAdd8(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public final int getAndAdd8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load8(index, readMode);
+            store8(index, value + val, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h8.getAndAddAcquire(data, index, (byte) value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h8.getAndAddRelease(data, index, (byte) value);
         } else {
             return (int) h8.getAndAdd(data, index, (byte) value);
@@ -269,19 +285,23 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public abstract int getAndAdd16(int index, int value, MemoryAtomicityMode mode);
+    public abstract int getAndAdd16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
     @Override
-    public abstract int getAndAdd32(int index, int value, MemoryAtomicityMode mode);
+    public abstract int getAndAdd32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
     @Override
-    public abstract long getAndAdd64(int index, long value, MemoryAtomicityMode mode);
+    public abstract long getAndAdd64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
     @Override
-    public int getAndBitwiseAnd8(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public int getAndBitwiseAnd8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load8(index, readMode);
+            store8(index, value & val, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h8.getAndBitwiseAndAcquire(data, index, (byte) value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h8.getAndBitwiseAndRelease(data, index, (byte) value);
         } else {
             return (int) h8.getAndBitwiseAnd(data, index, (byte) value);
@@ -289,10 +309,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndBitwiseOr8(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public int getAndBitwiseOr8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load8(index, readMode);
+            store8(index, value | val, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h8.getAndBitwiseOrAcquire(data, index, (byte) value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h8.getAndBitwiseOrRelease(data, index, (byte) value);
         } else {
             return (int) h8.getAndBitwiseOr(data, index, (byte) value);
@@ -300,10 +324,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndBitwiseXor8(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public int getAndBitwiseXor8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load8(index, readMode);
+            store8(index, value ^ val, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h8.getAndBitwiseXorAcquire(data, index, (byte) value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h8.getAndBitwiseXorRelease(data, index, (byte) value);
         } else {
             return (int) h8.getAndBitwiseXor(data, index, (byte) value);
@@ -311,15 +339,15 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndBitwiseNand8(int index, int value, MemoryAtomicityMode mode) {
+    public int getAndBitwiseNand8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal, newVal;
         for (;;) {
-            oldVal = load8(index, mode.read()) & 0xff;
+            oldVal = load8(index, readMode) & 0xff;
             newVal = (oldVal & value & 0xff) ^ 0xff;
             if (oldVal == newVal) {
                 return oldVal;
             }
-            int witness = compareAndExchange8(index, oldVal, newVal, mode);
+            int witness = compareAndExchange8(index, oldVal, newVal, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -327,15 +355,15 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndBitwiseNand16(int index, int value, MemoryAtomicityMode mode) {
+    public int getAndBitwiseNand16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal, newVal;
         for (;;) {
-            oldVal = load16(index, mode.read()) & 0xffff;
+            oldVal = load16(index, readMode) & 0xffff;
             newVal = (oldVal & value & 0xffff) ^ 0xffff;
             if (oldVal == newVal) {
                 return oldVal;
             }
-            int witness = compareAndExchange16(index, oldVal, newVal, mode);
+            int witness = compareAndExchange16(index, oldVal, newVal, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -343,15 +371,15 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndBitwiseNand32(int index, int value, MemoryAtomicityMode mode) {
+    public int getAndBitwiseNand32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal, newVal;
         for (;;) {
-            oldVal = load32(index, mode.read());
+            oldVal = load32(index, readMode);
             newVal = ~(oldVal & value);
             if (oldVal == newVal) {
                 return oldVal;
             }
-            int witness = compareAndExchange32(index, oldVal, newVal, mode);
+            int witness = compareAndExchange32(index, oldVal, newVal, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -359,15 +387,15 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public long getAndBitwiseNand64(int index, long value, MemoryAtomicityMode mode) {
+    public long getAndBitwiseNand64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         long oldVal, newVal;
         for (;;) {
-            oldVal = load64(index, mode.read());
+            oldVal = load64(index, readMode);
             newVal = ~(oldVal & value);
             if (oldVal == newVal) {
                 return oldVal;
             }
-            long witness = compareAndExchange64(index, oldVal, newVal, mode);
+            long witness = compareAndExchange64(index, oldVal, newVal, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -375,14 +403,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndSetMaxSigned8(int index, int value, MemoryAtomicityMode mode) {
+    public int getAndSetMaxSigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal;
         for (;;) {
-            oldVal = load8(index, mode.read());
+            oldVal = load8(index, readMode);
             if (oldVal >= value) {
                 return oldVal;
             }
-            int witness = compareAndExchange8(index, oldVal, value, mode);
+            int witness = compareAndExchange8(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -390,14 +418,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndSetMaxSigned16(int index, int value, MemoryAtomicityMode mode) {
+    public int getAndSetMaxSigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal;
         for (;;) {
-            oldVal = load16(index, mode.read());
+            oldVal = load16(index, readMode);
             if (oldVal >= value) {
                 return oldVal;
             }
-            int witness = compareAndExchange16(index, oldVal, value, mode);
+            int witness = compareAndExchange16(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -405,14 +433,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndSetMaxSigned32(int index, int value, MemoryAtomicityMode mode) {
+    public int getAndSetMaxSigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal;
         for (;;) {
-            oldVal = load32(index, mode.read());
+            oldVal = load32(index, readMode);
             if (oldVal >= value) {
                 return oldVal;
             }
-            int witness = compareAndExchange32(index, oldVal, value, mode);
+            int witness = compareAndExchange32(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -420,14 +448,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public long getAndSetMaxSigned64(int index, long value, MemoryAtomicityMode mode) {
+    public long getAndSetMaxSigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         long oldVal;
         for (;;) {
-            oldVal = load64(index, mode.read());
+            oldVal = load64(index, readMode);
             if (oldVal >= value) {
                 return oldVal;
             }
-            long witness = compareAndExchange64(index, oldVal, value, mode);
+            long witness = compareAndExchange64(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -435,15 +463,15 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndSetMaxUnsigned8(int index, int value, MemoryAtomicityMode mode) {
+    public int getAndSetMaxUnsigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal;
         value &= 0xff;
         for (;;) {
-            oldVal = load8(index, mode.read()) & 0xff;
+            oldVal = load8(index, readMode) & 0xff;
             if (oldVal >= value) {
                 return oldVal;
             }
-            int witness = compareAndExchange8(index, oldVal, value, mode);
+            int witness = compareAndExchange8(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -451,15 +479,15 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndSetMaxUnsigned16(int index, int value, MemoryAtomicityMode mode) {
+    public int getAndSetMaxUnsigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal;
         value &= 0xffff;
         for (;;) {
-            oldVal = load16(index, mode.read()) & 0xffff;
+            oldVal = load16(index, readMode) & 0xffff;
             if (oldVal >= value) {
                 return oldVal;
             }
-            int witness = compareAndExchange16(index, oldVal, value, mode);
+            int witness = compareAndExchange16(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -467,14 +495,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndSetMaxUnsigned32(int index, int value, MemoryAtomicityMode mode) {
+    public int getAndSetMaxUnsigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal;
         for (;;) {
-            oldVal = load32(index, mode.read());
+            oldVal = load32(index, readMode);
             if (Integer.compareUnsigned(oldVal, value) >= 0) {
                 return oldVal;
             }
-            int witness = compareAndExchange32(index, oldVal, value, mode);
+            int witness = compareAndExchange32(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -482,14 +510,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public long getAndSetMaxUnsigned64(int index, long value, MemoryAtomicityMode mode) {
+    public long getAndSetMaxUnsigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         long oldVal;
         for (;;) {
-            oldVal = load64(index, mode.read());
+            oldVal = load64(index, readMode);
             if (Long.compareUnsigned(oldVal, value) >= 0) {
                 return oldVal;
             }
-            long witness = compareAndExchange64(index, oldVal, value, mode);
+            long witness = compareAndExchange64(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -497,14 +525,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndSetMinSigned8(int index, int value, MemoryAtomicityMode mode) {
+    public int getAndSetMinSigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal;
         for (;;) {
-            oldVal = load8(index, mode.read());
+            oldVal = load8(index, readMode);
             if (oldVal <= value) {
                 return oldVal;
             }
-            int witness = compareAndExchange8(index, oldVal, value, mode);
+            int witness = compareAndExchange8(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -512,14 +540,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndSetMinSigned16(int index, int value, MemoryAtomicityMode mode) {
+    public int getAndSetMinSigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal;
         for (;;) {
-            oldVal = load16(index, mode.read());
+            oldVal = load16(index, readMode);
             if (oldVal <= value) {
                 return oldVal;
             }
-            int witness = compareAndExchange8(index, oldVal, value, mode);
+            int witness = compareAndExchange8(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -527,14 +555,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndSetMinSigned32(int index, int value, MemoryAtomicityMode mode) {
+    public int getAndSetMinSigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal;
         for (;;) {
-            oldVal = load32(index, mode.read());
+            oldVal = load32(index, readMode);
             if (oldVal <= value) {
                 return oldVal;
             }
-            int witness = compareAndExchange32(index, oldVal, value, mode);
+            int witness = compareAndExchange32(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -542,14 +570,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public long getAndSetMinSigned64(int index, long value, MemoryAtomicityMode mode) {
+    public long getAndSetMinSigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         long oldVal;
         for (;;) {
-            oldVal = load64(index, mode.read());
+            oldVal = load64(index, readMode);
             if (oldVal <= value) {
                 return oldVal;
             }
-            long witness = compareAndExchange64(index, oldVal, value, mode);
+            long witness = compareAndExchange64(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -557,15 +585,15 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndSetMinUnsigned8(int index, int value, MemoryAtomicityMode mode) {
+    public int getAndSetMinUnsigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal;
         value &= 0xff;
         for (;;) {
-            oldVal = load8(index, mode.read()) & 0xff;
+            oldVal = load8(index, readMode) & 0xff;
             if (oldVal <= value) {
                 return oldVal;
             }
-            int witness = compareAndExchange8(index, oldVal, value, mode);
+            int witness = compareAndExchange8(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -573,15 +601,15 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndSetMinUnsigned16(int index, int value, MemoryAtomicityMode mode) {
+    public int getAndSetMinUnsigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal;
         value &= 0xffff;
         for (;;) {
-            oldVal = load16(index, mode.read()) & 0xffff;
+            oldVal = load16(index, readMode) & 0xffff;
             if (oldVal <= value) {
                 return oldVal;
             }
-            int witness = compareAndExchange16(index, oldVal, value, mode);
+            int witness = compareAndExchange16(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -589,14 +617,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public int getAndSetMinUnsigned32(int index, int value, MemoryAtomicityMode mode) {
+    public int getAndSetMinUnsigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal;
         for (;;) {
-            oldVal = load32(index, mode.read());
+            oldVal = load32(index, readMode);
             if (Integer.compareUnsigned(oldVal, value) <= 0) {
                 return oldVal;
             }
-            int witness = compareAndExchange32(index, oldVal, value, mode);
+            int witness = compareAndExchange32(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }
@@ -604,14 +632,14 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    public long getAndSetMinUnsigned64(int index, long value, MemoryAtomicityMode mode) {
+    public long getAndSetMinUnsigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         long oldVal;
         for (;;) {
-            oldVal = load64(index, mode.read());
+            oldVal = load64(index, readMode);
             if (Long.compareUnsigned(oldVal, value) <= 0) {
                 return oldVal;
             }
-            long witness = compareAndExchange64(index, oldVal, value, mode);
+            long witness = compareAndExchange64(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return value;
             }

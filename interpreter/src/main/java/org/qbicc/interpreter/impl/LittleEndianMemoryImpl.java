@@ -155,10 +155,14 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public int getAndSet16(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public int getAndSet16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load16(index, readMode);
+            store16(index, value, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h16.getAndSetAcquire(data, index, (short) value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h16.getAndSetRelease(data, index, (short) value);
         } else {
             return (int) h16.getAndSet(data, index, (short) value);
@@ -166,10 +170,14 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public int getAndSet32(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public int getAndSet32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load32(index, readMode);
+            store32(index, value, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h32.getAndSetAcquire(data, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h32.getAndSetRelease(data, index, value);
         } else {
             return (int) h32.getAndSet(data, index, value);
@@ -177,10 +185,14 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public long getAndSet64(int index, long value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public long getAndSet64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            long val = load64(index, readMode);
+            store64(index, value, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (long) h64.getAndSetAcquire(data, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (long) h64.getAndSetRelease(data, index, value);
         } else {
             return (long) h64.getAndSet(data, index, value);
@@ -188,10 +200,14 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public int getAndAdd16(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public int getAndAdd16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load16(index, readMode);
+            store16(index, value + val, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h16.getAndAddAcquire(data, index, (short) value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h16.getAndAddRelease(data, index, (short) value);
         } else {
             return (int) h16.getAndAdd(data, index, (short) value);
@@ -199,10 +215,14 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public int getAndAdd32(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public int getAndAdd32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load32(index, readMode);
+            store32(index, value + val, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h32.getAndAddAcquire(data, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h32.getAndAddRelease(data, index, value);
         } else {
             return (int) h32.getAndAdd(data, index, value);
@@ -210,10 +230,14 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public long getAndAdd64(int index, long value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public long getAndAdd64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            long val = load64(index, readMode);
+            store64(index, value + val, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (long) h64.getAndAddAcquire(data, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (long) h64.getAndAddRelease(data, index, value);
         } else {
             return (long) h64.getAndAdd(data, index, value);
@@ -221,10 +245,14 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public int getAndBitwiseAnd16(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public int getAndBitwiseAnd16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load16(index, readMode);
+            store16(index, value & val, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h16.getAndBitwiseAndAcquire(data, index, (short) value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h16.getAndBitwiseAndRelease(data, index, (short) value);
         } else {
             return (int) h16.getAndBitwiseAnd(data, index, (short) value);
@@ -232,10 +260,14 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public int getAndBitwiseAnd32(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public int getAndBitwiseAnd32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load32(index, readMode);
+            store32(index, value & val, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h32.getAndBitwiseAndAcquire(data, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h32.getAndBitwiseAndRelease(data, index, value);
         } else {
             return (int) h32.getAndBitwiseAnd(data, index, value);
@@ -243,10 +275,14 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public long getAndBitwiseAnd64(int index, long value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public long getAndBitwiseAnd64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            long val = load64(index, readMode);
+            store64(index, value & val, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (long) h64.getAndBitwiseAndAcquire(data, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (long) h64.getAndBitwiseAndRelease(data, index, value);
         } else {
             return (long) h64.getAndBitwiseAnd(data, index, value);
@@ -254,10 +290,14 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public int getAndBitwiseOr16(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public int getAndBitwiseOr16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load16(index, readMode);
+            store16(index, value | val, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h16.getAndBitwiseOrAcquire(data, index, (short) value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h16.getAndBitwiseOrRelease(data, index, (short) value);
         } else {
             return (int) h16.getAndBitwiseOr(data, index, (short) value);
@@ -265,10 +305,14 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public int getAndBitwiseOr32(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public int getAndBitwiseOr32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load32(index, readMode);
+            store32(index, value | val, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h32.getAndBitwiseOrAcquire(data, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h32.getAndBitwiseOrRelease(data, index, value);
         } else {
             return (int) h32.getAndBitwiseOr(data, index, value);
@@ -276,10 +320,14 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public long getAndBitwiseOr64(int index, long value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public long getAndBitwiseOr64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            long val = load64(index, readMode);
+            store64(index, value | val, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (long) h64.getAndBitwiseOrAcquire(data, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (long) h64.getAndBitwiseOrRelease(data, index, value);
         } else {
             return (long) h64.getAndBitwiseOr(data, index, value);
@@ -287,10 +335,14 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public int getAndBitwiseXor16(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public int getAndBitwiseXor16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load16(index, readMode);
+            store16(index, value ^ val, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h16.getAndBitwiseXorAcquire(data, index, (short) value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h16.getAndBitwiseXorRelease(data, index, (short) value);
         } else {
             return (int) h16.getAndBitwiseXor(data, index, (short) value);
@@ -298,10 +350,14 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public int getAndBitwiseXor32(int index, int value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public int getAndBitwiseXor32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            int val = load32(index, readMode);
+            store32(index, value ^ val, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (int) h32.getAndBitwiseXorAcquire(data, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (int) h32.getAndBitwiseXorRelease(data, index, value);
         } else {
             return (int) h32.getAndBitwiseXor(data, index, value);
@@ -309,10 +365,14 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
     }
 
     @Override
-    public long getAndBitwiseXor64(int index, long value, MemoryAtomicityMode mode) {
-        if (mode == MemoryAtomicityMode.ACQUIRE) {
+    public long getAndBitwiseXor64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            long val = load64(index, readMode);
+            store64(index, value ^ val, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
             return (long) h64.getAndBitwiseXorAcquire(data, index, value);
-        } else if (mode == MemoryAtomicityMode.RELEASE) {
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
             return (long) h64.getAndBitwiseXorRelease(data, index, value);
         } else {
             return (long) h64.getAndBitwiseXor(data, index, value);

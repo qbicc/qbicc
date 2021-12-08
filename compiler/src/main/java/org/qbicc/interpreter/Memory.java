@@ -185,89 +185,300 @@ public interface Memory {
 
     ValueType compareAndExchangeType(int index, ValueType expect, ValueType update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    int getAndSet8(int index, int value, MemoryAtomicityMode mode);
+    int getAndSet8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    int getAndSet16(int index, int value, MemoryAtomicityMode mode);
+    @Deprecated
+    default int getAndSet8(int index, int value, MemoryAtomicityMode mode) {
+        return getAndSet8(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndSet32(int index, int value, MemoryAtomicityMode mode);
+    int getAndSet16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    long getAndSet64(int index, long value, MemoryAtomicityMode mode);
+    @Deprecated
+    default int getAndSet16(int index, int value, MemoryAtomicityMode mode) {
+        return getAndSet16(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    VmObject getAndSetRef(int index, VmObject value, MemoryAtomicityMode mode);
+    int getAndSet32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    ValueType getAndSetType(int index, ValueType value, MemoryAtomicityMode mode);
+    @Deprecated
+    default int getAndSet32(int index, int value, MemoryAtomicityMode mode) {
+        return getAndSet32(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndAdd8(int index, int value, MemoryAtomicityMode mode);
+    long getAndSet64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    int getAndAdd16(int index, int value, MemoryAtomicityMode mode);
+    @Deprecated
+    default long getAndSet64(int index, long value, MemoryAtomicityMode mode) {
+        return getAndSet64(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndAdd32(int index, int value, MemoryAtomicityMode mode);
+    VmObject getAndSetRef(int index, VmObject value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    long getAndAdd64(int index, long value, MemoryAtomicityMode mode);
+    @Deprecated
+    default VmObject getAndSetRef(int index, VmObject value, MemoryAtomicityMode mode) {
+        return getAndSetRef(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndBitwiseAnd8(int index, int value, MemoryAtomicityMode mode);
+    ValueType getAndSetType(int index, ValueType value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    int getAndBitwiseAnd16(int index, int value, MemoryAtomicityMode mode);
+    @Deprecated
+    default ValueType getAndSetType(int index, ValueType value, MemoryAtomicityMode mode) {
+        return getAndSetType(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndBitwiseAnd32(int index, int value, MemoryAtomicityMode mode);
+    int getAndAdd8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    long getAndBitwiseAnd64(int index, long value, MemoryAtomicityMode mode);
+    @Deprecated
+    default int getAndAdd8(int index, int value, MemoryAtomicityMode mode) {
+        return getAndAdd8(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndBitwiseNand8(int index, int value, MemoryAtomicityMode mode);
+    int getAndAdd16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    int getAndBitwiseNand16(int index, int value, MemoryAtomicityMode mode);
+    @Deprecated
+    default int getAndAdd16(int index, int value, MemoryAtomicityMode mode) {
+        return getAndAdd16(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndBitwiseNand32(int index, int value, MemoryAtomicityMode mode);
+    int getAndAdd32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    long getAndBitwiseNand64(int index, long value, MemoryAtomicityMode mode);
+    @Deprecated
+    default int getAndAdd32(int index, int value, MemoryAtomicityMode mode) {
+        return getAndAdd32(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndBitwiseOr8(int index, int value, MemoryAtomicityMode mode);
+    long getAndAdd64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    int getAndBitwiseOr16(int index, int value, MemoryAtomicityMode mode);
+    @Deprecated
+    default long getAndAdd64(int index, long value, MemoryAtomicityMode mode) {
+        return getAndAdd64(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndBitwiseOr32(int index, int value, MemoryAtomicityMode mode);
+    int getAndBitwiseAnd8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    long getAndBitwiseOr64(int index, long value, MemoryAtomicityMode mode);
+    @Deprecated
+    default int getAndBitwiseAnd8(int index, int value, MemoryAtomicityMode mode) {
+        return getAndBitwiseAnd8(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndBitwiseXor8(int index, int value, MemoryAtomicityMode mode);
+    int getAndBitwiseAnd16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    int getAndBitwiseXor16(int index, int value, MemoryAtomicityMode mode);
+    @Deprecated
+    default int getAndBitwiseAnd16(int index, int value, MemoryAtomicityMode mode) {
+        return getAndBitwiseAnd16(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndBitwiseXor32(int index, int value, MemoryAtomicityMode mode);
+    int getAndBitwiseAnd32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    long getAndBitwiseXor64(int index, long value, MemoryAtomicityMode mode);
+    @Deprecated
+    default int getAndBitwiseAnd32(int index, int value, MemoryAtomicityMode mode) {
+        return getAndBitwiseAnd32(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndSetMaxSigned8(int index, int value, MemoryAtomicityMode mode);
+    long getAndBitwiseAnd64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    int getAndSetMaxSigned16(int index, int value, MemoryAtomicityMode mode);
+    @Deprecated
+    default long getAndBitwiseAnd64(int index, long value, MemoryAtomicityMode mode) {
+        return getAndBitwiseAnd64(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndSetMaxSigned32(int index, int value, MemoryAtomicityMode mode);
+    int getAndBitwiseNand8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    long getAndSetMaxSigned64(int index, long value, MemoryAtomicityMode mode);
+    @Deprecated
+    default int getAndBitwiseNand8(int index, int value, MemoryAtomicityMode mode) {
+        return getAndBitwiseNand8(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndSetMaxUnsigned8(int index, int value, MemoryAtomicityMode mode);
+    int getAndBitwiseNand16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    int getAndSetMaxUnsigned16(int index, int value, MemoryAtomicityMode mode);
+    @Deprecated
+    default int getAndBitwiseNand16(int index, int value, MemoryAtomicityMode mode) {
+        return getAndBitwiseNand16(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndSetMaxUnsigned32(int index, int value, MemoryAtomicityMode mode);
+    int getAndBitwiseNand32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    long getAndSetMaxUnsigned64(int index, long value, MemoryAtomicityMode mode);
+    @Deprecated
+    default int getAndBitwiseNand32(int index, int value, MemoryAtomicityMode mode) {
+        return getAndBitwiseNand32(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndSetMinSigned8(int index, int value, MemoryAtomicityMode mode);
+    long getAndBitwiseNand64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    int getAndSetMinSigned16(int index, int value, MemoryAtomicityMode mode);
+    @Deprecated
+    default long getAndBitwiseNand64(int index, long value, MemoryAtomicityMode mode) {
+        return getAndBitwiseNand64(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndSetMinSigned32(int index, int value, MemoryAtomicityMode mode);
+    int getAndBitwiseOr8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    long getAndSetMinSigned64(int index, long value, MemoryAtomicityMode mode);
+    @Deprecated
+    default int getAndBitwiseOr8(int index, int value, MemoryAtomicityMode mode) {
+        return getAndBitwiseOr8(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndSetMinUnsigned8(int index, int value, MemoryAtomicityMode mode);
+    int getAndBitwiseOr16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    int getAndSetMinUnsigned16(int index, int value, MemoryAtomicityMode mode);
+    @Deprecated
+    default int getAndBitwiseOr16(int index, int value, MemoryAtomicityMode mode) {
+        return getAndBitwiseOr16(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
 
-    int getAndSetMinUnsigned32(int index, int value, MemoryAtomicityMode mode);
+    int getAndBitwiseOr32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    long getAndSetMinUnsigned64(int index, long value, MemoryAtomicityMode mode);
+    @Deprecated
+    default int getAndBitwiseOr32(int index, int value, MemoryAtomicityMode mode) {
+        return getAndBitwiseOr32(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    long getAndBitwiseOr64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default long getAndBitwiseOr64(int index, long value, MemoryAtomicityMode mode) {
+        return getAndBitwiseOr64(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    int getAndBitwiseXor8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default int getAndBitwiseXor8(int index, int value, MemoryAtomicityMode mode) {
+        return getAndBitwiseXor8(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    int getAndBitwiseXor16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default int getAndBitwiseXor16(int index, int value, MemoryAtomicityMode mode) {
+        return getAndBitwiseXor16(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    int getAndBitwiseXor32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default int getAndBitwiseXor32(int index, int value, MemoryAtomicityMode mode) {
+        return getAndBitwiseXor32(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    long getAndBitwiseXor64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default long getAndBitwiseXor64(int index, long value, MemoryAtomicityMode mode) {
+        return getAndBitwiseXor64(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    int getAndSetMaxSigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default int getAndSetMaxSigned8(int index, int value, MemoryAtomicityMode mode) {
+        return getAndSetMaxSigned8(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    int getAndSetMaxSigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default int getAndSetMaxSigned16(int index, int value, MemoryAtomicityMode mode) {
+        return getAndSetMaxSigned16(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    int getAndSetMaxSigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default int getAndSetMaxSigned32(int index, int value, MemoryAtomicityMode mode) {
+        return getAndSetMaxSigned32(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    long getAndSetMaxSigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default long getAndSetMaxSigned64(int index, long value, MemoryAtomicityMode mode) {
+        return getAndSetMaxSigned64(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    int getAndSetMaxUnsigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default int getAndSetMaxUnsigned8(int index, int value, MemoryAtomicityMode mode) {
+        return getAndSetMaxUnsigned8(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    int getAndSetMaxUnsigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default int getAndSetMaxUnsigned16(int index, int value, MemoryAtomicityMode mode) {
+        return getAndSetMaxUnsigned16(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    int getAndSetMaxUnsigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default int getAndSetMaxUnsigned32(int index, int value, MemoryAtomicityMode mode) {
+        return getAndSetMaxUnsigned32(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    long getAndSetMaxUnsigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default long getAndSetMaxUnsigned64(int index, long value, MemoryAtomicityMode mode) {
+        return getAndSetMaxUnsigned64(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    int getAndSetMinSigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default int getAndSetMinSigned8(int index, int value, MemoryAtomicityMode mode) {
+        return getAndSetMinSigned8(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    int getAndSetMinSigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default int getAndSetMinSigned16(int index, int value, MemoryAtomicityMode mode) {
+        return getAndSetMinSigned16(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    int getAndSetMinSigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default int getAndSetMinSigned32(int index, int value, MemoryAtomicityMode mode) {
+        return getAndSetMinSigned32(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    long getAndSetMinSigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default long getAndSetMinSigned64(int index, long value, MemoryAtomicityMode mode) {
+        return getAndSetMinSigned64(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    int getAndSetMinUnsigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default int getAndSetMinUnsigned8(int index, int value, MemoryAtomicityMode mode) {
+        return getAndSetMinUnsigned8(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    int getAndSetMinUnsigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default int getAndSetMinUnsigned16(int index, int value, MemoryAtomicityMode mode) {
+        return getAndSetMinUnsigned16(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    int getAndSetMinUnsigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default int getAndSetMinUnsigned32(int index, int value, MemoryAtomicityMode mode) {
+        return getAndSetMinUnsigned32(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
+    long getAndSetMinUnsigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    @Deprecated
+    default long getAndSetMinUnsigned64(int index, long value, MemoryAtomicityMode mode) {
+        return getAndSetMinUnsigned64(index, value, mode.getAccessMode().getReadAccess(), mode.getAccessMode().getWriteAccess());
+    }
+
 
     Memory copy(int newSize);
 }

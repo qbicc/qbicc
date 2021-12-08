@@ -14,7 +14,6 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.MemberOf;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -68,57 +67,57 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndAdd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndAdd(target, update, atomicityMode);
+        return super.getAndAdd(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value getAndBitwiseAnd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndBitwiseAnd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndBitwiseAnd(target, update, atomicityMode);
+        return super.getAndBitwiseAnd(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value getAndBitwiseNand(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndBitwiseNand(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndBitwiseNand(target, update, atomicityMode);
+        return super.getAndBitwiseNand(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value getAndBitwiseOr(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndBitwiseOr(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndBitwiseOr(target, update, atomicityMode);
+        return super.getAndBitwiseOr(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value getAndBitwiseXor(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndBitwiseXor(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndBitwiseXor(target, update, atomicityMode);
+        return super.getAndBitwiseXor(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value getAndSet(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndSet(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndSet(target, update, atomicityMode);
+        return super.getAndSet(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value getAndSetMax(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndSetMax(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndSetMax(target, update, atomicityMode);
+        return super.getAndSetMax(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value getAndSetMin(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndSetMin(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndSetMin(target, update, atomicityMode);
+        return super.getAndSetMin(target, update, readMode, writeMode);
     }
 
     @Override
-    public Value getAndSub(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+    public Value getAndSub(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndSub(target, update, atomicityMode);
+        return super.getAndSub(target, update, readMode, writeMode);
     }
 
     @Override

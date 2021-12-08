@@ -1556,15 +1556,16 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
         Value update = node.getUpdateValue();
-        MemoryAtomicityMode mode = node.getAtomicityMode();
+        ReadAccessMode readAccessMode = node.getReadAccessMode();
+        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
         if (isInt8(type)) {
-            return Byte.valueOf((byte) memory.getAndAdd8(offset, unboxInt(update), mode));
+            return Byte.valueOf((byte) memory.getAndAdd8(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt16(type)) {
-            return Short.valueOf((short) memory.getAndAdd16(offset, unboxInt(update), mode));
+            return Short.valueOf((short) memory.getAndAdd16(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt32(type)) {
-            return Integer.valueOf(memory.getAndAdd32(offset, unboxInt(update), mode));
+            return Integer.valueOf(memory.getAndAdd32(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt64(type)) {
-            return Long.valueOf(memory.getAndAdd64(offset, unboxLong(update), mode));
+            return Long.valueOf(memory.getAndAdd64(offset, unboxLong(update), readAccessMode, writeAccessMode));
         } else {
             throw unsupportedType();
         }
@@ -1580,17 +1581,18 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
         Value update = node.getUpdateValue();
-        MemoryAtomicityMode mode = node.getAtomicityMode();
+        ReadAccessMode readAccessMode = node.getReadAccessMode();
+        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
         if (isInt8(type)) {
-            return Byte.valueOf((byte) memory.getAndBitwiseAnd8(offset, unboxInt(update), mode));
+            return Byte.valueOf((byte) memory.getAndBitwiseAnd8(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt16(type)) {
-            return Short.valueOf((short) memory.getAndBitwiseAnd16(offset, unboxInt(update), mode));
+            return Short.valueOf((short) memory.getAndBitwiseAnd16(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt32(type)) {
-            return Integer.valueOf(memory.getAndBitwiseAnd32(offset, unboxInt(update), mode));
+            return Integer.valueOf(memory.getAndBitwiseAnd32(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt64(type)) {
-            return Long.valueOf(memory.getAndBitwiseAnd64(offset, unboxLong(update), mode));
+            return Long.valueOf(memory.getAndBitwiseAnd64(offset, unboxLong(update), readAccessMode, writeAccessMode));
         } else if (isBool(type)) {
-            return Boolean.valueOf((memory.getAndBitwiseAnd8(offset, unboxBool(update) ? 1 : 0, mode) & 1) != 0);
+            return Boolean.valueOf((memory.getAndBitwiseAnd8(offset, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode) & 1) != 0);
         } else {
             throw unsupportedType();
         }
@@ -1606,17 +1608,18 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
         Value update = node.getUpdateValue();
-        MemoryAtomicityMode mode = node.getAtomicityMode();
+        ReadAccessMode readAccessMode = node.getReadAccessMode();
+        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
         if (isInt8(type)) {
-            return Byte.valueOf((byte) memory.getAndBitwiseNand8(offset, unboxInt(update), mode));
+            return Byte.valueOf((byte) memory.getAndBitwiseNand8(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt16(type)) {
-            return Short.valueOf((short) memory.getAndBitwiseNand16(offset, unboxInt(update), mode));
+            return Short.valueOf((short) memory.getAndBitwiseNand16(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt32(type)) {
-            return Integer.valueOf(memory.getAndBitwiseNand32(offset, unboxInt(update), mode));
+            return Integer.valueOf(memory.getAndBitwiseNand32(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt64(type)) {
-            return Long.valueOf(memory.getAndBitwiseNand64(offset, unboxLong(update), mode));
+            return Long.valueOf(memory.getAndBitwiseNand64(offset, unboxLong(update), readAccessMode, writeAccessMode));
         } else if (isBool(type)) {
-            return Boolean.valueOf((memory.getAndBitwiseNand8(offset, unboxBool(update) ? 1 : 0, mode) & 1) != 0);
+            return Boolean.valueOf((memory.getAndBitwiseNand8(offset, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode) & 1) != 0);
         } else {
             throw unsupportedType();
         }
@@ -1632,17 +1635,18 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
         Value update = node.getUpdateValue();
-        MemoryAtomicityMode mode = node.getAtomicityMode();
+        ReadAccessMode readAccessMode = node.getReadAccessMode();
+        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
         if (isInt8(type)) {
-            return Byte.valueOf((byte) memory.getAndBitwiseOr8(offset, unboxInt(update), mode));
+            return Byte.valueOf((byte) memory.getAndBitwiseOr8(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt16(type)) {
-            return Short.valueOf((short) memory.getAndBitwiseOr16(offset, unboxInt(update), mode));
+            return Short.valueOf((short) memory.getAndBitwiseOr16(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt32(type)) {
-            return Integer.valueOf(memory.getAndBitwiseOr32(offset, unboxInt(update), mode));
+            return Integer.valueOf(memory.getAndBitwiseOr32(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt64(type)) {
-            return Long.valueOf(memory.getAndBitwiseOr64(offset, unboxLong(update), mode));
+            return Long.valueOf(memory.getAndBitwiseOr64(offset, unboxLong(update), readAccessMode, writeAccessMode));
         } else if (isBool(type)) {
-            return Boolean.valueOf((memory.getAndBitwiseOr8(offset, unboxBool(update) ? 1 : 0, mode) & 1) != 0);
+            return Boolean.valueOf((memory.getAndBitwiseOr8(offset, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode) & 1) != 0);
         } else {
             throw unsupportedType();
         }
@@ -1658,17 +1662,18 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
         Value update = node.getUpdateValue();
-        MemoryAtomicityMode mode = node.getAtomicityMode();
+        ReadAccessMode readAccessMode = node.getReadAccessMode();
+        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
         if (isInt8(type)) {
-            return Byte.valueOf((byte) memory.getAndBitwiseXor8(offset, unboxInt(update), mode));
+            return Byte.valueOf((byte) memory.getAndBitwiseXor8(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt16(type)) {
-            return Short.valueOf((short) memory.getAndBitwiseXor16(offset, unboxInt(update), mode));
+            return Short.valueOf((short) memory.getAndBitwiseXor16(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt32(type)) {
-            return Integer.valueOf(memory.getAndBitwiseXor32(offset, unboxInt(update), mode));
+            return Integer.valueOf(memory.getAndBitwiseXor32(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt64(type)) {
-            return Long.valueOf(memory.getAndBitwiseXor64(offset, unboxLong(update), mode));
+            return Long.valueOf(memory.getAndBitwiseXor64(offset, unboxLong(update), readAccessMode, writeAccessMode));
         } else if (isBool(type)) {
-            return Boolean.valueOf((memory.getAndBitwiseXor8(offset, unboxBool(update) ? 1 : 0, mode) & 1) != 0);
+            return Boolean.valueOf((memory.getAndBitwiseXor8(offset, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode) & 1) != 0);
         } else {
             throw unsupportedType();
         }
@@ -1684,23 +1689,24 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
         Value update = node.getUpdateValue();
-        MemoryAtomicityMode mode = node.getAtomicityMode();
+        ReadAccessMode readAccessMode = node.getReadAccessMode();
+        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
         if (isBool(type)) {
-            return Boolean.valueOf(memory.getAndSet8(offset, unboxBool(update) ? 1 : 0, mode) != 0);
+            return Boolean.valueOf(memory.getAndSet8(offset, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode) != 0);
         } else if (isInt8(type)) {
-            return Byte.valueOf((byte) memory.getAndSet8(offset, unboxInt(update), mode));
+            return Byte.valueOf((byte) memory.getAndSet8(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt16(type)) {
-            return Short.valueOf((short) memory.getAndSet16(offset, unboxInt(update), mode));
+            return Short.valueOf((short) memory.getAndSet16(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt32(type)) {
-            return Integer.valueOf(memory.getAndSet32(offset, unboxInt(update), mode));
+            return Integer.valueOf(memory.getAndSet32(offset, unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt64(type)) {
-            return Long.valueOf(memory.getAndSet64(offset, unboxLong(update), mode));
+            return Long.valueOf(memory.getAndSet64(offset, unboxLong(update), readAccessMode, writeAccessMode));
         } else if (isFloat32(type)) {
-            return Float.valueOf(Float.intBitsToFloat(memory.getAndSet32(offset, Float.floatToRawIntBits(unboxFloat(update)), mode)));
+            return Float.valueOf(Float.intBitsToFloat(memory.getAndSet32(offset, Float.floatToRawIntBits(unboxFloat(update)), readAccessMode, writeAccessMode)));
         } else if (isFloat64(type)) {
-            return Double.valueOf(Double.longBitsToDouble(memory.getAndSet64(offset, Double.doubleToRawLongBits(unboxDouble(update)), mode)));
+            return Double.valueOf(Double.longBitsToDouble(memory.getAndSet64(offset, Double.doubleToRawLongBits(unboxDouble(update)), readAccessMode, writeAccessMode)));
         } else if (isRef(type)) {
-            return memory.getAndSetRef(offset, (VmObject) require(update), mode);
+            return memory.getAndSetRef(offset, (VmObject) require(update), readAccessMode, writeAccessMode);
         } else {
             throw unsupportedType();
         }
@@ -1716,28 +1722,29 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
         Value update = node.getUpdateValue();
-        MemoryAtomicityMode mode = node.getAtomicityMode();
+        ReadAccessMode readAccessMode = node.getReadAccessMode();
+        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
         if (isSigned(type)) {
             if (isInt8(type)) {
-                return Byte.valueOf((byte) memory.getAndSetMaxSigned8(offset, unboxInt(update), mode));
+                return Byte.valueOf((byte) memory.getAndSetMaxSigned8(offset, unboxInt(update), readAccessMode, writeAccessMode));
             } else if (isInt16(type)) {
-                return Short.valueOf((short) memory.getAndSetMaxSigned16(offset, unboxInt(update), mode));
+                return Short.valueOf((short) memory.getAndSetMaxSigned16(offset, unboxInt(update), readAccessMode, writeAccessMode));
             } else if (isInt32(type)) {
-                return Integer.valueOf(memory.getAndSetMaxSigned32(offset, unboxInt(update), mode));
+                return Integer.valueOf(memory.getAndSetMaxSigned32(offset, unboxInt(update), readAccessMode, writeAccessMode));
             } else if (isInt64(type)) {
-                return Long.valueOf(memory.getAndSetMaxSigned64(offset, unboxLong(update), mode));
+                return Long.valueOf(memory.getAndSetMaxSigned64(offset, unboxLong(update), readAccessMode, writeAccessMode));
             } else {
                 throw unsupportedType();
             }
         } else {
             if (isInt8(type)) {
-                return Byte.valueOf((byte) memory.getAndSetMaxUnsigned8(offset, unboxInt(update), mode));
+                return Byte.valueOf((byte) memory.getAndSetMaxUnsigned8(offset, unboxInt(update), readAccessMode, writeAccessMode));
             } else if (isInt16(type)) {
-                return Short.valueOf((short) memory.getAndSetMaxUnsigned16(offset, unboxInt(update), mode));
+                return Short.valueOf((short) memory.getAndSetMaxUnsigned16(offset, unboxInt(update), readAccessMode, writeAccessMode));
             } else if (isInt32(type)) {
-                return Integer.valueOf(memory.getAndSetMaxUnsigned32(offset, unboxInt(update), mode));
+                return Integer.valueOf(memory.getAndSetMaxUnsigned32(offset, unboxInt(update), readAccessMode, writeAccessMode));
             } else if (isInt64(type)) {
-                return Long.valueOf(memory.getAndSetMaxUnsigned64(offset, unboxLong(update), mode));
+                return Long.valueOf(memory.getAndSetMaxUnsigned64(offset, unboxLong(update), readAccessMode, writeAccessMode));
             } else {
                 throw unsupportedType();
             }
@@ -1754,28 +1761,29 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
         Value update = node.getUpdateValue();
-        MemoryAtomicityMode mode = node.getAtomicityMode();
+        ReadAccessMode readAccessMode = node.getReadAccessMode();
+        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
         if (isSigned(type)) {
             if (isInt8(type)) {
-                return Byte.valueOf((byte) memory.getAndSetMinSigned8(offset, unboxInt(update), mode));
+                return Byte.valueOf((byte) memory.getAndSetMinSigned8(offset, unboxInt(update), readAccessMode, writeAccessMode));
             } else if (isInt16(type)) {
-                return Short.valueOf((short) memory.getAndSetMinSigned16(offset, unboxInt(update), mode));
+                return Short.valueOf((short) memory.getAndSetMinSigned16(offset, unboxInt(update), readAccessMode, writeAccessMode));
             } else if (isInt32(type)) {
-                return Integer.valueOf(memory.getAndSetMinSigned32(offset, unboxInt(update), mode));
+                return Integer.valueOf(memory.getAndSetMinSigned32(offset, unboxInt(update), readAccessMode, writeAccessMode));
             } else if (isInt64(type)) {
-                return Long.valueOf(memory.getAndSetMinSigned64(offset, unboxLong(update), mode));
+                return Long.valueOf(memory.getAndSetMinSigned64(offset, unboxLong(update), readAccessMode, writeAccessMode));
             } else {
                 throw unsupportedType();
             }
         } else {
             if (isInt8(type)) {
-                return Byte.valueOf((byte) memory.getAndSetMinUnsigned8(offset, unboxInt(update), mode));
+                return Byte.valueOf((byte) memory.getAndSetMinUnsigned8(offset, unboxInt(update), readAccessMode, writeAccessMode));
             } else if (isInt16(type)) {
-                return Short.valueOf((short) memory.getAndSetMinUnsigned16(offset, unboxInt(update), mode));
+                return Short.valueOf((short) memory.getAndSetMinUnsigned16(offset, unboxInt(update), readAccessMode, writeAccessMode));
             } else if (isInt32(type)) {
-                return Integer.valueOf(memory.getAndSetMinUnsigned32(offset, unboxInt(update), mode));
+                return Integer.valueOf(memory.getAndSetMinUnsigned32(offset, unboxInt(update), readAccessMode, writeAccessMode));
             } else if (isInt64(type)) {
-                return Long.valueOf(memory.getAndSetMinUnsigned64(offset, unboxLong(update), mode));
+                return Long.valueOf(memory.getAndSetMinUnsigned64(offset, unboxLong(update), readAccessMode, writeAccessMode));
             } else {
                 throw unsupportedType();
             }
@@ -1792,15 +1800,16 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         int offset = getOffset(valueHandle);
         ValueType type = node.getValueHandle().getValueType();
         Value update = node.getUpdateValue();
-        MemoryAtomicityMode mode = node.getAtomicityMode();
+        ReadAccessMode readAccessMode = node.getReadAccessMode();
+        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
         if (isInt8(type)) {
-            return Byte.valueOf((byte) memory.getAndAdd8(offset, -unboxInt(update), mode));
+            return Byte.valueOf((byte) memory.getAndAdd8(offset, -unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt16(type)) {
-            return Short.valueOf((short) memory.getAndAdd16(offset, -unboxInt(update), mode));
+            return Short.valueOf((short) memory.getAndAdd16(offset, -unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt32(type)) {
-            return Integer.valueOf(memory.getAndAdd32(offset, -unboxInt(update), mode));
+            return Integer.valueOf(memory.getAndAdd32(offset, -unboxInt(update), readAccessMode, writeAccessMode));
         } else if (isInt64(type)) {
-            return Long.valueOf(memory.getAndAdd64(offset, -unboxLong(update), mode));
+            return Long.valueOf(memory.getAndAdd64(offset, -unboxLong(update), readAccessMode, writeAccessMode));
         } else {
             throw unsupportedType();
         }
