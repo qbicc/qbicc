@@ -53,6 +53,7 @@ import org.qbicc.object.Data;
 import org.qbicc.object.Section;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
+import org.qbicc.plugin.gc.nogc.NoGc;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables;
 import org.qbicc.plugin.intrinsics.InstanceIntrinsic;
 import org.qbicc.plugin.intrinsics.Intrinsics;
@@ -1432,11 +1433,13 @@ public final class CoreIntrinsics {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
         LiteralFactory lf = ctxt.getLiteralFactory();
+        CoreClasses coreClasses = CoreClasses.get(ctxt);
 
         ClassTypeDescriptor ciDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/CompilerIntrinsics");
         ClassTypeDescriptor typeIdDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$type_id");
         ClassTypeDescriptor uint8Desc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$uint8_t");
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
+        ClassTypeDescriptor clsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
 
         MethodDescriptor newRefArrayDesc =  MethodDescriptor.synthesize(classContext, objDesc, List.of(typeIdDesc, uint8Desc, BaseTypeDescriptor.I));
         StaticIntrinsic newRefArray = (builder, target, arguments) -> {
@@ -1451,6 +1454,23 @@ public final class CoreIntrinsics {
             return builder.new_(upperBound, arguments.get(0), arguments.get(1), arguments.get(2));
         };
         intrinsics.registerIntrinsic(Phase.ADD, ciDesc, "emitNew", newDesc, new_);
+
+        MethodDescriptor copyDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(clsDesc, objDesc, objDesc));
+        StaticIntrinsic copy = (builder, target, arguments) -> {
+            Value cls = arguments.get(0);
+            Value src = arguments.get(1);
+            Value dst = arguments.get(2);
+            Value size32 = builder.load(builder.instanceFieldOf(builder.referenceHandle(cls), coreClasses.getClassInstanceSizeField()), MemoryAtomicityMode.UNORDERED);
+            Value size = builder.extend(size32, ctxt.getTypeSystem().getSignedInteger64Type());
+
+            // TODO: This is a kludge in multiple ways:
+            //  1. We should not directly call a NoGc method here.
+            //  2. We are overwriting the object header fields initialized by new when doing the copy
+            //     (to make sure we copy any instance fields that have been assigned to use the padding bytes in the basic object header).
+            MethodElement method = NoGc.get(ctxt).getCopyMethod();
+            return builder.call(builder.staticMethod(method, method.getDescriptor(), method.getType()), List.of(src, dst, size));
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "copyInstanceFields", copyDesc, copy);
     }
 
     static void registerOrgQbiccObjectModelIntrinsics(final CompilationContext ctxt) {
