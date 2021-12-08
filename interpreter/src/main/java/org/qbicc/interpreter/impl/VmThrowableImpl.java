@@ -99,13 +99,8 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
     }
 
     public VmThrowable getCause() {
-        int offs;
-        if (clazz.getName().equals("java.lang.ExceptionInInitializerError")) {
-            offs =  clazz.getLayoutInfo().getMember(clazz.getTypeDefinition().findField("exception")).getOffset();
-        } else {
-            VmClassImpl thr = getVmClass().getVm().throwableClass;
-            offs =  thr.getLayoutInfo().getMember(thr.getTypeDefinition().findField("cause")).getOffset();
-        }
+        VmClassImpl thr = getVmClass().getVm().throwableClass;
+        int offs = thr.getLayoutInfo().getMember(thr.getTypeDefinition().findField("cause")).getOffset();
         VmThrowable cause = (VmThrowable)getMemory().loadRef(offs, MemoryAtomicityMode.UNORDERED);
         if (cause == null || cause.equals(this)) {
             return null; // Cyclic cause indicated Throwable still being initialized; suppress.

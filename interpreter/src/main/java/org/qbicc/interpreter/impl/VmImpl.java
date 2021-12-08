@@ -1,19 +1,14 @@
 package org.qbicc.interpreter.impl;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
-import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -38,6 +33,7 @@ import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Signal;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmArrayClass;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
@@ -534,7 +530,11 @@ public final class VmImpl implements Vm {
 
             systemClass.registerInvokable("nanoTime", (thread, target, args) -> Long.valueOf(System.nanoTime()));
             systemClass.registerInvokable("currentTimeMillis", (thread, target, args) -> Long.valueOf(System.currentTimeMillis()));
-            systemClass.registerInvokable("initProperties", this::initProperties);
+
+            //jdk.internal.util.SystemProps.initProperties
+            VmClassImpl systemPropsRawClass = bootstrapClassLoader.loadClass("jdk/internal/util/SystemProps$Raw");
+            systemPropsRawClass.registerInvokable("platformProperties", this::platformProperties);
+            systemPropsRawClass.registerInvokable("vmProperties", this::vmProperties);
 
             //    private static native void initStackTraceElements(StackTraceElement[] elements,
             //                                                      Throwable x);
@@ -720,7 +720,7 @@ public final class VmImpl implements Vm {
                 VmThreadImpl ourThread = (VmThreadImpl) thread;
                 VmMemberNameImpl self = (VmMemberNameImpl) args.get(0);
                 VmClassImpl caller = (VmClassImpl) args.get(1);
-                boolean speculativeResolve = ((Boolean) args.get(2)).booleanValue();
+                boolean speculativeResolve = (((Number) args.get(2)).intValue() & 1) != 0;
                 self.resolve(ourThread, caller, speculativeResolve);
                 return self;
             });
@@ -759,60 +759,115 @@ public final class VmImpl implements Vm {
         }
     }
 
-    private Object initProperties(final VmThread thread, final VmObject target, final List<Object> args) {
-        VmObjectImpl props = (VmObjectImpl) args.get(0);
-        URL propsResource = VmImpl.class.getClassLoader().getResource("system.properties");
-        Properties properties = new Properties();
-        if (propsResource != null) {
-            try (InputStream is = propsResource.openStream()) {
-                try (InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-                    try (BufferedReader br = new BufferedReader(isr)) {
-                        properties.load(br);
-                    }
-                }
-            } catch (IOException e) {
-                throw new IllegalStateException("Initial system properties could not be loaded");
-            }
-        } else {
-            throw new IllegalStateException("Initial system properties could not be loaded");
-        }
-        // qbicc global fixed properties
-        for (String name : properties.stringPropertyNames()) {
-            setProperty(props, name, properties.getProperty(name));
-        }
-        // environment-specific properties
+    private VmArray platformProperties(final VmThread thread, final VmObject target, final List<Object> args) {
+
+        // todo: configuration
+        Locale displayLocale = Locale.getDefault();
+        Locale formatLocale = Locale.getDefault();
+        Charset fileEncoding = StandardCharsets.UTF_8;
         Platform platform = ctxt.getPlatform();
-        setProperty(props, "file.encoding", "UTF-8"); // only UTF-8
-        setProperty(props, "file.separator", platform.getOs().getFileSeparator());
+        String tempDir = "/tmp";
+        Charset jnuEncoding = StandardCharsets.UTF_8;
+        Charset stderrEncoding = StandardCharsets.UTF_8;
+        Charset stdoutEncoding = StandardCharsets.UTF_8;
 
-        // todo: java.class.path composed from command line
-        setProperty(props, "java.home", System.getProperty("java.home")); // todo: spec must allow this to be undef
-        setProperty(props, "java.io.tmpdir", System.getProperty("java.io.tmpdir")); // todo: reset at run time
-        setProperty(props, "java.library.path", ""); // todo: JNI
-        setProperty(props, "line.separator", platform.getOs().getLineSeparator());
-        setProperty(props, "os.name", platform.getOs().getName());
-        setProperty(props, "os.arch", platform.getCpu().getName());
-        // todo: os.version
-        setProperty(props, "path.separator", platform.getOs().getPathSeparator());
-
-        setProperty(props, "user.country", Locale.getDefault().getCountry()); // todo: user-set locale on command line
-        setProperty(props, "user.dir", System.getProperty("user.dir")); // todo: user.dir as a virtual directory, reset at run time
-        setProperty(props, "user.home", System.getProperty("user.home")); // todo: user.home as a virtual directory, reset at run time
-        setProperty(props, "user.language", Locale.getDefault().getLanguage()); // todo: user-set locale on command line
-        setProperty(props, "user.name", System.getProperty("user.name")); // todo: user.name as temp user, reset at run time
-        setProperty(props, "user.timezone", ""); // todo: reset at run time
-
-        // these are non-spec but used by the JDK or other things
-        setProperty(props, "sun.arch.data.model", String.valueOf(platform.getCpu().getCpuWordSize() << 3));
-        // todo: sun.boot.library.path from command line
-        setProperty(props, "sun.cpu.endian", ctxt.getTypeSystem().getEndianness() == ByteOrder.BIG_ENDIAN ? "big" : "little");
-        setProperty(props, "sun.jnu.encoding", "UTF-8");
-
-        return props;
+        return fromStringList(List.of(
+            //        @Native private static final int _display_country_NDX = 0;
+            displayLocale.getCountry(),
+            //        @Native private static final int _display_language_NDX = 1 + _display_country_NDX;
+            displayLocale.getLanguage(),
+            //        @Native private static final int _display_script_NDX = 1 + _display_language_NDX;
+            displayLocale.getScript(),
+            //        @Native private static final int _display_variant_NDX = 1 + _display_script_NDX;
+            displayLocale.getVariant(),
+            //        @Native private static final int _file_encoding_NDX = 1 + _display_variant_NDX;
+            fileEncoding.name(),
+            //        @Native private static final int _file_separator_NDX = 1 + _file_encoding_NDX;
+            platform.getOs().getFileSeparator(),
+            //        @Native private static final int _format_country_NDX = 1 + _file_separator_NDX;
+            formatLocale.getCountry(),
+            //        @Native private static final int _format_language_NDX = 1 + _format_country_NDX;
+            formatLocale.getLanguage(),
+            //        @Native private static final int _format_script_NDX = 1 + _format_language_NDX;
+            formatLocale.getScript(),
+            //        @Native private static final int _format_variant_NDX = 1 + _format_script_NDX;
+            formatLocale.getVariant(),
+            //        @Native private static final int _ftp_nonProxyHosts_NDX = 1 + _format_variant_NDX;
+            "",
+            //        @Native private static final int _ftp_proxyHost_NDX = 1 + _ftp_nonProxyHosts_NDX;
+            "",
+            //        @Native private static final int _ftp_proxyPort_NDX = 1 + _ftp_proxyHost_NDX;
+            "",
+            //        @Native private static final int _http_nonProxyHosts_NDX = 1 + _ftp_proxyPort_NDX;
+            "",
+            //        @Native private static final int _http_proxyHost_NDX = 1 + _http_nonProxyHosts_NDX;
+            "",
+            //        @Native private static final int _http_proxyPort_NDX = 1 + _http_proxyHost_NDX;
+            "",
+            //        @Native private static final int _https_proxyHost_NDX = 1 + _http_proxyPort_NDX;
+            "",
+            //        @Native private static final int _https_proxyPort_NDX = 1 + _https_proxyHost_NDX;
+            "",
+            //        @Native private static final int _java_io_tmpdir_NDX = 1 + _https_proxyPort_NDX;
+            tempDir,
+            //        @Native private static final int _line_separator_NDX = 1 + _java_io_tmpdir_NDX;
+            platform.getOs().getLineSeparator(),
+            //        @Native private static final int _os_arch_NDX = 1 + _line_separator_NDX;
+            platform.getCpu().getName(),
+            //        @Native private static final int _os_name_NDX = 1 + _os_arch_NDX;
+            platform.getOs().getName(),
+            //        @Native private static final int _os_version_NDX = 1 + _os_name_NDX;
+            "generic version",
+            //        @Native private static final int _path_separator_NDX = 1 + _os_version_NDX;
+            platform.getOs().getPathSeparator(),
+            //        @Native private static final int _socksNonProxyHosts_NDX = 1 + _path_separator_NDX;
+            "",
+            //        @Native private static final int _socksProxyHost_NDX = 1 + _socksNonProxyHosts_NDX;
+            "",
+            //        @Native private static final int _socksProxyPort_NDX = 1 + _socksProxyHost_NDX;
+            "",
+            //        @Native private static final int _sun_arch_abi_NDX = 1 + _socksProxyPort_NDX;
+            platform.getAbi().getName(),
+            //        @Native private static final int _sun_arch_data_model_NDX = 1 + _sun_arch_abi_NDX;
+            String.valueOf(platform.getCpu().getCpuWordSize() << 3),
+            //        @Native private static final int _sun_cpu_endian_NDX = 1 + _sun_arch_data_model_NDX;
+            ctxt.getTypeSystem().getEndianness() == ByteOrder.BIG_ENDIAN ? "big" : "little",
+            //        @Native private static final int _sun_cpu_isalist_NDX = 1 + _sun_cpu_endian_NDX;
+            "",
+            //        @Native private static final int _sun_io_unicode_encoding_NDX = 1 + _sun_cpu_isalist_NDX;
+            ctxt.getTypeSystem().getEndianness() == ByteOrder.BIG_ENDIAN ? "UnicodeBig" : "UnicodeLittle",
+            //        @Native private static final int _sun_jnu_encoding_NDX = 1 + _sun_io_unicode_encoding_NDX;
+            jnuEncoding.name(),
+            //        @Native private static final int _sun_os_patch_level_NDX = 1 + _sun_jnu_encoding_NDX;
+            "",
+            //        @Native private static final int _sun_stderr_encoding_NDX = 1 + _sun_os_patch_level_NDX;
+            stderrEncoding.name(),
+            //        @Native private static final int _sun_stdout_encoding_NDX = 1 + _sun_stderr_encoding_NDX;
+            stdoutEncoding.name(),
+            //        @Native private static final int _user_dir_NDX = 1 + _sun_stdout_encoding_NDX;
+            "virtual cwd",
+            //        @Native private static final int _user_home_NDX = 1 + _user_dir_NDX;
+            "virtual home",
+            //        @Native private static final int _user_name_NDX = 1 + _user_home_NDX;
+            "nobody")
+            //        @Native private static final int FIXED_LENGTH = 1 + _user_name_NDX;
+        );
     }
 
-    void setProperty(VmObjectImpl properties, String key, String value) {
-        invokeVirtual(setPropertyMethod, properties, List.of(intern(key), intern(value)));
+    private VmArray vmProperties(final VmThread thread, final VmObject target, final List<Object> args) {
+        // TODO: assemble `-D` options from command line
+        return fromStringList(List.of(
+            "java.home",    "virtual java.home"
+        ));
+    }
+
+    private VmArray fromStringList(List<String> list) {
+        int size = list.size();
+        VmReferenceArray array = newArrayOf(stringClass, size);
+        for (int i = 0; i < size; i ++) {
+            array.getMemory().storeRef(array.getArrayElementOffset(i), intern(list.get(i)), MemoryAtomicityMode.UNORDERED);
+        }
+        return array;
     }
 
     public VmThread newThread(final String threadName, final VmObject threadGroup, final boolean daemon, int priority) {
@@ -1028,11 +1083,11 @@ public final class VmImpl implements Vm {
             MethodDescriptor descriptor = ((ConstructorMethodHandleConstant) constant).getDescriptor();
             type = createMethodType(classContext, descriptor);
             nameStr = "<init>";
-            int mi = owner.getTypeDefinition().findConstructorIndex(descriptor);
-            if (mi == -1) {
+            int ci = owner.getTypeDefinition().findConstructorIndex(descriptor);
+            if (ci == -1) {
                 throw new Thrown(noSuchMethodErrorClass.newInstance());
             }
-            resolvedElement = owner.getTypeDefinition().getMethod(mi);
+            resolvedElement = owner.getTypeDefinition().getConstructor(ci);
             extraFlags = 1 << 17;
         }
         VmStringImpl nameObj = intern(nameStr);
@@ -1132,7 +1187,7 @@ public final class VmImpl implements Vm {
         if (elementType instanceof VmPrimitiveClass) {
             throw new IllegalArgumentException("Cannot create a reference array with a primitive element type");
         }
-        return (VmReferenceArray) ((VmClassImpl)elementType).getArrayClass().newInstance(size);
+        return (VmReferenceArray) manuallyInitialize(((VmClassImpl)elementType).getArrayClass().newInstance(size));
     }
 
     @Override

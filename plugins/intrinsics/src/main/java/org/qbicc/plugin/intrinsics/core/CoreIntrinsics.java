@@ -116,6 +116,7 @@ public final class CoreIntrinsics {
         registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
         registerJavaLangReflectIntrinsics(ctxt);
+        registerJavaLangRefIntrinsics(ctxt);
         registerJavaLangRuntimeIntrinsics(ctxt);
         registerOrgQbiccCompilerIntrinsics(ctxt);
         registerOrgQbiccObjectModelIntrinsics(ctxt);
@@ -153,6 +154,7 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor iaDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/InetAddress");
         ClassTypeDescriptor networkInterfaceDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/NetworkInterface");
         ClassTypeDescriptor inflateDesc = ClassTypeDescriptor.synthesize(classContext, "java/util/zip/Inflater");
+        ClassTypeDescriptor scopedMemoryAccessDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/ScopedMemoryAccess");
         ClassTypeDescriptor unsafeDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Unsafe");
         ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/VM");
         ClassTypeDescriptor perfDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/perf/Perf");
@@ -182,6 +184,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(iaDesc, "init", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(networkInterfaceDesc, "init", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(inflateDesc, "initIDs", emptyToVoid, emptyInit);
+        intrinsics.registerIntrinsic(scopedMemoryAccessDesc, "registerNatives", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(unsafeDesc, "registerNatives", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(Phase.ANALYZE, unsafeDesc, "ensureClassInitialized", classToVoid, emptyInit);
         intrinsics.registerIntrinsic(Phase.ANALYZE, unsafeDesc, "shouldBeInitialized0", classToBool, alwaysFalse);
@@ -1973,7 +1976,27 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, arrayClassDescriptor, "multiNewArray", multiNewArrayDesc, multiNewArray);
     }
 
-        private static void registerJavaLangRuntimeIntrinsics(CompilationContext ctxt) {
+    private static void registerJavaLangRefIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
+        ClassTypeDescriptor referenceDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ref/Reference");
+        ClassTypeDescriptor phantomReferenceDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ref/PhantomReference");
+
+        MethodDescriptor objToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc));
+
+        InstanceIntrinsic refersTo0 = (builder, instance, target, arguments) ->
+            builder.isEq(
+                arguments.get(0),
+                builder.load(builder.instanceFieldOf(builder.referenceHandle(instance), referenceDesc, "referent", objDesc), MemoryAtomicityMode.UNORDERED)
+            );
+
+        intrinsics.registerIntrinsic(Phase.ADD, referenceDesc, "refersTo0", objToBool, refersTo0);
+        intrinsics.registerIntrinsic(Phase.ADD, phantomReferenceDesc, "refersTo0", objToBool, refersTo0);
+    }
+
+    private static void registerJavaLangRuntimeIntrinsics(CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
