@@ -33,6 +33,12 @@ public class AddMainClassHook implements Consumer<CompilationContext> {
             if (definedMainClass != null) {
                 LoadedTypeDefinition resolvedMainClass = definedMainClass.load();
                 int idx = resolvedMainClass.findMethodIndex(e -> {
+                    if (!e.getName().equals("main")) {
+                        return false;
+                    }
+                    if (!e.hasAllModifiersOf(ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC)) {
+                        return false;
+                    }
                     // todo: maybe we could simplify this a little...?
                     MethodDescriptor desc = e.getDescriptor();
                     if (desc.getReturnType() != BaseTypeDescriptor.V) {
@@ -59,10 +65,6 @@ public class AddMainClassHook implements Consumer<CompilationContext> {
                     return;
                 }
                 MethodElement mainMethodElement = resolvedMainClass.getMethod(idx);
-                if (! mainMethodElement.hasAllModifiersOf(ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC)) {
-                    ctxt.error("Main method must be declared public static on \"%s\"", mainClass);
-                    return;
-                }
                 UserMainIntrinsic.register(ctxt, mainMethodElement);
                 // now, load and resolve the class with the real entry point on it, causing it to be registered
                 DefinedTypeDefinition runtimeMain = ctxt.getBootstrapClassContext().findDefinedType(MAIN_CLASS);
