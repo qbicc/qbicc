@@ -236,6 +236,14 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         return idx;
     }
 
+    default MethodElement requireSingleMethod(Predicate<MethodElement> predicate) {
+        int idx = findSingleMethodIndex(predicate);
+        if (idx == -1) {
+            throw new IllegalArgumentException("No matching method found");
+        }
+        return getMethod(idx);
+    }
+
     default MethodElement resolveMethodElementExact(String name, MethodDescriptor descriptor) {
         int idx = findMethodIndex(name, descriptor);
         return idx == -1 ? null : getMethod(idx);
@@ -427,6 +435,29 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
             }
         }
         return -1;
+    }
+
+    default int findSingleConstructorIndex(Predicate<ConstructorElement> predicate) {
+        int cnt = getConstructorCount();
+        int idx = -1;
+        for (int i = 0; i < cnt; i ++) {
+            ConstructorElement method = getConstructor(i);
+            if (predicate.test(method)) {
+                if (idx != -1) {
+                    throw new IllegalArgumentException("Predicate matched more than one constructor element");
+                }
+                idx = i;
+            }
+        }
+        return idx;
+    }
+
+    default ConstructorElement requireSingleConstructor(Predicate<ConstructorElement> predicate) {
+        int idx = findSingleConstructorIndex(predicate);
+        if (idx == -1) {
+            throw new IllegalArgumentException("No matching constructor found");
+        }
+        return getConstructor(idx);
     }
 
     default ConstructorElement resolveConstructorElement(MethodDescriptor descriptor) {

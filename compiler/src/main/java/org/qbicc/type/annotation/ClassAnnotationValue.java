@@ -1,6 +1,11 @@
 package org.qbicc.type.annotation;
 
+import static org.qbicc.type.annotation.Annotation.*;
+
+import java.io.ByteArrayOutputStream;
+
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.type.definition.classfile.ConstantPool;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
@@ -15,6 +20,11 @@ public final class ClassAnnotationValue extends AnnotationValue {
 
     public TypeDescriptor getDescriptor() {
         return descriptor;
+    }
+
+    public void deparseValueTo(final ByteArrayOutputStream os, final ConstantPool cp) {
+        os.write('c');
+        writeShort(os, cp.getOrAddUtf8Constant(descriptor.toString()));
     }
 
     public Kind getKind() {

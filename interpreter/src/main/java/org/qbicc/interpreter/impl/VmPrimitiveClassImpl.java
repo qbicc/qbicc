@@ -44,7 +44,7 @@ class VmPrimitiveClassImpl extends VmClassImpl implements VmPrimitiveClass {
     }
 
     @Override
-    VmArrayClassImpl getArrayClass() {
+    public VmArrayClassImpl getArrayClass() {
         return (VmArrayClassImpl) arrayTypeDefinition.getVmClass();
     }
 

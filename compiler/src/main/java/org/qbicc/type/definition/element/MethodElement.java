@@ -1,5 +1,6 @@
 package org.qbicc.type.definition.element;
 
+import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.descriptor.MethodDescriptor;
 
@@ -19,15 +20,18 @@ public final class MethodElement extends InvokableElement implements NamedElemen
     public static final MethodElement END_OF_SEARCH = new MethodElement();
 
     private final String name;
+    private final AnnotationValue defaultValue;
 
     MethodElement() {
         super();
         this.name = null;
+        this.defaultValue = null;
     }
 
     MethodElement(BuilderImpl builder) {
         super(builder);
         this.name = builder.name;
+        this.defaultValue = builder.defaultValue;
     }
 
     public String toString() {
@@ -40,6 +44,10 @@ public final class MethodElement extends InvokableElement implements NamedElemen
 
     public String getName() {
         return name;
+    }
+
+    public AnnotationValue getDefaultValue() {
+        return defaultValue;
     }
 
     public boolean isAbstract() {
@@ -86,11 +94,18 @@ public final class MethodElement extends InvokableElement implements NamedElemen
 
     public interface Builder extends InvokableElement.Builder, NamedElement.Builder {
 
+        void setDefaultValue(AnnotationValue annotationValue);
+
         MethodElement build();
 
         interface Delegating extends InvokableElement.Builder.Delegating, NamedElement.Builder.Delegating, Builder {
             @Override
             Builder getDelegate();
+
+            @Override
+            default void setDefaultValue(AnnotationValue annotationValue) {
+                getDelegate().setDefaultValue(annotationValue);
+            }
 
             @Override
             default MethodElement build() {
@@ -101,6 +116,7 @@ public final class MethodElement extends InvokableElement implements NamedElemen
 
     static final class BuilderImpl extends InvokableElement.BuilderImpl implements Builder {
         final String name;
+        AnnotationValue defaultValue;
 
         BuilderImpl(String name, MethodDescriptor descriptor) {
             super(descriptor);
@@ -109,6 +125,10 @@ public final class MethodElement extends InvokableElement implements NamedElemen
 
         public String getName() {
             return name;
+        }
+
+        public void setDefaultValue(AnnotationValue annotationValue) {
+            this.defaultValue = annotationValue;
         }
 
         public MethodElement build() {

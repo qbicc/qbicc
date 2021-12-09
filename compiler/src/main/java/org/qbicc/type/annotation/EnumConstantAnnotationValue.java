@@ -1,6 +1,11 @@
 package org.qbicc.type.annotation;
 
+import static org.qbicc.type.annotation.Annotation.*;
+
+import java.io.ByteArrayOutputStream;
+
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.type.definition.classfile.ConstantPool;
 
 /**
  * An {@code enum} annotation value.
@@ -24,6 +29,12 @@ public class EnumConstantAnnotationValue extends AnnotationValue {
 
     public String getValueName() {
         return valueName;
+    }
+
+    public void deparseValueTo(final ByteArrayOutputStream os, final ConstantPool cp) {
+        os.write('e');
+        writeShort(os, cp.getOrAddUtf8Constant(typeName));
+        writeShort(os, cp.getOrAddUtf8Constant(valueName));
     }
 
     public Kind getKind() {

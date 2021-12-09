@@ -40,6 +40,7 @@
         <module>optimization</module>
         <module>patcher</module>
         <module>reachability</module>
+        <module>reflection</module>
         <module>thread-local</module>
         <module>try-catch</module>
         <module>verification</module>
