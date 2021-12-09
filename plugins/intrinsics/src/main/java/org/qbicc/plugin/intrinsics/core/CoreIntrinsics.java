@@ -1102,7 +1102,7 @@ public final class CoreIntrinsics {
             //  2. We are overwriting the object header fields initialized by new when doing the copy
             //     (to make sure we copy any instance fields that have been assigned to use the padding bytes in the basic object header).
             MethodElement method = NoGc.get(ctxt).getCopyMethod();
-            return builder.call(builder.staticMethod(method, method.getDescriptor(), method.getType()), List.of(src, dst, size));
+            return builder.call(builder.staticMethod(method, method.getDescriptor(), method.getType()), List.of(dst, src, size));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "copyInstanceFields", copyDesc, copy);
     }
