@@ -14,10 +14,10 @@ import org.qbicc.runtime.stdc.Stdint.*;
 public class CompilerIntrinsics {
 
     @Hidden
-    public static native Object emitNewReferenceArray(type_id elemTypeId, uint8_t dimensions, int size);
+    public static native Object emitNewReferenceArray(Class<?> elementType, int dimensions, int size);
 
     @Hidden
-    public static native Object emitNew(type_id typeId, long size, int alignment);
+    public static native Object emitNew(Class<?> clazz);
 
     @Hidden
     public static native void copyInstanceFields(Class<?> clazz, Object src, Object dst);
