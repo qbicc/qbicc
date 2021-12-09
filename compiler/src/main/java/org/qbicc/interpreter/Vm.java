@@ -14,6 +14,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.methodhandle.MethodHandleConstant;
 
 /**
@@ -215,6 +216,8 @@ public interface Vm {
      */
     Memory allocate(int size);
 
+    VmClass getClassForDescriptor(VmClassLoader cl, TypeDescriptor descriptor);
+
     /**
      * Intern a host JVM String as a VmString
      * @param string the host string to intern
@@ -282,6 +285,22 @@ public interface Vm {
      * @return the new array (not {@code null})
      */
     VmReferenceArray newArrayOf(VmClass elementType, int size);
+
+    VmArray newByteArray(byte[] array);
+
+    VmArray newCharArray(char[] array);
+
+    VmArray newDoubleArray(double[] array);
+
+    VmArray newFloatArray(float[] array);
+
+    VmArray newIntArray(int[] array);
+
+    VmArray newLongArray(long[] array);
+
+    VmArray newShortArray(short[] array);
+
+    VmArray newBooleanArray(boolean[] array);
 
     /**
      * Get or create the full-powered {@link java.lang.invoke.MethodHandles.Lookup} object for the given class.

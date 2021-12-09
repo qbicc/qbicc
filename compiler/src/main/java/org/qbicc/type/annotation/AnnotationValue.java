@@ -1,10 +1,12 @@
 package org.qbicc.type.annotation;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.classfile.ConstantPool;
 import org.qbicc.type.definition.classfile.InvalidAnnotationValueException;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -24,6 +26,8 @@ public abstract class AnnotationValue {
     public static ArrayAnnotationValue array(Collection<AnnotationValue> values) {
         return new ArrayAnnotationValue(Assert.checkNotNullParam("values", values).toArray(NO_VALUES));
     }
+
+    public abstract void deparseValueTo(final ByteArrayOutputStream os, final ConstantPool cp);
 
     public enum Kind {
         BYTE,

@@ -1,5 +1,7 @@
 package org.qbicc.interpreter.impl;
 
+import static org.qbicc.graph.atomic.AccessModes.*;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
@@ -586,14 +588,6 @@ public final class VmImpl implements Vm {
 
             // Class
             VmClassImpl classClass = bootstrapClassLoader.loadClass("java/lang/Class");
-            classClass.registerInvokable("getDeclaredFields0", (thread, target, args) -> {
-                boolean publicOnly = ((Boolean)args.get(0)).booleanValue();
-                return ((VmClass) target).getDeclaredFields(publicOnly);
-            });
-            classClass.registerInvokable("getDeclaredMethods0", ((thread, target, args) -> {
-                boolean publicOnly = ((Boolean)args.get(0)).booleanValue();
-                return ((VmClass) target).getDeclaredMethods(publicOnly);
-            }));
             classClass.registerInvokable("getModifiers", (thread, target, args) -> ((VmClass)target).getTypeDefinition().getModifiers());
             classClass.registerInvokable("getSuperclass", (thread, target, args) -> {
                 LoadedTypeDefinition sc = ((VmClass)target).getTypeDefinition().getSuperClass();
@@ -1057,7 +1051,7 @@ public final class VmImpl implements Vm {
         String nameStr;
         VmObject type;
         AnnotatedElement resolvedElement;
-        VmClassImpl owner = getClassForDescriptor(cl, constant.getOwnerDescriptor());
+        VmClassImpl owner = (VmClassImpl) getClassForDescriptor(cl, constant.getOwnerDescriptor());
         int extraFlags; // extra flags used by the MethodName API
         if (constant instanceof FieldMethodHandleConstant) {
             type = getClassForDescriptor(cl, ((FieldMethodHandleConstant) constant).getDescriptor());
@@ -1191,6 +1185,78 @@ public final class VmImpl implements Vm {
     }
 
     @Override
+    public VmArray newByteArray(byte[] array) {
+        VmArrayImpl obj = manuallyInitialize(byteArrayClass.newInstance(array.length));
+        for (int i = 0; i < array.length; i ++) {
+            obj.getMemory().store8(obj.getArrayElementOffset(i), array[i], SinglePlain);
+        }
+        return obj;
+    }
+
+    @Override
+    public VmArray newCharArray(char[] array) {
+        VmArrayImpl obj = manuallyInitialize(charArrayClass.newInstance(array.length));
+        for (int i = 0; i < array.length; i ++) {
+            obj.getMemory().store16(obj.getArrayElementOffset(i), array[i], SinglePlain);
+        }
+        return obj;
+    }
+
+    @Override
+    public VmArray newDoubleArray(double[] array) {
+        VmArrayImpl obj = manuallyInitialize(doubleArrayClass.newInstance(array.length));
+        for (int i = 0; i < array.length; i ++) {
+            obj.getMemory().store64(obj.getArrayElementOffset(i), array[i], SinglePlain);
+        }
+        return obj;
+    }
+
+    @Override
+    public VmArray newFloatArray(float[] array) {
+        VmArrayImpl obj = manuallyInitialize(floatArrayClass.newInstance(array.length));
+        for (int i = 0; i < array.length; i ++) {
+            obj.getMemory().store32(obj.getArrayElementOffset(i), array[i], SinglePlain);
+        }
+        return obj;
+    }
+
+    @Override
+    public VmArray newIntArray(int[] array) {
+        VmArrayImpl obj = manuallyInitialize(intArrayClass.newInstance(array.length));
+        for (int i = 0; i < array.length; i ++) {
+            obj.getMemory().store32(obj.getArrayElementOffset(i), array[i], SinglePlain);
+        }
+        return obj;
+    }
+
+    @Override
+    public VmArray newLongArray(long[] array) {
+        VmArrayImpl obj = manuallyInitialize(longArrayClass.newInstance(array.length));
+        for (int i = 0; i < array.length; i ++) {
+            obj.getMemory().store64(obj.getArrayElementOffset(i), array[i], SinglePlain);
+        }
+        return obj;
+    }
+
+    @Override
+    public VmArray newShortArray(short[] array) {
+        VmArrayImpl obj = manuallyInitialize(shortArrayClass.newInstance(array.length));
+        for (int i = 0; i < array.length; i ++) {
+            obj.getMemory().store16(obj.getArrayElementOffset(i), array[i], SinglePlain);
+        }
+        return obj;
+    }
+
+    @Override
+    public VmArray newBooleanArray(boolean[] array) {
+        VmArrayImpl obj = manuallyInitialize(booleanArrayClass.newInstance(array.length));
+        for (int i = 0; i < array.length; i ++) {
+            obj.getMemory().store8(obj.getArrayElementOffset(i), array[i] ? 1 : 0, SinglePlain);
+        }
+        return obj;
+    }
+
+    @Override
     public VmObject getLookup(VmClass vmClass) {
         // todo: cache these on VmClassImpl?
         VmClassImpl lookupClass = bootstrapClassLoader.loadClass("java/lang/invoke/MethodHandles$Lookup");
@@ -1212,7 +1278,8 @@ public final class VmImpl implements Vm {
         return startedThreads.toArray(VmThread[]::new);
     }
 
-    VmClassImpl getClassForDescriptor(VmClassLoaderImpl cl, TypeDescriptor descriptor) {
+    @Override
+    public VmClass getClassForDescriptor(VmClassLoader cl, TypeDescriptor descriptor) {
         if (cl == null) {
             cl = bootstrapClassLoader;
         }
