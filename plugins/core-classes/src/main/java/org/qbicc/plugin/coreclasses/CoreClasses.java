@@ -57,6 +57,7 @@ public final class CoreClasses {
     private final FieldElement classDimensionField;
     private final FieldElement arrayClassField;
     private final FieldElement classInstanceSizeField;
+    private final FieldElement classInstanceAlignField;
 
     private final FieldElement thrownField;
 
@@ -98,6 +99,7 @@ public final class CoreClasses {
         classDimensionField = jlc.resolveField(BaseTypeDescriptor.V, "dimension", true);
         arrayClassField = jlc.resolveField(jlcDesc, "arrayClass", true);
         classInstanceSizeField = jlc.resolveField(BaseTypeDescriptor.I, "instanceSize", true);
+        classInstanceAlignField = jlc.resolveField(BaseTypeDescriptor.B, "instanceAlign", true);
 
         thrownField = jlt.resolveField(ClassTypeDescriptor.synthesize(classContext, THROWABLE_INT_NAME), "thrown", true);
 
@@ -303,6 +305,18 @@ public final class CoreClasses {
             }
         }, 0, 0, null, 0);
 
+        // now inject a field of type uint_8 into Class to hold the instance alignment of this class
+        patcher.addField(classContext, CLASS_INT_NAME, "instanceAlign", BaseTypeDescriptor.B, new FieldResolver() {
+            @Override
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+                builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_VOLATILE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+                builder.setEnclosingType(enclosing);
+                builder.setSignature(BaseTypeSignature.B);
+                builder.setType(enclosing.getContext().getTypeSystem().getUnsignedInteger8Type());
+                return builder.build();
+            }
+        }, 0, 0, null, 0);
+
         // inject the thrown exception field
         ClassTypeDescriptor throwableDesc = ClassTypeDescriptor.synthesize(classContext, THROWABLE_INT_NAME);
         patcher.addField(classContext, THREAD_INT_NAME, "thrown", throwableDesc, new FieldResolver() {
@@ -447,6 +461,10 @@ public final class CoreClasses {
 
     public FieldElement getClassInstanceSizeField() {
         return classInstanceSizeField;
+    }
+
+    public FieldElement getClassInstanceAlignField() {
+        return classInstanceAlignField;
     }
 
     public LoadedTypeDefinition getClassTypeDefinition() {

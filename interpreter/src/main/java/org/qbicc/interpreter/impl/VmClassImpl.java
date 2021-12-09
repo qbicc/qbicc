@@ -221,7 +221,9 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         try {
             memory.storeRef(getVmClass().getLayoutInfo().getMember(getVmClass().getTypeDefinition().findField("name")).getOffset(), vm.intern(name), MemoryAtomicityMode.UNORDERED);
             if (layoutInfo != null) {
-                 memory.store32(getVmClass().getLayoutInfo().getMember(CoreClasses.get(vm.getCompilationContext()).getClassInstanceSizeField()).getOffset(), layoutInfo.getCompoundType().getSize(), MemoryAtomicityMode.UNORDERED);
+                CoreClasses coreClasses = CoreClasses.get(vm.getCompilationContext());
+                memory.store32(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceSizeField()).getOffset(), layoutInfo.getCompoundType().getSize(), MemoryAtomicityMode.UNORDERED);
+                memory.store8(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceAlignField()).getOffset(), layoutInfo.getCompoundType().getAlign(), MemoryAtomicityMode.UNORDERED);
             }
         } catch (Exception e) {
             // for breakpoints

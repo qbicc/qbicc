@@ -1067,22 +1067,25 @@ public final class CoreIntrinsics {
         CoreClasses coreClasses = CoreClasses.get(ctxt);
 
         ClassTypeDescriptor ciDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/CompilerIntrinsics");
-        ClassTypeDescriptor typeIdDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$type_id");
-        ClassTypeDescriptor uint8Desc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$uint8_t");
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor clsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
 
-        MethodDescriptor newRefArrayDesc =  MethodDescriptor.synthesize(classContext, objDesc, List.of(typeIdDesc, uint8Desc, BaseTypeDescriptor.I));
+        MethodDescriptor newRefArrayDesc =  MethodDescriptor.synthesize(classContext, objDesc, List.of(clsDesc, BaseTypeDescriptor.I, BaseTypeDescriptor.I));
         StaticIntrinsic newRefArray = (builder, target, arguments) -> {
             ReferenceArrayObjectType upperBound = classContext.findDefinedType("java/lang/Object").load().getType().getReferenceArrayObject();
-            return builder.newReferenceArray(upperBound, arguments.get(0), arguments.get(1), arguments.get(2));
+            Value typeId = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassTypeIdField()));
+            Value dims = builder.truncate(arguments.get(1), (WordType) coreClasses.getRefArrayDimensionsField().getType());
+            return builder.newReferenceArray(upperBound, typeId, dims, arguments.get(2));
         };
         intrinsics.registerIntrinsic(Phase.ADD, ciDesc, "emitNewReferenceArray", newRefArrayDesc, newRefArray);
 
-        MethodDescriptor newDesc = MethodDescriptor.synthesize(classContext, objDesc, List.of(typeIdDesc, BaseTypeDescriptor.J, BaseTypeDescriptor.I));
+        MethodDescriptor newDesc = MethodDescriptor.synthesize(classContext, objDesc, List.of(clsDesc));
         StaticIntrinsic new_ = (builder, target, arguments) -> {
             ClassObjectType upperBound = classContext.findDefinedType("java/lang/Object").load().getClassType();
-            return builder.new_(upperBound, arguments.get(0), arguments.get(1), arguments.get(2));
+            Value typeId = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassTypeIdField()));
+            Value instanceSize = builder.extend(builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassInstanceSizeField())), ctxt.getTypeSystem().getSignedInteger64Type());
+            Value instanceAlign = builder.extend(builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassInstanceAlignField())), ctxt.getTypeSystem().getSignedInteger32Type());
+            return builder.new_(upperBound, typeId, instanceSize, instanceAlign);
         };
         intrinsics.registerIntrinsic(Phase.ADD, ciDesc, "emitNew", newDesc, new_);
 
