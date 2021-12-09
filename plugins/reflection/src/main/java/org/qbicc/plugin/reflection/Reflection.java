@@ -16,6 +16,7 @@ import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.type.annotation.Annotation;
@@ -28,6 +29,7 @@ import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
@@ -82,6 +84,13 @@ public final class Reflection {
         vm.registerInvokable(classDef.requireSingleMethod(me -> me.nameEquals("getDeclaredFields0")), this::getClassDeclaredFields0);
         vm.registerInvokable(classDef.requireSingleMethod(me -> me.nameEquals("getDeclaredMethods0")), this::getClassDeclaredMethods0);
         vm.registerInvokable(classDef.requireSingleMethod(me -> me.nameEquals("getDeclaredConstructors0")), this::getClassDeclaredConstructors0);
+        vm.registerInvokable(classDef.requireSingleMethod(me -> me.nameEquals("getSimpleBinaryName")), (thread, target, args) -> {
+            if (target instanceof VmPrimitiveClass) {
+                return null;
+            }
+            NestedClassElement enc = ((VmClass) target).getTypeDefinition().getEnclosingNestedClass();
+            return enc == null ? null : vm.intern(enc.getName());
+        });
         LoadedTypeDefinition fieldDef = classContext.findDefinedType("java/lang/reflect/Field").load();
         fieldClass = fieldDef.getVmClass();
         fieldCtor = fieldDef.requireSingleConstructor(ce -> ce.getDescriptor().getParameterTypes().size() == 8);
