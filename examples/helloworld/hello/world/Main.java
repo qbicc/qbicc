@@ -1,10 +1,10 @@
 // Basic helloworld example with the commands to execute it. 
 //
 // Compile the example with jbang (0.65.1+):
-// $ jbang build --java=11 examples/helloworld/hello/world/Main.java
+// $ jbang build --java=17 examples/helloworld/hello/world/Main.java
 //
 // Build the native executable in /tmp/output with:
-// $ jbang org.qbicc:qbicc-main:0.2.0-SNAPSHOT --boot-path-append-file $(jbang info classpath examples/helloworld/hello/world/Main.java) --output-path /tmp/output hello.world.Main
+// $ jbang org.qbicc:qbicc-main:0.2.0 --boot-path-append-file $(jbang info classpath examples/helloworld/hello/world/Main.java) --output-path /tmp/output hello.world.Main
 //
 // Run the executable
 // $ /tmp/output/a.out
