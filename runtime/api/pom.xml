@@ -17,4 +17,13 @@
 
     <dependencies>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.jboss.bridger</groupId>
+                <artifactId>bridger</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

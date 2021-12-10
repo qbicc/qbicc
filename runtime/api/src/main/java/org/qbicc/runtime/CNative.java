@@ -134,7 +134,13 @@ public final class CNative {
      * @param <T> the object type
      * @return a pointer to the object
      */
-    public static native <T extends object, P extends ptr<T>> P addr_of(T obj);
+    public static native <T, P extends ptr<T>> P addr_of(T obj);
+
+    /**
+     * @hidden
+     */
+    @Deprecated
+    public static native <T extends object, P extends ptr<T>> P addr_of$$bridge(T obj);
 
     /**
      * Get the address of the given value.  The value may be a local variable, or it may be a member or element of a
@@ -914,6 +920,14 @@ public final class CNative {
          * @return the offset pointer
          */
         public native <R extends object, P extends ptr<R>> P minus(size_t offset);
+
+        /**
+         * Select a subfield from this pointer, which must be passed back through {@link #addr_of} in order
+         * to be used.  The returned subfield has {@code void} type and thus cannot be accessed directly.
+         *
+         * @return the selection view of the pointee
+         */
+        public native T sel();
 
         /**
          * Determine if this pointer instance is a pointer to a pinned Java data structure.
