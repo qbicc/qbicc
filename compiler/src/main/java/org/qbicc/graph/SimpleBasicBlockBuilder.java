@@ -609,10 +609,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("New of unresolved array type");
     }
 
-    public Value clone(final Value object) {
-        return asDependency(new Clone(callSite, element, line, bci, requireDependency(), object));
-    }
-
     public Value load(final ValueHandle handle, final ReadAccessMode mode) {
         return asDependency(new Load(callSite, element, line, bci, requireDependency(), handle, mode));
     }

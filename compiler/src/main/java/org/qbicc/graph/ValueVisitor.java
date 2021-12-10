@@ -84,10 +84,6 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, Clone node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, Comp node) {
         return visitUnknown(param, node);
     }
@@ -452,10 +448,6 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, ClassOf node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, Clone node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
