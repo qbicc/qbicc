@@ -777,7 +777,22 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_AALOAD: {
                         v2 = pop1();
                         v1 = pop1();
-                        if (v1.getType() instanceof ArrayType) {
+                        if (v1 instanceof MemberSelector ms) {
+                            v1 = ms.getInput();
+                            if (v1.getType() instanceof PointerType pt) {
+                                ValueHandle element;
+                                if (pt.getPointeeType() instanceof ArrayType) {
+                                    element = gf.elementOf(gf.pointerHandle(v1), v2);
+                                } else {
+                                    ctxt.getCompilationContext().error(gf.getLocation(), "Invalid array dereference");
+                                    throw new BlockEarlyTermination(gf.unreachable());
+                                }
+                                v1 = gf.selectMember(gf.addressOf(element));
+                            } else {
+                                ctxt.getCompilationContext().error(gf.getLocation(), "Invalid array dereference");
+                                throw new BlockEarlyTermination(gf.unreachable());
+                            }
+                        } else if (v1.getType() instanceof ArrayType) {
                             v1 = gf.extractElement(v1, v2);
                         } else if (v1.getType() instanceof PointerType) {
                             v1 = gf.load(gf.pointerHandle(v1, v2), MemoryAtomicityMode.NONE);
@@ -791,7 +806,22 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_LALOAD: {
                         v2 = pop1();
                         v1 = pop1();
-                        if (v1.getType() instanceof ArrayType) {
+                        if (v1 instanceof MemberSelector ms) {
+                            v1 = ms.getInput();
+                            if (v1.getType() instanceof PointerType pt) {
+                                ValueHandle element;
+                                if (pt.getPointeeType() instanceof ArrayType) {
+                                    element = gf.elementOf(gf.pointerHandle(v1), v2);
+                                } else {
+                                    ctxt.getCompilationContext().error(gf.getLocation(), "Invalid array dereference");
+                                    throw new BlockEarlyTermination(gf.unreachable());
+                                }
+                                v1 = gf.selectMember(gf.addressOf(element));
+                            } else {
+                                ctxt.getCompilationContext().error(gf.getLocation(), "Invalid array dereference");
+                                throw new BlockEarlyTermination(gf.unreachable());
+                            }
+                        } else if (v1.getType() instanceof ArrayType) {
                             v1 = gf.extractElement(v1, v2);
                         } else if (v1.getType() instanceof PointerType) {
                             v1 = gf.load(gf.pointerHandle(v1, v2), MemoryAtomicityMode.NONE);
@@ -808,7 +838,22 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_CALOAD: {
                         v2 = pop1();
                         v1 = pop1();
-                        if (v1.getType() instanceof ArrayType) {
+                        if (v1 instanceof MemberSelector ms) {
+                            v1 = ms.getInput();
+                            if (v1.getType() instanceof PointerType pt) {
+                                ValueHandle element;
+                                if (pt.getPointeeType() instanceof ArrayType) {
+                                    element = gf.elementOf(gf.pointerHandle(v1), v2);
+                                } else {
+                                    ctxt.getCompilationContext().error(gf.getLocation(), "Invalid array dereference");
+                                    throw new BlockEarlyTermination(gf.unreachable());
+                                }
+                                v1 = gf.selectMember(gf.addressOf(element));
+                            } else {
+                                ctxt.getCompilationContext().error(gf.getLocation(), "Invalid array dereference");
+                                throw new BlockEarlyTermination(gf.unreachable());
+                            }
+                        } else if (v1.getType() instanceof ArrayType) {
                             v1 = promote(gf.extractElement(v1, v2));
                         } else if (v1.getType() instanceof PointerType) {
                             v1 = promote(gf.load(gf.pointerHandle(v1, v2), MemoryAtomicityMode.NONE));
