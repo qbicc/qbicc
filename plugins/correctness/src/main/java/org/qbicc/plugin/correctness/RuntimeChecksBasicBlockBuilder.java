@@ -236,7 +236,14 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                     indexOutOfBoundsCheck(arrayHandle, node.getIndex());
                     if (arrayType instanceof ReferenceArrayObjectType referenceArrayType && storedValue != null) {
                         Value toTypeId = load(instanceFieldOf(arrayHandle, CoreClasses.get(ctxt).getRefArrayElementTypeIdField()), MemoryAtomicityMode.UNORDERED);
-                        Value toDimensions = ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), referenceArrayType.getDimensionCount() - 1);
+                        Value toDimensions;
+                        ObjectType jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load().getType();
+                        if (referenceArrayType.getLeafElementType().equals(jlo)) {
+                            // All arrays are subtypes of Object, so if the leafElementType is Object, we won't know the real dimension count until runtime!
+                            toDimensions = sub(load(instanceFieldOf(arrayHandle, CoreClasses.get(ctxt).getRefArrayDimensionsField())), ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), 1));
+                        } else {
+                            toDimensions = ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), referenceArrayType.getDimensionCount() - 1);
+                        }
                         return checkcast(storedValue, toTypeId, toDimensions, CheckCast.CastType.ArrayStore, referenceArrayType.getElementObjectType());
                     }
                 }

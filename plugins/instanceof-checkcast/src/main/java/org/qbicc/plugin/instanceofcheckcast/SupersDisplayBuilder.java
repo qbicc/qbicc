@@ -32,7 +32,7 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         tables.buildSupersDisplay(jlo);
         info.visitReachableSubclassesPreOrder(jlo, tables::buildSupersDisplay);
         // Assign typeIDs to classes
-        // [0] Poisioned entry for easier debugging
+        // [0] Poisoned entry for easier debugging
         tables.reserveTypeIds(1);
         // [1 - 9] for primitive types
         tables.assignTypeIdToPrimitives();
