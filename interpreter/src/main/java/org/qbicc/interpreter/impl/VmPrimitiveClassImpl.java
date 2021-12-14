@@ -59,9 +59,13 @@ class VmPrimitiveClassImpl extends VmClassImpl implements VmPrimitiveClass {
     }
 
     void setArrayClass(CompilationContext ctxt, VmArrayClassImpl arrayClazz) {
-        // post-construct array type def
+        // post-construct array type def (break bootstrapping circularity)
         int acfIdx = indexOf(CoreClasses.get(ctxt).getArrayClassField());
         getMemory().storeRef(acfIdx, arrayClazz, MemoryAtomicityMode.VOLATILE);
+    }
+
+    Primitive getPrimitive() {
+        return primitive;
     }
 
     public ObjectType getInstanceObjectType() {

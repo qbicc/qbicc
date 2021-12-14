@@ -21,17 +21,21 @@ public class ObjectModel {
      * @return instance of java.lang.Class
      */
     @Hidden
-    public static Class<?> getOrCreateArrayClass(Class<?> componentClass, uint8_t dimensions) {
+    private static Class<?> getOrCreateArrayClass(Class<?> componentClass) {
         Class<?> arrayClass = CompilerIntrinsics.getArrayClassOf(componentClass);
         if (arrayClass == null) {
             String className;
-            type_id componentTypeId = CompilerIntrinsics.getTypeIdFromClass(componentClass);
-            if (CompilerIntrinsics.isReferenceArray(componentTypeId) || CompilerIntrinsics.isPrimArray(componentTypeId)) {
+            type_id elemTypeId = CompilerIntrinsics.getTypeIdFromClass(componentClass);
+            int dims = CompilerIntrinsics.getDimensionsFromClass(componentClass).intValue();
+            if (dims > 254) {
+                throw new IllegalArgumentException();
+            }
+            if (dims > 0 || CompilerIntrinsics.isPrimArray(elemTypeId)) {
                 className = "[" + componentClass.getName();
-                arrayClass = CompilerIntrinsics.createClass(className, CompilerIntrinsics.getReferenceArrayTypeId(), dimensions);
+                arrayClass = CompilerIntrinsics.createClass(className, elemTypeId, word(dims + 1), componentClass);
             } else {
                 className = "[L" + componentClass.getName() + ";";
-                arrayClass = CompilerIntrinsics.createClass(className, CompilerIntrinsics.getReferenceArrayTypeId(), dimensions);
+                arrayClass = CompilerIntrinsics.createClass(className, elemTypeId, word(1), componentClass);
             }
             if (!CompilerIntrinsics.setArrayClass(componentClass, arrayClass)) {
                 arrayClass = CompilerIntrinsics.getArrayClassOf(componentClass);
@@ -50,23 +54,10 @@ public class ObjectModel {
     @Hidden
     public static Class<?> getArrayClassOfDimension(Class<?> leafClass, uint8_t dimensions) {
         if (dimensions.intValue() == 1) {
-            return getOrCreateArrayClass(leafClass, dimensions);
+            return getOrCreateArrayClass(leafClass);
         }
         Class<?> cls = getArrayClassOfDimension(leafClass, CNative.word(dimensions.intValue()-1));
-        return getOrCreateArrayClass(cls, dimensions);
-    }
-
-    /**
-     * Checks if the java.lang.Class instance represents reference array class.
-     * Reference array class have dimension greater than 0.
-     *
-     * @param cls
-     * @return boolean
-     */
-    @Hidden
-    public static boolean isReferenceArrayClass(Class<?> cls) {
-        type_id typeId = CompilerIntrinsics.getTypeIdFromClass(cls);
-        return CompilerIntrinsics.isReferenceArray(typeId);
+        return getOrCreateArrayClass(cls);
     }
 
     /**

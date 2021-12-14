@@ -3,7 +3,6 @@ package org.qbicc.interpreter.impl;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,13 +19,11 @@ import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Thrown;
-import org.qbicc.interpreter.VmArray;
-import org.qbicc.interpreter.VmArrayClass;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
-import org.qbicc.interpreter.VmPrimitiveClass;
+import org.qbicc.interpreter.VmReferenceArrayClass;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -35,8 +32,8 @@ import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
-import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
@@ -193,6 +190,10 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         }
     }
 
+    void setComponentClass(VmClass componentClass) {
+        memory.storeRef(indexOf(clazz.typeDefinition.findField("componentType")), componentClass, MemoryAtomicityMode.VOLATILE);
+    }
+
     @Override
     public VmArrayClassImpl getArrayClass() {
         VmArrayClassImpl arrayClazz = this.arrayClass;
@@ -202,6 +203,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 if (arrayClazz == null) {
                     arrayClazz = this.arrayClass = constructArrayClass();
                 }
+                arrayClazz.setComponentClass(this);
                 memory.storeRef(indexOf(CoreClasses.get(vm.getCompilationContext()).getArrayClassField()), arrayClazz, MemoryAtomicityMode.VOLATILE);
             }
         }
@@ -219,10 +221,22 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     void postConstruct(final String name, VmImpl vm) {
         // todo: Base JDK equivalent core classes with appropriate manual initializer
+        CoreClasses coreClasses = CoreClasses.get(vm.getCompilationContext());
         try {
             memory.storeRef(getVmClass().getLayoutInfo().getMember(getVmClass().getTypeDefinition().findField("name")).getOffset(), vm.intern(name), MemoryAtomicityMode.UNORDERED);
+
+            // typeId and dimensions
+            FieldElement instanceTypeIdField = coreClasses.getClassTypeIdField();
+            if (this instanceof  VmPrimitiveClassImpl pci) {
+                memory.storeType(indexOf(instanceTypeIdField), pci.getPrimitive().getType(), MemoryAtomicityMode.UNORDERED);
+            } else if (this instanceof VmReferenceArrayClass vmArray) {
+                memory.storeType(indexOf(instanceTypeIdField), vmArray.getInstanceObjectType().getLeafElementType(), MemoryAtomicityMode.UNORDERED);
+                memory.store8(indexOf(coreClasses.getClassDimensionField()), vmArray.getInstanceObjectType().getDimensionCount(), MemoryAtomicityMode.UNORDERED);
+            } else {
+                memory.storeType(indexOf(instanceTypeIdField), this.getInstanceObjectTypeId(), MemoryAtomicityMode.UNORDERED);
+            }
+
             if (layoutInfo != null) {
-                CoreClasses coreClasses = CoreClasses.get(vm.getCompilationContext());
                 memory.store32(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceSizeField()).getOffset(), layoutInfo.getCompoundType().getSize(), MemoryAtomicityMode.UNORDERED);
                 memory.store8(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceAlignField()).getOffset(), layoutInfo.getCompoundType().getAlign(), MemoryAtomicityMode.UNORDERED);
             }
@@ -240,7 +254,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         VmClassImpl jlcClass = clazz.clazz;
         Memory memory = clazz.getMemory();
         memory.storeRef(jlcClass.layoutInfo.getMember(jlcClass.typeDefinition.findField("componentType")).getOffset(), this, MemoryAtomicityMode.UNORDERED);
-        getVm().manuallyInitialize(clazz);
+        clazz.postConstruct(getVm());
         return clazz;
     }
 

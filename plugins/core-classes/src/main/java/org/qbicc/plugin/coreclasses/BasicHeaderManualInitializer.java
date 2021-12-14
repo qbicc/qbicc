@@ -45,19 +45,6 @@ public class BasicHeaderManualInitializer implements Consumer<VmObject> {
                 FieldElement dimensionsField = coreClasses.getRefArrayDimensionsField();
                 memory.store8(vmObject.indexOf(dimensionsField), arrayType.getDimensionCount(), MemoryAtomicityMode.UNORDERED);
             }
-        } else if (vmObject instanceof VmClass) {
-            if (! (vmObject instanceof VmPrimitiveClass)) {
-                FieldElement instanceTypeIdField = coreClasses.getClassTypeIdField();
-                if (vmObject instanceof VmReferenceArrayClass) {
-                    VmReferenceArrayClass vmArray = (VmReferenceArrayClass) vmObject;
-                    ReferenceArrayObjectType arrayType = vmArray.getInstanceObjectType();
-                    FieldElement dimsField = coreClasses.getClassDimensionField();
-                    memory.store8(vmObject.indexOf(dimsField), arrayType.getDimensionCount(), MemoryAtomicityMode.UNORDERED);
-                    memory.storeType(vmObject.indexOf(instanceTypeIdField), vmArray.getLeafTypeId(), MemoryAtomicityMode.UNORDERED);
-                } else {
-                    memory.storeType(vmObject.indexOf(instanceTypeIdField), ((VmClass) vmObject).getInstanceObjectTypeId(), MemoryAtomicityMode.UNORDERED);
-                }
-            }
         }
     }
 }

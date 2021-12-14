@@ -275,6 +275,15 @@ public final class VmImpl implements Vm {
         charClass.setArrayClass(ctxt, charArrayClass);
         booleanClass.setArrayClass(ctxt, booleanArrayClass);
 
+        byteArrayClass.setComponentClass(byteClass);
+        shortArrayClass.setComponentClass(shortClass);
+        intArrayClass.setComponentClass(intClass);
+        longArrayClass.setComponentClass(longClass);
+        floatArrayClass.setComponentClass(floatClass);
+        doubleArrayClass.setComponentClass(doubleClass);
+        charArrayClass.setComponentClass(charClass);
+        booleanArrayClass.setComponentClass(booleanClass);
+
         // throwables
         errorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/Error").load(), null);
         errorClass.postConstruct(this);

@@ -457,7 +457,9 @@ public final class CoreClasses {
         return classDimensionField;
     }
 
-    public FieldElement getArrayClassField() { return arrayClassField; }
+    public FieldElement getArrayClassField() {
+        return arrayClassField;
+    }
 
     public FieldElement getClassInstanceSizeField() {
         return classInstanceSizeField;
