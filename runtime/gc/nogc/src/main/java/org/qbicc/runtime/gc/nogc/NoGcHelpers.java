@@ -26,7 +26,7 @@ public final class NoGcHelpers {
             }
             return ptr;
         } else {
-            char_ptr ptr = malloc(word(size + align));
+            void_ptr ptr = malloc(word(size + align));
             if (ptr.isNull()) {
                 throw new OutOfMemoryError(/*"Allocation failed"*/);
             }
@@ -34,7 +34,7 @@ public final class NoGcHelpers {
             long misAlign = ptr.longValue() & mask;
             if (misAlign != 0) {
                 ptrdiff_t word = word(((~ misAlign) & mask) + 1);
-                ptr = ptr.plus(word);
+                ptr = ptr.plus(word.intValue());
             }
             return ptrToRef(ptr);
         }
