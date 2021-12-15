@@ -22,6 +22,11 @@ public class ClassLiteralTests {
         } else {
             putchar('F');
         }
+        if (cls.getComponentType() == null && !cls.isArray()  && cls.isPrimitive()) {
+            putchar('P');
+        } else {
+            putchar('F');
+        }
         putchar('#');
     }
 
@@ -33,6 +38,11 @@ public class ClassLiteralTests {
             putchar('F');
         }
         if (cls.getName().equals("[I")) {
+            putchar('P');
+        } else {
+            putchar('F');
+        }
+        if (cls.getComponentType() == int.class && cls.isArray() && !cls.isPrimitive()) {
             putchar('P');
         } else {
             putchar('F');
@@ -52,6 +62,11 @@ public class ClassLiteralTests {
         } else {
             putchar('F');
         }
+        if (cls.getComponentType() == int[].class && cls.isArray() && !cls.isPrimitive()) {
+            putchar('P');
+        } else {
+            putchar('F');
+        }
         putchar('#');
     }
 
@@ -63,6 +78,11 @@ public class ClassLiteralTests {
             putchar('F');
         }
         if (cls.getName().equals("Foo")) {
+            putchar('P');
+        } else {
+            putchar('F');
+        }
+        if (cls.getComponentType() == null && !cls.isArray() && !cls.isPrimitive()) {
             putchar('P');
         } else {
             putchar('F');
@@ -82,6 +102,11 @@ public class ClassLiteralTests {
         } else {
             putchar('F');
         }
+        if (cls.getComponentType() == Foo.class && cls.isArray() && !cls.isPrimitive()) {
+            putchar('P');
+        } else {
+            putchar('F');
+        }
         putchar('#');
     }
 
@@ -93,6 +118,11 @@ public class ClassLiteralTests {
             putchar('F');
         }
         if (cls.getName().equals("[[LFoo;")) {
+            putchar('P');
+        } else {
+            putchar('F');
+        }
+        if (cls.getComponentType() == Foo[].class && cls.isArray() && !cls.isPrimitive()) {
             putchar('P');
         } else {
             putchar('F');
