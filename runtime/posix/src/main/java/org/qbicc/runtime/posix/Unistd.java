@@ -9,6 +9,7 @@ import org.qbicc.runtime.Build;
 /**
  *
  */
+@SuppressWarnings("SpellCheckingInspection")
 @include(value = "<unistd.h>", when = Build.Target.IsUnix.class)
 public final class Unistd {
 
@@ -73,4 +74,7 @@ public final class Unistd {
     public static final c_int _SC_TZNAME_MAX = constant();
 
     public static native c_long sysconf(c_int name);
+
+    public static native pid_t getpid();
+    public static native pid_t getppid();
 }
