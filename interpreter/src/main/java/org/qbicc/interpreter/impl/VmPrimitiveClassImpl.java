@@ -5,7 +5,10 @@ import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.Primitive;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 
 /**
@@ -13,14 +16,14 @@ import org.qbicc.type.descriptor.BaseTypeDescriptor;
  */
 class VmPrimitiveClassImpl extends VmClassImpl implements VmPrimitiveClass {
     private final LoadedTypeDefinition arrayTypeDefinition;
-    private final String simpleName;
     private final BaseTypeDescriptor descriptor;
+    private final Primitive primitive;
 
-    VmPrimitiveClassImpl(VmImpl vmImpl, VmClassClassImpl classClass, LoadedTypeDefinition arrayTypeDefinition, String simpleName, BaseTypeDescriptor descriptor) {
+    VmPrimitiveClassImpl(VmImpl vmImpl, VmClassClassImpl classClass, Primitive primitive, LoadedTypeDefinition arrayTypeDefinition, BaseTypeDescriptor descriptor) {
         super(vmImpl, classClass, 0);
         this.arrayTypeDefinition = arrayTypeDefinition;
-        this.simpleName = simpleName;
         this.descriptor = descriptor;
+        this.primitive = primitive;
     }
 
     @Override
@@ -35,12 +38,12 @@ class VmPrimitiveClassImpl extends VmClassImpl implements VmPrimitiveClass {
 
     @Override
     public String getSimpleName() {
-        return simpleName;
+        return primitive.getName();
     }
 
     @Override
     public String getName() {
-        return simpleName;
+        return primitive.getName();
     }
 
     @Override
@@ -50,13 +53,19 @@ class VmPrimitiveClassImpl extends VmClassImpl implements VmPrimitiveClass {
 
     @Override
     void postConstruct(VmImpl vm) {
-        postConstruct(simpleName, vm);
+        postConstruct(primitive.getName(), vm);
+        FieldElement instanceTypeIdField = CoreClasses.get(vm.getCompilationContext()).getClassTypeIdField();
+        memory.storeType(indexOf(instanceTypeIdField), primitive.getType(), MemoryAtomicityMode.UNORDERED);
     }
 
     void setArrayClass(CompilationContext ctxt, VmArrayClassImpl arrayClazz) {
-        // post-construct array type def
+        // post-construct array type def (break bootstrapping circularity)
         int acfIdx = indexOf(CoreClasses.get(ctxt).getArrayClassField());
         getMemory().storeRef(acfIdx, arrayClazz, MemoryAtomicityMode.VOLATILE);
+    }
+
+    Primitive getPrimitive() {
+        return primitive;
     }
 
     public ObjectType getInstanceObjectType() {

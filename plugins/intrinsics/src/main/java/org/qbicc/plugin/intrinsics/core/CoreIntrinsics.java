@@ -248,9 +248,9 @@ public final class CoreIntrinsics {
 
         InstanceIntrinsic isArray = (builder, instance, target, arguments) -> {
             Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance),  coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
-            MethodElement isRefArray = methodFinder.getMethod("isReferenceArray");
+            Value dims = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance),  coreClasses.getClassDimensionField()), MemoryAtomicityMode.UNORDERED);
             MethodElement isPrimArray = methodFinder.getMethod("isPrimArray");
-            return builder.or(builder.getFirstBuilder().call(builder.staticMethod(isRefArray, isRefArray.getDescriptor(), isRefArray.getType()), List.of(id)),
+            return builder.or(builder.getFirstBuilder().isGt(dims, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(dims.getType())),
                               builder.getFirstBuilder().call(builder.staticMethod(isPrimArray, isPrimArray.getDescriptor(), isPrimArray.getType()), List.of(id)));
         };
 
@@ -1139,7 +1139,7 @@ public final class CoreIntrinsics {
         MethodDescriptor IntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
         MethodDescriptor emptyTotypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of());
         MethodDescriptor typeIdIntToByteDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.B, List.of(typeIdDesc, BaseTypeDescriptor.I));
-        MethodDescriptor createClassDesc = MethodDescriptor.synthesize(classContext, clsDesc, List.of(jlsDesc, typeIdDesc, uint8Desc));
+        MethodDescriptor createClassDesc = MethodDescriptor.synthesize(classContext, clsDesc, List.of(jlsDesc, typeIdDesc, uint8Desc, clsDesc));
         MethodDescriptor clsClsDesc = MethodDescriptor.synthesize(classContext, clsDesc, List.of(clsDesc));
         MethodDescriptor clsClsBooleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(clsDesc, clsDesc));
         MethodDescriptor casDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, Collections.nCopies(3, BaseTypeDescriptor.J));
@@ -1313,6 +1313,7 @@ public final class CoreIntrinsics {
 
 
         FieldElement jlcName = classContext.findDefinedType("java/lang/Class").load().findField("name");
+        FieldElement jlcCompType = classContext.findDefinedType("java/lang/Class").load().findField("componentType");
 
         StaticIntrinsic createClass = (builder, target, arguments) -> {
             ClassObjectType jlcType = (ClassObjectType) ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load().getType();
@@ -1325,6 +1326,8 @@ public final class CoreIntrinsics {
             builder.store(handle, arguments.get(1), handle.getDetectedMode());
             handle = builder.instanceFieldOf(builder.referenceHandle(instance), CoreClasses.get(ctxt).getClassDimensionField());
             builder.store(handle, arguments.get(2), handle.getDetectedMode());
+            handle = builder.instanceFieldOf(instanceHandle, jlcCompType);
+            builder.store(handle, arguments.get(3), handle.getDetectedMode());
             return instance;
         };
         intrinsics.registerIntrinsic(Phase.ADD, ciDesc, "createClass", createClassDesc, createClass);

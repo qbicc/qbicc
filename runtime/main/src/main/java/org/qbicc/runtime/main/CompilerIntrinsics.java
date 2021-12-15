@@ -40,7 +40,7 @@ public class CompilerIntrinsics {
 
     /**
      * Get the dimensionality for the represented type from a java.lang.Class instance.
-     * Classes and interfaces have dimensionality 0.
+     * Classes, interfaces, and primitive arrays have dimensionality 0.
      */
     @Hidden
     public static native uint8_t getDimensionsFromClass(Class<?> cls);
@@ -148,12 +148,13 @@ public class CompilerIntrinsics {
      * Allocates an instance of java.lang.Class in the runtime heap
      *
      * @param name class name
-     * @param id class's type id
-     * @param dimension array dimension if the class is an array class, 0 otherwise
+     * @param id value to store in the id field (typeId of class itself, or the leafElemTypeId if a reference array)
+     * @param dimension array dimension if the class is a reference array class, 0 otherwise
+     * @param componentType the Class object for the componentType if the class is an array class, null otherwise
      * @return instance of java.lang.Class
      */
     @Hidden
-    public static native Class<?> createClass(String name, type_id id, uint8_t dimension);
+    public static native Class<?> createClass(String name, type_id id, uint8_t dimension, Class<?> componentType);
 
     /**
      * Get the concrete type ID value from the referenced object.  Note that all reference arrays will have the same
