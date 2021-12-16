@@ -18,10 +18,10 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>arch</module>
+        <module>file</module>
+        <module>llvm</module>
         <module>probe</module>
         <module>tool</module>
-        <module>file</module>
-        <module>arch</module>
-        <module>llvm</module>
     </modules>
 </project>
