@@ -100,7 +100,6 @@ public final class CoreIntrinsics {
         registerJavaLangObjectIntrinsics(ctxt);
         registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
-        registerJavaLangReflectIntrinsics(ctxt);
         registerJavaLangRefIntrinsics(ctxt);
         registerJavaLangRuntimeIntrinsics(ctxt);
         registerOrgQbiccCompilerIntrinsics(ctxt);
@@ -1557,23 +1556,6 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(cnativeDesc, "castPtr", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(ptrDesc, classDesc)), castPtr);
-    }
-
-    private static void registerJavaLangReflectIntrinsics(CompilationContext ctxt) {
-        Intrinsics intrinsics = Intrinsics.get(ctxt);
-        ClassContext classContext = ctxt.getBootstrapClassContext();
-
-        ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
-        ClassTypeDescriptor jloDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
-        ClassTypeDescriptor arrayClassDescriptor = ClassTypeDescriptor.synthesize(classContext, "java/lang/reflect/Array");
-
-        MethodDescriptor multiNewArrayDesc = MethodDescriptor.synthesize(classContext, jloDesc, List.of(jlcDesc, ArrayTypeDescriptor.of (classContext, BaseTypeDescriptor.I)));
-        StaticIntrinsic multiNewArray = (builder, target, arguments) -> {
-            // TODO: Real implementation of Array.multiNewInstance(Class, int[])
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(classContext.findDefinedType("java/lang/Object").load().getType().getReference());
-        };
-
-        intrinsics.registerIntrinsic(Phase.LOWER, arrayClassDescriptor, "multiNewArray", multiNewArrayDesc, multiNewArray);
     }
 
     private static void registerJavaLangRefIntrinsics(CompilationContext ctxt) {
