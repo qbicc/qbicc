@@ -185,6 +185,15 @@ public class CompilerIntrinsics {
     public static native type_id elementTypeIdOf(Object arrayReference); // Object not Object[] because we use this in the impl of cast
 
     /**
+     * Get the length field of the argument array
+     *
+     * @param array the array (must not be {@code null} and must be an array)
+     * @return the array length
+     */
+    @Hidden
+    public static native int lengthOf(Object array);
+
+    /**
      * Get the maxTypeId assigned to subclasses of the argument typeId
      */
     @Hidden
