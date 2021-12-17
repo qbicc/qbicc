@@ -1126,6 +1126,7 @@ public final class CoreIntrinsics {
 
         MethodDescriptor objTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objDesc));
         MethodDescriptor objUint8Desc = MethodDescriptor.synthesize(classContext, uint8Desc, List.of(objDesc));
+        MethodDescriptor objIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(objDesc));
         MethodDescriptor typeIdTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(typeIdDesc));
         MethodDescriptor typeIdBooleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(typeIdDesc));
         MethodDescriptor typeIdTypeIdBooleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(typeIdDesc, typeIdDesc));
@@ -1160,6 +1161,13 @@ public final class CoreIntrinsics {
             return builder.load(builder.instanceFieldOf(handle, dimensionsField), MemoryAtomicityMode.UNORDERED);
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "dimensionsOf", objUint8Desc, dimensionsOf);
+
+        FieldElement lengthField = coreClasses.getArrayLengthField();
+        StaticIntrinsic lengthOf = (builder, target, arguments) -> {
+            ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), lengthField.getEnclosingType().load().getType().getReference()));
+            return builder.load(builder.instanceFieldOf(handle, lengthField), MemoryAtomicityMode.UNORDERED);
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "lengthOf", objIntDesc, lengthOf);
 
         StaticIntrinsic maxSubClassId = (builder, target, arguments) -> {
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
