@@ -212,6 +212,15 @@ public class ReachabilityInfo {
         }
     }
 
+    public void visitReachableTypes(Consumer<LoadedTypeDefinition> function) {
+        for (LoadedTypeDefinition t: classHierarchy.keySet()) {
+            function.accept(t);
+        }
+        for (LoadedTypeDefinition t: interfaceHierarchy.keySet()) {
+            function.accept(t);
+        }
+    }
+
     /*
      * Package level methods, to allow a ReachabilityAnalysis to add methods/types to the info
      */
