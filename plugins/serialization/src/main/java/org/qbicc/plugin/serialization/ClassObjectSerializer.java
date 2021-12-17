@@ -42,17 +42,15 @@ public class ClassObjectSerializer implements Consumer<CompilationContext> {
         GlobalVariableElement classArrayGlobal = builder.build();
         bth.setClassArrayGlobal(classArrayGlobal);
 
-        // initialize the Class array by serializing java.lang.Class instances for all initialized types and primitive types
+        // initialize the Class array by serializing java.lang.Class instances for all reachable types and primitive types
         Literal[] rootTable = new Literal[tables.get_number_of_typeids()];
         Arrays.fill(rootTable, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(jlcRef));
-        reachabilityInfo.visitInitializedTypes(ltd -> {
+        reachabilityInfo.visitReachableTypes(ltd -> {
             ProgramObjectLiteral cls = bth.serializeClassObject(ltd);
-            if (cls != null) {
-                DataDeclaration decl = section.declareData(cls.getProgramObject());
-                decl.setAddrspace(1);
-                ProgramObjectLiteral refToClass = ctxt.getLiteralFactory().literalOf(decl);
-                rootTable[ltd.getTypeId()] = ctxt.getLiteralFactory().bitcastLiteral(refToClass, jlcRef);
-            }
+            DataDeclaration decl = section.declareData(cls.getProgramObject());
+            decl.setAddrspace(1);
+            ProgramObjectLiteral refToClass = ctxt.getLiteralFactory().literalOf(decl);
+            rootTable[ltd.getTypeId()] = ctxt.getLiteralFactory().bitcastLiteral(refToClass, jlcRef);
         });
 
         Primitive.forEach(type -> {
