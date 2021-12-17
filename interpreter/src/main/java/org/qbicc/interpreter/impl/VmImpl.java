@@ -680,7 +680,7 @@ public final class VmImpl implements Vm {
                     return Boolean.FALSE;
                 }
                 VmClass objClazz = obj.getVmClass();
-                return Boolean.valueOf(objClazz.getObjectType().isSubtypeOf(clazz.getInstanceObjectType()));
+                return Boolean.valueOf(objClazz.getInstanceObjectType().isSubtypeOf(clazz.getInstanceObjectType()));
             });
 
             // Array
