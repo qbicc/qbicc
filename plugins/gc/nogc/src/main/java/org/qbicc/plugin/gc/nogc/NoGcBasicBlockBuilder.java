@@ -6,7 +6,6 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -25,6 +24,8 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.MethodElement;
+
+import static org.qbicc.graph.atomic.AccessModes.GlobalRelease;
 
 /**
  *
@@ -134,7 +135,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             // TODO: if/when we put a thinlock, default hashcode, or GC state bits in the object header we need to properly initialize them.
             MethodElement method = noGc.getCopyMethod();
             call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(ptrVal, valueConvert(object, (WordType) ptrVal.getType()), size));
-            fence(MemoryAtomicityMode.RELEASE);
+            fence(GlobalRelease);
             return valueConvert(ptrVal, type.getReference());
         } else if (objType instanceof ArrayObjectType) {
             ctxt.error(getLocation(), "Array allocations not supported until layout supports arrays");
