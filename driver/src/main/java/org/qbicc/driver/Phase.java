@@ -1,5 +1,8 @@
 package org.qbicc.driver;
 
+import org.qbicc.context.CompilationContext;
+import org.qbicc.context.PhaseAttachmentKey;
+
 /**
  * The overall build phase.  Each phase contains multiple {@linkplain BuilderStage stages}, with the exception
  * of the {@link #GENERATE} phase in which nodes are visited but not built.
@@ -45,5 +48,19 @@ public enum Phase {
         } else {
             return GENERATE;
         }
+    }
+
+    private static final PhaseAttachmentKey<Phase> KEY = new PhaseAttachmentKey<>();
+
+    public static Phase getPrevious(CompilationContext ctxt) {
+        return ctxt.getPreviousPhaseAttachment(KEY);
+    }
+
+    public static Phase getCurrent(CompilationContext ctxt) {
+        return ctxt.getAttachment(KEY);
+    }
+
+    void setCurrent(CompilationContext ctxt) {
+        ctxt.putAttachment(KEY, this);
     }
 }
