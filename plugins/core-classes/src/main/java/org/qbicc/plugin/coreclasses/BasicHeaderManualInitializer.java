@@ -3,14 +3,10 @@ package org.qbicc.plugin.coreclasses;
 import java.util.function.Consumer;
 
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmArray;
-import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
-import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.interpreter.VmReferenceArray;
-import org.qbicc.interpreter.VmReferenceArrayClass;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.element.FieldElement;

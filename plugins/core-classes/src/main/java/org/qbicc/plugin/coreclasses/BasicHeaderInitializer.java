@@ -2,17 +2,10 @@ package org.qbicc.plugin.coreclasses;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
-import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.type.ArrayObjectType;
-import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.IntegerType;
-import org.qbicc.type.PrimitiveArrayObjectType;
-import org.qbicc.type.ReferenceArrayObjectType;
-import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.FieldElement;
 
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
