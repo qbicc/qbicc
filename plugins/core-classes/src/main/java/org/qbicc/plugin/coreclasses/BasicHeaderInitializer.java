@@ -16,6 +16,7 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.FieldElement;
 
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 /**
  * Functions to initialize the core classes fields of object instances,
@@ -39,7 +40,7 @@ public class BasicHeaderInitializer {
     private static void initializeObjectHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final CoreClasses coreClasses, final ValueHandle handle, final Value typeId) {
         bb.store(bb.instanceFieldOf(handle, coreClasses.getObjectTypeIdField()), typeId, SinglePlain);
         FieldElement monitorField = coreClasses.getObjectNativeObjectMonitorField();
-        bb.store(bb.instanceFieldOf(handle, monitorField), ctxt.getLiteralFactory().literalOf((IntegerType)monitorField.getType(), 0L), MemoryAtomicityMode.NONE);
+        bb.store(bb.instanceFieldOf(handle, monitorField), ctxt.getLiteralFactory().literalOf((IntegerType)monitorField.getType(), 0L), SingleUnshared);
     }
 
     private static void initializeArrayHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final CoreClasses coreClasses, final ValueHandle handle, final Value typeId, final Value size) {

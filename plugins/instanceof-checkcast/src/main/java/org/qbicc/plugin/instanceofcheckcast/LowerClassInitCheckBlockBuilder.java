@@ -20,6 +20,8 @@ import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
+
 /**
  * 
  */
@@ -61,7 +63,7 @@ public class LowerClassInitCheckBlockBuilder extends DelegatingBasicBlockBuilder
             begin(callInit);
             MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("initializeClass");
             BasicBlockBuilder fb = getFirstBuilder();
-            fb.call(fb.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(fb.load(fb.currentThread(), MemoryAtomicityMode.NONE), typeId));
+            fb.call(fb.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(fb.load(fb.currentThread(), SingleUnshared), typeId));
             goto_(goAhead);
         } catch (BlockEarlyTermination ignored) {
             //continue

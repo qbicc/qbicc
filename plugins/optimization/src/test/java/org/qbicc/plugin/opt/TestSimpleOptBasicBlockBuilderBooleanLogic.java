@@ -1,7 +1,7 @@
 package org.qbicc.plugin.opt;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.qbicc.graph.MemoryAtomicityMode.NONE;
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 import java.util.List;
 
@@ -75,8 +75,8 @@ public final class TestSimpleOptBasicBlockBuilderBooleanLogic extends AbstractCo
     @Test
     public void testDeMorgansAnd2Or() {
         final BasicBlockBuilder bbb = makeBlockBuilder();
-        Value v1 = bbb.load(bbb.localVariable(createLocalVar("v1", ts.getBooleanType())), NONE);
-        Value v2 = bbb.load(bbb.localVariable(createLocalVar("v2", ts.getBooleanType())), NONE);
+        Value v1 = bbb.load(bbb.localVariable(createLocalVar("v1", ts.getBooleanType())), SingleUnshared);
+        Value v2 = bbb.load(bbb.localVariable(createLocalVar("v2", ts.getBooleanType())), SingleUnshared);
         final Value res = bbb.and(bbb.complement(v1), bbb.complement(v2));
         assertTrue(res instanceof Comp comp
             && comp.getInput() instanceof Or or
@@ -88,8 +88,8 @@ public final class TestSimpleOptBasicBlockBuilderBooleanLogic extends AbstractCo
     @Test
     public void testDeMorgansOr2And() {
         final BasicBlockBuilder bbb = makeBlockBuilder();
-        Value v1 = bbb.load(bbb.localVariable(createLocalVar("v1", ts.getBooleanType())), NONE);
-        Value v2 = bbb.load(bbb.localVariable(createLocalVar("v2", ts.getBooleanType())), NONE);
+        Value v1 = bbb.load(bbb.localVariable(createLocalVar("v1", ts.getBooleanType())), SingleUnshared);
+        Value v2 = bbb.load(bbb.localVariable(createLocalVar("v2", ts.getBooleanType())), SingleUnshared);
         final Value res = bbb.or(bbb.complement(v1), bbb.complement(v2));
         assertTrue(res instanceof Comp comp
             && comp.getInput() instanceof And and
@@ -101,9 +101,9 @@ public final class TestSimpleOptBasicBlockBuilderBooleanLogic extends AbstractCo
     @Test
     public void testDistributiveAnd() {
         final BasicBlockBuilder bbb = makeBlockBuilder();
-        Value v1 = bbb.load(bbb.localVariable(createLocalVar("v1", ts.getBooleanType())), NONE);
-        Value v2 = bbb.load(bbb.localVariable(createLocalVar("v2", ts.getBooleanType())), NONE);
-        Value v3 = bbb.load(bbb.localVariable(createLocalVar("v3", ts.getBooleanType())), NONE);
+        Value v1 = bbb.load(bbb.localVariable(createLocalVar("v1", ts.getBooleanType())), SingleUnshared);
+        Value v2 = bbb.load(bbb.localVariable(createLocalVar("v2", ts.getBooleanType())), SingleUnshared);
+        Value v3 = bbb.load(bbb.localVariable(createLocalVar("v3", ts.getBooleanType())), SingleUnshared);
         final Value res = bbb.or(bbb.and(v1, v2), bbb.and(v1, v3));
         assertTrue(res instanceof And and
             && and.getLeftInput().equals(v1)

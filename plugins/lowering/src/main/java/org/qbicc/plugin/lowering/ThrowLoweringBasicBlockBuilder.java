@@ -12,6 +12,8 @@ import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.definition.element.FieldElement;
 
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
+
 public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
@@ -23,10 +25,10 @@ public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     public BasicBlock throw_(final Value value) {
         ThrowExceptionHelper teh = ThrowExceptionHelper.get(ctxt);
         FieldElement exceptionField = ctxt.getExceptionField();
-        store(instanceFieldOf(referenceHandle(load(currentThread(), MemoryAtomicityMode.NONE)), exceptionField), value, MemoryAtomicityMode.NONE);
+        store(instanceFieldOf(referenceHandle(load(currentThread(), SingleUnshared)), exceptionField), value, SingleUnshared);
 
         // TODO Is this safe? Can the java/lang/Thread object be moved while this pointer is still in use?
-        Value ptr = bitCast(addressOf(instanceFieldOf(referenceHandle(load(currentThread(), MemoryAtomicityMode.NONE)), teh.getUnwindExceptionField())), teh.getUnwindExceptionField().getType().getPointer());
+        Value ptr = bitCast(addressOf(instanceFieldOf(referenceHandle(load(currentThread(), SingleUnshared)), teh.getUnwindExceptionField())), teh.getUnwindExceptionField().getType().getPointer());
 
         String functionName = "_Unwind_RaiseException";
         FunctionType functionType = teh.getRaiseExceptionMethod().getType();

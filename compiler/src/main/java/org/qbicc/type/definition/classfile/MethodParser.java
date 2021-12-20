@@ -1,5 +1,6 @@
 package org.qbicc.type.definition.classfile;
 
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 import static org.qbicc.type.definition.classfile.ClassFile.*;
 import static org.qbicc.type.definition.classfile.ClassMethodInfo.align;
 
@@ -419,7 +420,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         locals[index + 1] = null;
         LocalVariableElement lve = getLocalVariableElement(bci, index);
         if (lve != null) {
-            gf.store(gf.localVariable(lve), storeTruncate(value, lve.getTypeDescriptor()), MemoryAtomicityMode.NONE);
+            gf.store(gf.localVariable(lve), storeTruncate(value, lve.getTypeDescriptor()), SingleUnshared);
         }
     }
 
@@ -427,7 +428,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         locals[index] = value;
         LocalVariableElement lve = getLocalVariableElement(bci, index);
         if (lve != null) {
-            gf.store(gf.localVariable(lve), storeTruncate(value, lve.getTypeDescriptor()), MemoryAtomicityMode.NONE);
+            gf.store(gf.localVariable(lve), storeTruncate(value, lve.getTypeDescriptor()), SingleUnshared);
         }
     }
 
@@ -458,7 +459,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             return value;
         }
         if (lve != null) {
-            return promote(gf.load(gf.localVariable(lve), MemoryAtomicityMode.NONE), lve.getTypeDescriptor());
+            return promote(gf.load(gf.localVariable(lve), SingleUnshared), lve.getTypeDescriptor());
         }
         return value;
     }
@@ -795,7 +796,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = gf.extractElement(v1, v2);
                         } else if (v1.getType() instanceof PointerType) {
-                            v1 = gf.load(gf.pointerHandle(v1, v2), MemoryAtomicityMode.NONE);
+                            v1 = gf.load(gf.pointerHandle(v1, v2), SingleUnshared);
                         } else {
                             v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2));
                         }
@@ -824,7 +825,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = gf.extractElement(v1, v2);
                         } else if (v1.getType() instanceof PointerType) {
-                            v1 = gf.load(gf.pointerHandle(v1, v2), MemoryAtomicityMode.NONE);
+                            v1 = gf.load(gf.pointerHandle(v1, v2), SingleUnshared);
                         } else {
                             v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2));
                         }
@@ -856,7 +857,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = promote(gf.extractElement(v1, v2));
                         } else if (v1.getType() instanceof PointerType) {
-                            v1 = promote(gf.load(gf.pointerHandle(v1, v2), MemoryAtomicityMode.NONE));
+                            v1 = promote(gf.load(gf.pointerHandle(v1, v2), SingleUnshared));
                         } else {
                             v1 = promote(gf.load(gf.elementOf(gf.referenceHandle(v1), v2)));
                         }
@@ -911,7 +912,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
-                            gf.store(gf.pointerHandle(v1, v2), v3, MemoryAtomicityMode.NONE);
+                            gf.store(gf.pointerHandle(v1, v2), v3, SingleUnshared);
                         } else {
                             gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3);
                             if (v1.getType() instanceof ReferenceType) {
@@ -926,7 +927,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
-                            gf.store(gf.pointerHandle(v1, v2), v3, MemoryAtomicityMode.NONE);
+                            gf.store(gf.pointerHandle(v1, v2), v3, SingleUnshared);
                         } else {
                             gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3);
                             if (v1.getType() instanceof ReferenceType) {
@@ -941,7 +942,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
-                            gf.store(gf.pointerHandle(v1, v2), v3, MemoryAtomicityMode.NONE);
+                            gf.store(gf.pointerHandle(v1, v2), v3, SingleUnshared);
                         } else {
                             gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3);
                             if (v1.getType() instanceof ReferenceType) {
@@ -956,7 +957,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
-                            gf.store(gf.pointerHandle(v1, v2), v3, MemoryAtomicityMode.NONE);
+                            gf.store(gf.pointerHandle(v1, v2), v3, SingleUnshared);
                         } else {
                             gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3);
                             if (v1.getType() instanceof ReferenceType) {
@@ -972,7 +973,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
-                            gf.store(gf.pointerHandle(v1, v2), v3, MemoryAtomicityMode.NONE);
+                            gf.store(gf.pointerHandle(v1, v2), v3, SingleUnshared);
                         } else {
                             gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3);
                             if (v1.getType() instanceof ReferenceType) {

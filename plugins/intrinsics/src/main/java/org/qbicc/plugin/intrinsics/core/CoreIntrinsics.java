@@ -78,6 +78,8 @@ import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
+
 /**
  * Core JDK intrinsics.
  */
@@ -568,7 +570,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(jltDesc, "registerNatives", voidDesc, nopStatic);
 
         /* public static native Thread currentThread(); */
-        StaticIntrinsic currentThread = (builder, target, arguments) -> builder.load(builder.currentThread(), MemoryAtomicityMode.NONE);
+        StaticIntrinsic currentThread = (builder, target, arguments) -> builder.load(builder.currentThread(), SingleUnshared);
         intrinsics.registerIntrinsic(jltDesc, "currentThread", returnJlt, currentThread);
 
         /* VMHelpers.java - threadWrapper: helper method for java.lang.Thread.start0 */
@@ -583,7 +585,7 @@ public final class CoreIntrinsics {
             ValueHandle threadObjectHandle = builder.referenceHandle(threadObject);
 
             /* set current thread */
-            builder.store(builder.staticField(vmDesc, "_qbicc_bound_thread", jltDesc), threadObject, MemoryAtomicityMode.NONE);
+            builder.store(builder.staticField(vmDesc, "_qbicc_bound_thread", jltDesc), threadObject, SingleUnshared);
 
             /* call "run" method of thread object */
             VirtualMethodElementHandle runHandle = (VirtualMethodElementHandle)builder.virtualMethodOf(threadObject, jltDesc, "run", voidDesc);
@@ -591,7 +593,7 @@ public final class CoreIntrinsics {
 
             /* set java.lang.Thread.threadStatus to terminated */
             ValueHandle threadStatusHandle = builder.instanceFieldOf(threadObjectHandle, jltDesc, "threadStatus", BaseTypeDescriptor.I);
-            builder.store(threadStatusHandle, ctxt.getLiteralFactory().literalOf(threadTerminated), MemoryAtomicityMode.NONE);
+            builder.store(threadStatusHandle, ctxt.getLiteralFactory().literalOf(threadTerminated), SingleUnshared);
 
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getExecutable().getType().getReturnType()); /* return null */
         };
@@ -611,7 +613,7 @@ public final class CoreIntrinsics {
 
             /* set java.lang.Thread.threadStatus to runnable and alive */
             ValueHandle threadStatusHandle = builder.instanceFieldOf(builder.referenceHandle(instance), jltDesc, "threadStatus", BaseTypeDescriptor.I);
-            builder.store(threadStatusHandle, ctxt.getLiteralFactory().literalOf(threadRunnable | threadAlive), MemoryAtomicityMode.NONE);
+            builder.store(threadStatusHandle, ctxt.getLiteralFactory().literalOf(threadRunnable | threadAlive), SingleUnshared);
 
             /* pass threadWrapper as function_ptr - TODO this will eventually be replaced by a call to CNative.addr_of_function */
             MethodDescriptor threadWrapperDesc = MethodDescriptor.synthesize(classContext, voidPtrDesc, List.of(voidPtrDesc));
@@ -635,7 +637,7 @@ public final class CoreIntrinsics {
         /* public final native boolean isAlive(); */
         InstanceIntrinsic isAlive = (builder, instance, target, arguments) -> {
             ValueHandle threadStatusHandle = builder.instanceFieldOf(builder.referenceHandle(instance), jltDesc, "threadStatus", BaseTypeDescriptor.I);
-            Value threadStatus = builder.load(threadStatusHandle, MemoryAtomicityMode.NONE);
+            Value threadStatus = builder.load(threadStatusHandle, SingleUnshared);
             Value aliveState = ctxt.getLiteralFactory().literalOf(threadAlive);
             Value isThreadAlive = builder.and(threadStatus, aliveState);
             return builder.isEq(isThreadAlive, aliveState);
@@ -687,8 +689,8 @@ public final class CoreIntrinsics {
             Value backtraceValue = builder.getFirstBuilder().call(
                 builder.virtualMethodOf(visitor, getSourceCodeIndexListElement, getSourceCodeIndexListElement.getDescriptor(), getSourceCodeIndexListElement.getType()),
                 List.of());
-            builder.store(builder.instanceFieldOf(builder.referenceHandle(instance), backtraceField), backtraceValue, MemoryAtomicityMode.NONE);
-            builder.store(builder.instanceFieldOf(builder.referenceHandle(instance), depthField), frameCount, MemoryAtomicityMode.NONE);
+            builder.store(builder.instanceFieldOf(builder.referenceHandle(instance), backtraceField), backtraceValue, SingleUnshared);
+            builder.store(builder.instanceFieldOf(builder.referenceHandle(instance), depthField), frameCount, SingleUnshared);
             return instance;
         };
 
@@ -712,8 +714,8 @@ public final class CoreIntrinsics {
             LoadedTypeDefinition jltVal = jlt.load();
             FieldElement backtraceField = jltVal.findField("backtrace");
             FieldElement depthField = jltVal.findField("depth");
-            Value backtraceValue = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(1)), backtraceField), MemoryAtomicityMode.NONE);
-            Value depthValue = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(1)), depthField), MemoryAtomicityMode.NONE);
+            Value backtraceValue = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(1)), backtraceField), SingleUnshared);
+            Value depthValue = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(1)), depthField), SingleUnshared);
 
             return builder.getFirstBuilder().call(builder.staticMethod(fillStackTraceElements, fillStackTraceElements.getDescriptor(), fillStackTraceElements.getType()), List.of(arguments.get(0), backtraceValue, depthValue));
         };
@@ -894,11 +896,11 @@ public final class CoreIntrinsics {
             FieldElement lnField = jlsVal.findField("lineNumber");
             FieldElement classField = jlsVal.findField("declaringClassObject");
 
-            builder.store(builder.instanceFieldOf(steRefHandle, dcField), className, MemoryAtomicityMode.NONE);
-            builder.store(builder.instanceFieldOf(steRefHandle, mnField), methodName, MemoryAtomicityMode.NONE);
-            builder.store(builder.instanceFieldOf(steRefHandle, fnField), fileName, MemoryAtomicityMode.NONE);
-            builder.store(builder.instanceFieldOf(steRefHandle, lnField), lineNumber, MemoryAtomicityMode.NONE);
-            builder.store(builder.instanceFieldOf(steRefHandle, classField), classObject, MemoryAtomicityMode.NONE);
+            builder.store(builder.instanceFieldOf(steRefHandle, dcField), className, SingleUnshared);
+            builder.store(builder.instanceFieldOf(steRefHandle, mnField), methodName, SingleUnshared);
+            builder.store(builder.instanceFieldOf(steRefHandle, fnField), fileName, SingleUnshared);
+            builder.store(builder.instanceFieldOf(steRefHandle, lnField), lineNumber, SingleUnshared);
+            builder.store(builder.instanceFieldOf(steRefHandle, classField), classObject, SingleUnshared);
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType()); // void literal
         };
 
@@ -1358,7 +1360,7 @@ public final class CoreIntrinsics {
             ValueHandle initializers = builder.memberOf(builder.globalVariable(clinitStates), clinitStates_t.getMember("class_initializers"));
             Value typeIdInit = builder.load(builder.elementOf(initializers, typeId));
 
-            return builder.call(builder.pointerHandle(typeIdInit), List.of(builder.load(builder.currentThread(), MemoryAtomicityMode.NONE)));
+            return builder.call(builder.pointerHandle(typeIdInit), List.of(builder.load(builder.currentThread(), SingleUnshared)));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "callClassInitializer", typeIdVoidDesc, callClassInitializer);
 
@@ -1441,7 +1443,7 @@ public final class CoreIntrinsics {
         // PThread.pthread_mutex_t_ptr getNativeObjectMonitor(Object reference);
         MethodDescriptor nomOfDesc = MethodDescriptor.synthesize(classContext, pthreadMutexPtrDesc, List.of(objDesc));
         StaticIntrinsic nomOf = (builder, target, arguments) -> {
-            Value mutexSlot = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField), MemoryAtomicityMode.NONE);
+            Value mutexSlot = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField), SingleUnshared);
             PointerType returnType = (PointerType)target.getExecutable().getType().getReturnType();
             return builder.valueConvert(mutexSlot, returnType);
         };

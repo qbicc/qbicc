@@ -47,6 +47,8 @@ import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import io.smallrye.common.constraint.Assert;
 
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
+
 final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuilder.ExceptionHandler {
     private final TypeSystem typeSystem;
     private BlockLabel firstBlock;
@@ -719,11 +721,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         ClassContext classContext = element.getEnclosingType().getContext();
         CompilationContext ctxt = classContext.getCompilationContext();
         BasicBlockBuilder fb = getFirstBuilder();
-        Value thr = fb.load(fb.currentThread(), MemoryAtomicityMode.NONE);
+        Value thr = fb.load(fb.currentThread(), SingleUnshared);
         FieldElement exceptionField = ctxt.getExceptionField();
         ValueHandle handle = instanceFieldOf(referenceHandle(fb.notNull(thr)), exceptionField);
         LiteralFactory lf = ctxt.getLiteralFactory();
-        Value exceptionValue = notNull(getAndSet(handle, lf.zeroInitializerLiteralOfType(handle.getValueType()), MemoryAtomicityMode.NONE));
+        Value exceptionValue = notNull(getAndSet(handle, lf.zeroInitializerLiteralOfType(handle.getValueType()), SingleUnshared, SingleUnshared));
         BasicBlock sourceBlock = goto_(exceptionHandler.getHandler());
         exceptionHandler.enterHandler(from, sourceBlock, exceptionValue);
     }

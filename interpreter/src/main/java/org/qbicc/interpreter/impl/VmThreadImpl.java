@@ -7,6 +7,7 @@ import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.type.definition.element.FieldElement;
 
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 final class VmThreadImpl extends VmObjectImpl implements VmThread {
     final VmImpl vm;
@@ -41,7 +42,7 @@ final class VmThreadImpl extends VmObjectImpl implements VmThread {
     void setThrown(final VmThrowable throwable) {
         FieldElement thrownField = vm.getCompilationContext().getExceptionField();
         int offset = getVmClass().getLayoutInfo().getMember(thrownField).getOffset();
-        getMemory().storeRef(offset, throwable, MemoryAtomicityMode.NONE);
+        getMemory().storeRef(offset, throwable, SingleUnshared);
     }
 
     void setThreadGroup(final VmObject threadGroup) {

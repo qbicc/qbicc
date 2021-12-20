@@ -182,7 +182,7 @@ final class CNativeIntrinsics {
             //java.lang.Thread.nextThreadID
             Value thread = builder.new_(thrDesc);
             // immediately set the thread to be the current thread
-            builder.store(builder.staticField(vmDesc, "_qbicc_bound_thread", thrDesc), thread, MemoryAtomicityMode.NONE);
+            builder.store(builder.staticField(vmDesc, "_qbicc_bound_thread", thrDesc), thread, SingleUnshared);
             // now start initializing
             DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
             LoadedTypeDefinition jltVal = jlt.load();
@@ -194,16 +194,16 @@ final class CNativeIntrinsics {
             FieldElement priorityFld = jltVal.findField("priority");
 
             ValueHandle threadRef = builder.referenceHandle(thread);
-            builder.store(builder.instanceFieldOf(threadRef, nameFld), arguments.get(0), MemoryAtomicityMode.NONE);
-            builder.store(builder.instanceFieldOf(threadRef, groupFld), arguments.get(1), MemoryAtomicityMode.NONE);
+            builder.store(builder.instanceFieldOf(threadRef, nameFld), arguments.get(0), SingleUnshared);
+            builder.store(builder.instanceFieldOf(threadRef, groupFld), arguments.get(1), SingleUnshared);
             Value tid = builder.call(builder.staticMethod(thrDesc, "nextThreadID", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of())), List.of());
-            builder.store(builder.instanceFieldOf(threadRef, tidFld), tid, MemoryAtomicityMode.NONE);
+            builder.store(builder.instanceFieldOf(threadRef, tidFld), tid, SingleUnshared);
             // priority default is Thread.NORM_PRIORITY
-            Value normPriority = builder.load(builder.staticField(jltVal.findField("NORM_PRIORITY")), MemoryAtomicityMode.NONE);
-            builder.store(builder.instanceFieldOf(threadRef, priorityFld), normPriority, MemoryAtomicityMode.NONE);
+            Value normPriority = builder.load(builder.staticField(jltVal.findField("NORM_PRIORITY")), SingleUnshared);
+            builder.store(builder.instanceFieldOf(threadRef, priorityFld), normPriority, SingleUnshared);
 
             // set thread to be running with JVMTI status for RUNNABLE and ALIVE
-            builder.store(builder.instanceFieldOf(threadRef, threadStatusFld), ctxt.getLiteralFactory().literalOf(0x05), MemoryAtomicityMode.NONE);
+            builder.store(builder.instanceFieldOf(threadRef, threadStatusFld), ctxt.getLiteralFactory().literalOf(0x05), SingleUnshared);
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
         };
 

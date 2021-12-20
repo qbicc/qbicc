@@ -9,6 +9,8 @@ import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
+
 /**
  *
  */
@@ -38,7 +40,7 @@ public class ThreadLocalBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             }
             BasicBlockBuilder b = getFirstBuilder();
             // thread local values are never visible outside of the current thread
-            return instanceFieldOf(referenceHandle(load(currentThread(), MemoryAtomicityMode.NONE)), threadLocalField);
+            return instanceFieldOf(referenceHandle(load(currentThread(), SingleUnshared)), threadLocalField);
         } else {
             return super.staticField(fieldElement);
         }
