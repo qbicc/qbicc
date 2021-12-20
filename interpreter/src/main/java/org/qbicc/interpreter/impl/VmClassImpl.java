@@ -32,7 +32,6 @@ import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
-import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -48,8 +47,6 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     private static final Logger log = Logger.getLogger("org.qbicc.interpreter");
 
     private static final VarHandle interfacesHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "interfaces", VarHandle.class, VmClassImpl.class, List.class);
-    private static final VarHandle declaredFieldsHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "declaredFields", VarHandle.class, VmClassImpl.class, VmArrayImpl.class);
-    private static final VarHandle declaredMethodsHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "declaredMethods", VarHandle.class, VmClassImpl.class, VmArrayImpl.class);
 
     private final VmImpl vm;
     /**
@@ -83,8 +80,6 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     private volatile List<? extends VmClassImpl> interfaces;
     private volatile VmClassImpl superClass;
     private volatile VmArrayClassImpl arrayClass;
-    private volatile VmArrayImpl declaredFields; // backs getDeclaredFields0
-    private volatile VmArrayImpl declaredMethods; // backs getDeclaredMethods0
 
     // initialization state
 
@@ -130,7 +125,6 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         staticLayoutInfo = null;
         staticMemory = vmImpl.emptyMemory;
         interfaces = List.of();
-        declaredFields = null;
     }
 
     VmClassImpl(final VmImpl vm, final ClassContext classContext, @SuppressWarnings("unused") Class<VmClassClassImpl> classClassOnly) {
