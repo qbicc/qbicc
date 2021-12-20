@@ -7,10 +7,10 @@ import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmString;
 
+import static org.qbicc.graph.atomic.AccessModes.SingleAcquire;
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
 final class VmStringImpl extends VmObjectImpl implements VmString {
@@ -63,8 +63,8 @@ final class VmStringImpl extends VmObjectImpl implements VmString {
         }
         VmImpl vm = getVmClass().getVm();
         MemoryImpl memory = getMemory();
-        int coder = memory.load8(vm.stringCoderOffset, MemoryAtomicityMode.ACQUIRE);
-        VmByteArrayImpl array = (VmByteArrayImpl) memory.loadRef(vm.stringValueOffset, MemoryAtomicityMode.ACQUIRE);
+        int coder = memory.load8(vm.stringCoderOffset, SingleAcquire);
+        VmByteArrayImpl array = (VmByteArrayImpl) memory.loadRef(vm.stringValueOffset, SingleAcquire);
         Charset charset = coder == 0 ? StandardCharsets.ISO_8859_1 : StandardCharsets.UTF_16BE;
         byte[] rawArray = array.getMemory().getArray();
         String newContent = new String(rawArray, vm.byteArrayContentOffset, array.getLength(), charset);

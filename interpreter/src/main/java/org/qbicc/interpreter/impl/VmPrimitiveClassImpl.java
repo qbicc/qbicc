@@ -1,7 +1,6 @@
 package org.qbicc.interpreter.impl;
 
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ObjectType;
@@ -11,6 +10,7 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+import static org.qbicc.graph.atomic.AccessModes.SingleRelease;
 
 /**
  *
@@ -62,7 +62,7 @@ class VmPrimitiveClassImpl extends VmClassImpl implements VmPrimitiveClass {
     void setArrayClass(CompilationContext ctxt, VmArrayClassImpl arrayClazz) {
         // post-construct array type def (break bootstrapping circularity)
         int acfIdx = indexOf(CoreClasses.get(ctxt).getArrayClassField());
-        getMemory().storeRef(acfIdx, arrayClazz, MemoryAtomicityMode.VOLATILE);
+        getMemory().storeRef(acfIdx, arrayClazz, SingleRelease);
     }
 
     Primitive getPrimitive() {
