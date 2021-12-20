@@ -8,7 +8,6 @@ import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -29,7 +28,6 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
-import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 

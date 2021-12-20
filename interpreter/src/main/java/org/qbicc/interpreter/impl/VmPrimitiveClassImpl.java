@@ -6,7 +6,6 @@ import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.Primitive;
-import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
