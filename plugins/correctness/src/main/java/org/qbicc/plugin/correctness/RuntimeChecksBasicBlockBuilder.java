@@ -16,7 +16,6 @@ import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.InstanceMethodElementHandle;
 import org.qbicc.graph.InterfaceMethodElementHandle;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.StaticField;

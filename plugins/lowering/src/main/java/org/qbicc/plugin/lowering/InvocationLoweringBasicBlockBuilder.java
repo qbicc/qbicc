@@ -15,7 +15,6 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.InterfaceMethodElementHandle;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;

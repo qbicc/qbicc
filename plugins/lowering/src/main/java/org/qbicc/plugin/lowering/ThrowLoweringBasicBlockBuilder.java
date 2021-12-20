@@ -6,7 +6,6 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Value;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.type.FunctionType;
