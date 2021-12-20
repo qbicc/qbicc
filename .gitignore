@@ -20,3 +20,4 @@ a.out
 *.jar
 *.versionsBackup
 hs_err*.log
+.mvn
