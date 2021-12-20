@@ -241,7 +241,7 @@ public final class LLVMIntrinsics {
                 ValueType[] types = new ValueType[argCount];
                 ValueHandle arrayHandle = bb.referenceHandle(argsValue);
                 for (int i = 0; i < argCount; i ++) {
-                    Value value = bb.load(bb.elementOf(arrayHandle, lf.literalOf(i)), MemoryAtomicityMode.UNORDERED);
+                    Value value = bb.load(bb.elementOf(arrayHandle, lf.literalOf(i)));
                     args[i] = value;
                     types[i] = value.getType();
                 }

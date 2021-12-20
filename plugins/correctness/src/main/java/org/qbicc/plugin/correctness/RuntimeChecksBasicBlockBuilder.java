@@ -235,7 +235,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                 if (arrayType instanceof ArrayObjectType) {
                     indexOutOfBoundsCheck(arrayHandle, node.getIndex());
                     if (arrayType instanceof ReferenceArrayObjectType referenceArrayType && storedValue != null) {
-                        Value toTypeId = load(instanceFieldOf(arrayHandle, CoreClasses.get(ctxt).getRefArrayElementTypeIdField()), MemoryAtomicityMode.UNORDERED);
+                        Value toTypeId = load(instanceFieldOf(arrayHandle, CoreClasses.get(ctxt).getRefArrayElementTypeIdField()));
                         Value toDimensions;
                         ObjectType jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load().getType();
                         if (referenceArrayType.getLeafElementType().equals(jlo)) {
@@ -371,7 +371,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         if_(isLt(index, zero), throwIt, notNegative);
         try {
             begin(notNegative);
-            final Value length = load(instanceFieldOf(array, CoreClasses.get(ctxt).getArrayLengthField()), MemoryAtomicityMode.UNORDERED);
+            final Value length = load(instanceFieldOf(array, CoreClasses.get(ctxt).getArrayLengthField()));
             if_(isGe(index, length), throwIt, goAhead);
         } catch (BlockEarlyTermination ignored) {
             // continue

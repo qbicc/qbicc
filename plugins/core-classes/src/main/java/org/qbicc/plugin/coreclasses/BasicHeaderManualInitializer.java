@@ -15,6 +15,8 @@ import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.element.FieldElement;
 
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+
 /**
  * Initialize manually-created interpreter objects in the same way as {@link BasicHeaderInitializer}.
  */
@@ -32,18 +34,18 @@ public class BasicHeaderManualInitializer implements Consumer<VmObject> {
         Memory memory = vmObject.getMemory();
         CoreClasses coreClasses = CoreClasses.get(ctxt);
         FieldElement typeIdField = coreClasses.getObjectTypeIdField();
-        memory.storeType(vmObject.indexOf(typeIdField), objectTypeId, MemoryAtomicityMode.UNORDERED);
+        memory.storeType(vmObject.indexOf(typeIdField), objectTypeId, SinglePlain);
         FieldElement nativeMonitorField = coreClasses.getObjectNativeObjectMonitorField();
-        memory.store64(vmObject.indexOf(nativeMonitorField), 0, MemoryAtomicityMode.UNORDERED);
+        memory.store64(vmObject.indexOf(nativeMonitorField), 0, SinglePlain);
         if (vmObject instanceof VmArray) {
             FieldElement lengthField = coreClasses.getArrayLengthField();
-            memory.store32(vmObject.indexOf(lengthField), ((VmArray) vmObject).getLength(), MemoryAtomicityMode.UNORDERED);
+            memory.store32(vmObject.indexOf(lengthField), ((VmArray) vmObject).getLength(), SinglePlain);
             if (vmObject instanceof VmReferenceArray) {
                 ReferenceArrayObjectType arrayType = ((VmReferenceArray) vmObject).getObjectType();
                 FieldElement elemTypeIdField = coreClasses.getRefArrayElementTypeIdField();
-                memory.storeType(vmObject.indexOf(elemTypeIdField), arrayType.getLeafElementType(), MemoryAtomicityMode.UNORDERED);
+                memory.storeType(vmObject.indexOf(elemTypeIdField), arrayType.getLeafElementType(), SinglePlain);
                 FieldElement dimensionsField = coreClasses.getRefArrayDimensionsField();
-                memory.store8(vmObject.indexOf(dimensionsField), arrayType.getDimensionCount(), MemoryAtomicityMode.UNORDERED);
+                memory.store8(vmObject.indexOf(dimensionsField), arrayType.getDimensionCount(), SinglePlain);
             }
         }
     }

@@ -15,6 +15,8 @@ import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.FieldElement;
 
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+
 /**
  * Functions to initialize the core classes fields of object instances,
  * which are the same regardless of where the memory is allocated (heap, stack) and GC implementation.
@@ -35,21 +37,21 @@ public class BasicHeaderInitializer {
 
 
     private static void initializeObjectHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final CoreClasses coreClasses, final ValueHandle handle, final Value typeId) {
-        bb.store(bb.instanceFieldOf(handle, coreClasses.getObjectTypeIdField()), typeId, MemoryAtomicityMode.UNORDERED);
+        bb.store(bb.instanceFieldOf(handle, coreClasses.getObjectTypeIdField()), typeId, SinglePlain);
         FieldElement monitorField = coreClasses.getObjectNativeObjectMonitorField();
         bb.store(bb.instanceFieldOf(handle, monitorField), ctxt.getLiteralFactory().literalOf((IntegerType)monitorField.getType(), 0L), MemoryAtomicityMode.NONE);
     }
 
     private static void initializeArrayHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final CoreClasses coreClasses, final ValueHandle handle, final Value typeId, final Value size) {
         initializeObjectHeader(ctxt, bb, coreClasses, handle, typeId);
-        bb.store(bb.instanceFieldOf(handle, coreClasses.getArrayLengthField()), size, MemoryAtomicityMode.UNORDERED);
+        bb.store(bb.instanceFieldOf(handle, coreClasses.getArrayLengthField()), size, SinglePlain);
     }
 
     private static void initializeRefArrayHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final CoreClasses coreClasses, final ValueHandle handle, Value elemTypeId, Value dimensions, final Value size) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         initializeArrayHeader(ctxt, bb, coreClasses, handle, lf.literalOfType(coreClasses.getReferenceArrayTypeDefinition().load().getClassType()), size);
         FieldElement dimsField = coreClasses.getRefArrayDimensionsField();
-        bb.store(bb.instanceFieldOf(handle, dimsField), dimensions, MemoryAtomicityMode.UNORDERED);
-        bb.store(bb.instanceFieldOf(handle, coreClasses.getRefArrayElementTypeIdField()), elemTypeId, MemoryAtomicityMode.UNORDERED);
+        bb.store(bb.instanceFieldOf(handle, dimsField), dimensions, SinglePlain);
+        bb.store(bb.instanceFieldOf(handle, coreClasses.getRefArrayElementTypeIdField()), elemTypeId, SinglePlain);
     }
 }

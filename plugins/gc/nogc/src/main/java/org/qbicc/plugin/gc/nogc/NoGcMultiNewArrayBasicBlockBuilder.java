@@ -9,7 +9,6 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -55,7 +54,7 @@ public class NoGcMultiNewArrayBasicBlockBuilder extends DelegatingBasicBlockBuil
             begin(resume);
             phi.setValueForBlock(ctxt, getCurrentElement(), initial, lf.literalOf(0));
             Value innerArray = multiNewArray((ArrayTypeDescriptor) elementDesc, dimensions);
-            store(elementOf(referenceHandle(newArray), phi), innerArray, MemoryAtomicityMode.UNORDERED);
+            store(elementOf(referenceHandle(newArray), phi), innerArray);
             BasicBlock loopExit = goto_(loop);
             phi.setValueForBlock(ctxt, getCurrentElement(), loopExit, add(phi, lf.literalOf(1)));
         } catch (BlockEarlyTermination ignored) {

@@ -251,7 +251,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             DefinedTypeDefinition dtd = CoreClasses.get(ctxt).getArrayContentField(toType).getEnclosingType();
             LoadedTypeDefinition arrayVTD = dtd.load();
             final int primArrayTypeId = arrayVTD.getTypeId();
-            Value inputTypeId = load(instanceFieldOf(referenceHandle(input), CoreClasses.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
+            Value inputTypeId = load(instanceFieldOf(referenceHandle(input), CoreClasses.get(ctxt).getObjectTypeIdField()));
             if_(isEq(inputTypeId, lf.literalOf(primArrayTypeId)), pass, fail);
         } else if (toType instanceof InterfaceObjectType) {
             // 2 - expectedType statically known to be an interface
@@ -260,13 +260,13 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             final int byteIndex = tables.getInterfaceByteIndex(vtdExpectedType);
             final int mask = tables.getInterfaceBitMask(vtdExpectedType);
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(getDelegate().getCurrentElement());
-            Value inputTypeId = load(instanceFieldOf(referenceHandle(input), CoreClasses.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
+            Value inputTypeId = load(instanceFieldOf(referenceHandle(input), CoreClasses.get(ctxt).getObjectTypeIdField()));
             // typeIdStruct = qbicc_typeid_array[typeId]
             ValueHandle typeIdStruct = elementOf(globalVariable(typeIdGlobal), inputTypeId);
             // bits = &typeIdStruct.interfaceBits
             ValueHandle bits = memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("interfaceBits"));
             // thisByte = bits[byteIndex]
-            Value thisByte = load(elementOf(bits, lf.literalOf(byteIndex)), MemoryAtomicityMode.UNORDERED);
+            Value thisByte = load(elementOf(bits, lf.literalOf(byteIndex)));
             // maskedValue = thisByte & mask
             Value maskedValue = and(thisByte, lf.literalOf(mask));
             if_(isEq(maskedValue, lf.literalOf(mask)), pass, fail);
@@ -277,7 +277,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             // B - non-leaf classes need a subtract + compare
             ClassObjectType cotExpectedType = (ClassObjectType) toType;
             LoadedTypeDefinition vtdExpectedType = cotExpectedType.getDefinition().load();
-            Value inputTypeId = load(instanceFieldOf(referenceHandle(input), CoreClasses.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
+            Value inputTypeId = load(instanceFieldOf(referenceHandle(input), CoreClasses.get(ctxt).getObjectTypeIdField()));
             final int typeId = vtdExpectedType.getTypeId();
             final int maxSubId = vtdExpectedType.getMaximumSubtypeId();
             Literal vtdTypeId = lf.literalOf(typeId);
@@ -306,11 +306,11 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             // 1. use toType (a TypeId) to load the corresponding maxTypeId
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(getDelegate().getCurrentElement());
             ValueHandle typeIdStruct = elementOf(globalVariable(typeIdGlobal), toType);
-            Value maxTypeId = load(memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("maxSubTypeId")), MemoryAtomicityMode.UNORDERED);
+            Value maxTypeId = load(memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("maxSubTypeId")));
 
             // 2. Test passes iff toType <= valueTypeId <= maxTypeId
             //    Note: we could instead test: (valueTypeId - toType) <=_unsigned (maxTypeId - toType) since typeIds are all positive
-            Value valueTypeId = load(instanceFieldOf(referenceHandle(input), CoreClasses.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
+            Value valueTypeId = load(instanceFieldOf(referenceHandle(input), CoreClasses.get(ctxt).getObjectTypeIdField()));
             if_(and(isLe(toType, valueTypeId), isLe(valueTypeId, maxTypeId)), pass, fail);
             return true;
         }

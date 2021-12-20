@@ -40,6 +40,8 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+
 /**
  * A basic block builder which substitutes reads from constant static fields with the constant value of the field.
  */
@@ -224,6 +226,6 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private Node storeException(final Thrown t) {
         // todo: rework when landing pads are done
-        return store(instanceFieldOf(referenceHandle(load(currentThread(),MemoryAtomicityMode.NONE)), ctxt.getExceptionField()), ctxt.getLiteralFactory().literalOf(t.getThrowable()), MemoryAtomicityMode.UNORDERED);
+        return store(instanceFieldOf(referenceHandle(load(currentThread(),MemoryAtomicityMode.NONE)), ctxt.getExceptionField()), ctxt.getLiteralFactory().literalOf(t.getThrowable()), SinglePlain);
     }
 }

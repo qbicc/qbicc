@@ -3,13 +3,14 @@ package org.qbicc.interpreter.impl;
 import java.util.ArrayList;
 
 import org.qbicc.context.ClassContext;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
+
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
 /**
  *
@@ -52,10 +53,10 @@ class VmMemberNameImpl extends VmObjectImpl {
     void resolve(VmThreadImpl thread, VmClassImpl caller, boolean speculativeResolve) {
         if (resolved == null) {
             LoadedTypeDefinition def = getVmClass().getTypeDefinition();
-            VmClassImpl clazz = (VmClassImpl) getMemory().loadRef(indexOf(def.findField("clazz")), MemoryAtomicityMode.UNORDERED);
-            VmStringImpl name = (VmStringImpl) getMemory().loadRef(indexOf(def.findField("name")), MemoryAtomicityMode.UNORDERED);
-            VmObjectImpl type = (VmObjectImpl) getMemory().loadRef(indexOf(def.findField("type")), MemoryAtomicityMode.UNORDERED);
-            int flags = getMemory().load32(indexOf(def.findField("flags")), MemoryAtomicityMode.UNORDERED);
+            VmClassImpl clazz = (VmClassImpl) getMemory().loadRef(indexOf(def.findField("clazz")), SinglePlain);
+            VmStringImpl name = (VmStringImpl) getMemory().loadRef(indexOf(def.findField("name")), SinglePlain);
+            VmObjectImpl type = (VmObjectImpl) getMemory().loadRef(indexOf(def.findField("type")), SinglePlain);
+            int flags = getMemory().load32(indexOf(def.findField("flags")), SinglePlain);
             if (clazz == null || name == null || type == null) {
                 throw new Thrown(thread.vm.linkageErrorClass.newInstance("Null name or class"));
             }
@@ -112,18 +113,18 @@ class VmMemberNameImpl extends VmObjectImpl {
             throw new Thrown(thread.vm.linkageErrorClass.newInstance("Type argument is of wrong class"));
         }
         LoadedTypeDefinition mtDef = mtClass.getTypeDefinition();
-        VmClassImpl rtype = (VmClassImpl) methodType.getMemory().loadRef(indexOf(mtDef.findField("rtype")), MemoryAtomicityMode.UNORDERED);
+        VmClassImpl rtype = (VmClassImpl) methodType.getMemory().loadRef(indexOf(mtDef.findField("rtype")), SinglePlain);
         if (rtype == null) {
             throw new Thrown(thread.vm.linkageErrorClass.newInstance("MethodType has null return type"));
         }
-        VmRefArrayImpl ptypes = (VmRefArrayImpl) methodType.getMemory().loadRef(indexOf(mtDef.findField("ptypes")), MemoryAtomicityMode.UNORDERED);
+        VmRefArrayImpl ptypes = (VmRefArrayImpl) methodType.getMemory().loadRef(indexOf(mtDef.findField("ptypes")), SinglePlain);
         if (ptypes == null) {
             throw new Thrown(thread.vm.linkageErrorClass.newInstance("MethodType has null param types"));
         }
         int pcnt = ptypes.getLength();
         ArrayList<TypeDescriptor> paramTypes = new ArrayList<>(pcnt);
         for (int i = 0; i < pcnt; i ++) {
-            VmClassImpl clazz = (VmClassImpl) ptypes.getMemory().loadRef(ptypes.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED);
+            VmClassImpl clazz = (VmClassImpl) ptypes.getMemory().loadRef(ptypes.getArrayElementOffset(i), SinglePlain);
             paramTypes.add(clazz.getDescriptor());
         }
         return MethodDescriptor.synthesize(classContext, rtype.getDescriptor(), paramTypes);

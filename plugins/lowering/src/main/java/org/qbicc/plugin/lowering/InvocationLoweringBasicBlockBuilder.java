@@ -177,9 +177,9 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             section.declareData(null, vtables.getName(), vtables.getType());
         }
         int index = dt.getVTableIndex(target);
-        Value typeId = fb.load(fb.instanceFieldOf(fb.referenceHandle(node.getInstance()), CoreClasses.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
-        Value vtable = fb.load(elementOf(globalVariable(dt.getVTablesGlobal()), typeId), MemoryAtomicityMode.UNORDERED);
-        Value ptr = fb.load(memberOf(pointerHandle(bitCast(vtable, info.getType().getPointer())), info.getType().getMember(index)), MemoryAtomicityMode.UNORDERED);
+        Value typeId = fb.load(fb.instanceFieldOf(fb.referenceHandle(node.getInstance()), CoreClasses.get(ctxt).getObjectTypeIdField()));
+        Value vtable = fb.load(elementOf(globalVariable(dt.getVTablesGlobal()), typeId));
+        Value ptr = fb.load(memberOf(pointerHandle(bitCast(vtable, info.getType().getPointer())), info.getType().getMember(index)));
         return pointerHandle(ptr);
     }
 
@@ -205,8 +205,8 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         }
 
         // Use the receiver's typeId to get the itable dictionary for its class
-        Value typeId = fb.load(fb.instanceFieldOf(fb.referenceHandle(node.getInstance()), CoreClasses.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
-        Value itableDict = fb.load(elementOf(globalVariable(rootITables), typeId), MemoryAtomicityMode.UNORDERED);
+        Value typeId = fb.load(fb.instanceFieldOf(fb.referenceHandle(node.getInstance()), CoreClasses.get(ctxt).getObjectTypeIdField()));
+        Value itableDict = fb.load(elementOf(globalVariable(rootITables), typeId));
         ValueHandle zeroElementHandle = fb.pointerHandle(itableDict);
 
         // Search loop to find the itableDictEntry with the typeId of the target interface.
@@ -221,7 +221,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         PhiValue phi = phi(ctxt.getTypeSystem().getSignedInteger32Type(), loop);
         IntegerLiteral zero = ctxt.getLiteralFactory().literalOf(0);
         phi.setValueForBlock(ctxt, getCurrentElement(), initial, zero);
-        Value candidateId = fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, phi), dt.getItableDictType().getMember("typeId")), MemoryAtomicityMode.UNORDERED);
+        Value candidateId = fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, phi), dt.getItableDictType().getMember("typeId")));
         if_(isEq(candidateId, ctxt.getLiteralFactory().literalOf(info.getInterface().getTypeId())), exitMatched, checkForICCE);
         try {
             begin(checkForICCE);
@@ -235,8 +235,8 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             // ignore; continue to generate validEntry block
         }
         begin(exitMatched);
-        Value itable = fb.bitCast(fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, phi), dt.getItableDictType().getMember("itable")), MemoryAtomicityMode.UNORDERED), info.getType().getPointer());
-        final Value ptr = fb.load(memberOf(fb.pointerHandle(itable), info.getType().getMember(dt.getITableIndex(target))), MemoryAtomicityMode.UNORDERED);
+        Value itable = fb.bitCast(fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, phi), dt.getItableDictType().getMember("itable"))), info.getType().getPointer());
+        final Value ptr = fb.load(memberOf(fb.pointerHandle(itable), info.getType().getMember(dt.getITableIndex(target))));
         return pointerHandle(ptr);
     }
 

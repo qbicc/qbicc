@@ -5,6 +5,8 @@ import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.type.ReferenceArrayObjectType;
 
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+
 /**
  *
  */
@@ -32,7 +34,7 @@ final class VmRefArrayImpl extends VmArrayImpl implements VmReferenceArray {
 
     @Override
     public void store(int index, VmObject value) {
-        getMemory().storeRef(getArrayElementOffset(index), value, MemoryAtomicityMode.UNORDERED);
+        getMemory().storeRef(getArrayElementOffset(index), value, SinglePlain);
     }
 
     @Override
