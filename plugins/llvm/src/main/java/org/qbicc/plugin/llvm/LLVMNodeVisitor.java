@@ -58,7 +58,6 @@ import org.qbicc.graph.IsLt;
 import org.qbicc.graph.IsNe;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.MemberOf;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Mod;
 import org.qbicc.graph.Multiply;
 import org.qbicc.graph.Neg;
@@ -1262,22 +1261,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         PointerType pointerType = handle.getPointerType();
         ValueType pointeeType = pointerType.getPointeeType();
         return builder.getelementptr(pointeeType instanceof VoidType ? i8 : map(pointeeType), map(pointerType), ptr);
-    }
-
-    private OrderingConstraint getOC(MemoryAtomicityMode mode) {
-        switch (mode) {
-            case MONOTONIC:
-                return OrderingConstraint.monotonic;
-            case ACQUIRE:
-                return OrderingConstraint.acquire;
-            case RELEASE:
-                return OrderingConstraint.release;
-            case ACQUIRE_RELEASE:
-                return OrderingConstraint.acq_rel;
-            case SEQUENTIALLY_CONSISTENT:
-                return OrderingConstraint.seq_cst;
-        }
-        throw Assert.unreachableCode();
     }
 
     private OrderingConstraint getOC(AccessMode mode) {
