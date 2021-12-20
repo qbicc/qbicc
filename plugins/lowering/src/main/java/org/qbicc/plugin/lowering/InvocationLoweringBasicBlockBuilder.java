@@ -45,6 +45,8 @@ import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
+
 /**
  *
  */
@@ -118,7 +120,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     public ValueHandle visit(ArrayList<Value> args, ConstructorElementHandle node) {
         final BasicBlockBuilder fb = getFirstBuilder();
         // insert "this" and current thread
-        args.addAll(0, List.of(fb.load(fb.currentThread(), MemoryAtomicityMode.NONE), node.getInstance()));
+        args.addAll(0, List.of(fb.load(fb.currentThread(), SingleUnshared), node.getInstance()));
         ctxt.enqueue(node.getExecutable());
         Function function = ctxt.getExactFunction(node.getExecutable());
         node.getExecutable();
@@ -150,7 +152,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
         final BasicBlockBuilder fb = getFirstBuilder();
         // insert "this" and current thread
-        args.addAll(0, List.of(fb.load(fb.currentThread(), MemoryAtomicityMode.NONE), node.getInstance()));
+        args.addAll(0, List.of(fb.load(fb.currentThread(), SingleUnshared), node.getInstance()));
         ctxt.enqueue(node.getExecutable());
         Function function = ctxt.getExactFunction(node.getExecutable());
         FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);
@@ -162,7 +164,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     public ValueHandle visit(ArrayList<Value> args, VirtualMethodElementHandle node) {
         final BasicBlockBuilder fb = getFirstBuilder();
         // insert "this" and current thread
-        args.addAll(0, List.of(fb.load(fb.currentThread(), MemoryAtomicityMode.NONE), node.getInstance()));
+        args.addAll(0, List.of(fb.load(fb.currentThread(), SingleUnshared), node.getInstance()));
         final MethodElement target = node.getExecutable();
         if (!ReachabilityInfo.get(ctxt).isInvokableMethod(target)) {
             // No realized invocation targets are possible for this method!
@@ -177,9 +179,9 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             section.declareData(null, vtables.getName(), vtables.getType());
         }
         int index = dt.getVTableIndex(target);
-        Value typeId = fb.load(fb.instanceFieldOf(fb.referenceHandle(node.getInstance()), CoreClasses.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
-        Value vtable = fb.load(elementOf(globalVariable(dt.getVTablesGlobal()), typeId), MemoryAtomicityMode.UNORDERED);
-        Value ptr = fb.load(memberOf(pointerHandle(bitCast(vtable, info.getType().getPointer())), info.getType().getMember(index)), MemoryAtomicityMode.UNORDERED);
+        Value typeId = fb.load(fb.instanceFieldOf(fb.referenceHandle(node.getInstance()), CoreClasses.get(ctxt).getObjectTypeIdField()));
+        Value vtable = fb.load(elementOf(globalVariable(dt.getVTablesGlobal()), typeId));
+        Value ptr = fb.load(memberOf(pointerHandle(bitCast(vtable, info.getType().getPointer())), info.getType().getMember(index)));
         return pointerHandle(ptr);
     }
 
@@ -188,7 +190,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     public ValueHandle visit(ArrayList<Value> args, InterfaceMethodElementHandle node) {
         final BasicBlockBuilder fb = getFirstBuilder();
         // insert "this" and current thread
-        args.addAll(0, List.of(fb.load(fb.currentThread(), MemoryAtomicityMode.NONE), node.getInstance()));
+        args.addAll(0, List.of(fb.load(fb.currentThread(), SingleUnshared), node.getInstance()));
         final MethodElement target = node.getExecutable();
         DispatchTables dt = DispatchTables.get(ctxt);
         DispatchTables.ITableInfo info = dt.getITableInfo(target.getEnclosingType().load());
@@ -205,8 +207,8 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         }
 
         // Use the receiver's typeId to get the itable dictionary for its class
-        Value typeId = fb.load(fb.instanceFieldOf(fb.referenceHandle(node.getInstance()), CoreClasses.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
-        Value itableDict = fb.load(elementOf(globalVariable(rootITables), typeId), MemoryAtomicityMode.UNORDERED);
+        Value typeId = fb.load(fb.instanceFieldOf(fb.referenceHandle(node.getInstance()), CoreClasses.get(ctxt).getObjectTypeIdField()));
+        Value itableDict = fb.load(elementOf(globalVariable(rootITables), typeId));
         ValueHandle zeroElementHandle = fb.pointerHandle(itableDict);
 
         // Search loop to find the itableDictEntry with the typeId of the target interface.
@@ -221,7 +223,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         PhiValue phi = phi(ctxt.getTypeSystem().getSignedInteger32Type(), loop);
         IntegerLiteral zero = ctxt.getLiteralFactory().literalOf(0);
         phi.setValueForBlock(ctxt, getCurrentElement(), initial, zero);
-        Value candidateId = fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, phi), dt.getItableDictType().getMember("typeId")), MemoryAtomicityMode.UNORDERED);
+        Value candidateId = fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, phi), dt.getItableDictType().getMember("typeId")));
         if_(isEq(candidateId, ctxt.getLiteralFactory().literalOf(info.getInterface().getTypeId())), exitMatched, checkForICCE);
         try {
             begin(checkForICCE);
@@ -235,8 +237,8 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             // ignore; continue to generate validEntry block
         }
         begin(exitMatched);
-        Value itable = fb.bitCast(fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, phi), dt.getItableDictType().getMember("itable")), MemoryAtomicityMode.UNORDERED), info.getType().getPointer());
-        final Value ptr = fb.load(memberOf(fb.pointerHandle(itable), info.getType().getMember(dt.getITableIndex(target))), MemoryAtomicityMode.UNORDERED);
+        Value itable = fb.bitCast(fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, phi), dt.getItableDictType().getMember("itable"))), info.getType().getPointer());
+        final Value ptr = fb.load(memberOf(fb.pointerHandle(itable), info.getType().getMember(dt.getITableIndex(target))));
         return pointerHandle(ptr);
     }
 
@@ -248,7 +250,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         }
         final BasicBlockBuilder fb = getFirstBuilder();
         // insert current thread only
-        args.add(0, fb.load(fb.currentThread(), MemoryAtomicityMode.NONE));
+        args.add(0, fb.load(fb.currentThread(), SingleUnshared));
         ctxt.enqueue(node.getExecutable());
         Function function = ctxt.getExactFunction(node.getExecutable());
         FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);

@@ -11,6 +11,8 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+
 /**
  *
  */
@@ -55,7 +57,7 @@ class VmPrimitiveClassImpl extends VmClassImpl implements VmPrimitiveClass {
     void postConstruct(VmImpl vm) {
         postConstruct(primitive.getName(), vm);
         FieldElement instanceTypeIdField = CoreClasses.get(vm.getCompilationContext()).getClassTypeIdField();
-        memory.storeType(indexOf(instanceTypeIdField), primitive.getType(), MemoryAtomicityMode.UNORDERED);
+        memory.storeType(indexOf(instanceTypeIdField), primitive.getType(), SinglePlain);
     }
 
     void setArrayClass(CompilationContext ctxt, VmArrayClassImpl arrayClazz) {

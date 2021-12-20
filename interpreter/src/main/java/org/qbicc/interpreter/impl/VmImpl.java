@@ -504,8 +504,8 @@ public final class VmImpl implements Vm {
                 VmObjectImpl fieldObj = (VmObjectImpl) args.get(0);
                 VmClassImpl fieldClazz = bootstrapClassLoader.loadClass("java/lang/reflect/Field");
                 LoadedTypeDefinition fieldDef = fieldClazz.getTypeDefinition();
-                VmClassImpl clazz = (VmClassImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("clazz")), MemoryAtomicityMode.UNORDERED);
-                VmStringImpl name = (VmStringImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("name")), MemoryAtomicityMode.UNORDERED);
+                VmClassImpl clazz = (VmClassImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("clazz")), SinglePlain);
+                VmStringImpl name = (VmStringImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("name")), SinglePlain);
                 LoadedTypeDefinition clazzDef = clazz.getTypeDefinition();
                 FieldElement field = clazzDef.findField(name.getContent());
                 if (field == null || field.isStatic()) {
@@ -587,8 +587,8 @@ public final class VmImpl implements Vm {
             // String.hashCode is well-defined
             stringClass.registerInvokable("hashCode", (thread, target, args) -> Integer.valueOf(((VmStringImpl) target).getContent().hashCode()));
             stringClass.registerInvokable("equals", (thread, target, args) -> Boolean.valueOf(args.get(0) instanceof VmStringImpl other && ((VmStringImpl)target).contentEquals(other.getContent())));
-            stringClass.registerInvokable("coder", (thread, target, args) -> Byte.valueOf((byte) ((VmStringImpl) target).getMemory().load8(stringCoderOffset, MemoryAtomicityMode.UNORDERED)));
-            stringClass.registerInvokable("isLatin1", (thread, target, args) -> Boolean.valueOf(((VmStringImpl) target).getMemory().load8(stringCoderOffset, MemoryAtomicityMode.UNORDERED) == 0));
+            stringClass.registerInvokable("coder", (thread, target, args) -> Byte.valueOf((byte) ((VmStringImpl) target).getMemory().load8(stringCoderOffset, SinglePlain)));
+            stringClass.registerInvokable("isLatin1", (thread, target, args) -> Boolean.valueOf(((VmStringImpl) target).getMemory().load8(stringCoderOffset, SinglePlain) == 0));
             stringClass.registerInvokable("length", (thread, target, args) -> Integer.valueOf(((VmStringImpl) target).getContent().length()));
             stringClass.registerInvokable("charAt", (thread, target, args) -> Integer.valueOf(((VmStringImpl) target).getContent().charAt(((Integer) args.get(0)).intValue())));
 
@@ -648,11 +648,11 @@ public final class VmImpl implements Vm {
                 ClassContext emcCtxt = emcDef.getContext();
                 VmClassLoaderImpl emcLoader = vm.getClassLoaderForContext(emcCtxt);
                 VmClassImpl emc = emcLoader.loadClass(emcDef.getInternalName());
-                vmArray.getMemory().storeRef(0, vm.intern(emc.getName()), MemoryAtomicityMode.UNORDERED);
+                vmArray.getMemory().storeRef(0, vm.intern(emc.getName()), SinglePlain);
                 MethodElement enclosingMethod = def.getEnclosingMethod();
                 if (enclosingMethod != null) {
-                    vmArray.getMemory().storeRef(1, vm.intern(enclosingMethod.getName()), MemoryAtomicityMode.UNORDERED);
-                    vmArray.getMemory().storeRef(2, vm.intern(enclosingMethod.getDescriptor().toString()), MemoryAtomicityMode.UNORDERED);
+                    vmArray.getMemory().storeRef(1, vm.intern(enclosingMethod.getName()), SinglePlain);
+                    vmArray.getMemory().storeRef(2, vm.intern(enclosingMethod.getDescriptor().toString()), SinglePlain);
                 }
                 return vmArray;
             });
@@ -730,7 +730,7 @@ public final class VmImpl implements Vm {
                 byte[] cwd = System.getProperty("user.dir").getBytes();
                 VmByteArrayImpl bytes = manuallyInitialize(byteArrayClass.newInstance(cwd.length));
                 for (int i=0; i<cwd.length; i++) {
-                    bytes.getMemory().store8(bytes.getArrayElementOffset(i), cwd[i], MemoryAtomicityMode.UNORDERED);
+                    bytes.getMemory().store8(bytes.getArrayElementOffset(i), cwd[i], SinglePlain);
                 }
                 return bytes;
             });
@@ -887,7 +887,7 @@ public final class VmImpl implements Vm {
         int size = list.size();
         VmReferenceArray array = newArrayOf(stringClass, size);
         for (int i = 0; i < size; i ++) {
-            array.getMemory().storeRef(array.getArrayElementOffset(i), intern(list.get(i)), MemoryAtomicityMode.UNORDERED);
+            array.getMemory().storeRef(array.getArrayElementOffset(i), intern(list.get(i)), SinglePlain);
         }
         return array;
     }
@@ -990,8 +990,8 @@ public final class VmImpl implements Vm {
         VmObject mtg = manuallyInitialize(threadGroupClass.newInstance());
         LoadedTypeDefinition sgDef = threadGroupClass.getTypeDefinition();
         // Simulate the private constructor that is invoked by native code during VM startup at runtime
-        mtg.getMemory().storeRef(mtg.indexOf(sgDef.findField("name")), intern("system"), MemoryAtomicityMode.UNORDERED);
-        mtg.getMemory().store32(mtg.indexOf(sgDef.findField("maxPriority")), 10 /* Thread.MAX_PRIORITY */, MemoryAtomicityMode.UNORDERED);
+        mtg.getMemory().storeRef(mtg.indexOf(sgDef.findField("name")), intern("system"), SinglePlain);
+        mtg.getMemory().store32(mtg.indexOf(sgDef.findField("maxPriority")), 10 /* Thread.MAX_PRIORITY */, SinglePlain);
         return mtg;
     }
 
@@ -1053,7 +1053,7 @@ public final class VmImpl implements Vm {
         int size = parameterTypes.size();
         VmRefArrayImpl array = manuallyInitialize((VmRefArrayImpl) classClass.getArrayClass().newInstance(size));
         for (int i = 0; i < size; i ++) {
-            array.getMemory().storeRef(array.getArrayElementOffset(i), getClassForDescriptor(cl, parameterTypes.get(i)), MemoryAtomicityMode.UNORDERED);
+            array.getMemory().storeRef(array.getArrayElementOffset(i), getClassForDescriptor(cl, parameterTypes.get(i)), SinglePlain);
         }
         mt = inv.invoke(Vm.requireCurrentThread(), null, List.of(getClassForDescriptor(cl, returnType), array, Boolean.valueOf(true)));
         VmObject appearing = cl.methodTypeCache.putIfAbsent(methodDescriptor, mt);
@@ -1120,10 +1120,10 @@ public final class VmImpl implements Vm {
 
         // instantiate the MethodName as fully resolved
         VmObject mn = manuallyInitialize(mnClass.newInstance());
-        mn.getMemory().storeRef(mn.indexOf(mnDef.findField("clazz")), owner, MemoryAtomicityMode.UNORDERED);
-        mn.getMemory().storeRef(mn.indexOf(mnDef.findField("name")), nameObj, MemoryAtomicityMode.UNORDERED);
-        mn.getMemory().storeRef(mn.indexOf(mnDef.findField("type")), type, MemoryAtomicityMode.UNORDERED);
-        mn.getMemory().store32(mn.indexOf(mnDef.findField("flags")), flags, MemoryAtomicityMode.UNORDERED);
+        mn.getMemory().storeRef(mn.indexOf(mnDef.findField("clazz")), owner, SinglePlain);
+        mn.getMemory().storeRef(mn.indexOf(mnDef.findField("name")), nameObj, SinglePlain);
+        mn.getMemory().storeRef(mn.indexOf(mnDef.findField("type")), type, SinglePlain);
+        mn.getMemory().store32(mn.indexOf(mnDef.findField("flags")), flags, SinglePlain);
 
         // call the factory method
         VmClassImpl dmhClass = bootstrapClassLoader.loadClass("java/lang/invoke/DirectMethodHandle");
@@ -1290,13 +1290,13 @@ public final class VmImpl implements Vm {
         VmClassImpl lookupClass = bootstrapClassLoader.loadClass("java/lang/invoke/MethodHandles$Lookup");
         LoadedTypeDefinition lookupDef = lookupClass.getTypeDefinition();
         VmObjectImpl lookupObj = manuallyInitialize(lookupClass.newInstance());
-        lookupObj.getMemory().storeRef(lookupObj.indexOf(lookupDef.findField("lookupClass")), vmClass, MemoryAtomicityMode.UNORDERED);
+        lookupObj.getMemory().storeRef(lookupObj.indexOf(lookupDef.findField("lookupClass")), vmClass, SinglePlain);
         int fullPower = MethodHandles.Lookup.PUBLIC |
             MethodHandles.Lookup.PRIVATE |
             MethodHandles.Lookup.PROTECTED |
             MethodHandles.Lookup.PACKAGE |
             MethodHandles.Lookup.MODULE;
-        lookupObj.getMemory().store32(lookupObj.indexOf(lookupDef.findField("allowedModes")), fullPower, MemoryAtomicityMode.UNORDERED);
+        lookupObj.getMemory().store32(lookupObj.indexOf(lookupDef.findField("allowedModes")), fullPower, SinglePlain);
         VarHandle.releaseFence();
         return lookupObj;
     }

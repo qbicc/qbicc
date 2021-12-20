@@ -75,7 +75,6 @@ import org.qbicc.graph.Load;
 import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.Max;
 import org.qbicc.graph.MemberOf;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Min;
 import org.qbicc.graph.Mod;
 import org.qbicc.graph.MonitorEnter;
@@ -814,21 +813,21 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         ValueType resultType = node.getType();
         int offset = node.getMember().getOffset();
         if (isInt8(resultType)) {
-            return box(compound.load8(offset, MemoryAtomicityMode.UNORDERED), resultType);
+            return box(compound.load8(offset, SinglePlain), resultType);
         } else if (isInt16(resultType)) {
-            return box(compound.load16(offset, MemoryAtomicityMode.UNORDERED), resultType);
+            return box(compound.load16(offset, SinglePlain), resultType);
         } else if (isInt32(resultType)) {
-            return box(compound.load32(offset, MemoryAtomicityMode.UNORDERED), resultType);
+            return box(compound.load32(offset, SinglePlain), resultType);
         } else if (isInt64(resultType)) {
-            return box(compound.load64(offset, MemoryAtomicityMode.UNORDERED), resultType);
+            return box(compound.load64(offset, SinglePlain), resultType);
         } else if (isFloat32(resultType)) {
-            return box(Float.intBitsToFloat(compound.load32(offset, MemoryAtomicityMode.UNORDERED)), resultType);
+            return box(Float.intBitsToFloat(compound.load32(offset, SinglePlain)), resultType);
         } else if (isFloat64(resultType)) {
-            return box(Double.longBitsToDouble(compound.load64(offset, MemoryAtomicityMode.UNORDERED)), resultType);
+            return box(Double.longBitsToDouble(compound.load64(offset, SinglePlain)), resultType);
         } else if (isBool(resultType)) {
-            return Boolean.valueOf((compound.load8(offset, MemoryAtomicityMode.UNORDERED) & 1) != 0);
+            return Boolean.valueOf((compound.load8(offset, SinglePlain) & 1) != 0);
         } else if (isRef(resultType)) {
-            return compound.loadRef(offset, MemoryAtomicityMode.UNORDERED);
+            return compound.loadRef(offset, SinglePlain);
         } else {
             throw new IllegalStateException("Invalid type for extract");
         }
@@ -1495,30 +1494,30 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             VmObject expected = (VmObject) require(expect);
             VmObject resultVal = memory.compareAndExchangeRef(offset, expected, (VmObject) require(update), readAccessMode, writeAccessMode);
             updated = expected == resultVal;
-            result.storeRef(resultType.getMember(0).getOffset(), resultVal, MemoryAtomicityMode.UNORDERED);
+            result.storeRef(resultType.getMember(0).getOffset(), resultVal, SinglePlain);
         } else if (type instanceof IntegerType) {
             int bits = ((IntegerType) type).getMinBits();
             if (bits == 8) {
                 int expected = unboxInt(expect);
                 int unboxedResult = memory.compareAndExchange8(offset, expected, unboxInt(update), readAccessMode, writeAccessMode);
                 updated = expected == unboxedResult;
-                result.store8(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
+                result.store8(resultType.getMember(0).getOffset(), unboxedResult, SinglePlain);
             } else if (bits == 16) {
                 int expected = unboxInt(expect);
                 int unboxedResult = memory.compareAndExchange16(offset, expected, unboxInt(update), readAccessMode, writeAccessMode);
                 updated = expected == unboxedResult;
-                result.store16(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
+                result.store16(resultType.getMember(0).getOffset(), unboxedResult, SinglePlain);
             } else if (bits == 32) {
                 int expected = unboxInt(expect);
                 int unboxedResult = memory.compareAndExchange32(offset, expected, unboxInt(update), readAccessMode, writeAccessMode);
                 updated = expected == unboxedResult;
-                result.store32(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
+                result.store32(resultType.getMember(0).getOffset(), unboxedResult, SinglePlain);
             } else {
                 assert bits == 64;
                 long expected = unboxLong(expect);
                 long unboxedResult = memory.compareAndExchange64(offset, expected, unboxLong(update), readAccessMode, writeAccessMode);
                 updated = expected == unboxedResult;
-                result.store64(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
+                result.store64(resultType.getMember(0).getOffset(), unboxedResult, SinglePlain);
             }
         } else if (type instanceof FloatType) {
             int bits = ((FloatType) type).getMinBits();
@@ -1526,23 +1525,23 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 int expected = Float.floatToRawIntBits(unboxFloat(expect));
                 int unboxedResult = memory.compareAndExchange32(offset, expected, Float.floatToRawIntBits(unboxInt(update)), readAccessMode, writeAccessMode);
                 updated = expected == unboxedResult;
-                result.store32(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
+                result.store32(resultType.getMember(0).getOffset(), unboxedResult, SinglePlain);
             } else {
                 assert bits == 64;
                 long expected = Double.doubleToRawLongBits(unboxDouble(expect));
                 long unboxedResult = memory.compareAndExchange64(offset, expected, Double.doubleToRawLongBits(unboxDouble(update)), readAccessMode, writeAccessMode);
                 updated = expected == unboxedResult;
-                result.store64(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
+                result.store64(resultType.getMember(0).getOffset(), unboxedResult, SinglePlain);
             }
         } else if (type instanceof BooleanType) {
             int expected = unboxBool(expect) ? 1 : 0;
             int unboxedResult = memory.compareAndExchange8(offset, expected, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode);
             updated = expected == unboxedResult;
-            result.store8(resultType.getMember(0).getOffset(), unboxedResult, MemoryAtomicityMode.UNORDERED);
+            result.store8(resultType.getMember(0).getOffset(), unboxedResult, SinglePlain);
         } else {
             throw unsupportedType();
         }
-        result.store8(resultType.getMember(1).getOffset(), updated ? 1 : 0, MemoryAtomicityMode.UNORDERED);
+        result.store8(resultType.getMember(1).getOffset(), updated ? 1 : 0, SinglePlain);
         return result;
     }
 
@@ -1868,7 +1867,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             // nested arrays to fill
             for (int i = 0; i < size; i++) {
                 int offs = outer.getArrayElementOffset(i);
-                outer.getMemory().storeRef(offs, multiNewArray(thread, (ArrayObjectType) type.getElementType(), dimOffs + 1, dimensions), MemoryAtomicityMode.UNORDERED);
+                outer.getMemory().storeRef(offs, multiNewArray(thread, (ArrayObjectType) type.getElementType(), dimOffs + 1, dimensions), SinglePlain);
             }
         }
         return outer;

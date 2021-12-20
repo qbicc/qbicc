@@ -6,6 +6,9 @@ import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.type.definition.element.FieldElement;
 
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
+
 final class VmThreadImpl extends VmObjectImpl implements VmThread {
     final VmImpl vm;
     volatile Thread boundThread;
@@ -39,12 +42,12 @@ final class VmThreadImpl extends VmObjectImpl implements VmThread {
     void setThrown(final VmThrowable throwable) {
         FieldElement thrownField = vm.getCompilationContext().getExceptionField();
         int offset = getVmClass().getLayoutInfo().getMember(thrownField).getOffset();
-        getMemory().storeRef(offset, throwable, MemoryAtomicityMode.NONE);
+        getMemory().storeRef(offset, throwable, SingleUnshared);
     }
 
     void setThreadGroup(final VmObject threadGroup) {
         int offset = indexOf(clazz.getTypeDefinition().findField("group"));
-        memory.storeRef(offset, threadGroup, MemoryAtomicityMode.UNORDERED);
+        memory.storeRef(offset, threadGroup, SinglePlain);
     }
 
     void setPriority(final int priority) {
@@ -52,7 +55,7 @@ final class VmThreadImpl extends VmObjectImpl implements VmThread {
         if (priority < Thread.MIN_PRIORITY || priority > Thread.MAX_PRIORITY) {
             throw new IllegalArgumentException("Invalid thread priority: "+priority);
         }
-        memory.store32(offset, priority, MemoryAtomicityMode.UNORDERED);
+        memory.store32(offset, priority, SinglePlain);
     }
 
     void setBoundThread(Thread boundThread) {

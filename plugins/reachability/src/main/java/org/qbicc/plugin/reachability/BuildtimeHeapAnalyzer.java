@@ -1,7 +1,6 @@
 package org.qbicc.plugin.reachability;
 
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.interpreter.Memory;
@@ -24,6 +23,8 @@ import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
+
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
 /**
  * This class supports reachability analysis by providing the capability of
@@ -77,7 +78,7 @@ class BuildtimeHeapAnalyzer {
                 LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
                 for (CompoundType.Member im : memLayout.getCompoundType().getMembers()) {
                     if (im.getType() instanceof ReferenceType) {
-                        VmObject child = cur.getMemory().loadRef(im.getOffset(), MemoryAtomicityMode.UNORDERED);
+                        VmObject child = cur.getMemory().loadRef(im.getOffset(), SinglePlain);
                         if (child != null && !visited.containsKey(child)) {
                             worklist.add(child);
                             visited.put(child, Boolean.TRUE);
@@ -90,9 +91,9 @@ class BuildtimeHeapAnalyzer {
                 FieldElement contentsField = coreClasses.getRefArrayContentField();
                 LayoutInfo info = interpreterLayout.getInstanceLayoutInfo(contentsField.getEnclosingType());
                 Memory memory = cur.getMemory();
-                int length = memory.load32(info.getMember(coreClasses.getArrayLengthField()).getOffset(), MemoryAtomicityMode.UNORDERED);
+                int length = memory.load32(info.getMember(coreClasses.getArrayLengthField()).getOffset(), SinglePlain);
                 for (int i=0; i<length; i++) {
-                    VmObject e = memory.loadRef(((VmArray) cur).getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED);
+                    VmObject e = memory.loadRef(((VmArray) cur).getArrayElementOffset(i), SinglePlain);
                     if (e != null && !visited.containsKey(e)) {
                         worklist.add(e);
                         visited.put(e, Boolean.TRUE);

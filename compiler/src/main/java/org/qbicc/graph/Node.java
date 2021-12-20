@@ -33,6 +33,8 @@ import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
+
 /**
  *
  */
@@ -559,7 +561,7 @@ public interface Node {
 
             public Value visit(final Copier param, final CurrentThreadRead node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().load(param.getBlockBuilder().currentThread(), MemoryAtomicityMode.NONE);
+                return param.getBlockBuilder().load(param.getBlockBuilder().currentThread(), SingleUnshared);
             }
 
             public Value visit(final Copier param, final Div node) {

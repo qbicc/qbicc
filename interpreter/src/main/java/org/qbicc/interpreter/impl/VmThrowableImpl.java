@@ -15,6 +15,8 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+
 final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
     private volatile Node[] backTrace = Value.NO_VALUES;
 
@@ -39,7 +41,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
         Layout interpLayout = Layout.get(throwableClassDef.getContext().getCompilationContext());
         LayoutInfo layout = interpLayout.getInstanceLayoutInfo(throwableClassDef);
         int depthIdx = layout.getMember(throwableClassDef.findField("depth")).getOffset();
-        memory.store32(depthIdx, backTrace.length, MemoryAtomicityMode.UNORDERED);
+        memory.store32(depthIdx, backTrace.length, SinglePlain);
     }
 
     void fillInStackTrace() {
@@ -67,10 +69,10 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
             // initialize the stack trace element
             DefinedTypeDefinition frameClassDef = frameElement.getEnclosingType();
             VmClassImpl frameClass = vm.getClassLoaderForContext(frameClassDef.getContext()).getOrDefineClass(frameClassDef.load());
-            steMemory.storeRef(declaringClassObjectIdx, frameClass, MemoryAtomicityMode.UNORDERED);
-            steMemory.store32(lineNumberIdx, ip.getSourceLine(), MemoryAtomicityMode.UNORDERED);
-            steMemory.storeRef(fileNameIdx, vm.intern(frameElement.getSourceFileName()), MemoryAtomicityMode.UNORDERED);
-            steMemory.storeRef(declaringClassIdx, vm.intern(frameClass.getName()), MemoryAtomicityMode.UNORDERED);
+            steMemory.storeRef(declaringClassObjectIdx, frameClass, SinglePlain);
+            steMemory.store32(lineNumberIdx, ip.getSourceLine(), SinglePlain);
+            steMemory.storeRef(fileNameIdx, vm.intern(frameElement.getSourceFileName()), SinglePlain);
+            steMemory.storeRef(declaringClassIdx, vm.intern(frameClass.getName()), SinglePlain);
             String methodName;
             if (frameElement instanceof MethodElement) {
                 methodName = ((MethodElement) frameElement).getName();
@@ -81,8 +83,8 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
             } else {
                 methodName = "<unknown>";
             }
-            steMemory.storeRef(methodNameIdx, vm.intern(methodName), MemoryAtomicityMode.UNORDERED);
-            array.getMemory().storeRef(array.getArrayElementOffset(i), ste, MemoryAtomicityMode.UNORDERED);
+            steMemory.storeRef(methodNameIdx, vm.intern(methodName), SinglePlain);
+            array.getMemory().storeRef(array.getArrayElementOffset(i), ste, SinglePlain);
         }
     }
 
@@ -94,14 +96,14 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
     public String getMessage() {
         VmClassImpl vmClass = getVmClass().getVm().throwableClass;
         int offs = vmClass.getLayoutInfo().getMember(vmClass.getTypeDefinition().findField("detailMessage")).getOffset();
-        VmStringImpl messageStr = (VmStringImpl) getMemory().loadRef(offs, MemoryAtomicityMode.UNORDERED);
+        VmStringImpl messageStr = (VmStringImpl) getMemory().loadRef(offs, SinglePlain);
         return messageStr == null ? null : messageStr.getContent();
     }
 
     public VmThrowable getCause() {
         VmClassImpl thr = getVmClass().getVm().throwableClass;
         int offs = thr.getLayoutInfo().getMember(thr.getTypeDefinition().findField("cause")).getOffset();
-        VmThrowable cause = (VmThrowable)getMemory().loadRef(offs, MemoryAtomicityMode.UNORDERED);
+        VmThrowable cause = (VmThrowable)getMemory().loadRef(offs, SinglePlain);
         if (cause == null || cause.equals(this)) {
             return null; // Cyclic cause indicated Throwable still being initialized; suppress.
         } else {

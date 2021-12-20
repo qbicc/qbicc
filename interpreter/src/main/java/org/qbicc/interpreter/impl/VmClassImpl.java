@@ -42,6 +42,8 @@ import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+
 class VmClassImpl extends VmObjectImpl implements VmClass {
     private static final Logger log = Logger.getLogger("org.qbicc.interpreter");
 
@@ -160,25 +162,25 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 if (initValue instanceof IntegerLiteral) {
                     IntegerLiteral val = (IntegerLiteral) initValue;
                     if (field.getType().getSize() == 1) {
-                        staticMemory.store8(member.getOffset(), val.byteValue(), MemoryAtomicityMode.UNORDERED);
+                        staticMemory.store8(member.getOffset(), val.byteValue(), SinglePlain);
                     } else if (field.getType().getSize() == 2) {
-                        staticMemory.store16(member.getOffset(), val.shortValue(), MemoryAtomicityMode.UNORDERED);
+                        staticMemory.store16(member.getOffset(), val.shortValue(), SinglePlain);
                     } else if (field.getType().getSize() == 4) {
-                        staticMemory.store32(member.getOffset(), val.intValue(), MemoryAtomicityMode.UNORDERED);
+                        staticMemory.store32(member.getOffset(), val.intValue(), SinglePlain);
                     } else {
-                        staticMemory.store64(member.getOffset(), val.longValue(), MemoryAtomicityMode.UNORDERED);
+                        staticMemory.store64(member.getOffset(), val.longValue(), SinglePlain);
                     }
                 } else if (initValue instanceof FloatLiteral) {
                     FloatLiteral val = (FloatLiteral) initValue;
                     if (field.getType().getSize() == 4) {
-                        staticMemory.store32(member.getOffset(), val.floatValue(), MemoryAtomicityMode.UNORDERED);
+                        staticMemory.store32(member.getOffset(), val.floatValue(),SinglePlain);
                     } else {
-                        staticMemory.store64(member.getOffset(), val.doubleValue(), MemoryAtomicityMode.UNORDERED);
+                        staticMemory.store64(member.getOffset(), val.doubleValue(), SinglePlain);
                     }
                 } else if (initValue instanceof StringLiteral) {
                     if (vm.bootstrapComplete) {
                         VmString sv = vm.intern(((StringLiteral) initValue).getValue());
-                        staticMemory.storeRef(member.getOffset(), sv, MemoryAtomicityMode.UNORDERED);
+                        staticMemory.storeRef(member.getOffset(), sv,SinglePlain);
                     }
                 } else {
                     // CONSTANT_Class, CONSTANT_MethodHandle, CONSTANT_MethodType
@@ -223,22 +225,22 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         // todo: Base JDK equivalent core classes with appropriate manual initializer
         CoreClasses coreClasses = CoreClasses.get(vm.getCompilationContext());
         try {
-            memory.storeRef(getVmClass().getLayoutInfo().getMember(getVmClass().getTypeDefinition().findField("name")).getOffset(), vm.intern(name), MemoryAtomicityMode.UNORDERED);
+            memory.storeRef(getVmClass().getLayoutInfo().getMember(getVmClass().getTypeDefinition().findField("name")).getOffset(), vm.intern(name), SinglePlain);
 
             // typeId and dimensions
             FieldElement instanceTypeIdField = coreClasses.getClassTypeIdField();
             if (this instanceof  VmPrimitiveClassImpl pci) {
-                memory.storeType(indexOf(instanceTypeIdField), pci.getPrimitive().getType(), MemoryAtomicityMode.UNORDERED);
+                memory.storeType(indexOf(instanceTypeIdField), pci.getPrimitive().getType(), SinglePlain);
             } else if (this instanceof VmReferenceArrayClass vmArray) {
-                memory.storeType(indexOf(instanceTypeIdField), vmArray.getInstanceObjectType().getLeafElementType(), MemoryAtomicityMode.UNORDERED);
-                memory.store8(indexOf(coreClasses.getClassDimensionField()), vmArray.getInstanceObjectType().getDimensionCount(), MemoryAtomicityMode.UNORDERED);
+                memory.storeType(indexOf(instanceTypeIdField), vmArray.getInstanceObjectType().getLeafElementType(), SinglePlain);
+                memory.store8(indexOf(coreClasses.getClassDimensionField()), vmArray.getInstanceObjectType().getDimensionCount(), SinglePlain);
             } else {
-                memory.storeType(indexOf(instanceTypeIdField), this.getInstanceObjectTypeId(), MemoryAtomicityMode.UNORDERED);
+                memory.storeType(indexOf(instanceTypeIdField), this.getInstanceObjectTypeId(), SinglePlain);
             }
 
             if (layoutInfo != null) {
-                memory.store32(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceSizeField()).getOffset(), layoutInfo.getCompoundType().getSize(), MemoryAtomicityMode.UNORDERED);
-                memory.store8(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceAlignField()).getOffset(), layoutInfo.getCompoundType().getAlign(), MemoryAtomicityMode.UNORDERED);
+                memory.store32(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceSizeField()).getOffset(), layoutInfo.getCompoundType().getSize(), SinglePlain);
+                memory.store8(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceAlignField()).getOffset(), layoutInfo.getCompoundType().getAlign(), SinglePlain);
             }
         } catch (Exception e) {
             // for breakpoints
@@ -253,7 +255,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         VmRefArrayClassImpl clazz = new VmRefArrayClassImpl(getVm(), getVmClass(), arrayDef, this);
         VmClassImpl jlcClass = clazz.clazz;
         Memory memory = clazz.getMemory();
-        memory.storeRef(jlcClass.layoutInfo.getMember(jlcClass.typeDefinition.findField("componentType")).getOffset(), this, MemoryAtomicityMode.UNORDERED);
+        memory.storeRef(jlcClass.layoutInfo.getMember(jlcClass.typeDefinition.findField("componentType")).getOffset(), this, SinglePlain);
         clazz.postConstruct(getVm());
         return clazz;
     }
@@ -271,8 +273,8 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         VmClassImpl lookupClass = vm.getBootstrapClassLoader().loadClass("java/lang/invoke/MethodHandles$Lookup");
         LoadedTypeDefinition lookupDef = lookupClass.getTypeDefinition();
         VmObjectImpl lookup = vm.manuallyInitialize(lookupClass.newInstance());
-        lookup.getMemory().storeRef(lookup.indexOf(lookupDef.findField("lookupClass")), this, MemoryAtomicityMode.UNORDERED);
-        lookup.getMemory().store32(lookup.indexOf(lookupDef.findField("allowedModes")), allowedModes, MemoryAtomicityMode.UNORDERED);
+        lookup.getMemory().storeRef(lookup.indexOf(lookupDef.findField("lookupClass")), this, SinglePlain);
+        lookup.getMemory().store32(lookup.indexOf(lookupDef.findField("allowedModes")), allowedModes, SinglePlain);
         VarHandle.releaseFence();
         return lookup;
     }
@@ -378,24 +380,24 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         int offset = staticLayoutInfo.getMember(field).getOffset();
         TypeDescriptor desc = field.getTypeDescriptor();
         if (desc.equals(BaseTypeDescriptor.Z)) {
-            int val = staticMemory.load8(offset, MemoryAtomicityMode.UNORDERED);
+            int val = staticMemory.load8(offset, SinglePlain);
             return vm.getCompilationContext().getLiteralFactory().literalOf(val != 0);
         } else if (desc.equals(BaseTypeDescriptor.B)) {
-            return vm.getCompilationContext().getLiteralFactory().literalOf((byte) staticMemory.load8(offset, MemoryAtomicityMode.UNORDERED));
+            return vm.getCompilationContext().getLiteralFactory().literalOf((byte) staticMemory.load8(offset, SinglePlain));
         } else if (desc.equals(BaseTypeDescriptor.S)) {
-            return vm.getCompilationContext().getLiteralFactory().literalOf((short) staticMemory.load16(offset, MemoryAtomicityMode.UNORDERED));
+            return vm.getCompilationContext().getLiteralFactory().literalOf((short) staticMemory.load16(offset, SinglePlain));
         } else if (desc.equals(BaseTypeDescriptor.C)) {
-            return vm.getCompilationContext().getLiteralFactory().literalOf((char) staticMemory.load16(offset, MemoryAtomicityMode.UNORDERED));
+            return vm.getCompilationContext().getLiteralFactory().literalOf((char) staticMemory.load16(offset, SinglePlain));
         } else if (desc.equals(BaseTypeDescriptor.I)) {
-            return vm.getCompilationContext().getLiteralFactory().literalOf(staticMemory.load32(offset, MemoryAtomicityMode.UNORDERED));
+            return vm.getCompilationContext().getLiteralFactory().literalOf(staticMemory.load32(offset, SinglePlain));
         } else if (desc.equals(BaseTypeDescriptor.F)) {
-            return vm.getCompilationContext().getLiteralFactory().literalOf(staticMemory.loadFloat(offset, MemoryAtomicityMode.UNORDERED));
+            return vm.getCompilationContext().getLiteralFactory().literalOf(staticMemory.loadFloat(offset, SinglePlain));
         } else if (desc.equals(BaseTypeDescriptor.J)) {
-            return vm.getCompilationContext().getLiteralFactory().literalOf(staticMemory.load64(offset, MemoryAtomicityMode.UNORDERED));
+            return vm.getCompilationContext().getLiteralFactory().literalOf(staticMemory.load64(offset, SinglePlain));
         } else if (desc.equals(BaseTypeDescriptor.D)) {
-            return vm.getCompilationContext().getLiteralFactory().literalOf(staticMemory.loadDouble(offset, MemoryAtomicityMode.UNORDERED));
+            return vm.getCompilationContext().getLiteralFactory().literalOf(staticMemory.loadDouble(offset, SinglePlain));
         } else {
-            VmObject value = staticMemory.loadRef(offset, MemoryAtomicityMode.UNORDERED);
+            VmObject value = staticMemory.loadRef(offset, SinglePlain);
             if (value == null) {
                 return vm.getCompilationContext().getLiteralFactory().zeroInitializerLiteralOfType(field.getType());
             } else {

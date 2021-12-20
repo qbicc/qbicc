@@ -10,7 +10,6 @@ import java.util.function.Supplier;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
@@ -44,6 +43,8 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
 public class BuildtimeHeap {
     private static final AttachmentKey<BuildtimeHeap> KEY = new AttachmentKey<>();
@@ -141,7 +142,7 @@ public class BuildtimeHeap {
             FieldElement contentsField = coreClasses.getRefArrayContentField();
             LayoutInfo info = layout.getInstanceLayoutInfo(contentsField.getEnclosingType());
             Memory memory = value.getMemory();
-            int length = memory.load32(info.getMember(coreClasses.getArrayLengthField()).getOffset(), MemoryAtomicityMode.UNORDERED);
+            int length = memory.load32(info.getMember(coreClasses.getArrayLengthField()).getOffset(), SinglePlain);
             CompoundType literalCT = arrayLiteralType(contentsField, length);
             // declare it
             DataDeclaration decl = heapSection.declareData(null, nextLiteralName(), literalCT);
@@ -262,30 +263,30 @@ public class BuildtimeHeap {
             if (im.getType() instanceof IntegerType) {
                 IntegerType it = (IntegerType)im.getType();
                 if (it.getSize() == 1) {
-                    memberMap.put(om, lf.literalOf(it, memory.load8(im.getOffset(), MemoryAtomicityMode.UNORDERED)));
+                    memberMap.put(om, lf.literalOf(it, memory.load8(im.getOffset(), SinglePlain)));
                 } else if (it.getSize() == 2) {
-                    memberMap.put(om, lf.literalOf(it, memory.load16(im.getOffset(), MemoryAtomicityMode.UNORDERED)));
+                    memberMap.put(om, lf.literalOf(it, memory.load16(im.getOffset(), SinglePlain)));
                 } else if (it.getSize() == 4) {
-                    memberMap.put(om, lf.literalOf(it, memory.load32(im.getOffset(), MemoryAtomicityMode.UNORDERED)));
+                    memberMap.put(om, lf.literalOf(it, memory.load32(im.getOffset(), SinglePlain)));
                 } else {
-                    memberMap.put(om, lf.literalOf(it, memory.load64(im.getOffset(), MemoryAtomicityMode.UNORDERED)));
+                    memberMap.put(om, lf.literalOf(it, memory.load64(im.getOffset(), SinglePlain)));
                 }
             } else if (im.getType() instanceof FloatType) {
                 FloatType ft = (FloatType)im.getType();
                 if (ft.getSize() == 4) {
-                    memberMap.put(om, lf.literalOf(ft, memory.loadFloat(im.getOffset(), MemoryAtomicityMode.UNORDERED)));
+                    memberMap.put(om, lf.literalOf(ft, memory.loadFloat(im.getOffset(), SinglePlain)));
                 } else {
-                    memberMap.put(om, lf.literalOf(ft, memory.loadDouble(im.getOffset(), MemoryAtomicityMode.UNORDERED)));
+                    memberMap.put(om, lf.literalOf(ft, memory.loadDouble(im.getOffset(), SinglePlain)));
                 }
             } else if (im.getType() instanceof TypeType) {
-                ValueType type = memory.loadType(im.getOffset(), MemoryAtomicityMode.UNORDERED);
+                ValueType type = memory.loadType(im.getOffset(), SinglePlain);
                 memberMap.put(om, type == null ? lf.zeroInitializerLiteralOfType(im.getType()) : lf.literalOfType(type));
             } else if (im.getType() instanceof ArrayType) {
                 if (im.getType().getSize() > 0) {
                     throw new UnsupportedOperationException("Copying array data is not yet supported");
                 }
             } else if (im.getType() instanceof ReferenceType) {
-                VmObject contents = memory.loadRef(im.getOffset(), MemoryAtomicityMode.UNORDERED);
+                VmObject contents = memory.loadRef(im.getOffset(), SinglePlain);
                 if (contents == null) {
                     memberMap.put(om, lf.zeroInitializerLiteralOfType(om.getType()));
                 } else {
@@ -314,7 +315,7 @@ public class BuildtimeHeap {
 
         List<Literal> elements = new ArrayList<>(length);
         for (int i=0; i<length; i++) {
-            VmObject e = memory.loadRef(value.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED);
+            VmObject e = memory.loadRef(value.getArrayElementOffset(i), SinglePlain);
             if (e == null) {
                 elements.add(lf.zeroInitializerLiteralOfType(at.getElementType()));
             } else {
@@ -343,46 +344,46 @@ public class BuildtimeHeap {
         CompoundType objType = objLayout.getCompoundType();
 
         Memory memory = value.getMemory();
-        int length = memory.load32(objLayout.getMember(coreClasses.getArrayLengthField()).getOffset(), MemoryAtomicityMode.UNORDERED);
+        int length = memory.load32(objLayout.getMember(coreClasses.getArrayLengthField()).getOffset(), SinglePlain);
         CompoundType literalCT = arrayLiteralType(contentsField, length);
 
         Literal arrayContentsLiteral;
         if (contentsField.equals(coreClasses.getByteArrayContentField())) {
             byte[] contents = new byte[length];
             for (int i=0; i<length; i++) {
-                contents[i] = (byte)memory.load8(value.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED);
+                contents[i] = (byte)memory.load8(value.getArrayElementOffset(i), SinglePlain);
             }
             arrayContentsLiteral = lf.literalOf(ctxt.getTypeSystem().getArrayType(at.getElementType(), length), contents);
         } else {
             List<Literal> elements = new ArrayList<>(length);
             if (contentsField.equals(coreClasses.getBooleanArrayContentField())) {
                 for (int i=0; i<length; i++) {
-                    elements.add(lf.literalOf(memory.load8(value.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED) != 0));
+                    elements.add(lf.literalOf(memory.load8(value.getArrayElementOffset(i), SinglePlain) != 0));
                 }
             } else if (contentsField.equals(coreClasses.getShortArrayContentField())) {
                 for (int i=0; i<length; i++) {
-                    elements.add(lf.literalOf(ts.getSignedInteger16Type(), memory.load16(value.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED)));
+                    elements.add(lf.literalOf(ts.getSignedInteger16Type(), memory.load16(value.getArrayElementOffset(i), SinglePlain)));
                 }
             } else if (contentsField.equals(coreClasses.getCharArrayContentField())) {
                 for (int i=0; i<length; i++) {
-                    elements.add(lf.literalOf(ts.getUnsignedInteger16Type(), memory.load16(value.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED)));
+                    elements.add(lf.literalOf(ts.getUnsignedInteger16Type(), memory.load16(value.getArrayElementOffset(i), SinglePlain)));
                 }
             } else if (contentsField.equals(coreClasses.getIntArrayContentField())) {
                 for (int i=0; i<length; i++) {
-                    elements.add(lf.literalOf(ts.getSignedInteger32Type(), memory.load32(value.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED)));
+                    elements.add(lf.literalOf(ts.getSignedInteger32Type(), memory.load32(value.getArrayElementOffset(i), SinglePlain)));
                 }
             } else if (contentsField.equals(coreClasses.getLongArrayContentField())) {
                 for (int i=0; i<length; i++) {
-                    elements.add(lf.literalOf(ts.getSignedInteger64Type(), memory.load64(value.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED)));
+                    elements.add(lf.literalOf(ts.getSignedInteger64Type(), memory.load64(value.getArrayElementOffset(i), SinglePlain)));
                 }
             } else if (contentsField.equals(coreClasses.getFloatArrayContentField())) {
                 for (int i=0; i<length; i++) {
-                    elements.add(lf.literalOf(ts.getFloat32Type(), memory.loadFloat(value.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED)));
+                    elements.add(lf.literalOf(ts.getFloat32Type(), memory.loadFloat(value.getArrayElementOffset(i), SinglePlain)));
                 }
             } else {
                 Assert.assertTrue((contentsField.equals(coreClasses.getDoubleArrayContentField())));
                 for (int i=0; i<length; i++) {
-                    elements.add(lf.literalOf(ts.getFloat64Type(), memory.loadDouble(value.getArrayElementOffset(i), MemoryAtomicityMode.UNORDERED)));
+                    elements.add(lf.literalOf(ts.getFloat64Type(), memory.loadDouble(value.getArrayElementOffset(i), SinglePlain)));
                 }
             }
             arrayContentsLiteral = lf.literalOf(ctxt.getTypeSystem().getArrayType(at.getElementType(), length), elements);

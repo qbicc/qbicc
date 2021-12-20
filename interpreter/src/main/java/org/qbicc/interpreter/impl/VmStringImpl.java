@@ -11,6 +11,8 @@ import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmString;
 
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+
 final class VmStringImpl extends VmObjectImpl implements VmString {
     private static final VarHandle contentHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "content", VarHandle.class, VmStringImpl.class, String.class);
 
@@ -40,8 +42,8 @@ final class VmStringImpl extends VmObjectImpl implements VmString {
         }
         VmArray byteArray = vm.allocateArray(bytes);
         MemoryImpl memory = getMemory();
-        memory.store8(vm.stringCoderOffset, latin1 ? 0 : 1, MemoryAtomicityMode.UNORDERED);
-        memory.storeRef(vm.stringValueOffset, byteArray, MemoryAtomicityMode.UNORDERED);
+        memory.store8(vm.stringCoderOffset, latin1 ? 0 : 1, SinglePlain);
+        memory.storeRef(vm.stringValueOffset, byteArray, SinglePlain);
     }
 
     VmStringImpl(VmClassImpl clazz) {
