@@ -504,11 +504,6 @@ public interface Node {
                 return param.getBlockBuilder().classOf(param.copyValue(node.getInput()), param.copyValue(node.getDimensions()));
             }
 
-            public Value visit(final Copier param, final Clone node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().clone(param.copyValue(node.getInput()));
-            }
-
             public Value visit(final Copier param, final CountLeadingZeros node) {
                 return param.getBlockBuilder().countLeadingZeros(param.copyValue(node.getInput()));
             }

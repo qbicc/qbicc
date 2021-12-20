@@ -320,10 +320,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().multiNewArray(desc, dimensions);
     }
 
-    public Value clone(final Value object) {
-        return getDelegate().clone(object);
-    }
-
     public Value load(final ValueHandle handle, final ReadAccessMode accessMode) {
         return getDelegate().load(handle, accessMode);
     }

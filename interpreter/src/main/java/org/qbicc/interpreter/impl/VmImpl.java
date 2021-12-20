@@ -44,6 +44,7 @@ import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
+import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
@@ -383,6 +384,16 @@ public final class VmImpl implements Vm {
             // Object
             VmClassImpl objectClass = bootstrapClassLoader.loadClass("java/lang/Object");
 
+            objectClass.registerInvokable("clone", (thread, target, args) -> {
+                VmClassImpl cloneableClass = bootstrapClassLoader.loadClass("java/lang/Cloneable");
+                if (!target.getVmClass().getTypeDefinition().isSubtypeOf(cloneableClass.getTypeDefinition())) {
+                    VmClassImpl cnse = bootstrapClassLoader.loadClass("java/lang/CloneNotSupportedException");
+                    VmThrowable throwable = manuallyInitialize((VmThrowable) cnse.newInstance());
+                    ((VmThreadImpl)thread).setThrown(throwable);
+                    throw new Thrown(throwable);
+                }
+                return ((VmObjectImpl)target).clone();
+            });
             objectClass.registerInvokable("wait", 0, (thread, target, args) -> {
                 try {
                     ((VmObjectImpl)target).getCondition().await();

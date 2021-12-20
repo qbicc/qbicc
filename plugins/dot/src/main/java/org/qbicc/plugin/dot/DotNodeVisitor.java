@@ -27,7 +27,6 @@ import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.CastValue;
 import org.qbicc.graph.InitCheck;
 import org.qbicc.graph.ClassOf;
-import org.qbicc.graph.Clone;
 import org.qbicc.graph.Cmp;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.CmpG;
@@ -841,19 +840,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         addEdge(param, node, node.getInput(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getDimensions(), EdgeType.VALUE_DEPENDENCY);
-        return name;
-    }
-
-    public String visit(final Appendable param, final Clone node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "label", "clone");
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
-        addEdge(param, node, node.getInput(), EdgeType.VALUE_DEPENDENCY);
         return name;
     }
 

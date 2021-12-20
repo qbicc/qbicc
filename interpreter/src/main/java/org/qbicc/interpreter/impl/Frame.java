@@ -27,7 +27,6 @@ import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.InitCheck;
 import org.qbicc.graph.ClassOf;
-import org.qbicc.graph.Clone;
 import org.qbicc.graph.Cmp;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.CmpG;
@@ -1452,13 +1451,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
         // init checks for build time initializers are not used
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Object visit(VmThreadImpl thread, Clone node) {
-        // todo: implement according to #674
-        VmObjectImpl original = (VmObjectImpl) require(node.getInput());
-        return original.clone();
     }
 
     public Object visit(final VmThreadImpl param, final Comp node) {

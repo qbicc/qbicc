@@ -1028,33 +1028,6 @@ public final class CoreIntrinsics {
             ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType()); // Do nothing
         intrinsics.registerIntrinsic(objDesc, "notifyAll", notifyAllDesc, notifyAllIntrinsic);
 
-        InstanceIntrinsic clone = (builder, instance, target, arguments) -> {
-            ValueType instanceType = instance.getType();
-            if (instanceType instanceof ReferenceType) {
-                ReferenceType referenceType = (ReferenceType) instanceType;
-                InterfaceObjectType cloneable = classContext.findDefinedType("java/lang/Cloneable").load().getInterfaceType();
-                if (! referenceType.instanceOf(cloneable)) {
-                    // synthesize a run time check
-                    BlockLabel goAhead = new BlockLabel();
-                    BlockLabel throwIt = new BlockLabel();
-                    builder.if_(builder.instanceOf(instance, cloneable, 0), goAhead, throwIt);
-                    try {
-                        builder.begin(throwIt);
-                        ClassTypeDescriptor cnseDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/CloneNotSupportedException");
-                        Value cnse = builder.getFirstBuilder().new_(cnseDesc);
-                        builder.call(builder.getFirstBuilder().constructorOf(cnse, cnseDesc, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
-                        builder.throw_(cnse);
-                    } catch (BlockEarlyTermination ignored) {
-                        // continue
-                    }
-                    builder.begin(goAhead);
-                }
-            }
-            return builder.clone(instance);
-        };
-
-        intrinsics.registerIntrinsic(objDesc, "clone", MethodDescriptor.synthesize(classContext, objDesc, List.of()), clone);
-
         // stub - public final native void wait(long timeoutMillis)
         MethodDescriptor waitDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.J));
         InstanceIntrinsic wait = (builder, instance, target, arguments) -> ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getExecutable().getType().getReturnType());

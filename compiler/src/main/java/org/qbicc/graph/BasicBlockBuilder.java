@@ -389,8 +389,6 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value multiNewArray(ArrayTypeDescriptor desc, List<Value> dimensions);
 
-    Value clone(Value object);
-
     default Value load(ValueHandle handle) {
         return load(handle, SinglePlain);
     }
