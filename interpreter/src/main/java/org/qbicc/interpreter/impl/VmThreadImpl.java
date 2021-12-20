@@ -1,6 +1,5 @@
 package org.qbicc.interpreter.impl;
 
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.VmThrowable;

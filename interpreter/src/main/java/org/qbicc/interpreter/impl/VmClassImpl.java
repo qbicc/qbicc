@@ -11,7 +11,6 @@ import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
@@ -41,7 +40,7 @@ import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
-import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+import static org.qbicc.graph.atomic.AccessModes.*;
 
 class VmClassImpl extends VmObjectImpl implements VmClass {
     private static final Logger log = Logger.getLogger("org.qbicc.interpreter");
@@ -153,8 +152,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                     continue;
                 }
                 CompoundType.Member member = staticLayoutInfo.getMember(field);
-                if (initValue instanceof IntegerLiteral) {
-                    IntegerLiteral val = (IntegerLiteral) initValue;
+                if (initValue instanceof IntegerLiteral val) {
                     if (field.getType().getSize() == 1) {
                         staticMemory.store8(member.getOffset(), val.byteValue(), SinglePlain);
                     } else if (field.getType().getSize() == 2) {
@@ -164,10 +162,9 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                     } else {
                         staticMemory.store64(member.getOffset(), val.longValue(), SinglePlain);
                     }
-                } else if (initValue instanceof FloatLiteral) {
-                    FloatLiteral val = (FloatLiteral) initValue;
+                } else if (initValue instanceof FloatLiteral val) {
                     if (field.getType().getSize() == 4) {
-                        staticMemory.store32(member.getOffset(), val.floatValue(),SinglePlain);
+                        staticMemory.store32(member.getOffset(), val.floatValue(), SinglePlain);
                     } else {
                         staticMemory.store64(member.getOffset(), val.doubleValue(), SinglePlain);
                     }
@@ -187,7 +184,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     }
 
     void setComponentClass(VmClass componentClass) {
-        memory.storeRef(indexOf(clazz.typeDefinition.findField("componentType")), componentClass, MemoryAtomicityMode.VOLATILE);
+        memory.storeRef(indexOf(clazz.typeDefinition.findField("componentType")), componentClass, SingleRelease);
     }
 
     @Override
@@ -200,7 +197,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                     arrayClazz = this.arrayClass = constructArrayClass();
                 }
                 arrayClazz.setComponentClass(this);
-                memory.storeRef(indexOf(CoreClasses.get(vm.getCompilationContext()).getArrayClassField()), arrayClazz, MemoryAtomicityMode.VOLATILE);
+                memory.storeRef(indexOf(CoreClasses.get(vm.getCompilationContext()).getArrayClassField()), arrayClazz, SingleRelease);
             }
         }
         return arrayClazz;

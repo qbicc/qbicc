@@ -1,6 +1,5 @@
 package org.qbicc.interpreter.impl;
 
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.interpreter.Vm;

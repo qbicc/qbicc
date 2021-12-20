@@ -6,7 +6,6 @@ import static org.qbicc.graph.atomic.AccessModes.*;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 
