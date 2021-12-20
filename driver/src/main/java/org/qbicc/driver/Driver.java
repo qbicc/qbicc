@@ -392,6 +392,8 @@ public class Driver implements Closeable {
             compilationContext.enqueue(entryPoint);
         }
 
+        Phase.ADD.setCurrent(compilationContext);
+
         MDC.put("phase", "ADD");
         compilationContext.processQueue(element -> {
             MDC.put("phase", "ADD");
@@ -432,6 +434,8 @@ public class Driver implements Closeable {
         compilationContext.cyclePhaseAttachments();
 
         // ANALYZE phase
+
+        Phase.ANALYZE.setCurrent(compilationContext);
 
         compilationContext.setBlockFactory(analyzeBuilderFactory);
         compilationContext.setCopier(addToAnalyzeCopiers);
@@ -498,6 +502,8 @@ public class Driver implements Closeable {
 
         // LOWER phase
 
+        Phase.LOWER.setCurrent(compilationContext);
+
         wrapper = Consumer::accept;
 
         for (UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>> factory : lowerTaskWrapperFactories) {
@@ -561,6 +567,8 @@ public class Driver implements Closeable {
         compilationContext.cyclePhaseAttachments();
 
         // GENERATE phase
+
+        Phase.GENERATE.setCurrent(compilationContext);
 
         wrapper = Consumer::accept;
 
