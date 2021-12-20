@@ -7,7 +7,6 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -20,6 +19,7 @@ import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 
+import static org.qbicc.graph.atomic.AccessModes.GlobalAcquire;
 import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 /**
@@ -55,8 +55,7 @@ public class LowerClassInitCheckBlockBuilder extends DelegatingBasicBlockBuilder
         GlobalVariableElement clinitStates = tables.getAndRegisterGlobalClinitStateStruct(getCurrentElement());
         CompoundType clinitStates_t = (CompoundType) clinitStates.getType();
         ValueHandle init_state_array = memberOf(globalVariable(clinitStates), clinitStates_t.getMember("init_state"));
-        Value state = load(elementOf(init_state_array, typeId), MemoryAtomicityMode.ACQUIRE);
-
+        Value state = load(elementOf(init_state_array, typeId), GlobalAcquire);
 
         if_(isEq(state, lf.literalOf(0)), callInit, goAhead);
         try {
