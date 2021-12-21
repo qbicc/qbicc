@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
 
@@ -97,7 +98,7 @@ public interface ValueHandle extends Unschedulable {
      *
      * @return the detected access mode for this handle (must not be {@code null})
      */
-    MemoryAtomicityMode getDetectedMode();
+    AccessMode getDetectedMode();
 
     <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param);
 

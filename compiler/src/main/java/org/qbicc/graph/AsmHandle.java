@@ -2,9 +2,12 @@ package org.qbicc.graph;
 
 import java.util.Set;
 
+import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.definition.element.ExecutableElement;
+
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 /**
  * A handle for an inline assembly expression which can be called or invoked.
@@ -99,14 +102,15 @@ public final class AsmHandle extends AbstractValueHandle {
     }
 
     @Override
+
     public PointerType getPointerType() {
         // not really allowed though
         return type.getPointer();
     }
 
     @Override
-    public MemoryAtomicityMode getDetectedMode() {
-        return MemoryAtomicityMode.NONE;
+    public AccessMode getDetectedMode() {
+        return SingleUnshared;
     }
 
     public enum Flag {

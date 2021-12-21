@@ -1,9 +1,12 @@
 package org.qbicc.graph;
 
+import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FunctionElement;
+
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 /**
  * A handle representing the location where the current thread is stashed.
@@ -72,8 +75,8 @@ public final class CurrentThread extends AbstractValueHandle {
     }
 
     @Override
-    public MemoryAtomicityMode getDetectedMode() {
-        return MemoryAtomicityMode.NONE;
+    public AccessMode getDetectedMode() {
+        return SingleUnshared;
     }
 
     @Override

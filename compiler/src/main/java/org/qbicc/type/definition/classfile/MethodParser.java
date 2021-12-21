@@ -25,7 +25,6 @@ import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.Invoke;
 import org.qbicc.graph.MemberSelector;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.OrderedNode;
@@ -1569,7 +1568,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         String name = getNameOfFieldRef(fieldRef);
                         // todo: signature context
                         ValueHandle handle = gf.staticField(owner, name, desc);
-                        Value value = promote(gf.load(handle, handle.getDetectedMode()), desc);
+                        Value value = promote(gf.load(handle, handle.getDetectedMode().getReadAccess()), desc);
                         push(value, desc.isClass2());
                         break;
                     }
@@ -1580,7 +1579,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
                         String name = getNameOfFieldRef(fieldRef);
                         ValueHandle handle = gf.staticField(owner, name, desc);
-                        gf.store(handle, storeTruncate(pop(desc.isClass2()), desc), handle.getDetectedMode());
+                        gf.store(handle, storeTruncate(pop(desc.isClass2()), desc), handle.getDetectedMode().getWriteAccess());
                         break;
                     }
                     case OP_GETFIELD: {
@@ -1612,7 +1611,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             push(promote(gf.extractMember(v1, member)), desc.isClass2());
                         } else {
                             ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
-                            Value value = promote(gf.load(handle, handle.getDetectedMode()), desc);
+                            Value value = promote(gf.load(handle, handle.getDetectedMode().getReadAccess()), desc);
                             push(value, desc.isClass2());
                             if (v1.getType() instanceof ReferenceType) {
                                 replaceAll(v1, gf.notNull(v1));
@@ -1633,7 +1632,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             replaceAll(v1, gf.insertMember(v1, member, storeTruncate(v2, desc)));
                         } else {
                             ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
-                            gf.store(handle, storeTruncate(v2, desc), handle.getDetectedMode());
+                            gf.store(handle, storeTruncate(v2, desc), handle.getDetectedMode().getWriteAccess());
                             if (v1.getType() instanceof ReferenceType) {
                                 replaceAll(v1, gf.notNull(v1));
                             }

@@ -1,9 +1,12 @@
 package org.qbicc.graph;
 
+import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.element.ExecutableElement;
+
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
 /**
  * A value handle for the target of an object reference value.
@@ -88,8 +91,8 @@ public final class ReferenceHandle extends AbstractValueHandle {
     }
 
     @Override
-    public MemoryAtomicityMode getDetectedMode() {
-        return MemoryAtomicityMode.UNORDERED;
+    public AccessMode getDetectedMode() {
+        return SinglePlain;
     }
 
     @Override
