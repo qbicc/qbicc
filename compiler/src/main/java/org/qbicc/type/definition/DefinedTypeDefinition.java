@@ -108,6 +108,8 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
         return hasAllModifiersOf(ClassFile.ACC_FINAL);
     }
 
+    default boolean isHidden() { return hasAllModifiersOf(ClassFile.I_ACC_HIDDEN); }
+
     // ==================
     // Superclass
     // ==================
