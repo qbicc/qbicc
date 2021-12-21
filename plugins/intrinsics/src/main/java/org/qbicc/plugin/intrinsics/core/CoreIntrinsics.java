@@ -20,7 +20,6 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.LocalVariable;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.PhiValue;
@@ -78,7 +77,7 @@ import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 
-import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
+import static org.qbicc.graph.atomic.AccessModes.*;
 
 /**
  * Core JDK intrinsics.
@@ -187,7 +186,7 @@ public final class CoreIntrinsics {
     private static StaticIntrinsic setVolatile(CompilationContext ctxt, FieldElement field) {
         Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
         return (builder, target, arguments) -> {
-            builder.store(builder.staticField(field), arguments.get(0), MemoryAtomicityMode.VOLATILE);
+            builder.store(builder.staticField(field), arguments.get(0), GlobalSeqCst);
             return voidLiteral;
         };
     }
@@ -1287,7 +1286,7 @@ public final class CoreIntrinsics {
             ReferenceType refType = jlc.getType().getReference();
             Value expect = ctxt.getLiteralFactory().nullLiteralOfType(refType);
             Value update = arguments.get(1);
-            Value result = builder.cmpAndSwap(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), CoreClasses.get(ctxt).getArrayClassField()), expect, update, MemoryAtomicityMode.ACQUIRE_RELEASE, MemoryAtomicityMode.ACQUIRE, CmpAndSwap.Strength.STRONG);
+            Value result = builder.cmpAndSwap(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), CoreClasses.get(ctxt).getArrayClassField()), expect, update, GlobalAcquire, GlobalRelease, CmpAndSwap.Strength.STRONG);
             // extract the flag
             return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, refType).getMember(1));
         };
@@ -1390,7 +1389,7 @@ public final class CoreIntrinsics {
             GlobalVariableElement clinitStates = tables.getAndRegisterGlobalClinitStateStruct(builder.getCurrentElement());
             CompoundType clinitStates_t = (CompoundType) clinitStates.getType();
             ValueHandle init_state_array = builder.memberOf(builder.globalVariable(clinitStates), clinitStates_t.getMember("init_state"));
-            Value state = builder.load(builder.elementOf(init_state_array, typeId), MemoryAtomicityMode.ACQUIRE);
+            Value state = builder.load(builder.elementOf(init_state_array, typeId), SingleAcquire);
 
             return builder.isEq(state, lf.literalOf(1));
         };
@@ -1405,7 +1404,7 @@ public final class CoreIntrinsics {
             Member init_state_t = clinitStates_t.getMember("init_state");
             IntegerType init_state_element_t = (IntegerType)((ArrayType)clinitStates_t.getMember("init_state").getType()).getElementType();
             ValueHandle init_state_array = builder.memberOf(builder.globalVariable(clinitStates), init_state_t);
-            builder.store(builder.elementOf(init_state_array, typeId), lf.literalOf(init_state_element_t, 1), MemoryAtomicityMode.RELEASE);
+            builder.store(builder.elementOf(init_state_array, typeId), lf.literalOf(init_state_element_t, 1), SingleRelease);
 
             return lf.zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
 
@@ -1428,7 +1427,7 @@ public final class CoreIntrinsics {
             ValueHandle casTarget = builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField);
             Value expect = ctxt.getLiteralFactory().literalOf(0L);
             Value update = builder.valueConvert(arguments.get(1), (SignedIntegerType)nativeObjectMonitorField.getType());
-            Value result = builder.cmpAndSwap(casTarget, expect, update, MemoryAtomicityMode.ACQUIRE_RELEASE, MemoryAtomicityMode.ACQUIRE, CmpAndSwap.Strength.STRONG);
+            Value result = builder.cmpAndSwap(casTarget, expect, update, GlobalAcquire, GlobalRelease, CmpAndSwap.Strength.STRONG);
             return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, update.getType()).getMember(1));
         };
         intrinsics.registerIntrinsic(ciDesc, "setNativeObjectMonitor", setNomDesc, setNom);
@@ -1670,12 +1669,10 @@ public final class CoreIntrinsics {
 
             ValueType expectType = newValue.getType();
             Value result = builder.cmpAndSwap(builder.instanceFieldOf(builder.referenceHandle(input), field), lf.zeroInitializerLiteralOfType(expectType),
-                newValue, MemoryAtomicityMode.VOLATILE, MemoryAtomicityMode.MONOTONIC, CmpAndSwap.Strength.STRONG);
+                newValue, GlobalSeqCst, SingleOpaque, CmpAndSwap.Strength.STRONG);
             // result is a compound structure; extract the success flag
             return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, expectType).getMember(1));
         };
-
-
 
         intrinsics.registerIntrinsic(classloader, "trySetObjectField", boolStringObj, trySetObjectField);
     }
