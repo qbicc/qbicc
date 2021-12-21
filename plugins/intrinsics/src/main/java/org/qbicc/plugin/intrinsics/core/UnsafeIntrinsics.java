@@ -103,25 +103,25 @@ public class UnsafeIntrinsics {
         // todo: research to discover if some platforms handle misalignment correctly, make it switchable
 
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndExchangeInt", getCompareAndExchangeDesc(classContext, BaseTypeDescriptor.I),
-            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, SinglePlain, GlobalSeqCst, STRONG));
+            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, SingleOpaque, GlobalSeqCst, STRONG));
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndExchangeIntAcquire", getCompareAndExchangeDesc(classContext, BaseTypeDescriptor.I),
-            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, GlobalAcquire, SinglePlain, STRONG));
+            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, GlobalAcquire, SingleOpaque, STRONG));
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndExchangeIntRelease", getCompareAndExchangeDesc(classContext, BaseTypeDescriptor.I),
-            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, SinglePlain, GlobalRelease, STRONG));
+            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, SingleOpaque, GlobalRelease, STRONG));
 
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndExchangeLong", getCompareAndExchangeDesc(classContext, BaseTypeDescriptor.J),
-            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, SinglePlain, GlobalSeqCst, STRONG));
+            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, SingleOpaque, GlobalSeqCst, STRONG));
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndExchangeLongAcquire", getCompareAndExchangeDesc(classContext, BaseTypeDescriptor.J),
-            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, GlobalAcquire, SinglePlain, STRONG));
+            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, GlobalAcquire, SingleOpaque, STRONG));
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndExchangeLongRelease", getCompareAndExchangeDesc(classContext, BaseTypeDescriptor.J),
-            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, SinglePlain, GlobalRelease, STRONG));
+            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, SingleOpaque, GlobalRelease, STRONG));
 
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndExchangeObject", getCompareAndExchangeDesc(classContext, objDesc),
-            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, SinglePlain, GlobalSeqCst, STRONG));
+            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, SingleOpaque, GlobalSeqCst, STRONG));
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndExchangeObjectAcquire", getCompareAndExchangeDesc(classContext, objDesc),
-            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, GlobalAcquire, SinglePlain, STRONG));
+            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, GlobalAcquire, SingleOpaque, STRONG));
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndExchangeObjectRelease", getCompareAndExchangeDesc(classContext, objDesc),
-            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, SinglePlain, GlobalRelease, STRONG));
+            (builder, instance, target, arguments) -> doCompareAndExchange(ctxt, builder, arguments, SingleOpaque, GlobalRelease, STRONG));
 
 
     }
@@ -166,49 +166,49 @@ public class UnsafeIntrinsics {
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
 
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndSetInt", getCompareAndSetDesc(classContext, BaseTypeDescriptor.I),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, GlobalSeqCst, STRONG));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SingleOpaque, GlobalSeqCst, STRONG));
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndSetLong", getCompareAndSetDesc(classContext, BaseTypeDescriptor.J),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, GlobalSeqCst, STRONG));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SingleOpaque, GlobalSeqCst, STRONG));
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndSetObject", getCompareAndSetDesc(classContext, objDesc),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, GlobalSeqCst, STRONG));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SingleOpaque, GlobalSeqCst, STRONG));
         intrinsics.registerIntrinsic(unsafeDesc, "compareAndSetReference", getCompareAndSetDesc(classContext, objDesc),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, GlobalSeqCst, STRONG));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SingleOpaque, GlobalSeqCst, STRONG));
 
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetInt", getCompareAndSetDesc(classContext, BaseTypeDescriptor.I),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, GlobalSeqCst, WEAK));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SingleOpaque, GlobalSeqCst, WEAK));
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetIntAcquire", getCompareAndSetDesc(classContext, BaseTypeDescriptor.I),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, GlobalAcquire, SinglePlain, WEAK));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, GlobalAcquire, SingleOpaque, WEAK));
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetIntPlain", getCompareAndSetDesc(classContext, BaseTypeDescriptor.I),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, SinglePlain, WEAK));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, SingleOpaque, WEAK));
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetIntRelease", getCompareAndSetDesc(classContext, BaseTypeDescriptor.I),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, GlobalRelease, WEAK));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SingleOpaque, GlobalRelease, WEAK));
 
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetLong", getCompareAndSetDesc(classContext, BaseTypeDescriptor.J),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, GlobalSeqCst, WEAK));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SingleOpaque, GlobalSeqCst, WEAK));
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetLongAcquire", getCompareAndSetDesc(classContext, BaseTypeDescriptor.J),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, GlobalAcquire, SinglePlain, WEAK));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, GlobalAcquire, SingleOpaque, WEAK));
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetLongPlain", getCompareAndSetDesc(classContext, BaseTypeDescriptor.J),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, SinglePlain, WEAK));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SingleOpaque, SingleOpaque, WEAK));
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetLongRelease", getCompareAndSetDesc(classContext, BaseTypeDescriptor.J),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, GlobalRelease, WEAK));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SingleOpaque, GlobalRelease, WEAK));
 
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetObject", getCompareAndSetDesc(classContext, objDesc),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, GlobalSeqCst, WEAK));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SingleOpaque, GlobalSeqCst, WEAK));
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetObjectAcquire", getCompareAndSetDesc(classContext, objDesc),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, GlobalAcquire, SinglePlain, WEAK));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, GlobalAcquire, SingleOpaque, WEAK));
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetObjectPlain", getCompareAndSetDesc(classContext, objDesc),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, SinglePlain, WEAK));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SingleOpaque, SingleOpaque, WEAK));
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetObjectRelease", getCompareAndSetDesc(classContext, objDesc),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, GlobalRelease, WEAK));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SingleOpaque, GlobalRelease, WEAK));
 
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetReference", getCompareAndSetDesc(classContext, objDesc),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, GlobalSeqCst, WEAK));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SingleOpaque, GlobalSeqCst, WEAK));
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetReferenceAcquire", getCompareAndSetDesc(classContext, objDesc),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, GlobalAcquire, SinglePlain, WEAK));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, GlobalAcquire, SingleOpaque, WEAK));
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetReferencePlain", getCompareAndSetDesc(classContext, objDesc),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, SinglePlain, WEAK));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SingleOpaque, SingleOpaque, WEAK));
         intrinsics.registerIntrinsic(unsafeDesc, "weakCompareAndSetReferenceRelease", getCompareAndSetDesc(classContext, objDesc),
-            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SinglePlain, GlobalRelease, WEAK));
+            (builder, instance, target, arguments) -> doCompareAndSet(ctxt, builder, arguments, SingleOpaque, GlobalRelease, WEAK));
     }
 
 
@@ -266,8 +266,8 @@ public class UnsafeIntrinsics {
             ).entrySet()) {
                 for (Map.Entry<String, AccessMode[]> suffixAndMode : Map.of(
                     "", new AccessMode[] { GlobalSeqCst, GlobalSeqCst },
-                    "Acquire", new AccessMode[] { GlobalAcquire, SinglePlain },
-                    "Release", new AccessMode[] { SinglePlain, GlobalRelease }
+                    "Acquire", new AccessMode[] { GlobalAcquire, SingleOpaque },
+                    "Release", new AccessMode[] { SingleOpaque, GlobalRelease }
                 ).entrySet()) {
                     String name = "getAnd" + nameAndOp.getKey() + typeNameAndDesc.getKey() + suffixAndMode.getKey();
                     MethodDescriptor desc = getGetAndBinOpDesc(classContext, typeNameAndDesc.getValue());
