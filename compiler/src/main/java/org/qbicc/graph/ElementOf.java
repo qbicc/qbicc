@@ -2,6 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.PointerType;
@@ -64,7 +65,7 @@ public final class ElementOf extends AbstractValueHandle {
     }
 
     @Override
-    public MemoryAtomicityMode getDetectedMode() {
+    public AccessMode getDetectedMode() {
         return inputHandle.getDetectedMode();
     }
 

@@ -2,11 +2,14 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.object.Function;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
+
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
 /**
  *
@@ -71,8 +74,8 @@ public final class PointerHandle extends AbstractValueHandle {
     }
 
     @Override
-    public MemoryAtomicityMode getDetectedMode() {
-        return MemoryAtomicityMode.UNORDERED;
+    public AccessMode getDetectedMode() {
+        return SinglePlain;
     }
 
     public PointerType getPointerType() {

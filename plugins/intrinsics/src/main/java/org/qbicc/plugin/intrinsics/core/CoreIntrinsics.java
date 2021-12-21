@@ -1302,13 +1302,13 @@ public final class CoreIntrinsics {
             Value instance = builder.new_(jlcType, lf.literalOfType(jlcType), lf.literalOf(compoundType.getSize()), lf.literalOf(compoundType.getAlign()));
             ValueHandle instanceHandle = builder.referenceHandle(instance);
             ValueHandle handle = builder.instanceFieldOf(instanceHandle, jlcName);
-            builder.store(handle, arguments.get(0), handle.getDetectedMode());
+            builder.store(handle, arguments.get(0), handle.getDetectedMode().getWriteAccess());
             handle = builder.instanceFieldOf(instanceHandle, CoreClasses.get(ctxt).getClassTypeIdField());
-            builder.store(handle, arguments.get(1), handle.getDetectedMode());
+            builder.store(handle, arguments.get(1), handle.getDetectedMode().getWriteAccess());
             handle = builder.instanceFieldOf(builder.referenceHandle(instance), CoreClasses.get(ctxt).getClassDimensionField());
-            builder.store(handle, arguments.get(2), handle.getDetectedMode());
+            builder.store(handle, arguments.get(2), handle.getDetectedMode().getWriteAccess());
             handle = builder.instanceFieldOf(instanceHandle, jlcCompType);
-            builder.store(handle, arguments.get(3), handle.getDetectedMode());
+            builder.store(handle, arguments.get(3), handle.getDetectedMode().getWriteAccess());
             return instance;
         };
         intrinsics.registerIntrinsic(Phase.ADD, ciDesc, "createClass", createClassDesc, createClass);

@@ -1,10 +1,13 @@
 package org.qbicc.graph;
 
+import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
+
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 /**
  * A value handle to an executable element.
@@ -93,7 +96,7 @@ public abstract class Executable extends AbstractValueHandle {
     }
 
     @Override
-    public MemoryAtomicityMode getDetectedMode() {
-        return MemoryAtomicityMode.NONE;
+    public AccessMode getDetectedMode() {
+        return SingleUnshared;
     }
 }

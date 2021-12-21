@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -57,7 +58,7 @@ public class UnsafeHandle extends AbstractValueHandle {
     }
 
     @Override
-    public MemoryAtomicityMode getDetectedMode() {
+    public AccessMode getDetectedMode() {
         return base.getDetectedMode();
     }
 

@@ -2,10 +2,14 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.VariableElement;
+
+import static org.qbicc.graph.atomic.AccessModes.GlobalSeqCst;
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
 /**
  *
@@ -43,7 +47,7 @@ public abstract class Variable extends AbstractValueHandle {
     }
 
     @Override
-    public MemoryAtomicityMode getDetectedMode() {
-        return variableElement.hasAllModifiersOf(ClassFile.ACC_VOLATILE) ? MemoryAtomicityMode.VOLATILE : MemoryAtomicityMode.UNORDERED;
+    public AccessMode getDetectedMode() {
+        return variableElement.hasAllModifiersOf(ClassFile.ACC_VOLATILE) ? GlobalSeqCst : SinglePlain;
     }
 }

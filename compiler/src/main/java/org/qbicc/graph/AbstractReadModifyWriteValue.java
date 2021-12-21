@@ -60,10 +60,6 @@ abstract class AbstractReadModifyWriteValue extends AbstractValue implements Rea
         return writeMode;
     }
 
-    public MemoryAtomicityMode getAtomicityMode() {
-        return null;
-    }
-
     int calcHashCode() {
         return Objects.hash(getClass(), dependency, target, updateValue, readMode, writeMode);
     }

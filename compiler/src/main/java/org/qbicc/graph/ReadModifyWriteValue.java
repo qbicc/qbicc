@@ -12,6 +12,4 @@ public interface ReadModifyWriteValue extends Value {
     ReadAccessMode getReadAccessMode();
 
     WriteAccessMode getWriteAccessMode();
-
-    MemoryAtomicityMode getAtomicityMode();
 }
