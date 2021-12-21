@@ -118,7 +118,6 @@ import org.qbicc.plugin.opt.ea.EscapeAnalysisInterMethodAnalysis;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisIntraMethodBuilder;
 import org.qbicc.plugin.opt.ea.ConnectionGraphDotGenerator;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisOptimizeVisitor;
-import org.qbicc.plugin.opt.ea.EscapeAnalysisState;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
