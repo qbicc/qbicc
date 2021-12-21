@@ -635,6 +635,11 @@ public final class VmImpl implements Vm {
                 VmClassImpl clazz = (VmClassImpl) target;
                 return clazz instanceof VmArrayClass;
             });
+            classClass.registerInvokable("isHidden", (thread, target, args) -> {
+                VmClassImpl clazz = (VmClassImpl) target;
+                return clazz.getTypeDefinition().isHidden();
+            });
+
             classClass.registerInvokable("isInterface", (thread, target, args) ->
                 Boolean.valueOf(((VmClassImpl) target).getTypeDefinition().isInterface()));
             classClass.registerInvokable("isAssignableFrom", (thread, target, args) -> {
@@ -691,6 +696,29 @@ public final class VmImpl implements Vm {
                 }
                 VmClass objClazz = obj.getVmClass();
                 return Boolean.valueOf(objClazz.getInstanceObjectType().isSubtypeOf(clazz.getInstanceObjectType()));
+            });
+
+            VmClassImpl classloaderClass = bootstrapClassLoader.loadClass("java/lang/ClassLoader");
+            classloaderClass.registerInvokable("defineClass1", (thread, target, args) -> {
+                VmClassLoaderImpl classLoader = (VmClassLoaderImpl) args.get(0);
+                VmString name = (VmString) args.get(1);
+                VmByteArrayImpl b = (VmByteArrayImpl) args.get(2);
+                int off = (Integer) args.get(3);
+                int len = (Integer) args.get(4);
+                VmObject pd = (VmObject) args.get(5);
+                VmString source = (VmString) args.get(6);
+                if (off != 0 || len != b.getLength()) {
+                    VmByteArrayImpl b2 = manuallyInitialize(byteArrayClass.newInstance(len));
+                    for (int i=0; i<len; i++) {
+                        int v = b.getMemory().load8(b.getArrayElementOffset(off + i), SinglePlain);
+                        b2.getMemory().store8(b2.getArrayElementOffset(i), v, SinglePlain);
+                    }
+                    b = b2;
+                }
+                if (classLoader == null) {
+                    classLoader = bootstrapClassLoader;
+                }
+                return classLoader.defineClass(name, b, pd);
             });
 
             // Array
