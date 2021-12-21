@@ -10,7 +10,6 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Load;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.NewArray;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;

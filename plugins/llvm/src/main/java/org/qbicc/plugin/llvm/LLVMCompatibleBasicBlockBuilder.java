@@ -10,7 +10,6 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -289,7 +288,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             result = fb.insertMember(withCompareVal, resultType.getMember(0), compareResult);
             fb.if_(compareResult, success, resume);
             fb.begin(success);
-            fb.store(target, update, MemoryAtomicityMode.VOLATILE /* TODO: writeMode */);
+            fb.store(target, update, writeMode);
             fb.goto_(resume);
             fb.begin(resume);
         } else {
