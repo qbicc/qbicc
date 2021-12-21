@@ -186,7 +186,7 @@ public final class CoreIntrinsics {
     private static StaticIntrinsic setVolatile(CompilationContext ctxt, FieldElement field) {
         Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
         return (builder, target, arguments) -> {
-            builder.store(builder.staticField(field), arguments.get(0), GlobalRelease);
+            builder.store(builder.staticField(field), arguments.get(0), GlobalSeqCst);
             return voidLiteral;
         };
     }
@@ -1669,12 +1669,10 @@ public final class CoreIntrinsics {
 
             ValueType expectType = newValue.getType();
             Value result = builder.cmpAndSwap(builder.instanceFieldOf(builder.referenceHandle(input), field), lf.zeroInitializerLiteralOfType(expectType),
-                newValue, GlobalAcquire, SingleOpaque, CmpAndSwap.Strength.STRONG);
+                newValue, GlobalSeqCst, SingleOpaque, CmpAndSwap.Strength.STRONG);
             // result is a compound structure; extract the success flag
             return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, expectType).getMember(1));
         };
-
-
 
         intrinsics.registerIntrinsic(classloader, "trySetObjectField", boolStringObj, trySetObjectField);
     }
