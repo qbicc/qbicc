@@ -37,7 +37,6 @@ public final class EscapeAnalysisIntraMethodBuilder extends DelegatingBasicBlock
         super(delegate);
         this.connectionGraph = new ConnectionGraph(getCurrentElement().toString());
         this.escapeAnalysisState = EscapeAnalysisState.get(ctxt);
-        this.escapeAnalysisState.trackMethod(getCurrentElement(), this.connectionGraph);
         this.bootstrapClassContext = ctxt.getBootstrapClassContext();
     }
 
@@ -111,6 +110,7 @@ public final class EscapeAnalysisIntraMethodBuilder extends DelegatingBasicBlock
     @Override
     public void startMethod(List<ParameterValue> arguments) {
         super.startMethod(arguments);
+        escapeAnalysisState.trackMethod(getCurrentElement(), this.connectionGraph);
         connectionGraph.trackParameters(arguments);
     }
 
