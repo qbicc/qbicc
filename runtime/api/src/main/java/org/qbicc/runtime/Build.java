@@ -260,11 +260,11 @@ public final class Build {
         private static final object __arm__ = constant();
         private static final object __aarch64__ = constant();
         private static final object _M_ARM = constant();
-        @include("<feature.h>")
+        @include("<features.h>")
         private static final c_int __GNU_LIBRARY__ = constant();
-        @include("<feature.h>")
+        @include("<features.h>")
         private static final object __UCLIBC__ = constant();
-        @include("<feature.h>")
+        @include("<features.h>")
         private static final object __MUSL__ = constant();
         private static final object _AIX = constant();
 
