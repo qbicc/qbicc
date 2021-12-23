@@ -54,7 +54,8 @@ import org.eclipse.aether.internal.impl.SimpleLocalRepositoryManagerFactory;
 import org.eclipse.aether.internal.impl.TrackingFileManager;
 import org.eclipse.aether.internal.impl.collect.DefaultDependencyCollector;
 import org.eclipse.aether.internal.impl.synccontext.DefaultSyncContextFactory;
-import org.eclipse.aether.internal.impl.synccontext.NamedLockFactorySelector;
+import org.eclipse.aether.internal.impl.synccontext.named.NamedLockFactorySelector;
+import org.eclipse.aether.internal.impl.synccontext.named.SimpleNamedLockFactorySelector;
 import org.eclipse.aether.spi.connector.RepositoryConnectorFactory;
 import org.eclipse.aether.spi.connector.checksum.ChecksumPolicyProvider;
 import org.eclipse.aether.spi.connector.layout.RepositoryLayoutFactory;
@@ -89,7 +90,7 @@ final class QbiccServiceLocator implements ServiceLocator {
         Map.entry(MetadataGeneratorFactory.class, List.of(SnapshotMetadataGeneratorFactory::new, VersionsMetadataGeneratorFactory::new)),
         Map.entry(MetadataResolver.class, List.of(DefaultMetadataResolver::new)),
         Map.entry(ModelBuilder.class, List.of(() -> new DefaultModelBuilderFactory().newInstance())),
-        Map.entry(NamedLockFactorySelector.class, List.of(NamedLockFactorySelector::new)),
+        Map.entry(NamedLockFactorySelector.class, List.of(SimpleNamedLockFactorySelector::new)),
         Map.entry(OfflineController.class, List.of(DefaultOfflineController::new)),
         Map.entry(RemoteRepositoryManager .class, List.of(DefaultRemoteRepositoryManager::new)),
         Map.entry(RepositoryConnectorFactory.class, List.of(BasicRepositoryConnectorFactory::new)),
