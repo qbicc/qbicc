@@ -15,45 +15,45 @@ public final class Errno {
     @AccessWith(value = GLibCErrnoAccessor.class, when = Build.Target.IsGLibCLike.class)
     @AccessWith(value = MacOsErrnoAccessor.class, when = Build.Target.IsMacOs.class)
     @AccessWith(value = AixErrnoAccessor.class, when = Build.Target.IsAix.class)
-    public static c_int errno;
+    public static int errno;
 
     // typedef of c_int
     public static final class errno_t extends word {
     }
 
-    public static final class GLibCErrnoAccessor implements Accessor<c_int> {
+    public static final class GLibCErrnoAccessor implements Accessor<Integer> {
         private static native int_ptr __errno_location();
 
-        public c_int get() {
-            return __errno_location().loadUnshared();
+        public int getAsInt() {
+            return __errno_location().loadUnshared().intValue();
         }
 
-        public void set(c_int value) {
-            __errno_location().storeUnshared(value);
+        public void set(int value) {
+            __errno_location().storeUnshared(word(value));
         }
     }
 
-    public static final class MacOsErrnoAccessor implements Accessor<c_int> {
+    public static final class MacOsErrnoAccessor implements Accessor<Integer> {
         private static native int_ptr __error();
 
-        public c_int get() {
-            return __error().loadUnshared();
+        public int getAsInt() {
+            return __error().loadUnshared().intValue();
         }
 
-        public void set(c_int value) {
-            __error().storeUnshared(value);
+        public void set(int value) {
+            __error().storeUnshared(word(value));
         }
     }
 
-    public static final class AixErrnoAccessor implements Accessor<c_int> {
+    public static final class AixErrnoAccessor implements Accessor<Integer> {
         private static native int_ptr _Errno();
 
-        public c_int get() {
-            return _Errno().loadUnshared();
+        public int getAsInt() {
+            return _Errno().loadUnshared().intValue();
         }
 
-        public void set(c_int value) {
-            _Errno().storeUnshared(value);
+        public void set(int value) {
+            _Errno().storeUnshared(word(value));
         }
     }
 
