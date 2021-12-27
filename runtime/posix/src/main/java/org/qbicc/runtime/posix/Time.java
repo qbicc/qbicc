@@ -9,11 +9,6 @@ import static org.qbicc.runtime.stdc.Time.*;
 @include("<time.h>")
 public final class Time {
 
-    /**
-     * @hidden
-     */
-    @Deprecated
-    public static native c_int clock_gettime(clockid_t clockid, const_struct_timespec_ptr tp);
     public static native c_int clock_gettime(clockid_t clockid, struct_timespec_ptr tp);
 
     public static final class clockid_t extends object {}
