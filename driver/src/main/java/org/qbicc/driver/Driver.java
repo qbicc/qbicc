@@ -394,7 +394,6 @@ public class Driver implements Closeable {
 
         Phase.ADD.setCurrent(compilationContext);
 
-        MDC.put("phase", "ADD");
         compilationContext.processQueue(element -> {
             MDC.put("phase", "ADD");
             for (Consumer<ExecutableElement> handler : addElementHandlers) try {
@@ -447,7 +446,6 @@ public class Driver implements Closeable {
         }
         compilationContext.setTaskRunner(wrapper);
 
-        MDC.put("phase", "ANALYZE");
         for (Consumer<? super CompilationContext> hook : preAnalyzeHooks) {
             try {
                 hook.accept(compilationContext);
@@ -514,7 +512,6 @@ public class Driver implements Closeable {
         compilationContext.setBlockFactory(lowerBuilderFactory);
         compilationContext.setCopier(analyzeToLowerCopiers);
 
-        MDC.put("phase", "LOWER");
         for (Consumer<? super CompilationContext> hook : preLowerHooks) {
             try {
                 hook.accept(compilationContext);
@@ -579,7 +576,6 @@ public class Driver implements Closeable {
 
         compilationContext.setCopier(null);
 
-        MDC.put("phase", "GENERATE");
         for (Consumer<? super CompilationContext> hook : preGenerateHooks) {
             try {
                 hook.accept(compilationContext);
@@ -607,6 +603,8 @@ public class Driver implements Closeable {
                 return false;
             }
         }
+
+        Phase.complete(compilationContext);
 
         return compilationContext.errors() == 0;
     }

@@ -1,5 +1,7 @@
 package org.qbicc.driver;
 
+import org.jboss.logging.Logger;
+import org.jboss.logging.MDC;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.PhaseAttachmentKey;
 
@@ -27,6 +29,7 @@ public enum Phase {
      */
     GENERATE ("generate"),
     ;
+    private static final Logger log = Logger.getLogger("org.qbicc.driver.phase");
 
     private final String phase;
 
@@ -61,6 +64,16 @@ public enum Phase {
     }
 
     void setCurrent(CompilationContext ctxt) {
+        complete(ctxt);
         ctxt.putAttachment(KEY, this);
+        MDC.put("phase", name());
+        log.info("Entering phase");
+    }
+
+    static void complete(CompilationContext ctxt) {
+        if (ctxt.getPreviousPhaseAttachment(KEY) != null) {
+            log.info("Phase complete");
+        }
+        MDC.remove("phase");
     }
 }
