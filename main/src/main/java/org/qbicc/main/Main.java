@@ -265,6 +265,11 @@ public class Main implements Callable<DiagnosticContext> {
                 // todo: close class path items?
                 return;
             }
+            try {
+                resolveClassPath(initialContext, builder::addAppClassPathItem, appPaths);
+            } catch (IOException e) {
+                return;
+            }
             // first, probe the target platform
             Platform target = platform;
             builder.setTargetPlatform(target);
