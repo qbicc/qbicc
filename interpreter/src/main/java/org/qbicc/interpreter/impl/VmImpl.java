@@ -803,6 +803,11 @@ public final class VmImpl implements Vm {
                 }
             });
 
+            // Build
+            VmClassImpl build = bootstrapClassLoader.loadClass("org/qbicc/runtime/Build");
+            build.registerInvokable("isHost", (thread, target, args) -> Boolean.TRUE);
+            build.registerInvokable("isTarget", (thread, target, args) -> Boolean.FALSE);
+
             // Now execute system initialization
             LoadedTypeDefinition systemType = systemClass.getTypeDefinition();
             // phase 1
