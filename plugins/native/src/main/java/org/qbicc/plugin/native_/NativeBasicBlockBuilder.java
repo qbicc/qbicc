@@ -17,7 +17,9 @@ import org.qbicc.type.ArrayType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VariadicType;
+import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
@@ -30,6 +32,24 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public NativeBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
+    }
+
+    @Override
+    public Value checkcast(Value value, TypeDescriptor desc) {
+        // delete casts to native base types preemptively
+        if (desc instanceof ClassTypeDescriptor ctd) {
+            if (ctd.packageAndClassNameEquals(Native.NATIVE_PKG, Native.WORD)) {
+                if (!(value.getType() instanceof WordType)) {
+                    ctxt.error(getLocation(), "Invalid cast of non-word type %s to word type", value.getType());
+                }
+                return value;
+            }
+            if (ctd.packageAndClassNameEquals(Native.NATIVE_PKG, Native.OBJECT)) {
+                // any value can be cast to `object`
+                return value;
+            }
+        }
+        return super.checkcast(value, desc);
     }
 
     @Override
