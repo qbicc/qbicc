@@ -351,8 +351,6 @@ public class Driver implements Closeable {
     boolean execute0() {
         CompilationContextImpl compilationContext = this.compilationContext;
 
-        // ADD phase
-
         BiConsumer<Consumer<CompilationContext>, CompilationContext> wrapper = Consumer::accept;
 
         for (UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>> factory : addTaskWrapperFactories) {
@@ -360,9 +358,13 @@ public class Driver implements Closeable {
         }
         compilationContext.setTaskRunner(wrapper);
 
-        for (Consumer<? super CompilationContext> hook : preAddHooks) {
+        // ADD phase
+
+        Phase.ADD.setCurrent(compilationContext);
+
+        for (Consumer<CompilationContext> hook : preAddHooks) {
             try {
-                hook.accept(compilationContext);
+                wrapper.accept(hook, compilationContext);
             } catch (Exception e) {
                 log.error("An exception was thrown in a pre-add hook", e);
                 compilationContext.error(e, "Pre-add hook failed: %s", e);
@@ -391,8 +393,6 @@ public class Driver implements Closeable {
         for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
             compilationContext.enqueue(entryPoint);
         }
-
-        Phase.ADD.setCurrent(compilationContext);
 
         compilationContext.processQueue(element -> {
             MDC.put("phase", "ADD");
