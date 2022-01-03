@@ -60,29 +60,29 @@ public class Driver implements Closeable {
     final CompilationContextImpl compilationContext;
     // at this point, the phase is initialized to ADD
     final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> addTaskWrapperFactories;
-    final List<Consumer<? super CompilationContext>> preAddHooks;
+    final List<Consumer<CompilationContext>> preAddHooks;
     final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> addBuilderFactory;
     final List<Consumer<ExecutableElement>> addElementHandlers;
-    final List<Consumer<? super CompilationContext>> postAddHooks;
+    final List<Consumer<CompilationContext>> postAddHooks;
     // at this point, the phase is switched to ANALYZE
     final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> analyzeTaskWrapperFactories;
-    final List<Consumer<? super CompilationContext>> preAnalyzeHooks;
+    final List<Consumer<CompilationContext>> preAnalyzeHooks;
     final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> addToAnalyzeCopiers;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> analyzeBuilderFactory;
     final List<Consumer<ExecutableElement>> analyzeElementHandlers;
-    final List<Consumer<? super CompilationContext>> postAnalyzeHooks;
+    final List<Consumer<CompilationContext>> postAnalyzeHooks;
     // at this point, the phase is switched to LOWER
     final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> lowerTaskWrapperFactories;
-    final List<Consumer<? super CompilationContext>> preLowerHooks;
+    final List<Consumer<CompilationContext>> preLowerHooks;
     final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> analyzeToLowerCopiers;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> lowerBuilderFactory;
     final List<Consumer<ExecutableElement>> lowerElementHandlers;
-    final List<Consumer<? super CompilationContext>> postLowerHooks;
+    final List<Consumer<CompilationContext>> postLowerHooks;
     // at this point, the phase is switched to GENERATE
     final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> generateTaskWrapperFactories;
-    final List<Consumer<? super CompilationContext>> preGenerateHooks;
-    final List<Consumer<? super CompilationContext>> postGenerateHooks;
+    final List<Consumer<CompilationContext>> preGenerateHooks;
+    final List<Consumer<CompilationContext>> postGenerateHooks;
     final Map<String, BootModule> bootModules;
     final List<ClassPathItem> bootClassPath;
     final Path outputDir;
@@ -636,8 +636,8 @@ public class Driver implements Closeable {
         final Map<Phase, List<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>>>> copyFactories = new EnumMap<>(Phase.class);
         final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories = new ArrayList<>();
         final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories = new ArrayList<>();
-        final Map<Phase, List<Consumer<? super CompilationContext>>> preHooks = new EnumMap<>(Phase.class);
-        final Map<Phase, List<Consumer<? super CompilationContext>>> postHooks = new EnumMap<>(Phase.class);
+        final Map<Phase, List<Consumer<CompilationContext>>> preHooks = new EnumMap<>(Phase.class);
+        final Map<Phase, List<Consumer<CompilationContext>>> postHooks = new EnumMap<>(Phase.class);
         final Map<Phase, List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>>> taskWrapperFactories = new EnumMap<>(Phase.class);
         final Map<Phase, List<Consumer<ExecutableElement>>> elementHandlers = new EnumMap<>(Phase.class);
         final List<UnaryOperator<NativeMethodConfigurator>> nativeMethodConfiguratorFactories = new ArrayList<>();
@@ -728,7 +728,7 @@ public class Driver implements Closeable {
             return this;
         }
 
-        public Builder addPreHook(Phase phase, Consumer<? super CompilationContext> hook) {
+        public Builder addPreHook(Phase phase, Consumer<CompilationContext> hook) {
             if (hook != null) {
                 Assert.checkNotNullParam("phase", phase);
                 preHooks.computeIfAbsent(phase, Builder::newArrayList).add(hook);
@@ -736,7 +736,7 @@ public class Driver implements Closeable {
             return this;
         }
 
-        public Builder addPostHook(Phase phase, Consumer<? super CompilationContext> hook) {
+        public Builder addPostHook(Phase phase, Consumer<CompilationContext> hook) {
             if (hook != null) {
                 Assert.checkNotNullParam("phase", phase);
                 postHooks.computeIfAbsent(phase, Builder::newArrayList).add(hook);
