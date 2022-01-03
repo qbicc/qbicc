@@ -47,6 +47,8 @@ public interface VmClass extends VmObject {
 
     int indexOfStatic(FieldElement field) throws IllegalArgumentException;
 
+    Memory getStaticMemory();
+
     /**
      * Register an overriding {@code VmInvokable} for the given element.
      *

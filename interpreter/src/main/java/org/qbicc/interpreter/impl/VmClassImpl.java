@@ -353,7 +353,8 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         return classLoader;
     }
 
-    MemoryImpl getStaticMemory() {
+    @Override
+    public MemoryImpl getStaticMemory() {
         return staticMemory;
     }
 
