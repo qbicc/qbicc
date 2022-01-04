@@ -362,12 +362,6 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     }
 
     public Literal getValueForStaticField(FieldElement field) {
-        if (staticLayoutInfo == null || staticLayoutInfo.getMember(field) == null) {
-            // TODO: This should become a hard error at some point, but make it a warning while we are bringing interpreter online.
-            //       It seems to mostly be happening with callsites associated with invokedynamic.
-            vm.getCompilationContext().warning("No interpreter layout for static "+field+". Using zero initializer as value");
-            return vm.getCompilationContext().getLiteralFactory().zeroInitializerLiteralOfType(field.getType());
-        }
         int offset = staticLayoutInfo.getMember(field).getOffset();
         TypeDescriptor desc = field.getTypeDescriptor();
         if (desc.equals(BaseTypeDescriptor.Z)) {
