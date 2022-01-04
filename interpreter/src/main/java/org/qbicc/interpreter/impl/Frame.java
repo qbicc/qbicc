@@ -14,6 +14,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.ActionVisitor;
 import org.qbicc.graph.Add;
+import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.And;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BinaryValue;
@@ -301,6 +302,13 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return box(unboxDouble(node.getLeftInput()) + unboxDouble(node.getRightInput()), node.getType());
         }
         throw badInputType();
+    }
+
+    @Override
+    public Object visit(VmThreadImpl param, AddressOf node) {
+        // Todo: this is temporary until https://github.com/qbicc/qbicc/issues/54 can be resolved.
+        // Sometimes, addr_of gets scheduled before the build-or-run-time-check executes.
+        return null;
     }
 
     @Override
