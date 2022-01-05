@@ -70,6 +70,10 @@ public class BuildtimeHeap {
      */
     private final IdentityHashMap<VmObject, ProgramObjectLiteral> vmObjects = new IdentityHashMap<>();
     /**
+     * To support interception of VmObjects instances as they are serialized
+     */
+    private final InstanceInterceptor interceptor;
+    /**
      * The initial heap
      */
     private final Section heapSection;
@@ -84,6 +88,7 @@ public class BuildtimeHeap {
         this.ctxt = ctxt;
         this.interpreterLayout = Layout.get(ctxt);
         this.coreClasses = CoreClasses.get(ctxt);
+        this.interceptor = new InstanceInterceptor(ctxt);
 
         LoadedTypeDefinition ih = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap").load();
         this.heapSection = ctxt.getOrAddProgramModule(ih).getOrAddSection(ctxt.IMPLICIT_SECTION_NAME); // TODO: use ctxt.INITIAL_HEAP_SECTION_NAME
@@ -119,6 +124,7 @@ public class BuildtimeHeap {
     }
 
     public synchronized ProgramObjectLiteral serializeVmObject(VmObject value) {
+        value = interceptor.process(value);
         if (vmObjects.containsKey(value)) {
             return vmObjects.get(value);
         }
@@ -260,8 +266,7 @@ public class BuildtimeHeap {
             }
             CompoundType.Member im = memLayout.getMember(f);
             CompoundType.Member om = objLayout.getMember(f);
-            if (im.getType() instanceof IntegerType) {
-                IntegerType it = (IntegerType)im.getType();
+            if (im.getType() instanceof IntegerType it) {
                 if (it.getSize() == 1) {
                     memberMap.put(om, lf.literalOf(it, memory.load8(im.getOffset(), SinglePlain)));
                 } else if (it.getSize() == 2) {
@@ -271,8 +276,7 @@ public class BuildtimeHeap {
                 } else {
                     memberMap.put(om, lf.literalOf(it, memory.load64(im.getOffset(), SinglePlain)));
                 }
-            } else if (im.getType() instanceof FloatType) {
-                FloatType ft = (FloatType)im.getType();
+            } else if (im.getType() instanceof FloatType ft) {
                 if (ft.getSize() == 4) {
                     memberMap.put(om, lf.literalOf(ft, memory.loadFloat(im.getOffset(), SinglePlain)));
                 } else {
