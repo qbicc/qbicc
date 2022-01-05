@@ -55,7 +55,7 @@ jbang cache clear
 
 Please ensure the follow are installed and available on your path:
 
-* LLVM 12
+* LLVM 13
 * JDK 17
 * Maven 3.6.1+
 
