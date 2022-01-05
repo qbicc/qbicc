@@ -171,7 +171,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
                 throw new Thrown(throwable);
             }
         }
-        return (VmClassImpl) classLoaderClass.getOrCompile(clDef.getMethod(clDef.findMethodIndex("loadClass", loadClassDesc))).invoke(thread, this, List.of(intName));
+        return (VmClassImpl) classLoaderClass.getOrCompile(clDef.resolveMethodElementVirtual("loadClass", loadClassDesc)).invoke(thread, this, List.of(intName));
     }
 
 }
