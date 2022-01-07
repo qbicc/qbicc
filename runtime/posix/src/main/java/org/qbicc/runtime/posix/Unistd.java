@@ -21,6 +21,9 @@ public final class Unistd {
         public c_long @array_size(2) [] fd;
     }
 
+    public static native c_int access(const_char_ptr pathname);
+    public static native c_int faccessat(c_int dirfd, const_char_ptr pathname, c_int mode, c_int flags);
+
     public static native c_int close(c_int fd);
 
     public static native c_int dup(c_int fd);

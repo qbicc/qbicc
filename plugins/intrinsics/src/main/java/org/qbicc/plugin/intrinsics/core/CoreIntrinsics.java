@@ -28,6 +28,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Variable;
 import org.qbicc.graph.VirtualMethodElementHandle;
+import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
@@ -105,6 +106,7 @@ public final class CoreIntrinsics {
         registerJavaLangRuntimeIntrinsics(ctxt);
         registerOrgQbiccCompilerIntrinsics(ctxt);
         registerOrgQbiccObjectModelIntrinsics(ctxt);
+        registerOrgQbiccRuntimeBuildIntrinsics(ctxt);
         registerOrgQbiccRuntimeMainIntrinsics(ctxt);
         registerJavaLangMathIntrinsics(ctxt);
         registerJavaUtilConcurrentAtomicLongIntrinsics(ctxt);
@@ -1431,6 +1433,23 @@ public final class CoreIntrinsics {
             return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, update.getType()).getMember(1));
         };
         intrinsics.registerIntrinsic(ciDesc, "setNativeObjectMonitor", setNomDesc, setNom);
+    }
+
+    static void registerOrgQbiccRuntimeBuildIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+        ClassTypeDescriptor buildDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/Build");
+
+        MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
+
+        BooleanLiteral falseLit = classContext.getLiteralFactory().literalOf(false);
+        BooleanLiteral trueLit = classContext.getLiteralFactory().literalOf(true);
+
+        StaticIntrinsic isHost = (builder, target, arguments) -> falseLit;
+        StaticIntrinsic isTarget = (builder, target, arguments) -> trueLit;
+
+        intrinsics.registerIntrinsic(Phase.ANALYZE, buildDesc, "isHost", emptyToBool, isHost);
+        intrinsics.registerIntrinsic(Phase.ANALYZE, buildDesc, "isTarget", emptyToBool, isTarget);
     }
 
     static void registerOrgQbiccRuntimeMainIntrinsics(final CompilationContext ctxt) {

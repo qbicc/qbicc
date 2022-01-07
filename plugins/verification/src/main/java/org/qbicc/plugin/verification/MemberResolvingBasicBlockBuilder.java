@@ -221,14 +221,19 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 toType = ((ReferenceArrayObjectType) toType).getLeafElementType();
             }
             return checkcast(value, cc.getLiteralFactory().literalOfType(toType), cc.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), toDimensions), CheckCast.CastType.Cast, originalToType);
-        } else if (castType instanceof WordType) {
-            // A checkcast in the bytecodes, but it is actually a WordType coming from some native magic...just bitcast it.
-            WordType toType = (WordType) castType;
+        } else if (castType instanceof WordType toType) {
+            // A checkcast in the bytecodes, but it is actually a WordType coming from some native magic.
             WordType fromType = (WordType) value.getType();
+            // Zeros are always convertible to any word type.
+            if (value.isDefEq(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fromType))) {
+                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(toType);
+            }
             if (toType.getMinBits() < fromType.getMinBits()) {
                 return super.truncate(value, toType);
+            } else if (toType.getMinBits() > fromType.getMinBits()) {
+                return super.extend(value, toType);
             } else {
-                return super.bitCast(value, (WordType) castType);
+                return super.bitCast(value, toType);
             }
         } else if (castType instanceof CompoundType) {
             // A checkcast in the bytecodes but it's really casting to a structure or compound type;

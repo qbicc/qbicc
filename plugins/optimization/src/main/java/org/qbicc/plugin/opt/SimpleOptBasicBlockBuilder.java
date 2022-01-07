@@ -449,6 +449,9 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value bitCast(Value input, WordType toType) {
+        if (input.getType().equals(toType)) {
+            return input;
+        }
         if (input.isDefEq(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType()))) {
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(toType);
         }

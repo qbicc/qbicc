@@ -10,7 +10,7 @@ import static org.qbicc.runtime.posix.SysTypes.*;
 @include("<sys/stat.h>")
 public final class SysStat {
 
-    public static final class struct_stat {
+    public static final class struct_stat extends object {
         public dev_t st_dev;
         public ino_t st_ino;
         public mode_t st_mode;
@@ -26,7 +26,9 @@ public final class SysStat {
         public blkcnt_t st_blocks;
     }
 
-    public static final class struct_stat64 {
+    public static final class struct_stat_ptr extends ptr<struct_stat> {}
+
+    public static final class struct_stat64 extends object {
         public dev_t st_dev;
         public ino64_t st_ino;
         public mode_t st_mode;
@@ -41,6 +43,8 @@ public final class SysStat {
         public blksize_t st_blksize;
         public blkcnt64_t st_blocks;
     }
+
+    public static final class struct_stat64_ptr extends ptr<struct_stat64> {}
 
     public static final mode_t S_IFMT = constant();
     public static final mode_t S_IFBLK = constant();
@@ -65,4 +69,9 @@ public final class SysStat {
     public static final mode_t S_IROTH = constant();
     public static final mode_t S_IWOTH = constant();
     public static final mode_t S_IXOTH = constant();
+
+    public static native c_int stat(const_char_ptr pathName, struct_stat_ptr statBuf);
+    public static native c_int fstat(c_int fd, struct_stat_ptr statBuf);
+    public static native c_int lstat(const_char_ptr pathName, struct_stat_ptr statBuf);
+    public static native c_int fstatat(c_int dirFd, const_char_ptr pathName, struct_stat_ptr statBuf, c_int flags);
 }
