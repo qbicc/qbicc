@@ -19,6 +19,7 @@ final class ClassPatchInfo {
     private Map<String, FieldPatchInfo> replacedFields;
     private List<FieldPatchInfo> injectedFields;
     private Map<String, FieldDeleteInfo> deletedFields;
+    private Map<String, RuntimeInitializerPatchInfo> runtimeInitFields;
     private Map<MethodDescriptor, ConstructorPatchInfo> replacedConstructors;
     private List<ConstructorPatchInfo> injectedConstructors;
     private Map<MethodDescriptor, ConstructorDeleteInfo> deletedConstructors;
@@ -32,6 +33,7 @@ final class ClassPatchInfo {
         replacedFields = Map.of();
         injectedFields = List.of();
         deletedFields = Map.of();
+        runtimeInitFields = Map.of();
         replacedConstructors = Map.of();
         injectedConstructors = List.of();
         deletedConstructors = Map.of();
@@ -116,6 +118,12 @@ final class ClassPatchInfo {
         return injectedMethods;
     }
 
+    // modify
+    RuntimeInitializerPatchInfo getRuntimeInitFieldInfo(final String fieldName, TypeDescriptor descriptor) {
+        RuntimeInitializerPatchInfo rtInitPatchInfo = runtimeInitFields.get(fieldName);
+        return rtInitPatchInfo != null && rtInitPatchInfo.getDescriptor().equals(descriptor) ? rtInitPatchInfo : null;
+    }
+
     // Registration methods
 
     void addField(final FieldPatchInfo fieldPatchInfo) {
@@ -135,6 +143,13 @@ final class ClassPatchInfo {
         checkCommitted();
         final String name = fieldPatchInfo.getName();
         replacedFields = mapWith(replacedFields, name, fieldPatchInfo);
+    }
+
+    void runtimeInitField(final RuntimeInitializerPatchInfo runtimeInitPatchInfo) {
+        assert Thread.holdsLock(this);
+        checkCommitted();
+        final String name = runtimeInitPatchInfo.getName();
+        runtimeInitFields = mapWith(runtimeInitFields, name, runtimeInitPatchInfo);
     }
 
     void addConstructor(final ConstructorPatchInfo constructorPatchInfo) {

@@ -326,22 +326,21 @@ final class ClassContextPatchInfo {
                 boolean isStatic = (fieldMods & ClassFile.ACC_STATIC) != 0;
                 if (kind == K_ADD) {
                     if (isStatic && runTimeAspect) {
-                        classPatchInfo.addField(new FieldPatchInfo(internalName, i, addModifiers, initResolver, initIndex, classFile, fieldDesc, fieldName, annotation));
-                    } else {
-                        // instance fields cannot have initializers
-                        classPatchInfo.addField(new FieldPatchInfo(internalName, i, addModifiers, null, 0, classFile, fieldDesc, fieldName, annotation));
+                        classPatchInfo.runtimeInitField(new RuntimeInitializerPatchInfo(internalName, i, initResolver, initIndex, fieldDesc, fieldName, annotation));
                     }
+                    classPatchInfo.addField(new FieldPatchInfo(internalName, i, addModifiers, classFile, fieldDesc, fieldName, annotation));
                 } else if (kind == K_REMOVE) {
                     classPatchInfo.deleteField(fieldName, fieldDesc, internalName, annotation);
                 } else if (kind == K_REPLACE) {
-                    if (isStatic) {
-                        classPatchInfo.replaceField(new FieldPatchInfo(internalName, i, 0, initResolver, initIndex, classFile, fieldDesc, fieldName, annotation));
-                    } else {
-                        // instance fields cannot have initializers
-                        classPatchInfo.replaceField(new FieldPatchInfo(internalName, i, 0, null, 0, classFile, fieldDesc, fieldName, annotation));
+                    if (isStatic && runTimeAspect) {
+                        classPatchInfo.runtimeInitField(new RuntimeInitializerPatchInfo(internalName, i, initResolver, initIndex, fieldDesc, fieldName, annotation));
                     }
+                    classPatchInfo.replaceField(new FieldPatchInfo(internalName, i, 0, classFile, fieldDesc, fieldName, annotation));
                 } else {
                     assert kind == K_ALIAS;
+                    if (isStatic && runTimeAspect) {
+                        classPatchInfo.runtimeInitField(new RuntimeInitializerPatchInfo(internalName, i, initResolver, initIndex, fieldDesc, fieldName, annotation));
+                    }
                 }
             }
         }
