@@ -2,9 +2,7 @@ package org.qbicc.runtime.posix;
 
 import static org.qbicc.runtime.CNative.*;
 
-/**
- *
- */
+@define(value = "_POSIX_C_SOURCE", as = "200809L")
 @include("<sys/utsname.h>")
 public final class SysUtsname {
     public static final class struct_utsname extends object {
