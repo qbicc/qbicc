@@ -9,6 +9,7 @@ import org.qbicc.type.definition.InitializerResolver;
 import org.qbicc.type.definition.MethodResolver;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -77,6 +78,7 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
         if (classPatchInfo != null) {
             ConditionEvaluation ce = ConditionEvaluation.get(classContext.getCompilationContext());
             FieldPatchInfo patchInfo;
+            RuntimeInitializerPatchInfo initInfo;
             synchronized (classPatchInfo) {
                 FieldDeleteInfo delInfo = classPatchInfo.getDeletedFieldInfo(name, descriptor);
                 if (delInfo != null && ce.evaluateConditions(classContext, delInfo, delInfo.getAnnotation())) {
@@ -84,14 +86,16 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
                     return;
                 }
                 patchInfo = classPatchInfo.getReplacementFieldInfo(name, descriptor);
+                initInfo = classPatchInfo.getRuntimeInitFieldInfo(name, descriptor);
             }
-            if (patchInfo == null || !ce.evaluateConditions(classContext, patchInfo, patchInfo.getAnnotation())) {
-                getDelegate().addField(resolver, index, name, descriptor);
-            } else if (patchInfo.getAdditionalModifiers() == 0) {
-                getDelegate().addField(patchInfo.getFieldResolver(), patchInfo.getIndex(), name, descriptor);
-            } else {
-                getDelegate().addField(new PatcherFieldResolver(patchInfo), patchInfo.getIndex(), name, descriptor);
+            if (patchInfo != null && ce.evaluateConditions(classContext, patchInfo, patchInfo.getAnnotation())) {
+                resolver = new PatcherFieldResolver(patchInfo);
+                index = patchInfo.getIndex();
             }
+            if (initInfo != null && ce.evaluateConditions(classContext, initInfo, initInfo.getAnnotation())) {
+                resolver = new PatcherFieldRuntimeInitResolver(initInfo, resolver);
+            }
+            getDelegate().addField(resolver, index, name, descriptor);
         } else {
             getDelegate().addField(resolver, index, name, descriptor);
         }
@@ -157,7 +161,12 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
             synchronized (classPatchInfo) {
                 for (FieldPatchInfo fieldInfo : classPatchInfo.getInjectedFields()) {
                     // inject
-                    getDelegate().addField(new PatcherFieldResolver(fieldInfo), fieldInfo.getIndex(), fieldInfo.getName(), fieldInfo.getDescriptor());
+                    FieldResolver resolver = new PatcherFieldResolver(fieldInfo);
+                    RuntimeInitializerPatchInfo initInfo = classPatchInfo.getRuntimeInitFieldInfo(fieldInfo.getName(), fieldInfo.getDescriptor());
+                    if (initInfo != null) {
+                        resolver = new PatcherFieldRuntimeInitResolver(initInfo, resolver);
+                    }
+                    getDelegate().addField(resolver, fieldInfo.getIndex(), fieldInfo.getName(), fieldInfo.getDescriptor());
                 }
                 for (ConstructorPatchInfo ctorInfo : classPatchInfo.getInjectedConstructors()) {
                     // inject
@@ -214,6 +223,23 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
             FieldElement fieldElement = fieldInfo.getFieldResolver().resolveField(index, enclosing, builder);
             fieldElement.setModifierFlags(fieldInfo.getAdditionalModifiers());
             return fieldElement;
+        }
+    }
+
+    static class PatcherFieldRuntimeInitResolver implements FieldResolver {
+        private final RuntimeInitializerPatchInfo initInfo;
+        private final FieldResolver fieldResolver;
+
+        PatcherFieldRuntimeInitResolver(final RuntimeInitializerPatchInfo initInfo, FieldResolver fieldResolver) {
+            this.initInfo = initInfo;
+            this.fieldResolver = fieldResolver;
+        }
+
+        @Override
+        public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+            InitializerElement rtInit = initInfo.getInitializerResolver().resolveInitializer(initInfo.getInitializerResolverIndex(), enclosing, InitializerElement.builder());
+            builder.setRunTimeInitializer(rtInit);
+            return fieldResolver.resolveField(index, enclosing, builder);
         }
     }
 }

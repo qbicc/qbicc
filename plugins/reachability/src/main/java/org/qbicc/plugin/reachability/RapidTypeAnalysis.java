@@ -9,6 +9,7 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.BasicElement;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.MethodElement;
 
@@ -66,6 +67,13 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
     public synchronized void processBuildtimeInstantiatedObjectType(LoadedTypeDefinition ltd, LoadedTypeDefinition staticRootType) {
         processInstantiatedClass(ltd, true, true, staticRootType.getInitializer());
         processClassInitialization(ltd);
+    }
+
+    public synchronized void processReachableRuntimeInitializer(final InitializerElement target, ExecutableElement originalElement) {
+        if (!ctxt.wasEnqueued(target)) {
+            ReachabilityInfo.LOGGER.debugf("Adding <rtinit> %s (statically invoked in %s)", target, originalElement);
+            ctxt.enqueue(target);
+        }
     }
 
     public synchronized void processReachableStaticInvoke(final InvokableElement target, ExecutableElement originalElement) {

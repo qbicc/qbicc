@@ -142,13 +142,11 @@ public class Patcher {
      * @param resolver the resolver for the added field (must not be {@code null})
      * @param index the index of the added field to pass to the resolver
      * @param addModifiers modifiers to add, if any
-     * @param initResolver the initializer resolver, or {@code null} if there is no run time initializer for this field
-     * @param initIndex the initializer index
      */
-    public void addField(final ClassContext classContext, final String internalName, final String fieldName, final TypeDescriptor descriptor, final FieldResolver resolver, final int index, int addModifiers, final InitializerResolver initResolver, final int initIndex) {
+    public void addField(final ClassContext classContext, final String internalName, final String fieldName, final TypeDescriptor descriptor, final FieldResolver resolver, final int index, int addModifiers) {
         ClassPatchInfo classInfo = getOrAdd(classContext).getOrAdd(internalName);
         synchronized (classInfo) {
-            classInfo.addField(new FieldPatchInfo(internalName, index, addModifiers, initResolver, initIndex, resolver, descriptor, fieldName, null));
+            classInfo.addField(new FieldPatchInfo(internalName, index, addModifiers, resolver, descriptor, fieldName, null));
         }
     }
 
@@ -180,13 +178,11 @@ public class Patcher {
      * @param resolver the resolver for the added field (must not be {@code null})
      * @param index the index of the added field to pass to the resolver
      * @param addModifiers modifiers to add, if any
-     * @param initResolver the initializer resolver, or {@code null} if there is no run time initializer for this field
-     * @param initIndex the initializer index
      */
-    public void replaceField(final ClassContext classContext, final String internalName, final String fieldName, final TypeDescriptor descriptor, final FieldResolver resolver, final int index, int addModifiers, final InitializerResolver initResolver, final int initIndex) {
+    public void replaceField(final ClassContext classContext, final String internalName, final String fieldName, final TypeDescriptor descriptor, final FieldResolver resolver, final int index, int addModifiers) {
         ClassPatchInfo classInfo = getOrAdd(classContext).getOrAdd(internalName);
         synchronized (classInfo) {
-            classInfo.replaceField(new FieldPatchInfo(internalName, index, addModifiers, initResolver, initIndex, resolver, descriptor, fieldName, null));
+            classInfo.replaceField(new FieldPatchInfo(internalName, index, addModifiers, resolver, descriptor, fieldName, null));
         }
     }
 

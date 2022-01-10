@@ -65,7 +65,7 @@ public class ThrowExceptionHelper {
                 builder.setEnclosingType(jltDefined);
                 return builder.build();
             }
-        }, 0, 0, null, 0);
+        }, 0, 0);
     }
 
     public FieldElement getUnwindExceptionField() {

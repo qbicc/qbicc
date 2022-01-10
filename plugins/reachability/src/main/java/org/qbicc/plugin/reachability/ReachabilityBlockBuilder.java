@@ -11,6 +11,7 @@ import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.FunctionElementHandle;
+import org.qbicc.graph.InitCheck;
 import org.qbicc.graph.InterfaceMethodElementHandle;
 import org.qbicc.graph.MultiNewArray;
 import org.qbicc.graph.NewArray;
@@ -34,6 +35,7 @@ import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
+import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
@@ -205,6 +207,15 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
             if (visitUnknown(param, (Node)node)) {
                 FieldElement f = node.getVariableElement();
                 param.analysis.processStaticElementInitialization(f.getEnclosingType().load(), f, param.originalElement);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, InitCheck node) {
+            if (visitUnknown(param, (Node)node)) {
+                InitializerElement init = node.getInitializerElement();
+                param.analysis.processReachableRuntimeInitializer(init, param.originalElement);
             }
             return null;
         }

@@ -231,7 +231,7 @@ public final class CoreClasses {
                 builder.setType(HeaderBits.get(ctxt).getHeaderType());
                 return builder.build();
             }
-        }, 0, 0, null, 0);
+        }, 0, 0);
 
         // inject a field to hold the object typeId
         patcher.addField(classContext, OBJECT_INT_NAME, "typeId", BaseTypeDescriptor.V, new FieldResolver() {
@@ -243,7 +243,7 @@ public final class CoreClasses {
                 builder.setTypeResolver(e -> e.getEnclosingType().load().getClassType().getTypeType());
                 return builder.build();
             }
-        }, 0, 0, null, 0);
+        }, 0, 0);
 
         // inject a field to hold the object monitor
         patcher.addField(classContext, OBJECT_INT_NAME, "nativeObjectMonitor", BaseTypeDescriptor.J, new FieldResolver() {
@@ -254,7 +254,7 @@ public final class CoreClasses {
                 builder.setSignature(BaseTypeSignature.J);
                 return builder.build();
             }
-        }, 0, 0, null, 0);
+        }, 0, 0);
 
         // now inject a field of ClassObjectType into Class to hold the corresponding run time type
         patcher.addField(classContext, CLASS_INT_NAME, "id", BaseTypeDescriptor.V, new FieldResolver() {
@@ -266,7 +266,7 @@ public final class CoreClasses {
                 builder.setTypeResolver(e -> e.getEnclosingType().load().getSuperClass().getClassType().getTypeType());
                 return builder.build();
             }
-        }, 0, 0, null, 0);
+        }, 0, 0);
 
         // now inject a field of int into Class to hold the corresponding run time dimensionality
         patcher.addField(classContext, CLASS_INT_NAME, "dimension", BaseTypeDescriptor.V, new FieldResolver() {
@@ -279,7 +279,7 @@ public final class CoreClasses {
                 builder.setType(classContext.getTypeSystem().getUnsignedInteger8Type());
                 return builder.build();
             }
-        }, 0, 0, null, 0);
+        }, 0, 0);
 
         // now inject a field of type java/lang/Class into Class to hold reference to array class of this class
         patcher.addField(classContext, CLASS_INT_NAME, "arrayClass", ClassTypeDescriptor.synthesize(classContext, CLASS_INT_NAME), new FieldResolver() {
@@ -291,7 +291,7 @@ public final class CoreClasses {
                 builder.setTypeResolver(f -> f.getEnclosingType().load().getClassType().getReference());
                 return builder.build();
             }
-        }, 0, 0, null, 0);
+        }, 0, 0);
 
         // now inject a field of type int into Class to hold the instance size of this class
         patcher.addField(classContext, CLASS_INT_NAME, "instanceSize", BaseTypeDescriptor.I, new FieldResolver() {
@@ -303,7 +303,7 @@ public final class CoreClasses {
                 builder.setType(enclosing.getContext().getTypeSystem().getSignedInteger32Type());
                 return builder.build();
             }
-        }, 0, 0, null, 0);
+        }, 0, 0);
 
         // now inject a field of type uint_8 into Class to hold the instance alignment of this class
         patcher.addField(classContext, CLASS_INT_NAME, "instanceAlign", BaseTypeDescriptor.B, new FieldResolver() {
@@ -315,7 +315,7 @@ public final class CoreClasses {
                 builder.setType(enclosing.getContext().getTypeSystem().getUnsignedInteger8Type());
                 return builder.build();
             }
-        }, 0, 0, null, 0);
+        }, 0, 0);
 
         // inject the thrown exception field
         ClassTypeDescriptor throwableDesc = ClassTypeDescriptor.synthesize(classContext, THROWABLE_INT_NAME);
@@ -327,7 +327,7 @@ public final class CoreClasses {
                 builder.setSignature(TypeSignature.synthesize(classContext, throwableDesc));
                 return builder.build();
             }
-        }, 0, 0, null, 0);
+        }, 0, 0);
     }
 
     public static CoreClasses get(CompilationContext ctxt) {
