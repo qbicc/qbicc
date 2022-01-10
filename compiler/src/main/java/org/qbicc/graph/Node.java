@@ -343,7 +343,7 @@ public interface Node {
 
             public Node visit(Copier param, InitCheck node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().initCheck(node.getInitializerElement());
+                return param.getBlockBuilder().initCheck(node.getInitializerElement(), param.copyValue(node.getInitThunk()));
             }
 
             public Node visit(Copier param, DebugAddressDeclaration node) {

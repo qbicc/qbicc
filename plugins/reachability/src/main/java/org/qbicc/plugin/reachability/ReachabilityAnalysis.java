@@ -1,5 +1,6 @@
 package org.qbicc.plugin.reachability;
 
+import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.BasicElement;
@@ -16,7 +17,9 @@ import org.qbicc.type.definition.element.MethodElement;
 interface ReachabilityAnalysis {
      void processArrayElementType(ObjectType elemType);
 
-    void processBuildtimeInstantiatedObjectType(LoadedTypeDefinition ltd, LoadedTypeDefinition staticRootType);
+    void processBuildtimeInstantiatedObjectType(LoadedTypeDefinition ltd, ExecutableElement originalElement);
+
+    void processReachableObjectLiteral(ObjectLiteral objectLiteral, ExecutableElement originalElement);
 
     void processReachableRuntimeInitializer(final InitializerElement target, ExecutableElement originalElement);
 

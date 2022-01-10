@@ -28,6 +28,7 @@ import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.interpreter.VmObject;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.type.ArrayObjectType;
@@ -265,8 +266,9 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                     throwIncompatibleClassChangeError();
                 }
                 InitializerElement init = node.getVariableElement().getRunTimeInitializer();
-                if (init != null) {
-                    initCheck(init);
+                if (init != null && !getRootElement().equals(init)) {
+                    VmObject initThunkInstance = RuntimeInitManager.get(ctxt).getOnceInstance(init);
+                    initCheck(init, ctxt.getLiteralFactory().literalOf(initThunkInstance));
                 }
                 return null;
             }

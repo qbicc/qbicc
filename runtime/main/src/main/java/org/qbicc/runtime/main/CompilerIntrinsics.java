@@ -218,6 +218,9 @@ public class CompilerIntrinsics {
     @Hidden
     public static native void callClassInitializer(type_id typeId);
 
+    @Hidden
+    public static native void callRuntimeInitializer(int initID);
+
     /**
      * Get the `flags` field from the qbicc_typeid_array for the given
      * typeid.

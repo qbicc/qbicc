@@ -43,11 +43,6 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
         return return_();
     }
 
-    public Value clone(final Value object) {
-        invalidNode("clone");
-        return object;
-    }
-
     public Node monitorEnter(final Value obj) {
         invalidNode("monitorEnter");
         return nop();
@@ -58,8 +53,8 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
         return nop();
     }
 
-    public Node initCheck(InitializerElement initializer) {
-        invalidNode("classInitCheck");
+    public Node initCheck(InitializerElement initializer, Value initThunk) {
+        invalidNode("runtimeInitCheck");
         return nop();
     }
 

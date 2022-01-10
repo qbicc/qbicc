@@ -26,6 +26,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
+import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.type.ClassObjectType;
@@ -214,8 +215,12 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         @Override
         public Void visit(ReachabilityContext param, InitCheck node) {
             if (visitUnknown(param, (Node)node)) {
-                InitializerElement init = node.getInitializerElement();
-                param.analysis.processReachableRuntimeInitializer(init, param.originalElement);
+                if (node.getInitThunk() instanceof ObjectLiteral ol) {
+                    param.analysis.processReachableObjectLiteral(ol, param.originalElement);
+                }
+                param.analysis.processReachableRuntimeInitializer(node.getInitializerElement(), param.originalElement);
+                MethodElement run = RuntimeMethodFinder.get(param.ctxt).getMethod("org/qbicc/runtime/main/Once", "run");
+                param.analysis.processReachableInstanceMethodInvoke(run, param.originalElement);
             }
             return null;
         }

@@ -15,6 +15,7 @@ import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
@@ -658,8 +659,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new Store(callSite, element, line, bci, requireDependency(), handle, value, mode));
     }
 
-    public Node initCheck(InitializerElement initializer) {
-        return asDependency(new InitCheck(callSite, element, line, bci, requireDependency(), initializer));
+    public Node initCheck(InitializerElement initializer, Value initThunk) {
+        return asDependency(new InitCheck(callSite, element, line, bci, requireDependency(), initializer, initThunk));
     }
 
     public Node fence(final GlobalAccessMode fenceType) {
