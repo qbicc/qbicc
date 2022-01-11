@@ -52,6 +52,10 @@ public final class Select extends AbstractValue {
         return condition.isConstant() && trueValue.isConstant() && falseValue.isConstant();
     }
 
+    public boolean isNullable() {
+        return trueValue.isNullable() || falseValue.isNullable();
+    }
+
     int calcHashCode() {
         return Objects.hash(Select.class, condition, trueValue, falseValue);
     }
