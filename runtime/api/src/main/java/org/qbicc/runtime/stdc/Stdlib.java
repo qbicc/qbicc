@@ -58,4 +58,7 @@ public final class Stdlib {
 
     public static final c_int EXIT_SUCCESS = constant();
     public static final c_int EXIT_FAILURE = constant();
+
+    public static native c_long strtol(const_char_ptr str, char_ptr_ptr entPtr, c_int base);
+    public static native long_long strtoll(const_char_ptr str, char_ptr_ptr entPtr, c_int base);
 }
