@@ -118,7 +118,7 @@ final class CNativeIntrinsics {
         StaticIntrinsic addrOf = (builder, target, arguments) -> {
             Value value = arguments.get(0);
             if (value instanceof MemberSelector ms) {
-                return ms.getInput();
+                return builder.addressOf(ms.getValueHandle());
             }
             if (value instanceof BitCast) {
                 value = ((BitCast)value).getInput();
@@ -450,7 +450,7 @@ final class CNativeIntrinsics {
         intrinsics.registerIntrinsic(ptrDesc, "minus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(ptrDiffTDesc)), minus);
         intrinsics.registerIntrinsic(ptrDesc, "minus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(sizeTDesc)), minus);
 
-        InstanceIntrinsic sel = (builder, instance, target, arguments) -> builder.selectMember(instance);
+        InstanceIntrinsic sel = (builder, instance, target, arguments) -> builder.selectMember(builder.pointerHandle(instance));
 
         intrinsics.registerIntrinsic(ptrDesc, "sel", MethodDescriptor.synthesize(classContext, objDesc, List.of()), sel);
 

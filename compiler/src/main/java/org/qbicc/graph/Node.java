@@ -727,7 +727,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final MemberSelector node) {
-                return param.getBlockBuilder().selectMember(param.copyValue(node.getInput()));
+                return param.getBlockBuilder().selectMember(param.copyValueHandle(node.getValueHandle()));
             }
 
             public Value visit(final Copier param, final Min node) {
