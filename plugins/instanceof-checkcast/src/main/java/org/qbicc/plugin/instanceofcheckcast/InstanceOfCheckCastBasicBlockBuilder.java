@@ -45,8 +45,11 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     public Value checkcast(Value input, Value toType, Value toDimensions, CheckCast.CastType kind, ObjectType expectedType) {
+        if (! (input.getType() instanceof ReferenceType inputType)) {
+            ctxt.error(getLocation(), "Invalid type for checkcast: %s", input.getType());
+            throw new BlockEarlyTermination(unreachable());
+        }
         // First, see if we can statically prove the cast must always succeed
-        ReferenceType inputType = (ReferenceType) input.getType();
         ReferenceType outputType = inputType.narrow(expectedType);
         if (outputType == null) {
             // invalid cast; should be impossible at this point
