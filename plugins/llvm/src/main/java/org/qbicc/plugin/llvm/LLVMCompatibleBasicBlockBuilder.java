@@ -13,12 +13,14 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.machine.arch.Cpu;
+import org.qbicc.machine.llvm.Global;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
@@ -275,7 +277,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
         Value result;
-        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             // not actually atomic!
             // emit fences via load and store logic.
             Value compareVal = fb.load(target, readMode);
@@ -293,12 +295,12 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             fb.begin(resume);
         } else {
             boolean readRequiresFence = readMode.includes(GlobalAcquire);
-            if (readRequiresFence) {
-                lowerReadMode = SingleAcquire;
+            if (readMode instanceof GlobalAccessMode) {
+                lowerReadMode = SingleOpaque;
             }
             boolean writeRequiresFence = writeMode.includes(GlobalRelease);
-            if (writeRequiresFence) {
-                lowerWriteMode = SingleRelease;
+            if (writeMode instanceof GlobalAccessMode) {
+                lowerWriteMode = SingleOpaque;
             }
             result = super.cmpAndSwap(target, expect, update, lowerReadMode, lowerWriteMode, strength);
             if (readRequiresFence) {
@@ -326,19 +328,19 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
         Value result;
-        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             // not actually atomic!
             // emit fences via load and store logic.
             result = fb.load(target, readMode);
             fb.store(target, fb.add(result, update), writeMode);
         } else {
             boolean readRequiresFence = readMode.includes(GlobalAcquire);
-            if (readRequiresFence) {
-                lowerReadMode = SingleAcquire;
+            if (readMode instanceof GlobalAccessMode) {
+                lowerReadMode = SingleOpaque;
             }
             boolean writeRequiresFence = writeMode.includes(GlobalRelease);
-            if (writeRequiresFence) {
-                lowerWriteMode = SingleRelease;
+            if (writeMode instanceof GlobalAccessMode) {
+                lowerWriteMode = SingleOpaque;
             }
             result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
@@ -357,19 +359,19 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
         Value result;
-        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             // not actually atomic!
             // emit fences via load and store logic.
             result = fb.load(target, readMode);
             fb.store(target, fb.and(result, update), writeMode);
         } else {
             boolean readRequiresFence = readMode.includes(GlobalAcquire);
-            if (readRequiresFence) {
-                lowerReadMode = SingleAcquire;
+            if (readMode instanceof GlobalAccessMode) {
+                lowerReadMode = SingleOpaque;
             }
             boolean writeRequiresFence = writeMode.includes(GlobalRelease);
-            if (writeRequiresFence) {
-                lowerWriteMode = SingleRelease;
+            if (writeMode instanceof GlobalAccessMode) {
+                lowerWriteMode = SingleOpaque;
             }
             result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
@@ -388,19 +390,19 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
         Value result;
-        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             // not actually atomic!
             // emit fences via load and store logic.
             result = fb.load(target, readMode);
             fb.store(target, fb.or(result, update), writeMode);
         } else {
             boolean readRequiresFence = readMode.includes(GlobalAcquire);
-            if (readRequiresFence) {
-                lowerReadMode = SingleAcquire;
+            if (readMode instanceof GlobalAccessMode) {
+                lowerReadMode = SingleOpaque;
             }
             boolean writeRequiresFence = writeMode.includes(GlobalRelease);
-            if (writeRequiresFence) {
-                lowerWriteMode = SingleRelease;
+            if (writeMode instanceof GlobalAccessMode) {
+                lowerWriteMode = SingleOpaque;
             }
             result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
@@ -419,19 +421,19 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
         Value result;
-        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             // not actually atomic!
             // emit fences via load and store logic.
             result = fb.load(target, readMode);
             fb.store(target, fb.xor(result, update), writeMode);
         } else {
             boolean readRequiresFence = readMode.includes(GlobalAcquire);
-            if (readRequiresFence) {
-                lowerReadMode = SingleAcquire;
+            if (readMode instanceof GlobalAccessMode) {
+                lowerReadMode = SingleOpaque;
             }
             boolean writeRequiresFence = writeMode.includes(GlobalRelease);
-            if (writeRequiresFence) {
-                lowerWriteMode = SingleRelease;
+            if (writeMode instanceof GlobalAccessMode) {
+                lowerWriteMode = SingleOpaque;
             }
             result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
@@ -450,19 +452,19 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
         Value result;
-        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             // not actually atomic!
             // emit fences via load and store logic.
             result = fb.load(target, readMode);
             fb.store(target, update, writeMode);
         } else {
             boolean readRequiresFence = readMode.includes(GlobalAcquire);
-            if (readRequiresFence) {
-                lowerReadMode = SingleAcquire;
+            if (readMode instanceof GlobalAccessMode) {
+                lowerReadMode = SingleOpaque;
             }
             boolean writeRequiresFence = writeMode.includes(GlobalRelease);
-            if (writeRequiresFence) {
-                lowerWriteMode = SingleRelease;
+            if (writeMode instanceof GlobalAccessMode) {
+                lowerWriteMode = SingleOpaque;
             }
             result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
@@ -481,19 +483,19 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
         Value result;
-        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             // not actually atomic!
             // emit fences via load and store logic.
             result = fb.load(target, readMode);
             fb.store(target, fb.max(result, update), writeMode);
         } else {
             boolean readRequiresFence = readMode.includes(GlobalAcquire);
-            if (readRequiresFence) {
-                lowerReadMode = SingleAcquire;
+            if (readMode instanceof GlobalAccessMode) {
+                lowerReadMode = SingleOpaque;
             }
             boolean writeRequiresFence = writeMode.includes(GlobalRelease);
-            if (writeRequiresFence) {
-                lowerWriteMode = SingleRelease;
+            if (writeMode instanceof GlobalAccessMode) {
+                lowerWriteMode = SingleOpaque;
             }
             result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
@@ -512,19 +514,19 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
         Value result;
-        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             // not actually atomic!
             // emit fences via load and store logic.
             result = fb.load(target, readMode);
             fb.store(target, fb.min(result, update), writeMode);
         } else {
             boolean readRequiresFence = readMode.includes(GlobalAcquire);
-            if (readRequiresFence) {
-                lowerReadMode = SingleAcquire;
+            if (readMode instanceof GlobalAccessMode) {
+                lowerReadMode = SingleOpaque;
             }
             boolean writeRequiresFence = writeMode.includes(GlobalRelease);
-            if (writeRequiresFence) {
-                lowerWriteMode = SingleRelease;
+            if (writeMode instanceof GlobalAccessMode) {
+                lowerWriteMode = SingleOpaque;
             }
             result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
@@ -543,19 +545,19 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
         Value result;
-        if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             // not actually atomic!
             // emit fences via load and store logic.
             result = fb.load(target, readMode);
             fb.store(target, fb.sub(result, update), writeMode);
         } else {
             boolean readRequiresFence = readMode.includes(GlobalAcquire);
-            if (readRequiresFence) {
-                lowerReadMode = SingleAcquire;
+            if (readMode instanceof GlobalAccessMode) {
+                lowerReadMode = SingleOpaque;
             }
             boolean writeRequiresFence = writeMode.includes(GlobalRelease);
-            if (writeRequiresFence) {
-                lowerWriteMode = SingleRelease;
+            if (writeMode instanceof GlobalAccessMode) {
+                lowerWriteMode = SingleOpaque;
             }
             result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
