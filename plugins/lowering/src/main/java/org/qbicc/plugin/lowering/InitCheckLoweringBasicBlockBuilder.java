@@ -18,6 +18,8 @@ import org.qbicc.type.definition.element.MethodElement;
 
 import java.util.List;
 
+import static org.qbicc.graph.atomic.AccessModes.GlobalAcquire;
+
 public class InitCheckLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
@@ -34,7 +36,7 @@ public class InitCheckLoweringBasicBlockBuilder extends DelegatingBasicBlockBuil
 
         final BlockLabel callInit = new BlockLabel();
         final BlockLabel goAhead = new BlockLabel();
-        Value done = load(getFirstBuilder().instanceFieldOf(referenceHandle(initThunk), run.getEnclosingType().load().findField("done")));
+        Value done = load(getFirstBuilder().instanceFieldOf(referenceHandle(initThunk), run.getEnclosingType().load().findField("done")), GlobalAcquire);
         if_(isNe(done, lf.literalOf(ctxt.getTypeSystem().getSignedInteger8Type(), 0)), goAhead, callInit);
         try {
             begin(callInit);
