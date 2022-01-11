@@ -131,6 +131,12 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         }
 
         @Override
+        public Void visit(ReachabilityContext param, ObjectLiteral value) {
+            param.analysis.processReachableObjectLiteral(value, param.originalElement);
+            return null;
+        }
+
+        @Override
         public Void visit(ReachabilityContext param, ConstructorElementHandle node) {
             if (visitUnknown(param, (Node)node)) {
                 ConstructorElement target = node.getExecutable();
@@ -215,9 +221,6 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         @Override
         public Void visit(ReachabilityContext param, InitCheck node) {
             if (visitUnknown(param, (Node)node)) {
-                if (node.getInitThunk() instanceof ObjectLiteral ol) {
-                    param.analysis.processReachableObjectLiteral(ol, param.originalElement);
-                }
                 param.analysis.processReachableRuntimeInitializer(node.getInitializerElement(), param.originalElement);
                 MethodElement run = RuntimeMethodFinder.get(param.ctxt).getMethod("org/qbicc/runtime/main/Once", "run");
                 param.analysis.processReachableInstanceMethodInvoke(run, param.originalElement);
