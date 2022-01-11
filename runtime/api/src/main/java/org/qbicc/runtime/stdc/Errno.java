@@ -22,6 +22,7 @@ public final class Errno {
     }
 
     public static final class GLibCErrnoAccessor implements Accessor<Integer> {
+        @extern
         private static native int_ptr __errno_location();
 
         public int getAsInt() {
@@ -34,6 +35,7 @@ public final class Errno {
     }
 
     public static final class MacOsErrnoAccessor implements Accessor<Integer> {
+        @extern
         private static native int_ptr __error();
 
         public int getAsInt() {
@@ -46,6 +48,7 @@ public final class Errno {
     }
 
     public static final class AixErrnoAccessor implements Accessor<Integer> {
+        @extern
         private static native int_ptr _Errno();
 
         public int getAsInt() {
