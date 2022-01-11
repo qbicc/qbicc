@@ -640,6 +640,9 @@ final class CNativeIntrinsics {
     }
 
     static Value smartConvert(BasicBlockBuilder builder, Value input, WordType toType, boolean cRules) {
+        if (input instanceof MemberSelector ms) {
+            return smartConvert(builder, builder.load(ms.getValueHandle(), SinglePlain), toType, cRules);
+        }
         CompilationContext ctxt = builder.getCurrentElement().getEnclosingType().getContext().getCompilationContext();
         ValueType fromType = input.getType();
         // work out the behavior based on input and output types

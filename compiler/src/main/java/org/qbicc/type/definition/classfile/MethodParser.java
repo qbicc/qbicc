@@ -459,7 +459,14 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             return value;
         }
         if (lve != null) {
-            return promote(gf.load(gf.localVariable(lve), SingleUnshared), lve.getTypeDescriptor());
+            ValueType lveType = lve.getType();
+            if (lveType instanceof CompoundType || lveType instanceof ArrayType) {
+                // return a *handle* to the variable
+                // (never needs promotion)
+                return gf.selectMember(gf.localVariable(lve));
+            } else {
+                return promote(gf.load(gf.localVariable(lve), SingleUnshared), lve.getTypeDescriptor());
+            }
         }
         return value;
     }
