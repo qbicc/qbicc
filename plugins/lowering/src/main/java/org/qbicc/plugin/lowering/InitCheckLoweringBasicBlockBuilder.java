@@ -30,6 +30,7 @@ public class InitCheckLoweringBasicBlockBuilder extends DelegatingBasicBlockBuil
     public Node initCheck(InitializerElement initializer, Value initThunk) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         MethodElement run = RuntimeMethodFinder.get(ctxt).getMethod("org/qbicc/runtime/main/Once", "run");
+        ctxt.enqueue(initializer);
 
         final BlockLabel callInit = new BlockLabel();
         final BlockLabel goAhead = new BlockLabel();
