@@ -1,5 +1,6 @@
 package org.qbicc.type.definition.classfile;
 
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 import static org.qbicc.type.definition.classfile.ClassFile.*;
 import static org.qbicc.type.definition.classfile.ClassMethodInfo.align;
@@ -458,7 +459,14 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             return value;
         }
         if (lve != null) {
-            return promote(gf.load(gf.localVariable(lve), SingleUnshared), lve.getTypeDescriptor());
+            ValueType lveType = lve.getType();
+            if (lveType instanceof CompoundType || lveType instanceof ArrayType) {
+                // return a *handle* to the variable
+                // (never needs promotion)
+                return gf.selectMember(gf.localVariable(lve));
+            } else {
+                return promote(gf.load(gf.localVariable(lve), SingleUnshared), lve.getTypeDescriptor());
+            }
         }
         return value;
     }
@@ -778,20 +786,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v2 = pop1();
                         v1 = pop1();
                         if (v1 instanceof MemberSelector ms) {
-                            v1 = ms.getInput();
-                            if (v1.getType() instanceof PointerType pt) {
-                                ValueHandle element;
-                                if (pt.getPointeeType() instanceof ArrayType) {
-                                    element = gf.elementOf(gf.pointerHandle(v1), v2);
-                                } else {
-                                    ctxt.getCompilationContext().error(gf.getLocation(), "Invalid array dereference");
-                                    throw new BlockEarlyTermination(gf.unreachable());
-                                }
-                                v1 = gf.selectMember(gf.addressOf(element));
-                            } else {
-                                ctxt.getCompilationContext().error(gf.getLocation(), "Invalid array dereference");
-                                throw new BlockEarlyTermination(gf.unreachable());
-                            }
+                            v1 = gf.selectMember(gf.elementOf(ms.getValueHandle(), v2));
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = gf.extractElement(v1, v2);
                         } else if (v1.getType() instanceof PointerType) {
@@ -807,20 +802,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v2 = pop1();
                         v1 = pop1();
                         if (v1 instanceof MemberSelector ms) {
-                            v1 = ms.getInput();
-                            if (v1.getType() instanceof PointerType pt) {
-                                ValueHandle element;
-                                if (pt.getPointeeType() instanceof ArrayType) {
-                                    element = gf.elementOf(gf.pointerHandle(v1), v2);
-                                } else {
-                                    ctxt.getCompilationContext().error(gf.getLocation(), "Invalid array dereference");
-                                    throw new BlockEarlyTermination(gf.unreachable());
-                                }
-                                v1 = gf.selectMember(gf.addressOf(element));
-                            } else {
-                                ctxt.getCompilationContext().error(gf.getLocation(), "Invalid array dereference");
-                                throw new BlockEarlyTermination(gf.unreachable());
-                            }
+                            v1 = gf.selectMember(gf.elementOf(ms.getValueHandle(), v2));
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = gf.extractElement(v1, v2);
                         } else if (v1.getType() instanceof PointerType) {
@@ -839,20 +821,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v2 = pop1();
                         v1 = pop1();
                         if (v1 instanceof MemberSelector ms) {
-                            v1 = ms.getInput();
-                            if (v1.getType() instanceof PointerType pt) {
-                                ValueHandle element;
-                                if (pt.getPointeeType() instanceof ArrayType) {
-                                    element = gf.elementOf(gf.pointerHandle(v1), v2);
-                                } else {
-                                    ctxt.getCompilationContext().error(gf.getLocation(), "Invalid array dereference");
-                                    throw new BlockEarlyTermination(gf.unreachable());
-                                }
-                                v1 = gf.selectMember(gf.addressOf(element));
-                            } else {
-                                ctxt.getCompilationContext().error(gf.getLocation(), "Invalid array dereference");
-                                throw new BlockEarlyTermination(gf.unreachable());
-                            }
+                            v1 = gf.selectMember(gf.elementOf(ms.getValueHandle(), v2));
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = promote(gf.extractElement(v1, v2));
                         } else if (v1.getType() instanceof PointerType) {
@@ -908,7 +877,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v3 = pop1();
                         v2 = pop1();
                         v1 = pop1();
-                        if (v1.getType() instanceof ArrayType) {
+                        if (v1 instanceof MemberSelector ms) {
+                            gf.store(gf.elementOf(ms.getValueHandle(), v2), v3, SinglePlain);
+                        } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
                             gf.store(gf.pointerHandle(v1, v2), v3, SingleUnshared);
@@ -923,7 +894,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v3 = gf.truncate(pop1(), ts.getSignedInteger8Type());
                         v2 = pop1();
                         v1 = pop1();
-                        if (v1.getType() instanceof ArrayType) {
+                        if (v1 instanceof MemberSelector ms) {
+                            gf.store(gf.elementOf(ms.getValueHandle(), v2), v3, SinglePlain);
+                        } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
                             gf.store(gf.pointerHandle(v1, v2), v3, SingleUnshared);
@@ -938,7 +911,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v3 = gf.truncate(pop1(), ts.getSignedInteger16Type());
                         v2 = pop1();
                         v1 = pop1();
-                        if (v1.getType() instanceof ArrayType) {
+                        if (v1 instanceof MemberSelector ms) {
+                            gf.store(gf.elementOf(ms.getValueHandle(), v2), v3, SinglePlain);
+                        } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
                             gf.store(gf.pointerHandle(v1, v2), v3, SingleUnshared);
@@ -953,7 +928,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v3 = gf.truncate(pop1(), ts.getUnsignedInteger16Type());
                         v2 = pop1();
                         v1 = pop1();
-                        if (v1.getType() instanceof ArrayType) {
+                        if (v1 instanceof MemberSelector ms) {
+                            gf.store(gf.elementOf(ms.getValueHandle(), v2), v3, SinglePlain);
+                        } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
                             gf.store(gf.pointerHandle(v1, v2), v3, SingleUnshared);
@@ -969,7 +946,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v3 = pop2();
                         v2 = pop1();
                         v1 = pop1();
-                        if (v1.getType() instanceof ArrayType) {
+                        if (v1 instanceof MemberSelector ms) {
+                            gf.store(gf.elementOf(ms.getValueHandle(), v2), v3, SinglePlain);
+                        } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
                             gf.store(gf.pointerHandle(v1, v2), v3, SingleUnshared);
@@ -1590,18 +1569,12 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         String name = getNameOfFieldRef(fieldRef);
                         v1 = pop1();
                         if (v1 instanceof MemberSelector ms) {
-                            v1 = ms.getInput();
-                            if (v1.getType() instanceof PointerType pt) {
-                                ValueHandle member;
-                                if (pt.getPointeeType() instanceof CompoundType ct) {
-                                    member = gf.memberOf(gf.pointerHandle(v1), ct.getMember(name));
-                                } else if (pt.getPointeeType() instanceof PhysicalObjectType) {
-                                    member = gf.instanceFieldOf(gf.pointerHandle(v1), owner, name, desc);
-                                } else {
-                                    ctxt.getCompilationContext().error(gf.getLocation(), "Invalid field dereference of '%s'", name);
-                                    throw new BlockEarlyTermination(gf.unreachable());
-                                }
-                                push(gf.selectMember(gf.addressOf(member)), false);
+                            ValueHandle vh = ms.getValueHandle();
+                            ValueType valueType = vh.getValueType();
+                            if (valueType instanceof CompoundType ct) {
+                                push1(gf.selectMember(gf.memberOf(vh, ct.getMember(name))));
+                            } else if (valueType instanceof PhysicalObjectType) {
+                                push1(gf.selectMember(gf.instanceFieldOf(vh, owner, name, desc)));
                             } else {
                                 ctxt.getCompilationContext().error(gf.getLocation(), "Invalid field dereference of '%s'", name);
                                 throw new BlockEarlyTermination(gf.unreachable());
@@ -1627,7 +1600,18 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         String name = getNameOfFieldRef(fieldRef);
                         v2 = pop(desc.isClass2());
                         v1 = pop1();
-                        if (v1.getType() instanceof CompoundType ct) {
+                        if (v1 instanceof MemberSelector ms) {
+                            ValueHandle vh = ms.getValueHandle();
+                            ValueType valueType = vh.getValueType();
+                            if (valueType instanceof CompoundType ct) {
+                                gf.store(gf.memberOf(vh, ct.getMember(name)), storeTruncate(v2, desc), SinglePlain);
+                            } else if (valueType instanceof PhysicalObjectType) {
+                                gf.store(gf.instanceFieldOf(vh, owner, name, desc), storeTruncate(v2, desc), SinglePlain);
+                            } else {
+                                ctxt.getCompilationContext().error(gf.getLocation(), "Invalid field dereference of '%s'", name);
+                                throw new BlockEarlyTermination(gf.unreachable());
+                            }
+                        } else if (v1.getType() instanceof CompoundType ct) {
                             final CompoundType.Member member = ct.getMember(name);
                             replaceAll(v1, gf.insertMember(v1, member, storeTruncate(v2, desc)));
                         } else {

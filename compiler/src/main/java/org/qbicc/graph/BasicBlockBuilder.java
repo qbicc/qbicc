@@ -282,11 +282,11 @@ public interface BasicBlockBuilder extends Locatable {
     /**
      * Wrap the pointer value with a member selection node, which can later be unwrapped.
      *
-     * @param pointerValue the pointer value to wrap (must not be {@code null})
+     * @param handle the pointer value to wrap (must not be {@code null})
      * @return the member selection node (not {@code null})
      * @see MemberSelector
      */
-    Value selectMember(Value pointerValue);
+    Value selectMember(ValueHandle handle);
 
     // memory handles
 

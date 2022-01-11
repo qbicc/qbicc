@@ -1049,7 +1049,13 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final MemberSelector node) {
-        return node(param, "sel", node);
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "sel");
+        nl(param);
+        dependencyList.add(name);
+        addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
+        return name;
     }
 
     public String visit(final Appendable param, final Min node) {

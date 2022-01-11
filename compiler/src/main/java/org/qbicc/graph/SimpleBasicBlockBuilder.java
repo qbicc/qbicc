@@ -407,9 +407,9 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("CheckCast of unresolved type");
     }
 
-    public Value selectMember(Value pointerValue) {
+    public Value selectMember(ValueHandle handle) {
         TypeSystem ts = element.getEnclosingType().getContext().getTypeSystem();
-        return new MemberSelector(callSite, element, line, bci, pointerValue, ts.getVoidType());
+        return new MemberSelector(callSite, element, line, bci, handle, ts.getVoidType());
     }
 
     public ValueHandle currentThread() {

@@ -118,7 +118,7 @@ final class CNativeIntrinsics {
         StaticIntrinsic addrOf = (builder, target, arguments) -> {
             Value value = arguments.get(0);
             if (value instanceof MemberSelector ms) {
-                return ms.getInput();
+                return builder.addressOf(ms.getValueHandle());
             }
             if (value instanceof BitCast) {
                 value = ((BitCast)value).getInput();
@@ -450,9 +450,9 @@ final class CNativeIntrinsics {
         intrinsics.registerIntrinsic(ptrDesc, "minus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(ptrDiffTDesc)), minus);
         intrinsics.registerIntrinsic(ptrDesc, "minus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(sizeTDesc)), minus);
 
-        InstanceIntrinsic sel = (builder, instance, target, arguments) -> builder.selectMember(instance);
+        InstanceIntrinsic sel = (builder, instance, target, arguments) -> builder.selectMember(builder.pointerHandle(instance));
 
-        intrinsics.registerIntrinsic(ptrDesc, "sel", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), sel);
+        intrinsics.registerIntrinsic(ptrDesc, "sel", MethodDescriptor.synthesize(classContext, objDesc, List.of()), sel);
 
         // memory accesses
 
@@ -640,6 +640,9 @@ final class CNativeIntrinsics {
     }
 
     static Value smartConvert(BasicBlockBuilder builder, Value input, WordType toType, boolean cRules) {
+        if (input instanceof MemberSelector ms) {
+            return smartConvert(builder, builder.load(ms.getValueHandle(), SinglePlain), toType, cRules);
+        }
         CompilationContext ctxt = builder.getCurrentElement().getEnclosingType().getContext().getCompilationContext();
         ValueType fromType = input.getType();
         // work out the behavior based on input and output types
