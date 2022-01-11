@@ -373,7 +373,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             if (writeMode instanceof GlobalAccessMode) {
                 lowerWriteMode = SingleOpaque;
             }
-            result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
+            result = super.getAndBitwiseAnd(target, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
                 fence(readMode.getGlobalAccess());
             }
@@ -404,7 +404,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             if (writeMode instanceof GlobalAccessMode) {
                 lowerWriteMode = SingleOpaque;
             }
-            result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
+            result = super.getAndBitwiseOr(target, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
                 fence(readMode.getGlobalAccess());
             }
@@ -435,7 +435,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             if (writeMode instanceof GlobalAccessMode) {
                 lowerWriteMode = SingleOpaque;
             }
-            result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
+            result = super.getAndBitwiseXor(target, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
                 fence(readMode.getGlobalAccess());
             }
@@ -466,7 +466,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             if (writeMode instanceof GlobalAccessMode) {
                 lowerWriteMode = SingleOpaque;
             }
-            result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
+            result = super.getAndSet(target, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
                 fence(readMode.getGlobalAccess());
             }
@@ -497,7 +497,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             if (writeMode instanceof GlobalAccessMode) {
                 lowerWriteMode = SingleOpaque;
             }
-            result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
+            result = super.getAndSetMax(target, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
                 fence(readMode.getGlobalAccess());
             }
@@ -528,7 +528,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             if (writeMode instanceof GlobalAccessMode) {
                 lowerWriteMode = SingleOpaque;
             }
-            result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
+            result = super.getAndSetMin(target, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
                 fence(readMode.getGlobalAccess());
             }
@@ -559,7 +559,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             if (writeMode instanceof GlobalAccessMode) {
                 lowerWriteMode = SingleOpaque;
             }
-            result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
+            result = super.getAndSub(target, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
                 fence(readMode.getGlobalAccess());
             }
