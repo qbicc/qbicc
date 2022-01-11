@@ -284,8 +284,8 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             Value compareResult = fb.isEq(compareVal, expect);
             LiteralFactory lf = ctxt.getLiteralFactory();
             Literal zeroStruct = lf.zeroInitializerLiteralOfType(resultType);
-            Value withCompareVal = fb.insertMember(zeroStruct, resultType.getMember(1), compareVal);
-            result = fb.insertMember(withCompareVal, resultType.getMember(0), compareResult);
+            Value withCompareVal = fb.insertMember(zeroStruct, resultType.getMember(0), compareVal);
+            result = fb.insertMember(withCompareVal, resultType.getMember(1), compareResult);
             fb.if_(compareResult, success, resume);
             fb.begin(success);
             fb.store(target, update, writeMode);
