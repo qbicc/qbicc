@@ -158,6 +158,7 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
         // add injected members
         ClassPatchInfo classPatchInfo = this.classPatchInfo;
         if (classPatchInfo != null) {
+            ConditionEvaluation ce = ConditionEvaluation.get(classContext.getCompilationContext());
             synchronized (classPatchInfo) {
                 for (FieldPatchInfo fieldInfo : classPatchInfo.getInjectedFields()) {
                     // inject
@@ -166,15 +167,21 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
                     if (initInfo != null) {
                         resolver = new PatcherFieldRuntimeInitResolver(initInfo, resolver);
                     }
-                    getDelegate().addField(resolver, fieldInfo.getIndex(), fieldInfo.getName(), fieldInfo.getDescriptor());
+                    if (ce.evaluateConditions(classContext, fieldInfo, fieldInfo.getAnnotation())) {
+                        getDelegate().addField(resolver, fieldInfo.getIndex(), fieldInfo.getName(), fieldInfo.getDescriptor());
+                    }
                 }
                 for (ConstructorPatchInfo ctorInfo : classPatchInfo.getInjectedConstructors()) {
                     // inject
-                    getDelegate().addConstructor(new PatcherConstructorResolver(ctorInfo), ctorInfo.getIndex(), ctorInfo.getDescriptor());
+                    if (ce.evaluateConditions(classContext, ctorInfo, ctorInfo.getAnnotation())) {
+                        getDelegate().addConstructor(new PatcherConstructorResolver(ctorInfo), ctorInfo.getIndex(), ctorInfo.getDescriptor());
+                    }
                 }
                 for (MethodPatchInfo methodInfo : classPatchInfo.getInjectedMethods()) {
                     // inject
-                    getDelegate().addMethod(new PatcherMethodResolver(methodInfo), methodInfo.getIndex(), methodInfo.getName(), methodInfo.getDescriptor());
+                    if (ce.evaluateConditions(classContext, methodInfo, methodInfo.getAnnotation())) {
+                        getDelegate().addMethod(new PatcherMethodResolver(methodInfo), methodInfo.getIndex(), methodInfo.getName(), methodInfo.getDescriptor());
+                    }
                 }
             }
         }
