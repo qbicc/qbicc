@@ -40,9 +40,6 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
         ctxt.enqueue(methodFinder.getMethod("monitorEnter"));
         ctxt.enqueue(methodFinder.getMethod("monitorExit"));
 
-        // class initialization
-        ctxt.enqueue(methodFinder.getMethod("initializeClass"));
-
         // helper to create j.l.Class instance of an array class at runtime
         ctxt.enqueue(methodFinder.getMethod("getOrCreateClassForRefArray"));
 

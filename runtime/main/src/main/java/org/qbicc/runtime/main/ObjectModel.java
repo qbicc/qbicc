@@ -71,23 +71,4 @@ public class ObjectModel {
     public static Class<?> getOrCreateClassForRefArray(Class<?> leafClass, uint8_t dimensions) {
         return getArrayClassOfDimension(leafClass, dimensions);
     }
-
-    static final int Flag_typeid_has_clinit = 1;
-    static final int Flag_typeid_declares_default_methods = 2;
-    static final int Flag_typeid_has_default_methods = 4;
-
-    @Hidden
-    public static boolean hasClassInitializer(type_id typeId) {
-        return (CompilerIntrinsics.getTypeIdFlags(typeId) & Flag_typeid_has_clinit) == Flag_typeid_has_clinit;
-    }
-
-    @Hidden
-    public static boolean declaresDefaultMethods(type_id typeId) {
-        return (CompilerIntrinsics.getTypeIdFlags(typeId) & Flag_typeid_declares_default_methods) == Flag_typeid_declares_default_methods;
-    }
-
-    @Hidden
-    public static boolean hasDefaultMethods(type_id typeId) {
-        return (CompilerIntrinsics.getTypeIdFlags(typeId) & Flag_typeid_has_default_methods) == Flag_typeid_has_default_methods;
-    }
 }
