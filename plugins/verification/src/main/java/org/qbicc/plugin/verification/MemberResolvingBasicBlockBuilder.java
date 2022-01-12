@@ -12,6 +12,7 @@ import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Load;
+import org.qbicc.graph.MemberSelector;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.ConstantLiteral;
@@ -236,6 +237,8 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             if (value instanceof Literal && ((Literal) value).isZero()) {
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(castType);
             } else if (castType.equals(value.getType())) {
+                return value;
+            } else if (value instanceof MemberSelector){
                 return value;
             } else {
                 ctxt.error(getLocation(), "Disallowed cast of value from %s to %s", value.getType(), castType);

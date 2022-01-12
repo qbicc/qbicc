@@ -452,7 +452,7 @@ final class CNativeIntrinsics {
 
         InstanceIntrinsic sel = (builder, instance, target, arguments) -> builder.selectMember(instance);
 
-        intrinsics.registerIntrinsic(ptrDesc, "sel", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), sel);
+        intrinsics.registerIntrinsic(ptrDesc, "sel", MethodDescriptor.synthesize(classContext, objDesc, List.of()), sel);
 
         // memory accesses
 
