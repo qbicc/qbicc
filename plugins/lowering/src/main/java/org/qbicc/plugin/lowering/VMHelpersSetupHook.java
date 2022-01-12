@@ -2,7 +2,6 @@ package org.qbicc.plugin.lowering;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
-import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 
@@ -37,8 +36,8 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
         ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseUnsatisfiedLinkError"));
 
         // Object monitors
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("monitorEnter"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("monitorExit"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("java/lang/Object", "monitorEnter"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("java/lang/Object", "monitorExit"));
 
         // helper to create j.l.Class instance of an array class at runtime
         ctxt.registerAutoQueuedElement(methodFinder.getMethod("getOrCreateClassForRefArray"));

@@ -52,19 +52,15 @@ import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.methodinfo.MethodDataTypes;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.type.ArrayType;
-import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.CompoundType.Member;
-import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
-import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.NullableType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
-import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
@@ -1024,17 +1020,6 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(Phase.ADD, objDesc, "getClass", getClassDesc, getClassIntrinsic);
-
-        // TODO: replace this do nothing stub of notifyAll with real implementation
-        MethodDescriptor notifyAllDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
-        InstanceIntrinsic notifyAllIntrinsic = (builder, instance, target, arguments) -> 
-            ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType()); // Do nothing
-        intrinsics.registerIntrinsic(objDesc, "notifyAll", notifyAllDesc, notifyAllIntrinsic);
-
-        // stub - public final native void wait(long timeoutMillis)
-        MethodDescriptor waitDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.J));
-        InstanceIntrinsic wait = (builder, instance, target, arguments) -> ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getExecutable().getType().getReturnType());
-        intrinsics.registerIntrinsic(objDesc, "wait", waitDesc, wait);
     }
 
     static void registerOrgQbiccCompilerIntrinsics(final CompilationContext ctxt) {
@@ -1098,9 +1083,6 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor clsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor jlsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor uint8Desc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$uint8_t");
-        ClassTypeDescriptor pthreadMutexPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/posix/PThread$pthread_mutex_t_ptr");
-        ClassTypeDescriptor pthreadPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/posix/PThread$pthread_t_ptr");
-        ClassTypeDescriptor jltDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
 
         MethodDescriptor objTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objDesc));
         MethodDescriptor objUint8Desc = MethodDescriptor.synthesize(classContext, uint8Desc, List.of(objDesc));
@@ -1121,7 +1103,6 @@ public final class CoreIntrinsics {
         MethodDescriptor createClassDesc = MethodDescriptor.synthesize(classContext, clsDesc, List.of(jlsDesc, typeIdDesc, uint8Desc, clsDesc));
         MethodDescriptor clsClsDesc = MethodDescriptor.synthesize(classContext, clsDesc, List.of(clsDesc));
         MethodDescriptor clsClsBooleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(clsDesc, clsDesc));
-        MethodDescriptor casDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, Collections.nCopies(3, BaseTypeDescriptor.J));
 
         StaticIntrinsic typeOf = (builder, target, arguments) ->
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getObjectTypeIdField()));
@@ -1376,27 +1357,6 @@ public final class CoreIntrinsics {
             return dataByte;
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getByteOfInterfaceBits", typeIdIntToByteDesc, getByteOfInterfaceBits);
-
-        FieldElement nativeObjectMonitorField = CoreClasses.get(ctxt).getObjectNativeObjectMonitorField();
-        // PThread.pthread_mutex_t_ptr getNativeObjectMonitor(Object reference);
-        MethodDescriptor nomOfDesc = MethodDescriptor.synthesize(classContext, pthreadMutexPtrDesc, List.of(objDesc));
-        StaticIntrinsic nomOf = (builder, target, arguments) -> {
-            Value mutexSlot = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField), SingleUnshared);
-            PointerType returnType = (PointerType)target.getExecutable().getType().getReturnType();
-            return builder.valueConvert(mutexSlot, returnType);
-        };
-        intrinsics.registerIntrinsic(ciDesc, "getNativeObjectMonitor", nomOfDesc, nomOf);
-
-        // boolean setNativeObjectMonitor(Object object, PThread.pthread_mutex_t_ptr nom);
-        MethodDescriptor setNomDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc, pthreadMutexPtrDesc));
-        StaticIntrinsic setNom = (builder, target, arguments) -> {
-            ValueHandle casTarget = builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField);
-            Value expect = ctxt.getLiteralFactory().literalOf(0L);
-            Value update = builder.valueConvert(arguments.get(1), (SignedIntegerType)nativeObjectMonitorField.getType());
-            Value result = builder.cmpAndSwap(casTarget, expect, update, GlobalAcquire, GlobalRelease, CmpAndSwap.Strength.STRONG);
-            return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, update.getType()).getMember(1));
-        };
-        intrinsics.registerIntrinsic(ciDesc, "setNativeObjectMonitor", setNomDesc, setNom);
     }
 
     static void registerOrgQbiccRuntimeBuildIntrinsics(final CompilationContext ctxt) {
