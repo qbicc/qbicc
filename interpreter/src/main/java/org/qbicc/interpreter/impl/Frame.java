@@ -155,6 +155,7 @@ import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PhysicalObjectType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
@@ -335,6 +336,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     private Object bitCast(final Value input, final WordType outputType) {
         WordType inputType = (WordType) input.getType();
         if (isRef(inputType) && isRef(outputType)) {
+            return require(input);
+        } else if (isPointer(inputType) && isPointer(outputType)) {
             return require(input);
         } else if (isInt32(inputType)) {
             if (isInt32(outputType)) {
@@ -709,6 +712,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             }
         } else if (inputType.equals(outputType)) {
             return require(node.getInput());
+         } else if (isRef(inputType) && isPointer(outputType)) {
+            return require((node.getInput()));
         }
         throw new IllegalStateException("Invalid cast");
     }
@@ -2452,6 +2457,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     private static boolean isRef(ValueType type) {
         return type instanceof ReferenceType;
+    }
+
+    private static boolean isPointer(ValueType type) {
+        return type instanceof PointerType;
     }
 
     private static boolean isTypeId(ValueType type) {
