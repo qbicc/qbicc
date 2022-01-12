@@ -336,17 +336,64 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType);
 
+    /**
+     * Convenience method to construct a method handle whose descriptor and type match the element's descriptor and type.
+     * <b>Do not override this method.</b>
+     *
+     * @param instance the object instance (must not be {@code null})
+     * @param method the method element (must not be {@code null})
+     * @return the value handle (not {@code null})
+     */
+    default ValueHandle exactMethodOf(Value instance, MethodElement method) {
+        return exactMethodOf(instance, method, method.getDescriptor(), method.getType());
+    }
+
     ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
     ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType);
+
+    /**
+     * Convenience method to construct a method handle whose descriptor and type match the element's descriptor and type.
+     * <b>Do not override this method.</b>
+     *
+     * @param instance the object instance (must not be {@code null})
+     * @param method the method element (must not be {@code null})
+     * @return the value handle (not {@code null})
+     */
+    default ValueHandle virtualMethodOf(Value instance, MethodElement method) {
+        return virtualMethodOf(instance, method, method.getDescriptor(), method.getType());
+    }
 
     ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
     ValueHandle interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType);
 
+    /**
+     * Convenience method to construct a method handle whose descriptor and type match the element's descriptor and type.
+     * <b>Do not override this method.</b>
+     *
+     * @param instance the object instance (must not be {@code null})
+     * @param method the method element (must not be {@code null})
+     * @return the value handle (not {@code null})
+     */
+    default ValueHandle interfaceMethodOf(Value instance, MethodElement method) {
+        return interfaceMethodOf(instance, method, method.getDescriptor(), method.getType());
+    }
+
     ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
     ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType);
+
+    /**
+     * Convenience method to construct a method handle whose descriptor and type match the element's descriptor and type.
+     * <b>Do not override this method.</b>
+     *
+     * @param method the method element (must not be {@code null})
+     * @return the value handle (not {@code null})
+     */
+    default ValueHandle staticMethod(MethodElement method) {
+        return staticMethod(method, method.getDescriptor(), method.getType());
+    }
 
     ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
