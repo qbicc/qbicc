@@ -394,6 +394,13 @@ final class CNativeIntrinsics {
 
         intrinsics.registerIntrinsic(wordDesc, "isZero", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of()), isZero);
         intrinsics.registerIntrinsic(wordDesc, "isNull", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of()), isZero);
+        intrinsics.registerIntrinsic(wordDesc, "isFalse", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of()), isZero);
+
+        InstanceIntrinsic isNonZero = (builder, instance, target, arguments) -> builder.isNe(instance, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType()));
+
+        intrinsics.registerIntrinsic(wordDesc, "isNonZero", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of()), isNonZero);
+        intrinsics.registerIntrinsic(wordDesc, "isNonNull", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of()), isNonZero);
+        intrinsics.registerIntrinsic(wordDesc, "isTrue", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of()), isNonZero);
 
         InstanceIntrinsic isLt = (builder, instance, target, arguments) -> builder.isLt(instance, arguments.get(0));
         InstanceIntrinsic isGt = (builder, instance, target, arguments) -> builder.isGt(instance, arguments.get(0));

@@ -27,7 +27,7 @@ public class Futex {
      * @return {@code true} on success, or {@code false} on error (in {@code errno})
      */
     public static boolean futex_wait(uint32_t_ptr uaddr, uint32_t val, const_struct_timespec_ptr timeout) {
-        return futex(uaddr, word(FUTEX_WAIT.intValue() | FUTEX_PRIVATE_FLAG.intValue() | FUTEX_CLOCK_REALTIME.intValue()), val, timeout, zero(), zero()).longValue() != -1;
+        return futex(uaddr, word(FUTEX_WAIT.intValue() | FUTEX_PRIVATE_FLAG.intValue()), val, timeout, zero(), zero()).longValue() != -1;
     }
 
     /**
@@ -41,7 +41,7 @@ public class Futex {
      * @return {@code true} on success, or {@code false} on error (in {@code errno})
      */
     public static boolean futex_wait_absolute(uint32_t_ptr uaddr, uint32_t val, const_struct_timespec_ptr timeout) {
-        return futex(uaddr, word(FUTEX_WAIT_BITSET.intValue() | FUTEX_PRIVATE_FLAG.intValue() | FUTEX_CLOCK_REALTIME.intValue()), val, timeout, zero(), FUTEX_BITSET_MATCH_ANY).longValue() != -1;
+        return futex(uaddr, word(FUTEX_WAIT_BITSET.intValue() | FUTEX_PRIVATE_FLAG.intValue()), val, timeout, zero(), FUTEX_BITSET_MATCH_ANY).longValue() != -1;
     }
 
     /**
