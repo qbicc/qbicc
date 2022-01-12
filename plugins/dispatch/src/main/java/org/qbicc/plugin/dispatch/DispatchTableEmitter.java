@@ -26,8 +26,9 @@ public class DispatchTableEmitter implements Consumer<CompilationContext>  {
         tables.emitITables(jlo);
         info.visitReachableSubclassesPreOrder(jlo, tables::emitITables);
 
-        // Emit the root tables of all program vtables and itables in the object file for java.lang.Object
+        // Emit the root tables of all program vtables, itables, and rtinits in the object file for java.lang.Object
         tables.emitVTableTable(jlo);
         tables.emitITableTable(jlo);
+        tables.emitRTInitTable(jlo);
     }
 }

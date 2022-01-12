@@ -8,11 +8,8 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.ObjectLiteral;
-import org.qbicc.graph.literal.ProgramObjectLiteral;
-import org.qbicc.interpreter.VmObject;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
-import org.qbicc.plugin.serialization.BuildtimeHeap;
+import org.qbicc.plugin.dispatch.DispatchTables;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 
@@ -32,6 +29,7 @@ public class InitCheckLoweringBasicBlockBuilder extends DelegatingBasicBlockBuil
     public Node initCheck(InitializerElement initializer, Value initThunk) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         MethodElement run = RuntimeMethodFinder.get(ctxt).getMethod("org/qbicc/runtime/main/Once", "run");
+        DispatchTables.get(ctxt).registerRuntimeInitializer(initializer);
         ctxt.enqueue(initializer);
 
         final BlockLabel callInit = new BlockLabel();

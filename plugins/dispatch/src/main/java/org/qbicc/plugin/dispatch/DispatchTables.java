@@ -23,6 +23,7 @@ import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
+import org.qbicc.plugin.correctness.RuntimeInitManager;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
@@ -33,6 +34,7 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.generic.BaseTypeSignature;
@@ -47,8 +49,10 @@ public class DispatchTables {
     private final Map<LoadedTypeDefinition, VTableInfo> vtables = new ConcurrentHashMap<>();
     private final Map<LoadedTypeDefinition, ITableInfo> itables = new ConcurrentHashMap<>();
     private final Set<LoadedTypeDefinition> classesWithITables = ConcurrentHashMap.newKeySet();
+    private final Set<InitializerElement> runtimeInitializers = ConcurrentHashMap.newKeySet();
     private GlobalVariableElement vtablesGlobal;
     private GlobalVariableElement itablesGlobal;
+    private GlobalVariableElement rtinitsGlobal;
     private CompoundType itableDictType;
 
     // Used to accumulate statistics
@@ -133,6 +137,10 @@ public class DispatchTables {
         itables.put(cls, new ITableInfo(itable, itableType, cls));
     }
 
+    public void registerRuntimeInitializer(InitializerElement init) {
+        runtimeInitializers.add(init);
+    }
+
     void buildVTablesGlobal(DefinedTypeDefinition containingType) {
         GlobalVariableElement.Builder builder = GlobalVariableElement.builder("qbicc_vtables_array", BaseTypeDescriptor.V);
         // Invariant: typeIds are assigned from 1...N, where N is the number of reachable classes as computed by RTA
@@ -157,6 +165,16 @@ public class DispatchTables {
         builder.setEnclosingType(containingType);
         builder.setSignature(BaseTypeSignature.V);
         itablesGlobal = builder.build();
+    }
+
+    void buildRTInitGlobal(DefinedTypeDefinition containingType) {
+        TypeSystem ts = ctxt.getTypeSystem();
+        FunctionType initType = ctxt.getFunctionTypeForInitializer();
+        GlobalVariableElement.Builder builder = GlobalVariableElement.builder("qbicc_rtinit_array", BaseTypeDescriptor.V);
+        builder.setType(ts.getArrayType(initType.getPointer(), RuntimeInitManager.get(ctxt).maxAssignedId()+1));
+        builder.setEnclosingType(containingType);
+        builder.setSignature(BaseTypeSignature.V);
+        rtinitsGlobal = builder.build();
     }
 
     void emitVTable(LoadedTypeDefinition cls) {
@@ -320,12 +338,34 @@ public class DispatchTables {
         slog.debugf("Emitted %d class itable dictionaries with combined size of %d bytes", emittedClassITableDictCount, emittedClassITableDictBytes);
     }
 
+    void emitRTInitTable(LoadedTypeDefinition jlo) {
+        ArrayType tableGlobalType = ((ArrayType) rtinitsGlobal.getType());
+        Section section = ctxt.getImplicitSection(jlo);
+        Literal[] tableLiterals = new Literal[(int) tableGlobalType.getElementCount()];
+        Literal zeroLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(tableGlobalType.getElementType());
+        Arrays.fill(tableLiterals, zeroLiteral);
+
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        for (InitializerElement init : runtimeInitializers) {
+            int index = init.getLowerIndex();
+            Assert.assertTrue(tableLiterals[index].equals(zeroLiteral));
+            Function impl = ctxt.getExactFunctionIfExists(init);
+            section.declareFunction(init, impl.getName(), ctxt.getFunctionTypeForElement(init));
+            tableLiterals[index] = lf.literalOf(impl);
+        }
+        section.addData(null, rtinitsGlobal.getName(), lf.literalOf(tableGlobalType, List.of(tableLiterals)));
+    }
+
     public GlobalVariableElement getVTablesGlobal() {
         return vtablesGlobal;
     }
 
     public GlobalVariableElement getITablesGlobal() {
         return itablesGlobal;
+    }
+
+    public GlobalVariableElement getRTInitsGlobal() {
+        return rtinitsGlobal;
     }
 
     public CompoundType getItableDictType() {
