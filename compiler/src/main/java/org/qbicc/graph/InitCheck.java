@@ -8,19 +8,33 @@ import org.qbicc.type.definition.element.InitializerElement;
 public class InitCheck extends AbstractNode implements Action, OrderedNode {
     private final Node dependency;
     private final InitializerElement initializerElement;
+    private final Value initThunk;
 
-    InitCheck(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final InitializerElement initializerElement) {
+    InitCheck(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final InitializerElement initializerElement, final Value initThunk) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.initializerElement = initializerElement;
+        this.initThunk = initThunk;
     }
 
     public InitializerElement getInitializerElement() {
         return initializerElement;
     }
 
+    public Value getInitThunk() {
+        return initThunk;
+    }
+
+    public int getValueDependencyCount() {
+        return 1;
+    }
+
+    public Value getValueDependency(final int index) throws IndexOutOfBoundsException {
+        return index == 0 ? initThunk : Util.throwIndexOutOfBounds(index);
+    }
+
     int calcHashCode() {
-        return Objects.hash(InitCheck.class, dependency, initializerElement);
+        return Objects.hash(InitCheck.class, dependency, initializerElement, initThunk);
     }
 
     @Override
@@ -40,7 +54,8 @@ public class InitCheck extends AbstractNode implements Action, OrderedNode {
     public boolean equals(final InitCheck other) {
         return this == other || other != null
             && dependency.equals(other.dependency)
-            && initializerElement.equals(other.initializerElement);
+            && initializerElement.equals(other.initializerElement)
+            && initThunk.equals(other.initThunk);
     }
 
     @Override
@@ -48,6 +63,8 @@ public class InitCheck extends AbstractNode implements Action, OrderedNode {
         super.toString(b);
         b.append('(');
         b.append(initializerElement);
+        b.append(',');
+        b.append(initThunk);
         b.append(')');
         return b;
     }

@@ -34,6 +34,7 @@ public final class Once {
      *
      * @throws Throwable the object thrown by the target task
      */
+    @SuppressWarnings("unused") // invoked by compiler-generated code
     public void run() throws Throwable {
         boolean done = this.done;
         if (! done) {

@@ -8,6 +8,7 @@ import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.BlockLiteral;
+import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -368,8 +369,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().store(handle, value, accessMode);
     }
 
-    public Node initCheck(InitializerElement initializer) {
-        return getDelegate().initCheck(initializer);
+    public Node initCheck(InitializerElement initializer, Value initThunk) {
+        return getDelegate().initCheck(initializer, initThunk);
     }
 
     public Node fence(final GlobalAccessMode fenceType) {

@@ -571,12 +571,6 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Node initCheck(InitializerElement initializer) {
-        // either this is handled by an earlier BBB, or else init was 100% build time
-        return nop();
-    }
-
-    @Override
     public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
         // todo: we can support "real" tail calls in certain situations
         // break tail call

@@ -2,6 +2,7 @@ package org.qbicc.plugin.reachability;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
@@ -64,14 +65,18 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         }
     }
 
-    public synchronized void processBuildtimeInstantiatedObjectType(LoadedTypeDefinition ltd, LoadedTypeDefinition staticRootType) {
-        processInstantiatedClass(ltd, true, true, staticRootType.getInitializer());
+    public synchronized void processBuildtimeInstantiatedObjectType(LoadedTypeDefinition ltd, ExecutableElement originalElement) {
+        processInstantiatedClass(ltd, true, true, originalElement);
         processClassInitialization(ltd);
+    }
+
+    public synchronized void processReachableObjectLiteral(ObjectLiteral objectLiteral, ExecutableElement originalElement) {
+        heapAnalyzer.traceHeap(ctxt, this, objectLiteral.getValue(), originalElement);
     }
 
     public synchronized void processReachableRuntimeInitializer(final InitializerElement target, ExecutableElement originalElement) {
         if (!ctxt.wasEnqueued(target)) {
-            ReachabilityInfo.LOGGER.debugf("Adding <rtinit> %s (statically invoked in %s)", target, originalElement);
+            ReachabilityInfo.LOGGER.debugf("Adding <rtinit> %s (potentially invoked from %s)", target, originalElement);
             ctxt.enqueue(target);
         }
     }
@@ -153,7 +158,7 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         if (info.isInstantiatedClass(type)) return;
 
         if (onHeapType) {
-            ReachabilityInfo.LOGGER.debugf("Adding class %s (heap reachable from static of %s)", type.getDescriptor().getClassName(), originalElement.getEnclosingType().getDescriptor().getClassName());
+            ReachabilityInfo.LOGGER.debugf("Adding class %s (heap reachable from %s)", type.getDescriptor().getClassName(), originalElement);
         } else if (directlyInstantiated) {
             ReachabilityInfo.LOGGER.debugf("Adding class %s (instantiated in %s)", type.getDescriptor().getClassName(), originalElement);
         } else {

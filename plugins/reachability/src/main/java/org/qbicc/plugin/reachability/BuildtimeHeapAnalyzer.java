@@ -17,6 +17,7 @@ import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 
 import java.util.ArrayDeque;
@@ -48,8 +49,6 @@ class BuildtimeHeapAnalyzer {
      * @param ltd Type whose static fields are the roots for this trace
      */
     void traceHeap(CompilationContext ctxt, ReachabilityAnalysis analysis, LoadedTypeDefinition ltd) {
-        ArrayDeque<VmObject> worklist = new ArrayDeque<>();
-
         int fieldCount = ltd.getFieldCount();
         for (int i=0; i<fieldCount; i++) {
             FieldElement f = ltd.getField(i);
@@ -57,13 +56,24 @@ class BuildtimeHeapAnalyzer {
                 Value v = ltd.getInitialValue(f);
                 if (v instanceof ObjectLiteral) {
                     VmObject vo = ((ObjectLiteral) v).getValue();
-                    if (!visited.containsKey(vo)) {
-                        worklist.add(vo);
-                        visited.put(vo, Boolean.TRUE);
-                    }
+                    traceHeap(ctxt, analysis, vo, ltd.getInitializer());
                 }
             }
         }
+    }
+
+    /**
+     * Trace the build-time heap starting from a given VmObject
+     * to identify instantiated types.
+     * @param root The VmObject which is the starting point for this trace.
+     */
+    void traceHeap(CompilationContext ctxt, ReachabilityAnalysis analysis, VmObject root, ExecutableElement rootElement) {
+        if (visited.containsKey(root)) {
+            return;
+        }
+        visited.put(root, Boolean.TRUE);
+        ArrayDeque<VmObject> worklist = new ArrayDeque<>();
+        worklist.add(root);
 
         Layout interpreterLayout = Layout.get(ctxt);
         CoreClasses coreClasses = CoreClasses.get(ctxt);
@@ -73,7 +83,7 @@ class BuildtimeHeapAnalyzer {
             PhysicalObjectType ot = cur.getObjectType();
             if (ot instanceof ClassObjectType && !(cur instanceof VmClass || cur instanceof VmString)) {
                 LoadedTypeDefinition concreteType = cur.getObjectType().getDefinition().load();
-                analysis.processBuildtimeInstantiatedObjectType(concreteType, ltd);
+                analysis.processBuildtimeInstantiatedObjectType(concreteType, rootElement);
 
                 LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
                 for (CompoundType.Member im : memLayout.getCompoundType().getMembers()) {

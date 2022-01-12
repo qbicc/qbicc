@@ -11,6 +11,7 @@ import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.BlockLiteral;
+import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -423,7 +424,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     Node store(ValueHandle handle, Value value, WriteAccessMode mode);
 
-    Node initCheck(InitializerElement initializer);
+    Node initCheck(InitializerElement initializer, Value initThunk);
 
     Node fence(GlobalAccessMode fenceType);
 
