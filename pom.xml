@@ -55,6 +55,8 @@
         <version.javax.inject>1</version.javax.inject>
         <version.jsoup>1.14.3</version.jsoup>
         <version.slf4j>1.7.36</version.slf4j>
+        <version.slf4j>1.7.35</version.slf4j>
+        <version.guice>5.0.1</version.guice>
 
         <!-- this is the class lib version; the class lib cannot be used in a POM but is used in resources -->
         <version.qbicc.classlib>17.alpha.0.8</version.qbicc.classlib>
@@ -722,6 +724,12 @@
                 <groupId>org.sonatype.plexus</groupId>
                 <artifactId>plexus-sec-dispatcher</artifactId>
                 <version>${version.plexus.sec-dispatcher}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.inject</groupId>
+                <artifactId>guice</artifactId>
+                <version>${version.guice}</version>
             </dependency>
 
             <!-- test -->

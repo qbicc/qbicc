@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.inject.Guice;
 import org.apache.maven.settings.Mirror;
 import org.apache.maven.settings.Server;
 import org.apache.maven.settings.Settings;
@@ -30,7 +31,6 @@ import org.eclipse.aether.artifact.DefaultArtifactType;
 import org.eclipse.aether.collection.CollectRequest;
 import org.eclipse.aether.collection.DependencyGraphTransformer;
 import org.eclipse.aether.graph.Dependency;
-import org.eclipse.aether.graph.DependencyFilter;
 import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.repository.Authentication;
 import org.eclipse.aether.repository.LocalRepository;
@@ -43,10 +43,8 @@ import org.eclipse.aether.resolution.ArtifactResult;
 import org.eclipse.aether.resolution.DependencyRequest;
 import org.eclipse.aether.resolution.DependencyResolutionException;
 import org.eclipse.aether.resolution.DependencyResult;
-import org.eclipse.aether.spi.locator.ServiceLocator;
 import org.eclipse.aether.util.artifact.DefaultArtifactTypeRegistry;
 import org.eclipse.aether.util.artifact.JavaScopes;
-import org.eclipse.aether.util.filter.AndDependencyFilter;
 import org.eclipse.aether.util.graph.manager.ClassicDependencyManager;
 import org.eclipse.aether.util.graph.selector.AndDependencySelector;
 import org.eclipse.aether.util.graph.selector.OptionalDependencySelector;
@@ -76,8 +74,9 @@ final class QbiccMavenResolver {
     private static final String MAVEN_CENTRAL = "https://repo1.maven.org/maven2";
     private final RepositorySystem system;
 
-    QbiccMavenResolver(ServiceLocator locator) {
-        this.system = locator.getService(RepositorySystem.class);
+    QbiccMavenResolver() {
+        this.system = Guice.createInjector(new QbiccResolverModule())
+            .getInstance(RepositorySystem.class);
     }
 
     Settings createSettings(DiagnosticContext ctxt, File globalSettings, File userSettings) throws SettingsBuildingException {
