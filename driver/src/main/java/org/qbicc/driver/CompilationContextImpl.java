@@ -567,6 +567,12 @@ final class CompilationContextImpl implements CompilationContext {
         return getFunctionTypeForElement(element, threadType);
     }
 
+    public FunctionType getFunctionTypeForInitializer() {
+        // look up the thread ID literal - todo: lazy cache?
+        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").load().getClassType();
+        return typeSystem.getFunctionType(typeSystem.getVoidType(), threadType.getReference());
+    }
+
     public Iterable<ExecutableElement> getEntryPoints() {
         return entryPoints;
     }

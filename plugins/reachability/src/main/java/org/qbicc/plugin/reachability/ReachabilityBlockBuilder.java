@@ -14,7 +14,6 @@ import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.InitCheck;
 import org.qbicc.graph.InterfaceMethodElementHandle;
 import org.qbicc.graph.MultiNewArray;
-import org.qbicc.graph.NewArray;
 import org.qbicc.graph.NewReferenceArray;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
@@ -36,7 +35,6 @@ import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
-import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**

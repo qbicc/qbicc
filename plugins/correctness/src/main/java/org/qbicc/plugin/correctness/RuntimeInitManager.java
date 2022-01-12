@@ -59,5 +59,9 @@ public class RuntimeInitManager {
         });
         return t[0];
     }
+
+    public int maxAssignedId() {
+        return nextId;
+    }
 }
 

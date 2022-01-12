@@ -39,8 +39,10 @@ import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.machine.probe.CProbe;
+import org.qbicc.object.Section;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
+import org.qbicc.plugin.dispatch.DispatchTables;
 import org.qbicc.plugin.gc.nogc.NoGc;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables;
 import org.qbicc.plugin.intrinsics.InstanceIntrinsic;
@@ -1107,6 +1109,7 @@ public final class CoreIntrinsics {
         MethodDescriptor typeIdBooleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(typeIdDesc));
         MethodDescriptor typeIdTypeIdBooleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(typeIdDesc, typeIdDesc));
         MethodDescriptor typeIdVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(typeIdDesc));
+        MethodDescriptor intVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.I));
         MethodDescriptor typeIdIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(typeIdDesc));
         MethodDescriptor typeIdClsDesc = MethodDescriptor.synthesize(classContext, clsDesc, List.of(typeIdDesc, uint8Desc));
         MethodDescriptor typeIdToClassDesc = MethodDescriptor.synthesize(classContext, clsDesc, List.of(typeIdDesc));
@@ -1337,6 +1340,16 @@ public final class CoreIntrinsics {
             return builder.call(builder.pointerHandle(typeIdInit), List.of(builder.load(builder.currentThread(), SingleUnshared)));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "callClassInitializer", typeIdVoidDesc, callClassInitializer);
+
+        StaticIntrinsic callRuntimeInitializer = (builder, target, arguments) -> {
+            Value index = arguments.get(0);
+            GlobalVariableElement rtinitTable = DispatchTables.get(ctxt).getRTInitsGlobal();
+            Section section = ctxt.getImplicitSection(builder.getCurrentElement().getEnclosingType());
+            section.declareData(null, rtinitTable.getName(), rtinitTable.getType());
+            Value initFunc = builder.load(builder.elementOf(builder.globalVariable(rtinitTable), index));
+            return builder.call(builder.pointerHandle(initFunc), List.of(builder.load(builder.currentThread(), SingleUnshared)));
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "callRuntimeInitializer", intVoidDesc, callRuntimeInitializer);
 
         // int get_typeid_flags(CNative.type_id typeID);
         StaticIntrinsic get_typeid_flags = (builder, target, arguments) -> {

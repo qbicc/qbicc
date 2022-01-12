@@ -26,6 +26,9 @@ public class DispatchTableBuilder implements Consumer<CompilationContext>  {
         tables.buildVTablesGlobal(jlo);
         tables.buildITablesGlobal(jlo);
 
+        // Synthesize GlobalVariable for rtinit[]
+        tables.buildRTInitGlobal(jlo);
+
         // Now build the interface dispatching structures for the reachable methods
         info.visitReachableInterfaces(tables::buildFilteredITableForInterface);
     }
