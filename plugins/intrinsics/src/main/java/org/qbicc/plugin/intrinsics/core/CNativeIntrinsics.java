@@ -225,6 +225,27 @@ final class CNativeIntrinsics {
         intrinsics.registerIntrinsic(cNativeDesc, "uword", MethodDescriptor.synthesize(classContext, wordDesc, List.of(BaseTypeDescriptor.I)), toUnsigned);
         intrinsics.registerIntrinsic(cNativeDesc, "uword", MethodDescriptor.synthesize(classContext, wordDesc, List.of(BaseTypeDescriptor.J)), toUnsigned);
 
+        // bitwise operations
+
+        MethodDescriptor wordWordToWord = MethodDescriptor.synthesize(classContext, wordDesc, List.of(wordDesc, wordDesc));
+        MethodDescriptor wordToWord = MethodDescriptor.synthesize(classContext, wordDesc, List.of(wordDesc));
+
+        StaticIntrinsic wordAnd = (builder, target, arguments) -> builder.and(arguments.get(0), arguments.get(1));
+
+        intrinsics.registerIntrinsic(cNativeDesc, "wordAnd", wordWordToWord, wordAnd);
+
+        StaticIntrinsic wordOr = (builder, target, arguments) -> builder.or(arguments.get(0), arguments.get(1));
+
+        intrinsics.registerIntrinsic(cNativeDesc, "wordOr", wordWordToWord, wordOr);
+
+        StaticIntrinsic wordXor = (builder, target, arguments) -> builder.xor(arguments.get(0), arguments.get(1));
+
+        intrinsics.registerIntrinsic(cNativeDesc, "wordXor", wordWordToWord, wordXor);
+
+        StaticIntrinsic wordComp = (builder, target, arguments) -> builder.complement(arguments.get(0));
+
+        intrinsics.registerIntrinsic(cNativeDesc, "wordComp", wordToWord, wordComp);
+
         StaticIntrinsic sizeof = (builder, target, arguments) -> {
             long size = arguments.get(0).getType().getSize();
             IntegerType returnType = (IntegerType) target.getExecutable().getType().getReturnType();

@@ -368,6 +368,45 @@ public final class CNative {
         return word(doubleValue);
     }
 
+    /**
+     * Get the bitwise-AND of two words, which must be the same type.
+     *
+     * @param w1 the first word
+     * @param w2 the second word
+     * @param <W> the word type
+     * @return the result of the operation
+     */
+    public static native <W extends word> W wordAnd(W w1, W w2);
+
+    /**
+     * Get the bitwise-OR of two words, which must be the same type.
+     *
+     * @param w1 the first word
+     * @param w2 the second word
+     * @param <W> the word type
+     * @return the result of the operation
+     */
+    public static native <W extends word> W wordOr(W w1, W w2);
+
+    /**
+     * Get the bitwise-exclusive-OR of two words, which must be the same type.
+     *
+     * @param w1 the first word
+     * @param w2 the second word
+     * @param <W> the word type
+     * @return the result of the operation
+     */
+    public static native <W extends word> W wordXor(W w1, W w2);
+
+    /**
+     * Get the bitwise ones' complement (NOT) of a word.
+     *
+     * @param w the word
+     * @param <W> the word type
+     * @return the result of the operation
+     */
+    public static native <W extends word> W wordComp(W w);
+
     public static void copy(int8_t_ptr dest, byte[] src, int srcOff, int len) {
         memcpy(dest.cast(), addr_of(src[srcOff]).cast(), word((long)len));
     }
