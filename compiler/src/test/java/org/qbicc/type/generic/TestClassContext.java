@@ -99,6 +99,9 @@ public class TestClassContext implements ClassContext {
 
         }
 
+        public void registerAutoQueuedElement(ExecutableElement method) {
+        }
+
         public Path getOutputDirectory() {
             return null;
         }

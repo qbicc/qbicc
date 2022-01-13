@@ -11,6 +11,7 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
@@ -132,11 +133,17 @@ public class ReachabilityInfo {
         LoadedTypeDefinition unsafe = ctxt.getBootstrapClassContext().findDefinedType("jdk/internal/misc/Unsafe").load();
         info.analysis.processInstantiatedClass(unsafe, true, false,null);
         info.analysis.processClassInitialization(unsafe);
+    }
 
-        // Hack around the way NoGC entrypoints are registered and then not used until LOWERING PHASE...
-        LOGGER.debugf("Forcing org.qbicc.runtime.gc.nogc.NoGcHelpers reachable");
-        LoadedTypeDefinition nogc = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/gc/nogc/NoGcHelpers").load();
-        info.analysis.processClassInitialization(nogc);
+    public static void processAutoQueuedElement(ExecutableElement elem) {
+        if (elem instanceof MethodElement me) {
+            ReachabilityInfo info = get(elem.getEnclosingType().getContext().getCompilationContext());
+            if (me.isStatic()) {
+                info.analysis.processReachableStaticInvoke(me, null);
+            } else {
+                info.analysis.processReachableInstanceMethodInvoke(me, null);
+            }
+        }
     }
 
     public boolean isInvokableMethod(MethodElement meth) {
