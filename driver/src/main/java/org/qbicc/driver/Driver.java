@@ -389,9 +389,11 @@ public class Driver implements Closeable {
 
         // trace out the program graph, enqueueing each item one time and then processing every item in the queue;
         // in this stage we're just loading everything that *might* be reachable
-
         for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
             compilationContext.enqueue(entryPoint);
+        }
+        for (ExecutableElement element : compilationContext.getAutoQueuedElements()) {
+            compilationContext.enqueue(element);
         }
 
         compilationContext.processQueue(element -> {
@@ -464,6 +466,9 @@ public class Driver implements Closeable {
         for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
             compilationContext.enqueue(entryPoint);
         }
+        for (ExecutableElement element : compilationContext.getAutoQueuedElements()) {
+            compilationContext.enqueue(element);
+        }
 
         compilationContext.processQueue(element -> {
             MDC.put("phase", "ANALYZE");
@@ -529,6 +534,9 @@ public class Driver implements Closeable {
 
         for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
             compilationContext.enqueue(entryPoint);
+        }
+        for (ExecutableElement element : compilationContext.getAutoQueuedElements()) {
+            compilationContext.enqueue(element);
         }
 
         compilationContext.processQueue(element -> {

@@ -16,44 +16,43 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
     public void accept(final CompilationContext ctxt) {
         RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
         // Helpers for dynamic type checking
-        ctxt.enqueue(methodFinder.getMethod("arrayStoreCheck"));
-        ctxt.enqueue(methodFinder.getMethod("checkcastClass"));
-        ctxt.enqueue(methodFinder.getMethod("checkcastTypeId"));
-        ctxt.enqueue(methodFinder.getMethod("instanceofClass"));
-        ctxt.enqueue(methodFinder.getMethod("instanceofTypeId"));
-        ctxt.enqueue(methodFinder.getMethod("getClassFromObject"));
-        ctxt.enqueue(methodFinder.getMethod("getClassFromTypeId"));
-        ctxt.enqueue(methodFinder.getMethod("getSuperClass"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("arrayStoreCheck"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("checkcastClass"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("checkcastTypeId"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("instanceofClass"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("instanceofTypeId"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("getClassFromObject"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("getClassFromTypeId"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("getSuperClass"));
 
         // Helpers to create and throw common runtime exceptions
-        ctxt.registerEntryPoint(methodFinder.getMethod("raiseAbstractMethodError"));
-        ctxt.registerEntryPoint(methodFinder.getMethod("raiseArithmeticException"));
-        ctxt.registerEntryPoint(methodFinder.getMethod("raiseArrayIndexOutOfBoundsException"));
-        ctxt.registerEntryPoint(methodFinder.getMethod("raiseArrayStoreException"));
-        ctxt.registerEntryPoint(methodFinder.getMethod("raiseClassCastException"));
-        ctxt.registerEntryPoint(methodFinder.getMethod("raiseIncompatibleClassChangeError"));
-        ctxt.registerEntryPoint(methodFinder.getMethod("raiseNegativeArraySizeException"));
-        ctxt.registerEntryPoint(methodFinder.getMethod("raiseNullPointerException"));
-        ctxt.registerEntryPoint(methodFinder.getMethod("raiseUnsatisfiedLinkError"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseAbstractMethodError"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseArithmeticException"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseArrayIndexOutOfBoundsException"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseArrayStoreException"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseClassCastException"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseIncompatibleClassChangeError"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseNegativeArraySizeException"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseNullPointerException"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseUnsatisfiedLinkError"));
 
         // Object monitors
-        ctxt.enqueue(methodFinder.getMethod("monitorEnter"));
-        ctxt.enqueue(methodFinder.getMethod("monitorExit"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("monitorEnter"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("monitorExit"));
 
         // helper to create j.l.Class instance of an array class at runtime
-        ctxt.enqueue(methodFinder.getMethod("getOrCreateClassForRefArray"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("getOrCreateClassForRefArray"));
 
         // java.lang.Thread
-        ctxt.enqueue(methodFinder.getMethod("JLT_start0"));
-        ctxt.enqueue(methodFinder.getMethod("threadWrapper"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("JLT_start0"));
 
         // Helpers for stack walk
-        ctxt.enqueue(methodFinder.getMethod("org/qbicc/runtime/stackwalk/MethodData", "fillStackTraceElements"));
-        ctxt.enqueue(methodFinder.getMethod("org/qbicc/runtime/stackwalk/JavaStackWalker", "getFrameCount"));
-        ctxt.enqueue(methodFinder.getMethod("org/qbicc/runtime/stackwalk/JavaStackWalker", "walkStack"));
-        ctxt.enqueue(methodFinder.getMethod("org/qbicc/runtime/stackwalk/JavaStackFrameCache", "getSourceCodeIndexList"));
-        ctxt.enqueue(methodFinder.getMethod("org/qbicc/runtime/stackwalk/JavaStackFrameCache", "visitFrame"));
-        ctxt.enqueue(methodFinder.getConstructor("org/qbicc/runtime/stackwalk/JavaStackFrameCache",
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("org/qbicc/runtime/stackwalk/MethodData", "fillStackTraceElements"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("org/qbicc/runtime/stackwalk/JavaStackWalker", "getFrameCount"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("org/qbicc/runtime/stackwalk/JavaStackWalker", "walkStack"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("org/qbicc/runtime/stackwalk/JavaStackFrameCache", "getSourceCodeIndexList"));
+        ctxt.registerAutoQueuedElement(methodFinder.getMethod("org/qbicc/runtime/stackwalk/JavaStackFrameCache", "visitFrame"));
+        ctxt.registerAutoQueuedElement(methodFinder.getConstructor("org/qbicc/runtime/stackwalk/JavaStackFrameCache",
             MethodDescriptor.synthesize(ctxt.getBootstrapClassContext(), BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.I))));
     }
 }

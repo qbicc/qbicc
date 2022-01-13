@@ -68,6 +68,7 @@ final class CompilationContextImpl implements CompilationContext {
     final Set<ExecutableElement> queued = ConcurrentHashMap.newKeySet();
     final Queue<ExecutableElement> queue = new ArrayDeque<>();
     final Set<ExecutableElement> entryPoints = ConcurrentHashMap.newKeySet();
+    final Set<ExecutableElement> autoQueuedElements = ConcurrentHashMap.newKeySet();
     final ClassContext bootstrapClassContext;
     private final ConcurrentMap<DefinedTypeDefinition, ProgramModule> programModules = new ConcurrentHashMap<>();
     private final ConcurrentMap<ExecutableElement, org.qbicc.object.Function> exactFunctions = new ConcurrentHashMap<>();
@@ -345,6 +346,11 @@ final class CompilationContextImpl implements CompilationContext {
         entryPoints.add(method);
     }
 
+    public void registerAutoQueuedElement(ExecutableElement element) {
+        enqueue(element);
+        autoQueuedElements.add(element);
+    }
+
     public Path getOutputDirectory() {
         return outputDir;
     }
@@ -575,6 +581,10 @@ final class CompilationContextImpl implements CompilationContext {
 
     public Iterable<ExecutableElement> getEntryPoints() {
         return entryPoints;
+    }
+
+    public Iterable<ExecutableElement> getAutoQueuedElements() {
+        return autoQueuedElements;
     }
 
     BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> getBlockFactory() {

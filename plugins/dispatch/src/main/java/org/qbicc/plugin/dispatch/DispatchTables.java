@@ -92,7 +92,7 @@ public class DispatchTables {
         for (MethodElement m: cls.getInstanceMethods()) {
             if (ctxt.wasEnqueued(m)) {
                 tlog.debugf("\tadding reachable method %s%s", m.getName(), m.getDescriptor().toString());
-                ctxt.registerEntryPoint(m);
+                ctxt.registerAutoQueuedElement(m);
                 vtableVector.add(m);
             }
         }

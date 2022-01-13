@@ -80,6 +80,20 @@ public interface CompilationContext extends DiagnosticContext {
      */
     void registerEntryPoint(ExecutableElement method);
 
+    /**
+     * AutoQueued elements are non-entrypoint executable elements that the
+     * compiler has determined must be included in the final image.
+     * Typically this is because they have been entered into a
+     * dispatching table or they are a runtime function that is guaranteed to
+     * be invoked by expansions in the LOWER phase.
+     * These capability should be used sparingly, since AutoQueued elements
+     * (and all elements and types that are indirectly reachable from them)
+     * will be included in the final executable.
+     *
+     * @param element the element to register as an auto-queued element.
+     */
+    void registerAutoQueuedElement(ExecutableElement element);
+
     Path getOutputDirectory();
 
     Path getOutputFile(DefinedTypeDefinition type, String suffix);
