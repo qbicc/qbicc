@@ -19,8 +19,5 @@ public class SupersDisplayEmitter implements Consumer<CompilationContext>  {
 
         // emit the typeid[] into Object's file
         tables.emitTypeIdTable(jlo);
-
-        // emit the initialization data
-        tables.emitClinitStateTable(jlo);
     }
 }

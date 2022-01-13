@@ -205,19 +205,6 @@ public class CompilerIntrinsics {
     @Hidden
     public static native boolean doesImplement(type_id valueTypeId, type_id interfaceTypeId);
 
-    /**
-     * Call the class initializer for this class if it hasn't already been
-     * called.
-     *
-     * This operation is racy as the locking is managed by the ClinitState
-     * object in VMHelpers#initialize_class and should only be called by
-     * that method.
-     *
-     * @param typeId the class to initialize
-     */
-    @Hidden
-    public static native void callClassInitializer(type_id typeId);
-
     @Hidden
     public static native void callRuntimeInitializer(int initID);
 
@@ -253,27 +240,6 @@ public class CompilerIntrinsics {
 
     @Hidden
     public static native byte getByteOfInterfaceBits(type_id typeId, int index);
-
-    /**
-     * Check the `clinit_states` native structure to see if this typeid is initialized.
-     *
-     * This is a fast check reading a bit in the structure.  A "true" value can be trusted
-     * as a fast path check while a "false" value requires the state-machine defined in
-     * VMHelpers.initialize_class() to validate the result and handle the transition.
-     *
-     * @return true if initialized.  False if the state machine needs to validate.
-     */
-    @Hidden
-    public static native boolean isInitialized(type_id typdId);
-
-    /**
-     * Set the class initialized.
-     *
-     * This should only be done by the MHelpers.initialize_class() statemachine
-     * @param typdId the class to mark initialized
-     */
-    @Hidden
-    public static native void setInitialized(type_id typdId);
 
     /**
      * Get the native object monitor (mutex) slot from the referenced object. These are intended for object monitor synchronization.

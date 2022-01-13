@@ -1321,26 +1321,6 @@ public final class CoreIntrinsics {
         StaticIntrinsic getNumberOfTypeIds = (builder, target, arguments) -> lf.literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), tables.get_number_of_typeids());
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getNumberOfTypeIds", emptyTotypeIdDesc, getNumberOfTypeIds);
 
-        StaticIntrinsic callClassInitializer = (builder, target, arguments) -> {
-            Value typeId = arguments.get(0);
-        
-            // CompoundType clinit_state_t =  CompoundType.builder(ts)
-            //     .setTag(CompoundType.Tag.STRUCT)
-            //     .setName("qbicc_clinit_state")
-            //     .setOverallAlignment(ts.getPointerAlignment())
-            //     .addNextMember("init_state", init_state_t)
-            //     .addNextMember("class_initializers", class_initializers_t)
-            //     .build();
-
-            GlobalVariableElement clinitStates = tables.getAndRegisterGlobalClinitStateStruct(builder.getCurrentElement());
-            CompoundType clinitStates_t = (CompoundType) clinitStates.getType();
-            ValueHandle initializers = builder.memberOf(builder.globalVariable(clinitStates), clinitStates_t.getMember("class_initializers"));
-            Value typeIdInit = builder.load(builder.elementOf(initializers, typeId));
-
-            return builder.call(builder.pointerHandle(typeIdInit), List.of(builder.load(builder.currentThread(), SingleUnshared)));
-        };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "callClassInitializer", typeIdVoidDesc, callClassInitializer);
-
         StaticIntrinsic callRuntimeInitializer = (builder, target, arguments) -> {
             Value index = arguments.get(0);
             GlobalVariableElement rtinitTable = DispatchTables.get(ctxt).getRTInitsGlobal();
@@ -1396,35 +1376,6 @@ public final class CoreIntrinsics {
             return dataByte;
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getByteOfInterfaceBits", typeIdIntToByteDesc, getByteOfInterfaceBits);
-
-        // public static native boolean isInitialized(CNative.type_id typdId);
-        StaticIntrinsic isInitialized = (builder, target, arguments) -> {
-            Value typeId = arguments.get(0);
-
-            GlobalVariableElement clinitStates = tables.getAndRegisterGlobalClinitStateStruct(builder.getCurrentElement());
-            CompoundType clinitStates_t = (CompoundType) clinitStates.getType();
-            ValueHandle init_state_array = builder.memberOf(builder.globalVariable(clinitStates), clinitStates_t.getMember("init_state"));
-            Value state = builder.load(builder.elementOf(init_state_array, typeId), SingleAcquire);
-
-            return builder.isEq(state, lf.literalOf(1));
-        };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "isInitialized", typeIdBooleanDesc, isInitialized);
-
-        // public static native void setInitialized(CNative.type_id typdId);
-        StaticIntrinsic setInitialized = (builder, target, arguments) -> {
-            Value typeId = arguments.get(0);
-
-            GlobalVariableElement clinitStates = tables.getAndRegisterGlobalClinitStateStruct(builder.getCurrentElement());
-            CompoundType clinitStates_t = (CompoundType) clinitStates.getType();
-            Member init_state_t = clinitStates_t.getMember("init_state");
-            IntegerType init_state_element_t = (IntegerType)((ArrayType)clinitStates_t.getMember("init_state").getType()).getElementType();
-            ValueHandle init_state_array = builder.memberOf(builder.globalVariable(clinitStates), init_state_t);
-            builder.store(builder.elementOf(init_state_array, typeId), lf.literalOf(init_state_element_t, 1), SingleRelease);
-
-            return lf.zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
-
-        };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "setInitialized", typeIdVoidDesc, setInitialized);
 
         FieldElement nativeObjectMonitorField = CoreClasses.get(ctxt).getObjectNativeObjectMonitorField();
         // PThread.pthread_mutex_t_ptr getNativeObjectMonitor(Object reference);
