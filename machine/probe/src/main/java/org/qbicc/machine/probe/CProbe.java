@@ -32,6 +32,7 @@ import org.qbicc.machine.tool.process.InputSource;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
@@ -112,7 +113,8 @@ public final class CProbe {
                     boolean unsigned = objectFile.getSymbolValueAsByte("cp_is_unsigned" + i) != 0;
                     boolean floating = objectFile.getSymbolValueAsByte("cp_is_floating" + i) != 0;
                     boolean bool = objectFile.getSymbolValueAsByte("cp_is_bool" + i) != 0;
-                    constantInfos.put(name, new ConstantInfo(defined, objectFile.getSymbolAsBytes("cp_value" + i, size), name, byteOrder, signed, unsigned, floating, bool));
+                    String symbol = objectFile.getRelocationSymbolForSymbolValue(name);
+                    constantInfos.put(name, new ConstantInfo(defined, objectFile.getSymbolAsBytes("cp_value" + i, size), symbol, byteOrder, signed, unsigned, floating, bool));
                 }
                 cnt = functionNames.size();
                 final Map<String, FunctionInfo> functionInfos = new HashMap<>(cnt);
@@ -800,33 +802,32 @@ public final class CProbe {
         }
 
         public Literal getValueAsLiteralOfType(TypeSystem ts, LiteralFactory lf, ValueType valueType) {
-            if (valueType instanceof SignedIntegerType) {
-                return lf.literalOf((SignedIntegerType) valueType, getValueAsSignedLong());
-            } else if (valueType instanceof UnsignedIntegerType) {
-                return lf.literalOf((UnsignedIntegerType) valueType, getValueAsUnsignedLong());
+            if (valueType instanceof SignedIntegerType sit) {
+                return lf.literalOf(sit, getValueAsSignedLong());
+            } else if (valueType instanceof UnsignedIntegerType uit) {
+                return lf.literalOf(uit, getValueAsUnsignedLong());
             } else if (valueType instanceof BooleanType) {
                 return lf.literalOf(getValueAsUnsignedLong() != 0);
-            } else if (valueType instanceof ArrayType) {
-                return lf.literalOf((ArrayType) valueType, value);
+            } else if (valueType instanceof ArrayType at) {
+                return lf.literalOf(at, value);
+            } else if (valueType instanceof PointerType pt) {
+                if (hasSymbol()) {
+                    throw new UnsupportedOperationException("TODO: pointer values with a symbol base");
+                } else {
+                    return lf.valueConvertLiteral(lf.literalOf(getSize() <= 4 ? ts.getSignedInteger32Type() : ts.getSignedInteger64Type(), getValueAsSignedLong()), pt);
+                }
             } else {
-                /* try again with the constant's natural type if one of these types is not specified. */
-                return getValueAsLiteral(ts, lf);
+                ValueType naturalType = getValueType(ts);
+                if (naturalType != valueType) {
+                    /* try again with the constant's natural type if one of these types is not specified. */
+                    return getValueAsLiteralOfType(ts, lf, naturalType);
+                }
+                throw new IllegalArgumentException("Invalid constant type");
             }
         }
 
         public Literal getValueAsLiteral(TypeSystem ts, LiteralFactory lf) {
-            ValueType valueType = getValueType(ts);
-            if (valueType instanceof SignedIntegerType) {
-                return lf.literalOf((SignedIntegerType) valueType, getValueAsSignedLong());
-            } else if (valueType instanceof UnsignedIntegerType) {
-                return lf.literalOf((UnsignedIntegerType) valueType, getValueAsUnsignedLong());
-            } else if (valueType instanceof BooleanType) {
-                return lf.literalOf(getValueAsUnsignedLong() != 0);
-            } else if (valueType instanceof ArrayType) {
-                return lf.literalOf((ArrayType) valueType, value);
-            } else {
-                throw new IllegalArgumentException("Invalid constant type");
-            }
+            return getValueAsLiteralOfType(ts, lf, getValueType(ts));
         }
 
         public ValueType getValueType(TypeSystem ts) {
