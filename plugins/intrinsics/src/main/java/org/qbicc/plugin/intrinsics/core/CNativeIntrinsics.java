@@ -469,8 +469,7 @@ final class CNativeIntrinsics {
         InstanceIntrinsic plus = (builder, instance, target, arguments) -> builder.addressOf(builder.pointerHandle(instance, arguments.get(0)));
 
         intrinsics.registerIntrinsic(ptrDesc, "plus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.I)), plus);
-        intrinsics.registerIntrinsic(ptrDesc, "plus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(ptrDiffTDesc)), plus);
-        intrinsics.registerIntrinsic(ptrDesc, "plus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(sizeTDesc)), plus);
+        intrinsics.registerIntrinsic(ptrDesc, "plus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.J)), plus);
 
         InstanceIntrinsic minus = (builder, instance, target, arguments) -> builder.addressOf(builder.pointerHandle(instance, builder.negate(arguments.get(0))));
 
