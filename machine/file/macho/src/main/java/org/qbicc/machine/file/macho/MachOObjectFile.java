@@ -254,6 +254,7 @@ public final class MachOObjectFile implements ObjectFile {
 
     @Override
     public String getRelocationSymbolForSymbolValue(String symbol) {
+        // TODO: find symbol base
         return null;
     }
 
