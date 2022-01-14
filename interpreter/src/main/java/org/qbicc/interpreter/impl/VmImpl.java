@@ -663,11 +663,11 @@ public final class VmImpl implements Vm {
                 ClassContext emcCtxt = emcDef.getContext();
                 VmClassLoaderImpl emcLoader = vm.getClassLoaderForContext(emcCtxt);
                 VmClassImpl emc = emcLoader.loadClass(emcDef.getInternalName());
-                vmArray.getMemory().storeRef(0, vm.intern(emc.getName()), SinglePlain);
+                vmArray.getMemory().storeRef(vmArray.getArrayElementOffset(0), emc, SinglePlain);
                 MethodElement enclosingMethod = def.getEnclosingMethod();
                 if (enclosingMethod != null) {
-                    vmArray.getMemory().storeRef(1, vm.intern(enclosingMethod.getName()), SinglePlain);
-                    vmArray.getMemory().storeRef(2, vm.intern(enclosingMethod.getDescriptor().toString()), SinglePlain);
+                    vmArray.getMemory().storeRef(vmArray.getArrayElementOffset(1), vm.intern(enclosingMethod.getName()), SinglePlain);
+                    vmArray.getMemory().storeRef(vmArray.getArrayElementOffset(2), vm.intern(enclosingMethod.getDescriptor().toString()), SinglePlain);
                 }
                 return vmArray;
             });
