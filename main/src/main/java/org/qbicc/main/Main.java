@@ -61,6 +61,7 @@ import org.qbicc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
 import org.qbicc.plugin.dispatch.DispatchTableBuilder;
 import org.qbicc.plugin.dispatch.DispatchTableEmitter;
 import org.qbicc.plugin.dot.DotGenerator;
+import org.qbicc.plugin.gc.common.GcCommon;
 import org.qbicc.plugin.gc.nogc.NoGcBasicBlockBuilder;
 import org.qbicc.plugin.gc.nogc.NoGcMultiNewArrayBasicBlockBuilder;
 import org.qbicc.plugin.gc.nogc.NoGcSetupHook;
@@ -389,6 +390,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, ReflectionIntrinsics::register);
                                 builder.addPreHook(Phase.ADD, Reflection::get);
                                 builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);
+                                builder.addPreHook(Phase.ADD, GcCommon::registerIntrinsics);
                                 builder.addPreHook(Phase.ADD, new VMHelpersSetupHook());
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
                                     Vm vm = compilationContext.getVm();

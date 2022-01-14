@@ -10,10 +10,10 @@
         <version>0.20.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qbicc-runtime-gc-nogc</artifactId>
+    <artifactId>qbicc-runtime-gc-heap</artifactId>
 
-    <name>Qbicc Run Time: GC: No GC</name>
-    <description>Qbicc no-GC GC implementation</description>
+    <name>Qbicc Run Time: GC: Heap support</name>
+    <description>Qbicc heap API</description>
 
     <dependencies>
         <dependency>
@@ -24,9 +24,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-runtime-posix</artifactId>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-runtime-gc-heap</artifactId>
-        </dependency>
     </dependencies>
+
 </project>

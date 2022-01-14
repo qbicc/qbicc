@@ -1,14 +1,12 @@
 package org.qbicc.runtime.gc.nogc;
 
 import static org.qbicc.runtime.CNative.*;
-import static org.qbicc.runtime.posix.Stdlib.*;
-import static org.qbicc.runtime.stdc.Stddef.*;
-import static org.qbicc.runtime.stdc.Stdlib.*;
+import static org.qbicc.runtime.stdc.Stdint.*;
 import static org.qbicc.runtime.stdc.String.*;
 
 import org.qbicc.runtime.AutoQueued;
-import org.qbicc.runtime.Build;
 import org.qbicc.runtime.Hidden;
+import org.qbicc.runtime.gc.heap.Heap;
 
 /**
  *
@@ -16,29 +14,42 @@ import org.qbicc.runtime.Hidden;
 public final class NoGcHelpers {
     private NoGcHelpers() {}
 
+    // our allocation position
+    private static long pos;
+
     @Hidden
     @AutoQueued
     public static Object allocate(long size, int align) {
-        if (false && Build.Target.isPosix()) {
-            void_ptr ptr = auto();
-            c_int res = posix_memalign(addr_of(ptr), word((long)align), word(size));
-            if (res.intValue() != 0) {
-                // todo: read errno
-                throw new OutOfMemoryError(/*"Allocation failed"*/);
+        // todo: per-object alignment - should we allow it? perhaps not (ignore for now)
+        int64_t_ptr posPtr = addr_of(pos);
+
+        long oldPos, newPos;
+        long oldRegionPos;
+        for (;;) {
+            oldPos = posPtr.loadSingleAcquire().longValue();
+            oldRegionPos = Heap.getCurrentHeapOffset();
+            if (oldPos + size >= oldRegionPos) {
+                // allocate some more pages
+                long pageSize = Heap.getPageSize();
+                long pageMask = pageSize - 1;
+                // this is how far over we are (in pages)
+                long amount = size - oldRegionPos + oldPos + pageMask & ~pageMask;
+                if (Heap.allocateRegion(oldRegionPos, amount) != oldRegionPos) {
+                    // our requested heap was not allocated; retry the loop
+                    continue;
+                }
             }
-            return ptr;
-        } else {
-            void_ptr ptr = malloc(word(size + align));
-            if (ptr.isNull()) {
-                throw new OutOfMemoryError(/*"Allocation failed"*/);
+            newPos = oldPos + size;
+            int objAlign = Heap.getConfiguredObjectAlignment();
+            int objAlignMask = objAlign - 1;
+            long misalign = newPos & objAlignMask;
+            if (misalign != 0) {
+                newPos += objAlign - misalign;
             }
-            long mask = align - 1;
-            long misAlign = ptr.longValue() & mask;
-            if (misAlign != 0) {
-                ptrdiff_t word = word(((~ misAlign) & mask) + 1);
-                ptr = ptr.plus(word.intValue());
+            if (posPtr.compareAndSetRelease(word(oldPos), word(newPos))) {
+                return ptrToRef(Heap.pointerToOffset(oldPos));
             }
-            return ptrToRef(ptr);
+            Thread.onSpinWait();
         }
     }
 
