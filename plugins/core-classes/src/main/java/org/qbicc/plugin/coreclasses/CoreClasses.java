@@ -52,7 +52,6 @@ public final class CoreClasses {
 
     private final FieldElement objectHeaderField;
     private final FieldElement objectTypeIdField;
-    private final FieldElement objectNativeObjectMonitorField;
     private final FieldElement classTypeIdField;
     private final FieldElement classDimensionField;
     private final FieldElement arrayClassField;
@@ -93,7 +92,6 @@ public final class CoreClasses {
 
         objectHeaderField = jlo.resolveField(BaseTypeDescriptor.V, "header", true);
         objectTypeIdField = jlo.resolveField(BaseTypeDescriptor.V, "typeId", true);
-        objectNativeObjectMonitorField = jlo.resolveField(BaseTypeDescriptor.J, "nativeObjectMonitor", true);
 
         classTypeIdField = jlc.resolveField(BaseTypeDescriptor.V, "id", true);
         classDimensionField = jlc.resolveField(BaseTypeDescriptor.V, "dimension", true);
@@ -433,15 +431,6 @@ public final class CoreClasses {
      */
     public LoadedTypeDefinition getObjectTypeDefinition() {
         return objectTypeIdField.getEnclosingType().load();
-    }
-
-    /**
-     * Get the object field which holds the synchronization information (mutex)
-     *
-     * @return the native object monitor field
-     */
-    public FieldElement getObjectNativeObjectMonitorField() { 
-        return objectNativeObjectMonitorField;
     }
 
     /**

@@ -1,4 +1,5 @@
 package org.qbicc.plugin.objectmonitor;
+
 import java.util.List;
 
 import org.qbicc.context.CompilationContext;
@@ -6,7 +7,7 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
-import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
@@ -14,27 +15,31 @@ import org.qbicc.type.definition.element.MethodElement;
  * bytecodes: monitorenter and monitorexit
  */
 public class ObjectMonitorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
-    private final CompilationContext ctxt;
-
-    private final String monitorEnterFunctionName = "monitorEnter";
-    private final String monitorExitFunctionName = "monitorExit";
+    private final MethodElement monitorEnterMethod;
+    private final MethodElement monitorExitMethod;
 
     public ObjectMonitorBasicBlockBuilder(CompilationContext ctxt, BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        LoadedTypeDefinition jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load();
+        int idx = jlo.findSingleMethodIndex(me -> me.nameEquals("monitorEnter"));
+        if (idx == -1) {
+            throw new IllegalStateException();
+        }
+        monitorEnterMethod = jlo.getMethod(idx);
+        idx = jlo.findSingleMethodIndex(me -> me.nameEquals("monitorExit"));
+        if (idx == -1) {
+            throw new IllegalStateException();
+        }
+        monitorExitMethod = jlo.getMethod(idx);
     }
 
     public Node monitorEnter(final Value object) {
-        return generateObjectMonitorFunctionCall(object, monitorEnterFunctionName);
+        BasicBlockBuilder fb = getFirstBuilder();
+        return fb.call(fb.exactMethodOf(object, monitorEnterMethod), List.of());
     }
 
     public Node monitorExit(final Value object) {
-        return generateObjectMonitorFunctionCall(object, monitorExitFunctionName);
-    }
-    
-    private Value generateObjectMonitorFunctionCall(final Value object, String functionName) {
-        MethodElement methodElement = RuntimeMethodFinder.get(ctxt).getMethod(functionName);
-        List<Value> args = List.of(object);
-        return getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement, methodElement.getDescriptor(), methodElement.getType()), args);
+        BasicBlockBuilder fb = getFirstBuilder();
+        return fb.call(fb.exactMethodOf(object, monitorExitMethod), List.of());
     }
 }

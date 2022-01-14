@@ -240,23 +240,4 @@ public class CompilerIntrinsics {
 
     @Hidden
     public static native byte getByteOfInterfaceBits(type_id typeId, int index);
-
-    /**
-     * Get the native object monitor (mutex) slot from the referenced object. These are intended for object monitor synchronization.
-     *
-     * @param reference the object reference (must not be {@code null})
-     * @return the pthread mutex of the object
-     */
-    @Hidden
-    public static native PThread.pthread_mutex_t_ptr getNativeObjectMonitor(Object reference);
-
-    /**
-     * Set the native object monitor (mutex) for the referenced object. This method is atomic and will return true on success.
-     *
-     * @param reference the object reference (must not be {@code null})
-     * @param nom mutex for the referenced object (must not be {@code null})
-     * @return true if successful
-     */
-    @Hidden
-    public static native boolean setNativeObjectMonitor(Object reference, PThread.pthread_mutex_t_ptr nom);
 }

@@ -31,8 +31,6 @@ public class BasicHeaderManualInitializer implements Consumer<VmObject> {
         CoreClasses coreClasses = CoreClasses.get(ctxt);
         FieldElement typeIdField = coreClasses.getObjectTypeIdField();
         memory.storeType(vmObject.indexOf(typeIdField), objectTypeId, SinglePlain);
-        FieldElement nativeMonitorField = coreClasses.getObjectNativeObjectMonitorField();
-        memory.store64(vmObject.indexOf(nativeMonitorField), 0, SinglePlain);
         if (vmObject instanceof VmArray) {
             FieldElement lengthField = coreClasses.getArrayLengthField();
             memory.store32(vmObject.indexOf(lengthField), ((VmArray) vmObject).getLength(), SinglePlain);
