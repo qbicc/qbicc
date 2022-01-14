@@ -83,8 +83,10 @@ public final class IntegerLiteral extends WordLiteral {
             }
         } else if (toType instanceof BooleanType) {
             return lf.literalOf((value & 1) != 0);
+        } else if (toType instanceof IntegerType it && it.getSize() == type.getSize()) {
+            return bitCast(lf, toType);
         }
-        return bitCast(lf, toType);
+        return super.convert(lf, toType);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

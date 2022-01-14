@@ -522,19 +522,22 @@ final class NativeInfo {
         return new ArrayList<>();
     }
 
-    public List<FunctionAndPriority> getGlobalConstructors(DefinedTypeDefinition enclosingType) {
-        return getGlobalXtors(globalCtors, enclosingType);
+    public List<FunctionAndPriority> getGlobalConstructors() {
+        return getGlobalXtors(globalCtors);
     }
 
-    public List<FunctionAndPriority> getGlobalDestructors(DefinedTypeDefinition enclosingType) {
-        return getGlobalXtors(globalDtors, enclosingType);
+    public List<FunctionAndPriority> getGlobalDestructors() {
+        return getGlobalXtors(globalDtors);
     }
 
-    private List<FunctionAndPriority> getGlobalXtors(Map<DefinedTypeDefinition, List<FunctionAndPriority>> map, DefinedTypeDefinition enclosingType) {
-        List<FunctionAndPriority> list = map.getOrDefault(enclosingType, List.of());
-        synchronized (list) {
-            return List.copyOf(list);
+    private List<FunctionAndPriority> getGlobalXtors(Map<DefinedTypeDefinition, List<FunctionAndPriority>> map) {
+        ArrayList<FunctionAndPriority> list = new ArrayList<>();
+        for (List<FunctionAndPriority> subList : map.values()) {
+            synchronized (subList) {
+                list.addAll(subList);
+            }
         }
+        return list;
     }
 
     public record FunctionAndPriority(FunctionElement function, int priority) {}
