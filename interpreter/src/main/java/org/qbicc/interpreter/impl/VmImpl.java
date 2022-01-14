@@ -808,6 +808,17 @@ public final class VmImpl implements Vm {
             build.registerInvokable("isHost", (thread, target, args) -> Boolean.TRUE);
             build.registerInvokable("isTarget", (thread, target, args) -> Boolean.FALSE);
 
+            /////////////////
+            // TODO: temporary workaround for var/method handle initialization
+            // Make access check methods always return true
+            VmClassImpl verifyAccess = bootstrapClassLoader.loadClass("sun/invoke/util/VerifyAccess");
+            verifyAccess.registerInvokable("isClassAccessible", (thread, target, args) -> Boolean.TRUE);
+            VmClassImpl lookup = bootstrapClassLoader.loadClass("java/lang/invoke/MethodHandles$Lookup");
+            lookup.registerInvokable("checkAccess", (thread, target, args) -> null);
+            lookup.registerInvokable("checkMethod", (thread, target, args) -> null);
+            lookup.registerInvokable("checkField", (thread, target, args) -> null);
+            // TODO: ↑ ↑ remove this ↑ ↑
+
             // Now execute system initialization
             LoadedTypeDefinition systemType = systemClass.getTypeDefinition();
             // phase 1
