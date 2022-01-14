@@ -129,6 +129,7 @@ import org.qbicc.plugin.verification.ClassInitializingBasicBlockBuilder;
 import org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder;
 import org.qbicc.plugin.verification.LowerVerificationBasicBlockBuilder;
 import org.qbicc.plugin.verification.MemberResolvingBasicBlockBuilder;
+import org.qbicc.plugin.vio.VIO;
 import org.qbicc.tool.llvm.LlvmToolChain;
 import org.qbicc.type.TypeSystem;
 import picocli.CommandLine;
@@ -377,6 +378,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     VmThread initThread = vm.newThread("initialization", vm.getMainThreadGroup(), false,  Thread.currentThread().getPriority());
                                     vm.doAttached(initThread, vm::initialize);
                                 });
+                                builder.addPreHook(Phase.ADD, VIO::get);
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
                                 if (nogc) {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());

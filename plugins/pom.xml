@@ -44,6 +44,7 @@
         <module>thread-local</module>
         <module>try-catch</module>
         <module>verification</module>
+        <module>vio</module>
         <module>unwind</module>
         <module>serialization</module>
     </modules>
