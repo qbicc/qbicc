@@ -806,6 +806,40 @@ public final class VmImpl implements Vm {
                     throw new Thrown(threadImpl.getVM().errorClass.newInstance("Internal error"));
                 }
             });
+            methodHandleNatives.registerInvokable("staticFieldBase", (thread, target, args) -> {
+                VmMemberNameImpl name = (VmMemberNameImpl) args.get(0);
+                VmThreadImpl threadImpl = (VmThreadImpl) thread;
+                name.resolve(threadImpl, (VmClassImpl) threadImpl.currentFrame.enclosing.element.getEnclosingType().load().getVmClass(), false);
+                // todo: fragile until layouts are unified
+                Element resolved = name.getResolved();
+                if (resolved instanceof FieldElement field) {
+                    if (field.isStatic()) {
+                        return field.getEnclosingType().load().getVmClass().getStaticFieldBase();
+                    } else {
+                        throw new Thrown(threadImpl.getVM().errorClass.newInstance("Wrong field kind"));
+                    }
+                } else {
+                    throw new Thrown(threadImpl.getVM().errorClass.newInstance("Internal error"));
+                }
+            });
+            methodHandleNatives.registerInvokable("staticFieldOffset", (thread, target, args) -> {
+                VmMemberNameImpl name = (VmMemberNameImpl) args.get(0);
+                VmThreadImpl threadImpl = (VmThreadImpl) thread;
+                name.resolve(threadImpl, (VmClassImpl) threadImpl.currentFrame.enclosing.element.getEnclosingType().load().getVmClass(), false);
+                // todo: fragile until layouts are unified
+                Element resolved = name.getResolved();
+                if (resolved instanceof FieldElement field) {
+                    LayoutInfo layoutInfo;
+                    if (field.isStatic()) {
+                        layoutInfo = Layout.get(ctxt).getStaticLayoutInfo(field.getEnclosingType());
+                    } else {
+                        throw new Thrown(threadImpl.getVM().errorClass.newInstance("Wrong field kind"));
+                    }
+                    return Long.valueOf(layoutInfo == null ? 0 : layoutInfo.getMember(field).getOffset());
+                } else {
+                    throw new Thrown(threadImpl.getVM().errorClass.newInstance("Internal error"));
+                }
+            });
 
             // Build
             VmClassImpl build = bootstrapClassLoader.loadClass("org/qbicc/runtime/Build");

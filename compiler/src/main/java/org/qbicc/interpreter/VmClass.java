@@ -35,6 +35,8 @@ public interface VmClass extends VmObject {
      */
     VmObject getLookupObject(int allowedModes);
 
+    VmObject getStaticFieldBase();
+
     String getName();
 
     String getSimpleName();

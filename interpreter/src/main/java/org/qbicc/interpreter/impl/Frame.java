@@ -2280,7 +2280,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public Memory visit(Frame frame, ReferenceHandle node) {
             Value referenceValue = node.getReferenceValue();
-            VmObjectImpl refVal = (VmObjectImpl) frame.require(referenceValue);
+            VmObject refVal = (VmObject) frame.require(referenceValue);
             return refVal.getMemory();
         }
 
