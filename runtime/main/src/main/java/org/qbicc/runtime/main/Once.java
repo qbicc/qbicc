@@ -1,5 +1,7 @@
 package org.qbicc.runtime.main;
 
+import org.qbicc.runtime.AutoQueued;
+
 import java.util.Objects;
 
 /**
@@ -34,7 +36,8 @@ public final class Once {
      *
      * @throws Throwable the object thrown by the target task
      */
-    @SuppressWarnings("unused") // invoked by compiler-generated code
+    @SuppressWarnings("unused")
+    @AutoQueued
     public void run() throws Throwable {
         boolean done = this.done;
         if (! done) {

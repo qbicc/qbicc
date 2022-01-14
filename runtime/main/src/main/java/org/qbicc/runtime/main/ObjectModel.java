@@ -1,5 +1,6 @@
 package org.qbicc.runtime.main;
 
+import org.qbicc.runtime.AutoQueued;
 import org.qbicc.runtime.CNative;
 import org.qbicc.runtime.Hidden;
 
@@ -68,6 +69,7 @@ public class ObjectModel {
      * @return instance of java.lang.Class
      */
     @Hidden
+    @AutoQueued
     public static Class<?> getOrCreateClassForRefArray(Class<?> leafClass, uint8_t dimensions) {
         return getArrayClassOfDimension(leafClass, dimensions);
     }

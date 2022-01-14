@@ -1,5 +1,6 @@
 package org.qbicc.runtime.stackwalk;
 
+import org.qbicc.runtime.AutoQueued;
 import org.qbicc.runtime.CNative;
 import org.qbicc.runtime.main.CompilerIntrinsics;
 
@@ -82,6 +83,7 @@ public final class MethodData {
         printString(className + "#" + methodName + "(" + fileName + ")");
     }
 
+    @AutoQueued
     public static void fillStackTraceElements(StackTraceElement[] steArray, Object backtrace, int depth) {
         int[] sourceCodeIndexList = (int[]) backtrace;
         for (int i = 0; i < depth; i++) {

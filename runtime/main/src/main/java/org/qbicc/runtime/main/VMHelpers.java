@@ -1,6 +1,6 @@
 package org.qbicc.runtime.main;
 
-import org.qbicc.runtime.CNative;
+import org.qbicc.runtime.AutoQueued;
 import org.qbicc.runtime.Hidden;
 import org.qbicc.runtime.Inline;
 import org.qbicc.runtime.InlineCondition;
@@ -20,6 +20,7 @@ public final class VMHelpers {
 
     @NoSideEffects
     @Hidden
+    @AutoQueued
     public static boolean instanceofClass(Object instance, Class<?> cls) {
         if (instance == null) {
             return false;
@@ -31,6 +32,7 @@ public final class VMHelpers {
 
     @NoSideEffects
     @Hidden
+    @AutoQueued
     public static boolean instanceofTypeId(Object instance, type_id typeId, uint8_t dimensions) {
         if (instance == null) {
             return false;
@@ -39,6 +41,7 @@ public final class VMHelpers {
     }
 
     @Hidden
+    @AutoQueued
     public static void arrayStoreCheck(Object value, type_id toTypeId, uint8_t toDimensions) {
         if (value == null || isAssignableTo(value, toTypeId, toDimensions)) {
             return;
@@ -47,6 +50,7 @@ public final class VMHelpers {
     }
 
     @Hidden
+    @AutoQueued
     public static void checkcastClass(Object value, Class<?> cls) {
         type_id toTypeId = CompilerIntrinsics.getTypeIdFromClass(cls);
         uint8_t toDim = CompilerIntrinsics.getDimensionsFromClass(cls);
@@ -54,6 +58,7 @@ public final class VMHelpers {
     }
 
     @Hidden
+    @AutoQueued
     public static void checkcastTypeId(Object value, type_id toTypeId, uint8_t toDimensions) {
         if (value == null || isAssignableTo(value, toTypeId, toDimensions)) {
             return;
@@ -94,6 +99,7 @@ public final class VMHelpers {
     }
 
     @Hidden
+    @AutoQueued
     public static Class<?> getClassFromObject(Object instance) {
         type_id typeId = CompilerIntrinsics.typeIdOf(instance);
         uint8_t dims = word(0);
@@ -101,30 +107,33 @@ public final class VMHelpers {
             typeId = CompilerIntrinsics.elementTypeIdOf(instance);
             dims = CompilerIntrinsics.dimensionsOf(instance);
         }
-        return getClassFromTypeid(typeId, dims);
+        return CompilerIntrinsics.getClassFromTypeId(typeId, dims);
     }
 
     @NoSideEffects
     @Hidden
     @Inline(InlineCondition.NEVER)
+    @Deprecated // should just call compiler intrinsic directly.
     static Class<?> getClassFromTypeid(type_id typeId, uint8_t dimensions) {
         return CompilerIntrinsics.getClassFromTypeId(typeId, dimensions);
     }
 
     @Hidden
     @Deprecated // moved to Class$_native.getSuperClass
+    @AutoQueued
     static Class<?> getSuperClass(type_id typeId) {
         if (CompilerIntrinsics.isJavaLangObject(typeId) || CompilerIntrinsics.isPrimitive(typeId) || CompilerIntrinsics.isInterface(typeId)) {
             return null;
         }
         type_id superTypeId = CompilerIntrinsics.getSuperClassTypeId(typeId);
         uint8_t dims = word(0);
-        return getClassFromTypeid(superTypeId, dims);
+        return CompilerIntrinsics.getClassFromTypeId(superTypeId, dims);
     }
 
     @Hidden
     @NoReturn
     @Inline(InlineCondition.NEVER)
+    @AutoQueued
     static void raiseAbstractMethodError() {
         throw new AbstractMethodError();
     }
@@ -132,6 +141,7 @@ public final class VMHelpers {
     @Hidden
     @NoReturn
     @Inline(InlineCondition.NEVER)
+    @AutoQueued
     static void raiseArithmeticException() {
         throw new ArithmeticException();
     }
@@ -139,6 +149,7 @@ public final class VMHelpers {
     @Hidden
     @NoReturn
     @Inline(InlineCondition.NEVER)
+    @AutoQueued
     static void raiseArrayIndexOutOfBoundsException() {
         throw new ArrayIndexOutOfBoundsException();
     }
@@ -146,6 +157,7 @@ public final class VMHelpers {
     @Hidden
     @NoReturn
     @Inline(InlineCondition.NEVER)
+    @AutoQueued
     static void raiseArrayStoreException() {
         throw new ArrayStoreException();
     }
@@ -153,6 +165,7 @@ public final class VMHelpers {
     @Hidden
     @NoReturn
     @Inline(InlineCondition.NEVER)
+    @AutoQueued
     static void raiseClassCastException() {
         throw new ClassCastException();
     }
@@ -160,6 +173,7 @@ public final class VMHelpers {
     @Hidden
     @NoReturn
     @Inline(InlineCondition.NEVER)
+    @AutoQueued
     static void raiseIncompatibleClassChangeError() {
         throw new IncompatibleClassChangeError(); 
     }
@@ -167,6 +181,7 @@ public final class VMHelpers {
     @Hidden
     @NoReturn
     @Inline(InlineCondition.NEVER)
+    @AutoQueued
     static void raiseNegativeArraySizeException() {
         throw new NegativeArraySizeException(); 
     }
@@ -174,6 +189,7 @@ public final class VMHelpers {
     @Hidden
     @NoReturn
     @Inline(InlineCondition.NEVER)
+    @AutoQueued
     static void raiseNullPointerException() {
         throw new NullPointerException();
     }
@@ -181,16 +197,10 @@ public final class VMHelpers {
     @Hidden
     @NoReturn
     @Inline(InlineCondition.NEVER)
+    @AutoQueued
     static void raiseUnsatisfiedLinkError(String target) {
         throw new UnsatisfiedLinkError(target);
     }
- 
-
-    // Temporary helper methods to print to stdout
-    // TODO: remove these once we have better runtime trace facilities
-
-    @extern
-    public static native int putchar(int arg);
 
 
     // Run time class loading
@@ -223,6 +233,7 @@ public final class VMHelpers {
      */
     @Hidden
     @Inline(InlineCondition.NEVER)
+    @AutoQueued
     public static void JLT_start0(void_ptr_unaryoperator_function_ptr runFuncPtr, void_ptr thread) {
         // TODO once invokedynamic is working for lambda expressions use addr_of_function to fetch the correct function pointer
         //function_ptr<UnaryOperator<void_ptr>> runFuncPtr = addr_of_function(VMHelpers::threadWrapperNative);

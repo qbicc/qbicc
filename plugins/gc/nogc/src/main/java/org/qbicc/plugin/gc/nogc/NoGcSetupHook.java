@@ -10,8 +10,6 @@ import org.qbicc.type.definition.element.InitializerElement;
  */
 public class NoGcSetupHook implements Consumer<CompilationContext> {
     public void accept(final CompilationContext ctxt) {
-        ctxt.registerAutoQueuedElement(NoGc.get(ctxt).getAllocateMethod());
-        ctxt.registerAutoQueuedElement(NoGc.get(ctxt).getCopyMethod());
-        ctxt.registerAutoQueuedElement(NoGc.get(ctxt).getZeroMethod());
+        NoGc.get(ctxt); // Causes NoGc runtime classes to be loaded.
     }
 }
