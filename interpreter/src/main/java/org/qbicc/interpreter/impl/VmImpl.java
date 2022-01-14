@@ -720,6 +720,10 @@ public final class VmImpl implements Vm {
                 }
                 return classLoader.defineClass(name, b, pd);
             });
+            classloaderClass.registerInvokable("findBootstrapClass", (thread, target, args) -> {
+                DefinedTypeDefinition definedType = ctxt.getBootstrapClassContext().findDefinedType(((VmString) args.get(0)).getContent().replace('.', '/'));
+                return definedType == null ? null : definedType.load().getVmClass();
+            });
 
             // Array
             VmClassImpl arrayClass = bootstrapClassLoader.loadClass("java/lang/reflect/Array");
