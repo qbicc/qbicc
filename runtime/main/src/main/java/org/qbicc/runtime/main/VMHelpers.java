@@ -112,6 +112,7 @@ public final class VMHelpers {
     }
 
     @Hidden
+    @Deprecated // moved to Class$_native.getSuperClass
     static Class<?> getSuperClass(type_id typeId) {
         if (CompilerIntrinsics.isJavaLangObject(typeId) || CompilerIntrinsics.isPrimitive(typeId) || CompilerIntrinsics.isInterface(typeId)) {
             return null;

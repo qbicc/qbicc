@@ -211,6 +211,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(fileDescriptorDesc, "getAppend", intToBool, getAppend);
     }
 
+    // TODO: Some now implements in Class$_native. Remove from here after qbicc 0.4 released
     public static void registerJavaLangClassIntrinsics(CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
@@ -461,6 +462,7 @@ public final class CoreIntrinsics {
 
         // Null and no-operation intrinsics
 
+        // TODO: moved to System$_patch; remove after next qbicc class lib release
         StaticIntrinsic returnNull = (builder, target, arguments) ->
             classContext.getLiteralFactory().zeroInitializerLiteralOfType(jls.getClassType().getReference());
         intrinsics.registerIntrinsic(systemDesc, "getSecurityManager",
@@ -491,7 +493,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(systemDesc, "setErr0", setPrintStreamDesc, setVolatile(ctxt, err));
 
         // arraycopy
-
+        // TODO: moved to System$_native; remove after next qbicc class lib release
         MethodDescriptor arraycopyDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(
             jloDesc,
             BaseTypeDescriptor.I,
@@ -508,6 +510,7 @@ public final class CoreIntrinsics {
         // identity hash code
 
         // todo: obviously non-optimal; replace once we have object headers sorted out
+        // TODO: moved to System$_native; remove after next qbicc class lib release
         StaticIntrinsic identityHashCode = (builder, target, arguments) ->
             ctxt.getLiteralFactory().literalOf(0);
 
@@ -515,6 +518,7 @@ public final class CoreIntrinsics {
 
         MethodDescriptor stringToVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(stringDesc));
 
+        // TODO: moved to System$_patch; remove after next qbicc class lib release
         StaticIntrinsic loadLibrary = (builder, target, arguments) -> {
             Value libraryName = arguments.get(0);
             String content;
@@ -1011,14 +1015,13 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
 
+        // TODO: Now implemented in classlib: Remove after qbicc-classlib 0.4 released.
         // Object#getClass()Ljava/lang/Class; --> field read of the "typeId" field
         MethodDescriptor getClassDesc = MethodDescriptor.synthesize(classContext, jlcDesc, List.of());
-
         InstanceIntrinsic getClassIntrinsic = (builder, instance, target, arguments) -> {
             MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("getClassFromObject");
             return builder.getFirstBuilder().call(builder.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(instance));
         };
-
         intrinsics.registerIntrinsic(Phase.ADD, objDesc, "getClass", getClassDesc, getClassIntrinsic);
     }
 
