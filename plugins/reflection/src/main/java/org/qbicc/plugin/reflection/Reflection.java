@@ -286,7 +286,7 @@ public final class Reflection {
         VmClassLoader classLoader = declaringClass.getClassLoader();
         MethodDescriptor desc = method.getDescriptor();
         List<TypeDescriptor> paramTypes = desc.getParameterTypes();
-        VmArray paramTypesVal = vm.newArrayOf(methodClass.getArrayClass(), paramTypes.size());
+        VmArray paramTypesVal = vm.newArrayOf(classClass, paramTypes.size());
         for (int j = 0; j < paramTypes.size(); j ++) {
             paramTypesVal.getMemory().storeRef(paramTypesVal.getArrayElementOffset(j), vm.getClassForDescriptor(classLoader, paramTypes.get(j)), SinglePlain);
         }
