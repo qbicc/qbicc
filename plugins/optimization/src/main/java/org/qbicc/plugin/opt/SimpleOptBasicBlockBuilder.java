@@ -521,6 +521,9 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value select(final Value condition, final Value trueValue, final Value falseValue) {
+        if (condition instanceof Comp comp) {
+            return select(comp.getInput(), falseValue, trueValue);
+        }
         if (isEqualToLiteral(trueValue, 1) && isEqualToLiteral(falseValue, 0)) {
             return extend(condition, (WordType) trueValue.getType());
         } else if (isEqualToLiteral(trueValue, 0) && isEqualToLiteral(falseValue, 1)) {
@@ -544,6 +547,9 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public BasicBlock if_(final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget) {
+        if (condition instanceof Comp comp) {
+            return if_(comp.getInput(), falseTarget, trueTarget);
+        }
         final BooleanLiteral trueLit = ctxt.getLiteralFactory().literalOf(true);
         final BooleanLiteral falseLit = ctxt.getLiteralFactory().literalOf(false);
         if (condition.isDefEq(trueLit) || condition.isDefNe(falseLit)) {
