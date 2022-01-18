@@ -36,7 +36,7 @@ public abstract class Executable extends AbstractValueHandle {
 
     @Override
     public FunctionType getValueType() {
-        return executable.getType();
+        return callSiteType;
     }
 
     public ExecutableElement getExecutable() {
