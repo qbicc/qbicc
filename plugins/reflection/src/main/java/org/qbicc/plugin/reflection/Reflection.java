@@ -1,8 +1,10 @@
 package org.qbicc.plugin.reflection;
 
+import static org.qbicc.graph.atomic.AccessModes.GlobalRelease;
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmClass;
@@ -18,9 +21,15 @@ import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.interpreter.VmReferenceArray;
+import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
+import org.qbicc.interpreter.VmThrowableClass;
+import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.layout.LayoutInfo;
+import org.qbicc.plugin.patcher.Patcher;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.AnnotationValue;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.classfile.ConstantPool;
@@ -30,16 +39,44 @@ import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.generic.BaseTypeSignature;
+import org.qbicc.type.generic.TypeSignature;
+import org.qbicc.type.methodhandle.MethodHandleKind;
 
 /**
  * Hub for reflection support.
  */
 public final class Reflection {
+    private static final int IS_METHOD = 1 << 16;
+    private static final int IS_CONSTRUCTOR = 1 << 17;
+    private static final int IS_FIELD = 1 << 18;
+    private static final int IS_TYPE = 1 << 19;
+    private static final int CALLER_SENSITIVE = 1 << 20;
+    private static final int TRUSTED_FINAL = 1 << 21;
+
+    private static final int KIND_SHIFT = 24;
+
+    private static final int KIND_GET_FIELD = MethodHandleKind.GET_FIELD.getId();
+    private static final int KIND_GET_STATIC = MethodHandleKind.GET_STATIC.getId();
+    private static final int KIND_PUT_FIELD = MethodHandleKind.PUT_FIELD.getId();
+    private static final int KIND_PUT_STATIC = MethodHandleKind.PUT_STATIC.getId();
+    private static final int KIND_INVOKE_VIRTUAL = MethodHandleKind.INVOKE_VIRTUAL.getId();
+    private static final int KIND_INVOKE_STATIC = MethodHandleKind.INVOKE_STATIC.getId();
+    private static final int KIND_INVOKE_SPECIAL = MethodHandleKind.INVOKE_SPECIAL.getId();
+    private static final int KIND_NEW_INVOKE_SPECIAL = MethodHandleKind.NEW_INVOKE_SPECIAL.getId();
+    private static final int KIND_INVOKE_INTERFACE = MethodHandleKind.INVOKE_INTERFACE.getId();
+
+    private static final int KIND_MASK = 0xf;
+
     private static final AttachmentKey<Reflection> KEY = new AttachmentKey<>();
 
     private static final byte[] NO_BYTES = new byte[0];
+
+    private final CompilationContext ctxt;
 
     private final Map<VmClass, VmObject> cpMap = new ConcurrentHashMap<>();
     private final Map<VmClass, VmReferenceArray> declaredFields = new ConcurrentHashMap<>();
@@ -59,15 +96,62 @@ public final class Reflection {
     private final VmClass fieldClass;
     private final VmClass methodClass;
     private final VmClass constructorClass;
+    private final VmClass rmnClass;
+    private final VmClass memberNameClass;
+    private final VmThrowableClass linkageErrorClass;
     private final ConstructorElement cpCtor;
     private final ConstructorElement fieldCtor;
     private final ConstructorElement methodCtor;
     private final ConstructorElement ctorCtor;
+    private final ConstructorElement rmnCtor;
+    // byte refKind, Class<?> defClass, String name, Object(Class|MethodType) type
+    private final ConstructorElement memberName4Ctor;
+
+    // reflection fields
+    // MemberName
+    private final FieldElement memberNameClazzField; // Class
+    private final FieldElement memberNameNameField; // String
+    private final FieldElement memberNameTypeField; // Object
+    private final FieldElement memberNameFlagsField; // int
+    private final FieldElement memberNameMethodField; // ResolvedMethodName
+    private final FieldElement memberNameIndexField; // int (injected)
+    // Field
+    private final FieldElement fieldClazzField; // Class
+    private final FieldElement fieldSlotField; // int
+    private final FieldElement fieldNameField; // String
+    private final FieldElement fieldTypeField; // Class
+    // Method
+    private final FieldElement methodClazzField; // Class
+    private final FieldElement methodSlotField; // int
+    private final FieldElement methodNameField; // String
+    private final FieldElement methodReturnTypeField; // Class
+    private final FieldElement methodParameterTypesField; // Class[]
+    // Method
+    private final FieldElement ctorClazzField; // Class
+    private final FieldElement ctorSlotField; // int
+    private final FieldElement ctorParameterTypesField; // Class[]
+    // ResolvedMethodName (injected fields)
+    private final FieldElement rmnIndexField; // int
+    private final FieldElement rmnClazzField; // Class
+    // MethodType
+    private final FieldElement methodTypePTypesField; // Class[]
+    private final FieldElement methodTypeRTypeField; // Class
 
     private Reflection(CompilationContext ctxt) {
+        this.ctxt = ctxt;
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        // Field injections (*early*)
+        Patcher patcher = Patcher.get(ctxt);
+
+        patcher.addField(classContext, "java/lang/invoke/MemberName", "index", BaseTypeDescriptor.I, this::resolveIndexField, 0, 0);
+
+        patcher.addField(classContext, "java/lang/invoke/ResolvedMethodName", "index", BaseTypeDescriptor.I, this::resolveIndexField, 0, 0);
+        patcher.addField(classContext, "java/lang/invoke/ResolvedMethodName", "clazz", ClassTypeDescriptor.synthesize(classContext, "java/lang/Class"), this::resolveClazzField, 0, 0);
+
+        // VM
         vm = ctxt.getVm();
         noBytes = vm.newByteArray(NO_BYTES);
-        ClassContext classContext = ctxt.getBootstrapClassContext();
         // ConstantPool
         LoadedTypeDefinition cpDef = classContext.findDefinedType("jdk/internal/reflect/ConstantPool").load();
         cpClass = cpDef.getVmClass();
@@ -100,6 +184,60 @@ public final class Reflection {
         LoadedTypeDefinition ctorDef = classContext.findDefinedType("java/lang/reflect/Constructor").load();
         constructorClass = ctorDef.getVmClass();
         ctorCtor = ctorDef.requireSingleConstructor(ce -> ce.getDescriptor().getParameterTypes().size() == 8);
+        LoadedTypeDefinition mhnDef = classContext.findDefinedType("java/lang/invoke/MethodHandleNatives").load();
+        vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("init")), this::methodHandleNativesInit);
+        vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("resolve")), this::methodHandleNativesResolve);
+        vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("objectFieldOffset")), this::methodHandleNativesObjectFieldOffset);
+        vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("staticFieldBase")), this::methodHandleNativesStaticFieldBase);
+        vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("staticFieldOffset")), this::methodHandleNativesStaticFieldOffset);
+
+        // MemberName
+        LoadedTypeDefinition memberNameDef = classContext.findDefinedType("java/lang/invoke/MemberName").load();
+        memberNameClazzField = memberNameDef.findField("clazz");
+        memberNameNameField = memberNameDef.findField("name");
+        memberNameTypeField = memberNameDef.findField("type");
+        memberNameFlagsField = memberNameDef.findField("flags");
+        memberNameMethodField = memberNameDef.findField("method");
+        memberNameIndexField = memberNameDef.findField("index");
+        MethodDescriptor memberName4Desc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(
+            BaseTypeDescriptor.B,
+            classDef.getDescriptor(),
+            ClassTypeDescriptor.synthesize(classContext, "java/lang/String"),
+            ClassTypeDescriptor.synthesize(classContext, "java/lang/Object")
+        ));
+        memberNameClass = memberNameDef.getVmClass();
+        memberName4Ctor = memberNameDef.resolveConstructorElement(memberName4Desc);
+        // Field
+        fieldClazzField = fieldDef.findField("clazz");
+        fieldSlotField = fieldDef.findField("slot");
+        fieldNameField = fieldDef.findField("name");
+        fieldTypeField = fieldDef.findField("type");
+        // Method
+        methodClazzField = methodDef.findField("clazz");
+        methodSlotField = methodDef.findField("slot");
+        methodNameField = methodDef.findField("name");
+        methodReturnTypeField = methodDef.findField("returnType");
+        methodParameterTypesField = methodDef.findField("parameterTypes");
+        // Constructor
+        ctorClazzField = ctorDef.findField("clazz");
+        ctorSlotField = ctorDef.findField("slot");
+        ctorParameterTypesField = ctorDef.findField("parameterTypes");
+
+        // ResolvedMethodName
+        LoadedTypeDefinition rmnDef = classContext.findDefinedType("java/lang/invoke/ResolvedMethodName").load();
+        rmnCtor = rmnDef.getConstructor(0);
+        rmnClass = rmnDef.getVmClass();
+        rmnIndexField = rmnDef.findField("index");
+        rmnClazzField = rmnDef.findField("clazz");
+
+        // Exceptions & errors
+        LoadedTypeDefinition leDef = classContext.findDefinedType("java/lang/LinkageError").load();
+        linkageErrorClass = (VmThrowableClass) leDef.getVmClass();
+
+        // MethodType
+        LoadedTypeDefinition mtDef = classContext.findDefinedType("java/lang/invoke/MethodType").load();
+        methodTypeRTypeField = mtDef.findField("rtype");
+        methodTypePTypesField = mtDef.findField("ptypes");
     }
 
     public static Reflection get(CompilationContext ctxt) {
@@ -225,6 +363,10 @@ public final class Reflection {
         VmObject vmObject = reflectionObjects.get(field);
         if (vmObject != null) {
             return vmObject;
+        }
+        // field might get mutated; note it here so we don't cache it unduly
+        if (! field.isStatic()) {
+            field.setModifierFlags(ClassFile.I_ACC_NOT_REALLY_FINAL);
         }
         VmClass declaringClass = field.getEnclosingType().load().getVmClass();
         vmObject = vm.newInstance(fieldClass, fieldCtor, Arrays.asList(
@@ -354,15 +496,6 @@ public final class Reflection {
         return appearing != null ? appearing : pubMethods;
     }
 
-//    Constructor(Class<T> declaringClass,
-//                Class<?>[] parameterTypes,
-//                Class<?>[] checkedExceptions,
-//                int modifiers,
-//                int slot,
-//                String signature,
-//                byte[] annotations,
-//                byte[] parameterAnnotations) {
-
     private Object getClassDeclaredConstructors0(final VmThread vmThread, final VmObject vmObject, final List<Object> objects) {
         return getClassDeclaredConstructors((VmClass) vmObject, ((Boolean) objects.get(0)).booleanValue());
     }
@@ -427,4 +560,368 @@ public final class Reflection {
         VmReferenceArray appearing = map.putIfAbsent(vmClass, pubConstructors);
         return appearing != null ? appearing : pubConstructors;
     }
+
+    private Object methodHandleNativesInit(final VmThread thread, final VmObject ignored, final List<Object> args) {
+        VmObject self = (VmObject) args.get(0);
+        VmObject target = (VmObject) args.get(1);
+        VmClass targetClass = target.getVmClass();
+        // target may be a reflection method, field, or constructor
+        LoadedTypeDefinition targetClassDef = targetClass.getTypeDefinition();
+        String targetClassIntName = targetClassDef.getInternalName();
+        if (targetClassIntName.equals("java/lang/reflect/Field")) {
+            initMethodHandleField(self, target, false);
+            return null;
+        }
+        if (targetClassIntName.equals("java/lang/reflect/Method")) {
+            initMethodHandleMethod(self, target);
+            return null;
+        }
+        if (targetClassIntName.equals("java/lang/reflect/Constructor")) {
+            initMethodHandleCtor(self, target);
+            return null;
+        }
+        throw new IllegalStateException("Unknown reflection object kind");
+    }
+
+    private void initMethodHandleMethod(final VmObject memberName, final VmObject methodTarget) {
+        // First read values from the Method object
+
+        // get the method's enclosing class
+        VmClass clazzVal = (VmClass) methodTarget.getMemory().loadRef(methodTarget.indexOf(methodClazzField), SinglePlain);
+        // get the method index
+        int index = methodTarget.getMemory().load32(methodTarget.indexOf(methodSlotField), SinglePlain);
+
+        // find the referenced method
+        MethodElement refMethod = clazzVal.getTypeDefinition().getMethod(index);
+        int flags = refMethod.getModifiers() & 0x1fff;
+
+        // TODO: hard-coded only when called from `init`; add support for other uses
+        flags |= IS_METHOD;
+        if (refMethod.isStatic()) {
+            flags |= KIND_INVOKE_STATIC << KIND_SHIFT;
+        } else {
+            flags |= KIND_INVOKE_SPECIAL << KIND_SHIFT;
+        }
+        if (false /* refMethod.isCallerSensitive() */) {
+            flags |= CALLER_SENSITIVE;
+        }
+
+        // Now initialize the corresponding MemberName fields
+
+        // Create a ResolvedMethodName for the resolved method
+        // todo: switch to resolved method once we are resolving
+        MethodElement resolved = refMethod;
+
+        VmObject rmn = vm.newInstance(rmnClass, rmnCtor, List.of());
+
+        rmn.getMemory().storeRef(rmn.indexOf(rmnClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
+        rmn.getMemory().store32(rmn.indexOf(rmnIndexField), resolved.getIndex(), SinglePlain);
+
+        // set the member name flags
+        memberName.getMemory().store32(memberName.indexOf(memberNameFlagsField), flags, SinglePlain);
+        // set the member name's field holder
+        memberName.getMemory().storeRef(memberName.indexOf(memberNameClazzField), clazzVal, SinglePlain);
+        // set the member name's method
+        memberName.getMemory().storeRef(memberName.indexOf(memberNameMethodField), rmn, SinglePlain);
+        // set the member name index
+        memberName.getMemory().store32(memberName.indexOf(memberNameIndexField), refMethod.getIndex(), SinglePlain);
+        // all done
+        return;
+    }
+
+    private void initMethodHandleCtor(final VmObject memberName, final VmObject methodTarget) {
+        // First read values from the Constructor object
+
+        // get the ctor's enclosing class
+        VmClass clazzVal = (VmClass) methodTarget.getMemory().loadRef(methodTarget.indexOf(ctorClazzField), SinglePlain);
+        // get the ctor index
+        int index = methodTarget.getMemory().load32(methodTarget.indexOf(ctorSlotField), SinglePlain);
+
+        // find the referenced ctor
+        ConstructorElement refCtor = clazzVal.getTypeDefinition().getConstructor(index);
+        int flags = refCtor.getModifiers() & 0x1fff;
+
+        flags |= IS_CONSTRUCTOR | KIND_INVOKE_SPECIAL << KIND_SHIFT;
+
+        // Now initialize the corresponding MemberName fields
+
+        // Create a ResolvedMethodName for the ctor
+        VmObject rmn = vm.newInstance(rmnClass, rmnCtor, List.of());
+
+        rmn.getMemory().storeRef(rmn.indexOf(rmnClazzField), refCtor.getEnclosingType().load().getVmClass(), SinglePlain);
+        rmn.getMemory().store32(rmn.indexOf(rmnIndexField), refCtor.getIndex(), SinglePlain);
+
+        // set the member name flags
+        memberName.getMemory().store32(memberName.indexOf(memberNameFlagsField), flags, SinglePlain);
+        // set the member name's field holder
+        memberName.getMemory().storeRef(memberName.indexOf(memberNameClazzField), clazzVal, SinglePlain);
+        // set the member name's "method"
+        memberName.getMemory().storeRef(memberName.indexOf(memberNameMethodField), rmn, SinglePlain);
+        // set the member name index
+        memberName.getMemory().store32(memberName.indexOf(memberNameIndexField), refCtor.getIndex(), SinglePlain);
+        // all done
+        return;
+    }
+
+    private void initMethodHandleField(final VmObject memberName, final VmObject fieldTarget, boolean isSetter) {
+        // First read values from the Field object
+
+        // get the field's enclosing class
+        VmClass clazzVal = (VmClass) fieldTarget.getMemory().loadRef(fieldTarget.indexOf(fieldClazzField), SinglePlain);
+        // get the field index
+        int index = fieldTarget.getMemory().load32(fieldTarget.indexOf(fieldSlotField), SinglePlain);
+        // get the field name
+        VmString nameVal = (VmString) fieldTarget.getMemory().loadRef(fieldTarget.indexOf(fieldNameField), SinglePlain);
+        // get the field type class
+        VmClass fieldClazzVal = (VmClass) fieldTarget.getMemory().loadRef(fieldTarget.indexOf(fieldTypeField), SinglePlain);
+
+        // find the referenced field
+        FieldElement refField = clazzVal.getTypeDefinition().getField(index);
+        int flags = refField.getModifiers() & 0x1fff;
+
+        // set up flags
+        flags |= IS_FIELD;
+        if (refField.isStatic()) {
+            if (isSetter) {
+                flags |= KIND_PUT_STATIC << KIND_SHIFT;
+            } else {
+                flags |= KIND_GET_STATIC << KIND_SHIFT;
+            }
+        } else {
+            if (isSetter) {
+                flags |= KIND_PUT_FIELD << KIND_SHIFT;
+            } else {
+                flags |= KIND_GET_FIELD << KIND_SHIFT;
+            }
+        }
+        if (refField.isReallyFinal()) {
+            flags |= TRUSTED_FINAL;
+        }
+
+        // Now initialize the corresponding MemberName fields
+
+        // set the member name flags
+        memberName.getMemory().store32(memberName.indexOf(memberNameFlagsField), flags, SinglePlain);
+        // set the member name's field holder
+        memberName.getMemory().storeRef(memberName.indexOf(memberNameClazzField), clazzVal, SinglePlain);
+        // set the member name's name
+        memberName.getMemory().storeRef(memberName.indexOf(memberNameNameField), nameVal, SinglePlain);
+        // set the member name's type to the field type
+        memberName.getMemory().storeRef(memberName.indexOf(memberNameTypeField), fieldClazzVal, SinglePlain);
+        // set the member name index
+        memberName.getMemory().store32(memberName.indexOf(memberNameIndexField), refField.getIndex(), SinglePlain);
+        // all done
+        return;
+    }
+
+    private Object methodHandleNativesResolve(final VmThread thread, final VmObject ignored, final List<Object> args) {
+        Vm vm = thread.getVM();
+        VmObject memberName = (VmObject) args.get(0);
+        VmClass caller = (VmClass) args.get(1);
+        boolean speculativeResolve = (((Number) args.get(2)).intValue() & 1) != 0;
+        VmClass clazz = (VmClass) memberName.getMemory().loadRef(memberName.indexOf(memberNameClazzField), SinglePlain);
+        VmString name = (VmString) memberName.getMemory().loadRef(memberName.indexOf(memberNameNameField), SinglePlain);
+        VmObject type = memberName.getMemory().loadRef(memberName.indexOf(memberNameTypeField), SinglePlain);
+        int flags = memberName.getMemory().load32(memberName.indexOf(memberNameFlagsField), SinglePlain);
+        int kind = (flags >> KIND_SHIFT) & KIND_MASK;
+        if (clazz == null || name == null || type == null) {
+            throw new Thrown(linkageErrorClass.newInstance("Null name or class"));
+        }
+        ClassContext classContext = clazz.getTypeDefinition().getContext();
+        // determine what kind of thing we're resolving
+        if ((flags & IS_FIELD) != 0) {
+            // find a field with the given name
+            FieldElement resolved = clazz.getTypeDefinition().findField(name.getContent());
+            if (resolved == null && ! speculativeResolve) {
+                throw new Thrown(linkageErrorClass.newInstance("No such field: " + clazz.getName() + "#" + name.getContent()));
+            }
+            if (resolved == null) {
+                return null;
+            }
+            VmClass fieldTypeClass = vm.getClassForDescriptor(clazz.getClassLoader(), resolved.getTypeDescriptor());
+            // create a member name
+            VmObject result = vm.newInstance(memberNameClass, memberName4Ctor, List.of(
+                Byte.valueOf((byte) kind),
+                resolved.getEnclosingType().load().getVmClass(),
+                vm.intern(resolved.getName()),
+                fieldTypeClass
+            ));
+            result.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
+            return result;
+        } else if ((flags & IS_TYPE) != 0) {
+            throw new Thrown(linkageErrorClass.newInstance("Not sure what to do for resolving a type"));
+        } else {
+            // some kind of exec element
+            MethodDescriptor desc = createFromMethodType(classContext, type);
+            if (((flags & IS_CONSTRUCTOR) != 0)) {
+                int idx = clazz.getTypeDefinition().findConstructorIndex(desc);
+                if (idx == -1) {
+                    if (! speculativeResolve) {
+                        throw new Thrown(linkageErrorClass.newInstance("No such constructor: " + name.getContent() + ":" + desc.toString()));
+                    }
+                    return null;
+                }
+                if (kind != KIND_NEW_INVOKE_SPECIAL) {
+                    throw new Thrown(linkageErrorClass.newInstance("Unknown handle kind"));
+                }
+                ConstructorElement resolved = clazz.getTypeDefinition().getConstructor(idx);
+                // create a member name
+                VmObject result = vm.newInstance(memberNameClass, memberName4Ctor, List.of(
+                    Byte.valueOf((byte) kind),
+                    resolved.getEnclosingType().load().getVmClass(),
+                    vm.intern("<init>"),
+                    type
+                ));
+                result.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
+                return result;
+            } else if (((flags & IS_METHOD) != 0)){
+                // resolve
+                MethodElement resolved;
+                // todo: consider visibility, caller
+                if (kind == KIND_INVOKE_STATIC) {
+                    // use virtual algorithm to find static
+                    resolved = clazz.getTypeDefinition().resolveMethodElementVirtual(name.getContent(), desc);
+                    // todo: ICCE check...
+                } else if (kind == KIND_INVOKE_INTERFACE) {
+                    // interface also uses virtual resolution - against the target class
+                    resolved = clazz.getTypeDefinition().resolveMethodElementVirtual(name.getContent(), desc);
+                    // todo: ICCE check...
+                } else if (kind == KIND_INVOKE_SPECIAL) {
+                    resolved = clazz.getTypeDefinition().resolveMethodElementExact(name.getContent(), desc);
+                    // todo: ICCE check...
+                } else if (kind == KIND_INVOKE_VIRTUAL) {
+                    resolved = clazz.getTypeDefinition().resolveMethodElementVirtual(name.getContent(), desc);
+                    // todo: ICCE check...
+                } else {
+                    throw new Thrown(linkageErrorClass.newInstance("Unknown handle kind"));
+                }
+                if (resolved == null) {
+                    if (! speculativeResolve) {
+                        throw new Thrown(linkageErrorClass.newInstance("No such method: " + clazz.getName() + "#" + name.getContent() + ":" + desc.toString()));
+                    }
+                    return null;
+                }
+                // create a member name
+                VmObject result = vm.newInstance(memberNameClass, memberName4Ctor, List.of(
+                    Byte.valueOf((byte) kind),
+                    resolved.getEnclosingType().load().getVmClass(),
+                    vm.intern(resolved.getName()),
+                    type
+                ));
+                result.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
+                return result;
+            } else {
+                throw new Thrown(linkageErrorClass.newInstance("Unknown resolution request"));
+            }
+        }
+    }
+
+    MethodDescriptor createFromMethodType(ClassContext classContext, VmObject methodType) {
+        VmClass mtClass = methodType.getVmClass();
+        if (! mtClass.getName().equals("java.lang.invoke.MethodType")) {
+            throw new Thrown(linkageErrorClass.newInstance("Type argument is of wrong class"));
+        }
+        VmClass rtype = (VmClass) methodType.getMemory().loadRef(methodType.indexOf(methodTypeRTypeField), SinglePlain);
+        if (rtype == null) {
+            throw new Thrown(linkageErrorClass.newInstance("MethodType has null return type"));
+        }
+        VmArray ptypes = (VmArray) methodType.getMemory().loadRef(methodType.indexOf(methodTypePTypesField), SinglePlain);
+        if (ptypes == null) {
+            throw new Thrown(linkageErrorClass.newInstance("MethodType has null param types"));
+        }
+        int pcnt = ptypes.getLength();
+        ArrayList<TypeDescriptor> paramTypes = new ArrayList<>(pcnt);
+        for (int i = 0; i < pcnt; i ++) {
+            VmClass clazz = (VmClass) ptypes.getMemory().loadRef(ptypes.getArrayElementOffset(i), SinglePlain);
+            paramTypes.add(clazz.getDescriptor());
+        }
+        return MethodDescriptor.synthesize(classContext, rtype.getDescriptor(), paramTypes);
+    }
+
+    private Object methodHandleNativesObjectFieldOffset(final VmThread thread, final VmObject ignored, final List<Object> args) {
+        VmObject name = (VmObject) args.get(0);
+        // assume resolved
+        VmClass clazz = (VmClass) name.getMemory().loadRef(name.indexOf(memberNameClazzField), SinglePlain);
+        int idx = name.getMemory().load32(name.indexOf(memberNameIndexField), SinglePlain);
+        if (idx == 0) {
+            // todo: breakpoint
+            idx = 0;
+        }
+        FieldElement field = clazz.getTypeDefinition().getField(idx);
+        LayoutInfo layoutInfo;
+        if (field.isStatic()) {
+            throw new Thrown(linkageErrorClass.newInstance("Wrong field kind"));
+        } else {
+            layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(field.getEnclosingType());
+        }
+        return Long.valueOf(layoutInfo.getMember(field).getOffset());
+    }
+
+    private Object methodHandleNativesStaticFieldBase(final VmThread thread, final VmObject ignored, final List<Object> args) {
+        VmObject name = (VmObject) args.get(0);
+        // assume resolved
+        VmClass clazz = (VmClass) name.getMemory().loadRef(name.indexOf(memberNameClazzField), SinglePlain);
+        int idx = name.getMemory().load32(name.indexOf(memberNameIndexField), SinglePlain);
+        if (idx == 0) {
+            // todo: breakpoint
+            idx = 0;
+        }
+        FieldElement field = clazz.getTypeDefinition().getField(idx);
+        LayoutInfo layoutInfo;
+        if (field.isStatic()) {
+            return field.getEnclosingType().load().getVmClass().getStaticFieldBase();
+        } else {
+            throw new Thrown(linkageErrorClass.newInstance("Wrong field kind"));
+        }
+    }
+
+    private Object methodHandleNativesStaticFieldOffset(final VmThread thread, final VmObject ignored, final List<Object> args) {
+        VmObject name = (VmObject) args.get(0);
+        // assume resolved
+        VmClass clazz = (VmClass) name.getMemory().loadRef(name.indexOf(memberNameClazzField), SinglePlain);
+        int idx = name.getMemory().load32(name.indexOf(memberNameIndexField), SinglePlain);
+        if (idx == 0) {
+            // todo: breakpoint
+            idx = 0;
+        }
+        FieldElement field = clazz.getTypeDefinition().getField(idx);
+        LayoutInfo layoutInfo;
+        if (field.isStatic()) {
+            layoutInfo = Layout.get(ctxt).getStaticLayoutInfo(field.getEnclosingType());
+        } else {
+            throw new Thrown(linkageErrorClass.newInstance("Wrong field kind"));
+        }
+        return Long.valueOf(layoutInfo == null ? 0 : layoutInfo.getMember(field).getOffset());
+    }
+
+    /**
+     * Resolve the injected {@code index} field of {@code ResolvedMethodName} or {@code MemberName}.
+     *
+     * @param index the field index (ignored)
+     * @param typeDef the type definition (ignored)
+     * @param builder the field builder
+     * @return the resolved field
+     */
+    private FieldElement resolveIndexField(final int index, final DefinedTypeDefinition typeDef, final FieldElement.Builder builder) {
+        builder.setEnclosingType(typeDef);
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT);
+        builder.setSignature(BaseTypeSignature.I);
+        return builder.build();
+    }
+
+    /**
+     * Resolve the injected {@code clazz} field of {@code ResolvedMethodName}.
+     *
+     * @param index the field index (ignored)
+     * @param typeDef the type definition (ignored)
+     * @param builder the field builder
+     * @return the resolved field
+     */
+    private FieldElement resolveClazzField(final int index, final DefinedTypeDefinition typeDef, final FieldElement.Builder builder) {
+        builder.setEnclosingType(typeDef);
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT);
+        builder.setSignature(TypeSignature.synthesize(typeDef.getContext(), builder.getDescriptor()));
+        return builder.build();
+    }
+
 }

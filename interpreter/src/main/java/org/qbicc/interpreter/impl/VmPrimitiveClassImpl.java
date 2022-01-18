@@ -33,7 +33,7 @@ class VmPrimitiveClassImpl extends VmClassImpl implements VmPrimitiveClass {
     }
 
     @Override
-    BaseTypeDescriptor getDescriptor() {
+    public BaseTypeDescriptor getDescriptor() {
         return descriptor;
     }
 

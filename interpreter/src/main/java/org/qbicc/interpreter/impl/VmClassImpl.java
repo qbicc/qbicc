@@ -32,6 +32,7 @@ import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
@@ -213,7 +214,12 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     }
 
     void postConstruct(VmImpl vm) {
-        postConstruct(typeDefinition.getInternalName().replace('/', '.'), vm);
+        String name = typeDefinition.getInternalName().replace('/', '.');
+        if (typeDefinition.hasAllModifiersOf(ClassFile.I_ACC_HIDDEN)) {
+            VmClassLoaderImpl realClassLoader = vm.getClassLoaderForContext(typeDefinition.getContext());
+            name += '/' + realClassLoader.getHiddenClassSeq(name);
+        }
+        postConstruct(name, vm);
     }
 
     void postConstruct(final String name, VmImpl vm) {
@@ -566,11 +572,16 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         return "class " + getName();
     }
 
+    @Override
+    StringBuilder toString(StringBuilder target) {
+        return target.append("class ").append(getName());
+    }
+
     boolean shouldBeInitialized() {
         return state == State.UNINITIALIZED;
     }
 
-    TypeDescriptor getDescriptor() {
+    public TypeDescriptor getDescriptor() {
         return typeDefinition.getDescriptor();
     }
 

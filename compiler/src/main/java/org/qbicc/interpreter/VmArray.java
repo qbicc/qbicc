@@ -11,4 +11,7 @@ public interface VmArray extends VmObject {
     int getArrayElementOffset(int index);
 
     ArrayObjectType getObjectType();
+
+    @Override
+    VmArrayClass getVmClass();
 }

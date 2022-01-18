@@ -8,6 +8,7 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  *
@@ -69,4 +70,6 @@ public interface VmClass extends VmObject {
      * @throws IllegalStateException if the method was already compiled for interpretation
      */
     void registerInvokable(String name, MethodDescriptor descriptor, VmInvokable invokable) throws IllegalStateException;
+
+    TypeDescriptor getDescriptor();
 }

@@ -85,6 +85,11 @@ final class VmStringImpl extends VmObjectImpl implements VmString {
     }
 
     @Override
+    StringBuilder toString(StringBuilder target) {
+        return target.append(getContent());
+    }
+
+    @Override
     public boolean contentEquals(String string) {
         return getContent().equals(string);
     }
