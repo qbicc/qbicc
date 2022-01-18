@@ -852,7 +852,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
         builder.setSignature(signature);
         builder.setSourceFileName(sourceFile);
-        builder.setIndex(index);
         return builder.build();
     }
 
@@ -931,7 +930,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
         addParameters(builder, index, enclosing);
         addMethodAnnotations(index, builder);
-        builder.setIndex(index);
         return builder.build();
     }
 
@@ -953,7 +951,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
         addParameters(builder, index, enclosing);
         addMethodAnnotations(index, builder);
-        builder.setIndex(index);
         builder.setSourceFileName(sourceFile);
         return builder.build();
     }
@@ -976,7 +973,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             }
         }
         builder.setSourceFileName(sourceFile);
-        builder.setIndex(index);
         return builder.build();
     }
 
@@ -1037,9 +1033,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 }
                 paramMods = methodParams.getShort() & 0xffff;
             }
-            ParameterElement.Builder paramBuilder = ParameterElement.builder(name, methodDescriptor.getParameterTypes().get(i));
+            ParameterElement.Builder paramBuilder = ParameterElement.builder(name, methodDescriptor.getParameterTypes().get(i), i);
             paramBuilder.setEnclosingType(enclosing);
-            paramBuilder.setIndex(i);
             paramBuilder.setModifiers(paramMods);
             paramBuilder.setTypeParameterContext(tpc);
             paramBuilder.setSignature(signature.getParameterTypes().get(i));

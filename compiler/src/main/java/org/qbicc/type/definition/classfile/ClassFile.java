@@ -89,7 +89,7 @@ public interface ClassFile extends FieldResolver,
     int I_ACC_PINNED = 1 << 16;
     int I_ACC_DEPRECATED = 1 << 17;
     /**
-     * On methods, hide from stack traces.
+     * On methods, hide from stack traces.  On classes, defined as a JEP 371 "hidden class".
      */
     int I_ACC_HIDDEN = 1 << 18;
     /**

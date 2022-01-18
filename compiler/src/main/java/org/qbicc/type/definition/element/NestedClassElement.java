@@ -30,8 +30,8 @@ public final class NestedClassElement extends BasicElement implements MemberElem
         return visitor.visit(param, this);
     }
 
-    public static Builder builder() {
-        return new BuilderImpl();
+    public static Builder builder(int index) {
+        return new BuilderImpl(index);
     }
 
     public interface Builder extends BasicElement.Builder, MemberElement.Builder, NamedElement.Builder {
@@ -61,7 +61,9 @@ public final class NestedClassElement extends BasicElement implements MemberElem
         private String name;
         private DefinedTypeDefinition correspondingType;
 
-        BuilderImpl() {}
+        BuilderImpl(int index) {
+            super(index);
+        }
 
         public void setCorrespondingType(final DefinedTypeDefinition correspondingType) {
             this.correspondingType = correspondingType;

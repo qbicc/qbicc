@@ -78,8 +78,8 @@ public final class MethodElement extends InvokableElement implements NamedElemen
         return visitor.visit(param, this);
     }
 
-    public static Builder builder(String name, MethodDescriptor descriptor) {
-        return new BuilderImpl(name, descriptor);
+    public static Builder builder(String name, MethodDescriptor descriptor, int index) {
+        return new BuilderImpl(name, descriptor, index);
     }
 
     public boolean overrides(final MethodElement other) {
@@ -118,8 +118,8 @@ public final class MethodElement extends InvokableElement implements NamedElemen
         final String name;
         AnnotationValue defaultValue;
 
-        BuilderImpl(String name, MethodDescriptor descriptor) {
-            super(descriptor);
+        BuilderImpl(String name, MethodDescriptor descriptor, int index) {
+            super(descriptor, index);
             this.name = name;
         }
 

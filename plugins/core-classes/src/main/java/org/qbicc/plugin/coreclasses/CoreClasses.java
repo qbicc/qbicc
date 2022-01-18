@@ -177,7 +177,6 @@ public final class CoreClasses {
     private static FieldElement makeDimensionsField(final int index, final DefinedTypeDefinition enclosing, FieldElement.Builder fieldBuilder) {
         fieldBuilder.setEnclosingType(enclosing);
         fieldBuilder.setSignature(BaseTypeSignature.V);
-        fieldBuilder.setIndex(index);
         fieldBuilder.setType(enclosing.getContext().getTypeSystem().getUnsignedInteger8Type());
         fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         return fieldBuilder.build();
@@ -186,7 +185,6 @@ public final class CoreClasses {
     private static FieldElement makeLengthField(final int index, final DefinedTypeDefinition enclosing, FieldElement.Builder fieldBuilder) {
         fieldBuilder.setEnclosingType(enclosing);
         fieldBuilder.setSignature(BaseTypeSignature.I);
-        fieldBuilder.setIndex(index);
         fieldBuilder.setType(enclosing.getContext().getTypeSystem().getSignedInteger32Type());
         fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         return fieldBuilder.build();
@@ -195,7 +193,6 @@ public final class CoreClasses {
     private static FieldElement makeElementTypeIdField(final int index, final DefinedTypeDefinition jlo, final DefinedTypeDefinition enclosing, FieldElement.Builder fieldBuilder) {
         fieldBuilder.setEnclosingType(enclosing);
         fieldBuilder.setSignature(BaseTypeSignature.V);
-        fieldBuilder.setIndex(index);
         fieldBuilder.setType(jlo.load().getClassType().getTypeType());
         fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         return fieldBuilder.build();
@@ -204,7 +201,6 @@ public final class CoreClasses {
     private static FieldElement makeContentField(final int index, final DefinedTypeDefinition enclosing, final ValueType realMemberType, FieldElement.Builder fieldBuilder) {
         fieldBuilder.setEnclosingType(enclosing);
         fieldBuilder.setSignature(BaseTypeSignature.V);
-        fieldBuilder.setIndex(index);
         fieldBuilder.setType(enclosing.getContext().getTypeSystem().getArrayType(realMemberType, 0));
         fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         return fieldBuilder.build();

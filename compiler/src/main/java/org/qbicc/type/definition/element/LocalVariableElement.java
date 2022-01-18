@@ -45,8 +45,8 @@ public final class LocalVariableElement extends VariableElement {
         return super.resolveTypeDescriptor(classContext, paramCtxt);
     }
 
-    public static Builder builder(String name, TypeDescriptor typeDescriptor) {
-        return new BuilderImpl(name, typeDescriptor);
+    public static Builder builder(String name, TypeDescriptor typeDescriptor, int index) {
+        return new BuilderImpl(name, typeDescriptor, index);
     }
 
     public interface Builder extends VariableElement.Builder {
@@ -89,8 +89,8 @@ public final class LocalVariableElement extends VariableElement {
         private int line;
         private int bci = -1;
 
-        BuilderImpl(String name, TypeDescriptor typeDescriptor) {
-            super(name, typeDescriptor);
+        BuilderImpl(String name, TypeDescriptor typeDescriptor, int index) {
+            super(name, typeDescriptor, index);
         }
 
         public void setReflectsParameter(boolean reflectsParameter) {

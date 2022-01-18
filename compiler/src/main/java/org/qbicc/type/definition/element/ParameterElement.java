@@ -19,8 +19,8 @@ public final class ParameterElement extends VariableElement {
         return visitor.visit(param, this);
     }
 
-    public static Builder builder(String name, TypeDescriptor descriptor) {
-        return new BuilderImpl(name, descriptor);
+    public static Builder builder(String name, TypeDescriptor descriptor, int index) {
+        return new BuilderImpl(name, descriptor, index);
     }
 
     public static Builder builder(ParameterElement original) {
@@ -51,8 +51,8 @@ public final class ParameterElement extends VariableElement {
     }
 
     static final class BuilderImpl extends VariableElement.BuilderImpl implements Builder {
-        BuilderImpl(String name, TypeDescriptor typeDescriptor) {
-            super(name, typeDescriptor);
+        BuilderImpl(String name, TypeDescriptor typeDescriptor, int index) {
+            super(name, typeDescriptor, index);
         }
 
         BuilderImpl(ParameterElement original) {

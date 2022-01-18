@@ -180,7 +180,8 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         private TypeParameterContext typeParameterContext;
         private ValueType type;
 
-        BuilderImpl(final String name, final TypeDescriptor typeDescriptor) {
+        BuilderImpl(final String name, final TypeDescriptor typeDescriptor, int index) {
+            super(index);
             this.name = name;
             this.typeDescriptor = typeDescriptor;
         }

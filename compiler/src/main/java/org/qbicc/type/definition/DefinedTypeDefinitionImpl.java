@@ -226,19 +226,19 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         cnt = getFieldCount();
         ArrayList<FieldElement> fields = new ArrayList<>(cnt);
         for (int i = 0; i < cnt; i ++) {
-            fields.add(fieldResolvers[i].resolveField(fieldIndexes[i], this, FieldElement.builder(fieldNames[i], fieldDescriptors[i])));
+            fields.add(fieldResolvers[i].resolveField(fieldIndexes[i], this, FieldElement.builder(fieldNames[i], fieldDescriptors[i], i)));
         }
         cnt = getMethodCount();
         MethodElement[] methods;
         if (isInterface()) {
             methods = cnt == 0 ? MethodElement.NO_METHODS : new MethodElement[cnt];
             for (int i = 0; i < cnt; i ++) {
-                methods[i] = methodResolvers[i].resolveMethod(methodIndexes[i], this, MethodElement.builder(methodNames[i], methodDescriptors[i]));
+                methods[i] = methodResolvers[i].resolveMethod(methodIndexes[i], this, MethodElement.builder(methodNames[i], methodDescriptors[i], i));
             }
         } else {
             List<MethodElement> methodsList = new ArrayList<>(cnt + (cnt >> 1)); // 1.5x size
             for (int i = 0; i < cnt; i ++) {
-                methodsList.add(methodResolvers[i].resolveMethod(methodIndexes[i], this, MethodElement.builder(methodNames[i], methodDescriptors[i])));
+                methodsList.add(methodResolvers[i].resolveMethod(methodIndexes[i], this, MethodElement.builder(methodNames[i], methodDescriptors[i], i)));
             }
             // now add methods for any maximally-specific interface methods that are not implemented by this class
             // - but, if the method is default, let's copy it in, body and all
@@ -275,7 +275,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                     defaultMethod = element;
                                 } else {
                                     // conflict method! Synthesize a method that throws ICCE
-                                    MethodElement.Builder builder = MethodElement.builder(name, descriptor);
+                                    MethodElement.Builder builder = MethodElement.builder(name, descriptor, methodsList.size());
                                     builder.setEnclosingType(this);
                                     // inheritable interface methods are public
                                     builder.setModifiers(ClassFile.ACC_PUBLIC);
@@ -314,7 +314,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                         }
                         assert oneOfTheMethods != null;
                         // non-conflict method
-                        MethodElement.Builder builder = MethodElement.builder(name, descriptor);
+                        MethodElement.Builder builder = MethodElement.builder(name, descriptor, methodsList.size());
                         builder.setEnclosingType(this);
                         builder.setInvisibleAnnotations(List.of());
                         builder.setVisibleAnnotations(List.of());
@@ -362,10 +362,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         cnt = getConstructorCount();
         ConstructorElement[] ctors = cnt == 0 ? ConstructorElement.NO_CONSTRUCTORS : new ConstructorElement[cnt];
         for (int i = 0; i < cnt; i ++) {
-            ctors[i] = constructorResolvers[i].resolveConstructor(constructorIndexes[i], this, ConstructorElement.builder(constructorDescriptors[i]));
+            ctors[i] = constructorResolvers[i].resolveConstructor(constructorIndexes[i], this, ConstructorElement.builder(constructorDescriptors[i], i));
         }
         InitializerElement init = initializerResolver.resolveInitializer(initializerIndex, this, InitializerElement.builder());
-        NestedClassElement enclosingClass = enclosingClassResolver == null ? null : enclosingClassResolver.resolveEnclosingNestedClass(enclosingClassResolverIndex, this, NestedClassElement.builder());
+        NestedClassElement enclosingClass = enclosingClassResolver == null ? null : enclosingClassResolver.resolveEnclosingNestedClass(enclosingClassResolverIndex, this, NestedClassElement.builder(0));
         NestedClassElement[] enclosedClasses = resolveEnclosedClasses(enclosedClassResolvers, enclosedClassResolverIndexes, 0, 0);
 
         // Construct instanceMethods -- the ordered list of all instance methods inherited and directly implemented.
@@ -516,7 +516,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         if (inIdx == maxInIdx) {
             return outIdx == 0 ? NestedClassElement.NO_NESTED_CLASSES : new NestedClassElement[outIdx];
         }
-        NestedClassElement resolved = resolvers[inIdx].resolveEnclosedNestedClass(indexes[inIdx], this, NestedClassElement.builder());
+        NestedClassElement resolved = resolvers[inIdx].resolveEnclosedNestedClass(indexes[inIdx], this, NestedClassElement.builder(inIdx));
         if (resolved != null) {
             NestedClassElement[] array = resolveEnclosedClasses(resolvers, indexes, inIdx + 1, outIdx + 1);
             array[outIdx] = resolved;
@@ -843,6 +843,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
         public void setModifiers(final int modifiers) {
             this.modifiers = modifiers;
+        }
+
+        public void addModifiers(int modifiers) {
+            this.modifiers |= modifiers;
         }
 
         public void setSuperClassName(final String superClassInternalName) {

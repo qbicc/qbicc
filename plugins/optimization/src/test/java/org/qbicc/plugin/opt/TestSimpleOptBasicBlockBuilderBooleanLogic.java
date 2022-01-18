@@ -44,7 +44,7 @@ public final class TestSimpleOptBasicBlockBuilderBooleanLogic extends AbstractCo
         typeBuilder.setSimpleName("TestClass");
         typeBuilder.setInitializer((index, enclosing, builder) -> builder.build(), 0);
         final DefinedTypeDefinition enclosingType = typeBuilder.build();
-        final MethodElement.Builder builder = MethodElement.builder("testMethod", MethodDescriptor.VOID_METHOD_DESCRIPTOR);
+        final MethodElement.Builder builder = MethodElement.builder("testMethod", MethodDescriptor.VOID_METHOD_DESCRIPTOR, 0);
         builder.setEnclosingType(enclosingType);
         builder.setSignature(MethodSignature.VOID_METHOD_SIGNATURE);
         builder.setModifiers(ClassFile.ACC_STATIC);
@@ -64,7 +64,7 @@ public final class TestSimpleOptBasicBlockBuilderBooleanLogic extends AbstractCo
     }
 
     private LocalVariableElement createLocalVar(String name, ValueType type) {
-        final LocalVariableElement.Builder builder = LocalVariableElement.builder(name, BaseTypeDescriptor.V);
+        final LocalVariableElement.Builder builder = LocalVariableElement.builder(name, BaseTypeDescriptor.V, 0);
         builder.setEnclosingType(element.getEnclosingType());
         builder.setType(type);
         builder.setSignature(BaseTypeSignature.V);

@@ -53,7 +53,7 @@ public final class GlobalVariableElement extends VariableElement {
         private String section = CompilationContext.IMPLICIT_SECTION_NAME;
 
         BuilderImpl(String name, TypeDescriptor typeDescriptor) {
-            super(name, typeDescriptor);
+            super(name, typeDescriptor, 0);
             setTypeParameterContext(TypeParameterContext.EMPTY);
         }
 

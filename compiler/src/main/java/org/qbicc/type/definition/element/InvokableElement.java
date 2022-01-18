@@ -288,7 +288,8 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         int maximumLineNumber = 1;
         FunctionType type;
 
-        BuilderImpl(MethodDescriptor descriptor) {
+        BuilderImpl(MethodDescriptor descriptor, int index) {
+            super(index);
             this.descriptor = descriptor;
         }
 

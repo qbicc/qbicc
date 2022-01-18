@@ -60,8 +60,8 @@ public final class FieldElement extends VariableElement implements MemberElement
         return super.resolveTypeDescriptor(classContext, paramCtxt);
     }
 
-    public static Builder builder(String name, TypeDescriptor descriptor) {
-        return new BuilderImpl(name, descriptor);
+    public static Builder builder(String name, TypeDescriptor descriptor, int index) {
+        return new BuilderImpl(name, descriptor, index);
     }
 
     public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
@@ -108,8 +108,8 @@ public final class FieldElement extends VariableElement implements MemberElement
     }
 
     static final class BuilderImpl extends VariableElement.BuilderImpl implements Builder {
-        BuilderImpl(String name, TypeDescriptor typeDescriptor) {
-            super(name, typeDescriptor);
+        BuilderImpl(String name, TypeDescriptor typeDescriptor, int index) {
+            super(name, typeDescriptor, index);
         }
 
         private Literal initialValue;

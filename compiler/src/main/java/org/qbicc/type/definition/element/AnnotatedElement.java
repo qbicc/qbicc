@@ -65,7 +65,9 @@ public abstract class AnnotatedElement extends BasicElement {
         List<Annotation> visibleAnnotations = List.of();
         List<Annotation> invisibleAnnotations = List.of();
 
-        BuilderImpl() {}
+        BuilderImpl(int index) {
+            super(index);
+        }
 
         BuilderImpl(final AnnotatedElement original) {
             super(original);

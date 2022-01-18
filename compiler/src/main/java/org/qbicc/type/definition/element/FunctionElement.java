@@ -35,8 +35,8 @@ public final class FunctionElement extends InvokableElement implements NamedElem
         return "function " + getName();
     }
 
-    public static Builder builder(String name, MethodDescriptor descriptor) {
-        return new BuilderImpl(name, descriptor);
+    public static Builder builder(String name, MethodDescriptor descriptor, int index) {
+        return new BuilderImpl(name, descriptor, index);
     }
 
     public interface Builder extends InvokableElement.Builder, NamedElement.Builder {
@@ -92,8 +92,8 @@ public final class FunctionElement extends InvokableElement implements NamedElem
     static final class BuilderImpl extends InvokableElement.BuilderImpl implements Builder {
         private final String name;
 
-        BuilderImpl(String name, MethodDescriptor descriptor) {
-            super(descriptor);
+        BuilderImpl(String name, MethodDescriptor descriptor, int index) {
+            super(descriptor, index);
             this.name = name;
         }
 

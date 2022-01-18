@@ -51,7 +51,7 @@ public class ThreadLocalTypeBuilder implements DefinedTypeDefinition.Builder.Del
                             }
                             resolved.setModifierFlags(ClassFile.I_ACC_THREAD_LOCAL);
                             DefinedTypeDefinition jlt = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread");
-                            FieldElement.Builder injectedFieldBuilder = FieldElement.builder(resolved.getName(), resolved.getTypeDescriptor());
+                            FieldElement.Builder injectedFieldBuilder = FieldElement.builder(resolved.getName(), resolved.getTypeDescriptor(), resolved.getIndex());
                             int modifiers = resolved.getModifiers();
                             // remove unwanted modifiers
                             modifiers &= ~(ClassFile.I_ACC_THREAD_LOCAL | ClassFile.ACC_STATIC);

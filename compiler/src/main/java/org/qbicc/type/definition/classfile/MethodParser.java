@@ -45,7 +45,6 @@ import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmThread;
-import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
@@ -147,14 +146,13 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     throw new IllegalStateException("No descriptor for local variable");
                 }
                 TypeDescriptor typeDescriptor = (TypeDescriptor) info.getClassFile().getDescriptorConstant(cons);
-                LocalVariableElement.Builder builder = LocalVariableElement.builder(name, typeDescriptor);
+                LocalVariableElement.Builder builder = LocalVariableElement.builder(name, typeDescriptor, slot);
                 int startPc = info.getLocalVarStartPc(slot, entry);
                 if (startPc == 0) {
                     builder.setReflectsParameter(true);
                 }
                 builder.setBci(startPc);
                 builder.setLine(info.getLineNumber(startPc));
-                builder.setIndex(slot);
                 builder.setEnclosingType(gf.getCurrentElement().getEnclosingType());
                 builder.setTypeParameterContext(gf.getCurrentElement().getTypeParameterContext());
                 cons = info.getLocalVarSignatureIndex(slot, entry);
