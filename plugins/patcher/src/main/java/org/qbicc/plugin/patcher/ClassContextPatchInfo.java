@@ -249,7 +249,7 @@ final class ClassContextPatchInfo {
                         break;
                     }
                 }
-                MethodDescriptor methodDesc = classFile.getMethodDescriptor(i);
+                MethodDescriptor methodDesc = transform(classFile.getMethodDescriptor(i));
                 if (kind == K_ADD) {
                     if (ctor) {
                         classPatchInfo.addConstructor(new ConstructorPatchInfo(i, addModifiers, classFile, methodDesc, internalName, annotation));
@@ -322,7 +322,7 @@ final class ClassContextPatchInfo {
                         break;
                     }
                 }
-                TypeDescriptor fieldDesc = classFile.getFieldDescriptor(i);
+                TypeDescriptor fieldDesc = transform(classFile.getFieldDescriptor(i));
                 boolean isStatic = (fieldMods & ClassFile.ACC_STATIC) != 0;
                 if (kind == K_ADD) {
                     if (isStatic && runTimeAspect) {
