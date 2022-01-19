@@ -99,6 +99,15 @@ public final class Reflection {
     private final VmClass rmnClass;
     private final VmClass memberNameClass;
     private final VmThrowableClass linkageErrorClass;
+    private final VmThrowableClass invocationTargetExceptionClass;
+    private final VmClass byteClass;
+    private final VmClass shortClass;
+    private final VmClass integerClass;
+    private final VmClass longClass;
+    private final VmClass characterClass;
+    private final VmClass floatClass;
+    private final VmClass doubleClass;
+    private final VmClass booleanClass;
     private final ConstructorElement cpCtor;
     private final ConstructorElement fieldCtor;
     private final ConstructorElement methodCtor;
@@ -136,6 +145,16 @@ public final class Reflection {
     // MethodType
     private final FieldElement methodTypePTypesField; // Class[]
     private final FieldElement methodTypeRTypeField; // Class
+
+    // box type fields
+    private final FieldElement byteValueField;
+    private final FieldElement shortValueField;
+    private final FieldElement integerValueField;
+    private final FieldElement longValueField;
+    private final FieldElement characterValueField;
+    private final FieldElement floatValueField;
+    private final FieldElement doubleValueField;
+    private final FieldElement booleanValueField;
 
     private Reflection(CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -190,7 +209,10 @@ public final class Reflection {
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("objectFieldOffset")), this::methodHandleNativesObjectFieldOffset);
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("staticFieldBase")), this::methodHandleNativesStaticFieldBase);
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("staticFieldOffset")), this::methodHandleNativesStaticFieldOffset);
-
+        LoadedTypeDefinition nativeCtorAccImplDef = classContext.findDefinedType("jdk/internal/reflect/NativeConstructorAccessorImpl").load();
+        vm.registerInvokable(nativeCtorAccImplDef.requireSingleMethod(me -> me.nameEquals("newInstance0")), this::nativeConstructorAccessorImplNewInstance0);
+        LoadedTypeDefinition nativeMethodAccImplDef = classContext.findDefinedType("jdk/internal/reflect/NativeMethodAccessorImpl").load();
+        vm.registerInvokable(nativeMethodAccImplDef.requireSingleMethod(me -> me.nameEquals("invoke0")), this::nativeMethodAccessorImplInvoke0);
         // MemberName
         LoadedTypeDefinition memberNameDef = classContext.findDefinedType("java/lang/invoke/MemberName").load();
         memberNameClazzField = memberNameDef.findField("clazz");
@@ -233,11 +255,39 @@ public final class Reflection {
         // Exceptions & errors
         LoadedTypeDefinition leDef = classContext.findDefinedType("java/lang/LinkageError").load();
         linkageErrorClass = (VmThrowableClass) leDef.getVmClass();
+        LoadedTypeDefinition iteDef = classContext.findDefinedType("java/lang/reflect/InvocationTargetException").load();
+        invocationTargetExceptionClass = (VmThrowableClass) iteDef.getVmClass();
 
         // MethodType
         LoadedTypeDefinition mtDef = classContext.findDefinedType("java/lang/invoke/MethodType").load();
         methodTypeRTypeField = mtDef.findField("rtype");
         methodTypePTypesField = mtDef.findField("ptypes");
+
+        // box types
+        LoadedTypeDefinition byteDef = classContext.findDefinedType("java/lang/Byte").load();
+        byteClass = byteDef.getVmClass();
+        byteValueField = byteDef.findField("value");
+        LoadedTypeDefinition shortDef = classContext.findDefinedType("java/lang/Short").load();
+        shortClass = shortDef.getVmClass();
+        shortValueField = shortDef.findField("value");
+        LoadedTypeDefinition integerDef = classContext.findDefinedType("java/lang/Integer").load();
+        integerClass = integerDef.getVmClass();
+        integerValueField = integerDef.findField("value");
+        LoadedTypeDefinition longDef = classContext.findDefinedType("java/lang/Long").load();
+        longClass = longDef.getVmClass();
+        longValueField = longDef.findField("value");
+        LoadedTypeDefinition characterDef = classContext.findDefinedType("java/lang/Character").load();
+        characterClass = characterDef.getVmClass();
+        characterValueField = characterDef.findField("value");
+        LoadedTypeDefinition floatDef = classContext.findDefinedType("java/lang/Float").load();
+        floatClass = floatDef.getVmClass();
+        floatValueField = floatDef.findField("value");
+        LoadedTypeDefinition doubleDef = classContext.findDefinedType("java/lang/Double").load();
+        doubleClass = doubleDef.getVmClass();
+        doubleValueField = doubleDef.findField("value");
+        LoadedTypeDefinition booleanDef = classContext.findDefinedType("java/lang/Boolean").load();
+        booleanClass = booleanDef.getVmClass();
+        booleanValueField = booleanDef.findField("value");
     }
 
     public static Reflection get(CompilationContext ctxt) {
@@ -892,6 +942,95 @@ public final class Reflection {
             throw new Thrown(linkageErrorClass.newInstance("Wrong field kind"));
         }
         return Long.valueOf(layoutInfo == null ? 0 : layoutInfo.getMember(field).getOffset());
+    }
+
+    private Object nativeConstructorAccessorImplNewInstance0(final VmThread thread, final VmObject ignored, final List<Object> args) {
+        VmObject ctor = (VmObject) args.get(0);
+        VmArray argsArray = (VmArray) args.get(1);
+        // unbox the hyper-boxed arguments
+        List<Object> unboxed;
+        if (argsArray == null) {
+            unboxed = List.of();
+        } else {
+            int argCnt = argsArray.getLength();
+            unboxed = new ArrayList<>(argCnt);
+            for (int i = 0; i < argCnt; i ++) {
+                unboxed.add(unbox(argsArray.getMemory().loadRef(argsArray.getArrayElementOffset(i), SinglePlain)));
+            }
+        }
+        // the enclosing class
+        VmClass clazz = (VmClass) ctor.getMemory().loadRef(ctor.indexOf(ctorClazzField), SinglePlain);
+        int slot = ctor.getMemory().load32(ctor.indexOf(ctorSlotField), SinglePlain);
+        ConstructorElement ce = clazz.getTypeDefinition().getConstructor(slot);
+        ctxt.enqueue(ce);
+        try {
+            return vm.newInstance(clazz, ce, unboxed);
+        } catch (Thrown thrown) {
+            throw new Thrown(invocationTargetExceptionClass.newInstance(thrown.getThrowable()));
+        }
+    }
+
+    private Object nativeMethodAccessorImplInvoke0(final VmThread thread, final VmObject ignored, final List<Object> args) {
+        //    private static native Object invoke0(Method m, Object obj, Object[] args);
+        VmObject method = (VmObject) args.get(0);
+        VmObject receiver = (VmObject) args.get(1);
+        VmArray argsArray = (VmArray) args.get(2);
+        // unbox the hyper-boxed arguments
+        List<Object> unboxed;
+        if (argsArray == null) {
+            unboxed = List.of();
+        } else {
+            int argCnt = argsArray.getLength();
+            unboxed = new ArrayList<>(argCnt);
+            for (int i = 0; i < argCnt; i ++) {
+                unboxed.add(unbox(argsArray.getMemory().loadRef(argsArray.getArrayElementOffset(i), SinglePlain)));
+            }
+        }
+        // the enclosing class
+        VmClass clazz = (VmClass) method.getMemory().loadRef(method.indexOf(methodClazzField), SinglePlain);
+        int slot = method.getMemory().load32(method.indexOf(methodSlotField), SinglePlain);
+        MethodElement me = clazz.getTypeDefinition().getMethod(slot);
+        ctxt.enqueue(me);
+        try {
+            if (me.isStatic()) {
+                return vm.invokeExact(me, null, unboxed);
+            } else {
+                return vm.invokeVirtual(me, receiver, unboxed);
+            }
+        } catch (Thrown thrown) {
+            throw new Thrown(invocationTargetExceptionClass.newInstance(thrown.getThrowable()));
+        }
+    }
+
+    /**
+     * Unbox one single hyper-boxed argument.
+     *
+     * @param boxed the hyper-boxed argument
+     * @return the boxed equivalent
+     */
+    // todo: move to an autoboxing plugin?
+    private Object unbox(final VmObject boxed) {
+        VmClass vmClass = boxed.getVmClass();
+        if (vmClass == byteClass) {
+            return Byte.valueOf((byte) boxed.getMemory().load8(boxed.indexOf(byteValueField), SinglePlain));
+        } else if (vmClass == shortClass) {
+            return Short.valueOf((short) boxed.getMemory().load16(boxed.indexOf(shortValueField), SinglePlain));
+        } else if (vmClass == integerClass) {
+            return Integer.valueOf(boxed.getMemory().load32(boxed.indexOf(integerValueField), SinglePlain));
+        } else if (vmClass == longClass) {
+            return Long.valueOf(boxed.getMemory().load64(boxed.indexOf(longValueField), SinglePlain));
+        } else if (vmClass == characterClass) {
+            return Character.valueOf((char) boxed.getMemory().load16(boxed.indexOf(characterValueField), SinglePlain));
+        } else if (vmClass == floatClass) {
+            return Float.valueOf(boxed.getMemory().loadFloat(boxed.indexOf(floatValueField), SinglePlain));
+        } else if (vmClass == doubleClass) {
+            return Double.valueOf(boxed.getMemory().loadDouble(boxed.indexOf(doubleValueField), SinglePlain));
+        } else if (vmClass == booleanClass) {
+            return Boolean.valueOf((boxed.getMemory().load8(boxed.indexOf(booleanValueField), SinglePlain) & 1) != 0);
+        } else {
+            // plain object
+            return boxed;
+        }
     }
 
     /**
