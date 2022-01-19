@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
@@ -29,6 +30,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
     private final Map<String, VmClassImpl> defined = new ConcurrentHashMap<>();
     final ConcurrentHashMap<MethodDescriptor, VmObject> methodTypeCache = new ConcurrentHashMap<>();
     final ConcurrentHashMap<MethodHandleConstant, VmObject> methodHandleCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, AtomicInteger> hiddenClassSeqMap = new ConcurrentHashMap<>();
 
     VmClassLoaderImpl(VmClassLoaderClassImpl clazz, VmImpl vm) {
         // bootstrap CL
@@ -84,9 +86,13 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
     }
 
     public VmClassImpl defineClass(VmString name, VmArray content, VmObject protectionDomain) throws Thrown {
+        return defineClass(name, content, protectionDomain, false);
+    }
+
+    public VmClassImpl defineClass(VmString name, VmArray content, VmObject protectionDomain, boolean hidden) throws Thrown {
         VmImpl vm = VmImpl.require();
         String internalName = name.getContent();
-        if (defined.containsKey(internalName)) {
+        if (! hidden && defined.containsKey(internalName)) {
             throw duplicateClass(vm);
         }
         MemoryImpl memory = (MemoryImpl) content.getMemory();
@@ -94,11 +100,16 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         // todo: proper verification...
         DefinedTypeDefinition.Builder builder = classContext.newTypeBuilder();
         classFile.accept(builder);
+        if (hidden) {
+            builder.addModifiers(ClassFile.I_ACC_HIDDEN);
+        }
         DefinedTypeDefinition defined = builder.build();
-        classContext.defineClass(internalName, defined);
+        if (! hidden) {
+            classContext.defineClass(internalName, defined);
+        }
         LoadedTypeDefinition loaded = defined.load();
-        VmClassImpl vmClass = createVmClass(protectionDomain, vm, loaded);
-        if (this.defined.putIfAbsent(internalName, vmClass) != null) {
+        VmClassImpl vmClass = createVmClass(protectionDomain, vm, loaded, hidden);
+        if (! hidden && this.defined.putIfAbsent(internalName, vmClass) != null) {
             VmThrowable throwable = vm.noClassDefFoundErrorClass.newInstance("Class already defined");
             VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
             thread.setThrown(throwable);
@@ -112,7 +123,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         VmClassImpl vmClass = defined.get(internalName);
         if (vmClass == null) {
             VmImpl vm = getVmClass().getVm();
-            vmClass = createVmClass(null, vm, loaded);
+            vmClass = createVmClass(null, vm, loaded, false);
             VmClassImpl appearing = defined.putIfAbsent(internalName, vmClass);
             if (appearing != null) {
                 vmClass = appearing;
@@ -121,7 +132,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         return vmClass;
     }
 
-    private VmClassImpl createVmClass(final VmObject protectionDomain, final VmImpl vm, final LoadedTypeDefinition loaded) {
+    private VmClassImpl createVmClass(final VmObject protectionDomain, final VmImpl vm, final LoadedTypeDefinition loaded, boolean hidden) {
         ObjectType type = loaded.getType();
         ClassObjectType classLoaderType = vm.classLoaderClass.getTypeDefinition().getClassType();
         ClassObjectType throwableType = vm.throwableClass.getTypeDefinition().getClassType();
@@ -174,4 +185,11 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         return (VmClassImpl) classLoaderClass.getOrCompile(clDef.resolveMethodElementVirtual("loadClass", loadClassDesc)).invoke(thread, this, List.of(intName));
     }
 
+    int getHiddenClassSeq(final String baseName) {
+        return hiddenClassSeqMap.computeIfAbsent(baseName, VmClassLoaderImpl::newSeq).getAndIncrement();
+    }
+
+    private static AtomicInteger newSeq(final String ignored) {
+        return new AtomicInteger(1);
+    }
 }

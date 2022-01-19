@@ -27,9 +27,18 @@ abstract class VmArrayImpl extends VmObjectImpl implements VmArray {
 
     @Override
     public ArrayObjectType getObjectType() {
-        return (ArrayObjectType) getVmClass().getInstanceObjectType();
+        return getVmClass().getInstanceObjectType();
     }
 
     @Override
     protected abstract VmArrayImpl clone();
+
+    @Override
+    public VmArrayClassImpl getVmClass() {
+        return (VmArrayClassImpl) super.getVmClass();
+    }
+
+    StringBuilder toString(final StringBuilder target) {
+        return target.append(getVmClass().getElementType().getName()).append('[').append(length).append(']');
+    }
 }

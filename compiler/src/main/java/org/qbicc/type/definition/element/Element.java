@@ -35,8 +35,6 @@ public interface Element extends Locatable {
     interface Builder {
         void setModifiers(int modifiers);
 
-        void setIndex(int index);
-
         void setEnclosingType(DefinedTypeDefinition enclosingType);
 
         Element build();
@@ -47,11 +45,6 @@ public interface Element extends Locatable {
             @Override
             default void setModifiers(int modifiers) {
                 getDelegate().setModifiers(modifiers);
-            }
-
-            @Override
-            default void setIndex(int index) {
-                getDelegate().setIndex(index);
             }
 
             @Override

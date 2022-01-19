@@ -221,6 +221,8 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
 
         void setModifiers(int modifiers);
 
+        void addModifiers(int modifiers);
+
         void setSuperClassName(String superClassInternalName);
 
         void expectInterfaceNameCount(int count);
@@ -306,6 +308,10 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
 
             default void setModifiers(int modifiers) {
                 getDelegate().setModifiers(modifiers);
+            }
+
+            default void addModifiers(int modifiers) {
+                getDelegate().addModifiers(modifiers);
             }
 
             default void setSuperClassName(String superClassInternalName) {

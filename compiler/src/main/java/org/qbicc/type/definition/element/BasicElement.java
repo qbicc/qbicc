@@ -41,6 +41,16 @@ public abstract class BasicElement implements Element {
         return modifiers;
     }
 
+    /**
+     * Get the element index.
+     * <ul>
+     *  <li>On methods, fields, and constructors, this is the index in the <em>defined type</em>, not the class file or resolver
+     *  <li>On local variables, this is the index of the var slot
+     *  <li>On parameters, this is the index (zero-based) of the parameter
+     * </ul>
+     *
+     * @return the index
+     */
     public int getIndex() {
         return index;
     }
@@ -72,8 +82,6 @@ public abstract class BasicElement implements Element {
 
         void addModifiers(int modifiers);
 
-        void setIndex(int index);
-
         void setEnclosingType(DefinedTypeDefinition enclosingType);
 
         BasicElement build();
@@ -98,11 +106,6 @@ public abstract class BasicElement implements Element {
             }
 
             @Override
-            default void setIndex(int index) {
-                getDelegate().setIndex(index);
-            }
-
-            @Override
             default void setEnclosingType(DefinedTypeDefinition enclosingType) {
                 Element.Builder.Delegating.super.setEnclosingType(enclosingType);
             }
@@ -115,12 +118,14 @@ public abstract class BasicElement implements Element {
     }
 
     static abstract class BuilderImpl implements Builder {
+        final int index;
         DefinedTypeDefinition enclosingType;
         String sourceFileName;
         int modifiers;
-        int index;
 
-        BuilderImpl() {}
+        BuilderImpl(int index) {
+            this.index = index;
+        }
 
         BuilderImpl(final BasicElement original) {
             enclosingType = original.enclosingType;
@@ -139,10 +144,6 @@ public abstract class BasicElement implements Element {
 
         public void addModifiers(final int modifiers) {
             this.modifiers |= modifiers;
-        }
-
-        public void setIndex(final int index) {
-            this.index = index;
         }
 
         public void setEnclosingType(final DefinedTypeDefinition enclosingType) {

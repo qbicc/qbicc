@@ -3,13 +3,18 @@ package org.qbicc.interpreter.impl;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.interpreter.Thrown;
+import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmString;
+import org.qbicc.interpreter.VmThread;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ArrayObjectType;
@@ -156,6 +161,26 @@ class VmObjectImpl implements VmObject, Referenceable {
 
     protected VmObjectImpl clone() {
         return new VmObjectImpl(this);
+    }
+
+    @Override
+    public String toString() {
+        return toString(new StringBuilder()).toString();
+    }
+
+    StringBuilder toString(StringBuilder target) {
+        VmThread vmThread = Vm.currentThread();
+        if (vmThread != null) {
+            try {
+                VmImpl vm = (VmImpl) vmThread.getVM();
+                VmString str = (VmString) vm.invokeVirtual(vm.toStringMethod, this, List.of());
+                target.append(str.getContent());
+            } catch (Exception e) {
+                target.append(clazz.getName()).append(' ');
+                target.append("(toString failed: ").append(e).append(')');
+            }
+        }
+        return target;
     }
 
     Lock getLock() {

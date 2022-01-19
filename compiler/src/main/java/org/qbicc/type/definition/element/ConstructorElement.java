@@ -24,8 +24,8 @@ public final class ConstructorElement extends InvokableElement {
         return packageName+"."+getEnclosingType().getDescriptor().getClassName()+getDescriptor();
     }
 
-    public static Builder builder(MethodDescriptor descriptor) {
-        return new BuilderImpl(descriptor);
+    public static Builder builder(MethodDescriptor descriptor, int index) {
+        return new BuilderImpl(descriptor, index);
     }
 
     public interface Builder extends InvokableElement.Builder {
@@ -43,8 +43,8 @@ public final class ConstructorElement extends InvokableElement {
     }
 
     static final class BuilderImpl extends InvokableElement.BuilderImpl implements Builder {
-        BuilderImpl(MethodDescriptor descriptor) {
-            super(descriptor);
+        BuilderImpl(MethodDescriptor descriptor, int index) {
+            super(descriptor, index);
         }
 
         public ConstructorElement build() {

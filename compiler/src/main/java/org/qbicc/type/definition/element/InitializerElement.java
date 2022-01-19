@@ -178,7 +178,9 @@ public final class InitializerElement extends BasicElement implements Executable
         int minimumLineNumber = 1;
         int maximumLineNumber = 1;
 
-        BuilderImpl() {}
+        BuilderImpl() {
+            super(0);
+        }
 
         public void setMethodBodyFactory(final MethodBodyFactory factory, final int index) {
             this.methodBodyFactory = Assert.checkNotNullParam("factory", factory);
