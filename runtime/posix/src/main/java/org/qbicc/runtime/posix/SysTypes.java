@@ -72,9 +72,4 @@ public final class SysTypes {
 
     public static final class nlink_t extends word {
     }
-
-    public static final class time_t extends word {
-    }
-
-
 }
