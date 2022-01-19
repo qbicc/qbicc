@@ -1354,23 +1354,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         return;
                     case OP_GOTO:
                     case OP_GOTO_W: {
-                        int target = src + (opcode == OP_GOTO ? buffer.getShort() : buffer.getInt());
-                        BlockLabel block = getBlockForIndexIfExists(target);
-                        BasicBlock from;
-                        if (block == null) {
-                            // only one entry point
-                            block = new BlockLabel();
-                            gf.goto_(block);
-                            // set the position after, so that the bci for the instruction is correct
-                            buffer.position(target);
-                            gf.begin(block);
-                            processNewBlock();
-                        } else {
-                            from = gf.goto_(block);
-                            // set the position after, so that the bci for the instruction is correct
-                            buffer.position(target);
-                            processBlock(from);
-                        }
+                        processGoto(buffer, src + (opcode == OP_GOTO ? buffer.getShort() : buffer.getInt()));
                         return;
                     }
                     case OP_JSR:
@@ -2070,7 +2054,34 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         retLocals.put(retBlock, saveLocals);
     }
 
+    private void processGoto(final ByteBuffer buffer, final int target) {
+        BlockLabel block = getBlockForIndexIfExists(target);
+        BasicBlock from;
+        if (block == null) {
+            // only one entry point
+            block = new BlockLabel();
+            gf.goto_(block);
+            // set the position after, so that the bci for the instruction is correct
+            buffer.position(target);
+            gf.begin(block);
+            processNewBlock();
+        } else {
+            from = gf.goto_(block);
+            // set the position after, so that the bci for the instruction is correct
+            buffer.position(target);
+            processBlock(from);
+        }
+    }
+
     private void processIf(final ByteBuffer buffer, final Value cond, final int dest1, final int dest2) {
+        // do not parse missed branch of constant conditions
+        if (cond.isDefEq(lf.literalOf(true))) {
+            processGoto(buffer, dest1);
+            return;
+        } else if (cond.isDefEq(lf.literalOf(false))) {
+            processGoto(buffer, dest2);
+            return;
+        }
         BlockLabel b1 = getBlockForIndexIfExists(dest1);
         boolean b1s = b1 == null;
         if (b1s) {
