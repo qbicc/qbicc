@@ -11,6 +11,7 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 
@@ -143,6 +144,9 @@ public class ReachabilityInfo {
             } else {
                 info.analysis.processReachableInstanceMethodInvoke(me, null);
             }
+        } else if (elem instanceof ConstructorElement ce) {
+            ReachabilityInfo info = get(elem.getEnclosingType().getContext().getCompilationContext());
+            info.analysis.processReachableConstructorInvoke(ce.getEnclosingType().load(), ce, null);
         }
     }
 
