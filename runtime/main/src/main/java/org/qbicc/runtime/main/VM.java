@@ -20,6 +20,7 @@ public final class VM {
     @SuppressWarnings("unused")
     static Thread _qbicc_bound_thread;
 
+    // TODO: moved to System$_native; remove this version after next qbicc class lib release
     // Temporary manual implementation
     @SuppressWarnings("ManualArrayCopy")
     static void arraycopy(Object src, int srcPos, Object dest, int destPos, int length) {
