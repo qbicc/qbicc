@@ -17,4 +17,7 @@ public final class Time {
 
     public static final clockid_t CLOCK_REALTIME = constant();
     public static final clockid_t CLOCK_MONOTONIC = constant();
+
+    @extern
+    public static c_long timezone;
 }
