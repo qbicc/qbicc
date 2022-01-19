@@ -3,10 +3,14 @@ package org.qbicc.type;
 import io.smallrye.common.constraint.Assert;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -20,6 +24,7 @@ public final class CompoundType extends ValueType {
     private final boolean complete;
     private volatile Supplier<List<Member>> membersResolver;
     private volatile List<Member> members;
+    private volatile Map<String, Member> membersByName;
 
     CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, final Supplier<List<Member>> membersResolver, final long size, final int overallAlign) {
         super(typeSystem, (int) size * 19 + Integer.numberOfTrailingZeros(overallAlign));
@@ -42,6 +47,7 @@ public final class CompoundType extends ValueType {
         this.align = 1;
         this.complete = false;
         this.members = List.of();
+        this.membersByName = Map.of();
     }
 
     public boolean isAnonymous() {
@@ -67,6 +73,52 @@ public final class CompoundType extends ValueType {
         return members;
     }
 
+    public Map<String, Member> getMembersByName() {
+        Map<String, Member> membersByName = this.membersByName;
+        if (membersByName == null) {
+            synchronized (this) {
+                membersByName = this.membersByName;
+                if (membersByName == null) {
+                    membersByName = this.membersByName = createMembersByName();
+                }
+            }
+        }
+        return membersByName;
+    }
+
+    private Map<String, Member> createMembersByName() {
+        List<Member> members = getMembers();
+        Iterator<Member> iterator = members.iterator();
+        if (! iterator.hasNext()) {
+            return Map.of();
+        }
+        Member member0 = iterator.next();
+        String name0 = member0.getName();
+        if (! iterator.hasNext()) {
+            return Map.of(name0, member0);
+        }
+        Member member1 = iterator.next();
+        String name1 = member1.getName();
+        if (! iterator.hasNext()) {
+            return Map.of(name0, member0, name1, member1);
+        }
+        Member member2 = iterator.next();
+        String name2 = member2.getName();
+        if (! iterator.hasNext()) {
+            return Map.of(name0, member0, name1, member1, name2, member2);
+        }
+        // lots of entries, I guess
+        List<Map.Entry<String, Member>> entries = new ArrayList<>(members.size());
+        entries.add(Map.entry(name0, member0));
+        entries.add(Map.entry(name1, member1));
+        entries.add(Map.entry(name2, member2));
+        while (iterator.hasNext()) {
+            Member member = iterator.next();
+            entries.add(Map.entry(member.getName(), member));
+        }
+        return Map.ofEntries(entries.toArray(Map.Entry[]::new));
+    }
+
     public Tag getTag() {
         return tag;
     }
@@ -81,13 +133,16 @@ public final class CompoundType extends ValueType {
 
     public Member getMember(String name) {
         Assert.assertFalse(isAnonymous()); /* anonymous structs do not have member names */
-        List<Member> members = getMembers();
-        for (Member m : members) {
-            if (m.getName().equals(name)) {
-                return m;
-            }
+        Member member = getMembersByName().get(name);
+        if (member != null) {
+            return member;
         }
         throw new NoSuchElementException("No member named '" + name + "' found in " + this.toFriendlyString());
+    }
+
+    public boolean hasMember(String name) {
+        Assert.assertFalse(isAnonymous()); /* anonymous structs do not have member names */
+        return getMembersByName().containsKey(name);
     }
 
     public boolean isComplete() {
