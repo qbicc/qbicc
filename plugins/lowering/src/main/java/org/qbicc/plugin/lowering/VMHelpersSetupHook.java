@@ -9,49 +9,25 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * Unconditionally register VMHelper or ObjectModel methods that we may not actually refer to until lowering.
+ * Load runtime classes that define @AutoQueued methods.
  */
 public class VMHelpersSetupHook implements Consumer<CompilationContext> {
     public void accept(final CompilationContext ctxt) {
+        String[] rootTypes = new String[] {
+            "org/qbicc/runtime/main/VMHelpers",
+            "org/qbicc/runtime/main/RuntimeInitializerRunner",
+            "org/qbicc/runtime/main/Once",
+            "org/qbicc/runtime/stackwalk/MethodData",
+            "org/qbicc/runtime/stackwalk/JavaStackFrameCache",
+            "org/qbicc/runtime/stackwalk/JavaStackFrameCache"
+        };
+        for (String type : rootTypes) {
+            ctxt.getBootstrapClassContext().findDefinedType(type).load();
+        }
+
+        // TODO: Temporary until there's a qbicc release to let us annotate the methods in Object and then a class lib release with annotated methods.
         RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
-        // Helpers for dynamic type checking
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("arrayStoreCheck"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("checkcastClass"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("checkcastTypeId"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("instanceofClass"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("instanceofTypeId"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("getClassFromObject"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("getClassFromTypeId"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("getSuperClass"));
-
-        // Helpers to create and throw common runtime exceptions
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseAbstractMethodError"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseArithmeticException"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseArrayIndexOutOfBoundsException"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseArrayStoreException"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseClassCastException"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseIncompatibleClassChangeError"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseNegativeArraySizeException"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseNullPointerException"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("raiseUnsatisfiedLinkError"));
-
-        // Object monitors
         ctxt.registerAutoQueuedElement(methodFinder.getMethod("java/lang/Object", "monitorEnter"));
         ctxt.registerAutoQueuedElement(methodFinder.getMethod("java/lang/Object", "monitorExit"));
-
-        // helper to create j.l.Class instance of an array class at runtime
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("getOrCreateClassForRefArray"));
-
-        // java.lang.Thread
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("JLT_start0"));
-
-        // Helpers for stack walk
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("org/qbicc/runtime/stackwalk/MethodData", "fillStackTraceElements"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("org/qbicc/runtime/stackwalk/JavaStackWalker", "getFrameCount"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("org/qbicc/runtime/stackwalk/JavaStackWalker", "walkStack"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("org/qbicc/runtime/stackwalk/JavaStackFrameCache", "getSourceCodeIndexList"));
-        ctxt.registerAutoQueuedElement(methodFinder.getMethod("org/qbicc/runtime/stackwalk/JavaStackFrameCache", "visitFrame"));
-        ctxt.registerAutoQueuedElement(methodFinder.getConstructor("org/qbicc/runtime/stackwalk/JavaStackFrameCache",
-            MethodDescriptor.synthesize(ctxt.getBootstrapClassContext(), BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.I))));
     }
 }

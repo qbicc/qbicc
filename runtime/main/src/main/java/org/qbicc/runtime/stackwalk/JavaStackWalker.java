@@ -1,5 +1,6 @@
 package org.qbicc.runtime.stackwalk;
 
+import org.qbicc.runtime.AutoQueued;
 import org.qbicc.runtime.Hidden;
 
 public class JavaStackWalker implements StackFrameVisitor {
@@ -17,6 +18,7 @@ public class JavaStackWalker implements StackFrameVisitor {
     }
 
     @Hidden
+    @AutoQueued
     public static int getFrameCount(Throwable exceptionObject) {
         JavaStackWalker javaStackWalker = new JavaStackWalker(exceptionObject, new NopVisitor());
         StackWalker.walkStack(javaStackWalker);
@@ -24,6 +26,7 @@ public class JavaStackWalker implements StackFrameVisitor {
     }
 
     @Hidden
+    @AutoQueued
     public static void walkStack(Throwable exceptionObject, JavaStackFrameVisitor visitor) {
         StackFrameVisitor javaStackWalker = new JavaStackWalker(exceptionObject, visitor);
         StackWalker.walkStack(javaStackWalker);
