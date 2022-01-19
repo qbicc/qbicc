@@ -83,16 +83,21 @@ public class Lowering {
         for (int i = 0; i < cnt; i ++) {
             FieldElement field = typeDef.getField(i);
             if (field.isStatic()) {
-                Value initialValue = ((DefinedTypeDefinition) typeDef).load().getInitialValue(field);
-                if (initialValue == null) {
-                    initialValue = Constants.get(ctxt).getConstantValue(field);
+                Value initialValue;
+                if (field.getRunTimeInitializer() != null) {
+                    initialValue = lf.zeroInitializerLiteralOfType(field.getType());
+                } else {
+                    initialValue = ((DefinedTypeDefinition) typeDef).load().getInitialValue(field);
                     if (initialValue == null) {
-                        initialValue = lf.zeroInitializerLiteralOfType(field.getType());
+                        initialValue = Constants.get(ctxt).getConstantValue(field);
+                        if (initialValue == null) {
+                            initialValue = lf.zeroInitializerLiteralOfType(field.getType());
+                        } else {
+                            hasValue = true;
+                        }
                     } else {
                         hasValue = true;
                     }
-                } else {
-                    hasValue = true;
                 }
                 CompoundType.Member member = layoutInfo.getMember(field);
                 if (initialValue instanceof OffsetOfField) {

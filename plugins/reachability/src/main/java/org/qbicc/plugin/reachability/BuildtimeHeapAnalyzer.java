@@ -52,7 +52,7 @@ class BuildtimeHeapAnalyzer {
         int fieldCount = ltd.getFieldCount();
         for (int i=0; i<fieldCount; i++) {
             FieldElement f = ltd.getField(i);
-            if (f.isStatic() && f.getType() instanceof ReferenceType && !f.isThreadLocal()) {
+            if (f.isStatic() && f.getType() instanceof ReferenceType && !f.isThreadLocal() && f.getRunTimeInitializer() == null) {
                 Value v = ltd.getInitialValue(f);
                 if (v instanceof ObjectLiteral) {
                     VmObject vo = ((ObjectLiteral) v).getValue();

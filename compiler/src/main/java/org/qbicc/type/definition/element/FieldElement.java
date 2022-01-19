@@ -41,7 +41,7 @@ public final class FieldElement extends VariableElement implements MemberElement
     }
 
     public boolean isReallyFinal() {
-        return (getModifiers() & (ClassFile.ACC_FINAL | ClassFile.I_ACC_NOT_REALLY_FINAL)) == ClassFile.ACC_FINAL;
+        return runTimeInitializer == null && (getModifiers() & (ClassFile.ACC_FINAL | ClassFile.I_ACC_NOT_REALLY_FINAL)) == ClassFile.ACC_FINAL;
     }
 
     public Literal getInitialValue() {
