@@ -70,25 +70,23 @@ abstract class AbstractBufferBacked implements BufferBacked {
 
     public String getUtf8Text(int offset, int length, StringBuilder scratch) {
         scratch.setLength(0);
-        for (int i = 0; i < length; i ++) {
-            int a = getByte(offset + i);
+        for (int i = 0; i < length;) {
+            int a = getByte(offset + i++);
             if (a < 0x80) {
                 scratch.append((char) a);
             } else if (a < 0xC0) {
                 scratch.append('�');
             } else {
-                int b = getByte(offset + 2);
+                int b = getByte(offset + i++);
                 if (b < 0x80 || b >= 0xC0) {
                     scratch.append('�');
                 } else if (a < 0xE0) {
-                    i ++; // eat up extra byte
                     scratch.append((char) ((a & 0b11111) << 6 | b & 0b111111));
                 } else {
-                    int c = getByte(offset + 3);
+                    int c = getByte(offset + i++);
                     if (c < 0x80 || c >= 0xC0) {
                         scratch.append('�');
                     } else if (a < 0xF0) {
-                        i += 2; // eat up extra two bytes
                         scratch.append((char) ((a & 0b1111) << 12 | (b & 0b111111) << 6 | c & 0b111111));
                     } else {
                         throw new IllegalStateException("Invalid Modified UTF-8 sequence in class file");
