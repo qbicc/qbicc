@@ -209,22 +209,6 @@ public class CompilerIntrinsics {
     public static native void callRuntimeInitializer(int initID);
 
     /**
-     * Get the `flags` field from the qbicc_typeid_array for the given
-     * typeid.
-     *
-     * Flags are:
-     * 1 - has clinit method
-     * 2 - declares default methods
-     * 4 - has default methods
-     * See SupersDisplayTables.calculateTypeIdFlags() for definitive list.
-     *
-     * @param typeId the class to read the flags for
-     * @return the flags value
-     */
-    @Hidden
-    public static native int getTypeIdFlags(type_id typeId);
-
-    /**
      * Fetch the superclass `type_id` from the current `type_id`
      * @param typeId an existing type_id, don't call this on Object's typeid
      * @return superclass's type_id
