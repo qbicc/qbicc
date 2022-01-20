@@ -17,4 +17,9 @@ public final class Time {
 
     public static final clockid_t CLOCK_REALTIME = constant();
     public static final clockid_t CLOCK_MONOTONIC = constant();
+
+    @extern
+    public static c_long timezone;
+
+    public static native struct_tm_ptr localtime_r(const_time_t_ptr timePtr, struct_tm_ptr result);
 }

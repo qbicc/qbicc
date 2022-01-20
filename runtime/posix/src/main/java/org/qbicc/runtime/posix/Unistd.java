@@ -44,6 +44,8 @@ public final class Unistd {
     // Alpha, IA-64, MIPS, SuperH, SPARC, SPARC64
     public static native struct_fd_pair pipe();
 
+    public static native ssize_t readlink(const_char_ptr pathName, char_ptr buf, size_t bufSize);
+
     public static native c_int unlink(const_char_ptr pathname);
 
     public static native ssize_t write(c_int fd, const_void_ptr buf, size_t count);
@@ -80,4 +82,7 @@ public final class Unistd {
 
     public static native pid_t getpid();
     public static native pid_t getppid();
+
+    @extern
+    public static char_ptr_ptr environ;
 }
