@@ -28,6 +28,8 @@ import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.LongAnnotationValue;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -87,7 +89,10 @@ public class Lowering {
                 if (field.getRunTimeInitializer() != null) {
                     initialValue = lf.zeroInitializerLiteralOfType(field.getType());
                 } else {
-                    initialValue = ((DefinedTypeDefinition) typeDef).load().getInitialValue(field);
+                    initialValue = field.getReplacementValue(ctxt);
+                    if (initialValue == null) {
+                        initialValue = ((DefinedTypeDefinition) typeDef).load().getInitialValue(field);
+                    }
                     if (initialValue == null) {
                         initialValue = Constants.get(ctxt).getConstantValue(field);
                         if (initialValue == null) {

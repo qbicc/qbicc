@@ -3,8 +3,16 @@ package org.qbicc.type.definition.element;
 import java.util.function.Function;
 
 import org.qbicc.context.ClassContext;
+import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.Literal;
+import org.qbicc.type.BooleanType;
+import org.qbicc.type.FloatType;
+import org.qbicc.type.IntegerType;
 import org.qbicc.type.ValueType;
+import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.BooleanAnnotationValue;
+import org.qbicc.type.annotation.DoubleAnnotationValue;
+import org.qbicc.type.annotation.LongAnnotationValue;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -46,6 +54,34 @@ public final class FieldElement extends VariableElement implements MemberElement
 
     public Literal getInitialValue() {
         return initialValue;
+    }
+
+    public Literal getReplacementValue(CompilationContext ctxt) {
+        ValueType contentsType = getType();
+        for (Annotation annotation : getInvisibleAnnotations()) {
+            if (annotation.getDescriptor().packageAndClassNameEquals("org/qbicc/runtime", "SerializeAsZero")) {
+                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(contentsType);
+            } else if (annotation.getDescriptor().packageAndClassNameEquals("org/qbicc/runtime", "SerializeBooleanAs")) {
+                if (contentsType instanceof BooleanType) {
+                    return ctxt.getLiteralFactory().literalOf(((BooleanAnnotationValue) annotation.getValue("value")).booleanValue());
+                } else {
+                    ctxt.error("SerializeBooleanAs annotation on field of type" + contentsType);
+                }
+            } else if (annotation.getDescriptor().packageAndClassNameEquals("org/qbicc/runtime", "SerializeIntegralAs")) {
+                if (contentsType instanceof IntegerType it) {
+                    return ctxt.getLiteralFactory().literalOf(it, ((LongAnnotationValue) annotation.getValue("value")).longValue());
+                } else {
+                    ctxt.error("SerializeIntegralAs annotation on field of type" + contentsType);
+                }
+            } else if (annotation.getDescriptor().packageAndClassNameEquals("org/qbicc/runtime", "SerializeFloatingPointAs")) {
+                if (contentsType instanceof FloatType ft) {
+                    return ctxt.getLiteralFactory().literalOf(ft, ((DoubleAnnotationValue) annotation.getValue("value")).doubleValue());
+                } else {
+                    ctxt.error("SerializeFloatingPointAs annotation on field of type" + contentsType);
+                }
+            }
+        }
+        return null;
     }
 
     public InitializerElement getRunTimeInitializer() {
