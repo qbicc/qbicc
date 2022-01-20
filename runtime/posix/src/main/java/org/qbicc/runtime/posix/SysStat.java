@@ -2,6 +2,7 @@ package org.qbicc.runtime.posix;
 
 import static org.qbicc.runtime.CNative.*;
 import static org.qbicc.runtime.posix.SysTypes.*;
+import static org.qbicc.runtime.stdc.Time.*;
 
 /**
  *
