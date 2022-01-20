@@ -85,6 +85,10 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         }
     }
 
+    VmClassImpl findLoadedClass(String name) {
+        return defined.get(name);
+    }
+
     public VmClassImpl defineClass(VmString name, VmArray content, VmObject protectionDomain) throws Thrown {
         return defineClass(name, content, protectionDomain, false);
     }
