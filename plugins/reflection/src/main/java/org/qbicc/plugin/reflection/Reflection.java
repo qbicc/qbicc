@@ -194,6 +194,12 @@ public final class Reflection {
             NestedClassElement enc = ((VmClass) target).getTypeDefinition().getEnclosingNestedClass();
             return enc == null ? null : vm.intern(enc.getName());
         });
+        vm.registerInvokable(classDef.requireSingleMethod(me -> me.nameEquals("getConstantPool")), (thread, target, args) -> {
+            // force the object to be created
+            getConstantPoolForClass((VmClass) target);
+            // return the CP object
+            return cpObjs.get(target);
+        });
         LoadedTypeDefinition fieldDef = classContext.findDefinedType("java/lang/reflect/Field").load();
         fieldClass = fieldDef.getVmClass();
         fieldCtor = fieldDef.requireSingleConstructor(ce -> ce.getDescriptor().getParameterTypes().size() == 8);
