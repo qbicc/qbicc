@@ -6,7 +6,7 @@ import java.util.Arrays;
 
 @SuppressWarnings("unused")
 public class JavaStackFrameCache implements JavaStackFrameVisitor {
-    private final int sourceCodeIndexList[];
+    private final int[] sourceCodeIndexList;
 
     @AutoQueued
     JavaStackFrameCache(final int frameCount) {
