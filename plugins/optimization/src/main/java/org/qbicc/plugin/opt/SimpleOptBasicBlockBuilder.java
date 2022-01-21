@@ -16,12 +16,17 @@ import org.qbicc.graph.Comp;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Extend;
+import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.Neg;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.PointerHandle;
+import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.WordCastValue;
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.CompoundLiteral;
@@ -40,6 +45,7 @@ import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
+import org.qbicc.type.definition.element.ConstructorElement;
 
 /**
  * A graph factory which performs simple optimizations opportunistically.
@@ -544,6 +550,21 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         } else {
             return getDelegate().select(condition, trueValue, falseValue);
         }
+    }
+
+    @Override
+    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
+        if (getCurrentElement() instanceof ConstructorElement
+            && handle instanceof InstanceFieldOf ifo
+            && ifo.getValueHandle() instanceof ReferenceHandle rh
+            && rh.getReferenceValue() instanceof ParameterValue pv
+            && pv.getLabel().equals("this")
+            && value.isDefEq(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(handle.getValueType()))
+        ) {
+            // skip it; the field is already zeroed
+            return nop();
+        }
+        return super.store(handle, value, accessMode);
     }
 
     public BasicBlock if_(final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget) {
