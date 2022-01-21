@@ -38,6 +38,8 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
+import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.LongAnnotationValue;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -258,10 +260,13 @@ public class BuildtimeHeap {
             if (f.isStatic()) {
                 continue;
             }
+
             CompoundType.Member im = memLayout.getMember(f);
             CompoundType.Member om = objLayout.getMember(f);
-            if (im.getType() instanceof IntegerType) {
-                IntegerType it = (IntegerType)im.getType();
+            Literal replacement = f.getReplacementValue(ctxt);
+            if (replacement != null) {
+                memberMap.put(om, replacement);
+            } else if (im.getType() instanceof IntegerType it) {
                 if (it.getSize() == 1) {
                     memberMap.put(om, lf.literalOf(it, memory.load8(im.getOffset(), SinglePlain)));
                 } else if (it.getSize() == 2) {
@@ -271,8 +276,7 @@ public class BuildtimeHeap {
                 } else {
                     memberMap.put(om, lf.literalOf(it, memory.load64(im.getOffset(), SinglePlain)));
                 }
-            } else if (im.getType() instanceof FloatType) {
-                FloatType ft = (FloatType)im.getType();
+            } else if (im.getType() instanceof FloatType ft) {
                 if (ft.getSize() == 4) {
                     memberMap.put(om, lf.literalOf(ft, memory.loadFloat(im.getOffset(), SinglePlain)));
                 } else {
