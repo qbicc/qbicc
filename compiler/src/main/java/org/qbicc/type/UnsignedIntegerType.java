@@ -23,6 +23,18 @@ public final class UnsignedIntegerType extends IntegerType {
         return this;
     }
 
+    public UnsignedIntegerType asSized(final int minBits) {
+        switch (minBits) {
+            case 8: return typeSystem.getUnsignedInteger8Type();
+            case 16: return typeSystem.getUnsignedInteger16Type();
+            case 32: return typeSystem.getUnsignedInteger32Type();
+            case 64: return typeSystem.getUnsignedInteger64Type();
+            default: {
+                throw Assert.impossibleSwitchCase(minBits);
+            }
+        }
+    }
+
     public long truncateValue(final long value) {
         switch (minBits) {
             case 8: return value & 0xffL;
