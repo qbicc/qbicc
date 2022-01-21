@@ -43,7 +43,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             // We can only even attempt stack allocation if the typeId is a literal (ie, known precisely at compile time).
             if (cot.isSubtypeOf(noGc.getStackObjectType()) /*|| objectDoesNotEscape && objectIsSmallEnough */) {
                 CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(cot.getDefinition()).getCompoundType();
-                ptrVal = stackAllocate(compoundType, lf.literalOf(1), align);
+                ptrVal = valueConvert(stackAllocate(compoundType, lf.literalOf(1), align), type.getReference());
             }
         }
         if (ptrVal == null) {
