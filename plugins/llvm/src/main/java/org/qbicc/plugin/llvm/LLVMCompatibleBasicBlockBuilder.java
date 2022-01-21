@@ -11,6 +11,7 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
+import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.GlobalAccessMode;
@@ -20,11 +21,11 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.machine.arch.Cpu;
-import org.qbicc.machine.llvm.Global;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.unwind.UnwindHelper;
+import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
@@ -36,7 +37,6 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.definition.element.FieldElement;
-import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder {
@@ -234,8 +234,8 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         Value loaded;
         if (accessMode.includes(GlobalAcquire)) {
             // we have to emit a global fence
-            loaded = super.load(handle, SingleOpaque);
-            fence(GlobalAcquire);
+            loaded = super.load(handle, SingleUnshared);
+            fence(accessMode.getGlobalAccess());
             return loaded;
         } else if (accessMode.includes(GlobalPlain)) {
             // emit equivalent single load
@@ -243,10 +243,45 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         } else if (accessMode.includes(GlobalUnshared)) {
             // emit equivalent single load
             return super.load(handle, SingleUnshared);
-        } else {
-            // supported by LLVM already
-            return super.load(handle, accessMode);
         }
+        // Break apart atomic structure and array loads
+        if (handle.getValueType() instanceof CompoundType ct) {
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            Value res = lf.zeroInitializerLiteralOfType(ct);
+            for (CompoundType.Member member : ct.getMembers()) {
+                res = insertMember(res, member, load(memberOf(handle, member), accessMode));
+            }
+        } else if (handle.getValueType() instanceof ArrayType at) {
+            long ec = at.getElementCount();
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            if (ec < 16) {
+                // unrolled
+                Value res = lf.zeroInitializerLiteralOfType(at);
+                for (long i = 0; i < ec; i ++) {
+                    IntegerLiteral idxLit = lf.literalOf(i);
+                    res = insertElement(res, idxLit, load(elementOf(handle, idxLit), accessMode));
+                }
+                return res;
+            } else {
+                // rolled loop
+                BlockLabel top = new BlockLabel();
+                BlockLabel exit = new BlockLabel();
+                UnsignedIntegerType idxType = ctxt.getTypeSystem().getUnsignedInteger64Type();
+                BasicBlock entry = goto_(top);
+                PhiValue idx = phi(idxType, top);
+                PhiValue val = phi(at, top);
+                begin(top);
+                Value modVal = insertElement(val, idx, load(elementOf(handle, idx), accessMode));
+                BasicBlock loop = if_(isLt(idx, lf.literalOf(idxType, ec)), top, exit);
+                idx.setValueForBlock(ctxt, getCurrentElement(), entry, lf.literalOf(idxType, 0));
+                val.setValueForBlock(ctxt, getCurrentElement(), entry, lf.zeroInitializerLiteralOfType(at));
+                idx.setValueForBlock(ctxt, getCurrentElement(), loop, add(idx, lf.literalOf(idxType, 1)));
+                val.setValueForBlock(ctxt, getCurrentElement(), loop, modVal);
+                begin(exit);
+                return val;
+            }
+        }
+        return super.load(handle, accessMode);
     }
 
     @Override
@@ -259,15 +294,45 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         }
         if (accessMode.includes(GlobalRelease)) {
             // we have to emit a global fence
-            fence(GlobalRelease);
-            return super.store(handle, value, SingleSeqCst);
+            Node store = store(handle, value, SingleUnshared);
+            fence(accessMode.getGlobalAccess());
+            return store;
         } else if (accessMode.includes(GlobalPlain)) {
-            return super.store(handle, value, SinglePlain);
+            return store(handle, value, SinglePlain);
         } else if (accessMode.includes(GlobalUnshared)) {
-            return super.store(handle, value, SingleUnshared);
-        } else {
-            return super.store(handle, value, accessMode);
+            return store(handle, value, SingleUnshared);
         }
+        // Break apart atomic structure and array stores
+        if (handle.getValueType() instanceof CompoundType ct) {
+            for (CompoundType.Member member : ct.getMembers()) {
+                store(memberOf(handle, member), extractMember(value, member), accessMode);
+            }
+        } else if (handle.getValueType() instanceof ArrayType at) {
+            long ec = at.getElementCount();
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            if (ec < 16) {
+                // unrolled
+                for (long i = 0; i < ec; i ++) {
+                    IntegerLiteral idxLit = lf.literalOf(i);
+                    store(elementOf(handle, idxLit), extractElement(value, idxLit));
+                }
+            } else {
+                // rolled loop
+                BlockLabel top = new BlockLabel();
+                BlockLabel exit = new BlockLabel();
+                UnsignedIntegerType idxType = ctxt.getTypeSystem().getUnsignedInteger64Type();
+                BasicBlock entry = goto_(top);
+                PhiValue idx = phi(idxType, top);
+                begin(top);
+                store(elementOf(handle, idx), extractElement(value, idx));
+                BasicBlock loop = if_(isLt(idx, lf.literalOf(idxType, ec)), top, exit);
+                idx.setValueForBlock(ctxt, getCurrentElement(), entry, lf.literalOf(idxType, 0));
+                idx.setValueForBlock(ctxt, getCurrentElement(), loop, add(idx, lf.literalOf(idxType, 1)));
+                begin(exit);
+            }
+            return nop();
+        }
+        return super.store(handle, value, accessMode);
     }
 
     @Override
