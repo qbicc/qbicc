@@ -19,7 +19,7 @@ import org.qbicc.type.descriptor.TypeDescriptor;
  */
 public class AddMainClassHook implements Consumer<CompilationContext> {
 
-    private static final String MAIN_CLASS = "org/qbicc/runtime/main/Main";
+    private static final String MAIN_CLASS = "jdk/internal/org/qbicc/runtime/Main";
 
     public AddMainClassHook() {
     }

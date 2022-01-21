@@ -1233,7 +1233,7 @@ public final class CoreIntrinsics {
     static void registerOrgQbiccRuntimeMainIntrinsics(final CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
-        ClassTypeDescriptor mainDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/Main");
+        ClassTypeDescriptor mainDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/org/qbicc/runtime/Main");
 
         ClassTypeDescriptor tgDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ThreadGroup");
         MethodDescriptor voidVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());

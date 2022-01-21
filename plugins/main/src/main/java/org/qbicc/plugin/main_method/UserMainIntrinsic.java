@@ -35,7 +35,7 @@ public class UserMainIntrinsic implements StaticIntrinsic {
     public static void register(CompilationContext ctxt, MethodElement mainMethod) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
-        TypeDescriptor runtimeMainDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/Main");
+        TypeDescriptor runtimeMainDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/org/qbicc/runtime/Main");
         MethodDescriptor runtimeMainMethodDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V,
             List.of(ArrayTypeDescriptor.of(classContext, ClassTypeDescriptor.synthesize(classContext, "java/lang/String"))));
         intrinsics.registerIntrinsic(Phase.ADD, runtimeMainDesc, "userMain", runtimeMainMethodDesc, new UserMainIntrinsic(mainMethod));
