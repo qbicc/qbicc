@@ -97,7 +97,6 @@ public final class CoreIntrinsics {
         registerJavaLangStackTraceElementInstrinsics(ctxt);
         registerJavaLangThreadIntrinsics(ctxt);
         registerJavaLangThrowableIntrinsics(ctxt);
-        registerJavaLangObjectIntrinsics(ctxt);
         registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
         registerJavaLangRefIntrinsics(ctxt);
@@ -211,13 +210,10 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(fileDescriptorDesc, "getAppend", intToBool, getAppend);
     }
 
-    // TODO: Some now implements in Class$_native. Remove from here after qbicc 0.4 released
     public static void registerJavaLangClassIntrinsics(CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
         CoreClasses coreClasses = CoreClasses.get(ctxt);
-        SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
-        RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
 
         ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor jlclDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ClassLoader");
@@ -230,7 +226,6 @@ public final class CoreIntrinsics {
         MethodDescriptor emptyToString = MethodDescriptor.synthesize(classContext, jlsDesc, List.of());
         MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
         MethodDescriptor stringToClass = MethodDescriptor.synthesize(classContext, jlcDesc, List.of(jlsDesc));
-        MethodDescriptor objToObj = MethodDescriptor.synthesize(classContext, jloDesc, List.of(jloDesc));
         MethodDescriptor stringBoolLoaderClassToClass = MethodDescriptor.synthesize(classContext, jlcDesc, List.of(jlsDesc, BaseTypeDescriptor.Z, jlclDesc, jlcDesc));
 
         // Assertion status
@@ -247,34 +242,7 @@ public final class CoreIntrinsics {
             throw new BlockEarlyTermination(builder.unreachable());
         };
 
-        InstanceIntrinsic isArray = (builder, instance, target, arguments) -> {
-            Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance),  coreClasses.getClassTypeIdField()));
-            Value dims = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance),  coreClasses.getClassDimensionField()));
-            MethodElement isPrimArray = methodFinder.getMethod("isPrimArray");
-            return builder.or(builder.getFirstBuilder().isGt(dims, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(dims.getType())),
-                              builder.getFirstBuilder().call(builder.staticMethod(isPrimArray, isPrimArray.getDescriptor(), isPrimArray.getType()), List.of(id)));
-        };
-
-        InstanceIntrinsic isInterface = (builder, instance, target, arguments) -> {
-            Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance),  coreClasses.getClassTypeIdField()));
-            MethodElement isIntf = methodFinder.getMethod("isInterface");
-            return builder.getFirstBuilder().call(builder.staticMethod(isIntf, isIntf.getDescriptor(), isIntf.getType()), List.of(id));
-        };
-
-        InstanceIntrinsic isPrimitive = (builder, instance, target, arguments) -> {
-            Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance), coreClasses.getClassTypeIdField()));
-            MethodElement isPrim = methodFinder.getMethod("isPrimitive");
-            return builder.getFirstBuilder().call(builder.staticMethod(isPrim, isPrim.getDescriptor(), isPrim.getType()), List.of(id));
-        };
-
-        InstanceIntrinsic getSuperclass = (builder, instance, target, arguments) -> {
-            Value id = builder.load(builder.instanceFieldOf(builder.referenceHandle(instance), coreClasses.getClassTypeIdField()));
-            LiteralFactory lf = ctxt.getLiteralFactory();
-            TypeSystem ts = ctxt.getTypeSystem();
-            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("getSuperClass");
-            return builder.getFirstBuilder().call(builder.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(id));
-        };
-
+        //    static native Class<?> getPrimitiveClass(String name);
         StaticIntrinsic getPrimitiveClass = (builder, target, arguments) -> {
             // always called with a string literal
             StringLiteral lit = (StringLiteral) arguments.get(0);
@@ -284,16 +252,10 @@ public final class CoreIntrinsics {
             return builder.classOf(lf.literalOfType(type), lf.zeroInitializerLiteralOfType(ts.getUnsignedInteger8Type()));
         };
 
-        //    static native Class<?> getPrimitiveClass(String name);
-
         intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus0", classToBool, desiredAssertionStatus0);
         intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus", emptyToBool, desiredAssertionStatus);
         intrinsics.registerIntrinsic(jlcDesc, "initClassName", emptyToString, initClassName);
         intrinsics.registerIntrinsic(jlcDesc, "getPrimitiveClass", stringToClass, getPrimitiveClass);
-        intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "getSuperclass", emptyToClass, getSuperclass);
-        intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isArray", emptyToBool, isArray);
-        intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isInterface", emptyToBool, isInterface);
-        intrinsics.registerIntrinsic(Phase.LOWER, jlcDesc, "isPrimitive", emptyToBool, isPrimitive);
 
         StaticIntrinsic classForName0 = (builder, target, arguments) -> {
             // ignore fourth argument
@@ -455,20 +417,6 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor systemDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/System");
         LoadedTypeDefinition jls = classContext.findDefinedType("java/lang/System").load();
         ClassTypeDescriptor jloDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
-        ClassTypeDescriptor stringDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
-        ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/VM");
-
-        MethodDescriptor objectToIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(jloDesc));
-
-        // Null and no-operation intrinsics
-
-        // TODO: moved to System$_patch; remove after next qbicc class lib release
-        StaticIntrinsic returnNull = (builder, target, arguments) ->
-            classContext.getLiteralFactory().zeroInitializerLiteralOfType(jls.getClassType().getReference());
-        intrinsics.registerIntrinsic(systemDesc, "getSecurityManager",
-            MethodDescriptor.synthesize(classContext,
-                ClassTypeDescriptor.synthesize(classContext,"java/lang/SecurityManager"), List.of()),
-            returnNull);
 
         // System public API
 
@@ -491,58 +439,6 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(systemDesc, "setIn0", setInputStreamDesc, setVolatile(ctxt, in));
         intrinsics.registerIntrinsic(systemDesc, "setOut0", setPrintStreamDesc, setVolatile(ctxt, out));
         intrinsics.registerIntrinsic(systemDesc, "setErr0", setPrintStreamDesc, setVolatile(ctxt, err));
-
-        // arraycopy
-        // TODO: moved to System$_native; remove after next qbicc class lib release
-        MethodDescriptor arraycopyDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(
-            jloDesc,
-            BaseTypeDescriptor.I,
-            jloDesc,
-            BaseTypeDescriptor.I,
-            BaseTypeDescriptor.I
-        ));
-
-        StaticIntrinsic arraycopy = (builder, target, arguments) ->
-            builder.call(builder.staticMethod(vmDesc, "arraycopy", target.getExecutable().getDescriptor()), arguments);
-
-        intrinsics.registerIntrinsic(systemDesc, "arraycopy", arraycopyDesc, arraycopy);
-
-        // identity hash code
-
-        // todo: obviously non-optimal; replace once we have object headers sorted out
-        // TODO: moved to System$_native; remove after next qbicc class lib release
-        StaticIntrinsic identityHashCode = (builder, target, arguments) ->
-            ctxt.getLiteralFactory().literalOf(0);
-
-        intrinsics.registerIntrinsic(systemDesc, "identityHashCode", objectToIntDesc, identityHashCode);
-
-        MethodDescriptor stringToVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(stringDesc));
-
-        // TODO: moved to System$_patch; remove after next qbicc class lib release
-        StaticIntrinsic loadLibrary = (builder, target, arguments) -> {
-            Value libraryName = arguments.get(0);
-            String content;
-            if (libraryName instanceof StringLiteral) {
-                content = ((StringLiteral) libraryName).getValue();
-            } else if (libraryName instanceof ObjectLiteral) {
-                VmObject value = ((ObjectLiteral) libraryName).getValue();
-                if (value instanceof VmString) {
-                    content = ((VmString) value).getContent();
-                } else {
-                    return null;
-                }
-            } else {
-                return null;
-            }
-            if (content.equals("net") || content.equals("extnet") || content.equals("zip") || content.equals("nio") || content.equals("prefs")) {
-                // ignore known libraries
-                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
-            } else {
-                return null;
-            }
-        };
-
-        intrinsics.registerIntrinsic(systemDesc, "loadLibrary", stringToVoidDesc, loadLibrary);
     }
 
     public static void registerJavaLangThreadIntrinsics(CompilationContext ctxt) {
@@ -620,7 +516,7 @@ public final class CoreIntrinsics {
 
             /* pass threadWrapper as function_ptr - TODO this will eventually be replaced by a call to CNative.addr_of_function */
             MethodDescriptor threadWrapperDesc = MethodDescriptor.synthesize(classContext, voidPtrDesc, List.of(voidPtrDesc));
-            ValueHandle threadWrapperValueHandle = builder.staticMethod(vmHelpersDesc, "threadWrapper", threadWrapperDesc); // TODO: Once qbicc 0.3.0 comes out, change vmHelpersDesc to compIntrDesc
+            ValueHandle threadWrapperValueHandle = builder.staticMethod(vmHelpersDesc, "threadWrapper", threadWrapperDesc); // TODO: Call intrinsic directly when start0 is moved to Thread$_native.java
             Value threadWrapperFunctionPointer = builder.addressOf(threadWrapperValueHandle);
 
             /* call threadWrapper with null parameter so it does nothing - TODO this is a workaround to create a declares statement for threadWrapper in java.lang.Thread */
@@ -1009,22 +905,6 @@ public final class CoreIntrinsics {
         return builder.bitCast(value, type.asUnsigned());
     }
 
-    public static void registerJavaLangObjectIntrinsics(CompilationContext ctxt) {
-        Intrinsics intrinsics = Intrinsics.get(ctxt);
-        ClassContext classContext = ctxt.getBootstrapClassContext();
-        ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
-        ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
-
-        // TODO: Now implemented in classlib: Remove after qbicc-classlib 0.4 released.
-        // Object#getClass()Ljava/lang/Class; --> field read of the "typeId" field
-        MethodDescriptor getClassDesc = MethodDescriptor.synthesize(classContext, jlcDesc, List.of());
-        InstanceIntrinsic getClassIntrinsic = (builder, instance, target, arguments) -> {
-            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("getClassFromObject");
-            return builder.getFirstBuilder().call(builder.staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(instance));
-        };
-        intrinsics.registerIntrinsic(Phase.ADD, objDesc, "getClass", getClassDesc, getClassIntrinsic);
-    }
-
     static void registerOrgQbiccCompilerIntrinsics(final CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
@@ -1314,17 +1194,6 @@ public final class CoreIntrinsics {
             return builder.call(builder.pointerHandle(initFunc), List.of(builder.load(builder.currentThread(), SingleUnshared)));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "callRuntimeInitializer", intVoidDesc, callRuntimeInitializer);
-
-        // int get_typeid_flags(CNative.type_id typeID);
-        StaticIntrinsic get_typeid_flags = (builder, target, arguments) -> {
-            Value typeId = arguments.get(0);
-            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
-            ValueHandle typeIdStruct = builder.elementOf(builder.globalVariable(typeIdGlobal), typeId);
-            ValueHandle flags = builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("flags"));
-            Value flagValue = builder.load(flags);
-            return flagValue;
-        };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getTypeIdFlags", typeIdIntDesc, get_typeid_flags);
 
         // public static native CNative.type_id getSuperClassTypeId(CNative.type_id typeId);
         StaticIntrinsic getSuperClassTypeId = (builder, target, arguments) -> {

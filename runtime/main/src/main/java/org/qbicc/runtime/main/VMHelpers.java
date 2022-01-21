@@ -110,26 +110,6 @@ public final class VMHelpers {
         return CompilerIntrinsics.getClassFromTypeId(typeId, dims);
     }
 
-    @NoSideEffects
-    @Hidden
-    @Inline(InlineCondition.NEVER)
-    @Deprecated // should just call compiler intrinsic directly.
-    static Class<?> getClassFromTypeid(type_id typeId, uint8_t dimensions) {
-        return CompilerIntrinsics.getClassFromTypeId(typeId, dimensions);
-    }
-
-    @Hidden
-    @Deprecated // moved to Class$_native.getSuperClass
-    @AutoQueued
-    static Class<?> getSuperClass(type_id typeId) {
-        if (CompilerIntrinsics.isJavaLangObject(typeId) || CompilerIntrinsics.isPrimitive(typeId) || CompilerIntrinsics.isInterface(typeId)) {
-            return null;
-        }
-        type_id superTypeId = CompilerIntrinsics.getSuperClassTypeId(typeId);
-        uint8_t dims = word(0);
-        return CompilerIntrinsics.getClassFromTypeId(superTypeId, dims);
-    }
-
     @Hidden
     @NoReturn
     @Inline(InlineCondition.NEVER)
@@ -258,7 +238,9 @@ public final class VMHelpers {
         }
     }
 
-    // TODO: Class library compatibility kludge; remove once qbicc 0.3.0 is released and CoreIntrnsic for Thread.start0 is updated.
+    // TODO: Class library compatibility kludge.
+    //       Once Thread.start0 is defined in Thread$_native instead as a compiler intrinsic, it can
+    //       call CompilerIntrinsics.threadWrapperNative directly and this redirection method can be removed.
     public static void_ptr threadWrapperNative(void_ptr threadParam) {
         return CompilerIntrinsics.threadWrapperNative(threadParam);
     }
