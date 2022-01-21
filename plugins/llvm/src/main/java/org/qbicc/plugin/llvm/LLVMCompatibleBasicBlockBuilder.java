@@ -285,6 +285,13 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
+    public BasicBlock unreachable() {
+        TypeSystem ts = ctxt.getTypeSystem();
+        FunctionDeclaration decl = ctxt.getImplicitSection(getRootElement()).declareFunction(null, "llvm.trap", ts.getFunctionType(ts.getVoidType()));
+        return callNoReturn(pointerHandle(ctxt.getLiteralFactory().literalOf(decl)), List.of());
+    }
+
+    @Override
     public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
         if (handle.getValueType() instanceof BooleanType) {
             ctxt.error("Invalid boolean-typed handle %s", handle);
