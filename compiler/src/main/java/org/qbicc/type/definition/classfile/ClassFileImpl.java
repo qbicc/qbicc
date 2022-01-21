@@ -673,7 +673,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         builder.setName(internalName);
         builder.setContext(ctxt);
         int access = getAccess();
-        if (internalName.equals("java/lang/Thread") || internalName.equals("java/lang/Class")) {
+        if (internalName.equals("java/lang/Thread") || internalName.equals("java/lang/Class") || internalName.equals("org/qbicc/runtime/StackObject")) {
             access |= I_ACC_PINNED;
         }
         String superClassName = getSuperClassName();
