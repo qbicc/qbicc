@@ -89,7 +89,7 @@ public final class Reflection {
     private final Map<AnnotatedElement, VmArray> annotatedElements = new ConcurrentHashMap<>();
     private final Map<Element, VmObject> reflectionObjects = new ConcurrentHashMap<>();
     private final Map<LoadedTypeDefinition, VmArray> annotatedTypes = new ConcurrentHashMap<>();
-    private final VmArray noBytes;
+    private final VmArray noAnnotations;
     private final Vm vm;
     private final VmClass cpClass;
     private final VmClass classClass;
@@ -170,7 +170,7 @@ public final class Reflection {
 
         // VM
         vm = ctxt.getVm();
-        noBytes = vm.newByteArray(NO_BYTES);
+        noAnnotations = vm.newByteArray(new byte[2]);
         // ConstantPool
         LoadedTypeDefinition cpDef = classContext.findDefinedType("jdk/internal/reflect/ConstantPool").load();
         cpClass = cpDef.getVmClass();
@@ -319,13 +319,17 @@ public final class Reflection {
         }
         List<Annotation> annotations = element.getVisibleAnnotations();
         if (annotations.isEmpty()) {
-            annotatedElements.putIfAbsent(element, noBytes);
-            return noBytes;
+            annotatedElements.putIfAbsent(element, noAnnotations);
+            return noAnnotations;
         }
         VmClass vmClass = element.getEnclosingType().load().getVmClass();
         ConstantPool constantPool = getConstantPoolForClass(vmClass);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         synchronized (constantPool) {
+            int cnt = annotations.size();
+            // big-endian
+            os.write(cnt >>> 8);
+            os.write(cnt);
             for (Annotation annotation : annotations) {
                 annotation.deparseTo(os, constantPool);
             }
@@ -394,8 +398,8 @@ public final class Reflection {
         }
         List<Annotation> annotations = def.getVisibleAnnotations();
         if (annotations.isEmpty()) {
-            annotatedTypes.putIfAbsent(def, noBytes);
-            return noBytes;
+            annotatedTypes.putIfAbsent(def, noAnnotations);
+            return noAnnotations;
         }
         ConstantPool constantPool = getConstantPoolForClass(vmClass);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -492,7 +496,7 @@ public final class Reflection {
         VmArray dv;
         AnnotationValue defaultValue = method.getDefaultValue();
         if (defaultValue == null) {
-            dv = noBytes;
+            dv = noAnnotations;
         } else {
             ByteArrayOutputStream os = new ByteArrayOutputStream();
             ConstantPool cp = getConstantPoolForClass(declaringClass);
@@ -513,7 +517,7 @@ public final class Reflection {
             vm.intern(method.getSignature().toString()),
             getAnnotations(method),
             // TODO: param annotations
-            noBytes,
+            noAnnotations,
             dv
         ));
         VmObject appearing = reflectionObjects.putIfAbsent(method, vmObject);
@@ -579,7 +583,7 @@ public final class Reflection {
             vm.intern(constructor.getSignature().toString()),
             getAnnotations(constructor),
             // TODO: param annotations
-            noBytes
+            noAnnotations
         ));
         VmObject appearing = reflectionObjects.putIfAbsent(constructor, vmObject);
         return appearing != null ? appearing : vmObject;
