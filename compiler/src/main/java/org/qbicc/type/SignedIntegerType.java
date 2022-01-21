@@ -35,6 +35,18 @@ public final class SignedIntegerType extends IntegerType {
         }
     }
 
+    public SignedIntegerType asSized(final int minBits) {
+        switch (minBits) {
+            case 8: return typeSystem.getSignedInteger8Type();
+            case 16: return typeSystem.getSignedInteger16Type();
+            case 32: return typeSystem.getSignedInteger32Type();
+            case 64: return typeSystem.getSignedInteger64Type();
+            default: {
+                throw Assert.impossibleSwitchCase(minBits);
+            }
+        }
+    }
+
     public long truncateValue(final long value) {
         switch (minBits) {
             case 8: return (byte) value;

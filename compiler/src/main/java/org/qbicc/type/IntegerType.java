@@ -29,6 +29,8 @@ public abstract class IntegerType extends NumericType {
 
     public abstract UnsignedIntegerType asUnsigned();
 
+    public abstract IntegerType asSized(final int minBits);
+
     public int getAlign() {
         return align;
     }
