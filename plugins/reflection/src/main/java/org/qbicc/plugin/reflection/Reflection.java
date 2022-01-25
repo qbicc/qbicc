@@ -124,6 +124,7 @@ public final class Reflection {
     private final FieldElement memberNameFlagsField; // int
     private final FieldElement memberNameMethodField; // ResolvedMethodName
     private final FieldElement memberNameIndexField; // int (injected)
+    private final FieldElement memberNameResolvedField; // boolean (injected)
     // Field
     private final FieldElement fieldClazzField; // Class
     private final FieldElement fieldSlotField; // int
@@ -164,6 +165,7 @@ public final class Reflection {
         Patcher patcher = Patcher.get(ctxt);
 
         patcher.addField(classContext, "java/lang/invoke/MemberName", "index", BaseTypeDescriptor.I, this::resolveIndexField, 0, 0);
+        patcher.addField(classContext, "java/lang/invoke/MemberName", "resolved", BaseTypeDescriptor.Z, this::resolveResolvedField, 0, 0);
 
         patcher.addField(classContext, "java/lang/invoke/ResolvedMethodName", "index", BaseTypeDescriptor.I, this::resolveIndexField, 0, 0);
         patcher.addField(classContext, "java/lang/invoke/ResolvedMethodName", "clazz", ClassTypeDescriptor.synthesize(classContext, "java/lang/Class"), this::resolveClazzField, 0, 0);
@@ -227,6 +229,7 @@ public final class Reflection {
         memberNameFlagsField = memberNameDef.findField("flags");
         memberNameMethodField = memberNameDef.findField("method");
         memberNameIndexField = memberNameDef.findField("index");
+        memberNameResolvedField = memberNameDef.findField("resolved");
         MethodDescriptor memberName4Desc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(
             BaseTypeDescriptor.B,
             classDef.getDescriptor(),
@@ -777,6 +780,10 @@ public final class Reflection {
     private Object methodHandleNativesResolve(final VmThread thread, final VmObject ignored, final List<Object> args) {
         Vm vm = thread.getVM();
         VmObject memberName = (VmObject) args.get(0);
+        boolean resolvedFlag = (memberName.getMemory().load8(memberName.indexOf(memberNameResolvedField), SinglePlain) & 1) != 0;
+        if (resolvedFlag) {
+            return memberName;
+        }
         VmClass caller = (VmClass) args.get(1);
         boolean speculativeResolve = (((Number) args.get(2)).intValue() & 1) != 0;
         VmClass clazz = (VmClass) memberName.getMemory().loadRef(memberName.indexOf(memberNameClazzField), SinglePlain);
@@ -801,6 +808,7 @@ public final class Reflection {
             memberName.getMemory().storeRef(memberNameClass.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
             int newFlags = resolved.getModifiers() & 0xffff | IS_FIELD | (kind << 24);
             memberName.getMemory().store32(memberNameClass.indexOf(memberNameFlagsField), newFlags, SinglePlain);
+            memberName.getMemory().store8(memberNameClass.indexOf(memberNameResolvedField), 1, SinglePlain);
             memberName.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
             return memberName;
         } else if ((flags & IS_TYPE) != 0) {
@@ -823,6 +831,7 @@ public final class Reflection {
                 memberName.getMemory().storeRef(memberNameClass.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
                 int newFlags = resolved.getModifiers() & 0xffff | IS_CONSTRUCTOR | (kind << 24);
                 memberName.getMemory().store32(memberNameClass.indexOf(memberNameFlagsField), newFlags, SinglePlain);
+                memberName.getMemory().store8(memberNameClass.indexOf(memberNameResolvedField), 1, SinglePlain);
                 memberName.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
                 return memberName;
             } else if (((flags & IS_METHOD) != 0)){
@@ -855,6 +864,7 @@ public final class Reflection {
                 memberName.getMemory().storeRef(memberNameClass.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
                 int newFlags = resolved.getModifiers() & 0xffff | IS_METHOD | (kind << 24);
                 memberName.getMemory().store32(memberNameClass.indexOf(memberNameFlagsField), newFlags, SinglePlain);
+                memberName.getMemory().store8(memberNameClass.indexOf(memberNameResolvedField), 1, SinglePlain);
                 memberName.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
                 return memberName;
             } else {
@@ -1042,6 +1052,21 @@ public final class Reflection {
         builder.setEnclosingType(typeDef);
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT);
         builder.setSignature(BaseTypeSignature.I);
+        return builder.build();
+    }
+
+    /**
+     * Resolve the injected {@code resolved} field of {@code MemberName}.
+     *
+     * @param index the field index (ignored)
+     * @param typeDef the type definition (ignored)
+     * @param builder the field builder
+     * @return the resolved field
+     */
+    private FieldElement resolveResolvedField(final int index, final DefinedTypeDefinition typeDef, final FieldElement.Builder builder) {
+        builder.setEnclosingType(typeDef);
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT);
+        builder.setSignature(BaseTypeSignature.Z);
         return builder.build();
     }
 
