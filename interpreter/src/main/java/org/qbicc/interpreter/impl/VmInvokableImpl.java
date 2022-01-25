@@ -204,6 +204,7 @@ final class VmInvokableImpl implements VmInvokable {
             VmThrowableClassImpl internalErrorClass = (VmThrowableClassImpl) thread.vm.getBootstrapClassLoader().loadClass("java/lang/InternalError");
             throw new Thrown(internalErrorClass.newInstance("Internal error: " + t));
         } finally {
+            frame.releaseLocks();
             thread.currentFrame = caller;
         }
     }
