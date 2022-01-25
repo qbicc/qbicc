@@ -1,6 +1,7 @@
 package org.qbicc.interpreter.impl;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ObjectType;
@@ -35,6 +36,11 @@ class VmPrimitiveClassImpl extends VmClassImpl implements VmPrimitiveClass {
     @Override
     public BaseTypeDescriptor getDescriptor() {
         return descriptor;
+    }
+
+    @Override
+    public boolean isAssignableFrom(VmClass other) {
+        return this == other;
     }
 
     @Override

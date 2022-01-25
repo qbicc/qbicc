@@ -639,7 +639,7 @@ public final class VmImpl implements Vm {
             classClass.registerInvokable("isAssignableFrom", (thread, target, args) -> {
                 VmClassImpl lhs = (VmClassImpl) target;
                 VmClassImpl rhs = (VmClassImpl)args.get(0);
-                return rhs.getTypeDefinition().isSubtypeOf(lhs.getTypeDefinition());
+                return Boolean.valueOf(lhs.isAssignableFrom(rhs));
             });
             classClass.registerInvokable("isPrimitive", (thread, target, args) -> Boolean.valueOf(target instanceof VmPrimitiveClass));
             classClass.registerInvokable("getEnclosingMethod0", (thread, target, args) -> {

@@ -22,6 +22,7 @@ import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.interpreter.VmReferenceArrayClass;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThrowable;
@@ -583,6 +584,16 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     public TypeDescriptor getDescriptor() {
         return typeDefinition.getDescriptor();
+    }
+
+    @Override
+    public boolean isAssignableFrom(VmClass other) {
+        if (other instanceof VmPrimitiveClass) {
+            return false;
+        }
+        ObjectType ourType = getInstanceObjectType();
+        ObjectType otherType = other.getInstanceObjectType();
+        return ourType.isSupertypeOf(otherType);
     }
 
     enum State {

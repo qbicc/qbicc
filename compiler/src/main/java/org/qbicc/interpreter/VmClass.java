@@ -72,4 +72,6 @@ public interface VmClass extends VmObject {
     void registerInvokable(String name, MethodDescriptor descriptor, VmInvokable invokable) throws IllegalStateException;
 
     TypeDescriptor getDescriptor();
+
+    boolean isAssignableFrom(VmClass other);
 }
