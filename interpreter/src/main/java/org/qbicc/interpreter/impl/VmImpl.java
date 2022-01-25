@@ -1379,7 +1379,16 @@ public final class VmImpl implements Vm {
     }
 
     VmStringImpl intern(VmStringImpl vmString) {
-        return intern(vmString.getContent());
+        String string = vmString.getContent();
+        VmStringImpl existing = interned.get(string);
+        if (existing != null) {
+            return existing;
+        }
+        VmStringImpl appearing = interned.putIfAbsent(string, vmString);
+        if (appearing != null) {
+            return appearing;
+        }
+        return vmString;
     }
 
     public VmStringImpl intern(String string) {

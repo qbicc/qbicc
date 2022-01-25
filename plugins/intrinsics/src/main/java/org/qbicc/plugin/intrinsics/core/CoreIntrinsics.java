@@ -51,10 +51,8 @@ import org.qbicc.plugin.intrinsics.StaticIntrinsic;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.methodinfo.MethodDataTypes;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
-import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.CompoundType.Member;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NullableType;
 import org.qbicc.type.PointerType;
@@ -91,7 +89,6 @@ public final class CoreIntrinsics {
         registerJavaLangClassIntrinsics(ctxt);
         registerJavaLangInvokeMethodHandleNativesIntrinsics(ctxt);
         registerJavaLangInvokeMethodHandleIntrinsics(ctxt);
-        registerJavaLangStringIntrinsics(ctxt);
         registerJavaLangStringUTF16Intrinsics(ctxt);
         registerJavaLangSystemIntrinsics(ctxt);
         registerJavaLangStackTraceElementInstrinsics(ctxt);
@@ -367,21 +364,6 @@ public final class CoreIntrinsics {
         };
         // this intrinsic MUST be added during ADD because `invoke` must always be converted.
         intrinsics.registerIntrinsic(Phase.ADD, methodHandleDesc, "invoke", objArrayToObj, invoke);
-    }
-
-    public static void registerJavaLangStringIntrinsics(CompilationContext ctxt) {
-        Intrinsics intrinsics = Intrinsics.get(ctxt);
-        ClassContext classContext = ctxt.getBootstrapClassContext();
-
-        ClassTypeDescriptor stringDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
-
-        MethodDescriptor emptyToString = MethodDescriptor.synthesize(classContext, stringDesc, List.of());
-
-        InstanceIntrinsic intern = (builder, instance, target, arguments) ->
-            // todo: implement a proper interning table, intercept in interpreter
-            instance;
-
-        intrinsics.registerIntrinsic(stringDesc, "intern", emptyToString, intern);
     }
 
     public static void registerJavaLangStringUTF16Intrinsics(CompilationContext ctxt) {
