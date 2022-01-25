@@ -128,6 +128,10 @@ public interface ClassFile extends FieldResolver,
      * are associated with an initializer that does have this modifier.
      */
     int I_ACC_RUN_TIME = 1 << 28;
+    /**
+     * For methods which have the JDK {@code @CallerSensitive} annotation.
+     */
+    int I_ACC_CALLER_SENSITIVE = 1 << 29;
 
     int OP_NOP = 0x00;
     int OP_ACONST_NULL = 0x01;

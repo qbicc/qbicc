@@ -658,14 +658,13 @@ public final class Reflection {
         MethodElement refMethod = clazzVal.getTypeDefinition().getMethod(index);
         int flags = refMethod.getModifiers() & 0x1fff;
 
-        // TODO: hard-coded only when called from `init`; add support for other uses
         flags |= IS_METHOD;
         if (refMethod.isStatic()) {
             flags |= KIND_INVOKE_STATIC << KIND_SHIFT;
         } else {
             flags |= KIND_INVOKE_SPECIAL << KIND_SHIFT;
         }
-        if (false /* refMethod.isCallerSensitive() */) {
+        if (refMethod.hasAllModifiersOf(ClassFile.I_ACC_CALLER_SENSITIVE)) {
             flags |= CALLER_SENSITIVE;
         }
 
