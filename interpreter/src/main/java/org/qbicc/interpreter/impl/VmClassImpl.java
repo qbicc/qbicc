@@ -607,9 +607,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             } else {
                 insert = oldMembers.getLength();
                 newMembers = (VmRefArrayImpl) vm.newArrayOf(getVmClass(), insert + 1);
-                for (int i = 0; i < insert; i ++) {
-                    newMembers.store(i, oldMembers.getMemory().loadRef(oldMembers.getArrayElementOffset(i), SinglePlain));
-                }
+                System.arraycopy(oldMembers.getArray(), 0, newMembers.getArray(), 0, insert);
             }
             newMembers.store(insert, member);
             witness = (VmRefArrayImpl) getMemory().compareAndExchangeRef(nestMembersIdx, oldMembers, newMembers, SingleAcquire, SingleRelease);

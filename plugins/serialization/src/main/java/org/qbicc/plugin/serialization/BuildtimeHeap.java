@@ -19,6 +19,7 @@ import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.object.Data;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Linkage;
@@ -338,8 +339,9 @@ public class BuildtimeHeap {
         populateMemberMap(concreteType.load(), objType, objLayout, memLayout, memory, memberMap);
 
         List<Literal> elements = new ArrayList<>(length);
+        VmObject[] elementArray = ((VmReferenceArray) value).getArray();
         for (int i=0; i<length; i++) {
-            VmObject e = memory.loadRef(value.getArrayElementOffset(i), SinglePlain);
+            VmObject e = elementArray[i];
             if (e == null) {
                 elements.add(lf.zeroInitializerLiteralOfType(at.getElementType()));
             } else {
@@ -373,41 +375,45 @@ public class BuildtimeHeap {
 
         Literal arrayContentsLiteral;
         if (contentsField.equals(coreClasses.getByteArrayContentField())) {
-            byte[] contents = new byte[length];
-            for (int i=0; i<length; i++) {
-                contents[i] = (byte)memory.load8(value.getArrayElementOffset(i), SinglePlain);
-            }
+            byte[] contents = (byte[]) value.getArray();
             arrayContentsLiteral = lf.literalOf(ctxt.getTypeSystem().getArrayType(at.getElementType(), length), contents);
         } else {
             List<Literal> elements = new ArrayList<>(length);
             if (contentsField.equals(coreClasses.getBooleanArrayContentField())) {
+                boolean[] contents = (boolean[]) value.getArray();
                 for (int i=0; i<length; i++) {
-                    elements.add(lf.literalOf(memory.load8(value.getArrayElementOffset(i), SinglePlain) != 0));
+                    elements.add(lf.literalOf(contents[i]));
                 }
             } else if (contentsField.equals(coreClasses.getShortArrayContentField())) {
+                short[] contents = (short[]) value.getArray();
                 for (int i=0; i<length; i++) {
-                    elements.add(lf.literalOf(ts.getSignedInteger16Type(), memory.load16(value.getArrayElementOffset(i), SinglePlain)));
+                    elements.add(lf.literalOf(contents[i]));
                 }
             } else if (contentsField.equals(coreClasses.getCharArrayContentField())) {
+                char[] contents = (char[]) value.getArray();
                 for (int i=0; i<length; i++) {
-                    elements.add(lf.literalOf(ts.getUnsignedInteger16Type(), memory.load16(value.getArrayElementOffset(i), SinglePlain)));
+                    elements.add(lf.literalOf(contents[i]));
                 }
             } else if (contentsField.equals(coreClasses.getIntArrayContentField())) {
+                int[] contents = (int[]) value.getArray();
                 for (int i=0; i<length; i++) {
-                    elements.add(lf.literalOf(ts.getSignedInteger32Type(), memory.load32(value.getArrayElementOffset(i), SinglePlain)));
+                    elements.add(lf.literalOf(contents[i]));
                 }
             } else if (contentsField.equals(coreClasses.getLongArrayContentField())) {
+                long[] contents = (long[]) value.getArray();
                 for (int i=0; i<length; i++) {
-                    elements.add(lf.literalOf(ts.getSignedInteger64Type(), memory.load64(value.getArrayElementOffset(i), SinglePlain)));
+                    elements.add(lf.literalOf(contents[i]));
                 }
             } else if (contentsField.equals(coreClasses.getFloatArrayContentField())) {
+                float[] contents = (float[]) value.getArray();
                 for (int i=0; i<length; i++) {
-                    elements.add(lf.literalOf(ts.getFloat32Type(), memory.loadFloat(value.getArrayElementOffset(i), SinglePlain)));
+                    elements.add(lf.literalOf(contents[i]));
                 }
             } else {
                 Assert.assertTrue((contentsField.equals(coreClasses.getDoubleArrayContentField())));
+                double[] contents = (double[]) value.getArray();
                 for (int i=0; i<length; i++) {
-                    elements.add(lf.literalOf(ts.getFloat64Type(), memory.loadDouble(value.getArrayElementOffset(i), SinglePlain)));
+                    elements.add(lf.literalOf(contents[i]));
                 }
             }
             arrayContentsLiteral = lf.literalOf(ctxt.getTypeSystem().getArrayType(at.getElementType(), length), elements);

@@ -41,7 +41,7 @@ final class VmStringImpl extends VmObjectImpl implements VmString {
                 bytes = content.getBytes(StandardCharsets.UTF_16LE);
             }
         }
-        VmArray byteArray = vm.allocateArray(bytes);
+        VmArray byteArray = vm.newByteArray(bytes);
         Memory memory = getMemory();
         memory.store8(vm.stringCoderOffset, latin1 ? 0 : 1, SinglePlain);
         memory.storeRef(vm.stringValueOffset, byteArray, SinglePlain);
@@ -67,8 +67,7 @@ final class VmStringImpl extends VmObjectImpl implements VmString {
         int coder = memory.load8(vm.stringCoderOffset, SingleAcquire);
         VmByteArrayImpl array = (VmByteArrayImpl) memory.loadRef(vm.stringValueOffset, SingleAcquire);
         Charset charset = coder == 0 ? StandardCharsets.ISO_8859_1 : StandardCharsets.UTF_16BE;
-        byte[] rawArray = ((MemoryImpl)array.getMemory()).getArray();
-        String newContent = new String(rawArray, vm.byteArrayContentOffset, array.getLength(), charset);
+        String newContent = new String(array.getArray(), charset);
         for (;;) {
             if (contentHandle.compareAndSet(this, null, newContent)) {
                 return newContent;

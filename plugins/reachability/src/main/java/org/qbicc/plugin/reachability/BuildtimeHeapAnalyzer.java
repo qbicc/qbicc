@@ -8,6 +8,7 @@ import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmStaticFieldBaseObject;
+import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
@@ -104,12 +105,7 @@ class BuildtimeHeapAnalyzer {
             } else if (ot instanceof ReferenceArrayObjectType) {
                 analysis.processArrayElementType(((ReferenceArrayObjectType) ot).getLeafElementType());
 
-                FieldElement contentsField = coreClasses.getRefArrayContentField();
-                LayoutInfo info = interpreterLayout.getInstanceLayoutInfo(contentsField.getEnclosingType());
-                Memory memory = cur.getMemory();
-                int length = memory.load32(info.getMember(coreClasses.getArrayLengthField()).getOffset(), SinglePlain);
-                for (int i=0; i<length; i++) {
-                    VmObject e = memory.loadRef(((VmArray) cur).getArrayElementOffset(i), SinglePlain);
+                for (VmObject e : ((VmReferenceArray) cur).getArray()) {
                     if (e != null && !visited.containsKey(e)) {
                         worklist.add(e);
                         visited.put(e, Boolean.TRUE);

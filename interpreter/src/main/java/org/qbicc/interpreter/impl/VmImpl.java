@@ -659,16 +659,17 @@ public final class VmImpl implements Vm {
                     return null;
                 }
                 VmImpl vm = (VmImpl) thread.getVM();
-                VmArrayClassImpl arrayClass = vm.objectClass.getArrayClass();
-                VmArrayImpl vmArray = arrayClass.newInstance(3);
+                VmRefArrayClassImpl arrayClass = (VmRefArrayClassImpl) vm.objectClass.getArrayClass();
+                VmRefArrayImpl vmArray = arrayClass.newInstance(3);
                 ClassContext emcCtxt = emcDef.getContext();
                 VmClassLoaderImpl emcLoader = vm.getClassLoaderForContext(emcCtxt);
                 VmClassImpl emc = emcLoader.loadClass(emcDef.getInternalName());
-                vmArray.getMemory().storeRef(vmArray.getArrayElementOffset(0), emc, SinglePlain);
+                VmObject[] realArray = vmArray.getArray();
+                realArray[0] = emc;
                 MethodElement enclosingMethod = def.getEnclosingMethod();
                 if (enclosingMethod != null) {
-                    vmArray.getMemory().storeRef(vmArray.getArrayElementOffset(1), vm.intern(enclosingMethod.getName()), SinglePlain);
-                    vmArray.getMemory().storeRef(vmArray.getArrayElementOffset(2), vm.intern(enclosingMethod.getDescriptor().toString()), SinglePlain);
+                    realArray[1] = vm.intern(enclosingMethod.getName());
+                    realArray[2] = vm.intern(enclosingMethod.getDescriptor().toString());
                 }
                 return vmArray;
             });
@@ -709,12 +710,7 @@ public final class VmImpl implements Vm {
                 VmObject pd = (VmObject) args.get(5);
                 VmString source = (VmString) args.get(6);
                 if (off != 0 || len != b.getLength()) {
-                    VmByteArrayImpl b2 = manuallyInitialize(byteArrayClass.newInstance(len));
-                    for (int i=0; i<len; i++) {
-                        int v = b.getMemory().load8(b.getArrayElementOffset(off + i), SinglePlain);
-                        b2.getMemory().store8(b2.getArrayElementOffset(i), v, SinglePlain);
-                    }
-                    b = b2;
+                    b = b.copyOfRange(off, len);
                 }
                 if (classLoader == null) {
                     classLoader = bootstrapClassLoader;
@@ -732,12 +728,7 @@ public final class VmImpl implements Vm {
                 int flags = ((Integer) args.get(8)).intValue();
                 VmObject data = (VmObject) args.get(9);
                 if (off != 0 || len != b.getLength()) {
-                    VmByteArrayImpl b2 = manuallyInitialize(byteArrayClass.newInstance(len));
-                    for (int i=0; i<len; i++) {
-                        int v = b.getMemory().load8(b.getArrayElementOffset(off + i), SinglePlain);
-                        b2.getMemory().store8(b2.getArrayElementOffset(i), v, SinglePlain);
-                    }
-                    b = b2;
+                    b = b.copyOfRange(off, len);
                 }
                 if (classLoader == null) {
                     classLoader = bootstrapClassLoader;
@@ -792,14 +783,7 @@ public final class VmImpl implements Vm {
             osEnvClass.registerInvokable("initialize", (thread, target, args) -> null); // Skip this for build-time init.
 
             VmClassImpl unixDispatcher = bootstrapClassLoader.loadClass("sun/nio/fs/UnixNativeDispatcher");
-            unixDispatcher.registerInvokable("getcwd", (thread, target, args) -> {
-                byte[] cwd = System.getProperty("user.dir").getBytes();
-                VmByteArrayImpl bytes = manuallyInitialize(byteArrayClass.newInstance(cwd.length));
-                for (int i=0; i<cwd.length; i++) {
-                    bytes.getMemory().store8(bytes.getArrayElementOffset(i), cwd[i], SinglePlain);
-                }
-                return bytes;
-            });
+            unixDispatcher.registerInvokable("getcwd", (thread, target, args) -> newByteArray(System.getProperty("user.dir").getBytes()));
 
             // FileDescriptor
             VmClassImpl fdClass = bootstrapClassLoader.loadClass("java/io/FileDescriptor");
@@ -810,13 +794,14 @@ public final class VmImpl implements Vm {
             VmClassImpl processEnvClass = bootstrapClassLoader.loadClass("java/lang/ProcessEnvironment");
             processEnvClass.registerInvokable("getHostEnvironment", (thread, target, args) -> {
                 // todo: customize
-                VmArray array = stringClass.getArrayClass().newInstance(4);
+                VmReferenceArray array = (VmReferenceArray) stringClass.getArrayClass().newInstance(4);
+                VmObject[] arrayArray = array.getArray();
                 int i = 0;
                 for (String str : List.of(
                     "TZ", TimeZone.getDefault().getDisplayName(),
                     "LANG", Locale.getDefault().toLanguageTag() + "." + Charset.defaultCharset().name()
                 )) {
-                    array.getMemory().storeRef(array.getArrayElementOffset(i++), intern(str), SinglePlain);
+                    arrayArray[i++] = intern(str);
                 }
                 return array;
             });
@@ -959,8 +944,9 @@ public final class VmImpl implements Vm {
     private VmArray fromStringList(List<String> list) {
         int size = list.size();
         VmReferenceArray array = newArrayOf(stringClass, size);
+        VmObject[] arrayArray = array.getArray();
         for (int i = 0; i < size; i ++) {
-            array.getMemory().storeRef(array.getArrayElementOffset(i), intern(list.get(i)), SinglePlain);
+            arrayArray[i] = intern(list.get(i));
         }
         return array;
     }
@@ -999,10 +985,6 @@ public final class VmImpl implements Vm {
         }
         VmClassImpl vmClass = classLoader.loadClass(def.getInternalName());
         return vmClass.newInstance();
-    }
-
-    public VmByteArrayImpl allocateArray(byte[] bytes) {
-        return manuallyInitialize(new VmByteArrayImpl(this, bytes));
     }
 
     public void invokeExact(final ConstructorElement method, final VmObject instance, final List<Object> args) {
@@ -1138,8 +1120,9 @@ public final class VmImpl implements Vm {
         List<TypeDescriptor> parameterTypes = methodDescriptor.getParameterTypes();
         int size = parameterTypes.size();
         VmRefArrayImpl array = manuallyInitialize((VmRefArrayImpl) classClass.getArrayClass().newInstance(size));
+        VmObject[] arrayArray = array.getArray();
         for (int i = 0; i < size; i ++) {
-            array.getMemory().storeRef(array.getArrayElementOffset(i), getClassForDescriptor(cl, parameterTypes.get(i)), SinglePlain);
+            arrayArray[i] = getClassForDescriptor(cl, parameterTypes.get(i));
         }
         mt = inv.invoke(Vm.requireCurrentThread(), null, List.of(getClassForDescriptor(cl, returnType), array, Boolean.valueOf(true)));
         VmObject appearing = cl.methodTypeCache.putIfAbsent(methodDescriptor, mt);
@@ -1242,11 +1225,7 @@ public final class VmImpl implements Vm {
             MethodElement booleanValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Boolean"), ((BooleanLiteral) literal).getType());
             return (VmObject) invokeExact(booleanValueOf, null, List.of(Boolean.valueOf(((BooleanLiteral) literal).booleanValue())));
         } else if (literal instanceof ByteArrayLiteral) {
-            byte[] values = ((ByteArrayLiteral) literal).getValues();
-            int length = values.length;
-            VmByteArrayImpl vmByteArray = byteArrayClass.newInstance(length);
-            vmByteArray.getMemory().storeMemory(vmByteArray.getArrayElementOffset(0), values, 0, length);
-            return vmByteArray;
+            return newByteArray(((ByteArrayLiteral) literal).getValues());
         } else if (literal instanceof FloatLiteral) {
             FloatLiteral floatLiteral = (FloatLiteral) literal;
             FloatType type = floatLiteral.getType();
@@ -1300,10 +1279,7 @@ public final class VmImpl implements Vm {
             return Boolean.valueOf(bl.booleanValue());
         } else if (literal instanceof ByteArrayLiteral) {
             byte[] values = ((ByteArrayLiteral) literal).getValues();
-            int length = values.length;
-            VmByteArrayImpl vmByteArray = byteArrayClass.newInstance(length);
-            vmByteArray.getMemory().storeMemory(vmByteArray.getArrayElementOffset(0), values, 0, length);
-            return vmByteArray;
+            return newByteArray(values.clone());
         } else if (literal instanceof FloatLiteral fl) {
             FloatType type = fl.getType();
             if (type.getMinBits() == 32) {
@@ -1348,74 +1324,58 @@ public final class VmImpl implements Vm {
     }
 
     @Override
-    public VmArray newByteArray(byte[] array) {
-        VmArrayImpl obj = manuallyInitialize(byteArrayClass.newInstance(array.length));
-        for (int i = 0; i < array.length; i ++) {
-            obj.getMemory().store8(obj.getArrayElementOffset(i), array[i], SinglePlain);
-        }
+    public VmByteArrayImpl newByteArray(byte[] array) {
+        VmByteArrayImpl obj = manuallyInitialize(byteArrayClass.newInstance(array.length));
+        System.arraycopy(array, 0, obj.getArray(), 0, array.length);
         return obj;
     }
 
     @Override
     public VmArray newCharArray(char[] array) {
-        VmArrayImpl obj = manuallyInitialize(charArrayClass.newInstance(array.length));
-        for (int i = 0; i < array.length; i ++) {
-            obj.getMemory().store16(obj.getArrayElementOffset(i), array[i], SinglePlain);
-        }
+        VmCharArrayImpl obj = manuallyInitialize(charArrayClass.newInstance(array.length));
+        System.arraycopy(array, 0, obj.getArray(), 0, array.length);
         return obj;
     }
 
     @Override
     public VmArray newDoubleArray(double[] array) {
-        VmArrayImpl obj = manuallyInitialize(doubleArrayClass.newInstance(array.length));
-        for (int i = 0; i < array.length; i ++) {
-            obj.getMemory().storeDouble(obj.getArrayElementOffset(i), array[i], SinglePlain);
-        }
+        VmDoubleArrayImpl obj = manuallyInitialize(doubleArrayClass.newInstance(array.length));
+        System.arraycopy(array, 0, obj.getArray(), 0, array.length);
         return obj;
     }
 
     @Override
     public VmArray newFloatArray(float[] array) {
-        VmArrayImpl obj = manuallyInitialize(floatArrayClass.newInstance(array.length));
-        for (int i = 0; i < array.length; i ++) {
-            obj.getMemory().storeFloat(obj.getArrayElementOffset(i), array[i], SinglePlain);
-        }
+        VmFloatArrayImpl obj = manuallyInitialize(floatArrayClass.newInstance(array.length));
+        System.arraycopy(array, 0, obj.getArray(), 0, array.length);
         return obj;
     }
 
     @Override
     public VmArray newIntArray(int[] array) {
-        VmArrayImpl obj = manuallyInitialize(intArrayClass.newInstance(array.length));
-        for (int i = 0; i < array.length; i ++) {
-            obj.getMemory().store32(obj.getArrayElementOffset(i), array[i], SinglePlain);
-        }
+        VmIntArrayImpl obj = manuallyInitialize(intArrayClass.newInstance(array.length));
+        System.arraycopy(array, 0, obj.getArray(), 0, array.length);
         return obj;
     }
 
     @Override
     public VmArray newLongArray(long[] array) {
-        VmArrayImpl obj = manuallyInitialize(longArrayClass.newInstance(array.length));
-        for (int i = 0; i < array.length; i ++) {
-            obj.getMemory().store64(obj.getArrayElementOffset(i), array[i], SinglePlain);
-        }
+        VmLongArrayImpl obj = manuallyInitialize(longArrayClass.newInstance(array.length));
+        System.arraycopy(array, 0, obj.getArray(), 0, array.length);
         return obj;
     }
 
     @Override
     public VmArray newShortArray(short[] array) {
-        VmArrayImpl obj = manuallyInitialize(shortArrayClass.newInstance(array.length));
-        for (int i = 0; i < array.length; i ++) {
-            obj.getMemory().store16(obj.getArrayElementOffset(i), array[i], SinglePlain);
-        }
+        VmShortArrayImpl obj = manuallyInitialize(shortArrayClass.newInstance(array.length));
+        System.arraycopy(array, 0, obj.getArray(), 0, array.length);
         return obj;
     }
 
     @Override
     public VmArray newBooleanArray(boolean[] array) {
-        VmArrayImpl obj = manuallyInitialize(booleanArrayClass.newInstance(array.length));
-        for (int i = 0; i < array.length; i ++) {
-            obj.getMemory().store8(obj.getArrayElementOffset(i), array[i] ? 1 : 0, SinglePlain);
-        }
+        VmBooleanArrayImpl obj = manuallyInitialize(booleanArrayClass.newInstance(array.length));
+        System.arraycopy(array, 0, obj.getArray(), 0, array.length);
         return obj;
     }
 

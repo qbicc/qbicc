@@ -1879,9 +1879,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         VmArrayImpl outer = newArray(thread, type, size);
         if (dimOffs < dimensions.length - 1) {
             // nested arrays to fill
+            VmObject[] array = (VmObject[]) outer.getArray();
             for (int i = 0; i < size; i++) {
-                long offs = outer.getArrayElementOffset(i);
-                outer.getMemory().storeRef(offs, multiNewArray(thread, (ArrayObjectType) type.getElementType(), dimOffs + 1, dimensions), SinglePlain);
+                array[i] = multiNewArray(thread, (ArrayObjectType) type.getElementType(), dimOffs + 1, dimensions);
             }
         }
         return outer;

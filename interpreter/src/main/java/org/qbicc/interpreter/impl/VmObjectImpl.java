@@ -15,9 +15,9 @@ import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
+import org.qbicc.interpreter.memory.MemoryFactory;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
-import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.PhysicalObjectType;
@@ -61,12 +61,11 @@ class VmObjectImpl implements VmObject, Referenceable {
     /**
      * Construct a new array instance.
      * @param clazz the array class (must not be {@code null})
-     * @param arraySize the size of the array
+     * @param arrayMemory the array memory (must not be {@code null})
      */
-    VmObjectImpl(final VmArrayClassImpl clazz, final int arraySize) {
+    VmObjectImpl(final VmArrayClassImpl clazz, final Memory arrayMemory) {
         this.clazz = clazz;
-        ArrayObjectType arrayType = clazz.getInstanceObjectType();
-        memory = clazz.getVm().allocate((int) (clazz.getLayoutInfo().getCompoundType().getSize() + arraySize * arrayType.getElementType().getSize()));
+        memory = MemoryFactory.compose(clazz.getVm().allocate(clazz.getLayoutInfo().getCompoundType(), 1), arrayMemory);
     }
 
     /**

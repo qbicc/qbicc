@@ -2,28 +2,37 @@ package org.qbicc.interpreter.impl;
 
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmReferenceArray;
+import org.qbicc.interpreter.memory.CompositeMemory;
+import org.qbicc.interpreter.memory.MemoryFactory;
+import org.qbicc.interpreter.memory.ReferenceArrayMemory;
 import org.qbicc.type.ReferenceArrayObjectType;
-
-import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+import org.qbicc.type.ReferenceType;
 
 /**
  *
  */
 final class VmRefArrayImpl extends VmArrayImpl implements VmReferenceArray {
+    private final ReferenceArrayMemory arrayMemory;
 
-    VmRefArrayImpl(VmArrayClassImpl clazz, final int size) {
-        super(clazz, size);
+    VmRefArrayImpl(VmArrayClassImpl clazz, int size) {
+        super(clazz, MemoryFactory.wrap(new VmObject[size], (ReferenceType) clazz.getInstanceObjectType().getElementType()));
+        arrayMemory = (ReferenceArrayMemory) ((CompositeMemory)getMemory()).getSubMemory(1);
     }
 
     VmRefArrayImpl(final VmRefArrayImpl original) {
         super(original);
+        arrayMemory = (ReferenceArrayMemory) ((CompositeMemory)getMemory()).getSubMemory(1);
     }
 
     @Override
-    public long getArrayElementOffset(int index) {
-        VmImpl vm = getVmClass().getVm();
-        int refSize = vm.getCompilationContext().getTypeSystem().getReferenceSize();
-        return vm.refArrayContentOffset + (long) index * refSize;
+    public int getLength() {
+        return arrayMemory.getArray().length;
+    }
+
+
+    @Override
+    public VmObject[] getArray() {
+        return arrayMemory.getArray();
     }
 
     @Override
@@ -33,7 +42,7 @@ final class VmRefArrayImpl extends VmArrayImpl implements VmReferenceArray {
 
     @Override
     public void store(int index, VmObject value) {
-        getMemory().storeRef(getArrayElementOffset(index), value, SinglePlain);
+        getArray()[index] = value;
     }
 
     @Override

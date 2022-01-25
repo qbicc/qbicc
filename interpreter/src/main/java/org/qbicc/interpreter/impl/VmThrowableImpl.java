@@ -5,6 +5,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
+import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
@@ -60,6 +61,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
         int fileNameIdx = layout.getMember(steClassDef.findField("fileName")).getOffset();
         int methodNameIdx = layout.getMember(steClassDef.findField("methodName")).getOffset();
         Node[] backTrace = this.backTrace;
+        VmObject[] steArray = ((VmRefArrayImpl) array).getArray();
         for (int i = 0; i < backTrace.length; i++) {
             Node ip = backTrace[i];
             ExecutableElement frameElement = ip.getElement();
@@ -84,7 +86,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
                 methodName = "<unknown>";
             }
             steMemory.storeRef(methodNameIdx, vm.intern(methodName), SinglePlain);
-            array.getMemory().storeRef(array.getArrayElementOffset(i), ste, SinglePlain);
+            steArray[i] = ste;
         }
     }
 
