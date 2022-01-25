@@ -217,12 +217,14 @@ public final class Reflection {
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("objectFieldOffset")), this::methodHandleNativesObjectFieldOffset);
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("staticFieldBase")), this::methodHandleNativesStaticFieldBase);
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("staticFieldOffset")), this::methodHandleNativesStaticFieldOffset);
+        vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("verifyConstants")), (thread, target, args) -> Boolean.TRUE);
         LoadedTypeDefinition nativeCtorAccImplDef = classContext.findDefinedType("jdk/internal/reflect/NativeConstructorAccessorImpl").load();
         vm.registerInvokable(nativeCtorAccImplDef.requireSingleMethod(me -> me.nameEquals("newInstance0")), this::nativeConstructorAccessorImplNewInstance0);
         LoadedTypeDefinition nativeMethodAccImplDef = classContext.findDefinedType("jdk/internal/reflect/NativeMethodAccessorImpl").load();
         vm.registerInvokable(nativeMethodAccImplDef.requireSingleMethod(me -> me.nameEquals("invoke0")), this::nativeMethodAccessorImplInvoke0);
         // MemberName
         LoadedTypeDefinition memberNameDef = classContext.findDefinedType("java/lang/invoke/MemberName").load();
+        vm.registerInvokable(memberNameDef.requireSingleMethod(me -> me.nameEquals("vminfoIsConsistent")), (thread, target, args) -> Boolean.TRUE);
         memberNameClazzField = memberNameDef.findField("clazz");
         memberNameNameField = memberNameDef.findField("name");
         memberNameTypeField = memberNameDef.findField("type");
@@ -795,18 +797,36 @@ public final class Reflection {
         // determine what kind of thing we're resolving
         if ((flags & IS_FIELD) != 0) {
             // find a field with the given name
-            FieldElement resolved = clazz.getTypeDefinition().findField(name.getContent());
+            FieldElement resolved = clazz.getTypeDefinition().resolveField(((VmClass)type).getDescriptor(), name.getContent());
             if (resolved == null && ! speculativeResolve) {
                 throw new Thrown(linkageErrorClass.newInstance("No such field: " + clazz.getName() + "#" + name.getContent()));
             }
             if (resolved == null) {
                 return null;
             }
-            memberName.getMemory().storeRef(memberNameClass.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
-            int newFlags = resolved.getModifiers() & 0xffff | IS_FIELD | (kind << 24);
-            memberName.getMemory().store32(memberNameClass.indexOf(memberNameFlagsField), newFlags, SinglePlain);
-            memberName.getMemory().store8(memberNameClass.indexOf(memberNameResolvedField), 1, SinglePlain);
-            memberName.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
+            memberName.getMemory().storeRef(memberName.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
+            int newFlags = resolved.getModifiers() & 0xffff | IS_FIELD;
+            boolean isSetter = kind == KIND_PUT_STATIC || kind == KIND_PUT_FIELD;
+            if (resolved.isStatic()) {
+                if (isSetter) {
+                    newFlags |= KIND_PUT_STATIC << KIND_SHIFT;
+                } else {
+                    newFlags |= KIND_GET_STATIC << KIND_SHIFT;
+                }
+            } else {
+                if (isSetter) {
+                    newFlags |= KIND_PUT_FIELD << KIND_SHIFT;
+                } else {
+                    newFlags |= KIND_GET_FIELD << KIND_SHIFT;
+                }
+            }
+            if (resolved.isReallyFinal()) {
+                newFlags |= TRUSTED_FINAL;
+            }
+            memberName.getMemory().store32(memberName.indexOf(memberNameFlagsField), newFlags, SinglePlain);
+            memberName.getMemory().store8(memberName.indexOf(memberNameResolvedField), 1, SinglePlain);
+            memberName.getMemory().storeRef(memberName.indexOf(memberNameTypeField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
+            memberName.getMemory().store32(memberName.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
             return memberName;
         } else if ((flags & IS_TYPE) != 0) {
             throw new Thrown(linkageErrorClass.newInstance("Not sure what to do for resolving a type"));
@@ -825,11 +845,11 @@ public final class Reflection {
                     throw new Thrown(linkageErrorClass.newInstance("Unknown handle kind"));
                 }
                 ConstructorElement resolved = clazz.getTypeDefinition().getConstructor(idx);
-                memberName.getMemory().storeRef(memberNameClass.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
+                memberName.getMemory().storeRef(memberName.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
                 int newFlags = resolved.getModifiers() & 0xffff | IS_CONSTRUCTOR | (kind << 24);
-                memberName.getMemory().store32(memberNameClass.indexOf(memberNameFlagsField), newFlags, SinglePlain);
-                memberName.getMemory().store8(memberNameClass.indexOf(memberNameResolvedField), 1, SinglePlain);
-                memberName.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
+                memberName.getMemory().store32(memberName.indexOf(memberNameFlagsField), newFlags, SinglePlain);
+                memberName.getMemory().store8(memberName.indexOf(memberNameResolvedField), 1, SinglePlain);
+                memberName.getMemory().store32(memberName.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
                 return memberName;
             } else if (((flags & IS_METHOD) != 0)){
                 // resolve
@@ -858,11 +878,11 @@ public final class Reflection {
                     }
                     return null;
                 }
-                memberName.getMemory().storeRef(memberNameClass.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
+                memberName.getMemory().storeRef(memberName.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
                 int newFlags = resolved.getModifiers() & 0xffff | IS_METHOD | (kind << 24);
-                memberName.getMemory().store32(memberNameClass.indexOf(memberNameFlagsField), newFlags, SinglePlain);
-                memberName.getMemory().store8(memberNameClass.indexOf(memberNameResolvedField), 1, SinglePlain);
-                memberName.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
+                memberName.getMemory().store32(memberName.indexOf(memberNameFlagsField), newFlags, SinglePlain);
+                memberName.getMemory().store8(memberName.indexOf(memberNameResolvedField), 1, SinglePlain);
+                memberName.getMemory().store32(memberName.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
                 return memberName;
             } else {
                 throw new Thrown(linkageErrorClass.newInstance("Unknown resolution request"));
