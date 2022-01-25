@@ -229,12 +229,24 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             if (value.isDefEq(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fromType))) {
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(toType);
             }
-            if (toType.getMinBits() < fromType.getMinBits()) {
-                return super.truncate(value, toType);
-            } else if (toType.getMinBits() > fromType.getMinBits()) {
-                return super.extend(value, toType);
+            Value sizedValue;
+            if (fromType instanceof IntegerType it) {
+                if (toType.getMinBits() < fromType.getMinBits()) {
+                    sizedValue = super.truncate(value, it.asSized(toType.getMinBits()));
+                } else if (toType.getMinBits() > fromType.getMinBits()) {
+                    sizedValue = super.extend(value, it.asSized(toType.getMinBits()));
+                } else {
+                    sizedValue = value;
+                }
             } else {
-                return super.bitCast(value, toType);
+                sizedValue = value;
+            }
+            // handle casts between integer and pointer types
+            if (fromType instanceof PointerType && toType instanceof IntegerType
+                || fromType instanceof IntegerType && toType instanceof PointerType) {
+                return super.valueConvert(sizedValue, toType);
+            } else {
+                return super.bitCast(sizedValue, toType);
             }
         } else if (castType instanceof CompoundType) {
             // A checkcast in the bytecodes but it's really casting to a structure or compound type;
