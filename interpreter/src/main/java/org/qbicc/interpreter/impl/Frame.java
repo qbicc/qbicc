@@ -5,8 +5,11 @@ import static org.qbicc.graph.atomic.AccessModes.*;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.locks.Lock;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
@@ -210,6 +213,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
      * Return value holder.
      */
     Object output;
+
+    /**
+     * The set of currently-held locks.
+     */
+    Set<Lock> heldLocks;
 
     Frame(Frame enclosing, ExecutableElement element, Memory memory) {
         this.enclosing = enclosing;
@@ -1958,17 +1966,28 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Void visit(VmThreadImpl thread, MonitorEnter node) {
         VmObjectImpl obj = (VmObjectImpl) require(node.getInstance());
-        obj.getLock().lock();
+        Lock lock = obj.getLock();
+        Set<Lock> heldLocks = this.heldLocks;
+        if (heldLocks == null) {
+            heldLocks = this.heldLocks = new HashSet<>();
+        }
+        lock.lock();
+        heldLocks.add(lock);
         return null;
     }
 
     @Override
     public Void visit(VmThreadImpl thread, MonitorExit node) {
         VmObjectImpl obj = (VmObjectImpl) require(node.getInstance());
+        Lock lock = obj.getLock();
         try {
-            obj.getLock().unlock();
+            lock.unlock();
         } catch (IllegalMonitorStateException e) {
             throw new Thrown(/* todo */ null);
+        }
+        Set<Lock> heldLocks = this.heldLocks;
+        if (heldLocks != null) {
+            heldLocks.remove(lock);
         }
         return null;
     }
@@ -2635,5 +2654,12 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     private static IllegalStateException illegalInstruction() {
         return new IllegalStateException("Illegal instruction");
+    }
+
+    void releaseLocks() {
+        Set<Lock> heldLocks = this.heldLocks;
+        if (heldLocks != null) for (Lock heldLock : heldLocks) try {
+            heldLock.unlock();
+        } catch (RuntimeException ignored) {}
     }
 }
