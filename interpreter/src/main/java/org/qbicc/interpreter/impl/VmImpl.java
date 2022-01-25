@@ -830,6 +830,7 @@ public final class VmImpl implements Vm {
 
             // Initialize early to avoid deadlocks
             initialize(bootstrapClassLoader.loadClass("java/lang/ref/Reference"));
+            initialize(bootstrapClassLoader.loadClass("java/util/concurrent/ForkJoinPool"));
         }
     }
 
