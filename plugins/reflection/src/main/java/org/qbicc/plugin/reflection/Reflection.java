@@ -798,16 +798,11 @@ public final class Reflection {
             if (resolved == null) {
                 return null;
             }
-            VmClass fieldTypeClass = vm.getClassForDescriptor(clazz.getClassLoader(), resolved.getTypeDescriptor());
-            // create a member name
-            VmObject result = vm.newInstance(memberNameClass, memberName4Ctor, List.of(
-                Byte.valueOf((byte) kind),
-                resolved.getEnclosingType().load().getVmClass(),
-                vm.intern(resolved.getName()),
-                fieldTypeClass
-            ));
-            result.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
-            return result;
+            memberName.getMemory().storeRef(memberNameClass.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
+            int newFlags = resolved.getModifiers() & 0xffff | IS_FIELD | (kind << 24);
+            memberName.getMemory().store32(memberNameClass.indexOf(memberNameFlagsField), newFlags, SinglePlain);
+            memberName.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
+            return memberName;
         } else if ((flags & IS_TYPE) != 0) {
             throw new Thrown(linkageErrorClass.newInstance("Not sure what to do for resolving a type"));
         } else {
@@ -825,15 +820,11 @@ public final class Reflection {
                     throw new Thrown(linkageErrorClass.newInstance("Unknown handle kind"));
                 }
                 ConstructorElement resolved = clazz.getTypeDefinition().getConstructor(idx);
-                // create a member name
-                VmObject result = vm.newInstance(memberNameClass, memberName4Ctor, List.of(
-                    Byte.valueOf((byte) kind),
-                    resolved.getEnclosingType().load().getVmClass(),
-                    vm.intern("<init>"),
-                    type
-                ));
-                result.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
-                return result;
+                memberName.getMemory().storeRef(memberNameClass.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
+                int newFlags = resolved.getModifiers() & 0xffff | IS_CONSTRUCTOR | (kind << 24);
+                memberName.getMemory().store32(memberNameClass.indexOf(memberNameFlagsField), newFlags, SinglePlain);
+                memberName.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
+                return memberName;
             } else if (((flags & IS_METHOD) != 0)){
                 // resolve
                 MethodElement resolved;
@@ -861,15 +852,11 @@ public final class Reflection {
                     }
                     return null;
                 }
-                // create a member name
-                VmObject result = vm.newInstance(memberNameClass, memberName4Ctor, List.of(
-                    Byte.valueOf((byte) kind),
-                    resolved.getEnclosingType().load().getVmClass(),
-                    vm.intern(resolved.getName()),
-                    type
-                ));
-                result.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
-                return result;
+                memberName.getMemory().storeRef(memberNameClass.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
+                int newFlags = resolved.getModifiers() & 0xffff | IS_METHOD | (kind << 24);
+                memberName.getMemory().store32(memberNameClass.indexOf(memberNameFlagsField), newFlags, SinglePlain);
+                memberName.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
+                return memberName;
             } else {
                 throw new Thrown(linkageErrorClass.newInstance("Unknown resolution request"));
             }
