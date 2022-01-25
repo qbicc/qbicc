@@ -671,13 +671,11 @@ public final class Reflection {
         // Now initialize the corresponding MemberName fields
 
         // Create a ResolvedMethodName for the resolved method
-        // todo: switch to resolved method once we are resolving
-        MethodElement resolved = refMethod;
 
         VmObject rmn = vm.newInstance(rmnClass, rmnCtor, List.of());
 
-        rmn.getMemory().storeRef(rmn.indexOf(rmnClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
-        rmn.getMemory().store32(rmn.indexOf(rmnIndexField), resolved.getIndex(), SinglePlain);
+        rmn.getMemory().storeRef(rmn.indexOf(rmnClazzField), refMethod.getEnclosingType().load().getVmClass(), SinglePlain);
+        rmn.getMemory().store32(rmn.indexOf(rmnIndexField), refMethod.getIndex(), SinglePlain);
 
         // set the member name flags
         memberName.getMemory().store32(memberName.indexOf(memberNameFlagsField), flags, SinglePlain);
