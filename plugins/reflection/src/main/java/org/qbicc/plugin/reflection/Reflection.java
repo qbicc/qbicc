@@ -124,6 +124,7 @@ public final class Reflection {
     private final FieldElement memberNameFlagsField; // int
     private final FieldElement memberNameMethodField; // ResolvedMethodName
     private final FieldElement memberNameIndexField; // int (injected)
+    private final FieldElement memberNameResolvedField; // boolean (injected)
     // Field
     private final FieldElement fieldClazzField; // Class
     private final FieldElement fieldSlotField; // int
@@ -164,6 +165,7 @@ public final class Reflection {
         Patcher patcher = Patcher.get(ctxt);
 
         patcher.addField(classContext, "java/lang/invoke/MemberName", "index", BaseTypeDescriptor.I, this::resolveIndexField, 0, 0);
+        patcher.addField(classContext, "java/lang/invoke/MemberName", "resolved", BaseTypeDescriptor.Z, this::resolveResolvedField, 0, 0);
 
         patcher.addField(classContext, "java/lang/invoke/ResolvedMethodName", "index", BaseTypeDescriptor.I, this::resolveIndexField, 0, 0);
         patcher.addField(classContext, "java/lang/invoke/ResolvedMethodName", "clazz", ClassTypeDescriptor.synthesize(classContext, "java/lang/Class"), this::resolveClazzField, 0, 0);
@@ -215,18 +217,21 @@ public final class Reflection {
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("objectFieldOffset")), this::methodHandleNativesObjectFieldOffset);
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("staticFieldBase")), this::methodHandleNativesStaticFieldBase);
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("staticFieldOffset")), this::methodHandleNativesStaticFieldOffset);
+        vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("verifyConstants")), (thread, target, args) -> Boolean.TRUE);
         LoadedTypeDefinition nativeCtorAccImplDef = classContext.findDefinedType("jdk/internal/reflect/NativeConstructorAccessorImpl").load();
         vm.registerInvokable(nativeCtorAccImplDef.requireSingleMethod(me -> me.nameEquals("newInstance0")), this::nativeConstructorAccessorImplNewInstance0);
         LoadedTypeDefinition nativeMethodAccImplDef = classContext.findDefinedType("jdk/internal/reflect/NativeMethodAccessorImpl").load();
         vm.registerInvokable(nativeMethodAccImplDef.requireSingleMethod(me -> me.nameEquals("invoke0")), this::nativeMethodAccessorImplInvoke0);
         // MemberName
         LoadedTypeDefinition memberNameDef = classContext.findDefinedType("java/lang/invoke/MemberName").load();
+        vm.registerInvokable(memberNameDef.requireSingleMethod(me -> me.nameEquals("vminfoIsConsistent")), (thread, target, args) -> Boolean.TRUE);
         memberNameClazzField = memberNameDef.findField("clazz");
         memberNameNameField = memberNameDef.findField("name");
         memberNameTypeField = memberNameDef.findField("type");
         memberNameFlagsField = memberNameDef.findField("flags");
         memberNameMethodField = memberNameDef.findField("method");
         memberNameIndexField = memberNameDef.findField("index");
+        memberNameResolvedField = memberNameDef.findField("resolved");
         MethodDescriptor memberName4Desc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(
             BaseTypeDescriptor.B,
             classDef.getDescriptor(),
@@ -655,27 +660,24 @@ public final class Reflection {
         MethodElement refMethod = clazzVal.getTypeDefinition().getMethod(index);
         int flags = refMethod.getModifiers() & 0x1fff;
 
-        // TODO: hard-coded only when called from `init`; add support for other uses
         flags |= IS_METHOD;
         if (refMethod.isStatic()) {
             flags |= KIND_INVOKE_STATIC << KIND_SHIFT;
         } else {
             flags |= KIND_INVOKE_SPECIAL << KIND_SHIFT;
         }
-        if (false /* refMethod.isCallerSensitive() */) {
+        if (refMethod.hasAllModifiersOf(ClassFile.I_ACC_CALLER_SENSITIVE)) {
             flags |= CALLER_SENSITIVE;
         }
 
         // Now initialize the corresponding MemberName fields
 
         // Create a ResolvedMethodName for the resolved method
-        // todo: switch to resolved method once we are resolving
-        MethodElement resolved = refMethod;
 
         VmObject rmn = vm.newInstance(rmnClass, rmnCtor, List.of());
 
-        rmn.getMemory().storeRef(rmn.indexOf(rmnClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
-        rmn.getMemory().store32(rmn.indexOf(rmnIndexField), resolved.getIndex(), SinglePlain);
+        rmn.getMemory().storeRef(rmn.indexOf(rmnClazzField), refMethod.getEnclosingType().load().getVmClass(), SinglePlain);
+        rmn.getMemory().store32(rmn.indexOf(rmnIndexField), refMethod.getIndex(), SinglePlain);
 
         // set the member name flags
         memberName.getMemory().store32(memberName.indexOf(memberNameFlagsField), flags, SinglePlain);
@@ -777,6 +779,10 @@ public final class Reflection {
     private Object methodHandleNativesResolve(final VmThread thread, final VmObject ignored, final List<Object> args) {
         Vm vm = thread.getVM();
         VmObject memberName = (VmObject) args.get(0);
+        boolean resolvedFlag = (memberName.getMemory().load8(memberName.indexOf(memberNameResolvedField), SinglePlain) & 1) != 0;
+        if (resolvedFlag) {
+            return memberName;
+        }
         VmClass caller = (VmClass) args.get(1);
         boolean speculativeResolve = (((Number) args.get(2)).intValue() & 1) != 0;
         VmClass clazz = (VmClass) memberName.getMemory().loadRef(memberName.indexOf(memberNameClazzField), SinglePlain);
@@ -791,23 +797,37 @@ public final class Reflection {
         // determine what kind of thing we're resolving
         if ((flags & IS_FIELD) != 0) {
             // find a field with the given name
-            FieldElement resolved = clazz.getTypeDefinition().findField(name.getContent());
+            FieldElement resolved = clazz.getTypeDefinition().resolveField(((VmClass)type).getDescriptor(), name.getContent());
             if (resolved == null && ! speculativeResolve) {
                 throw new Thrown(linkageErrorClass.newInstance("No such field: " + clazz.getName() + "#" + name.getContent()));
             }
             if (resolved == null) {
                 return null;
             }
-            VmClass fieldTypeClass = vm.getClassForDescriptor(clazz.getClassLoader(), resolved.getTypeDescriptor());
-            // create a member name
-            VmObject result = vm.newInstance(memberNameClass, memberName4Ctor, List.of(
-                Byte.valueOf((byte) kind),
-                resolved.getEnclosingType().load().getVmClass(),
-                vm.intern(resolved.getName()),
-                fieldTypeClass
-            ));
-            result.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
-            return result;
+            memberName.getMemory().storeRef(memberName.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
+            int newFlags = resolved.getModifiers() & 0xffff | IS_FIELD;
+            boolean isSetter = kind == KIND_PUT_STATIC || kind == KIND_PUT_FIELD;
+            if (resolved.isStatic()) {
+                if (isSetter) {
+                    newFlags |= KIND_PUT_STATIC << KIND_SHIFT;
+                } else {
+                    newFlags |= KIND_GET_STATIC << KIND_SHIFT;
+                }
+            } else {
+                if (isSetter) {
+                    newFlags |= KIND_PUT_FIELD << KIND_SHIFT;
+                } else {
+                    newFlags |= KIND_GET_FIELD << KIND_SHIFT;
+                }
+            }
+            if (resolved.isReallyFinal()) {
+                newFlags |= TRUSTED_FINAL;
+            }
+            memberName.getMemory().store32(memberName.indexOf(memberNameFlagsField), newFlags, SinglePlain);
+            memberName.getMemory().store8(memberName.indexOf(memberNameResolvedField), 1, SinglePlain);
+            memberName.getMemory().storeRef(memberName.indexOf(memberNameTypeField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
+            memberName.getMemory().store32(memberName.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
+            return memberName;
         } else if ((flags & IS_TYPE) != 0) {
             throw new Thrown(linkageErrorClass.newInstance("Not sure what to do for resolving a type"));
         } else {
@@ -825,15 +845,12 @@ public final class Reflection {
                     throw new Thrown(linkageErrorClass.newInstance("Unknown handle kind"));
                 }
                 ConstructorElement resolved = clazz.getTypeDefinition().getConstructor(idx);
-                // create a member name
-                VmObject result = vm.newInstance(memberNameClass, memberName4Ctor, List.of(
-                    Byte.valueOf((byte) kind),
-                    resolved.getEnclosingType().load().getVmClass(),
-                    vm.intern("<init>"),
-                    type
-                ));
-                result.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
-                return result;
+                memberName.getMemory().storeRef(memberName.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
+                int newFlags = resolved.getModifiers() & 0xffff | IS_CONSTRUCTOR | (kind << 24);
+                memberName.getMemory().store32(memberName.indexOf(memberNameFlagsField), newFlags, SinglePlain);
+                memberName.getMemory().store8(memberName.indexOf(memberNameResolvedField), 1, SinglePlain);
+                memberName.getMemory().store32(memberName.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
+                return memberName;
             } else if (((flags & IS_METHOD) != 0)){
                 // resolve
                 MethodElement resolved;
@@ -861,15 +878,12 @@ public final class Reflection {
                     }
                     return null;
                 }
-                // create a member name
-                VmObject result = vm.newInstance(memberNameClass, memberName4Ctor, List.of(
-                    Byte.valueOf((byte) kind),
-                    resolved.getEnclosingType().load().getVmClass(),
-                    vm.intern(resolved.getName()),
-                    type
-                ));
-                result.getMemory().store32(memberNameClass.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
-                return result;
+                memberName.getMemory().storeRef(memberName.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
+                int newFlags = resolved.getModifiers() & 0xffff | IS_METHOD | (kind << 24);
+                memberName.getMemory().store32(memberName.indexOf(memberNameFlagsField), newFlags, SinglePlain);
+                memberName.getMemory().store8(memberName.indexOf(memberNameResolvedField), 1, SinglePlain);
+                memberName.getMemory().store32(memberName.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
+                return memberName;
             } else {
                 throw new Thrown(linkageErrorClass.newInstance("Unknown resolution request"));
             }
@@ -1055,6 +1069,21 @@ public final class Reflection {
         builder.setEnclosingType(typeDef);
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT);
         builder.setSignature(BaseTypeSignature.I);
+        return builder.build();
+    }
+
+    /**
+     * Resolve the injected {@code resolved} field of {@code MemberName}.
+     *
+     * @param index the field index (ignored)
+     * @param typeDef the type definition (ignored)
+     * @param builder the field builder
+     * @return the resolved field
+     */
+    private FieldElement resolveResolvedField(final int index, final DefinedTypeDefinition typeDef, final FieldElement.Builder builder) {
+        builder.setEnclosingType(typeDef);
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT);
+        builder.setSignature(BaseTypeSignature.Z);
         return builder.build();
     }
 

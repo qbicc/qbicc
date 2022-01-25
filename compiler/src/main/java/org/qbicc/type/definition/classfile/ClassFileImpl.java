@@ -1085,7 +1085,13 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         for (int i = 0; i < cnt; i ++) {
             if (methodAttributeNameEquals(index, i, "RuntimeVisibleAnnotations")) {
                 ByteBuffer data = getMethodRawAttributeContent(index, i);
-                builder.setVisibleAnnotations(Annotation.parseList(this, ctxt, data));
+                List<Annotation> annotations = Annotation.parseList(this, ctxt, data);
+                for (Annotation annotation : annotations) {
+                    if (annotation.getDescriptor().packageAndClassNameEquals("jdk/internal/reflect", "CallerSensitive")) {
+                        builder.addModifiers(I_ACC_CALLER_SENSITIVE);
+                    }
+                }
+                builder.setVisibleAnnotations(annotations);
             } else if (methodAttributeNameEquals(index, i, "RuntimeInvisibleAnnotations")) {
                 ByteBuffer data = getMethodRawAttributeContent(index, i);
                 builder.setInvisibleAnnotations(Annotation.parseList(this, ctxt, data));
