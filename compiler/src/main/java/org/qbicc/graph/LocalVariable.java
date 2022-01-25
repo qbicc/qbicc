@@ -49,4 +49,9 @@ public final class LocalVariable extends Variable {
     public <T> long accept(final ValueHandleVisitorLong<T> visitor, final T param) {
         return visitor.visit(param, this);
     }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return b.append(getNodeName()).append('(').append(getVariableElement().getIndex()).append(')').append(':').append(getVariableElement().getName());
+    }
 }
