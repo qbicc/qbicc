@@ -54,7 +54,7 @@
         <version.httpcomponents.httpcore>4.4.15</version.httpcomponents.httpcore>
         <version.javax.inject>1</version.javax.inject>
         <version.jsoup>1.14.3</version.jsoup>
-        <version.slf4j>1.7.33</version.slf4j>
+        <version.slf4j>1.7.35</version.slf4j>
 
         <!-- this is the class lib version; the class lib cannot be used in a POM but is used in resources -->
         <version.qbicc.classlib>17.alpha.0.4</version.qbicc.classlib>
