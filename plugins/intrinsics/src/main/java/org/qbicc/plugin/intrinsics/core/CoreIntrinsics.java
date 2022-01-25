@@ -229,10 +229,10 @@ public final class CoreIntrinsics {
 
         // todo: this probably belongs in the class libraries rather than here
         StaticIntrinsic desiredAssertionStatus0 = (builder, target, arguments) ->
-            classContext.getLiteralFactory().literalOf(false);
+            classContext.getLiteralFactory().literalOf(true);
 
         InstanceIntrinsic desiredAssertionStatus =  (builder, instance, target, arguments) ->
-            classContext.getLiteralFactory().literalOf(false);
+            classContext.getLiteralFactory().literalOf(true);
 
         InstanceIntrinsic initClassName = (builder, instance, target, arguments) -> {
             // not reachable; we always would initialize our class name eagerly
