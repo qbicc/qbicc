@@ -1429,7 +1429,9 @@ public final class CoreIntrinsics {
         StaticIntrinsic findSignal = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(-1); // TODO: real implementation
         StaticIntrinsic handle = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(0L); // TODO: real implementation
 
+        // TODO: remove; implemented in qbicc-classlib 0.5
         intrinsics.registerIntrinsic(Phase.LOWER, signalDesc, "findSignal0", stringToInt, findSignal);
+        // TODO: remove; implemented in qbicc-classlib 0.5
         intrinsics.registerIntrinsic(signalDesc, "handle0", intLongToLong, handle);
 
         StaticIntrinsic getcwd = (builder, target, arguments) -> ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getSignedInteger8Type().getPrimitiveArrayObjectType().getReference()); // TODO: real implementation
