@@ -3,14 +3,14 @@ package org.qbicc.type;
 import io.smallrye.common.constraint.Assert;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  *
@@ -24,6 +24,7 @@ public final class CompoundType extends ValueType {
     private final boolean complete;
     private volatile Supplier<List<Member>> membersResolver;
     private volatile List<Member> members;
+    private volatile List<Member> paddedMembers;
     private volatile Map<String, Member> membersByName;
 
     CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, final Supplier<List<Member>> membersResolver, final long size, final int overallAlign) {
@@ -47,6 +48,7 @@ public final class CompoundType extends ValueType {
         this.align = 1;
         this.complete = false;
         this.members = List.of();
+        this.paddedMembers = List.of();
         this.membersByName = Map.of();
     }
 
@@ -73,6 +75,92 @@ public final class CompoundType extends ValueType {
         return members;
     }
 
+    /**
+     * Get the members of this structure, with aligned, atomic-friendly padding members inserted in between any gaps.
+     *
+     * @return the padded members (not {@code null})
+     */
+    public List<Member> getPaddedMembers() {
+        List<Member> paddedMembers = this.paddedMembers;
+        if (paddedMembers == null) {
+            synchronized (this) {
+                paddedMembers = this.paddedMembers;
+                if (paddedMembers == null) {
+                    paddedMembers = new ArrayList<>(getMembers());
+                    // must be sorted ascending by offset
+                    paddedMembers.sort(Comparator.naturalOrder());
+                    // fill with padding, if needed
+                    int offs = 0;
+                    final ListIterator<Member> iterator = paddedMembers.listIterator();
+                    TypeSystem ts = getTypeSystem();
+                    UnsignedIntegerType u8 = ts.getUnsignedInteger8Type();
+                    UnsignedIntegerType u16 = ts.getUnsignedInteger16Type();
+                    UnsignedIntegerType u32 = ts.getUnsignedInteger32Type();
+                    UnsignedIntegerType u64 = ts.getUnsignedInteger64Type();
+                    // this only works if...
+                    assert u8.getAlign() == 1;
+                    assert u16.getAlign() == 2;
+                    assert u32.getAlign() == 4;
+                    assert u64.getAlign() == 8;
+                    // iterate every member and insert padding as needed
+                    while (iterator.hasNext()) {
+                        Member member = iterator.next();
+                        iterator.previous(); // back up to insert
+                        offs = padTo(offs, iterator, ts, u8, u16, u32, u64, member.getOffset());
+                        iterator.next(); // skip to the next
+                        offs += (int) member.getType().getSize();
+                    }
+                    // finally, insert any trailing padding
+                    offs = padTo(offs, iterator, ts, u8, u16, u32, u64, (int) getSize());
+                    assert offs == getSize();
+                    this.paddedMembers = paddedMembers;
+                }
+            }
+        }
+        return paddedMembers;
+    }
+
+    private int padTo(int offs, final ListIterator<Member> iterator, final TypeSystem ts, final UnsignedIntegerType u8, final UnsignedIntegerType u16, final UnsignedIntegerType u32, final UnsignedIntegerType u64, final int nextOffset) {
+        if (nextOffset >= offs + 1 && (offs & 0b1) != 0) {
+            iterator.add(new Member("(padding)", u8, offs, 1));
+            offs++;
+        }
+        // now aligned to 2 bytes
+        if (nextOffset >= offs + 2 && (offs & 0b10) != 0) {
+            iterator.add(new Member("(padding)", u16, offs, 2));
+            offs += 2;
+        }
+        // now aligned to 4 bytes
+        if (nextOffset >= offs + 4 && (offs & 0b100) != 0) {
+            iterator.add(new Member("(padding)", u32, offs, 4));
+            offs += 4;
+        }
+        // now aligned to 8 bytes
+        int wordBytes = (nextOffset & ~0b111) - offs;
+        if (wordBytes > 8) {
+            iterator.add(new Member("(padding)", ts.getArrayType(u64, wordBytes >> 3), offs, 8));
+            offs += wordBytes;
+        } else if (wordBytes == 8) {
+            iterator.add(new Member("(padding)", u64, offs, 8));
+            offs += 8;
+        }
+        // next insert de-aligning padding if the member itself is unaligned
+        if (nextOffset >= offs + 4) {
+            iterator.add(new Member("(padding)", u32, offs, 4));
+            offs += 4;
+        }
+        if (nextOffset >= offs + 2) {
+            iterator.add(new Member("(padding)", u16, offs, 2));
+            offs += 2;
+        }
+        if (nextOffset >= offs + 1) {
+            iterator.add(new Member("(padding)", u8, offs, 1));
+            offs++;
+        }
+        assert nextOffset == offs;
+        return offs;
+    }
+
     public Map<String, Member> getMembersByName() {
         Map<String, Member> membersByName = this.membersByName;
         if (membersByName == null) {
@@ -86,6 +174,7 @@ public final class CompoundType extends ValueType {
         return membersByName;
     }
 
+    @SuppressWarnings("unchecked")
     private Map<String, Member> createMembersByName() {
         List<Member> members = getMembers();
         Iterator<Member> iterator = members.iterator();
