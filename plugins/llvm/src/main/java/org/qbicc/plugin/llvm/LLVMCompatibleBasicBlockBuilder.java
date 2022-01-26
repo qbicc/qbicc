@@ -212,14 +212,6 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Value extractElement(Value array, Value index) {
-        if (!(index instanceof Literal)) {
-            ctxt.error(getLocation(), "Index of ExtractElement must be constant");
-        }
-        return super.extractElement(array, index);
-    }
-
-    @Override
     public Value offsetOfField(FieldElement fieldElement) {
         if (fieldElement.isStatic()) {
             return ctxt.getLiteralFactory().literalOf(-1);
