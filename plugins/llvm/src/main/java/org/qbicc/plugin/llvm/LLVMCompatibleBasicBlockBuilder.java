@@ -212,14 +212,6 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Value extractElement(Value array, Value index) {
-        if (!(index instanceof Literal)) {
-            ctxt.error(getLocation(), "Index of ExtractElement must be constant");
-        }
-        return super.extractElement(array, index);
-    }
-
-    @Override
     public Value offsetOfField(FieldElement fieldElement) {
         if (fieldElement.isStatic()) {
             return ctxt.getLiteralFactory().literalOf(-1);
@@ -248,9 +240,10 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         if (handle.getValueType() instanceof CompoundType ct) {
             LiteralFactory lf = ctxt.getLiteralFactory();
             Value res = lf.zeroInitializerLiteralOfType(ct);
-            for (CompoundType.Member member : ct.getMembers()) {
+            for (CompoundType.Member member : ct.getPaddedMembers()) {
                 res = insertMember(res, member, load(memberOf(handle, member), accessMode));
             }
+            return res;
         } else if (handle.getValueType() instanceof ArrayType at) {
             long ec = at.getElementCount();
             LiteralFactory lf = ctxt.getLiteralFactory();
@@ -266,7 +259,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 // rolled loop
                 BlockLabel top = new BlockLabel();
                 BlockLabel exit = new BlockLabel();
-                UnsignedIntegerType idxType = ctxt.getTypeSystem().getUnsignedInteger64Type();
+                SignedIntegerType idxType = ctxt.getTypeSystem().getSignedInteger64Type();
                 BasicBlock entry = goto_(top);
                 PhiValue idx = phi(idxType, top);
                 PhiValue val = phi(at, top);
@@ -311,9 +304,10 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         }
         // Break apart atomic structure and array stores
         if (handle.getValueType() instanceof CompoundType ct) {
-            for (CompoundType.Member member : ct.getMembers()) {
+            for (CompoundType.Member member : ct.getPaddedMembers()) {
                 store(memberOf(handle, member), extractMember(value, member), accessMode);
             }
+            return nop();
         } else if (handle.getValueType() instanceof ArrayType at) {
             long ec = at.getElementCount();
             LiteralFactory lf = ctxt.getLiteralFactory();
@@ -327,7 +321,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 // rolled loop
                 BlockLabel top = new BlockLabel();
                 BlockLabel exit = new BlockLabel();
-                UnsignedIntegerType idxType = ctxt.getTypeSystem().getUnsignedInteger64Type();
+                SignedIntegerType idxType = ctxt.getTypeSystem().getSignedInteger64Type();
                 BasicBlock entry = goto_(top);
                 PhiValue idx = phi(idxType, top);
                 begin(top);

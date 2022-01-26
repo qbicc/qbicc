@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -164,7 +165,7 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
                 .setName(null)
                 .addNextMember(valueType)
                 .addNextMember(ts.getBooleanType())
-                .setOverallAlignment(valueType.getAlign())
+                .setOverallAlignment(1)
                 .build();
             CompoundType appearing = map.putIfAbsent(valueType, compoundType);
             if (appearing != null) {

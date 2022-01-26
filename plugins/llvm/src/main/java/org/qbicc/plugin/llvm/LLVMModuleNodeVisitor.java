@@ -163,33 +163,15 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
                 types.put(type, identifiedType.asTypeRef());
             }
 
-            // this is a little tricky.
-            int memberCnt = compoundType.getMemberCount();
-            long offs = 0;
             StructType struct = structType(isIdentified);
             int index = 0;
-            for (int i = 0; i < memberCnt; i ++) {
-                CompoundType.Member member = compoundType.getMember(i);
-                int memberOffset = member.getOffset(); // already includes alignment
-                if (memberOffset > offs) {
-                    // we have to pad it out
-                    int pad = (int) (memberOffset - offs);
-                    struct.member(array(pad, i8), "padding");
-                    offs += pad;
-                    index ++;
-                }
+            for (CompoundType.Member member : compoundType.getPaddedMembers()) {
                 ValueType memberType = member.getType();
                 struct.member(map(memberType), member.getName());
                 // todo: cache these ints
                 offsets.put(member, Values.intConstant(index));
                 index ++;
                 // the target will already pad out for normal alignment
-                offs += max(memberType.getAlign(), memberType.getSize());
-            }
-            long size = compoundType.getSize();
-            if (offs < size) {
-                // yet more padding
-                struct.member(array((int) (size - offs), i8), "padding");
             }
 
             if (isIdentified) {
@@ -280,19 +262,8 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
         CompoundType type = node.getType();
         Map<CompoundType.Member, Literal> values = node.getValues();
         // very similar to emitting a struct type, but we don't have to cache the structure offsets
-        int memberCnt = type.getMemberCount();
-        long offs = 0;
         Struct struct = struct();
-        for (int i = 0; i < memberCnt; i ++) {
-            CompoundType.Member member = type.getMember(i);
-            int memberOffset = member.getOffset(); // already includes alignment
-            if (memberOffset > offs) {
-                // we have to pad it out
-                int pad = (int) (memberOffset - offs);
-                struct.item(array(pad, i8), zeroinitializer);
-                offs += pad;
-            }
-            // actual member
+        for (CompoundType.Member member : type.getPaddedMembers()) {
             Literal literal = values.get(member);
             ValueType memberType = member.getType();
             if (literal == null) {
@@ -301,13 +272,6 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             } else {
                 struct.item(map(memberType), map(literal));
             }
-            // the target will already pad out for normal alignment
-            offs += max(memberType.getAlign(), memberType.getSize());
-        }
-        long size = type.getSize();
-        if (offs < size) {
-            // yet more padding
-            struct.item(array((int) (size - offs), i8), zeroinitializer);
         }
         return struct;
     }
