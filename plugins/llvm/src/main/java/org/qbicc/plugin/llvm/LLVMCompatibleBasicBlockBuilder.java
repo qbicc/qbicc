@@ -259,7 +259,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 // rolled loop
                 BlockLabel top = new BlockLabel();
                 BlockLabel exit = new BlockLabel();
-                UnsignedIntegerType idxType = ctxt.getTypeSystem().getUnsignedInteger64Type();
+                SignedIntegerType idxType = ctxt.getTypeSystem().getSignedInteger64Type();
                 BasicBlock entry = goto_(top);
                 PhiValue idx = phi(idxType, top);
                 PhiValue val = phi(at, top);
@@ -321,7 +321,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 // rolled loop
                 BlockLabel top = new BlockLabel();
                 BlockLabel exit = new BlockLabel();
-                UnsignedIntegerType idxType = ctxt.getTypeSystem().getUnsignedInteger64Type();
+                SignedIntegerType idxType = ctxt.getTypeSystem().getSignedInteger64Type();
                 BasicBlock entry = goto_(top);
                 PhiValue idx = phi(idxType, top);
                 begin(top);
