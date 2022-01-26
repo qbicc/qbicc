@@ -132,7 +132,7 @@ final class VmInvokableImpl implements VmInvokable {
 
     Object run(VmThreadImpl thread, VmObject target, List<Object> args) {
         long invCnt = ((long) countHandle.getAndAdd(this, 1)) + 1;
-        if (invCnt == 100) {
+        if (false && invCnt == 100) {
             thread.getVM().getCompilationContext().info(element, "Excessive invocation count (JIT candidate)");
         }
         if (! (element instanceof InitializerElement)) {
