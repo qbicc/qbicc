@@ -251,6 +251,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             for (CompoundType.Member member : ct.getMembers()) {
                 res = insertMember(res, member, load(memberOf(handle, member), accessMode));
             }
+            return res;
         } else if (handle.getValueType() instanceof ArrayType at) {
             long ec = at.getElementCount();
             LiteralFactory lf = ctxt.getLiteralFactory();
@@ -314,6 +315,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             for (CompoundType.Member member : ct.getMembers()) {
                 store(memberOf(handle, member), extractMember(value, member), accessMode);
             }
+            return nop();
         } else if (handle.getValueType() instanceof ArrayType at) {
             long ec = at.getElementCount();
             LiteralFactory lf = ctxt.getLiteralFactory();
