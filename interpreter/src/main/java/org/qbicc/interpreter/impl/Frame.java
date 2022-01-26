@@ -185,6 +185,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     final Frame enclosing;
 
     /**
+     * The current call depth.
+     */
+    final int depth;
+
+    /**
      * The element being executed ({@code null} indicates a native frame).
      */
     final ExecutableElement element;
@@ -221,6 +226,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     Frame(Frame enclosing, ExecutableElement element, Memory memory) {
         this.enclosing = enclosing;
+        this.depth = enclosing == null ? 0 : enclosing.depth + 1;
         this.element = element;
         this.memory = memory;
     }
@@ -1390,6 +1396,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     ///////////////////////////
 
     private Object call(VmThreadImpl thread, ValueHandle handle, List<Object> arguments) {
+        if (depth == 4096) {
+            // todo: configure
+            VmThrowableClassImpl soeClass = (VmThrowableClassImpl) thread.vm.getBootstrapClassLoader().loadClass("java/lang/StackOverflowError");
+            throw new Thrown(soeClass.newInstance());
+        }
         ExecutableElement element = handle.accept(GET_EXECUTABLE_ELEMENT, this);
         VmObject receiver = handle.accept(GET_RECEIVER, this);
         DefinedTypeDefinition def = element.getEnclosingType();
