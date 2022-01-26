@@ -240,7 +240,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         if (handle.getValueType() instanceof CompoundType ct) {
             LiteralFactory lf = ctxt.getLiteralFactory();
             Value res = lf.zeroInitializerLiteralOfType(ct);
-            for (CompoundType.Member member : ct.getMembers()) {
+            for (CompoundType.Member member : ct.getPaddedMembers()) {
                 res = insertMember(res, member, load(memberOf(handle, member), accessMode));
             }
             return res;
@@ -304,7 +304,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         }
         // Break apart atomic structure and array stores
         if (handle.getValueType() instanceof CompoundType ct) {
-            for (CompoundType.Member member : ct.getMembers()) {
+            for (CompoundType.Member member : ct.getPaddedMembers()) {
                 store(memberOf(handle, member), extractMember(value, member), accessMode);
             }
             return nop();
