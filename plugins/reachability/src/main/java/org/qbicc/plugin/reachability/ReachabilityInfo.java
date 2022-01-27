@@ -134,6 +134,12 @@ public class ReachabilityInfo {
         LoadedTypeDefinition unsafe = ctxt.getBootstrapClassContext().findDefinedType("jdk/internal/misc/Unsafe").load();
         info.analysis.processInstantiatedClass(unsafe, true, false,null);
         info.analysis.processClassInitialization(unsafe);
+
+        // The main Thread is instantiated in native code, and thus not visible to analysis.
+        LOGGER.debugf("Forcing java.lang.Thread reachable/instantiated");
+        LoadedTypeDefinition thr = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread").load();
+        info.analysis.processInstantiatedClass(thr, true, false,null);
+        info.analysis.processClassInitialization(thr);
     }
 
     public static void processAutoQueuedElement(ExecutableElement elem) {
