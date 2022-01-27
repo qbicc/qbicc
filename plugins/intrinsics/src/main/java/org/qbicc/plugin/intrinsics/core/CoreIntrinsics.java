@@ -1238,17 +1238,10 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor tgDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ThreadGroup");
         MethodDescriptor voidVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
 
-        // Construct system thread group
-        StaticIntrinsic sysThrGrp = (builder, target, arguments) -> {
-            Value tg = builder.new_(tgDesc);
-            builder.call(builder.constructorOf(tg, tgDesc, voidVoidDesc), List.of());
-            return tg;
-        };
-
+        // Get system thread group
+        StaticIntrinsic sysThrGrp = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(ctxt.getVm().getMainThreadGroup());
         MethodDescriptor returnTgDesc = MethodDescriptor.synthesize(classContext, tgDesc, List.of());
-
-        intrinsics.registerIntrinsic(mainDesc, "createSystemThreadGroup", returnTgDesc, sysThrGrp);
-
+        intrinsics.registerIntrinsic(mainDesc, "getSystemThreadGroup", returnTgDesc, sysThrGrp);
     }
 
     static ValueHandle getTarget(CompilationContext ctxt, BasicBlockBuilder builder, Value input) {

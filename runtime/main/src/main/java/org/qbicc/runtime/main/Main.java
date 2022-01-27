@@ -22,7 +22,7 @@ public final class Main {
      */
     static native void userMain(String[] args);
 
-    static native ThreadGroup createSystemThreadGroup();
+    static native ThreadGroup getSystemThreadGroup();
 
     @export
     @Hidden
@@ -31,7 +31,7 @@ public final class Main {
         // first set up VM
         // ...
         // next set up the initial thread
-        attachNewThread("main", createSystemThreadGroup());
+        attachNewThread("main", getSystemThreadGroup());
 
         // now cause the initial thread to invoke main
         final String[] args = new String[argc.intValue()];
