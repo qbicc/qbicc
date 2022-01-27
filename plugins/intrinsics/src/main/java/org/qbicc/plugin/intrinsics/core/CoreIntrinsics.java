@@ -87,7 +87,6 @@ public final class CoreIntrinsics {
         registerEmptyNativeInitMethods(ctxt);
         registerJavaIoFileDescriptorIntrinsics(ctxt);
         registerJavaLangClassIntrinsics(ctxt);
-        registerJavaLangInvokeMethodHandleNativesIntrinsics(ctxt);
         registerJavaLangInvokeMethodHandleIntrinsics(ctxt);
         registerJavaLangStringUTF16Intrinsics(ctxt);
         registerJavaLangSystemIntrinsics(ctxt);
@@ -275,44 +274,6 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(Phase.ANALYZE, jlcDesc, "getDeclaringClass0", emptyToClass, getDeclaringClass0);
-    }
-
-    public static void registerJavaLangInvokeMethodHandleNativesIntrinsics(CompilationContext ctxt) {
-        Intrinsics intrinsics = Intrinsics.get(ctxt);
-        ClassContext classContext = ctxt.getBootstrapClassContext();
-        LiteralFactory lf = ctxt.getLiteralFactory();
-        TypeSystem ts = ctxt.getTypeSystem();
-
-        ClassTypeDescriptor memberNameDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/invoke/MemberName");
-        ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
-        ClassTypeDescriptor jliMhnDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/invoke/MethodHandleNatives");
-
-        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
-        MethodDescriptor memberNameClassBoolToMemberName = MethodDescriptor.synthesize(classContext,
-            memberNameDesc,
-            List.of(
-                memberNameDesc,
-                classDesc,
-                BaseTypeDescriptor.Z
-            )
-        );
-
-        StaticIntrinsic resolve = (builder, target, arguments) -> {
-            LoadedTypeDefinition uoe = classContext.findDefinedType("java/lang/UnsupportedOperationException").load();
-            ClassObjectType uoeType = uoe.getClassType();
-            int idx = uoe.findConstructorIndex(emptyToVoid);
-            if (idx == -1) {
-                throw new IllegalStateException();
-            }
-            ConstructorElement ctor = uoe.getConstructor(idx);
-            Layout layout = Layout.get(ctxt);
-            CompoundType compoundType = layout.getInstanceLayoutInfo(uoe).getCompoundType();
-            Value ex = builder.new_(uoeType, lf.literalOfType(uoeType), lf.literalOf(compoundType.getSize()), lf.literalOf(compoundType.getAlign()));
-            builder.call(builder.constructorOf(ex, ctor, ctor.getDescriptor(), ctor.getType()), List.of());
-            throw new BlockEarlyTermination(builder.throw_(ex));
-        };
-
-        intrinsics.registerIntrinsic(Phase.ANALYZE, jliMhnDesc, "resolve", memberNameClassBoolToMemberName, resolve);
     }
 
     public static void registerJavaLangInvokeMethodHandleIntrinsics(CompilationContext ctxt) {
