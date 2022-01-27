@@ -303,14 +303,24 @@ public class UnsafeIntrinsics {
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
 
         Map<TypeDescriptor, ValueType> typeLookup = Map.of(
+            BaseTypeDescriptor.B, ts.getSignedInteger8Type(),
+            BaseTypeDescriptor.S, ts.getSignedInteger16Type(),
             BaseTypeDescriptor.I, ts.getSignedInteger32Type(),
             BaseTypeDescriptor.J, ts.getSignedInteger64Type(),
+            BaseTypeDescriptor.C, ts.getUnsignedInteger16Type(),
+            BaseTypeDescriptor.F, ts.getFloat32Type(),
+            BaseTypeDescriptor.D, ts.getFloat64Type(),
             objDesc, CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getType().getReference()
         );
 
         for (Map.Entry<String, TypeDescriptor> typeNameAndDesc : Map.of(
+            "Byte", BaseTypeDescriptor.B,
+            "Short", BaseTypeDescriptor.S,
             "Int", BaseTypeDescriptor.I,
             "Long", BaseTypeDescriptor.J,
+            "Char", BaseTypeDescriptor.C,
+            "Float", BaseTypeDescriptor.F,
+            "Double", BaseTypeDescriptor.D,
             "Object", objDesc,
             "Reference", objDesc
         ).entrySet()) {
@@ -361,14 +371,24 @@ public class UnsafeIntrinsics {
         Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ts.getVoidType());
 
         Map<TypeDescriptor, ValueType> typeLookup = Map.of(
+            BaseTypeDescriptor.B, ts.getSignedInteger8Type(),
+            BaseTypeDescriptor.S, ts.getSignedInteger16Type(),
             BaseTypeDescriptor.I, ts.getSignedInteger32Type(),
             BaseTypeDescriptor.J, ts.getSignedInteger64Type(),
+            BaseTypeDescriptor.C, ts.getUnsignedInteger16Type(),
+            BaseTypeDescriptor.F, ts.getFloat32Type(),
+            BaseTypeDescriptor.D, ts.getFloat64Type(),
             objDesc, CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getType().getReference()
         );
 
         for (Map.Entry<String, TypeDescriptor> typeNameAndDesc : Map.of(
+            "Byte", BaseTypeDescriptor.B,
+            "Short", BaseTypeDescriptor.S,
             "Int", BaseTypeDescriptor.I,
             "Long", BaseTypeDescriptor.J,
+            "Char", BaseTypeDescriptor.C,
+            "Float", BaseTypeDescriptor.F,
+            "Double", BaseTypeDescriptor.D,
             "Object", objDesc,
             "Reference", objDesc
         ).entrySet()) {
