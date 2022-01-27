@@ -1,8 +1,10 @@
 package org.qbicc.plugin.native_;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
@@ -48,6 +50,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 // any value can be cast to `object`
                 return value;
             }
+            return super.checkcast(value, deNative(ctd));
         }
         return super.checkcast(value, desc);
     }
@@ -148,7 +151,27 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return pointerHandle(ctxt.getLiteralFactory().literalOf(ctxt.getImplicitSection(getRootElement())
                 .declareFunction(null, functionInfo.getName(), functionInfo.getType())));
         }
-        return super.staticMethod(owner, name, descriptor);
+        return super.staticMethod(deNative(owner), name, deNative(descriptor));
+    }
+
+    @Override
+    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return super.exactMethodOf(instance, deNative(owner), name, deNative(descriptor));
+    }
+
+    @Override
+    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return super.virtualMethodOf(instance, deNative(owner), name, deNative(descriptor));
+    }
+
+    @Override
+    public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return super.interfaceMethodOf(instance, deNative(owner), name, deNative(descriptor));
+    }
+
+    @Override
+    public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
+        return super.constructorOf(instance, deNative(owner), deNative(descriptor));
     }
 
     @Override
@@ -158,7 +181,49 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (fieldInfo != null) {
             return pointerHandle(getAndDeclareSymbolLiteral(fieldInfo));
         }
-        return super.staticField(owner, name, type);
+        return super.staticField(deNative(owner), name, deNative(type));
+    }
+
+    @Override
+    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
+        return super.instanceFieldOf(instance, deNative(owner), name, deNative(type));
+    }
+
+    MethodDescriptor deNative(MethodDescriptor md) {
+        TypeDescriptor returnType = md.getReturnType();
+        TypeDescriptor fixedReturnType = deNative(returnType);
+        out: if (returnType == fixedReturnType) {
+            for (TypeDescriptor parameterType : md.getParameterTypes()) {
+                if (parameterType != deNative(parameterType)) {
+                    break out;
+                }
+            }
+            // it's OK
+            return md;
+        }
+        int cnt = md.getParameterTypes().size();
+        List<TypeDescriptor> newParamTypes = cnt == 0 ? List.of() : Arrays.asList(new TypeDescriptor[cnt]);
+        for (TypeDescriptor parameterType : md.getParameterTypes()) {
+            newParamTypes.add(deNative(parameterType));
+        }
+        ClassContext cc = getRootElement().getEnclosingType().getContext();
+        return MethodDescriptor.synthesize(cc, fixedReturnType, newParamTypes);
+    }
+
+    TypeDescriptor deNative(TypeDescriptor td) {
+        return td instanceof ClassTypeDescriptor ctd ? deNative(ctd) : td;
+    }
+
+    ClassTypeDescriptor deNative(ClassTypeDescriptor ctd) {
+        ClassContext cc = getRootElement().getEnclosingType().getContext();
+        String className = ctd.getClassName();
+        if (className.endsWith("$_native")) {
+            String packageName = ctd.getPackageName();
+            String newClassName = className.substring(0, className.length() - 8);
+            return ClassTypeDescriptor.synthesize(cc, packageName.isEmpty() ? newClassName : packageName + '/' + newClassName);
+        } else {
+            return ctd;
+        }
     }
 
     private ProgramObjectLiteral getAndDeclareSymbolLiteral(final NativeDataInfo fieldInfo) {
