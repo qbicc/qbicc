@@ -775,6 +775,7 @@ public final class VmImpl implements Vm {
             });
 
             // Signal
+            // TODO: This can be removed when we update to qbicc 0.5
             VmClassImpl signalClass = bootstrapClassLoader.loadClass("jdk/internal/misc/Signal");
             signalClass.registerInvokable("findSignal0", (thread, target, args) -> {
                 VmString sigName = (VmString) args.get(0);
