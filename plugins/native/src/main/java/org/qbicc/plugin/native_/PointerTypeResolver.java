@@ -28,9 +28,12 @@ import org.qbicc.type.generic.BaseTypeSignature;
 import org.qbicc.type.generic.BoundTypeArgument;
 import org.qbicc.type.generic.ClassTypeSignature;
 import org.qbicc.type.generic.ReferenceTypeSignature;
+import org.qbicc.type.generic.TopLevelClassTypeSignature;
 import org.qbicc.type.generic.TypeArgument;
+import org.qbicc.type.generic.TypeParameter;
 import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
+import org.qbicc.type.generic.TypeVariableSignature;
 import org.qbicc.type.generic.Variance;
 
 /**
@@ -115,6 +118,14 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
                             }
                             pointerType = pointeeType.getPointer();
                         }
+                    } else if (signature instanceof TypeVariableSignature tvs) {
+                        TypeParameter resolved = paramCtxt.resolveTypeParameter(tvs.getIdentifier());
+                        ReferenceTypeSignature classBound = resolved.getClassBound();
+                        if (classBound instanceof TopLevelClassTypeSignature sig && sig.getIdentifier().equals(Native.PTR)) {
+                            return resolveTypeFromMethodDescriptor(descriptor, paramCtxt, sig, visibleAnnotations, invisibleAnnotations);
+                        }
+                        // the pointer type is just unknown
+                        pointerType = ctxt.getTypeSystem().getVoidType().getPointer();
                     } else {
                         // todo: how can we cleanly get the location from here?
                         ctxt.warning("Generic signature type mismatch (expected a %s but got a %s)", ClassTypeSignature.class, signature.getClass());
