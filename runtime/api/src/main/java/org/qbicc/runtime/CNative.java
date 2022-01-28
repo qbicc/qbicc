@@ -467,6 +467,74 @@ public final class CNative {
      */
     public static native <T, P extends ptr<T>> P refToPtr(T ref);
 
+    // intrinsic
+    @NoSideEffects
+    private static native int floatToInt1(float fv);
+
+    /**
+     * Method which implements conversions from {@code float} to {@code int} type.  This method implements
+     * the clamping semantics required for correct behavior.
+     *
+     * @param fv the {@code float} value
+     * @return the clamped {@code int} value
+     */
+    @NoSideEffects
+    @AutoQueued
+    public static int floatToInt(float fv) {
+        return floatToInt1(fv);
+    }
+
+    // intrinsic
+    @NoSideEffects
+    private static native long floatToLong1(float fv);
+
+    /**
+     * Method which implements conversions from {@code float} to {@code long} type.  This method implements
+     * the clamping semantics required for correct behavior.
+     *
+     * @param fv the {@code float} value
+     * @return the clamped {@code long} value
+     */
+    @NoSideEffects
+    @AutoQueued
+    public static long floatToLong(float fv) {
+        return floatToLong1(fv);
+    }
+
+    // intrinsic
+    @NoSideEffects
+    private static native int doubleToInt1(double dv);
+
+    /**
+     * Method which implements conversions from {@code double} to {@code int} type.  This method implements
+     * the clamping semantics required for correct behavior.
+     *
+     * @param dv the {@code double} value
+     * @return the clamped {@code int} value
+     */
+    @NoSideEffects
+    @AutoQueued
+    public static int doubleToInt(double dv) {
+        return doubleToInt1(dv);
+    }
+
+    // intrinsic
+    @NoSideEffects
+    private static native long doubleToLong1(double dv);
+
+    /**
+     * Method which implements conversions from {@code double} to {@code long} type.  This method implements
+     * the clamping semantics required for correct behavior.
+     *
+     * @param dv the {@code double} value
+     * @return the clamped {@code long} value
+     */
+    @NoSideEffects
+    @AutoQueued
+    public static long doubleToLong(double dv) {
+        return doubleToLong1(dv);
+    }
+
     // built-in
 
     /**

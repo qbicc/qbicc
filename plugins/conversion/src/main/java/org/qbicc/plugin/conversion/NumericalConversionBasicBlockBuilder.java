@@ -1,15 +1,14 @@
 package org.qbicc.plugin.conversion;
 
+import java.util.List;
+
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
-import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
-import org.qbicc.graph.literal.Literal;
-import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
@@ -20,6 +19,7 @@ import org.qbicc.type.TypeType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 
 /**
  * This builder fixes up mismatched numerical conversions in order to avoid duplicating this kind of logic in other
@@ -180,49 +180,31 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     public Value valueConvert(final Value from, final WordType toTypeRaw) {
+        BasicBlockBuilder fb = getFirstBuilder();
         ValueType fromTypeRaw = from.getType();
-        if (fromTypeRaw instanceof FloatType) {
-            FloatType fromType = (FloatType) fromTypeRaw;
-            if (toTypeRaw instanceof IntegerType) {
-                LiteralFactory lf = ctxt.getLiteralFactory();
-                IntegerType toType = (IntegerType) toTypeRaw;
-                // the lowest allowed value (inclusive)
-                double lower = toType.getLowerInclusiveBound();
-                // the highest allowed value (inclusive)
-                double upper = toType.getUpperInclusiveBound();
-                // the highest allowed value literal
-                // it cannot be the same as the literal used in cmp cos they're different types
-                Literal upperLit = lf.literalOf(toType, toType.getMaxValue());
-
-                FloatLiteral upperLitCmp, lowerLit;
+        if (fromTypeRaw instanceof FloatType fromType) {
+            if (toTypeRaw instanceof IntegerType toType) {
+                ClassContext bcc = ctxt.getBootstrapClassContext();
+                LoadedTypeDefinition cNative = bcc.findDefinedType("org/qbicc/runtime/CNative").load();
                 if (fromType.getMinBits() == 32) {
-                    upperLitCmp = lf.literalOf((float) upper);
-                    lowerLit = lf.literalOf((float) lower);
-                } else {
-                    upperLitCmp = lf.literalOf(upper);
-                    lowerLit = lf.literalOf(lower);
+                    if (toType.getMinBits() == 32) {
+                        ValueHandle floatToInt = fb.staticMethod(cNative.requireSingleMethod(me -> me.nameEquals("floatToInt")));
+                        return fb.callNoSideEffects(floatToInt, List.of(from));
+                    } else if (toType.getMinBits() == 64) {
+                        ValueHandle floatToLong = fb.staticMethod(cNative.requireSingleMethod(me -> me.nameEquals("floatToLong")));
+                        return fb.callNoSideEffects(floatToLong, List.of(from));
+                    }
+                } else if (fromType.getMinBits() == 64) {
+                    if (toType.getMinBits() == 32) {
+                        ValueHandle doubleToInt = fb.staticMethod(cNative.requireSingleMethod(me -> me.nameEquals("doubleToInt")));
+                        return fb.callNoSideEffects(doubleToInt, List.of(from));
+                    } else if (toType.getMinBits() == 64) {
+                        ValueHandle doubleToLong = fb.staticMethod(cNative.requireSingleMethod(me -> me.nameEquals("doubleToLong")));
+                        return fb.callNoSideEffects(doubleToLong, List.of(from));
+                    }
                 }
-
-                // create the necessary Java bounds check
-
-                final BlockLabel overMax = new BlockLabel();
-                final BlockLabel notOverMax = new BlockLabel();
-                final BlockLabel underMin = new BlockLabel();
-                final BlockLabel resume = new BlockLabel();
-                if_(isGe(from, upperLitCmp), overMax, notOverMax);
-                begin(overMax);
-                goto_(resume);
-                begin(notOverMax);
-                if_(isLt(from, lowerLit), underMin, resume);
-                begin(underMin);
-                goto_(resume);
-                begin(resume);
-                PhiValue result = phi(toType, resume);
-
-                result.setValueForBlock(ctxt, getCurrentElement(), overMax, super.valueConvert(upperLit, toType));
-                result.setValueForBlock(ctxt, getCurrentElement(), underMin, super.valueConvert(lowerLit, toType));
-                result.setValueForBlock(ctxt, getCurrentElement(), notOverMax, super.valueConvert(from, toType));
-                return result;
+                ctxt.error(getLocation(), "Unsupported floating-point conversion from %s to %s", fromTypeRaw, toTypeRaw);
+                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(toTypeRaw);
             }
         } else if (fromTypeRaw instanceof IntegerType) {
             if (toTypeRaw instanceof FloatType) {
