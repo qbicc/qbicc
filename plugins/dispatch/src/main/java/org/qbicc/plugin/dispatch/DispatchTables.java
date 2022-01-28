@@ -154,7 +154,7 @@ public class DispatchTables {
     void buildITablesGlobal(DefinedTypeDefinition containingType) {
         TypeSystem ts = ctxt.getTypeSystem();
         CompoundType.Member itableMember = ts.getCompoundTypeMember("itable", ts.getVoidType().getPointer(), 0,  ts.getPointerAlignment());
-        CompoundType.Member typeIdMember = ts.getCompoundTypeMember("typeId", ts.getSignedInteger32Type(), ts.getPointerSize(),  ts.getTypeIdAlignment());
+        CompoundType.Member typeIdMember = ts.getCompoundTypeMember("typeId", ts.getTypeIdLiteralType(), ts.getPointerSize(),  ts.getTypeIdAlignment());
         itableDictType = ts.getCompoundType(CompoundType.Tag.STRUCT, "qbicc_itable_dict_entry", ts.getPointerSize() + ts.getTypeIdSize(),
             ts.getPointerAlignment(), () -> List.of(itableMember, typeIdMember));
 
