@@ -10,6 +10,7 @@ import java.util.function.Supplier;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
@@ -265,6 +266,9 @@ public class BuildtimeHeap {
             CompoundType.Member om = objLayout.getMember(f);
             Literal replacement = f.getReplacementValue(ctxt);
             if (replacement != null) {
+                if (replacement instanceof BooleanLiteral bl) {
+                    replacement = lf.literalOf((IntegerType)om.getType(), bl.booleanValue() ? 1 : 0);
+                }
                 memberMap.put(om, replacement);
             } else if (im.getType() instanceof IntegerType it) {
                 if (it.getSize() == 1) {
