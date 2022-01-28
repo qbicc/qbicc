@@ -219,21 +219,20 @@ public final class VMHelpers {
         //function_ptr<UnaryOperator<void_ptr>> runFuncPtr = addr_of_function(VMHelpers::threadWrapperNative);
 
         /* create pthread */
-        ptr<?> pthreadVoid = malloc(sizeof(pthread_t.class));
-        if (pthreadVoid.isNull()) {
+        pthread_t_ptr pthreadPtr = malloc(sizeof(pthread_t.class));
+        if (pthreadPtr.isNull()) {
             throw new OutOfMemoryError(/*"Allocation failed"*/);
         }
-        ptr<pthread_t> pthreadPtr = (ptr<pthread_t>) castPtr(pthreadVoid, pthread_t.class);
 
         /* make GC aware of thread before starting */
-        if (!CompilerIntrinsics.saveNativeThread(thread, (pthread_t_ptr) pthreadPtr)) {
-            free(pthreadVoid);
+        if (!CompilerIntrinsics.saveNativeThread(thread, pthreadPtr)) {
+            free(pthreadPtr.cast());
             throw new OutOfMemoryError();
         }
 
-        int result = pthread_create((pthread_t_ptr) pthreadPtr, (const_pthread_attr_t_ptr)null, runFuncPtr, thread).intValue();
+        int result = pthread_create(pthreadPtr, zero(), runFuncPtr, thread).intValue();
         if (0 != result) {
-            free(pthreadVoid);
+            free(pthreadPtr.cast());
             throw new InternalError("pthread error code: " + result);
         }
     }
