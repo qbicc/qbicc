@@ -1647,7 +1647,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             if (opcode != OP_INVOKESPECIAL) {
                                 throw new InvalidByteCodeException();
                             }
-                            gf.call(gf.constructorOf(v1, owner, desc), List.of(args));
+                            gf.call(gf.constructorOf(v1, owner, desc), List.of(demote(args, desc)));
                         } else {
                             TypeDescriptor returnType = desc.getReturnType();
                             ValueHandle handle;
@@ -1662,10 +1662,10 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                                 handle = gf.interfaceMethodOf(v1, owner, name, desc);
                             }
                             if (handle.isNoReturn()) {
-                                gf.callNoReturn(handle, List.of(args));
+                                gf.callNoReturn(handle, List.of(demote(args, desc)));
                                 return;
                             }
-                            Value result = handle.isNoSideEffect() ? gf.callNoSideEffects(handle, List.of(args)) : gf.call(handle, List.of(args));
+                            Value result = handle.isNoSideEffect() ? gf.callNoSideEffects(handle, List.of(demote(args, desc))) : gf.call(handle, List.of(demote(args, desc)));
                             if (returnType != BaseTypeDescriptor.V) {
                                 push(promote(result, returnType), desc.getReturnType().isClass2());
                             }
@@ -1784,7 +1784,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         }
                         // todo: promote the method handle directly to a ValueHandle?
                         Value result = gf.call(gf.virtualMethodOf(methodHandle, descOfMethodHandle, "invokeExact",
-                            desc), List.of(args));
+                            desc), List.of(demote(args, desc)));
                         TypeDescriptor returnType = desc.getReturnType();
                         if (! returnType.isVoid()) {
                             push(promote(result, returnType), returnType.isClass2());
@@ -2119,6 +2119,28 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         }
         // no promote necessary
         return value;
+    }
+
+    Value[] demote(Value[] values, MethodDescriptor desc) {
+        List<TypeDescriptor> parameterTypes = desc.getParameterTypes();
+        int cnt = values.length;
+        for (int i = 0; i < cnt; i ++) {
+            TypeDescriptor paramDesc = parameterTypes.get(i);
+            if (paramDesc == BaseTypeDescriptor.B) {
+                // int -> byte
+                values[i] = gf.truncate(values[i], ts.getSignedInteger8Type());
+            } else if (paramDesc == BaseTypeDescriptor.C) {
+                // int -> char
+                values[i] = gf.truncate(values[i], ts.getUnsignedInteger16Type());
+            } else if (paramDesc == BaseTypeDescriptor.S) {
+                // int -> short
+                values[i] = gf.truncate(values[i], ts.getSignedInteger16Type());
+            } else if (paramDesc == BaseTypeDescriptor.Z) {
+                // int -> boolean
+                values[i] = gf.truncate(values[i], ts.getBooleanType());
+            }
+        }
+        return values;
     }
 
     Value promote(Value value) {

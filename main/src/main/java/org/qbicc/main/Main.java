@@ -49,7 +49,6 @@ import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.tool.CToolChain;
 import org.qbicc.plugin.constants.ConstantBasicBlockBuilder;
-import org.qbicc.plugin.conversion.MethodCallFixupBasicBlockBuilder;
 import org.qbicc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import org.qbicc.plugin.core.CoreAnnotationTypeBuilder;
 import org.qbicc.plugin.coreclasses.ArrayLengthBasicBlockBuilder;
@@ -403,7 +402,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ArrayLengthBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MethodCallFixupBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
                                 if (optMemoryTracking) {
                                     // TODO: breaks addr_of; should only be done in ANALYZE and then only if addr_of wasn't taken (alias)

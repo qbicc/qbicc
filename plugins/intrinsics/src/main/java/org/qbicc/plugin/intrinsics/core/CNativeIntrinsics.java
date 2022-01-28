@@ -19,8 +19,10 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.MemberSelector;
+import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.WordCastValue;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.IntegerLiteral;
@@ -120,11 +122,8 @@ final class CNativeIntrinsics {
             if (value instanceof MemberSelector ms) {
                 return builder.addressOf(ms.getValueHandle());
             }
-            if (value instanceof BitCast) {
-                value = ((BitCast)value).getInput();
-            }
-            if (value instanceof Extend) {
-                value = ((Extend) value).getInput();
+            while (value instanceof BitCast || value instanceof Extend || value instanceof Truncate) {
+                value = ((WordCastValue)value).getInput();
             }
             if (value instanceof Load load) {
                 return builder.addressOf(load.getValueHandle());
