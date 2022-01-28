@@ -35,7 +35,6 @@ public final class Signal {
         public function_ptr<SignalAction> sa_sigaction;
         public sigset_t sa_mask;
         public c_int sa_flags;
-        public function_ptr<Runnable> sa_restorer;
     }
 
     public static final class struct_sigaction_ptr extends ptr<struct_sigaction> {}

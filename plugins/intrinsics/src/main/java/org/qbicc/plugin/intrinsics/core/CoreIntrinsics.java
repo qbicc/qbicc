@@ -1233,7 +1233,7 @@ public final class CoreIntrinsics {
     static void registerOrgQbiccRuntimeMainIntrinsics(final CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
-        ClassTypeDescriptor mainDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/Main");
+        ClassTypeDescriptor mainDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/org/qbicc/runtime/Main");
 
         ClassTypeDescriptor tgDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ThreadGroup");
         MethodDescriptor voidVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
@@ -1407,25 +1407,14 @@ public final class CoreIntrinsics {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
-        ClassTypeDescriptor signalDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Signal");
         ClassTypeDescriptor jls = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor jlo = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor classloader = ClassTypeDescriptor.synthesize(classContext, "java/lang/ClassLoader");
         ClassTypeDescriptor unixDispatcher = ClassTypeDescriptor.synthesize(classContext, "sun/nio/fs/UnixNativeDispatcher");
 
-        MethodDescriptor stringToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(jls));
-        MethodDescriptor intLongToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.I, BaseTypeDescriptor.J));
         MethodDescriptor boolStringObj = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(jls, jlo));
         MethodDescriptor emptyToByteArray = MethodDescriptor.synthesize(classContext, ArrayTypeDescriptor.of(classContext, BaseTypeDescriptor.B), List.of());
         MethodDescriptor emptyToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
-
-        StaticIntrinsic findSignal = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(-1); // TODO: real implementation
-        StaticIntrinsic handle = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(0L); // TODO: real implementation
-
-        // TODO: remove; implemented in qbicc-classlib 0.5
-        intrinsics.registerIntrinsic(Phase.LOWER, signalDesc, "findSignal0", stringToInt, findSignal);
-        // TODO: remove; implemented in qbicc-classlib 0.5
-        intrinsics.registerIntrinsic(signalDesc, "handle0", intLongToLong, handle);
 
         StaticIntrinsic getcwd = (builder, target, arguments) -> ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getSignedInteger8Type().getPrimitiveArrayObjectType().getReference()); // TODO: real implementation
         StaticIntrinsic init = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(0); // TODO: real implementation

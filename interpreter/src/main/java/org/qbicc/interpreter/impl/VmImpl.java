@@ -774,20 +774,6 @@ public final class VmImpl implements Vm {
                 return cls.getTypeDefinition().getModifiers() & 0x1FFF;
             });
 
-            // Signal
-            // TODO: This can be removed when we update to qbicc 0.5
-            VmClassImpl signalClass = bootstrapClassLoader.loadClass("jdk/internal/misc/Signal");
-            signalClass.registerInvokable("findSignal0", (thread, target, args) -> {
-                VmString sigName = (VmString) args.get(0);
-                if (sigName.contentEquals("INT")) {
-                    return 2;
-                } else if (sigName.contentEquals("TERM")) {
-                    return 15;
-                } else {
-                    return -1;
-                }
-            });
-
             // OSEnvironment
             VmClassImpl osEnvClass = bootstrapClassLoader.loadClass("jdk/internal/misc/OSEnvironment");
             osEnvClass.registerInvokable("initialize", (thread, target, args) -> null); // Skip this for build-time init.
