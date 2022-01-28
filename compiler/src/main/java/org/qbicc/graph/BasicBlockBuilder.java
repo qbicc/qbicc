@@ -180,6 +180,8 @@ public interface BasicBlockBuilder extends Locatable {
 
     Node declareDebugAddress(LocalVariableElement variable, Value address);
 
+    Node setDebugValue(LocalVariableElement variable, Value value);
+
     // phi
 
     PhiValue phi(ValueType type, BlockLabel owner, PhiValue.Flag... flags);

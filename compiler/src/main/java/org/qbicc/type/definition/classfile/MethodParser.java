@@ -64,8 +64,10 @@ import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.ParameterElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -127,6 +129,12 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         exceptionHandlers = exCnt == 0 ? List.of() : new ArrayList<>(Collections.nCopies(exCnt, null));
         jlo = ctxt.findDefinedType("java/lang/Object");
         throwable = ctxt.findDefinedType("java/lang/Throwable");
+        List<ParameterElement> parameters;
+        if (graphFactory.getCurrentElement() instanceof InvokableElement ie) {
+            parameters = ie.getParameters();
+        } else {
+            parameters = List.of();
+        }
         LocalVariableElement[][] varsByTableEntry = new LocalVariableElement[maxLocals][];
         for (int slot = 0; slot < maxLocals; slot ++) {
             int entryCount = info.getLocalVarEntryCount(slot);
@@ -149,7 +157,13 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 LocalVariableElement.Builder builder = LocalVariableElement.builder(name, typeDescriptor, slot);
                 int startPc = info.getLocalVarStartPc(slot, entry);
                 if (startPc == 0) {
-                    builder.setReflectsParameter(true);
+                    int offset = 0;
+                    if (! graphFactory.getCurrentElement().isStatic()) {
+                        offset = 1;
+                    }
+                    if (slot >= offset && slot < parameters.size() + offset) {
+                        builder.setReflectsParameter(parameters.get(slot - offset));
+                    }
                 }
                 builder.setBci(startPc);
                 builder.setLine(info.getLineNumber(startPc));

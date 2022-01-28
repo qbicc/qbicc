@@ -9,7 +9,7 @@ import org.qbicc.type.generic.TypeParameterContext;
  * A method local variable.
  */
 public final class LocalVariableElement extends VariableElement {
-    private final boolean reflectsParameter;
+    private final ParameterElement reflectsParameter;
     private final int line;
     private final int bci;
 
@@ -28,13 +28,17 @@ public final class LocalVariableElement extends VariableElement {
         return bci;
     }
 
+    public ParameterElement getReflectsParameter() {
+        return reflectsParameter;
+    }
+
     public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
 
     @Override
     ValueType resolveTypeDescriptor(ClassContext classContext, TypeParameterContext paramCtxt) {
-        if (reflectsParameter) {
+        if (reflectsParameter != null) {
             return classContext.resolveTypeFromMethodDescriptor(
                             getTypeDescriptor(),
                             paramCtxt,
@@ -50,7 +54,7 @@ public final class LocalVariableElement extends VariableElement {
     }
 
     public interface Builder extends VariableElement.Builder {
-        void setReflectsParameter(boolean reflectsParameter);
+        void setReflectsParameter(ParameterElement reflectsParameter);
 
         void setLine(int line);
 
@@ -63,7 +67,7 @@ public final class LocalVariableElement extends VariableElement {
             Builder getDelegate();
 
             @Override
-            default void setReflectsParameter(boolean reflectsParameter) {
+            default void setReflectsParameter(ParameterElement reflectsParameter) {
                 getDelegate().setReflectsParameter(reflectsParameter);
             }
 
@@ -85,7 +89,7 @@ public final class LocalVariableElement extends VariableElement {
     }
 
     static final class BuilderImpl extends VariableElement.BuilderImpl implements Builder {
-        private boolean reflectsParameter;
+        private ParameterElement reflectsParameter;
         private int line;
         private int bci = -1;
 
@@ -93,7 +97,7 @@ public final class LocalVariableElement extends VariableElement {
             super(name, typeDescriptor, index);
         }
 
-        public void setReflectsParameter(boolean reflectsParameter) {
+        public void setReflectsParameter(ParameterElement reflectsParameter) {
             this.reflectsParameter = reflectsParameter;
         }
 
