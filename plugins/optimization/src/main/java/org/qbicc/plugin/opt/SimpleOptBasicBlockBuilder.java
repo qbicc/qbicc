@@ -185,11 +185,11 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return isEq(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType()), input);
         }
 
-        if (isCmp(v1) && isEqualToLiteral(v2, 0)) {
-            return isEq(cmpLeft(v1), cmpRight(v1));
+        if (v1 instanceof Cmp cmp && isEqualToLiteral(v2, 0)) {
+            return isEq(cmp.getLeftInput(), cmp.getRightInput());
         }
-        if (isCmp(v2) && isEqualToLiteral(v1, 0)) {
-            return isEq(cmpLeft(v2), cmpRight(v2));
+        if (v2 instanceof Cmp cmp && isEqualToLiteral(v1, 0)) {
+            return isEq(cmp.getLeftInput(), cmp.getRightInput());
         }
 
         return super.isEq(v1, v2);
@@ -229,11 +229,11 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             }
         }
 
-        if (isCmp(v1) && isEqualToLiteral(v2, 0)) {
-            return isNe(cmpLeft(v1), cmpRight(v1));
+        if (v1 instanceof Cmp cmp && isEqualToLiteral(v2, 0)) {
+            return isNe(cmp.getLeftInput(), cmp.getRightInput());
         }
-        if (isCmp(v2) && isEqualToLiteral(v1, 0)) {
-            return isNe(cmpLeft(v2), cmpRight(v2));
+        if (v2 instanceof Cmp cmp && isEqualToLiteral(v1, 0)) {
+            return isNe(cmp.getLeftInput(), cmp.getRightInput());
         }
 
         return super.isNe(v1, v2);
@@ -247,17 +247,17 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return lf.literalOf(false);
         }
 
-        if (isCmp(v1) && isEqualToLiteral(v2, 1)) {
-            return isLe(cmpLeft(v1), cmpRight(v1));
+        if (v1 instanceof Cmp cmp && isEqualToLiteral(v2, 1)) {
+            return isLe(cmp.getLeftInput(), cmp.getRightInput());
         }
-        if (isCmp(v2) && isEqualToLiteral(v1, -1)) {
-            return isGe(cmpLeft(v2), cmpRight(v2));
+        if (v2 instanceof Cmp cmp && isEqualToLiteral(v1, -1)) {
+            return isGe(cmp.getLeftInput(), cmp.getRightInput());
         }
-        if (isCmp(v1) && isEqualToLiteral(v2, 0)) {
-            return isLt(cmpLeft(v1), cmpRight(v1));
+        if (v1 instanceof Cmp cmp && isEqualToLiteral(v2, 0)) {
+            return isLt(cmp.getLeftInput(), cmp.getRightInput());
         }
-        if (isCmp(v2) && isEqualToLiteral(v1, 0)) {
-            return isLt(cmpRight(v2), cmpLeft(v2));
+        if (v2 instanceof Cmp cmp && isEqualToLiteral(v1, 0)) {
+            return isLt(cmp.getRightInput(), cmp.getLeftInput());
         }
 
         return super.isLt(v1, v2);
@@ -271,17 +271,17 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return lf.literalOf(false);
         }
 
-        if (isCmp(v2) && isEqualToLiteral(v1, 1)) {
-            return isLe(cmpLeft(v2), cmpRight(v2));
+        if (v2 instanceof Cmp cmp && isEqualToLiteral(v1, 1)) {
+            return isLe(cmp.getLeftInput(), cmp.getRightInput());
         }
-        if (isCmp(v1) && isEqualToLiteral(v2, -1)) {
-            return isGe(cmpLeft(v1), cmpRight(v1));
+        if (v1 instanceof Cmp cmp && isEqualToLiteral(v2, -1)) {
+            return isGe(cmp.getLeftInput(), cmp.getRightInput());
         }
-        if (isCmp(v1) && isEqualToLiteral(v2, 0)) {
-            return isGt(cmpLeft(v1), cmpRight(v1));
+        if (v1 instanceof Cmp cmp && isEqualToLiteral(v2, 0)) {
+            return isGt(cmp.getLeftInput(), cmp.getRightInput());
         }
-        if (isCmp(v2) && isEqualToLiteral(v1, 0)) {
-            return isGt(cmpRight(v2), cmpLeft(v2));
+        if (v2 instanceof Cmp cmp && isEqualToLiteral(v1, 0)) {
+            return isGt(cmp.getRightInput(), cmp.getLeftInput());
         }
 
         return super.isGt(v1, v2);
@@ -295,17 +295,17 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return lf.literalOf(false);
         }
 
-        if (isCmp(v2) && isEqualToLiteral(v1, 1)) {
-            return isGt(cmpLeft(v2), cmpRight(v2));
+        if (v2 instanceof Cmp cmp && isEqualToLiteral(v1, 1)) {
+            return isGt(cmp.getLeftInput(), cmp.getRightInput());
         }
-        if (isCmp(v1) && isEqualToLiteral(v2, -1)) {
-            return isLt(cmpLeft(v1), cmpRight(v1));
+        if (v1 instanceof Cmp cmp && isEqualToLiteral(v2, -1)) {
+            return isLt(cmp.getLeftInput(), cmp.getRightInput());
         }
-        if (isCmp(v1) && isEqualToLiteral(v2, 0)) {
-            return isLe(cmpLeft(v1), cmpRight(v1));
+        if (v1 instanceof Cmp cmp && isEqualToLiteral(v2, 0)) {
+            return isLe(cmp.getLeftInput(), cmp.getRightInput());
         }
-        if (isCmp(v2) && isEqualToLiteral(v1, 0)) {
-            return isLe(cmpRight(v2), cmpLeft(v2));
+        if (v2 instanceof Cmp cmp && isEqualToLiteral(v1, 0)) {
+            return isLe(cmp.getRightInput(), cmp.getLeftInput());
         }
 
         return super.isLe(v1, v2);
@@ -319,17 +319,17 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return lf.literalOf(false);
         }
 
-        if (isCmp(v1) && isEqualToLiteral(v2, -1)) {
-            return isGe(cmpLeft(v1), cmpRight(v1));
+        if (v1 instanceof Cmp cmp && isEqualToLiteral(v2, -1)) {
+            return isGe(cmp.getLeftInput(), cmp.getRightInput());
         }
-        if (isCmp(v2) && isEqualToLiteral(v1, -1)) {
-            return isLt(cmpLeft(v2), cmpRight(v2));
+        if (v2 instanceof Cmp cmp && isEqualToLiteral(v1, -1)) {
+            return isLt(cmp.getLeftInput(), cmp.getRightInput());
         }
-        if (isCmp(v1) && isEqualToLiteral(v2, 0)) {
-            return isGe(cmpLeft(v1), cmpRight(v1));
+        if (v1 instanceof Cmp cmp && isEqualToLiteral(v2, 0)) {
+            return isGe(cmp.getLeftInput(), cmp.getRightInput());
         }
-        if (isCmp(v2) && isEqualToLiteral(v1, 0)) {
-            return isGe(cmpRight(v2), cmpLeft(v2));
+        if (v2 instanceof Cmp cmp && isEqualToLiteral(v1, 0)) {
+            return isGe(cmp.getRightInput(), cmp.getLeftInput());
         }
 
         return super.isGe(v1, v2);
@@ -623,8 +623,8 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (v instanceof Neg neg) {
             return neg.getInput();
         }
-        if (isCmp(v)) {
-            return cmp(cmpRight(v), cmpLeft(v));
+        if (v instanceof Cmp cmp) {
+            return cmp(cmp.getRightInput(), cmp.getLeftInput());
         }
 
         return super.negate(v);
@@ -659,18 +659,6 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private boolean isZero(final Value value) {
         return value.isDefEq(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(value.getType()));
-    }
-
-    private static boolean isCmp(final Value value) {
-        return value instanceof Cmp;
-    }
-
-    private static Value cmpLeft(final Value value) {
-        return ((Cmp) value).getLeftInput();
-    }
-
-    private static Value cmpRight(final Value value) {
-        return ((Cmp) value).getRightInput();
     }
 
     private boolean isEqualToLiteral(final Value value, final int literal) {
