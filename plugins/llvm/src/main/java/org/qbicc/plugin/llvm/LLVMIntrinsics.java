@@ -21,6 +21,7 @@ import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.interpreter.VmString;
+import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.plugin.intrinsics.StaticIntrinsic;
 import org.qbicc.type.FunctionType;
@@ -154,6 +155,55 @@ public final class LLVMIntrinsics {
         };
 
         intrinsics.registerIntrinsic(stdArgDesc, "va_arg", vaListClassToThing, saVaArg);
+
+        // Floating-point conversion intrinsics implemented by LLVM
+
+        ClassTypeDescriptor cNativeDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative");
+
+        MethodDescriptor floatToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.F));
+        MethodDescriptor floatToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.F));
+        MethodDescriptor doubleToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.D));
+        MethodDescriptor doubleToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.D));
+
+        StaticIntrinsic floatToInt1 = (builder, target, arguments) -> {
+            TypeSystem ts = ctxt.getTypeSystem();
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            FunctionType fnType = ts.getFunctionType(ts.getSignedInteger32Type(), ts.getFloat32Type());
+            FunctionDeclaration decl = ctxt.getImplicitSection(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i32.f32", fnType);
+            return builder.getFirstBuilder().callNoSideEffects(builder.pointerHandle(lf.literalOf(decl)), arguments);
+        };
+
+        intrinsics.registerIntrinsic(cNativeDesc, "floatToInt1", floatToInt, floatToInt1);
+
+        StaticIntrinsic floatToLong1 = (builder, target, arguments) -> {
+            TypeSystem ts = ctxt.getTypeSystem();
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            FunctionType fnType = ts.getFunctionType(ts.getSignedInteger64Type(), ts.getFloat32Type());
+            FunctionDeclaration decl = ctxt.getImplicitSection(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i64.f32", fnType);
+            return builder.getFirstBuilder().callNoSideEffects(builder.pointerHandle(lf.literalOf(decl)), arguments);
+        };
+
+        intrinsics.registerIntrinsic(cNativeDesc, "floatToLong1", floatToLong, floatToLong1);
+
+        StaticIntrinsic doubleToInt1 = (builder, target, arguments) -> {
+            TypeSystem ts = ctxt.getTypeSystem();
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            FunctionType fnType = ts.getFunctionType(ts.getSignedInteger32Type(), ts.getFloat64Type());
+            FunctionDeclaration decl = ctxt.getImplicitSection(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i32.f64", fnType);
+            return builder.getFirstBuilder().callNoSideEffects(builder.pointerHandle(lf.literalOf(decl)), arguments);
+        };
+
+        intrinsics.registerIntrinsic(cNativeDesc, "doubleToInt1", doubleToInt, doubleToInt1);
+
+        StaticIntrinsic doubleToLong1 = (builder, target, arguments) -> {
+            TypeSystem ts = ctxt.getTypeSystem();
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            FunctionType fnType = ts.getFunctionType(ts.getSignedInteger64Type(), ts.getFloat64Type());
+            FunctionDeclaration decl = ctxt.getImplicitSection(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i64.f64", fnType);
+            return builder.getFirstBuilder().callNoSideEffects(builder.pointerHandle(lf.literalOf(decl)), arguments);
+        };
+
+        intrinsics.registerIntrinsic(cNativeDesc, "doubleToLong1", doubleToLong, doubleToLong1);
     }
 
     // flag values must match the LLVM runtime API class.
