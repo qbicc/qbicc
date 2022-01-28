@@ -202,9 +202,9 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     }
 
     public LoadedTypeDefinition load() throws VerifyFailedException {
-        DefinedTypeDefinition validated = this.loaded;
-        if (validated != null) {
-            return validated.load();
+        DefinedTypeDefinition loaded = this.loaded;
+        if (loaded != null) {
+            return loaded.load();
         }
         LoadedTypeDefinition superType;
         if (superClass != null) {
@@ -223,197 +223,202 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         for (int i = 0; i < cnt; i ++) {
             interfaces[i] = context.findDefinedType(getInterfaceInternalName(i)).load();
         }
-        cnt = getFieldCount();
-        ArrayList<FieldElement> fields = new ArrayList<>(cnt);
-        for (int i = 0; i < cnt; i ++) {
-            fields.add(fieldResolvers[i].resolveField(fieldIndexes[i], this, FieldElement.builder(fieldNames[i], fieldDescriptors[i], i)));
+        // one more try before taking a lock
+        loaded = this.loaded;
+        if (loaded != null) {
+            return loaded.load();
         }
-        cnt = getMethodCount();
-        MethodElement[] methods;
-        if (isInterface()) {
-            methods = cnt == 0 ? MethodElement.NO_METHODS : new MethodElement[cnt];
-            for (int i = 0; i < cnt; i ++) {
-                methods[i] = methodResolvers[i].resolveMethod(methodIndexes[i], this, MethodElement.builder(methodNames[i], methodDescriptors[i], i));
-            }
-        } else {
-            List<MethodElement> methodsList = new ArrayList<>(cnt + (cnt >> 1)); // 1.5x size
-            for (int i = 0; i < cnt; i ++) {
-                methodsList.add(methodResolvers[i].resolveMethod(methodIndexes[i], this, MethodElement.builder(methodNames[i], methodDescriptors[i], i)));
-            }
-            // now add methods for any maximally-specific interface methods that are not implemented by this class
-            // - but, if the method is default, let's copy it in, body and all
-            HashMap<String, HashSet<MethodDescriptor>> visited = new HashMap<>();
-            // populate the set of methods that we already have implementations for
-            for (MethodElement method : methodsList) {
-                addMethodToVisitedSet(method, visited);
-            }
-            addMethodsToVisitedSet(superType, visited);
-            // now the visited set contains all methods we do not need to implement
-            // next we find the set of methods that we're missing
-            for (int depth = 0;; depth ++) {
-                // at each depth stage, create a new to-add set
-                HashMap<String, HashMap<MethodDescriptor, List<MethodElement>>> toAdd = new HashMap<>();
-                if (findInterfaceImplementations(interfaces, visited, toAdd, depth) == 0) {
-                    break;
-                }
-                // we may have found methods to add
-                for (Map.Entry<String, HashMap<MethodDescriptor, List<MethodElement>>> entry : toAdd.entrySet()) {
-                    String name = entry.getKey();
-                    HashMap<MethodDescriptor, List<MethodElement>> subMap = entry.getValue();
-                    nextMethod: for (Map.Entry<MethodDescriptor, List<MethodElement>> entry2 : subMap.entrySet()) {
-                        MethodDescriptor descriptor = entry2.getKey();
-                        List<MethodElement> elementList = entry2.getValue();
-                        MethodElement defaultMethod = null;
-                        MethodElement oneOfTheMethods = null;
-                        for (MethodElement element : elementList) {
-                            if (oneOfTheMethods == null) {
-                                oneOfTheMethods = element;
-                            }
-                            if (! element.isAbstract()) {
-                                // found a default method
-                                if (defaultMethod == null) {
-                                    defaultMethod = element;
-                                } else {
-                                    // conflict method! Synthesize a method that throws ICCE
-                                    MethodElement.Builder builder = MethodElement.builder(name, descriptor, methodsList.size());
-                                    builder.setEnclosingType(this);
-                                    // inheritable interface methods are public
-                                    builder.setModifiers(ClassFile.ACC_PUBLIC);
-                                    builder.setInvisibleAnnotations(List.of());
-                                    builder.setVisibleAnnotations(List.of());
-                                    builder.setSignature(MethodSignature.synthesize(context, descriptor));
-                                    // synthesize parameter objects
-                                    builder.setParameters(copyParametersFrom(element));
-                                    builder.setMethodBodyFactory((index, e) -> {
-                                        LoadedTypeDefinition ltd = e.getEnclosingType().load();
-                                        BasicBlockBuilder bbb = context.newBasicBlockBuilder(e);
-                                        ReferenceType thisType = ltd.getType().getReference();
-                                        ParameterValue thisValue = bbb.parameter(thisType, "this", 0);
-                                        FunctionType type = e.getType();
-                                        int pcnt = type.getParameterCount();
-                                        List<ParameterValue> paramValues = new ArrayList<>(pcnt);
-                                        for (int i = 0; i < pcnt; i ++) {
-                                            paramValues.add(bbb.parameter(type.getParameterType(i), "p", i));
-                                        }
-                                        bbb.startMethod(paramValues);
-                                        // build the entry block
-                                        BlockLabel entryLabel = new BlockLabel();
-                                        bbb.begin(entryLabel);
-                                        ClassContext bc = context.getCompilationContext().getBootstrapClassContext();
-                                        LoadedTypeDefinition vmHelpers = bc.findDefinedType("org/qbicc/runtime/main/VMHelpers").load();
-                                        MethodElement icce = vmHelpers.resolveMethodElementExact("raiseIncompatibleClassChangeError", MethodDescriptor.synthesize(bc, BaseTypeDescriptor.V, List.of()));
-                                        BasicBlock entryBlock = bbb.callNoReturn(bbb.staticMethod(icce, icce.getDescriptor(), icce.getType()), List.of());
-                                        bbb.finish();
-                                        Schedule schedule = Schedule.forMethod(entryBlock);
-                                        return MethodBody.of(entryBlock, schedule, thisValue, paramValues);
-                                    }, 0);
-                                    methodsList.add(builder.build());
-                                    continue nextMethod;
-                                }
-                            }
-                        }
-                        assert oneOfTheMethods != null;
-                        // non-conflict method
-                        MethodElement.Builder builder = MethodElement.builder(name, descriptor, methodsList.size());
-                        builder.setEnclosingType(this);
-                        builder.setInvisibleAnnotations(List.of());
-                        builder.setVisibleAnnotations(List.of());
-                        builder.setSignature(MethodSignature.synthesize(context, descriptor));
-                        builder.setParameters(copyParametersFrom(oneOfTheMethods));
-                        if (defaultMethod == null) {
-                            // add an abstract method
-                            // inheritable interface methods are public
-                            builder.setModifiers(ClassFile.ACC_PUBLIC | ClassFile.ACC_ABSTRACT);
-                        } else {
-                            // add the default method
-                            // inheritable interface methods are public
-                            builder.setModifiers(ClassFile.ACC_PUBLIC | ClassFile.I_ACC_HIDDEN);
-                            // synthesize a tail-calling exact delegation to the default method
-                            MethodElement finalDefaultMethod = defaultMethod;
-                            builder.setMethodBodyFactory((index, e) -> {
-                                LoadedTypeDefinition ltd = e.getEnclosingType().load();
-                                BasicBlockBuilder bbb = context.newBasicBlockBuilder(e);
-                                ReferenceType thisType = ltd.getType().getReference();
-                                ParameterValue thisValue = bbb.parameter(thisType, "this", 0);
-                                FunctionType type = e.getType();
-                                int pcnt = type.getParameterCount();
-                                List<ParameterValue> paramValues = new ArrayList<>(pcnt);
-                                for (int i = 0; i < pcnt; i ++) {
-                                    paramValues.add(bbb.parameter(type.getParameterType(i), "p", i));
-                                }
-                                bbb.startMethod(paramValues);
-                                // build the entry block
-                                BlockLabel entryLabel = new BlockLabel();
-                                bbb.begin(entryLabel);
-                                // just cast the list because it's fine; todo: maybe this method should accept List<? extends Value>
-                                //noinspection unchecked,rawtypes
-                                BasicBlock entryBlock = bbb.tailCall(bbb.exactMethodOf(thisValue, finalDefaultMethod, finalDefaultMethod.getDescriptor(), finalDefaultMethod.getType()), (List<Value>) (List) paramValues);
-                                bbb.finish();
-                                Schedule schedule = Schedule.forMethod(entryBlock);
-                                return MethodBody.of(entryBlock, schedule, thisValue, paramValues);
-                            }, 0);
-                        }
-                        methodsList.add(builder.build());
-                    }
-                }
-            }
-            methods = methodsList.toArray(MethodElement[]::new);
-        }
-        cnt = getConstructorCount();
-        ConstructorElement[] ctors = cnt == 0 ? ConstructorElement.NO_CONSTRUCTORS : new ConstructorElement[cnt];
-        for (int i = 0; i < cnt; i ++) {
-            ctors[i] = constructorResolvers[i].resolveConstructor(constructorIndexes[i], this, ConstructorElement.builder(constructorDescriptors[i], i));
-        }
-        InitializerElement init = initializerResolver.resolveInitializer(initializerIndex, this, InitializerElement.builder());
-        NestedClassElement enclosingClass = enclosingClassResolver == null ? null : enclosingClassResolver.resolveEnclosingNestedClass(enclosingClassResolverIndex, this, NestedClassElement.builder(0));
-        NestedClassElement[] enclosedClasses = resolveEnclosedClasses(enclosedClassResolvers, enclosedClassResolverIndexes, 0, 0);
-
-        // Construct instanceMethods -- the ordered list of all instance methods inherited and directly implemented.
-        ArrayList<MethodElement> instanceMethods = new ArrayList<>();
-        if (superType != null && !isInterface()) {
-            // (i) all instance methods of my superclass
-            instanceMethods.addAll(List.of(superType.getInstanceMethods()));
-        }
-        for (LoadedTypeDefinition i: interfaces) {
-            outer: for (MethodElement im: i.getInstanceMethods()) {
-                for (MethodElement already : instanceMethods) {
-                    if (already.getName().equals(im.getName()) && already.getDescriptor().equals(im.getDescriptor())) {
-                        continue outer;
-                    }
-                }
-                // (ii) abstract instance methods implied by an implemented/extended interfaces
-                instanceMethods.add(im);
-            }
-        }
-        outer: for (MethodElement dm: methods) {
-            if (!dm.isStatic()) {
-                for (int i=0; i<instanceMethods.size(); i++) {
-                    if (instanceMethods.get(i).getName().equals(dm.getName()) && instanceMethods.get(i).getDescriptor().equals(dm.getDescriptor())) {
-                        // override inherited method
-                        instanceMethods.set(i, dm);
-                        continue outer;
-                    }
-                }
-                // (iii) instance method newly defined in this class/interface
-                instanceMethods.add(dm);
-            }
-        }
-        MethodElement[] instMethods = instanceMethods.toArray(new MethodElement[instanceMethods.size()]);
         synchronized (this) {
-            validated = this.loaded;
-            if (validated != null) {
-                return validated.load();
+            loaded = this.loaded;
+            if (loaded != null) {
+                return loaded.load();
             }
+            cnt = getFieldCount();
+            ArrayList<FieldElement> fields = new ArrayList<>(cnt);
+            for (int i = 0; i < cnt; i ++) {
+                fields.add(fieldResolvers[i].resolveField(fieldIndexes[i], this, FieldElement.builder(fieldNames[i], fieldDescriptors[i], i)));
+            }
+            cnt = getMethodCount();
+            MethodElement[] methods;
+            if (isInterface()) {
+                methods = cnt == 0 ? MethodElement.NO_METHODS : new MethodElement[cnt];
+                for (int i = 0; i < cnt; i ++) {
+                    methods[i] = methodResolvers[i].resolveMethod(methodIndexes[i], this, MethodElement.builder(methodNames[i], methodDescriptors[i], i));
+                }
+            } else {
+                List<MethodElement> methodsList = new ArrayList<>(cnt + (cnt >> 1)); // 1.5x size
+                for (int i = 0; i < cnt; i ++) {
+                    methodsList.add(methodResolvers[i].resolveMethod(methodIndexes[i], this, MethodElement.builder(methodNames[i], methodDescriptors[i], i)));
+                }
+                // now add methods for any maximally-specific interface methods that are not implemented by this class
+                // - but, if the method is default, let's copy it in, body and all
+                HashMap<String, HashSet<MethodDescriptor>> visited = new HashMap<>();
+                // populate the set of methods that we already have implementations for
+                for (MethodElement method : methodsList) {
+                    addMethodToVisitedSet(method, visited);
+                }
+                addMethodsToVisitedSet(superType, visited);
+                // now the visited set contains all methods we do not need to implement
+                // next we find the set of methods that we're missing
+                for (int depth = 0;; depth ++) {
+                    // at each depth stage, create a new to-add set
+                    HashMap<String, HashMap<MethodDescriptor, List<MethodElement>>> toAdd = new HashMap<>();
+                    if (findInterfaceImplementations(interfaces, visited, toAdd, depth) == 0) {
+                        break;
+                    }
+                    // we may have found methods to add
+                    for (Map.Entry<String, HashMap<MethodDescriptor, List<MethodElement>>> entry : toAdd.entrySet()) {
+                        String name = entry.getKey();
+                        HashMap<MethodDescriptor, List<MethodElement>> subMap = entry.getValue();
+                        nextMethod: for (Map.Entry<MethodDescriptor, List<MethodElement>> entry2 : subMap.entrySet()) {
+                            MethodDescriptor descriptor = entry2.getKey();
+                            List<MethodElement> elementList = entry2.getValue();
+                            MethodElement defaultMethod = null;
+                            MethodElement oneOfTheMethods = null;
+                            for (MethodElement element : elementList) {
+                                if (oneOfTheMethods == null) {
+                                    oneOfTheMethods = element;
+                                }
+                                if (! element.isAbstract()) {
+                                    // found a default method
+                                    if (defaultMethod == null) {
+                                        defaultMethod = element;
+                                    } else {
+                                        // conflict method! Synthesize a method that throws ICCE
+                                        MethodElement.Builder builder = MethodElement.builder(name, descriptor, methodsList.size());
+                                        builder.setEnclosingType(this);
+                                        // inheritable interface methods are public
+                                        builder.setModifiers(ClassFile.ACC_PUBLIC);
+                                        builder.setInvisibleAnnotations(List.of());
+                                        builder.setVisibleAnnotations(List.of());
+                                        builder.setSignature(MethodSignature.synthesize(context, descriptor));
+                                        // synthesize parameter objects
+                                        builder.setParameters(copyParametersFrom(element));
+                                        builder.setMethodBodyFactory((index, e) -> {
+                                            LoadedTypeDefinition ltd = e.getEnclosingType().load();
+                                            BasicBlockBuilder bbb = context.newBasicBlockBuilder(e);
+                                            ReferenceType thisType = ltd.getType().getReference();
+                                            ParameterValue thisValue = bbb.parameter(thisType, "this", 0);
+                                            FunctionType type = e.getType();
+                                            int pcnt = type.getParameterCount();
+                                            List<ParameterValue> paramValues = new ArrayList<>(pcnt);
+                                            for (int i = 0; i < pcnt; i ++) {
+                                                paramValues.add(bbb.parameter(type.getParameterType(i), "p", i));
+                                            }
+                                            bbb.startMethod(paramValues);
+                                            // build the entry block
+                                            BlockLabel entryLabel = new BlockLabel();
+                                            bbb.begin(entryLabel);
+                                            ClassContext bc = context.getCompilationContext().getBootstrapClassContext();
+                                            LoadedTypeDefinition vmHelpers = bc.findDefinedType("org/qbicc/runtime/main/VMHelpers").load();
+                                            MethodElement icce = vmHelpers.resolveMethodElementExact("raiseIncompatibleClassChangeError", MethodDescriptor.synthesize(bc, BaseTypeDescriptor.V, List.of()));
+                                            BasicBlock entryBlock = bbb.callNoReturn(bbb.staticMethod(icce, icce.getDescriptor(), icce.getType()), List.of());
+                                            bbb.finish();
+                                            Schedule schedule = Schedule.forMethod(entryBlock);
+                                            return MethodBody.of(entryBlock, schedule, thisValue, paramValues);
+                                        }, 0);
+                                        methodsList.add(builder.build());
+                                        continue nextMethod;
+                                    }
+                                }
+                            }
+                            assert oneOfTheMethods != null;
+                            // non-conflict method
+                            MethodElement.Builder builder = MethodElement.builder(name, descriptor, methodsList.size());
+                            builder.setEnclosingType(this);
+                            builder.setInvisibleAnnotations(List.of());
+                            builder.setVisibleAnnotations(List.of());
+                            builder.setSignature(MethodSignature.synthesize(context, descriptor));
+                            builder.setParameters(copyParametersFrom(oneOfTheMethods));
+                            if (defaultMethod == null) {
+                                // add an abstract method
+                                // inheritable interface methods are public
+                                builder.setModifiers(ClassFile.ACC_PUBLIC | ClassFile.ACC_ABSTRACT);
+                            } else {
+                                // add the default method
+                                // inheritable interface methods are public
+                                builder.setModifiers(ClassFile.ACC_PUBLIC | ClassFile.I_ACC_HIDDEN);
+                                // synthesize a tail-calling exact delegation to the default method
+                                MethodElement finalDefaultMethod = defaultMethod;
+                                builder.setMethodBodyFactory((index, e) -> {
+                                    LoadedTypeDefinition ltd = e.getEnclosingType().load();
+                                    BasicBlockBuilder bbb = context.newBasicBlockBuilder(e);
+                                    ReferenceType thisType = ltd.getType().getReference();
+                                    ParameterValue thisValue = bbb.parameter(thisType, "this", 0);
+                                    FunctionType type = e.getType();
+                                    int pcnt = type.getParameterCount();
+                                    List<ParameterValue> paramValues = new ArrayList<>(pcnt);
+                                    for (int i = 0; i < pcnt; i ++) {
+                                        paramValues.add(bbb.parameter(type.getParameterType(i), "p", i));
+                                    }
+                                    bbb.startMethod(paramValues);
+                                    // build the entry block
+                                    BlockLabel entryLabel = new BlockLabel();
+                                    bbb.begin(entryLabel);
+                                    // just cast the list because it's fine; todo: maybe this method should accept List<? extends Value>
+                                    //noinspection unchecked,rawtypes
+                                    BasicBlock entryBlock = bbb.tailCall(bbb.exactMethodOf(thisValue, finalDefaultMethod, finalDefaultMethod.getDescriptor(), finalDefaultMethod.getType()), (List<Value>) (List) paramValues);
+                                    bbb.finish();
+                                    Schedule schedule = Schedule.forMethod(entryBlock);
+                                    return MethodBody.of(entryBlock, schedule, thisValue, paramValues);
+                                }, 0);
+                            }
+                            methodsList.add(builder.build());
+                        }
+                    }
+                }
+                methods = methodsList.toArray(MethodElement[]::new);
+            }
+            cnt = getConstructorCount();
+            ConstructorElement[] ctors = cnt == 0 ? ConstructorElement.NO_CONSTRUCTORS : new ConstructorElement[cnt];
+            for (int i = 0; i < cnt; i ++) {
+                ctors[i] = constructorResolvers[i].resolveConstructor(constructorIndexes[i], this, ConstructorElement.builder(constructorDescriptors[i], i));
+            }
+            InitializerElement init = initializerResolver.resolveInitializer(initializerIndex, this, InitializerElement.builder());
+            NestedClassElement enclosingClass = enclosingClassResolver == null ? null : enclosingClassResolver.resolveEnclosingNestedClass(enclosingClassResolverIndex, this, NestedClassElement.builder(0));
+            NestedClassElement[] enclosedClasses = resolveEnclosedClasses(enclosedClassResolvers, enclosedClassResolverIndexes, 0, 0);
+
+            // Construct instanceMethods -- the ordered list of all instance methods inherited and directly implemented.
+            ArrayList<MethodElement> instanceMethods = new ArrayList<>();
+            if (superType != null && !isInterface()) {
+                // (i) all instance methods of my superclass
+                instanceMethods.addAll(List.of(superType.getInstanceMethods()));
+            }
+            for (LoadedTypeDefinition i: interfaces) {
+                outer: for (MethodElement im: i.getInstanceMethods()) {
+                    for (MethodElement already : instanceMethods) {
+                        if (already.getName().equals(im.getName()) && already.getDescriptor().equals(im.getDescriptor())) {
+                            continue outer;
+                        }
+                    }
+                    // (ii) abstract instance methods implied by an implemented/extended interfaces
+                    instanceMethods.add(im);
+                }
+            }
+            outer: for (MethodElement dm: methods) {
+                if (!dm.isStatic()) {
+                    for (int i=0; i<instanceMethods.size(); i++) {
+                        if (instanceMethods.get(i).getName().equals(dm.getName()) && instanceMethods.get(i).getDescriptor().equals(dm.getDescriptor())) {
+                            // override inherited method
+                            instanceMethods.set(i, dm);
+                            continue outer;
+                        }
+                    }
+                    // (iii) instance method newly defined in this class/interface
+                    instanceMethods.add(dm);
+                }
+            }
+            MethodElement[] instMethods = instanceMethods.toArray(new MethodElement[instanceMethods.size()]);
             try {
-                validated = new LoadedTypeDefinitionImpl(this, superType, interfaces, fields, methods, instMethods, ctors, init, enclosingClass, enclosedClasses);
+                loaded = new LoadedTypeDefinitionImpl(this, superType, interfaces, fields, methods, instMethods, ctors, init, enclosingClass, enclosedClasses);
             } catch (VerifyFailedException e) {
                 this.loaded = new VerificationFailedDefinitionImpl(this, e.getMessage(), e.getCause());
                 throw e;
             }
             // replace in the map *first*, *then* replace our local ref
             // definingLoader.replaceTypeDefinition(name, this, verified);
-            this.loaded = validated;
-            return validated.load();
+            this.loaded = loaded;
+            return loaded.load();
         }
     }
 
