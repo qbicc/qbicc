@@ -245,10 +245,6 @@ public final class CNative {
      */
     public static native <M extends object, P extends ptr<?>> P base_of(ptr<M> memberPtr, M memberTemplate);
 
-    // TODO pointer casting temporary workaround
-    public static native ptr<?> castPtr(ptr<?> obj, Class<?> ptrClass);
-
-
     /**
      * Get an object with automatic storage duration that is initialized to zero. The object type must not be
      * incomplete. The object may be stored on the stack or in one or more registers, or may not have any physical

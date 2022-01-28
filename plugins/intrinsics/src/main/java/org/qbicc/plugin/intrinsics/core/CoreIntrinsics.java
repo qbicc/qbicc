@@ -103,7 +103,6 @@ public final class CoreIntrinsics {
         registerOrgQbiccRuntimeMainIntrinsics(ctxt);
         registerJavaLangMathIntrinsics(ctxt);
         registerJavaUtilConcurrentAtomicLongIntrinsics(ctxt);
-        registerOrgQbiccRuntimePosixPthreadCastPtr(ctxt);
         registerOrgQbiccRuntimeMethodDataIntrinsics(ctxt);
         UnsafeIntrinsics.register(ctxt);
         registerJDKInternalIntrinsics(ctxt);
@@ -1260,35 +1259,6 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(strictDesc, "max", longLongLongDescriptor, max);
         intrinsics.registerIntrinsic(strictDesc, "max", floatFloatFloatDescriptor, max);
         intrinsics.registerIntrinsic(strictDesc, "max", doubleDoubleDoubleDescriptor, max);
-    }
-
-    /* Temporary workaround for casting in VMHelpers */
-    static void registerOrgQbiccRuntimePosixPthreadCastPtr(final CompilationContext ctxt) {
-        Intrinsics intrinsics = Intrinsics.get(ctxt);
-        ClassContext classContext = ctxt.getBootstrapClassContext();
-
-        ClassTypeDescriptor cnativeDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative");
-        ClassTypeDescriptor ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$ptr");
-        ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
-
-        /* intrinsic implementation */
-        StaticIntrinsic castPtr = (builder, target, arguments) -> {
-            Value castObject = arguments.get(0);
-            Value typeValue = arguments.get(1);
-            if (typeValue instanceof ClassOf) {
-                ClassOf typeClassOf = (ClassOf)typeValue;
-                Value typeInput = typeClassOf.getInput();
-                if (typeInput instanceof TypeLiteral) {
-                    ValueType type = ((TypeLiteral) typeInput).getValue();
-                    PointerType newPointerType = type.getPointer();
-                    return builder.bitCast(castObject, newPointerType);
-                }
-            }
-            ctxt.error(builder.getLocation(), "Invalid pointer type.");
-            return castObject;
-        };
-
-        intrinsics.registerIntrinsic(cnativeDesc, "castPtr", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(ptrDesc, classDesc)), castPtr);
     }
 
     private static void registerJavaLangRefIntrinsics(CompilationContext ctxt) {
