@@ -15,6 +15,15 @@ public interface Value extends Node {
 
     Value[] NO_VALUES = new Value[0];
 
+    /**
+     * Get the value that this value refers to, after stripping away any constraint nodes that are decorating it.
+     *
+     * @return the unconstrained value (not {@code null})
+     */
+    default Value unconstrained() {
+        return this;
+    }
+
     default boolean isDefEq(Value other) {
         return equals(other) && isDefNotNaN() && other.isDefNotNaN();
     }

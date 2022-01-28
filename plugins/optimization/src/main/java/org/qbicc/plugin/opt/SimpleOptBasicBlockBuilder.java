@@ -170,14 +170,17 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return complement(v2);
         }
 
-        if ((v1 instanceof Extend || v1 instanceof BitCast && v1.getType() instanceof NullableType) && isZero(v2)) {
+        Value u1 = v1.unconstrained();
+        Value u2 = v2.unconstrained();
+
+        if ((u1 instanceof Extend || u1 instanceof BitCast && v1.getType() instanceof NullableType) && isZero(v2)) {
             Value input = ((WordCastValue) v1).getInput();
             // icmp eq iX (*ext/bitcast iY foo to iX), iX 0
             //   ↓
             // icmp eq iY foo, iY 0
             return isEq(input, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType()));
         }
-        if ((v2 instanceof Extend || v2 instanceof BitCast && v2.getType() instanceof NullableType) && isZero(v1)) {
+        if ((u2 instanceof Extend || u2 instanceof BitCast && v2.getType() instanceof NullableType) && isZero(v1)) {
             Value input = ((WordCastValue) v2).getInput();
             // icmp eq iX 0, iX (*ext/bitcast iY foo to iX)
             //   ↓

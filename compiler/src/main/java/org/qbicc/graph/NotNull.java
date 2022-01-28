@@ -20,6 +20,10 @@ public final class NotNull extends AbstractUnaryValue {
         return visitor.visit(param, this);
     }
 
+    public Value unconstrained() {
+        return getInput().unconstrained();
+    }
+
     @Override
     String getNodeName() {
         return "NotNull";
