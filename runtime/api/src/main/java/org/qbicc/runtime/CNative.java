@@ -667,13 +667,19 @@ public final class CNative {
 
         public native final int intValue();
 
+        public native final long uintValue();
+
         public final float floatValue() {
             return Float.intBitsToFloat(intValue());
         }
 
         public native final short shortValue();
 
+        public native final int ushortValue();
+
         public native final byte byteValue();
+
+        public native final int ubyteValue();
 
         public native final char charValue();
 

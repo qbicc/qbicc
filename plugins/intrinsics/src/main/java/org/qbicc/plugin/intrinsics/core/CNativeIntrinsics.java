@@ -410,6 +410,19 @@ final class CNativeIntrinsics {
         intrinsics.registerIntrinsic(wordDesc, "longValue", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of()), xxxValue);
         intrinsics.registerIntrinsic(wordDesc, "shortValue", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.S, List.of()), xxxValue);
 
+        intrinsics.registerIntrinsic(wordDesc, "ubyteValue", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of()), (builder, instance, target, arguments) -> {
+            WordType to = (WordType) target.getExecutable().getType().getReturnType();
+            return builder.extend(smartConvert(builder, instance, ctxt.getTypeSystem().getUnsignedInteger8Type(), true), to);
+        });
+        intrinsics.registerIntrinsic(wordDesc, "ushortValue", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of()), (builder, instance, target, arguments) -> {
+            WordType to = (WordType) target.getExecutable().getType().getReturnType();
+            return builder.extend(smartConvert(builder, instance, ctxt.getTypeSystem().getUnsignedInteger16Type(), true), to);
+        });
+        intrinsics.registerIntrinsic(wordDesc, "uintValue", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of()), (builder, instance, target, arguments) -> {
+            WordType to = (WordType) target.getExecutable().getType().getReturnType();
+            return builder.extend(smartConvert(builder, instance, ctxt.getTypeSystem().getUnsignedInteger32Type(), true), to);
+        });
+
         InstanceIntrinsic isZero = (builder, instance, target, arguments) -> builder.isEq(instance, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType()));
 
         intrinsics.registerIntrinsic(wordDesc, "isZero", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of()), isZero);
