@@ -45,9 +45,9 @@ public final class FunctionElement extends InvokableElement implements NamedElem
 
         void setType(FunctionType type);
 
-        void setVisibleAnnotations(List<Annotation> annotations);
+        void addVisibleAnnotations(List<Annotation> annotations);
 
-        void setInvisibleAnnotations(List<Annotation> annotations);
+        void addInvisibleAnnotations(List<Annotation> annotations);
 
         void setReturnVisibleTypeAnnotations(TypeAnnotationList returnVisibleTypeAnnotations);
 
@@ -68,13 +68,13 @@ public final class FunctionElement extends InvokableElement implements NamedElem
             }
 
             @Override
-            default void setVisibleAnnotations(List<Annotation> annotations) {
-                getDelegate().setVisibleAnnotations(annotations);
+            default void addVisibleAnnotations(List<Annotation> annotations) {
+                getDelegate().addVisibleAnnotations(annotations);
             }
 
             @Override
-            default void setInvisibleAnnotations(List<Annotation> annotations) {
-                 getDelegate().setInvisibleAnnotations(annotations);
+            default void addInvisibleAnnotations(List<Annotation> annotations) {
+                 getDelegate().addInvisibleAnnotations(annotations);
             }
 
             @Override
@@ -113,12 +113,12 @@ public final class FunctionElement extends InvokableElement implements NamedElem
         }
 
         @Override
-        public void setVisibleAnnotations(List<Annotation> annotations) {
+        public void addVisibleAnnotations(List<Annotation> annotations) {
             throw new UnsupportedOperationException("Functions do not support annotations");
         }
 
         @Override
-        public void setInvisibleAnnotations(List<Annotation> annotations) {
+        public void addInvisibleAnnotations(List<Annotation> annotations) {
             throw new UnsupportedOperationException("Functions do not support annotations");
         }
 

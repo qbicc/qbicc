@@ -7,6 +7,8 @@ import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.InitializerResolver;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
+import java.util.List;
+
 /**
  *
  */
@@ -15,8 +17,8 @@ final class FieldPatchInfo extends MemberPatchInfo implements Locatable {
     private final TypeDescriptor descriptor;
     private final String name;
 
-    FieldPatchInfo(String internalName, int index, int modifiers, FieldResolver fieldResolver, TypeDescriptor descriptor, String name, Annotation annotation) {
-        super(index, modifiers, internalName, annotation);
+    FieldPatchInfo(String internalName, int index, int modifiers, FieldResolver fieldResolver, TypeDescriptor descriptor, String name, Annotation annotation, List<Annotation> addedAnnotations) {
+        super(index, modifiers, internalName, annotation, addedAnnotations);
         this.fieldResolver = fieldResolver;
         this.descriptor = descriptor;
         this.name = name;

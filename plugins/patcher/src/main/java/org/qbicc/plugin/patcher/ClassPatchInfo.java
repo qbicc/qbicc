@@ -16,13 +16,16 @@ final class ClassPatchInfo {
     static final ClassPatchInfo EMPTY = new ClassPatchInfo(0);
 
     private boolean committed;
+    private Map<String, FieldPatchInfo> annotatedFields;
     private Map<String, FieldPatchInfo> replacedFields;
     private List<FieldPatchInfo> injectedFields;
     private Map<String, FieldDeleteInfo> deletedFields;
     private Map<String, RuntimeInitializerPatchInfo> runtimeInitFields;
+    private Map<MethodDescriptor, ConstructorPatchInfo> annotatedConstructors;
     private Map<MethodDescriptor, ConstructorPatchInfo> replacedConstructors;
     private List<ConstructorPatchInfo> injectedConstructors;
     private Map<MethodDescriptor, ConstructorDeleteInfo> deletedConstructors;
+    private Map<String, Map<MethodDescriptor, MethodPatchInfo>> annotatedMethods;
     private Map<String, Map<MethodDescriptor, MethodPatchInfo>> replacedMethods;
     private List<MethodPatchInfo> injectedMethods;
     private Map<String, Map<MethodDescriptor, MethodDeleteInfo>> deletedMethods;
@@ -30,13 +33,16 @@ final class ClassPatchInfo {
     private boolean deletedInitializer;
 
     ClassPatchInfo() {
+        annotatedFields = Map.of();
         replacedFields = Map.of();
         injectedFields = List.of();
         deletedFields = Map.of();
         runtimeInitFields = Map.of();
+        annotatedConstructors = Map.of();
         replacedConstructors = Map.of();
         injectedConstructors = List.of();
         deletedConstructors = Map.of();
+        annotatedMethods = Map.of();
         replacedMethods = Map.of();
         injectedMethods = List.of();
         deletedMethods = Map.of();
@@ -124,6 +130,21 @@ final class ClassPatchInfo {
         return rtInitPatchInfo != null && rtInitPatchInfo.getDescriptor().equals(descriptor) ? rtInitPatchInfo : null;
     }
 
+    FieldPatchInfo getAnnotatedFieldInfo(final String fieldName, TypeDescriptor descriptor) {
+        FieldPatchInfo fieldPatchInfo = annotatedFields.get(fieldName);
+        return fieldPatchInfo != null && fieldPatchInfo.getDescriptor().equals(descriptor) ? fieldPatchInfo : null;
+    }
+
+    ConstructorPatchInfo getAnnotatedConstructorInfo(final MethodDescriptor descriptor) {
+        assert Thread.holdsLock(this);
+        return annotatedConstructors.get(descriptor);
+    }
+
+    MethodPatchInfo getAnnotatedMethodInfo(final String name, final MethodDescriptor descriptor) {
+        assert Thread.holdsLock(this);
+        return annotatedMethods.getOrDefault(name, Map.of()).get(descriptor);
+    }
+
     // Registration methods
 
     void addField(final FieldPatchInfo fieldPatchInfo) {
@@ -143,6 +164,13 @@ final class ClassPatchInfo {
         checkCommitted();
         final String name = fieldPatchInfo.getName();
         replacedFields = mapWith(replacedFields, name, fieldPatchInfo);
+    }
+
+    void annotateField(final FieldPatchInfo fieldPatchInfo) {
+        assert  Thread.holdsLock(this);
+        checkCommitted();
+        final String name = fieldPatchInfo.getName();
+        annotatedFields = mapWith(annotatedFields, name, fieldPatchInfo);
     }
 
     void runtimeInitField(final RuntimeInitializerPatchInfo runtimeInitPatchInfo) {
@@ -171,6 +199,13 @@ final class ClassPatchInfo {
         replacedConstructors = mapWith(replacedConstructors, descriptor, constructorPatchInfo);
     }
 
+    void annotateConstructor(final ConstructorPatchInfo constructorPatchInfo) {
+        assert Thread.holdsLock(this);
+        checkCommitted();
+        final MethodDescriptor descriptor = constructorPatchInfo.getDescriptor();
+        annotatedConstructors = mapWith(annotatedConstructors, descriptor, constructorPatchInfo);
+    }
+
     void addMethod(final MethodPatchInfo methodPatchInfo) {
         assert Thread.holdsLock(this);
         checkCommitted();
@@ -189,6 +224,14 @@ final class ClassPatchInfo {
         final String name = methodPatchInfo.getName();
         final MethodDescriptor descriptor = methodPatchInfo.getDescriptor();
         replacedMethods = mapWith(replacedMethods, name, mapWith(replacedMethods.getOrDefault(name, Map.of()), descriptor, methodPatchInfo));
+    }
+
+    void annotateMethod(final MethodPatchInfo methodPatchInfo) {
+        assert Thread.holdsLock(this);
+        checkCommitted();
+        final String name = methodPatchInfo.getName();
+        final MethodDescriptor descriptor = methodPatchInfo.getDescriptor();
+        annotatedMethods = mapWith(annotatedMethods, name, mapWith(annotatedMethods.getOrDefault(name, Map.of()), descriptor, methodPatchInfo));
     }
 
     void deleteInitializer() {

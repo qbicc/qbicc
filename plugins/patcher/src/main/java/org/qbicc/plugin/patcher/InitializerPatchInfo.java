@@ -14,7 +14,7 @@ final class InitializerPatchInfo extends ExecutableMemberPatchInfo implements Lo
     private final InitializerResolver initializerResolver;
 
     InitializerPatchInfo(final int index, InitializerResolver initializerResolver, final String internalName, final Annotation annotation) {
-        super(index, ClassFile.ACC_STATIC, internalName, annotation);
+        super(index, ClassFile.ACC_STATIC, internalName, annotation, null);
         this.initializerResolver = initializerResolver;
     }
 
