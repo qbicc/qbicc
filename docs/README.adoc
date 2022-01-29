@@ -6,16 +6,14 @@ Our https://qbicc.zulipchat.com[`Zulip`] chat is a great place to ask questions 
 
 == Building
 
-To build the project, execute `mvn install` in the root.
-
-The first time you build qbicc, the tests will fail as the class library isn't built yet.  Use
-`mvn install -DskipTests` the first time to build so that the class library can be built.
+To quickly build the project, execute `mvn install -DskipTests` in the root.
+This will build qbicc using the latest pre-built release of the `qbicc-class-library`.
+Adding `-DskipTests` avoids running the integration tests, which take about 15 minutes.
 
 == Class Library
 
-QBICC cannot run without https://github.com/qbicc/qbicc-class-library[`qbicc-class-library`].
-
-After you have built qbicc, fetch and install the class libraries as follows:
+Qbicc uses a customized version of the OpenJDK libraries: https://github.com/qbicc/qbicc-class-library[`qbicc-class-library`]. The class libraries are released as a maven artifact, but if you are developing qbicc
+you will probably want to fetch and install the class libraries as follows:
 
 [source,shell]
 -----
@@ -23,12 +21,6 @@ git clone --recurse-submodules git@github.com:qbicc/qbicc-class-library.git
 cd qbicc-class-library
 mvn install
 -----
-
-== Rebuild qbicc
-
-After building the class library, rebuild qbicc with the tests enabled using `mvn clean install` to
-get qbicc is ready for further development and use.
-
 
 == Running
 
@@ -40,6 +32,18 @@ jbang --quiet org.qbicc:qbicc-main:0.8.0-SNAPSHOT --boot-path-append-file /path/
 -----
 
 For a step-by-step example, see `examples/helloworld/hello/world/Main.java`
+
+
+== Running with a locally build Class Library
+
+After building the class library, you can get qbicc to use it simply by adding the
+command line argument `--rt-version=17.alpha.0.NNN-SNAPSHOT` (where NNN matches your
+local class lib version) to your qbicc invocation. For example,
+
+[source,shell]
+-----
+jbang --quiet org.qbicc:qbicc-main:0.8.0-SNAPSHOT --boot-path-append-file /path/to/main.jar --output-path /tmp/output--rt-version=17.alpha.0.NNN-SNAPSHOT hello/world/Main
+-----
 
 == JBang cache
 
