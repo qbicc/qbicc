@@ -13,7 +13,11 @@ Adding `-DskipTests` avoids running the integration tests, which take about 15 m
 == Class Library
 
 Qbicc uses a customized version of the OpenJDK libraries: https://github.com/qbicc/qbicc-class-library[`qbicc-class-library`]. The class libraries are released as a maven artifact, but if you are developing qbicc
-you will probably want to fetch and install the class libraries as follows:
+you will eventually want to build your own local version.
+
+Note: *You must clone the qbicc-class-library repository on a case-sensitive file system.*
+If you are on macOS, please follow the
+https://github.com/qbicc/qbicc-class-library#readme[`instructions for creating a case-sensitive file system on macOS`] before executing the commands below.
 
 [source,shell]
 -----
@@ -42,7 +46,7 @@ local class lib version) to your qbicc invocation. For example,
 
 [source,shell]
 -----
-jbang --quiet org.qbicc:qbicc-main:0.8.0-SNAPSHOT --boot-path-append-file /path/to/main.jar --output-path /tmp/output--rt-version=17.alpha.0.NNN-SNAPSHOT hello/world/Main
+jbang --quiet org.qbicc:qbicc-main:0.8.0-SNAPSHOT --boot-path-append-file /path/to/main.jar --output-path /tmp/output --rt-version=17.alpha.0.NNN-SNAPSHOT hello/world/Main
 -----
 
 == JBang cache
