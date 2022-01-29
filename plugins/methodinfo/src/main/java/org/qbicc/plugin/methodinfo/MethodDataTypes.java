@@ -43,13 +43,13 @@ public class MethodDataTypes {
             .addNextMember("fileName", jlsRef)
             .addNextMember("methodName", jlsRef)
             .addNextMember("methodDesc", jlsRef)
-            .addNextMember("typeId", ts.getUnsignedInteger32Type())
+            .addNextMember("typeId", ts.getTypeIdLiteralType())
             .addNextMember("modifiers", ts.getUnsignedInteger32Type())
             .build();
 
         sourceCodeInfoType = CompoundType.builder(ts)
             .setTag(CompoundType.Tag.STRUCT)
-            .setName("qbicc_souce_code_info")
+            .setName("qbicc_source_code_info")
             .setOverallAlignment(uint32Type.getAlign())
             .addNextMember("methodInfoIndex", uint32Type)
             .addNextMember("lineNumber", uint32Type)
