@@ -387,4 +387,18 @@ public interface Vm {
      * @return the memory (not {@code null})
      */
     Memory getGlobal(GlobalVariableElement variableElement);
+
+    /**
+     * Get the application class loader, if it can be found.
+     *
+     * @return the application class loader or {@code null} if it cannot be found
+     */
+    VmClassLoader getAppClassLoader();
+
+    /**
+     * Get the platform class loader, if it can be found.
+     *
+     * @return the platform class loader or {@code null} if it cannot be found
+     */
+    VmClassLoader getPlatformClassLoader();
 }

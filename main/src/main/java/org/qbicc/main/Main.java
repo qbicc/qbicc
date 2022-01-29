@@ -16,8 +16,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.ServiceConfigurationError;
@@ -38,11 +40,13 @@ import org.eclipse.aether.artifact.DefaultArtifact;
 import org.jboss.logmanager.Level;
 import org.jboss.logmanager.LogManager;
 import org.jboss.logmanager.Logger;
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Diagnostic;
 import org.qbicc.context.DiagnosticContext;
 import org.qbicc.driver.BaseDiagnosticContext;
 import org.qbicc.driver.BuilderStage;
+import org.qbicc.driver.ClassPathElement;
 import org.qbicc.driver.ClassPathItem;
 import org.qbicc.driver.Driver;
 import org.qbicc.driver.ElementBodyCopier;
@@ -59,6 +63,7 @@ import org.qbicc.plugin.llvm.LLVMConfiguration;
 import org.qbicc.plugin.llvm.ReferenceStrategy;
 import org.qbicc.plugin.reachability.ReachabilityFactsSetup;
 import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.impl.VmImpl;
 import org.qbicc.machine.arch.Platform;
@@ -157,6 +162,7 @@ import org.qbicc.plugin.serialization.ClassObjectSerializer;
 import org.qbicc.plugin.serialization.MethodDataStringsSerializer;
 import org.qbicc.plugin.serialization.InitialHeapLiteralSerializingVisitor;
 import org.qbicc.plugin.serialization.StringInternTableEmitter;
+import org.qbicc.plugin.source.SourceEmittingElementHandler;
 import org.qbicc.plugin.threadlocal.ThreadLocalBasicBlockBuilder;
 import org.qbicc.plugin.threadlocal.ThreadLocalTypeBuilder;
 import org.qbicc.plugin.trycatch.ExceptionOnThreadStrategy;
@@ -186,6 +192,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final Runtime.Version classLibVersion;
     private final Path outputPath;
     private final String outputName;
+    private final Path sourceOutputPath;
     private final Consumer<Iterable<Diagnostic>> diagnosticsHandler;
     private final String mainClass;
     private final String gc;
@@ -209,6 +216,7 @@ public class Main implements Callable<DiagnosticContext> {
     Main(Builder builder) {
         outputPath = builder.outputPath;
         outputName = builder.outputName;
+        sourceOutputPath = builder.sourceOutputPath;
         diagnosticsHandler = builder.diagnosticsHandler;
         // todo: this becomes optional
         mainClass = Assert.checkNotEmptyParam("builder.mainClass", builder.mainClass);
@@ -301,18 +309,22 @@ public class Main implements Callable<DiagnosticContext> {
         int errors = initialContext.errors();
         if (errors == 0) {
             builder.setOutputDirectory(outputPath);
+            List<ClassPathItem> bootItems = new ArrayList<>();
+            List<ClassPathItem> appItems = new ArrayList<>();
             // process the class paths
             try {
-                classPathResolver.resolveClassPath(initialContext, builder::addBootClassPathItem, bootPaths, classLibVersion);
+                classPathResolver.resolveClassPath(initialContext, bootItems::add, bootPaths, classLibVersion);
             } catch (IOException e) {
                 // todo: close class path items?
                 return;
             }
             try {
-                classPathResolver.resolveClassPath(initialContext, builder::addAppClassPathItem, appPaths, classLibVersion);
+                classPathResolver.resolveClassPath(initialContext, appItems::add, appPaths, classLibVersion);
             } catch (IOException e) {
                 return;
             }
+            bootItems.forEach(builder::addBootClassPathItem);
+            appItems.forEach(builder::addAppClassPathItem);
             // first, probe the target platform
             Platform target = platform;
             builder.setTargetPlatform(target);
@@ -565,6 +577,11 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addPreHook(Phase.LOWER, new ElementReachableAdapter(new FunctionLoweringElementHandler()));
                                 builder.addPreHook(Phase.LOWER, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.LOWER, graphGenConfig))));
+                                if (sourceOutputPath != null) {
+                                    Map<ClassContext, List<ClassPathElement>> sourcePaths = new HashMap<>();
+                                    builder.addPreHook(Phase.LOWER, ctxt -> createSourcePaths(ctxt, bootItems, appItems, sourcePaths));
+                                    builder.addPreHook(Phase.LOWER, new ElementReachableAdapter(new SourceEmittingElementHandler(sourceOutputPath, sourcePaths)));
+                                }
                                 if (optGotos) {
                                     builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
                                 }
@@ -642,6 +659,37 @@ public class Main implements Callable<DiagnosticContext> {
             }
         }
         return;
+    }
+
+    private void createSourcePaths(final CompilationContext ctxt, List<ClassPathItem> bootItems, List<ClassPathItem> appItems, final Map<ClassContext, List<ClassPathElement>> sourcePaths) {
+        // boot context
+        ClassContext bootCtxt = ctxt.getBootstrapClassContext();
+        // platform context
+        VmClassLoader platCl = ctxt.getVm().getPlatformClassLoader();
+        ClassContext platCtxt = platCl == null ? null : platCl.getClassContext();
+        // app context
+        VmClassLoader appCl = ctxt.getVm().getAppClassLoader();
+        ClassContext appCtxt = appCl == null ? null : appCl.getClassContext();
+        // the final map...
+        List<ClassPathElement> sourceElements = getSourceEntries(bootItems);
+        // todo: add class loader distinguishing name to both source file name and output directory.
+        // for now, use the same list for both the boot and platform contexts.
+        sourcePaths.put(bootCtxt, sourceElements);
+        if (platCtxt != null) {
+            sourcePaths.put(platCtxt, sourceElements);
+        }
+        // use the app one for the app context.
+        if (appCtxt != null) {
+            sourcePaths.put(appCtxt, getSourceEntries(appItems));
+        }
+    }
+
+    private List<ClassPathElement> getSourceEntries(final List<ClassPathItem> items) {
+        List<ClassPathElement> output = new ArrayList<>(64);
+        for (ClassPathItem item : items) {
+            output.addAll(item.sourceRoots());
+        }
+        return output;
     }
 
     private ClassPathEntry getCoreComponent(final String artifactId) {
@@ -802,6 +850,9 @@ public class Main implements Callable<DiagnosticContext> {
             .setPlatform(platform)
             .addLibrarySearchPaths(splitPathString(System.getenv("LIBRARY_PATH")))
             .addLibrarySearchPaths(optionsProcessor.libSearchPaths);
+        if (optionsProcessor.sourceOutputPath != null) {
+            mainBuilder.setSourceOutputPath(optionsProcessor.sourceOutputPath);
+        }
 
         Main main = mainBuilder.build();
         DiagnosticContext context = main.call();
@@ -898,6 +949,8 @@ public class Main implements Callable<DiagnosticContext> {
         private String outputName;
         @CommandLine.Option(names = "--no-compile-output", negatable = true, defaultValue = "true", description = "Enable/disable compilation of output files")
         boolean compileOutput;
+        @CommandLine.Option(names = "--source-output-path", required = false, description = "Specify directory where sources for debugging are placed")
+        private Path sourceOutputPath;
         @CommandLine.Option(names = "--debug")
         private boolean debug;
         @CommandLine.Option(names = "--debug-vtables")
@@ -1064,6 +1117,7 @@ public class Main implements Callable<DiagnosticContext> {
         private String classLibVersion = MainProperties.CLASSLIB_DEFAULT_VERSION;
         private Path outputPath;
         private String outputName = "a.out";
+        private Path sourceOutputPath;
         private Consumer<Iterable<Diagnostic>> diagnosticsHandler = diagnostics -> {};
         private Platform platform = Platform.HOST_PLATFORM;
         private String mainClass;
@@ -1148,6 +1202,12 @@ public class Main implements Callable<DiagnosticContext> {
         public Builder setOutputName(String outputName) {
             Assert.checkNotNullParam("outputName", outputName);
             this.outputName = outputName;
+            return this;
+        }
+
+        public Builder setSourceOutputPath(Path path) {
+            Assert.checkNotNullParam("path", path);
+            this.sourceOutputPath = path;
             return this;
         }
 
