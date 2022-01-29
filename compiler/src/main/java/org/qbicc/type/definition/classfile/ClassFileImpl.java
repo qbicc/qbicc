@@ -828,10 +828,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         for (int i = 0; i < cnt; i ++) {
             if (fieldAttributeNameEquals(index, i, "RuntimeVisibleAnnotations")) {
                 ByteBuffer data = getFieldRawAttributeContent(index, i);
-                builder.setVisibleAnnotations(Annotation.parseList(this, ctxt, data));
+                builder.addVisibleAnnotations(Annotation.parseList(this, ctxt, data));
             } else if (fieldAttributeNameEquals(index, i, "RuntimeInvisibleAnnotations")) {
                 ByteBuffer data = getFieldRawAttributeContent(index, i);
-                builder.setInvisibleAnnotations(Annotation.parseList(this, ctxt, data));
+                builder.addInvisibleAnnotations(Annotation.parseList(this, ctxt, data));
             } else if (fieldAttributeNameEquals(index, i, "Signature")) {
                 int sigIdx = getFieldRawAttributeShort(index, i, 0);
                 signature = TypeSignature.parse(ctxt, getUtf8ConstantAsBuffer(sigIdx));
@@ -1044,7 +1044,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 for (int j = 0; j < annCnt; j ++) {
                     annotations[j] = Annotation.parse(this, ctxt, visibleAnn);
                 }
-                paramBuilder.setVisibleAnnotations(List.of(annotations));
+                paramBuilder.addVisibleAnnotations(List.of(annotations));
             }
             if (i >= vtaOffs && i < vtaOffs + vtaCnt) {
                 paramBuilder.setVisibleTypeAnnotations(TypeAnnotationList.parse(this, ctxt, visibleTypeAnn));
@@ -1055,7 +1055,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 for (int j = 0; j < annCnt; j ++) {
                     annotations[j] = Annotation.parse(this, ctxt, invisibleAnn);
                 }
-                paramBuilder.setInvisibleAnnotations(List.of(annotations));
+                paramBuilder.addInvisibleAnnotations(List.of(annotations));
             }
             if (i >= itaOffs && i < itaOffs + itaCnt) {
                 paramBuilder.setInvisibleTypeAnnotations(TypeAnnotationList.parse(this, ctxt, invisibleTypeAnn));
@@ -1091,10 +1091,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                         builder.addModifiers(I_ACC_CALLER_SENSITIVE);
                     }
                 }
-                builder.setVisibleAnnotations(annotations);
+                builder.addVisibleAnnotations(annotations);
             } else if (methodAttributeNameEquals(index, i, "RuntimeInvisibleAnnotations")) {
                 ByteBuffer data = getMethodRawAttributeContent(index, i);
-                builder.setInvisibleAnnotations(Annotation.parseList(this, ctxt, data));
+                builder.addInvisibleAnnotations(Annotation.parseList(this, ctxt, data));
             } else if (methodAttributeNameEquals(index, i, "RuntimeVisibleTypeAnnotations")) {
                 TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getMethodRawAttributeContent(index, i));
                 builder.setReturnVisibleTypeAnnotations(list);

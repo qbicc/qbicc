@@ -17,7 +17,7 @@ final class RuntimeInitializerPatchInfo extends MemberPatchInfo implements Locat
     private final String name;
 
     RuntimeInitializerPatchInfo(String internalName, int index, InitializerResolver initializerResolver, int initializerResolverIndex, TypeDescriptor descriptor, String name, Annotation annotation) {
-        super(index, 0, internalName, annotation);
+        super(index, 0, internalName, annotation, null);
         this.initializerResolver = initializerResolver;
         this.initializerResolverIndex = initializerResolverIndex;
         this.descriptor = descriptor;

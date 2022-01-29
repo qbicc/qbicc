@@ -1,5 +1,6 @@
 package org.qbicc.type.definition.element;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.qbicc.type.annotation.Annotation;
@@ -34,9 +35,9 @@ public abstract class AnnotatedElement extends BasicElement {
     }
 
     public interface Builder extends BasicElement.Builder {
-        void setVisibleAnnotations(List<Annotation> annotations);
+        void addVisibleAnnotations(List<Annotation> annotations);
 
-        void setInvisibleAnnotations(List<Annotation> annotations);
+        void addInvisibleAnnotations(List<Annotation> annotations);
 
         AnnotatedElement build();
 
@@ -45,13 +46,13 @@ public abstract class AnnotatedElement extends BasicElement {
             Builder getDelegate();
 
             @Override
-            default void setVisibleAnnotations(List<Annotation> annotations) {
-                getDelegate().setVisibleAnnotations(annotations);
+            default void addVisibleAnnotations(List<Annotation> annotations) {
+                getDelegate().addVisibleAnnotations(annotations);
             }
 
             @Override
-            default void setInvisibleAnnotations(List<Annotation> annotations) {
-                getDelegate().setInvisibleAnnotations(annotations);
+            default void addInvisibleAnnotations(List<Annotation> annotations) {
+                getDelegate().addInvisibleAnnotations(annotations);
             }
 
             @Override
@@ -75,12 +76,28 @@ public abstract class AnnotatedElement extends BasicElement {
             invisibleAnnotations = original.invisibleAnnotations;
         }
 
-        public void setVisibleAnnotations(List<Annotation> annotations) {
-            visibleAnnotations = Assert.checkNotNullParam("annotations", annotations);
+        public void addVisibleAnnotations(List<Annotation> annotations) {
+            Assert.checkNotNullParam("annotations", annotations);
+            if (visibleAnnotations == null) {
+                visibleAnnotations = annotations;
+            } else if (!annotations.isEmpty()) {
+                ArrayList<Annotation> tmp = new ArrayList<>();
+                tmp.addAll(visibleAnnotations);
+                tmp.addAll(annotations);
+                visibleAnnotations = List.copyOf(tmp);
+            }
         }
 
-        public void setInvisibleAnnotations(List<Annotation> annotations) {
-            invisibleAnnotations = Assert.checkNotNullParam("annotations", annotations);
+        public void addInvisibleAnnotations(List<Annotation> annotations) {
+            Assert.checkNotNullParam("annotations", annotations);
+            if (invisibleAnnotations == null) {
+                invisibleAnnotations = annotations;
+            } else if (!annotations.isEmpty()) {
+                ArrayList<Annotation> tmp = new ArrayList<>();
+                tmp.addAll(invisibleAnnotations);
+                tmp.addAll(annotations);
+                invisibleAnnotations = List.copyOf(tmp);
+            }
         }
 
         public abstract AnnotatedElement build();

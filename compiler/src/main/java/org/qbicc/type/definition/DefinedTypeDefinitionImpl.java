@@ -289,8 +289,8 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                         builder.setEnclosingType(this);
                                         // inheritable interface methods are public
                                         builder.setModifiers(ClassFile.ACC_PUBLIC);
-                                        builder.setInvisibleAnnotations(List.of());
-                                        builder.setVisibleAnnotations(List.of());
+                                        builder.addInvisibleAnnotations(List.of());
+                                        builder.addVisibleAnnotations(List.of());
                                         builder.setSignature(MethodSignature.synthesize(context, descriptor));
                                         // synthesize parameter objects
                                         builder.setParameters(copyParametersFrom(element));
@@ -326,8 +326,8 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                             // non-conflict method
                             MethodElement.Builder builder = MethodElement.builder(name, descriptor, methodsList.size());
                             builder.setEnclosingType(this);
-                            builder.setInvisibleAnnotations(List.of());
-                            builder.setVisibleAnnotations(List.of());
+                            builder.addInvisibleAnnotations(List.of());
+                            builder.addVisibleAnnotations(List.of());
                             builder.setSignature(MethodSignature.synthesize(context, descriptor));
                             builder.setParameters(copyParametersFrom(oneOfTheMethods));
                             if (defaultMethod == null) {

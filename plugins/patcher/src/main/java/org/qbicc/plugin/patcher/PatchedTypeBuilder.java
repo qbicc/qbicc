@@ -1,7 +1,9 @@
 package org.qbicc.plugin.patcher;
 
 import org.qbicc.context.ClassContext;
+import org.qbicc.graph.And;
 import org.qbicc.plugin.core.ConditionEvaluation;
+import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.definition.ConstructorResolver;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
@@ -13,6 +15,8 @@ import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
+
+import java.util.List;
 
 /**
  *
@@ -78,6 +82,7 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
         if (classPatchInfo != null) {
             ConditionEvaluation ce = ConditionEvaluation.get(classContext.getCompilationContext());
             FieldPatchInfo patchInfo;
+            FieldPatchInfo annotateInfo;
             RuntimeInitializerPatchInfo initInfo;
             synchronized (classPatchInfo) {
                 FieldDeleteInfo delInfo = classPatchInfo.getDeletedFieldInfo(name, descriptor);
@@ -86,11 +91,15 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
                     return;
                 }
                 patchInfo = classPatchInfo.getReplacementFieldInfo(name, descriptor);
+                annotateInfo = classPatchInfo.getAnnotatedFieldInfo(name, descriptor);
                 initInfo = classPatchInfo.getRuntimeInitFieldInfo(name, descriptor);
             }
             if (patchInfo != null && ce.evaluateConditions(classContext, patchInfo, patchInfo.getAnnotation())) {
                 resolver = new PatcherFieldResolver(patchInfo);
                 index = patchInfo.getIndex();
+            }
+            if (annotateInfo != null && ce.evaluateConditions(classContext, annotateInfo, annotateInfo.getAnnotation())) {
+                resolver = new AnnotationAddingResolver(annotateInfo.getAddedAnnotations(), resolver);
             }
             if (initInfo != null && ce.evaluateConditions(classContext, initInfo, initInfo.getAnnotation())) {
                 resolver = new PatcherFieldRuntimeInitResolver(initInfo, resolver);
@@ -107,6 +116,7 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
         if (classPatchInfo != null) {
             ConditionEvaluation ce = ConditionEvaluation.get(classContext.getCompilationContext());
             ConstructorPatchInfo constructorInfo;
+            ConstructorPatchInfo annotateInfo;
             synchronized (classPatchInfo) {
                 ConstructorDeleteInfo delInfo = classPatchInfo.getDeletedConstructorInfo(descriptor);
                 if (delInfo != null && ce.evaluateConditions(classContext, delInfo, delInfo.getAnnotation())) {
@@ -114,14 +124,16 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
                     return;
                 }
                 constructorInfo = classPatchInfo.getReplacementConstructorInfo(descriptor);
+                annotateInfo = classPatchInfo.getAnnotatedConstructorInfo(descriptor);
             }
-            if (constructorInfo == null || !ce.evaluateConditions(classContext, constructorInfo, constructorInfo.getAnnotation())) {
-                getDelegate().addConstructor(resolver, index, descriptor);
-            } else if (constructorInfo.getAdditionalModifiers() == 0) {
-                getDelegate().addConstructor(constructorInfo.getConstructorResolver(), constructorInfo.getIndex(), descriptor);
-            } else {
-                getDelegate().addConstructor(new PatcherConstructorResolver(constructorInfo), constructorInfo.getIndex(), descriptor);
+            if (constructorInfo != null && ce.evaluateConditions(classContext, constructorInfo, constructorInfo.getAnnotation())) {
+                resolver = new PatcherConstructorResolver(constructorInfo);
+                index = constructorInfo.getIndex();
             }
+            if (annotateInfo != null && ce.evaluateConditions(classContext, annotateInfo, annotateInfo.getAnnotation())) {
+                resolver = new AnnotationAddingResolver(annotateInfo.getAddedAnnotations(), resolver);
+            }
+            getDelegate().addConstructor(resolver, index, descriptor);
         } else {
             getDelegate().addConstructor(resolver, index, descriptor);
         }
@@ -133,6 +145,7 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
         if (classPatchInfo != null) {
             ConditionEvaluation ce = ConditionEvaluation.get(classContext.getCompilationContext());
             MethodPatchInfo methodInfo;
+            MethodPatchInfo annotateInfo;
             synchronized (classPatchInfo) {
                 MethodDeleteInfo delInfo = classPatchInfo.getDeletedMethodInfo(name, descriptor);
                 if (delInfo != null && ce.evaluateConditions(classContext, delInfo, delInfo.getAnnotation())) {
@@ -140,14 +153,16 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
                     return;
                 }
                 methodInfo = classPatchInfo.getReplacementMethodInfo(name, descriptor);
+                annotateInfo = classPatchInfo.getAnnotatedMethodInfo(name, descriptor);
             }
-            if (methodInfo == null || !ce.evaluateConditions(classContext, methodInfo, methodInfo.getAnnotation())) {
-                getDelegate().addMethod(resolver, index, name, descriptor);
-            } else if (methodInfo.getAdditionalModifiers() == 0) {
-                getDelegate().addMethod(methodInfo.getMethodResolver(), methodInfo.getIndex(), name, descriptor);
-            } else {
-                getDelegate().addMethod(new PatcherMethodResolver(methodInfo), methodInfo.getIndex(), name, descriptor);
+            if (methodInfo != null && ce.evaluateConditions(classContext, methodInfo, methodInfo.getAnnotation())) {
+                resolver = methodInfo.getMethodResolver();
+                index = methodInfo.getIndex();
             }
+            if (annotateInfo != null && ce.evaluateConditions(classContext, annotateInfo, annotateInfo.getAnnotation())) {
+                resolver = new AnnotationAddingResolver(annotateInfo.getAddedAnnotations(), resolver);
+            }
+            getDelegate().addMethod(resolver, index, name, descriptor);
         } else {
             getDelegate().addMethod(resolver, index, name, descriptor);
         }
@@ -247,6 +262,50 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
             InitializerElement rtInit = initInfo.getInitializerResolver().resolveInitializer(initInfo.getInitializerResolverIndex(), enclosing, InitializerElement.builder());
             builder.setRunTimeInitializer(rtInit);
             return fieldResolver.resolveField(index, enclosing, builder);
+        }
+    }
+
+    static class AnnotationAddingResolver implements FieldResolver, MethodResolver, ConstructorResolver {
+        private final List<Annotation> additions;
+        private final ConstructorResolver constructorResolver;
+        private final FieldResolver fieldResolver;
+        private final MethodResolver methodResolver;
+
+        AnnotationAddingResolver(final List<Annotation> additions, ConstructorResolver constructorResolver, FieldResolver fieldResolver, MethodResolver methodResolver) {
+            this.additions = additions;
+            this.constructorResolver = constructorResolver;
+            this.fieldResolver = fieldResolver;
+            this.methodResolver = methodResolver;
+        }
+
+        AnnotationAddingResolver(final List<Annotation> additions, ConstructorResolver constructorResolver) {
+            this(additions, constructorResolver, null, null);
+        }
+
+        AnnotationAddingResolver(final List<Annotation> additions, FieldResolver fieldResolver) {
+            this(additions, null, fieldResolver, null);
+        }
+
+        AnnotationAddingResolver(final List<Annotation> additions, MethodResolver methodResolver) {
+            this(additions, null, null, methodResolver);
+        }
+
+        @Override
+        public ConstructorElement resolveConstructor(int index, DefinedTypeDefinition enclosing, ConstructorElement.Builder builder) {
+            builder.addInvisibleAnnotations(additions);
+            return constructorResolver.resolveConstructor(index, enclosing, builder);
+        }
+
+        @Override
+        public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+            builder.addInvisibleAnnotations(additions);
+            return fieldResolver.resolveField(index, enclosing, builder);
+        }
+
+        @Override
+        public MethodElement resolveMethod(int index, DefinedTypeDefinition enclosing, MethodElement.Builder builder) {
+            builder.addInvisibleAnnotations(additions);
+            return methodResolver.resolveMethod(index, enclosing, builder);
         }
     }
 }

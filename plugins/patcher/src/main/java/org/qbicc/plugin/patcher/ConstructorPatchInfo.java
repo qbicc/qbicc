@@ -6,6 +6,8 @@ import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.definition.ConstructorResolver;
 import org.qbicc.type.descriptor.MethodDescriptor;
 
+import java.util.List;
+
 /**
  *
  */
@@ -13,8 +15,8 @@ final class ConstructorPatchInfo extends ExecutableMemberPatchInfo implements Lo
     private final ConstructorResolver constructorResolver;
     private final MethodDescriptor descriptor;
 
-    ConstructorPatchInfo(int index, int modifiers, ConstructorResolver constructorResolver, MethodDescriptor descriptor, String internalName, Annotation annotation) {
-        super(index, modifiers, internalName, annotation);
+    ConstructorPatchInfo(int index, int modifiers, ConstructorResolver constructorResolver, MethodDescriptor descriptor, String internalName, Annotation annotation, List<Annotation> addedAnnotations) {
+        super(index, modifiers, internalName, annotation, addedAnnotations);
         this.constructorResolver = constructorResolver;
         this.descriptor = descriptor;
     }
