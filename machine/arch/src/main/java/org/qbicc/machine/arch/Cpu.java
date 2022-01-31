@@ -23,7 +23,7 @@ public class Cpu extends PlatformComponent {
     public static final ArmCpu ARMV7_M = new ArmCpu(ArmCpuArch.V7_M);
     public static final ArmCpu ARMV7E_M = new ArmCpu(ArmCpuArch.V7E_M);
     public static final ArmCpu ARMV7_R = new ArmCpu(ArmCpuArch.V7_R);
-    public static final Cpu ARM = new Cpu(4, "arm");
+    public static final Cpu ARM = new Cpu(4, "arm", "armv7", "armv7hl");
     public static final Cpu PPC32 = new Cpu(4, "ppc32");
     public static final Cpu PPC64 = new Cpu(8, "ppc64");
 

@@ -91,8 +91,6 @@ public final class Unwind {
          * The function which frees this object.
          */
         public function_ptr<_Unwind_Exception_Cleanup_Fn> exception_cleanup;
-        public unsigned_long private_1;
-        public unsigned_long private_2;
     }
 
     public static final class struct__Unwind_Exception_ptr extends ptr<struct__Unwind_Exception> {}
