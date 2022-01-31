@@ -736,9 +736,15 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 }
                 builder.setBootstrapMethods(List.of(bootstrapMethods));
             } else if (attributeNameEquals(i, "NestHost")) {
-                // todo
+                ByteBuffer data = getRawAttributeContent(i);
+                int ci = data.getShort() & 0xffff;
+                builder.setNestHost(getClassConstantName(ci));
             } else if (attributeNameEquals(i, "NestMembers")) {
-                // todo
+                ByteBuffer data = getRawAttributeContent(i);
+                int cc = data.getShort() & 0xffff;
+                for (int j = 0; j < cc; j ++) {
+                    builder.addNestMember(getClassConstantName(data.getShort() & 0xffff));
+                }
             } else if (attributeNameEquals(i, "InnerClasses")) {
                 ByteBuffer data = getRawAttributeContent(i);
                 int innerCnt = data.getShort() & 0xffff;
