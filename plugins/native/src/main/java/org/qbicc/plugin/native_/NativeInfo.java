@@ -157,14 +157,14 @@ final class NativeInfo {
                                     if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
                                         incomplete = true;
                                     }
-                                } else if (annDesc.getClassName().equals(Native.ANN_ALIGN)) {
+                                } else if (annDesc.getClassName().equals(Native.ANN_ALIGN) && annotatedAlign == 0) {
                                     if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
                                         annotatedAlign = ((IntAnnotationValue)annotation.getValue("value")).intValue();
                                         if (annotatedAlign == Integer.MAX_VALUE) {
                                             annotatedAlign = ctxt.getTypeSystem().getMaxAlignment();
                                         }
                                     }
-                                } else if (annDesc.getClassName().equals(Native.ANN_ALIGN_LIST)) {
+                                } else if (annDesc.getClassName().equals(Native.ANN_ALIGN_LIST) && annotatedAlign == 0) {
                                     if (annotation.getValue("value") instanceof ArrayAnnotationValue aav) {
                                         int cnt = aav.getElementCount();
                                         for (int i = 0; i < cnt; i ++) {
@@ -185,7 +185,7 @@ final class NativeInfo {
                                             }
                                         }
                                     }
-                                } else if (annDesc.getClassName().equals(Native.ANN_ALIGN_AS)) {
+                                } else if (annDesc.getClassName().equals(Native.ANN_ALIGN_AS) && annotatedAlign == 0) {
                                     if (annotation.getValue("value") instanceof ClassAnnotationValue cav) {
                                         if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
                                             ValueType resolvedType = classContext.resolveTypeFromDescriptor(
@@ -198,10 +198,13 @@ final class NativeInfo {
                                             annotatedAlign = resolvedType.getAlign();
                                         }
                                     }
-                                } else if (annDesc.getClassName().equals(Native.ANN_ALIGN_AS_LIST)) {
+                                } else if (annDesc.getClassName().equals(Native.ANN_ALIGN_AS_LIST) && annotatedAlign == 0) {
                                     if (annotation.getValue("value") instanceof ArrayAnnotationValue aav) {
                                         int cnt = aav.getElementCount();
                                         for (int i = 0; i < cnt; i ++) {
+                                            if (annotatedAlign != 0) {
+                                                break;
+                                            }
                                             if (aav.getValue(i) instanceof Annotation nested) {
                                                 ClassTypeDescriptor nestedDesc = nested.getDescriptor();
                                                 if (nestedDesc.packageAndClassNameEquals(Native.NATIVE_PKG, Native.ANN_ALIGN_AS)) {
