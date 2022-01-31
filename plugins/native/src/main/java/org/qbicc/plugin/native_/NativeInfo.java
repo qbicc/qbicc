@@ -27,6 +27,8 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.AnnotationValue;
+import org.qbicc.type.annotation.ArrayAnnotationValue;
 import org.qbicc.type.annotation.IntAnnotationValue;
 import org.qbicc.type.annotation.StringAnnotationValue;
 import org.qbicc.type.annotation.type.TypeAnnotation;
@@ -159,6 +161,27 @@ final class NativeInfo {
                                         annotatedAlign = ((IntAnnotationValue)annotation.getValue("value")).intValue();
                                         if (annotatedAlign == Integer.MAX_VALUE) {
                                             annotatedAlign = ctxt.getTypeSystem().getMaxAlignment();
+                                        }
+                                    }
+                                } else if (annDesc.getClassName().equals(Native.ANN_ALIGN_LIST)) {
+                                    if (annotation.getValue("value") instanceof ArrayAnnotationValue aav) {
+                                        int cnt = aav.getElementCount();
+                                        for (int i = 0; i < cnt; i ++) {
+                                            if (aav.getValue(i) instanceof Annotation nested) {
+                                                ClassTypeDescriptor nestedDesc = nested.getDescriptor();
+                                                if (nestedDesc.getPackageName().equals(Native.NATIVE_PKG)) {
+                                                    if (nestedDesc.getClassName().equals(Native.ANN_ALIGN)) {
+                                                        if (conditionEvaluation.evaluateConditions(classContext, definedType, nested)) {
+                                                            annotatedAlign = ((IntAnnotationValue)nested.getValue("value")).intValue();
+                                                            if (annotatedAlign == Integer.MAX_VALUE) {
+                                                                annotatedAlign = ctxt.getTypeSystem().getMaxAlignment();
+                                                            }
+                                                            // stop searching for alignments
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
