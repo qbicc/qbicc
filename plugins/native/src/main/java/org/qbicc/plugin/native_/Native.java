@@ -14,6 +14,8 @@ final class Native {
 
     static final String ANN_ALIGN = className(align.class);
     static final String ANN_ALIGN_LIST = className(align.List.class);
+    static final String ANN_ALIGN_AS = className(align_as.class);
+    static final String ANN_ALIGN_AS_LIST = className(align_as.List.class);
     static final String ANN_ARRAY_SIZE = className(array_size.class);
     static final String ANN_CONST = className(c_const.class);
     static final String ANN_CONSTRUCTOR = className(constructor.class);

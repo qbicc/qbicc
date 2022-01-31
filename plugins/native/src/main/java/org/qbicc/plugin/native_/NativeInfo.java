@@ -29,6 +29,7 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.annotation.ArrayAnnotationValue;
+import org.qbicc.type.annotation.ClassAnnotationValue;
 import org.qbicc.type.annotation.IntAnnotationValue;
 import org.qbicc.type.annotation.StringAnnotationValue;
 import org.qbicc.type.annotation.type.TypeAnnotation;
@@ -176,6 +177,44 @@ final class NativeInfo {
                                                             if (annotatedAlign == Integer.MAX_VALUE) {
                                                                 annotatedAlign = ctxt.getTypeSystem().getMaxAlignment();
                                                             }
+                                                            // stop searching for alignments
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else if (annDesc.getClassName().equals(Native.ANN_ALIGN_AS)) {
+                                    if (annotation.getValue("value") instanceof ClassAnnotationValue cav) {
+                                        if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
+                                            ValueType resolvedType = classContext.resolveTypeFromDescriptor(
+                                                cav.getDescriptor(),
+                                                definedType,
+                                                TypeSignature.synthesize(classContext, definedType.getDescriptor()),
+                                                TypeAnnotationList.empty(),
+                                                TypeAnnotationList.empty()
+                                            );
+                                            annotatedAlign = resolvedType.getAlign();
+                                        }
+                                    }
+                                } else if (annDesc.getClassName().equals(Native.ANN_ALIGN_AS_LIST)) {
+                                    if (annotation.getValue("value") instanceof ArrayAnnotationValue aav) {
+                                        int cnt = aav.getElementCount();
+                                        for (int i = 0; i < cnt; i ++) {
+                                            if (aav.getValue(i) instanceof Annotation nested) {
+                                                ClassTypeDescriptor nestedDesc = nested.getDescriptor();
+                                                if (nestedDesc.packageAndClassNameEquals(Native.NATIVE_PKG, Native.ANN_ALIGN_AS)) {
+                                                    if (nested.getValue("value") instanceof ClassAnnotationValue cav) {
+                                                        if (conditionEvaluation.evaluateConditions(classContext, definedType, nested)) {
+                                                            ValueType resolvedType = classContext.resolveTypeFromDescriptor(
+                                                                cav.getDescriptor(),
+                                                                definedType,
+                                                                TypeSignature.synthesize(classContext, definedType.getDescriptor()),
+                                                                TypeAnnotationList.empty(),
+                                                                TypeAnnotationList.empty()
+                                                            );
+                                                            annotatedAlign = resolvedType.getAlign();
                                                             // stop searching for alignments
                                                             break;
                                                         }

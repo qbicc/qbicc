@@ -1405,6 +1405,39 @@ public final class CNative {
     }
 
     /**
+     * Explicitly specify the exact alignment of an object as being equal to the alignment of the given type.
+     * The alignment will not be probed.  Different alignments can be specified for different platforms.
+     */
+    @Target({ ElementType.TYPE, ElementType.FIELD })
+    @Retention(RetentionPolicy.CLASS)
+    @Repeatable(align_as.List.class)
+    @Documented
+    public @interface align_as {
+        Class<?> value();
+
+        /**
+         * Cause this annotation to take effect only if <em>all</em> of the given conditions return {@code true}.
+         *
+         * @return the condition classes
+         */
+        Class<? extends BooleanSupplier>[] when() default {};
+
+        /**
+         * Prevent this annotation from taking effect if <em>all</em> of the given conditions return {@code true}.
+         *
+         * @return the condition classes
+         */
+        Class<? extends BooleanSupplier>[] unless() default {};
+
+        @Target({ ElementType.TYPE, ElementType.FIELD })
+        @Retention(RetentionPolicy.CLASS)
+        @Documented
+        @interface List {
+            align_as[] value();
+        }
+    }
+
+    /**
      * Explicitly specify the exact offset of an object member.  The offset will not be probed.  Different offsets can
      * be specified for different platforms.
      */
