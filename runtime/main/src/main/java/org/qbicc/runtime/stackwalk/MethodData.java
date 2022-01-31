@@ -11,7 +11,7 @@ public final class MethodData {
     public static native String getFileName(int minfoIndex);
     public static native String getMethodName(int minfoIndex);
     public static native String getMethodDesc(int minfoIndex);
-    public static native int getTypeId(int minfoIndex);
+    public static native type_id getTypeId(int minfoIndex);
     public static native int getModifiers(int minfoIndex);
 
     public static String getClassName(int minfoIndex) {
@@ -19,7 +19,7 @@ public final class MethodData {
     }
 
     public static Class<?> getClass(int minfoIndex) {
-        type_id typeId = word(getTypeId(minfoIndex));
+        type_id typeId = getTypeId(minfoIndex);
         return CompilerIntrinsics.getClassFromTypeId(typeId, word(0));
     }
 
