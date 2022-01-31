@@ -1,6 +1,7 @@
 package org.qbicc.runtime.unwind;
 
 import static org.qbicc.runtime.CNative.*;
+import static org.qbicc.runtime.stdc.Stddef.*;
 import static org.qbicc.runtime.stdc.Stdint.*;
 
 import org.qbicc.runtime.Build;
@@ -73,7 +74,7 @@ public final class Unwind {
      * The header for a thrown exception.  The runtime is expected to create its own thrown structure which includes
      * this structure as a member.  The runtime is responsible for allocating and freeing instances.
      */
-    @align(Integer.MAX_VALUE) // Force to max_align_t; See https://github.com/qbicc/qbicc/pull/623 for discussion of problem with MacOS unwind.h
+    @align_as(max_align_t.class) // Force alignment; See https://github.com/qbicc/qbicc/pull/623 for discussion of problem with MacOS unwind.h
     public static final class struct__Unwind_Exception extends object {
         /**
          * "A language- and implementation-specific identifier of the kind of exception. It allows a personality routine
