@@ -510,6 +510,11 @@ public interface ClassFile extends FieldResolver,
         return getRawConstantShort(idx, 3);
     }
 
+    default Descriptor getNameAndTypeConstantDescriptor(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        checkConstantType(idx, CONSTANT_NameAndType);
+        return getDescriptorConstant(getRawConstantShort(idx, 3));
+    }
+
     default int getInvokeDynamicBootstrapMethodIndex(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         checkConstantType(idx, CONSTANT_InvokeDynamic);
         return getRawConstantShort(idx, 1);
