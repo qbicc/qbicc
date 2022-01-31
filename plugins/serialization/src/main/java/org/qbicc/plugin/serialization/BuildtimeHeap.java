@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import io.smallrye.common.constraint.Assert;
+import org.jboss.logging.Logger;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.BooleanLiteral;
@@ -39,8 +40,6 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.annotation.Annotation;
-import org.qbicc.type.annotation.LongAnnotationValue;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -52,6 +51,7 @@ import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 public class BuildtimeHeap {
     private static final AttachmentKey<BuildtimeHeap> KEY = new AttachmentKey<>();
     private static final String prefix = "qbicc_initial_heap_obj_";
+    private static final Logger slog = Logger.getLogger("org.qbicc.plugin.serialization.stats");
 
     private final CompilationContext ctxt;
     private final Layout interpreterLayout;
@@ -102,6 +102,22 @@ public class BuildtimeHeap {
             }
         }
         return heap;
+    }
+
+    public static void reportStats(CompilationContext ctxt) {
+        if (!slog.isDebugEnabled()) return;
+        BuildtimeHeap heap = ctxt.getAttachment(KEY);
+        slog.debugf("The initial heap contains %,d objects.", heap.vmObjects.size());
+        HashMap<LoadedTypeDefinition, Integer> instanceCounts = new HashMap<>();
+        for (VmObject obj : heap.vmObjects.keySet()) {
+            LoadedTypeDefinition ltd = obj.getVmClass().getTypeDefinition();
+            instanceCounts.put(ltd, instanceCounts.getOrDefault(ltd, 0) + 1);
+        }
+        slog.debugf("The types with more than 5 instances are: ");
+        instanceCounts.entrySet().stream()
+            .filter(x -> x.getValue() > 5)
+            .sorted((x, y) -> y.getValue().compareTo(x.getValue()))
+            .forEach(e -> slog.debugf("  %,6d instances of %s", e.getValue(), e.getKey().getDescriptor()));
     }
 
     void setClassArrayGlobal(GlobalVariableElement g) {
@@ -245,16 +261,16 @@ public class BuildtimeHeap {
             memberMap.put(m, lf.zeroInitializerLiteralOfType(m.getType()));
         }
 
-        populateClearedMemberMap(concreteType, objType, objLayout, memLayout, memory, memberMap);
+        populateClearedMemberMap(concreteType, objLayout, memLayout, memory, memberMap);
     }
 
-    private void populateClearedMemberMap(final LoadedTypeDefinition concreteType, final CompoundType objType, final LayoutInfo objLayout, final LayoutInfo memLayout, final Memory memory, final HashMap<CompoundType.Member, Literal> memberMap) {
+    private void populateClearedMemberMap(final LoadedTypeDefinition concreteType, final LayoutInfo objLayout, final LayoutInfo memLayout, final Memory memory, final HashMap<CompoundType.Member, Literal> memberMap) {
         if (concreteType.hasSuperClass()) {
-            populateClearedMemberMap(concreteType.getSuperClass(), objType, objLayout, memLayout, memory, memberMap);
+            populateClearedMemberMap(concreteType.getSuperClass(), objLayout, memLayout, memory, memberMap);
         }
 
         LiteralFactory lf = ctxt.getLiteralFactory();
-        // Next, iterate over object's instance fields and copy values from the backing Memory to the memberMap
+        // Iterate over declared instance fields and copy values from the backing Memory to the memberMap
         int fc = concreteType.getFieldCount();
         for (int i=0; i<fc; i++) {
             FieldElement f = concreteType.getField(i);

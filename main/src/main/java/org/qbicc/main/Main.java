@@ -117,6 +117,7 @@ import org.qbicc.plugin.patcher.PatcherTypeResolver;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reflection.Reflection;
+import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.plugin.serialization.ClassObjectSerializer;
 import org.qbicc.plugin.serialization.MethodDataStringsSerializer;
 import org.qbicc.plugin.serialization.ObjectLiteralSerializingVisitor;
@@ -482,6 +483,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, MethodDataStringsSerializer::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
                                 builder.addPostHook(Phase.LOWER, NativeXtorLoweringHook::process);
+                                builder.addPostHook(Phase.LOWER, BuildtimeHeap::reportStats);
 
                                 builder.addPreHook(Phase.GENERATE, new SupersDisplayEmitter());
                                 builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
@@ -655,6 +657,8 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean debugInterpreter;
         @CommandLine.Option(names = "--gc", defaultValue = "none", description = "Type of GC to use. Valid values: ${COMPLETION-CANDIDATES}")
         private GCType gc;
+        @CommandLine.Option(names = "--heap-stats")
+        private boolean heapStats;
         @CommandLine.Option(names = "--method-data-stats")
         private boolean methodDataStats;
         @CommandLine.Option(names = "--pie", negatable = true, defaultValue = "false", description = "[Disable|Enable] generation of position independent executable")
@@ -738,6 +742,9 @@ public class Main implements Callable<DiagnosticContext> {
             }
             if (debugInterpreter) {
                 Logger.getLogger("org.qbicc.interpreter").setLevel(Level.DEBUG);
+            }
+            if (heapStats) {
+                Logger.getLogger("org.qbicc.plugin.serialization.stats").setLevel(Level.DEBUG);
             }
             if (methodDataStats) {
                 Logger.getLogger("org.qbicc.plugin.methodinfo.stats").setLevel(Level.DEBUG);
