@@ -572,10 +572,12 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor stringDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor mdDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stackwalk/MethodData");
         ClassTypeDescriptor jlsteDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/StackTraceElement");
+        ClassTypeDescriptor typeIdDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$type_id");
 
         MethodDescriptor voidToIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
         MethodDescriptor intToLongDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.I));
         MethodDescriptor intToIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.I));
+        MethodDescriptor intToTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(BaseTypeDescriptor.I));
         MethodDescriptor intToStringDesc = MethodDescriptor.synthesize(classContext, stringDesc, List.of(BaseTypeDescriptor.I));
         MethodDescriptor steIntToVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(jlsteDesc, BaseTypeDescriptor.I));
 
@@ -685,7 +687,7 @@ public final class CoreIntrinsics {
             return builder.load(builder.memberOf(minfoHandle, minfoType.getMember("typeId")));
         };
 
-        intrinsics.registerIntrinsic(Phase.LOWER, mdDesc, "getTypeId", intToIntDesc, getTypeId);
+        intrinsics.registerIntrinsic(Phase.LOWER, mdDesc, "getTypeId", intToTypeIdDesc, getTypeId);
 
         StaticIntrinsic getModifiers = (builder, target, arguments) -> {
             GlobalVariable gmdVariable = (GlobalVariable) builder.globalVariable(mdTypes.getAndRegisterGlobalMethodData(builder.getCurrentElement()));
