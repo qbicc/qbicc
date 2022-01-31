@@ -79,6 +79,8 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     final String enclosingMethodClassName;
     final String enclosingMethodName;
     final MethodDescriptor enclosingMethodDesc;
+    final String nestHostClassName;
+    final String[] nestMemberClassNames;
 
     private volatile DefinedTypeDefinition loaded;
 
@@ -138,6 +140,9 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         enclosingMethodClassName = builder.enclosingMethodClassName;
         enclosingMethodName = builder.enclosingMethodName;
         enclosingMethodDesc = builder.enclosingMethodDesc;
+        nestHostClassName = builder.nestHost;
+        List<String> nestMembers = builder.nestMembers;
+        nestMemberClassNames = nestMembers == null ? NO_STRINGS : nestMembers.toArray(String[]::new);
     }
 
     public ClassContext getContext() {
@@ -614,6 +619,8 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         String enclosingMethodClassName;
         String enclosingMethodName;
         MethodDescriptor enclosingMethodDesc;
+        String nestHost;
+        List<String> nestMembers;
 
         public void setContext(final ClassContext context) {
             this.context = context;
@@ -840,6 +847,19 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
         public void setSuperClass(final DefinedTypeDefinition superClass) {
             this.superClass = superClass;
+        }
+
+        public void setNestHost(final String nestHost) {
+            this.nestHost = nestHost;
+        }
+
+        @Override
+        public void addNestMember(String nestMember) {
+            List<String> nestMembers = this.nestMembers;
+            if (nestMembers == null) {
+                nestMembers = this.nestMembers = new ArrayList<>();
+            }
+            nestMembers.add(Assert.checkNotNullParam("nestMember", nestMember));
         }
 
         public void setName(final String internalName) {

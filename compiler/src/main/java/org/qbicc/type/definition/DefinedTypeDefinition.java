@@ -245,6 +245,10 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
 
         void setSuperClass(DefinedTypeDefinition superClass);
 
+        void setNestHost(String nestHost);
+
+        void addNestMember(String nestMember);
+
         DefinedTypeDefinition build();
 
         static Builder basic() {
@@ -356,6 +360,14 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
 
             default void setSuperClass(DefinedTypeDefinition superClass) {
                 getDelegate().setSuperClass(superClass);
+            }
+
+            default void setNestHost(String nestHost) {
+                getDelegate().setNestHost(nestHost);
+            }
+
+            default void addNestMember(String nestMember) {
+                getDelegate().addNestMember(nestMember);
             }
 
             default DefinedTypeDefinition build() {
