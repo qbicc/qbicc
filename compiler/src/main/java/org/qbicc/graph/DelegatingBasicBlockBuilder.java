@@ -281,6 +281,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().declareDebugAddress(variable, address);
     }
 
+    public Node setDebugValue(final LocalVariableElement variable, final Value value) {
+        return getDelegate().setDebugValue(variable, value);
+    }
+
     public PhiValue phi(final ValueType type, final BlockLabel owner, PhiValue.Flag... flags) {
         return getDelegate().phi(type, owner, flags);
     }

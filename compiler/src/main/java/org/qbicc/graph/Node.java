@@ -351,6 +351,11 @@ public interface Node {
                 return param.getBlockBuilder().declareDebugAddress(node.getVariable(), param.copyValue(node.getAddress()));
             }
 
+            public Node visit(Copier param, DebugValueDeclaration node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().setDebugValue(node.getVariable(), param.copyValue(node.getValue()));
+            }
+
             public Node visit(Copier param, Fence node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().fence(node.getAccessMode());

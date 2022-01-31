@@ -32,6 +32,7 @@ import org.qbicc.graph.CmpL;
 import org.qbicc.graph.Comp;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.DebugAddressDeclaration;
+import org.qbicc.graph.DebugValueDeclaration;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.Extend;
@@ -107,6 +108,7 @@ import org.qbicc.machine.llvm.LLValue;
 import org.qbicc.machine.llvm.Module;
 import org.qbicc.machine.llvm.ParameterAttributes;
 import org.qbicc.machine.llvm.Values;
+import org.qbicc.machine.llvm.debuginfo.DILocalVariable;
 import org.qbicc.machine.llvm.debuginfo.MetadataNode;
 import org.qbicc.machine.llvm.impl.LLVM;
 import org.qbicc.machine.llvm.op.AtomicRmw;
@@ -136,6 +138,7 @@ import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.ParameterElement;
 
 final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, Instruction, Void> {
     final CompilationContext ctxt;
@@ -155,7 +158,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     final MethodBody methodBody;
     final LLBuilder builder;
     final Map<Node, LLValue> inlineLocations = new HashMap<>();
-    final Map<LocalVariableElement, MetadataNode> localVariables = new HashMap<>();
+    final Map<LocalVariableElement, DILocalVariable> localVariables = new HashMap<>();
 
     private boolean personalityAdded;
 
@@ -220,6 +223,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     }
 
     private static final LLValue llvm_dbg_addr = Values.global("llvm.dbg.addr");
+    private static final LLValue llvm_dbg_value = Values.global("llvm.dbg.value");
     private static final LLValue emptyExpr = diExpression().asValue();
 
     @Override
@@ -231,18 +235,44 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue mappedPointerType = map(pointerType);
         ValueType actualType = pointerType.getPointeeType();
         LocalVariableElement variable = node.getVariable();
-        MetadataNode metadataNode = localVariables.get(variable);
-        if (metadataNode == null) {
-            // first occurrence
-            // todo: get alignment from variable
-            metadataNode = module.diLocalVariable(variable.getName(), debugInfo.getType(actualType), topSubprogram, debugInfo.createSourceFile(node.getElement()), node.getSourceLine(), actualType.getAlign());
-            localVariables.put(variable, metadataNode);
-        }
+        MetadataNode metadataNode = getLocalVariableMetadataNode(node, actualType, variable);
         Call call = builder.call(void_, llvm_dbg_addr);
         call.arg(metadata(mappedPointerType), mappedAddress)
             .arg(metadata, metadataNode.asRef())
             .arg(metadata, emptyExpr);
         return call;
+    }
+
+    @Override
+    public Instruction visit(final Void param, final DebugValueDeclaration node) {
+        map(node.getDependency());
+        Value value = node.getValue();
+        LLValue mappedValue = map(value);
+        ValueType valueType = value.getType();
+        LLValue mappedValueType = map(valueType);
+        LocalVariableElement variable = node.getVariable();
+        MetadataNode metadataNode = getLocalVariableMetadataNode(node, valueType, variable);
+        Call call = builder.call(void_, llvm_dbg_value);
+        call.arg(metadata(mappedValueType), mappedValue)
+            .arg(metadata, metadataNode.asRef())
+            .arg(metadata, emptyExpr);
+        return call;
+    }
+
+    private MetadataNode getLocalVariableMetadataNode(final Node node, final ValueType valueType, final LocalVariableElement variable) {
+        DILocalVariable metadataNode = localVariables.get(variable);
+        if (metadataNode == null) {
+            // first occurrence
+            // todo: get alignment from variable
+            metadataNode = module.diLocalVariable(variable.getName(), debugInfo.getType(valueType), topSubprogram, debugInfo.createSourceFile(node.getElement()), node.getSourceLine(), valueType.getAlign());
+            ParameterElement param = variable.getReflectsParameter();
+            if (param != null) {
+                // debug args are 1-based
+                metadataNode.argument(param.getIndex() + 1);
+            }
+            localVariables.put(variable, metadataNode);
+        }
+        return metadataNode;
     }
 
     public Instruction visit(final Void param, final Store node) {

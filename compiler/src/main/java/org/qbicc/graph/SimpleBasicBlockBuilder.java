@@ -15,7 +15,6 @@ import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
@@ -564,6 +563,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
 
     public Node declareDebugAddress(LocalVariableElement variable, Value address) {
         return asDependency(new DebugAddressDeclaration(callSite, element, line, bci, requireDependency(), variable, address));
+    }
+
+    public Node setDebugValue(LocalVariableElement variable, Value value) {
+        return asDependency(new DebugValueDeclaration(callSite, element, line, bci, requireDependency(), variable, value));
     }
 
     public PhiValue phi(final ValueType type, final BlockLabel owner, PhiValue.Flag... flags) {
