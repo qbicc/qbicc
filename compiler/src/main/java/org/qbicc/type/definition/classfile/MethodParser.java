@@ -31,6 +31,7 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.Ret;
+import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.TerminatorVisitor;
 import org.qbicc.graph.Value;
@@ -62,7 +63,6 @@ import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
@@ -77,6 +77,7 @@ import org.qbicc.type.methodhandle.MethodHandleConstant;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
+import org.qbicc.type.methodhandle.MethodMethodHandleConstant;
 
 final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     private static final Logger interpLog = Logger.getLogger("org.qbicc.interpreter");
@@ -1701,44 +1702,30 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             gf.unreachable();
                             return;
                         }
-                        if (! (bootstrapHandleRaw instanceof ExecutableMethodHandleConstant)) {
+                        if (! (bootstrapHandleRaw instanceof ExecutableMethodHandleConstant bootstrapHandle)) {
                             ctxt.getCompilationContext().error(gf.getLocation(), "Wrong bootstrap method handle type");
                             gf.unreachable();
                             return;
                         }
-                        ExecutableMethodHandleConstant bootstrapHandle = (ExecutableMethodHandleConstant) bootstrapHandleRaw;
                         // now get the literal method handle, requires a live interpreter
                         VmThread thread = Vm.requireCurrentThread();
                         Vm vm = thread.getVM();
-                        VmObject bootstrapHandleObj;
-                        try {
-                            bootstrapHandleObj = vm.createMethodHandle(ctxt, bootstrapHandle);
-                        } catch (InterpreterHaltedException ignored) {
-                            throw new BlockEarlyTermination(gf.unreachable());
-                        } catch (Thrown thrown) {
-                            ctxt.getCompilationContext().warning(gf.getLocation(), "Failed to create bootstrap method handle: %s", thrown);
-                            // todo: we should consider putting stack traces into the location of the diagnostics
-                            interpLog.debug("Failed to create a bootstrap method handle", thrown);
-                            // instead, throw an run time error
-                            ClassTypeDescriptor bmeDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/BootstrapMethodError");
-                            ClassTypeDescriptor thrDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/Throwable");
-                            Value error = gf.new_(bmeDesc);
-                            gf.call(gf.constructorOf(error, bmeDesc, MethodDescriptor.synthesize(ctxt, BaseTypeDescriptor.V, List.of(thrDesc))), List.of(lf.literalOf(thrown.getThrowable())));
-                            gf.throw_(error);
-                            return;
-                        }
                         VmObject callSite;
                         try {
                             // 5.4.3.6, invoking the bootstrap method handle
+                            // (0.) find the element
+                            MethodElement targetMethod;
+                            if (bootstrapHandle instanceof MethodMethodHandleConstant mh) {
+                                targetMethod = ((StaticMethodElementHandle) gf.staticMethod(mh.getOwnerDescriptor(), mh.getMethodName(), mh.getDescriptor())).getExecutable();
+                            } else {
+                                throw new IllegalStateException();
+                            }
+                            // compile the method
+                            targetMethod.tryCreateMethodBody();
                             // 1. allocate the array
                             int bootstrapArgCnt = getClassFile().getBootstrapMethodArgumentCount(bootstrapMethodIdx);
-                            VmClass objectClass = ctxt.findDefinedType("java/lang/Object").load().getVmClass();
-                            VmReferenceArray array = vm.newArrayOf(objectClass, 3 + bootstrapArgCnt);
-                            // 1.a. populate first three elements
-                            array.store(0, vm.getLookup(gf.getRootElement().getEnclosingType().load().getVmClass()));
-                            array.store(1, vm.intern(getClassFile().getNameAndTypeConstantName(indyNameAndTypeIdx)));
-                            array.store(2, vm.createMethodType(ctxt, bootstrapHandle.getDescriptor()));
-                            // 1.b. populate remaining elements with constant values
+                            List<ParameterElement> targetParameters = targetMethod.getParameters();
+                            boolean vararg = targetParameters.size() == 4 && targetMethod.isVarargs() && !targetMethod.isSignaturePolymorphic();
                             TypeParameterContext tpc;
                             ExecutableElement rootElement = gf.getRootElement();
                             if (rootElement instanceof TypeParameterContext) {
@@ -1746,22 +1733,35 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             } else {
                                 tpc = rootElement.getEnclosingType();
                             }
-                            for (int i = 0; i < bootstrapArgCnt; i ++) {
-                                int argIdx = getClassFile().getBootstrapMethodArgumentConstantIndex(bootstrapMethodIdx, i);
-                                if (argIdx != 0) {
-                                    Literal literal = getClassFile().getConstantValue(argIdx, tpc);
-                                    VmObject box = vm.box(ctxt, literal);
-                                    array.store(i + 3, box);
+                            Object[] array = vararg ? new Object[4] : new Object[3 + bootstrapArgCnt];
+                            // 1.a. populate first three elements
+                            array[0] = vm.getLookup(gf.getRootElement().getEnclosingType().load().getVmClass());
+                            array[1] = vm.intern(getClassFile().getNameAndTypeConstantName(indyNameAndTypeIdx));
+                            array[2] = vm.createMethodType(ctxt, (MethodDescriptor) getClassFile().getNameAndTypeConstantDescriptor(indyNameAndTypeIdx));
+                            // 1.b. populate remaining elements with constant values
+                            // since we're emulating invokeWithArguments, we have to figure out if the method accepts an array or actual arguments
+                            if (vararg) {
+                                // box the remaining arguments into a VmArray
+                                VmClass objectClass = ctxt.findDefinedType("java/lang/Object").load().getVmClass();
+                                VmReferenceArray inner = vm.newArrayOf(objectClass, 3 + bootstrapArgCnt);
+                                for (int i = 0; i < bootstrapArgCnt; i ++) {
+                                    int argIdx = getClassFile().getBootstrapMethodArgumentConstantIndex(bootstrapMethodIdx, i);
+                                    if (argIdx != 0) {
+                                        inner.store(i, vm.box(ctxt, getClassFile().getConstantValue(argIdx, tpc)));
+                                    }
+                                }
+                                array[3] = inner;
+                            } else {
+                                // the remaining arguments are inline
+                                for (int i = 0; i < bootstrapArgCnt; i ++) {
+                                    int argIdx = getClassFile().getBootstrapMethodArgumentConstantIndex(bootstrapMethodIdx, i);
+                                    if (argIdx != 0) {
+                                        array[i + 3] = vm.boxThin(ctxt, getClassFile().getConstantValue(argIdx, tpc));
+                                    }
                                 }
                             }
-                            // 2. call bootstrap method via `invokeWithArguments`
-                            LoadedTypeDefinition mhDef = ctxt.findDefinedType("java/lang/invoke/MethodHandle").load();
-                            int iwaIdx = mhDef.findMethodIndex(me -> me.nameEquals("invokeWithArguments") && me.isVarargs());
-                            if (iwaIdx == -1) {
-                                throw new IllegalStateException();
-                            }
-                            MethodElement invokeWithArguments = mhDef.getMethod(iwaIdx);
-                            callSite = (VmObject) vm.invokeExact(invokeWithArguments, bootstrapHandleObj, List.of(array));
+                            // 2. call bootstrap method *as if* via `invokeWithArguments`
+                            callSite = (VmObject) vm.invokeExact(targetMethod, null, Arrays.asList(array));
                         } catch (InterpreterHaltedException ignored) {
                             throw new BlockEarlyTermination(gf.unreachable());
                         } catch (Thrown thrown) {

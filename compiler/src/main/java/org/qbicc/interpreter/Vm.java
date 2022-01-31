@@ -278,6 +278,15 @@ public interface Vm {
     VmObject box(ClassContext classContext, Literal literal);
 
     /**
+     * Create a "thin" box for the given literal as an {@code Object}.
+     *
+     * @param classContext the class context (must not be {@code null})
+     * @param literal the literal value (must not be {@code null})
+     * @return the box object
+     */
+    Object boxThin(ClassContext classContext, Literal literal);
+
+    /**
      * Create a new reference array with the given element type.
      *
      * @param elementType the element type (must not be {@code null})

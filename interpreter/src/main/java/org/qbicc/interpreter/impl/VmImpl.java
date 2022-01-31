@@ -1248,6 +1248,52 @@ public final class VmImpl implements Vm {
     }
 
     @Override
+    public Object boxThin(ClassContext classContext, Literal literal) {
+        Assert.checkNotNullParam("literal", literal);
+        if (literal instanceof BooleanLiteral bl) {
+            return Boolean.valueOf(bl.booleanValue());
+        } else if (literal instanceof ByteArrayLiteral) {
+            byte[] values = ((ByteArrayLiteral) literal).getValues();
+            int length = values.length;
+            VmByteArrayImpl vmByteArray = byteArrayClass.newInstance(length);
+            vmByteArray.getMemory().storeMemory(vmByteArray.getArrayElementOffset(0), values, 0, length);
+            return vmByteArray;
+        } else if (literal instanceof FloatLiteral fl) {
+            FloatType type = fl.getType();
+            if (type.getMinBits() == 32) {
+                return Float.valueOf(fl.floatValue());
+            } else {
+                return Double.valueOf(fl.doubleValue());
+            }
+        } else if (literal instanceof IntegerLiteral il) {
+            // lots of possibilities here
+            IntegerType type = il.getType();
+            if (type instanceof UnsignedIntegerType && type.getMinBits() == 16) {
+                return Character.valueOf(il.charValue());
+            } else if (type.getMinBits() == 8) {
+                return Byte.valueOf(il.byteValue());
+            } else if (type.getMinBits() == 16) {
+                return Short.valueOf(il.shortValue());
+            } else if (type.getMinBits() == 32) {
+                return Integer.valueOf(il.intValue());
+            } else {
+                assert type.getMinBits() == 64;
+                return Long.valueOf(il.longValue());
+            }
+        } else if (literal instanceof MethodHandleLiteral mhLiteral) {
+            return createMethodHandle(classContext, mhLiteral.getMethodHandleConstant());
+        } else if (literal instanceof NullLiteral) {
+            return null;
+        } else if (literal instanceof ObjectLiteral ol) {
+            return ol.getValue();
+        } else if (literal instanceof StringLiteral sl) {
+            return intern(sl.getValue());
+        } else {
+            throw new UnsupportedOperationException("Boxing literal of type " + literal.getClass());
+        }
+    }
+
+    @Override
     public VmReferenceArray newArrayOf(VmClass elementType, int size) {
         if (elementType instanceof VmPrimitiveClass) {
             throw new IllegalArgumentException("Cannot create a reference array with a primitive element type");
