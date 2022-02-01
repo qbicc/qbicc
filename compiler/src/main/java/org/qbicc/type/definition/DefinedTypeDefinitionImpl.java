@@ -43,6 +43,9 @@ import org.qbicc.type.generic.MethodSignature;
  *
  */
 final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
+    private static final DefinedTypeDefinition[] NO_DEFINED_TYPES = new DefinedTypeDefinition[0];
+    private static final LoadedTypeDefinition[] NO_LOADED_TYPES = new LoadedTypeDefinition[0];
+
     private final ClassContext context;
     private final String simpleName;
     private final String internalName;
@@ -224,9 +227,23 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             superType = null;
         }
         int cnt = getInterfaceCount();
-        LoadedTypeDefinition[] interfaces = new LoadedTypeDefinition[cnt];
+        LoadedTypeDefinition[] interfaces = cnt == 0 ? NO_LOADED_TYPES : new LoadedTypeDefinition[cnt];
         for (int i = 0; i < cnt; i ++) {
             interfaces[i] = context.findDefinedType(getInterfaceInternalName(i)).load();
+        }
+        DefinedTypeDefinition nestHost = nestHostClassName == null ? null : context.findDefinedType(nestHostClassName);
+        DefinedTypeDefinition[] nestMembers = null;
+        if (nestMemberClassNames != null && nestMemberClassNames.length > 0) {
+            ArrayList<DefinedTypeDefinition> nestMembersList = new ArrayList<>(nestMemberClassNames.length);
+            for (String nestMemberClassName : nestMemberClassNames) {
+                DefinedTypeDefinition nestMember = context.findDefinedType(nestMemberClassName);
+                if (nestMember != null) {
+                    nestMembersList.add(nestMember);
+                }
+            }
+            if (! nestMembersList.isEmpty()) {
+                nestMembers = nestMembersList.toArray(DefinedTypeDefinition[]::new);
+            }
         }
         // one more try before taking a lock
         loaded = this.loaded;
@@ -415,7 +432,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             }
             MethodElement[] instMethods = instanceMethods.toArray(new MethodElement[instanceMethods.size()]);
             try {
-                loaded = new LoadedTypeDefinitionImpl(this, superType, interfaces, fields, methods, instMethods, ctors, init, enclosingClass, enclosedClasses);
+                loaded = new LoadedTypeDefinitionImpl(this, superType, interfaces, fields, methods, instMethods, ctors, init, enclosingClass, enclosedClasses, nestHost, nestMembers);
             } catch (VerifyFailedException e) {
                 this.loaded = new VerificationFailedDefinitionImpl(this, e.getMessage(), e.getCause());
                 throw e;

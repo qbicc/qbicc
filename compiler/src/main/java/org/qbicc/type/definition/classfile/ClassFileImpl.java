@@ -1271,10 +1271,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
 
         // create type information for phi generation
         int smtOff = classMethodInfo.getStackMapTableOffs();
-        if (smtOff == -1) {
-            throw new IllegalArgumentException("No type information available");
-        }
-        int smtLen = classMethodInfo.getStackMapTableLen();
+        int smtLen = smtOff == -1 ? 0 : classMethodInfo.getStackMapTableLen();
         ValueType[] currentStackTypes = NO_TYPES;
         int epCnt = classMethodInfo.getEntryPointCount();
         if (smtLen > 0) {

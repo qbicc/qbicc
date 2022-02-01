@@ -23,11 +23,14 @@ import org.qbicc.type.definition.InitializerResolver;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.generic.ArrayTypeSignature;
 import org.qbicc.type.generic.BaseTypeSignature;
 import org.qbicc.type.generic.ClassSignature;
 import org.qbicc.type.generic.ClassTypeSignature;
+import org.qbicc.type.generic.TopLevelClassTypeSignature;
 import org.qbicc.type.generic.TypeSignature;
 
 /**
@@ -57,6 +60,8 @@ public final class CoreClasses {
     private final FieldElement arrayClassField;
     private final FieldElement classInstanceSizeField;
     private final FieldElement classInstanceAlignField;
+    private final FieldElement classNestHostField;
+    private final FieldElement classNestMembersField;
 
     private final FieldElement thrownField;
 
@@ -97,6 +102,8 @@ public final class CoreClasses {
         arrayClassField = jlc.findField("arrayClass", true);
         classInstanceSizeField = jlc.findField("instanceSize", true);
         classInstanceAlignField = jlc.findField("instanceAlign", true);
+        classNestHostField = jlc.findField("nestHost", true);
+        classNestMembersField = jlc.findField("nestMembers", true);
 
         thrownField = jlt.findField("thrown", true);
 
@@ -310,6 +317,31 @@ public final class CoreClasses {
             }
         }, 0, 0);
 
+        // inject a field for nest host and a field for nest mates
+        ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, CLASS_INT_NAME);
+        TypeSignature classSig = TopLevelClassTypeSignature.synthesize(classContext, classDesc);
+        patcher.addField(classContext, CLASS_INT_NAME, "nestHost", classDesc, new FieldResolver() {
+            @Override
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+                builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NOT_REALLY_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+                builder.setEnclosingType(enclosing);
+                builder.setSignature(classSig);
+                return builder.build();
+            }
+        }, 0, 0);
+
+        ArrayTypeDescriptor classArrayDesc = ArrayTypeDescriptor.of(classContext, classDesc);
+        ArrayTypeSignature classArraySig = ArrayTypeSignature.of(classContext, classSig);
+        patcher.addField(classContext, CLASS_INT_NAME, "nestMembers", classArrayDesc, new FieldResolver() {
+            @Override
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+                builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NOT_REALLY_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+                builder.setEnclosingType(enclosing);
+                builder.setSignature(classArraySig);
+                return builder.build();
+            }
+        }, 0, 0);
+
         // inject the thrown exception field
         ClassTypeDescriptor throwableDesc = ClassTypeDescriptor.synthesize(classContext, THROWABLE_INT_NAME);
         patcher.addField(classContext, THREAD_INT_NAME, "thrown", throwableDesc, new FieldResolver() {
@@ -451,6 +483,14 @@ public final class CoreClasses {
 
     public FieldElement getClassInstanceAlignField() {
         return classInstanceAlignField;
+    }
+
+    public FieldElement getClassNestHostField() {
+        return classNestHostField;
+    }
+
+    public FieldElement getClassNestMembersField() {
+        return classNestMembersField;
     }
 
     public LoadedTypeDefinition getClassTypeDefinition() {

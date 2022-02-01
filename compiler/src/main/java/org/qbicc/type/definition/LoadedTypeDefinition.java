@@ -60,6 +60,10 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         return getType().isSubtypeOf(other.getType());
     }
 
+    DefinedTypeDefinition getNestHost();
+
+    DefinedTypeDefinition[] getNestMembers();
+
     MethodElement[] getInstanceMethods();
 
     NestedClassElement getEnclosingNestedClass();

@@ -70,6 +70,24 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
     }
 
     @Override
+    public void setNestHost(String nestHost) {
+        if (contextInfo.isPatchClass(nestHost)) {
+            // skip it
+            return;
+        }
+        getDelegate().setNestHost(nestHost);
+    }
+
+    @Override
+    public void addNestMember(String nestMember) {
+        if (contextInfo.isPatchClass(nestMember)) {
+            // skip it
+            return;
+        }
+        getDelegate().addNestMember(nestMember);
+    }
+
+    @Override
     public void setInitializer(InitializerResolver resolver, int index) {
         ClassPatchInfo classPatchInfo = this.classPatchInfo;
         if (classPatchInfo != null) {
