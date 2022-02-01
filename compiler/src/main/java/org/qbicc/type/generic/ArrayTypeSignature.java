@@ -44,4 +44,8 @@ public final class ArrayTypeSignature extends ReferenceTypeSignature {
         expect(buf, '[');
         return Cache.get(classContext).getArrayTypeSignature(TypeSignature.parse(classContext, buf));
     }
+
+    public static ArrayTypeSignature of(ClassContext classContext, TypeSignature elementTypeSignature) {
+        return Cache.get(classContext).getArrayTypeSignature(elementTypeSignature);
+    }
 }

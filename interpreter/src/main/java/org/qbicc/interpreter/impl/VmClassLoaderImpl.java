@@ -119,6 +119,20 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
             thread.setThrown(throwable);
             throw new Thrown(throwable);
         }
+        DefinedTypeDefinition nestHost = loaded.getNestHost();
+        if (nestHost != null && nestHost.load() != loaded) {
+            // real nest host
+            vmClass.setNestHost((VmClassImpl) nestHost.load().getVmClass());
+        }
+        DefinedTypeDefinition[] nestMembers = loaded.getNestMembers();
+        if (nestMembers != null && nestMembers.length > 0) {
+            for (DefinedTypeDefinition nestMember : nestMembers) {
+                LoadedTypeDefinition loadedMember = nestMember.load();
+                if (loadedMember != loaded) {
+                    vmClass.addNestMember((VmClassImpl) loadedMember.getVmClass());
+                }
+            }
+        }
         return vmClass;
     }
 

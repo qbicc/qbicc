@@ -596,6 +596,39 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         return ourType.isSupertypeOf(otherType);
     }
 
+    void addNestMember(final VmClassImpl member) {
+        CoreClasses coreClasses = CoreClasses.get(vm.getCompilationContext());
+        final int nestMembersIdx = indexOf(coreClasses.getClassNestMembersField());
+        VmRefArrayImpl oldMembers, newMembers, witness;
+        int insert;
+        oldMembers = (VmRefArrayImpl) getMemory().loadRef(nestMembersIdx, SingleAcquire);
+        for (;;) {
+            if (oldMembers == null) {
+                insert = 0;
+                newMembers = (VmRefArrayImpl) vm.newArrayOf(getVmClass(), 1);
+            } else {
+                insert = oldMembers.getLength();
+                newMembers = (VmRefArrayImpl) vm.newArrayOf(getVmClass(), insert + 1);
+                for (int i = 0; i < insert; i ++) {
+                    newMembers.store(i, oldMembers.getMemory().loadRef(oldMembers.getArrayElementOffset(i), SinglePlain));
+                }
+            }
+            newMembers.store(insert, member);
+            witness = (VmRefArrayImpl) getMemory().compareAndExchangeRef(nestMembersIdx, oldMembers, newMembers, SingleAcquire, SingleRelease);
+            if (witness == oldMembers) {
+                // got it
+                return;
+            }
+            oldMembers = witness;
+        }
+    }
+
+    void setNestHost(final VmClassImpl host) {
+        // this is a `final` field
+        CoreClasses coreClasses = CoreClasses.get(vm.getCompilationContext());
+        getMemory().storeRef(indexOf(coreClasses.getClassNestHostField()), host, SingleRelease);
+    }
+
     enum State {
         UNINITIALIZED,
         INITIALIZING,

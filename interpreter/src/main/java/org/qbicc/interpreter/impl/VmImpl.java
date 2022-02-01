@@ -717,6 +717,7 @@ public final class VmImpl implements Vm {
             FieldElement classDataField = classClass.getTypeDefinition().findField("classData");
             classloaderClass.registerInvokable("defineClass0", (thread, target, args) -> {
                 VmClassLoaderImpl classLoader = (VmClassLoaderImpl) args.get(0);
+                VmClassImpl lookup = (VmClassImpl) args.get(1);
                 VmString name = (VmString) args.get(2);
                 VmByteArrayImpl b = (VmByteArrayImpl) args.get(3);
                 int off = ((Integer) args.get(4)).intValue();
@@ -734,8 +735,13 @@ public final class VmImpl implements Vm {
                 if (classLoader == null) {
                     classLoader = bootstrapClassLoader;
                 }
+                boolean nestMate = (flags & 1) != 0;
                 boolean hidden = (flags & 2) != 0;
                 VmClassImpl defined = classLoader.defineClass(name, b, null, hidden);
+                if (nestMate) {
+                    lookup.addNestMember(defined);
+                    defined.setNestHost(lookup);
+                }
                 defined.getMemory().storeRef(defined.indexOf(classDataField), data, SingleRelease);
                 return defined;
             });
