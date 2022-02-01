@@ -546,6 +546,10 @@ public final class VmImpl implements Vm {
             systemClass.registerInvokable("nanoTime", (thread, target, args) -> Long.valueOf(System.nanoTime()));
             systemClass.registerInvokable("currentTimeMillis", (thread, target, args) -> Long.valueOf(System.currentTimeMillis()));
 
+            // Runtime
+            VmClassImpl runtimeClass = bootstrapClassLoader.loadClass("java/lang/Runtime");
+            runtimeClass.registerInvokable("availableProcessors", (thread, target, args) -> Integer.valueOf(Runtime.getRuntime().availableProcessors()));
+
             //jdk.internal.util.SystemProps.initProperties
             VmClassImpl systemPropsRawClass = bootstrapClassLoader.loadClass("jdk/internal/util/SystemProps$Raw");
             systemPropsRawClass.registerInvokable("platformProperties", this::platformProperties);
@@ -787,6 +791,11 @@ public final class VmImpl implements Vm {
                 }
                 return bytes;
             });
+
+            // FileDescriptor
+            VmClassImpl fdClass = bootstrapClassLoader.loadClass("java/io/FileDescriptor");
+            fdClass.registerInvokable("getAppend", (thread, target, args) -> Boolean.FALSE);
+            fdClass.registerInvokable("getHandle", (thread, target, args) -> Long.valueOf(-1));
 
             // Build
             VmClassImpl build = bootstrapClassLoader.loadClass("org/qbicc/runtime/Build");

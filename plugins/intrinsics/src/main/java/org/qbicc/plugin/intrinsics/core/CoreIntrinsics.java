@@ -15,7 +15,6 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Load;
@@ -33,7 +32,6 @@ import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
-import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
@@ -84,8 +82,6 @@ public final class CoreIntrinsics {
 
     public static void register(CompilationContext ctxt) {
         CNativeIntrinsics.register(ctxt);
-        registerEmptyNativeInitMethods(ctxt);
-        registerJavaIoFileDescriptorIntrinsics(ctxt);
         registerJavaLangClassIntrinsics(ctxt);
         registerJavaLangInvokeMethodHandleIntrinsics(ctxt);
         registerJavaLangStringUTF16Intrinsics(ctxt);
@@ -96,7 +92,6 @@ public final class CoreIntrinsics {
         registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
         registerJavaLangRefIntrinsics(ctxt);
-        registerJavaLangRuntimeIntrinsics(ctxt);
         registerOrgQbiccCompilerIntrinsics(ctxt);
         registerOrgQbiccObjectModelIntrinsics(ctxt);
         registerOrgQbiccRuntimeBuildIntrinsics(ctxt);
@@ -108,75 +103,6 @@ public final class CoreIntrinsics {
         registerJDKInternalIntrinsics(ctxt);
     }
 
-    private static void registerEmptyNativeInitMethods(final CompilationContext ctxt) {
-        Intrinsics intrinsics = Intrinsics.get(ctxt);
-        ClassContext classContext = ctxt.getBootstrapClassContext();
-        Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
-        Literal falseLiteral = ctxt.getLiteralFactory().literalOf(false);
-
-        StaticIntrinsic emptyInit = (builder, target, arguments) -> voidLiteral;
-        InstanceIntrinsic alwaysFalse = (builder, instance, target, arguments) -> falseLiteral;
-
-        ClassTypeDescriptor fileInputStreamDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileInputStream");
-        ClassTypeDescriptor fileOutputStreamDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileOutputStream");
-        ClassTypeDescriptor fileDescriptorDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileDescriptor");
-        ClassTypeDescriptor randomAccessFileDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/RandomAccessFile");
-        ClassTypeDescriptor unixFileSystemDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/UnixFileSystem");
-        ClassTypeDescriptor winNtFileSystem = ClassTypeDescriptor.synthesize(classContext, "java/io/WinNTFileSystem");
-        ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
-        ClassTypeDescriptor classLoaderDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ClassLoader");
-        ClassTypeDescriptor threadDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
-        ClassTypeDescriptor systemDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/System");
-        ClassTypeDescriptor methodHandleNativesDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/invoke/MethodHandleNatives");
-        ClassTypeDescriptor i4aDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/Inet4Address");
-        ClassTypeDescriptor i6aDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/Inet6Address");
-        ClassTypeDescriptor iaDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/InetAddress");
-        ClassTypeDescriptor networkInterfaceDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/NetworkInterface");
-        ClassTypeDescriptor inflateDesc = ClassTypeDescriptor.synthesize(classContext, "java/util/zip/Inflater");
-        ClassTypeDescriptor scopedMemoryAccessDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/ScopedMemoryAccess");
-        ClassTypeDescriptor unsafeDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Unsafe");
-        ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/VM");
-        ClassTypeDescriptor perfDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/perf/Perf");
-        ClassTypeDescriptor aixNativeDispatcherDesc = ClassTypeDescriptor.synthesize(classContext, "sun/nio/fs/AixNativeDispatcher");
-        ClassTypeDescriptor bsdNativeDispatcherDesc = ClassTypeDescriptor.synthesize(classContext, "sun/nio/fs/BsdNativeDispatcher");
-        ClassTypeDescriptor linuxNativeDispatcherDesc = ClassTypeDescriptor.synthesize(classContext, "sun/nio/fs/LinuxNativeDispatcher");
-        ClassTypeDescriptor solarisNativeDispatcherDesc = ClassTypeDescriptor.synthesize(classContext, "sun/nio/fs/SolarisNativeDispatcher");
-        ClassTypeDescriptor windowsNativeDispatcherDesc = ClassTypeDescriptor.synthesize(classContext, "sun/nio/fs/WindowsNativeDispatcher");
-
-        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
-        MethodDescriptor classToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(classDesc));
-        MethodDescriptor classToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(classDesc));
-
-        intrinsics.registerIntrinsic(fileInputStreamDesc, "initIDs", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(fileOutputStreamDesc, "initIDs", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(fileDescriptorDesc, "initIDs", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(randomAccessFileDesc, "initIDs", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(unixFileSystemDesc, "initIDs", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(winNtFileSystem, "initIDs", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(classDesc, "registerNatives", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(classLoaderDesc, "registerNatives", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(threadDesc, "registerNatives", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(systemDesc, "registerNatives", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(methodHandleNativesDesc, "registerNatives", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(i4aDesc, "init", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(i6aDesc, "init", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(iaDesc, "init", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(networkInterfaceDesc, "init", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(inflateDesc, "initIDs", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(scopedMemoryAccessDesc, "registerNatives", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(unsafeDesc, "registerNatives", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(Phase.ANALYZE, unsafeDesc, "ensureClassInitialized", classToVoid, emptyInit);
-        intrinsics.registerIntrinsic(Phase.ANALYZE, unsafeDesc, "shouldBeInitialized0", classToBool, alwaysFalse);
-        intrinsics.registerIntrinsic(vmDesc, "initialize", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(vmDesc, "initializeFromArchive", classToVoid, emptyInit);
-        intrinsics.registerIntrinsic(perfDesc, "registerNatives", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(aixNativeDispatcherDesc, "init", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(bsdNativeDispatcherDesc, "initIDs", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(linuxNativeDispatcherDesc, "init", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(solarisNativeDispatcherDesc, "init", emptyToVoid, emptyInit);
-        intrinsics.registerIntrinsic(windowsNativeDispatcherDesc, "initIDs", emptyToVoid, emptyInit);
-    }
-
     private static StaticIntrinsic setVolatile(CompilationContext ctxt, FieldElement field) {
         Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
         return (builder, target, arguments) -> {
@@ -185,30 +111,9 @@ public final class CoreIntrinsics {
         };
     }
 
-    private static void registerJavaIoFileDescriptorIntrinsics(CompilationContext ctxt) {
-        Intrinsics intrinsics = Intrinsics.get(ctxt);
-        ClassContext classContext = ctxt.getBootstrapClassContext();
-        ClassTypeDescriptor fileDescriptorDesc = ClassTypeDescriptor.synthesize(classContext, "java/io/FileDescriptor");
-
-        MethodDescriptor intToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.I));
-        MethodDescriptor intToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(BaseTypeDescriptor.I));
-
-        StaticIntrinsic getHandle = (builder, target, arguments) -> {
-            return ctxt.getLiteralFactory().literalOf(-1L); // TODO: real implementation (for Windows)
-        };
-
-        StaticIntrinsic getAppend = (builder, target, arguments) -> {
-            return ctxt.getLiteralFactory().literalOf(false); // TODO: real implementation
-        };
-
-        intrinsics.registerIntrinsic(fileDescriptorDesc, "getHandle", intToLong, getHandle);
-        intrinsics.registerIntrinsic(fileDescriptorDesc, "getAppend", intToBool, getAppend);
-    }
-
     public static void registerJavaLangClassIntrinsics(CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
-        CoreClasses coreClasses = CoreClasses.get(ctxt);
 
         ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor jlclDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ClassLoader");
@@ -279,11 +184,9 @@ public final class CoreIntrinsics {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
         LiteralFactory lf = ctxt.getLiteralFactory();
-        TypeSystem ts = ctxt.getTypeSystem();
 
         ClassTypeDescriptor methodHandleDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/invoke/MethodHandle");
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
-        ClassTypeDescriptor methodTypeDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/invoke/MethodType");
         ClassTypeDescriptor internalErrorDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/InternalError");
         ClassTypeDescriptor throwableDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Throwable");
 
@@ -358,7 +261,6 @@ public final class CoreIntrinsics {
 
         ClassTypeDescriptor systemDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/System");
         LoadedTypeDefinition jls = classContext.findDefinedType("java/lang/System").load();
-        ClassTypeDescriptor jloDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
 
         // System public API
 
@@ -401,14 +303,7 @@ public final class CoreIntrinsics {
 
         MethodDescriptor returnJlt = MethodDescriptor.synthesize(classContext, jltDesc, List.of());
         MethodDescriptor voidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
-        MethodDescriptor voidIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.I));
         MethodDescriptor booleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
-
-        StaticIntrinsic nopStatic = (builder, target, arguments) -> ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getExecutable().getType().getReturnType());
-        InstanceIntrinsic nopInstance = (builder, instance, target, arguments) -> ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getExecutable().getType().getReturnType());
-
-        /* registerNatives */
-        intrinsics.registerIntrinsic(jltDesc, "registerNatives", voidDesc, nopStatic);
 
         /* public static native Thread currentThread(); */
         StaticIntrinsic currentThread = (builder, target, arguments) -> builder.load(builder.currentThread(), SingleUnshared);
@@ -484,9 +379,6 @@ public final class CoreIntrinsics {
             return builder.isEq(isThreadAlive, aliveState);
         };
         intrinsics.registerIntrinsic(jltDesc, "isAlive", booleanDesc, isAlive);
-
-        /* private native void setPriority0(int newPriority); */
-        intrinsics.registerIntrinsic(jltDesc, "setPriority0", voidIntDesc, nopInstance);
     }
 
     public static void registerJavaLangThrowableIntrinsics(CompilationContext ctxt) {
@@ -769,7 +661,6 @@ public final class CoreIntrinsics {
         MethodDescriptor binaryIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.I, BaseTypeDescriptor.I));
         MethodDescriptor binaryLongDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.J, BaseTypeDescriptor.J));
         MethodDescriptor binaryShortToIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.S, BaseTypeDescriptor.S));
-        MethodDescriptor longIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.J, BaseTypeDescriptor.I));
 
         StaticIntrinsic divideUnsigned = (builder, target, arguments) ->
             builder.divide(asUnsigned(builder, arguments.get(0)), asUnsigned(builder, arguments.get(1)));
@@ -852,7 +743,6 @@ public final class CoreIntrinsics {
     static void registerOrgQbiccCompilerIntrinsics(final CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
-        LiteralFactory lf = ctxt.getLiteralFactory();
         CoreClasses coreClasses = CoreClasses.get(ctxt);
 
         ClassTypeDescriptor ciDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/CompilerIntrinsics");
@@ -917,9 +807,7 @@ public final class CoreIntrinsics {
         MethodDescriptor typeIdTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(typeIdDesc));
         MethodDescriptor typeIdBooleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(typeIdDesc));
         MethodDescriptor typeIdTypeIdBooleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(typeIdDesc, typeIdDesc));
-        MethodDescriptor typeIdVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(typeIdDesc));
         MethodDescriptor intVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.I));
-        MethodDescriptor typeIdIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(typeIdDesc));
         MethodDescriptor typeIdClsDesc = MethodDescriptor.synthesize(classContext, clsDesc, List.of(typeIdDesc, uint8Desc));
         MethodDescriptor typeIdToClassDesc = MethodDescriptor.synthesize(classContext, clsDesc, List.of(typeIdDesc));
         MethodDescriptor clsTypeId = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(clsDesc));
@@ -1049,7 +937,7 @@ public final class CoreIntrinsics {
 
         MethodElement getOrCreateArrayClass = methodFinder.getMethod("getOrCreateClassForRefArray");
         StaticIntrinsic getClassFromTypeId = (builder, target, arguments) -> {
-            /** Pseudo code for this intrinsic:
+            /* Pseudo code for this intrinsic:
              *    Class<?> componentClass = qbicc_jlc_lookup_table[typeId];
              *    Class<?> result = componentClass;
              *    if (dims > 0) {
@@ -1145,22 +1033,17 @@ public final class CoreIntrinsics {
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
             ValueHandle typeIdStruct = builder.elementOf(builder.globalVariable(typeIdGlobal), typeId);
             ValueHandle superTypeId = builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("superTypeId"));
-            Value superTypeIdValue = builder.load(superTypeId);
-            return superTypeIdValue;
+            return builder.load(superTypeId);
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getSuperClassTypeId", typeIdTypeIdDesc, getSuperClassTypeId);
 
         // public static native CNative.type_id getFirstInterfaceTypeId();
-        StaticIntrinsic getFirstInterfaceTypeid = (builder, target, arguments) -> {
-            return lf.literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), tables.getFirstInterfaceTypeId());
-        };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getFirstInterfaceTypeid", emptyTotypeIdDesc, getFirstInterfaceTypeid);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getFirstInterfaceTypeid", emptyTotypeIdDesc,
+            (builder, target, arguments) -> lf.literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), tables.getFirstInterfaceTypeId()));
 
         // public static native int getNumberOfBytesInInterfaceBitsArray();
-        StaticIntrinsic getNumberOfBytesInInterfaceBitsArray = (builder, target, arguments) -> {
-            return lf.literalOf(tables.getNumberOfBytesInInterfaceBitsArray());
-        };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getNumberOfBytesInInterfaceBitsArray", IntDesc, getNumberOfBytesInInterfaceBitsArray);
+        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getNumberOfBytesInInterfaceBitsArray", IntDesc,
+            (builder, target, arguments) -> lf.literalOf(tables.getNumberOfBytesInInterfaceBitsArray()));
 
         // public static native byte getByteOfInterfaceBits(CNative.type_id typeId, int index);
         StaticIntrinsic getByteOfInterfaceBits = (builder, target, arguments) -> {
@@ -1169,8 +1052,7 @@ public final class CoreIntrinsics {
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
             ValueHandle typeIdStruct = builder.elementOf(builder.globalVariable(typeIdGlobal), typeId);
             ValueHandle bits = builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("interfaceBits"));
-            Value dataByte = builder.load(builder.elementOf(bits, index));
-            return dataByte;
+            return builder.load(builder.elementOf(bits, index));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getByteOfInterfaceBits", typeIdIntToByteDesc, getByteOfInterfaceBits);
     }
@@ -1281,23 +1163,6 @@ public final class CoreIntrinsics {
 
         intrinsics.registerIntrinsic(Phase.ADD, referenceDesc, "refersTo0", objToBool, refersTo0);
         intrinsics.registerIntrinsic(Phase.ADD, phantomReferenceDesc, "refersTo0", objToBool, refersTo0);
-    }
-
-    private static void registerJavaLangRuntimeIntrinsics(CompilationContext ctxt) {
-        Intrinsics intrinsics = Intrinsics.get(ctxt);
-        ClassContext classContext = ctxt.getBootstrapClassContext();
-
-        ClassTypeDescriptor runtimeClassDescriptor = ClassTypeDescriptor.synthesize(classContext, "java/lang/Runtime");
-
-        InstanceIntrinsic availableProcessorsIntrinsic = (builder, instance, target, arguments) -> {
-            // TODO this should reflect the target platform
-            int numProcessors = Runtime.getRuntime().availableProcessors();
-            return ctxt.getLiteralFactory().literalOf(numProcessors);
-        };
-
-        MethodDescriptor availableProcessorsMethodDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
-
-        intrinsics.registerIntrinsic(runtimeClassDescriptor, "availableProcessors", availableProcessorsMethodDesc, availableProcessorsIntrinsic);
     }
 
     private static Value traverseLoads(Value value) {
