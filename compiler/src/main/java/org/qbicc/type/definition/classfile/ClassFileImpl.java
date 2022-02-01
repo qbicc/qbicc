@@ -383,6 +383,9 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             int slash = name.lastIndexOf('/');
             String packageName = slash == -1 ? "" : ctxt.deduplicate(name.substring(0, slash));
             String className = slash == -1 ? name : ctxt.deduplicate(name.substring(slash + 1));
+            if (paramCtxt instanceof DefinedTypeDefinition dtd && dtd.internalPackageAndNameEquals(packageName, className)) {
+                return dtd.load().getType();
+            }
             return ctxt.resolveTypeFromClassName(packageName, className);
         }
     }
