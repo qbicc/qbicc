@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.driver.Phase;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockEntry;
@@ -50,6 +51,7 @@ import org.qbicc.type.descriptor.TypeDescriptor;
  */
 public class UnsafeIntrinsics {
     public static void register(CompilationContext ctxt) {
+        registerEmptyLateIntrinsics(ctxt);
         registerCompareAndExchangeIntrinsics(ctxt);
         registerCompareAndSetIntrinsics(ctxt);
         registerGetAndModIntrinsics(ctxt);
@@ -58,6 +60,23 @@ public class UnsafeIntrinsics {
         registerFenceIntrinsics(ctxt);
         registerPlatformStaticIntrinsics(ctxt);
         registerFieldAndArrayIntrinsics(ctxt);
+    }
+
+    private static void registerEmptyLateIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+        ClassTypeDescriptor unsafeDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Unsafe");
+
+        MethodDescriptor classToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(classDesc));
+        MethodDescriptor classToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(classDesc));
+
+        // These are both late expanded intrinsics so we can interpret them differently in the ADD phase.
+        intrinsics.registerIntrinsic(Phase.ANALYZE, unsafeDesc, "ensureClassInitialized", classToVoid,
+            (builder, target, arguments) -> ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType()));
+        intrinsics.registerIntrinsic(Phase.ANALYZE, unsafeDesc, "shouldBeInitialized0", classToBool,
+            (builder, instance, target, arguments) -> ctxt.getLiteralFactory().literalOf(false));
     }
 
     // Compare and exchange
