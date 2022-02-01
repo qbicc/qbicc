@@ -1,7 +1,12 @@
 package org.qbicc.plugin.patcher;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
 import org.qbicc.context.ClassContext;
-import org.qbicc.graph.And;
 import org.qbicc.plugin.core.ConditionEvaluation;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.definition.ConstructorResolver;
@@ -16,8 +21,6 @@ import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
-import java.util.List;
-
 /**
  *
  */
@@ -25,6 +28,11 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
     private final ClassContext classContext;
     private final ClassContextPatchInfo contextInfo;
     private final DefinedTypeDefinition.Builder delegate;
+    private String internalName;
+    private Map<String, FieldPatchInfo> addedFields;
+    private Map<String, Map<MethodDescriptor, MethodPatchInfo>> addedMethods;
+    private Map<MethodDescriptor, ConstructorPatchInfo> addedConstructors;
+
     private ClassPatchInfo classPatchInfo;
 
     PatchedTypeBuilder(ClassContext classContext, ClassContextPatchInfo contextInfo, DefinedTypeDefinition.Builder delegate) {
@@ -44,10 +52,18 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
             throw new IllegalStateException("A patch class was found for loading: " + internalName);
         }
         classPatchInfo = contextInfo.get(internalName);
+        this.internalName = internalName;
         if (classPatchInfo != null) {
             // no further changes may be registered
             synchronized (classPatchInfo) {
                 classPatchInfo.commit();
+                // record all injected members in case they're already present
+                List<FieldPatchInfo> injectedFields = classPatchInfo.getInjectedFields();
+                addedFields = mapOf(injectedFields, FieldPatchInfo::getName);
+                List<ConstructorPatchInfo> injectedConstructors = classPatchInfo.getInjectedConstructors();
+                addedConstructors = mapOf(injectedConstructors, ConstructorPatchInfo::getDescriptor);
+                List<MethodPatchInfo> injectedMethods = classPatchInfo.getInjectedMethods();
+                addedMethods = mapOf(injectedMethods, MethodPatchInfo::getName, MethodPatchInfo::getDescriptor);
             }
         }
         getDelegate().setName(internalName);
@@ -83,6 +99,7 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
             ConditionEvaluation ce = ConditionEvaluation.get(classContext.getCompilationContext());
             FieldPatchInfo patchInfo;
             FieldPatchInfo annotateInfo;
+            FieldPatchInfo injectedInfo;
             RuntimeInitializerPatchInfo initInfo;
             synchronized (classPatchInfo) {
                 FieldDeleteInfo delInfo = classPatchInfo.getDeletedFieldInfo(name, descriptor);
@@ -91,12 +108,16 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
                     return;
                 }
                 patchInfo = classPatchInfo.getReplacementFieldInfo(name, descriptor);
+                injectedInfo = addedFields.get(name);
                 annotateInfo = classPatchInfo.getAnnotatedFieldInfo(name, descriptor);
                 initInfo = classPatchInfo.getRuntimeInitFieldInfo(name, descriptor);
             }
             if (patchInfo != null && ce.evaluateConditions(classContext, patchInfo, patchInfo.getAnnotation())) {
                 resolver = new PatcherFieldResolver(patchInfo);
                 index = patchInfo.getIndex();
+            } else if (injectedInfo != null && ce.evaluateConditions(classContext, injectedInfo, injectedInfo.getAnnotation())) {
+                classContext.getCompilationContext().warning("Injected field %s was already present on %s (replacing)", name, internalName);
+                return;
             }
             if (annotateInfo != null && ce.evaluateConditions(classContext, annotateInfo, annotateInfo.getAnnotation())) {
                 resolver = new AnnotationAddingResolver(annotateInfo.getAddedAnnotations(), resolver);
@@ -117,6 +138,7 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
             ConditionEvaluation ce = ConditionEvaluation.get(classContext.getCompilationContext());
             ConstructorPatchInfo constructorInfo;
             ConstructorPatchInfo annotateInfo;
+            ConstructorPatchInfo injectedInfo;
             synchronized (classPatchInfo) {
                 ConstructorDeleteInfo delInfo = classPatchInfo.getDeletedConstructorInfo(descriptor);
                 if (delInfo != null && ce.evaluateConditions(classContext, delInfo, delInfo.getAnnotation())) {
@@ -124,11 +146,15 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
                     return;
                 }
                 constructorInfo = classPatchInfo.getReplacementConstructorInfo(descriptor);
+                injectedInfo = addedConstructors.get(descriptor);
                 annotateInfo = classPatchInfo.getAnnotatedConstructorInfo(descriptor);
             }
             if (constructorInfo != null && ce.evaluateConditions(classContext, constructorInfo, constructorInfo.getAnnotation())) {
                 resolver = new PatcherConstructorResolver(constructorInfo);
                 index = constructorInfo.getIndex();
+            } else if (injectedInfo != null && ce.evaluateConditions(classContext, injectedInfo, injectedInfo.getAnnotation())) {
+                classContext.getCompilationContext().warning("Injected constructor %s was already present on %s (replacing)", descriptor, internalName);
+                return;
             }
             if (annotateInfo != null && ce.evaluateConditions(classContext, annotateInfo, annotateInfo.getAnnotation())) {
                 resolver = new AnnotationAddingResolver(annotateInfo.getAddedAnnotations(), resolver);
@@ -146,6 +172,7 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
             ConditionEvaluation ce = ConditionEvaluation.get(classContext.getCompilationContext());
             MethodPatchInfo methodInfo;
             MethodPatchInfo annotateInfo;
+            MethodPatchInfo injectedInfo;
             synchronized (classPatchInfo) {
                 MethodDeleteInfo delInfo = classPatchInfo.getDeletedMethodInfo(name, descriptor);
                 if (delInfo != null && ce.evaluateConditions(classContext, delInfo, delInfo.getAnnotation())) {
@@ -153,11 +180,15 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
                     return;
                 }
                 methodInfo = classPatchInfo.getReplacementMethodInfo(name, descriptor);
+                injectedInfo = addedMethods.getOrDefault(name, Map.of()).get(descriptor);
                 annotateInfo = classPatchInfo.getAnnotatedMethodInfo(name, descriptor);
             }
             if (methodInfo != null && ce.evaluateConditions(classContext, methodInfo, methodInfo.getAnnotation())) {
                 resolver = methodInfo.getMethodResolver();
                 index = methodInfo.getIndex();
+            } else if (injectedInfo != null) {
+                classContext.getCompilationContext().warning("Injected method %s%s was already present on %s (replacing)", name, descriptor, internalName);
+                return;
             }
             if (annotateInfo != null && ce.evaluateConditions(classContext, annotateInfo, annotateInfo.getAnnotation())) {
                 resolver = new AnnotationAddingResolver(annotateInfo.getAddedAnnotations(), resolver);
@@ -307,5 +338,108 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
             builder.addInvisibleAnnotations(additions);
             return methodResolver.resolveMethod(index, enclosing, builder);
         }
+    }
+
+    /**
+     * Utility to create a compact map from a compact list.
+     *
+     * @param list the list of values
+     * @param mapper the key mapping function
+     * @param <K> the key type
+     * @param <V> the value type
+     * @return the map
+     */
+    static <K, V> Map<K, V> mapOf(List<V> list, Function<V, K> mapper) {
+        Iterator<V> iterator = list.iterator();
+        if (! iterator.hasNext()) {
+            return Map.of();
+        }
+        V v1 = iterator.next();
+        K k1 = mapper.apply(v1);
+        if (! iterator.hasNext()) {
+            return Map.of(k1, v1);
+        }
+        V v2 = iterator.next();
+        K k2 = mapper.apply(v2);
+        if (! iterator.hasNext()) {
+            return Map.of(k1, v1, k2, v2);
+        }
+        V v3 = iterator.next();
+        K k3 = mapper.apply(v3);
+        if (! iterator.hasNext()) {
+            return Map.of(k1, v1, k2, v2, k3, v3);
+        }
+        V v4 = iterator.next();
+        K k4 = mapper.apply(v4);
+        if (! iterator.hasNext()) {
+            return Map.of(k1, v1, k2, v2, k3, v3, k4, v4);
+        }
+        V v5 = iterator.next();
+        K k5 = mapper.apply(v5);
+        if (! iterator.hasNext()) {
+            return Map.of(k1, v1, k2, v2, k3, v3, k4, v4, k5, v5);
+        }
+        HashMap<K, V> map = new HashMap<>(list.size());
+        map.put(k1, v1);
+        map.put(k2, v2);
+        map.put(k3, v3);
+        map.put(k4, v4);
+        map.put(k5, v5);
+        while (iterator.hasNext()) {
+            V v = iterator.next();
+            map.put(mapper.apply(v), v);
+        }
+        return map;
+    }
+
+    static <K, L, V> Map<K, Map<L, V>> mapOf(List<V> list, Function<V, K> outerMapper, Function<V, L> innerMapper) {
+        Iterator<V> iterator = list.iterator();
+        if (! iterator.hasNext()) {
+            return Map.of();
+        }
+        V v1 = iterator.next();
+        K k1 = outerMapper.apply(v1);
+        L l1 = innerMapper.apply(v1);
+        if (! iterator.hasNext()) {
+            return Map.of(k1, Map.of(l1, v1));
+        }
+        V v2 = iterator.next();
+        K k2 = outerMapper.apply(v2);
+        L l2 = innerMapper.apply(v2);
+        if (! iterator.hasNext()) {
+            if (k2.equals(k1)) {
+                return Map.of(k1, Map.of(l1, v1, l2, v2));
+            } else {
+                return Map.of(k1, Map.of(l1, v1), k2, Map.of(l2, v2));
+            }
+        }
+        V v3 = iterator.next();
+        K k3 = outerMapper.apply(v3);
+        L l3 = innerMapper.apply(v3);
+        if (! iterator.hasNext()) {
+            if (k3.equals(k2) && k2.equals(k1)) {
+                return Map.of(k1, Map.of(l1, v1, l2, v2, l3, v3));
+            } else if (k3.equals(k2)) {
+                return Map.of(k1, Map.of(l1, v1), k2, Map.of(l2, v2, l3, v3));
+            } else if (k2.equals(k1)) {
+                return Map.of(k1, Map.of(l1, v1, l2, v2), k3, Map.of(l3, v3));
+            } else {
+                return Map.of(k1, Map.of(l1, v1), k2, Map.of(l2, v2), k3, Map.of(l3, v3));
+            }
+        }
+        // a fourth key would require many permutations, so just give up and make a basic HashMap
+        HashMap<K, Map<L, V>> map = new HashMap<>(list.size());
+        map.computeIfAbsent(k1, PatchedTypeBuilder::newMap).put(l1, v1);
+        map.computeIfAbsent(k2, PatchedTypeBuilder::newMap).put(l2, v2);
+        map.computeIfAbsent(k3, PatchedTypeBuilder::newMap).put(l3, v3);
+        while (iterator.hasNext()) {
+            V v = iterator.next();
+            map.computeIfAbsent(outerMapper.apply(v), PatchedTypeBuilder::newMap).put(innerMapper.apply(v), v);
+        }
+        return map;
+    }
+
+    private static <K, V> Map<K, V> newMap(Object ignored) {
+        return new HashMap<>();
     }
 }

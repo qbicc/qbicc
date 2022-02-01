@@ -147,8 +147,12 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
     }
 
     default FieldElement findField(String name) {
-        int idx = getFieldIndex(name);
-        return idx == - 1 ? null : getField(idx);
+        return findField(name, false);
+    }
+
+    default FieldElement findField(String name, boolean includeNoResolve) {
+        int idx = getFieldIndex(name, includeNoResolve);
+        return idx == -1 ? null : getField(idx);
     }
 
     /**

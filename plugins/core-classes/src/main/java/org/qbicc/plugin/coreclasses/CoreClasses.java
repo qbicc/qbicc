@@ -84,22 +84,21 @@ public final class CoreClasses {
         DefinedTypeDefinition jloDef = classContext.findDefinedType(OBJECT_INT_NAME);
         DefinedTypeDefinition jlcDef = classContext.findDefinedType(CLASS_INT_NAME);
         DefinedTypeDefinition jltDef = classContext.findDefinedType(THREAD_INT_NAME);
-        ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, CLASS_INT_NAME);
         LoadedTypeDefinition jlo = jloDef.load();
         LoadedTypeDefinition jlc = jlcDef.load();
         LoadedTypeDefinition jlt = jltDef.load();
         final TypeSystem ts = ctxt.getTypeSystem();
 
-        objectHeaderField = jlo.resolveField(BaseTypeDescriptor.V, "header", true);
-        objectTypeIdField = jlo.resolveField(BaseTypeDescriptor.V, "typeId", true);
+        objectHeaderField = jlo.findField("header", true);
+        objectTypeIdField = jlo.findField("typeId", true);
 
-        classTypeIdField = jlc.resolveField(BaseTypeDescriptor.V, "id", true);
-        classDimensionField = jlc.resolveField(BaseTypeDescriptor.V, "dimension", true);
-        arrayClassField = jlc.resolveField(jlcDesc, "arrayClass", true);
-        classInstanceSizeField = jlc.resolveField(BaseTypeDescriptor.I, "instanceSize", true);
-        classInstanceAlignField = jlc.resolveField(BaseTypeDescriptor.B, "instanceAlign", true);
+        classTypeIdField = jlc.findField("id", true);
+        classDimensionField = jlc.findField("dimension", true);
+        arrayClassField = jlc.findField("arrayClass", true);
+        classInstanceSizeField = jlc.findField("instanceSize", true);
+        classInstanceAlignField = jlc.findField("instanceAlign", true);
 
-        thrownField = jlt.resolveField(ClassTypeDescriptor.synthesize(classContext, THROWABLE_INT_NAME), "thrown", true);
+        thrownField = jlt.findField("thrown", true);
 
         // now define classes for arrays
         // todo: assign special type ID values to array types

@@ -150,6 +150,12 @@ final class ClassPatchInfo {
     void addField(final FieldPatchInfo fieldPatchInfo) {
         assert Thread.holdsLock(this);
         checkCommitted();
+        for (FieldPatchInfo injectedField : injectedFields) {
+            if (injectedField.getName().equals(fieldPatchInfo.getName())) {
+                // ignore
+                return;
+            }
+        }
         injectedFields = listWith(injectedFields, fieldPatchInfo);
     }
 
@@ -183,6 +189,12 @@ final class ClassPatchInfo {
     void addConstructor(final ConstructorPatchInfo constructorPatchInfo) {
         assert Thread.holdsLock(this);
         checkCommitted();
+        for (ConstructorPatchInfo injectedConstructor : injectedConstructors) {
+            if (injectedConstructor.getDescriptor().equals(constructorPatchInfo.getDescriptor())) {
+                // ignore
+                return;
+            }
+        }
         injectedConstructors = listWith(injectedConstructors, constructorPatchInfo);
     }
 
@@ -210,6 +222,12 @@ final class ClassPatchInfo {
         assert Thread.holdsLock(this);
         checkCommitted();
         injectedMethods = listWith(injectedMethods, methodPatchInfo);
+        for (MethodPatchInfo injectedMethod : injectedMethods) {
+            if (injectedMethod.getName().equals(methodPatchInfo.getName()) && injectedMethod.getDescriptor().equals(methodPatchInfo.getDescriptor())) {
+                // ignore
+                return;
+            }
+        }
     }
 
     void deleteMethod(final String name, final MethodDescriptor descriptor, String internalName, Annotation annotation) {
