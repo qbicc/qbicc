@@ -401,6 +401,18 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, FunctionType callSiteType);
 
+    /**
+     * Convenience method to construct a constructor handle whose descriptor and type match the element's descriptor and type.
+     * <b>Do not override this method.</b>
+     *
+     * @param instance the object instance (must not be {@code null})
+     * @param constructor the constructor element (must not be {@code null})
+     * @return the value handle (not {@code null})
+     */
+    default ValueHandle constructorOf(Value instance, ConstructorElement constructor) {
+        return constructorOf(instance, constructor, constructor.getDescriptor(), constructor.getType());
+    }
+
     ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor);
 
     ValueHandle functionOf(FunctionElement function);
