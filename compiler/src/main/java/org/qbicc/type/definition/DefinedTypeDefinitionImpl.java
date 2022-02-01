@@ -231,8 +231,8 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         for (int i = 0; i < cnt; i ++) {
             interfaces[i] = context.findDefinedType(getInterfaceInternalName(i)).load();
         }
-        DefinedTypeDefinition nestHost = context.findDefinedType(nestHostClassName);
-        DefinedTypeDefinition[] nestMembers = NO_DEFINED_TYPES;
+        DefinedTypeDefinition nestHost = nestHostClassName == null ? null : context.findDefinedType(nestHostClassName);
+        DefinedTypeDefinition[] nestMembers = null;
         if (nestMemberClassNames != null && nestMemberClassNames.length > 0) {
             ArrayList<DefinedTypeDefinition> nestMembersList = new ArrayList<>(nestMemberClassNames.length);
             for (String nestMemberClassName : nestMemberClassNames) {
