@@ -37,6 +37,8 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
     private final InitializerElement init;
     private final NestedClassElement enclosingClass;
     private final NestedClassElement[] enclosedClasses;
+    private final DefinedTypeDefinition nestHost;
+    private final DefinedTypeDefinition[] nestMembers;
     private int typeId = -1;
     private int maximumSubtypeId = -1;
     private final boolean hasDefaultMethods;
@@ -45,7 +47,7 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
     private LoadedTypeDefinition enclosingMethodClass;
     private MethodElement enclosingMethod;
 
-    LoadedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final LoadedTypeDefinition superType, final LoadedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final MethodElement[] instanceMethods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses) {
+    LoadedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final LoadedTypeDefinition superType, final LoadedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final MethodElement[] instanceMethods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses, DefinedTypeDefinition nestHost, DefinedTypeDefinition[] nestMembers) {
         this.delegate = delegate;
         this.superType = superType;
         this.interfaces = interfaces;
@@ -56,6 +58,8 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
         this.init = init;
         this.enclosingClass = enclosingClass;
         this.enclosedClasses = enclosedClasses;
+        this.nestHost = nestHost;
+        this.nestMembers = nestMembers;
         int interfaceCnt = interfaces.length;
         InterfaceObjectType[] interfaceTypes = new InterfaceObjectType[interfaceCnt];
         for (int i = 0; i < interfaceCnt; i ++) {
@@ -146,6 +150,16 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
                 Collections.addAll(worklist, ltd.getInterfaces());
             }
         }
+    }
+
+    @Override
+    public DefinedTypeDefinition getNestHost() {
+        return nestHost;
+    }
+
+    @Override
+    public DefinedTypeDefinition[] getNestMembers() {
+        return nestMembers;
     }
 
     public MethodElement[] getInstanceMethods() { return instanceMethods; }
