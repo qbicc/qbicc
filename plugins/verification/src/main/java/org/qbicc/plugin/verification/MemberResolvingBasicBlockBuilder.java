@@ -351,6 +351,11 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     private DefinedTypeDefinition resolveDescriptor(final TypeDescriptor owner) {
+        DefinedTypeDefinition enclosingType = getCurrentElement().getEnclosingType();
+        if (owner == enclosingType.getDescriptor()) {
+            // special case - resolving on a hidden class
+            return enclosingType;
+        }
         if (owner instanceof ClassTypeDescriptor) {
             final String typeName;
             if (((ClassTypeDescriptor) owner).getPackageName().isEmpty()) {

@@ -165,6 +165,9 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private boolean loadClass(ClassTypeDescriptor desc) {
+        if (desc == getCurrentElement().getEnclosingType().getDescriptor()) {
+            return true;
+        }
         final String typeName;
         if (desc.getPackageName().isEmpty()) {
             typeName = desc.getClassName();
