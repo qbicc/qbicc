@@ -99,6 +99,7 @@ public class DispatchTables {
         MethodElement[] vtable = vtableVector.toArray(MethodElement.NO_METHODS);
 
         String vtableName = "vtable-" + cls.getInternalName().replace('/', '.');
+        if (cls.isHidden()) vtableName += "~" + cls.getHiddenClassIndex();
         TypeSystem ts = ctxt.getTypeSystem();
         CompoundType.Member[] functions = new CompoundType.Member[vtable.length];
         for (int i=0; i<vtable.length; i++) {
@@ -125,6 +126,7 @@ public class DispatchTables {
         // Build the CompoundType for the ITable using the (arbitrary) order of selectors in itableVector
         MethodElement[] itable = itableVector.toArray(MethodElement.NO_METHODS);
         String itableName = "itable-" + cls.getInternalName().replace('/', '.');
+        if (cls.isHidden()) itableName += "~" + cls.getHiddenClassIndex();
         TypeSystem ts = ctxt.getTypeSystem();
         CompoundType.Member[] functions = new CompoundType.Member[itable.length];
         for (int i=0; i<itable.length; i++) {
