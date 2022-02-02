@@ -109,6 +109,10 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
 
     public BootstrapMethod getBootstrapMethod(final int index) { return getDelegate().getBootstrapMethod(index); }
 
+    public int getHiddenClassIndex() {
+        return getDelegate().getHiddenClassIndex();
+    }
+
     public int hashCode() {
         return getDelegate().hashCode();
     }

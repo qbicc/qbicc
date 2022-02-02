@@ -192,6 +192,8 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
 
     BootstrapMethod getBootstrapMethod(int index);
 
+    int getHiddenClassIndex();
+
     interface Builder extends Locatable {
         void setContext(ClassContext context);
 
@@ -248,6 +250,8 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
         void setNestHost(String nestHost);
 
         void addNestMember(String nestMember);
+
+        void setHiddenClassIndex(int index);
 
         DefinedTypeDefinition build();
 
@@ -368,6 +372,10 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
 
             default void addNestMember(String nestMember) {
                 getDelegate().addNestMember(nestMember);
+            }
+
+            default void setHiddenClassIndex(int index) {
+                getDelegate().setHiddenClassIndex(index);
             }
 
             default DefinedTypeDefinition build() {

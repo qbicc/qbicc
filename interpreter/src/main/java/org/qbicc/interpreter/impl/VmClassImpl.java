@@ -33,7 +33,6 @@ import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
-import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
@@ -113,7 +112,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         staticLayoutInfo = Layout.get(ctxt).getStaticLayoutInfo(typeDefinition);
         staticMemory = staticLayoutInfo == null ? vmImpl.allocate(0) : vmImpl.allocate((int) staticLayoutInfo.getCompoundType().getSize());
         initializeConstantStaticFields();
-        staticFieldBase = staticLayoutInfo == null ? null : new VmStaticFieldBase(staticLayoutInfo, staticMemory);
+        staticFieldBase = staticLayoutInfo == null ? null : new VmStaticFieldBase(this, staticLayoutInfo, staticMemory);
     }
 
     VmClassImpl(VmImpl vmImpl, VmClassClassImpl classClass, @SuppressWarnings("unused") int primitivesOnly) {
@@ -144,7 +143,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         staticMemory = staticLayoutInfo == null ? vm.allocate(0) : vm.allocate((int) staticLayoutInfo.getCompoundType().getSize());
         superClass = new VmClassImpl(vm, (VmClassClassImpl) this, classContext.findDefinedType("java/lang/Object").load(), null);
         initializeConstantStaticFields();
-        staticFieldBase = staticLayoutInfo == null ? null : new VmStaticFieldBase(staticLayoutInfo, staticMemory);
+        staticFieldBase = staticLayoutInfo == null ? null : new VmStaticFieldBase(this, staticLayoutInfo, staticMemory);
     }
 
     void initializeConstantStaticFields() {
@@ -216,9 +215,8 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     void postConstruct(VmImpl vm) {
         String name = typeDefinition.getInternalName().replace('/', '.');
-        if (typeDefinition.hasAllModifiersOf(ClassFile.I_ACC_HIDDEN)) {
-            VmClassLoaderImpl realClassLoader = vm.getClassLoaderForContext(typeDefinition.getContext());
-            name += '/' + realClassLoader.getHiddenClassSeq(name);
+        if (typeDefinition.isHidden()) {
+            name += "/" + typeDefinition.getHiddenClassIndex();
         }
         postConstruct(name, vm);
     }
@@ -288,7 +286,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     @Override
     public String getName() {
-        return typeDefinition.getInternalName().replace("/", ".");
+        return ((VmString)memory.loadRef(indexOf(getVmClass().getTypeDefinition().findField("name")), SinglePlain)).getContent();
     }
 
     @Override
@@ -326,8 +324,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                     // no superclass
                     return null;
                 } else {
-                    VmClassLoader classLoader = getVm().getClassLoaderForContext(def.getContext());
-                    superClass = (VmClassImpl) classLoader.loadClass(def.getInternalName());
+                    superClass = (VmClassImpl) def.getVmClass();
                 }
                 this.superClass = superClass;
             }
@@ -349,8 +346,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 int i = 0;
                 for (LoadedTypeDefinition def : typeDefinition.getInterfaces()) {
                     // load each interface
-                    VmClassLoader classLoader = getVm().getClassLoaderForContext(def.getContext());
-                    array[i] = (VmClassImpl) classLoader.loadClass(def.getInternalName());
+                    array[i] = (VmClassImpl) def.getVmClass();
                 }
                 newVal = List.of(array);
             }
@@ -570,12 +566,13 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     @Override
     public String toString() {
-        return "class " + getName();
+        return toString(new StringBuilder()).toString();
     }
 
     @Override
     StringBuilder toString(StringBuilder target) {
-        return target.append("class ").append(getName());
+        target.append(typeDefinition.isInterface() ? "interface" : "class");
+        return target.append(' ').append(getName());
     }
 
     boolean shouldBeInitialized() {

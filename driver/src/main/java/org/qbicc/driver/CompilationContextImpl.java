@@ -364,6 +364,9 @@ final class CompilationContextImpl implements CompilationContext {
     public Path getOutputDirectory(final DefinedTypeDefinition type) {
         Path base = outputDir;
         String internalName = type.getInternalName();
+        if (type.isHidden()) {
+            internalName += "~" + type.getHiddenClassIndex();
+        }
         int idx = internalName.indexOf('/');
         if (idx == -1) {
             return base.resolve(internalName);
@@ -516,7 +519,8 @@ final class CompilationContextImpl implements CompilationContext {
     private String getExactNameForElement(final ExecutableElement element, final FunctionType type) {
         // todo: encode class loader ID
         // todo: cache :-(
-        String internalDotName = element.getEnclosingType().getInternalName().replace('/', '.');
+        DefinedTypeDefinition enclosingType = element.getEnclosingType();
+        String internalDotName = enclosingType.load().getVmClass().getName().replace('/', '~');
         if (element instanceof InitializerElement) {
             return "clinit." + internalDotName;
         }

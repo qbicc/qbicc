@@ -1463,8 +1463,7 @@ public final class VmImpl implements Vm {
 
     private VmInvokable getInstanceInvoker(ExecutableElement element) {
         DefinedTypeDefinition enclosingType = element.getEnclosingType();
-        VmClassLoaderImpl classLoader = getClassLoaderForContext(enclosingType.getContext());
-        VmClassImpl loadedClass = classLoader.loadClass(enclosingType.getInternalName());
+        VmClassImpl loadedClass = (VmClassImpl) enclosingType.load().getVmClass();
         return loadedClass.getOrCompile(element);
     }
 

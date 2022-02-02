@@ -143,7 +143,7 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
     protected final void appendNameAndType(final Appendable target) throws IOException {
         returnType.appendTo(target);
 
-        target.append(" @").append(name).append('(');
+        target.append(" @").append(LLVM.needsQuotes(name) ? LLVM.quoteString(name) : name).append('(');
 
         if (lastParam != null) {
             lastParam.appendTo(target);

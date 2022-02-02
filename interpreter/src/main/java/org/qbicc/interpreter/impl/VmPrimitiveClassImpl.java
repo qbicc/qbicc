@@ -34,6 +34,11 @@ class VmPrimitiveClassImpl extends VmClassImpl implements VmPrimitiveClass {
     }
 
     @Override
+    StringBuilder toString(StringBuilder target) {
+        return target.append(getName());
+    }
+
+    @Override
     public BaseTypeDescriptor getDescriptor() {
         return descriptor;
     }

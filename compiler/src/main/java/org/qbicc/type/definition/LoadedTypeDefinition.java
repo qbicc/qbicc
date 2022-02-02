@@ -565,6 +565,14 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
     VmClass getVmClass();
 
     /**
+     * Initialize the VM class.
+     *
+     * @param vmClass the VM class (must not be {@code null})
+     * @throws IllegalStateException if the VM class was already set
+     */
+    void setVmClass(VmClass vmClass);
+
+    /**
      * Get the class of the enclosing method, if any.
      *
      * @return the enclosing method's class, or {@code null} if there is none

@@ -36,6 +36,7 @@ import org.qbicc.graph.Terminator;
 import org.qbicc.graph.TerminatorVisitor;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
@@ -1779,10 +1780,10 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         ClassTypeDescriptor callSiteDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/CallSite");
                         // Get the method handle instance from the call site
                         ClassTypeDescriptor descOfMethodHandle = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/MethodHandle");
-                        Value methodHandle = gf.call(gf.virtualMethodOf(lf.literalOf(callSite),
+                        VirtualMethodElementHandle getTargetMethod = (VirtualMethodElementHandle) gf.virtualMethodOf(lf.literalOf(callSite),
                             callSiteDesc, "getTarget",
-                            MethodDescriptor.synthesize(ctxt, descOfMethodHandle, List.of())),
-                            List.of());
+                            MethodDescriptor.synthesize(ctxt, descOfMethodHandle, List.of()));
+                        VmObject methodHandle = (VmObject) vm.invokeVirtual(getTargetMethod.getExecutable(), callSite, List.of());
                         // Invoke on the method handle
                         MethodDescriptor desc = (MethodDescriptor) getClassFile().getDescriptorConstant(getClassFile().getNameAndTypeConstantDescriptorIdx(indyNameAndTypeIdx));
                         if (desc == null) {
@@ -1797,7 +1798,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             args[i] = pop(parameterTypes.get(i).isClass2());
                         }
                         // todo: promote the method handle directly to a ValueHandle?
-                        Value result = gf.call(gf.virtualMethodOf(methodHandle, descOfMethodHandle, "invokeExact",
+                        Value result = gf.call(gf.virtualMethodOf(lf.literalOf(methodHandle), descOfMethodHandle, "invokeExact",
                             desc), List.of(demote(args, desc)));
                         TypeDescriptor returnType = desc.getReturnType();
                         if (! returnType.isVoid()) {
