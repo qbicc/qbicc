@@ -84,6 +84,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     final MethodDescriptor enclosingMethodDesc;
     final String nestHostClassName;
     final String[] nestMemberClassNames;
+    final int hiddenClassIndex;
 
     private volatile DefinedTypeDefinition loaded;
 
@@ -146,6 +147,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         nestHostClassName = builder.nestHost;
         List<String> nestMembers = builder.nestMembers;
         nestMemberClassNames = nestMembers == null ? NO_STRINGS : nestMembers.toArray(String[]::new);
+        hiddenClassIndex = builder.hiddenClassIndex;
     }
 
     public ClassContext getContext() {
@@ -589,6 +591,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         return bootstrapMethods.get(index);
     }
 
+    public int getHiddenClassIndex() {
+        return hiddenClassIndex;
+    }
+
     public boolean hasSuperClass() {
         return superClassName != null;
     }
@@ -638,6 +644,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         MethodDescriptor enclosingMethodDesc;
         String nestHost;
         List<String> nestMembers;
+        int hiddenClassIndex = -1;
 
         public void setContext(final ClassContext context) {
             this.context = context;
@@ -877,6 +884,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                 nestMembers = this.nestMembers = new ArrayList<>();
             }
             nestMembers.add(Assert.checkNotNullParam("nestMember", nestMember));
+        }
+
+        public void setHiddenClassIndex(final int index) {
+            this.hiddenClassIndex = index;
         }
 
         public void setName(final String internalName) {

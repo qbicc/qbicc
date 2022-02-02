@@ -105,6 +105,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         DefinedTypeDefinition.Builder builder = classContext.newTypeBuilder();
         classFile.accept(builder);
         if (hidden) {
+            builder.setHiddenClassIndex(getHiddenClassSeq(internalName));
             builder.addModifiers(ClassFile.I_ACC_HIDDEN);
         }
         DefinedTypeDefinition defined = builder.build();

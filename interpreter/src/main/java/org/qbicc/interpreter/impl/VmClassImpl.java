@@ -33,7 +33,6 @@ import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
-import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
@@ -216,9 +215,8 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     void postConstruct(VmImpl vm) {
         String name = typeDefinition.getInternalName().replace('/', '.');
-        if (typeDefinition.hasAllModifiersOf(ClassFile.I_ACC_HIDDEN)) {
-            VmClassLoaderImpl realClassLoader = vm.getClassLoaderForContext(typeDefinition.getContext());
-            name += "/" + realClassLoader.getHiddenClassSeq(name);
+        if (typeDefinition.isHidden()) {
+            name += "/" + typeDefinition.getHiddenClassIndex();
         }
         postConstruct(name, vm);
     }
