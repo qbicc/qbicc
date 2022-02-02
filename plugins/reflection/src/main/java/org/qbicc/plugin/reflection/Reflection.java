@@ -118,13 +118,13 @@ public final class Reflection {
 
     // reflection fields
     // MemberName
-    private final FieldElement memberNameClazzField; // Class
-    private final FieldElement memberNameNameField; // String
-    private final FieldElement memberNameTypeField; // Object
-    private final FieldElement memberNameFlagsField; // int
-    private final FieldElement memberNameMethodField; // ResolvedMethodName
-    private final FieldElement memberNameIndexField; // int (injected)
-    private final FieldElement memberNameResolvedField; // boolean (injected)
+    final FieldElement memberNameClazzField; // Class
+    final FieldElement memberNameNameField; // String
+    final FieldElement memberNameTypeField; // Object
+    final FieldElement memberNameFlagsField; // int
+    final FieldElement memberNameMethodField; // ResolvedMethodName
+    final FieldElement memberNameIndexField; // int (injected)
+    final FieldElement memberNameResolvedField; // boolean (injected)
     // Field
     private final FieldElement fieldClazzField; // Class
     private final FieldElement fieldSlotField; // int
@@ -156,6 +156,11 @@ public final class Reflection {
     private final FieldElement floatValueField;
     private final FieldElement doubleValueField;
     private final FieldElement booleanValueField;
+
+    // cached methods for method handles
+    final MethodElement methodHandleNativesFindMethodHandleType;
+    final MethodElement methodHandleNativesLinkMethod;
+    final MethodElement methodHandleNativesResolve;
 
     private Reflection(CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -213,7 +218,8 @@ public final class Reflection {
         ctorCtor = ctorDef.requireSingleConstructor(ce -> ce.getDescriptor().getParameterTypes().size() == 8);
         LoadedTypeDefinition mhnDef = classContext.findDefinedType("java/lang/invoke/MethodHandleNatives").load();
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("init")), this::methodHandleNativesInit);
-        vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("resolve")), this::methodHandleNativesResolve);
+        methodHandleNativesResolve = mhnDef.requireSingleMethod(me -> me.nameEquals("resolve"));
+        vm.registerInvokable(methodHandleNativesResolve, this::methodHandleNativesResolve);
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("objectFieldOffset")), this::methodHandleNativesObjectFieldOffset);
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("staticFieldBase")), this::methodHandleNativesStaticFieldBase);
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("staticFieldOffset")), this::methodHandleNativesStaticFieldOffset);
@@ -240,6 +246,9 @@ public final class Reflection {
         ));
         memberNameClass = memberNameDef.getVmClass();
         memberName4Ctor = memberNameDef.resolveConstructorElement(memberName4Desc);
+        // MethodHandleNatives
+        methodHandleNativesLinkMethod = mhnDef.requireSingleMethod(me -> me.nameEquals("linkMethod"));
+        methodHandleNativesFindMethodHandleType = mhnDef.requireSingleMethod(me -> me.nameEquals("findMethodHandleType"));
         // Field
         fieldClazzField = fieldDef.findField("clazz");
         fieldSlotField = fieldDef.findField("slot");
@@ -308,6 +317,8 @@ public final class Reflection {
             Reflection appearing = ctxt.putAttachmentIfAbsent(KEY, instance);
             if (appearing != null) {
                 instance = appearing;
+            } else {
+                ReflectionIntrinsics.register(ctxt);
             }
         }
         return instance;
@@ -776,7 +787,7 @@ public final class Reflection {
         return;
     }
 
-    private Object methodHandleNativesResolve(final VmThread thread, final VmObject ignored, final List<Object> args) {
+    Object methodHandleNativesResolve(final VmThread thread, final VmObject ignored, final List<Object> args) {
         Vm vm = thread.getVM();
         VmObject memberName = (VmObject) args.get(0);
         boolean resolvedFlag = (memberName.getMemory().load8(memberName.indexOf(memberNameResolvedField), SinglePlain) & 1) != 0;

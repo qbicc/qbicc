@@ -32,8 +32,6 @@ import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
-import org.qbicc.interpreter.Thrown;
-import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.machine.probe.CProbe;
@@ -83,7 +81,6 @@ public final class CoreIntrinsics {
     public static void register(CompilationContext ctxt) {
         CNativeIntrinsics.register(ctxt);
         registerJavaLangClassIntrinsics(ctxt);
-        registerJavaLangInvokeMethodHandleIntrinsics(ctxt);
         registerJavaLangStringUTF16Intrinsics(ctxt);
         registerJavaLangSystemIntrinsics(ctxt);
         registerJavaLangStackTraceElementInstrinsics(ctxt);
@@ -178,55 +175,6 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(Phase.ANALYZE, jlcDesc, "getDeclaringClass0", emptyToClass, getDeclaringClass0);
-    }
-
-    public static void registerJavaLangInvokeMethodHandleIntrinsics(CompilationContext ctxt) {
-        Intrinsics intrinsics = Intrinsics.get(ctxt);
-        ClassContext classContext = ctxt.getBootstrapClassContext();
-        LiteralFactory lf = ctxt.getLiteralFactory();
-
-        ClassTypeDescriptor methodHandleDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/invoke/MethodHandle");
-        ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
-        ClassTypeDescriptor internalErrorDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/InternalError");
-        ClassTypeDescriptor throwableDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Throwable");
-
-        ArrayTypeDescriptor objArrayDesc = ArrayTypeDescriptor.of(classContext, objDesc);
-
-        MethodDescriptor objArrayToObj = MethodDescriptor.synthesize(classContext, objDesc, List.of(objArrayDesc));
-        MethodDescriptor throwableToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(throwableDesc));
-
-        // mh.invoke(...) -> mh.asType(actualType).invokeExact(...)
-        InstanceIntrinsic invoke = (builder, instance, target, arguments) -> {
-            // Use first builder because we chain to other intrinsics!
-            MethodDescriptor descriptor = target.getCallSiteDescriptor();
-            Vm vm = Vm.requireCurrent();
-            BasicBlockBuilder fb = builder.getFirstBuilder();
-            try {
-                VmObject realType = vm.createMethodType(classContext, descriptor);
-                Value realHandle;
-                LoadedTypeDefinition mhDef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/invoke/MethodHandle").load();
-                int asTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("asType"));
-                MethodElement asType = mhDef.getMethod(asTypeIdx);
-                if (instance instanceof ObjectLiteral) {
-                    // get the target statically
-                    realHandle = lf.literalOf((VmObject) vm.invokeExact(asType, ((ObjectLiteral) instance).getValue(), List.of(realType)));
-                } else {
-                    // get the target dynamically
-                    ValueHandle asTypeHandle = fb.exactMethodOf(instance, asType, asType.getDescriptor(), asType.getType());
-                    realHandle = fb.call(asTypeHandle, List.of(lf.literalOf(realType)));
-                }
-                ValueHandle invokeExactHandle = fb.exactMethodOf(realHandle, methodHandleDesc, "invokeExact", descriptor);
-                return fb.call(invokeExactHandle, arguments);
-            } catch (Thrown t) {
-                ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invoke intrinsic: %s", t);
-                log.warnf(t, "Failed to expand MethodHandle.invoke intrinsic");
-                Value ie = fb.new_(internalErrorDesc);
-                fb.call(fb.constructorOf(ie, internalErrorDesc, throwableToVoid), List.of(lf.literalOf(t.getThrowable())));
-                throw new BlockEarlyTermination(fb.throw_(ie));
-            }
-        };
-        // this intrinsic MUST be added during ADD because `invoke` must always be converted.
-        intrinsics.registerIntrinsic(Phase.ADD, methodHandleDesc, "invoke", objArrayToObj, invoke);
     }
 
     public static void registerJavaLangStringUTF16Intrinsics(CompilationContext ctxt) {
@@ -1086,24 +1034,6 @@ public final class CoreIntrinsics {
         StaticIntrinsic sysThrGrp = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(ctxt.getVm().getMainThreadGroup());
         MethodDescriptor returnTgDesc = MethodDescriptor.synthesize(classContext, tgDesc, List.of());
         intrinsics.registerIntrinsic(mainDesc, "getSystemThreadGroup", returnTgDesc, sysThrGrp);
-    }
-
-    static ValueHandle getTarget(CompilationContext ctxt, BasicBlockBuilder builder, Value input) {
-        if (input instanceof Load) {
-            Load load = (Load) input;
-            ValueHandle target = load.getValueHandle();
-            // make sure the target is unambiguous
-            if (target instanceof Variable) {
-                ValueType valueType = target.getValueType();
-                if (valueType instanceof PointerType) {
-                    ctxt.error(builder.getLocation(), "Ambiguous target for operation; to target the pointer value, use loadUnshared(val); to target the variable use addr_of(val)");
-                }
-            }
-            return target;
-        } else {
-            ctxt.error(builder.getLocation(), "Cannot determine target of operation");
-            return null;
-        }
     }
 
     public static void registerJavaLangMathIntrinsics(CompilationContext ctxt) {
