@@ -43,6 +43,8 @@ public final class TypeSystem {
     private final UnsignedIntegerType unsignedInteger32Type;
     private final UnsignedIntegerType unsignedInteger64Type;
     private final TypeCache<FunctionType> functionTypeCache = new TypeCache<>();
+    private final TypeCache<StaticMethodType> staticMethodTypeCache = new TypeCache<>();
+    private final TypeCache<InstanceMethodType> instanceMethodTypeCache = new TypeCache<>();
 
     private volatile ClassObjectType objectClass;
 
@@ -225,14 +227,15 @@ public final class TypeSystem {
         return new CompoundType.Member(name, type, offset, type.getAlign());
     }
 
-    public FunctionType getFunctionType(ValueType returnType, ValueType... argTypes) {
+    public FunctionType getFunctionType(final ValueType returnType, final List<ValueType> parameterTypes) {
         Assert.checkNotNullParam("returnType", returnType);
+        Assert.checkNotNullParam("parameterTypes", parameterTypes);
         TypeCache<FunctionType> current = functionTypeCache.computeIfAbsent(returnType, TypeCache::new);
-        for (int i = 0; i < argTypes.length; i++) {
-            Assert.checkNotNullArrayParam("argTypes", i, argTypes);
-            final ValueType argType = argTypes[i];
+        int size = parameterTypes.size();
+        for (int i = 0; i < size; i++) {
+            final ValueType argType = parameterTypes.get(i);
             if (argType instanceof VariadicType) {
-                if (i < argTypes.length - 1) {
+                if (i < size - 1) {
                     throw new IllegalArgumentException("Only last argument may be variadic");
                 }
             } else if (! argType.isComplete()) {
@@ -242,7 +245,7 @@ public final class TypeSystem {
         }
         FunctionType functionType = current.getValue();
         if (functionType == null) {
-            functionType = new FunctionType(this, returnType, argTypes);
+            functionType = new FunctionType(this, returnType, parameterTypes);
             while (! current.compareAndSet(null, functionType)) {
                 FunctionType appearing = current.getValue();
                 if (appearing != null) {
@@ -251,6 +254,53 @@ public final class TypeSystem {
             }
         }
         return functionType;
+    }
+
+    @Deprecated
+    public FunctionType getFunctionType(ValueType returnType, ValueType... argTypes) {
+        return getFunctionType(returnType, List.of(argTypes));
+    }
+
+    public StaticMethodType getStaticMethodType(final ValueType returnType, final List<ValueType> parameterTypes) {
+        Assert.checkNotNullParam("returnType", returnType);
+        Assert.checkNotNullParam("parameterTypes", parameterTypes);
+        TypeCache<StaticMethodType> current = staticMethodTypeCache.computeIfAbsent(returnType, TypeCache::new);
+        for (ValueType parameterType : parameterTypes) {
+            current = current.computeIfAbsent(parameterType, TypeCache::new);
+        }
+        StaticMethodType type = current.getValue();
+        if (type == null) {
+            type = new StaticMethodType(this, returnType, parameterTypes);
+            while (! current.compareAndSet(null, type)) {
+                StaticMethodType appearing = current.getValue();
+                if (appearing != null) {
+                    return appearing;
+                }
+            }
+        }
+        return type;
+    }
+
+    public InstanceMethodType getInstanceMethodType(final ValueType receiverType, final ValueType returnType, final List<ValueType> parameterTypes) {
+        Assert.checkNotNullParam("receiverType", receiverType);
+        Assert.checkNotNullParam("returnType", returnType);
+        Assert.checkNotNullParam("parameterTypes", parameterTypes);
+        TypeCache<InstanceMethodType> current = instanceMethodTypeCache.computeIfAbsent(receiverType, TypeCache::new);
+        current = current.computeIfAbsent(returnType, TypeCache::new);
+        for (ValueType parameterType : parameterTypes) {
+            current = current.computeIfAbsent(parameterType, TypeCache::new);
+        }
+        InstanceMethodType type = current.getValue();
+        if (type == null) {
+            type = new InstanceMethodType(this, receiverType, returnType, parameterTypes);
+            while (! current.compareAndSet(null, type)) {
+                InstanceMethodType appearing = current.getValue();
+                if (appearing != null) {
+                    return appearing;
+                }
+            }
+        }
+        return type;
     }
 
     public CompoundType getCompoundType(final CompoundType.Tag tag, String name, long size, int align, Supplier<List<CompoundType.Member>> memberResolver) {
