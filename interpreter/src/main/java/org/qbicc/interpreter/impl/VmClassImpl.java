@@ -113,7 +113,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         staticLayoutInfo = Layout.get(ctxt).getStaticLayoutInfo(typeDefinition);
         staticMemory = staticLayoutInfo == null ? vmImpl.allocate(0) : vmImpl.allocate((int) staticLayoutInfo.getCompoundType().getSize());
         initializeConstantStaticFields();
-        staticFieldBase = staticLayoutInfo == null ? null : new VmStaticFieldBase(staticLayoutInfo, staticMemory);
+        staticFieldBase = staticLayoutInfo == null ? null : new VmStaticFieldBase(this, staticLayoutInfo, staticMemory);
     }
 
     VmClassImpl(VmImpl vmImpl, VmClassClassImpl classClass, @SuppressWarnings("unused") int primitivesOnly) {
@@ -144,7 +144,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         staticMemory = staticLayoutInfo == null ? vm.allocate(0) : vm.allocate((int) staticLayoutInfo.getCompoundType().getSize());
         superClass = new VmClassImpl(vm, (VmClassClassImpl) this, classContext.findDefinedType("java/lang/Object").load(), null);
         initializeConstantStaticFields();
-        staticFieldBase = staticLayoutInfo == null ? null : new VmStaticFieldBase(staticLayoutInfo, staticMemory);
+        staticFieldBase = staticLayoutInfo == null ? null : new VmStaticFieldBase(this, staticLayoutInfo, staticMemory);
     }
 
     void initializeConstantStaticFields() {

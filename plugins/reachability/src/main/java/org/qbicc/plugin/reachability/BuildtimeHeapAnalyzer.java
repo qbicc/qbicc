@@ -7,6 +7,7 @@ import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmStaticFieldBaseObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
@@ -79,6 +80,11 @@ class BuildtimeHeapAnalyzer {
         CoreClasses coreClasses = CoreClasses.get(ctxt);
         while (!worklist.isEmpty()) {
             VmObject cur = worklist.pop();
+
+            if (cur instanceof VmStaticFieldBaseObject) {
+                // skip
+                continue;
+            }
 
             PhysicalObjectType ot = cur.getObjectType();
             if (ot instanceof ClassObjectType && !(cur instanceof VmClass || cur instanceof VmString)) {
