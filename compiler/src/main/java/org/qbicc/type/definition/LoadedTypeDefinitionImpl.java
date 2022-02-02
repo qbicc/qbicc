@@ -1,5 +1,8 @@
 package org.qbicc.type.definition;
 
+import java.lang.invoke.ConstantBootstraps;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,6 +28,7 @@ import org.qbicc.type.descriptor.MethodDescriptor;
  *
  */
 final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition implements LoadedTypeDefinition {
+    private static final VarHandle vmClassHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "vmClass", VarHandle.class, LoadedTypeDefinitionImpl.class, VmClass.class);
 
     private final ObjectType type;
     private final DefinedTypeDefinitionImpl delegate;
@@ -256,9 +260,18 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
         VmClass vmClass = this.vmClass;
         if (vmClass == null) {
             Vm vm = getContext().getCompilationContext().getVm();
-            vmClass = this.vmClass = vm.getClassLoaderForContext(getContext()).getOrDefineClass(this);
+            vmClass = vm.getClassLoaderForContext(getContext()).getOrDefineClass(this);
+            setVmClass(vmClass);
         }
         return vmClass;
+    }
+
+    @Override
+    public void setVmClass(VmClass vmClass) {
+        VmClass res = (VmClass) vmClassHandle.compareAndExchange(this, null, vmClass);
+        if (res != null && res != vmClass) {
+            throw new IllegalStateException("VmClass already set for " + this);
+        }
     }
 
     public LoadedTypeDefinition getEnclosingMethodClass() {

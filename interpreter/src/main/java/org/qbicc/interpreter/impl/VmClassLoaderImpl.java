@@ -113,6 +113,9 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         }
         LoadedTypeDefinition loaded = defined.load();
         VmClassImpl vmClass = createVmClass(protectionDomain, vm, loaded, hidden);
+        if (hidden) {
+            loaded.setVmClass(vmClass);
+        }
         if (! hidden && this.defined.putIfAbsent(internalName, vmClass) != null) {
             VmThrowable throwable = vm.noClassDefFoundErrorClass.newInstance("Class already defined");
             VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
@@ -137,6 +140,9 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
     }
 
     public VmClassImpl getOrDefineClass(LoadedTypeDefinition loaded) {
+        if (loaded.isHidden()) {
+            throw new IllegalArgumentException("Cannot getOrDefineClass for a hidden class");
+        }
         String internalName = loaded.getInternalName();
         VmClassImpl vmClass = defined.get(internalName);
         if (vmClass == null) {
