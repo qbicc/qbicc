@@ -1,80 +1,55 @@
 package org.qbicc.type;
 
-import java.util.Arrays;
-import java.util.Objects;
+import java.util.List;
 
 /**
- *
+ * The type of a native-format function.
  */
-public final class FunctionType extends ValueType {
-    private final ValueType returnType;
-    private final ValueType[] paramTypes;
+public final class FunctionType extends InvokableType {
 
-    FunctionType(final TypeSystem typeSystem, final ValueType returnType, final ValueType[] paramTypes) {
-        super(typeSystem, Objects.hash((Object[]) paramTypes) * 19 + returnType.hashCode());
-        this.returnType = returnType;
-        this.paramTypes = paramTypes;
+    FunctionType(TypeSystem typeSystem, ValueType returnType, List<ValueType> paramTypes) {
+        super(typeSystem, 0, returnType, paramTypes);
     }
 
-    public boolean equals(final ValueType other) {
-        return other instanceof FunctionType && equals((FunctionType) other);
+    @Override
+    public FunctionType withReturnType(ValueType returnType) {
+        return getTypeSystem().getFunctionType(returnType, getParameterTypes());
+    }
+
+    @Override
+    public FunctionType withParameterTypes(List<ValueType> parameterTypes) {
+        return getTypeSystem().getFunctionType(getReturnType(), parameterTypes);
+    }
+
+    @Override
+    public boolean equals(InvokableType other) {
+        return other instanceof FunctionType ft && equals(ft);
     }
 
     public boolean equals(final FunctionType other) {
-        return other == this || super.equals(other) && returnType.equals(other.returnType) && Arrays.equals(paramTypes, other.paramTypes);
-    }
-
-    public boolean isComplete() {
-        return false;
+        return super.equals(other);
     }
 
     public boolean isVariadic() {
-        return paramTypes.length > 0 && paramTypes[paramTypes.length - 1] instanceof VariadicType;
-    }
-
-    public long getSize() {
-        throw new UnsupportedOperationException("Incomplete type");
-    }
-
-    public int getAlign() {
-        return typeSystem.getFunctionAlignment();
-    }
-
-    public ValueType getReturnType() {
-        return returnType;
-    }
-
-    public ValueType getParameterType(int index) throws IndexOutOfBoundsException {
-        return paramTypes[index];
-    }
-
-    public int getParameterCount() {
-        return paramTypes.length;
-    }
-
-    public FunctionType withReturnType(final ValueType returnType) {
-        return getTypeSystem().getFunctionType(returnType, paramTypes);
+        return getParameterCount() > 0 && getLastParameterType(0) instanceof VariadicType;
     }
 
     public FunctionType withFirstParameterType(final ValueType type) {
-        ValueType[] newParams = new ValueType[paramTypes.length + 1];
-        newParams[0] = type;
-        System.arraycopy(paramTypes, 0, newParams, 1, paramTypes.length);
-        return getTypeSystem().getFunctionType(returnType, newParams);
+        return (FunctionType) super.withFirstParameterType(type);
     }
 
     public FunctionType trimLastParameter() throws IndexOutOfBoundsException {
-        return getTypeSystem().getFunctionType(returnType, Arrays.copyOf(paramTypes, paramTypes.length - 1));
+        return (FunctionType) super.trimLastParameter();
     }
 
     public StringBuilder toString(final StringBuilder b) {
         b.append("function (");
-        Type[] paramTypes = this.paramTypes;
-        int length = paramTypes.length;
+        List<ValueType> paramTypes = this.paramTypes;
+        int length = paramTypes.size();
         if (length > 0) {
-            b.append(paramTypes[0]);
+            b.append(paramTypes.get(0));
             for (int i = 1; i < length; i ++) {
-                b.append(',').append(paramTypes[i]);
+                b.append(',').append(paramTypes.get(i));
             }
         }
         b.append("):");
@@ -85,7 +60,7 @@ public final class FunctionType extends ValueType {
     public StringBuilder toFriendlyString(final StringBuilder b) {
         b.append("fn.");
         returnType.toFriendlyString(b);
-        b.append('.').append(paramTypes.length);
+        b.append('.').append(paramTypes.size());
         for (ValueType paramType : paramTypes) {
             paramType.toFriendlyString(b.append('.'));
         }
