@@ -218,7 +218,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         String name = typeDefinition.getInternalName().replace('/', '.');
         if (typeDefinition.hasAllModifiersOf(ClassFile.I_ACC_HIDDEN)) {
             VmClassLoaderImpl realClassLoader = vm.getClassLoaderForContext(typeDefinition.getContext());
-            name += '/' + realClassLoader.getHiddenClassSeq(name);
+            name += "/" + realClassLoader.getHiddenClassSeq(name);
         }
         postConstruct(name, vm);
     }
