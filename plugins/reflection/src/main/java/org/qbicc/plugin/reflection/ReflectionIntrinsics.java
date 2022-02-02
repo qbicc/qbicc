@@ -129,7 +129,7 @@ final class ReflectionIntrinsics {
                     pArray
                 ));
                 // holds the *returned* appendix object
-                VmReferenceArray appendixResult = vm.newArrayOf(objClass, 2);
+                VmReferenceArray appendixResult = vm.newArrayOf(objClass, 1);
                 VmObject invokerMemberName = (VmObject) vm.invokeExact(reflection.methodHandleNativesLinkMethod, null, List.of(
                     callerClass,
                     Integer.valueOf(refKind),
