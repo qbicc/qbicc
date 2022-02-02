@@ -288,7 +288,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     @Override
     public String getName() {
-        return typeDefinition.getInternalName().replace("/", ".");
+        return ((VmString)memory.loadRef(indexOf(getVmClass().getTypeDefinition().findField("name")), SinglePlain)).getContent();
     }
 
     @Override
@@ -570,12 +570,13 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     @Override
     public String toString() {
-        return "class " + getName();
+        return toString(new StringBuilder()).toString();
     }
 
     @Override
     StringBuilder toString(StringBuilder target) {
-        return target.append("class ").append(getName());
+        target.append(typeDefinition.isInterface() ? "interface" : "class");
+        return target.append(' ').append(getName());
     }
 
     boolean shouldBeInitialized() {
