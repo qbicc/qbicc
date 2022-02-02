@@ -1405,7 +1405,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         VmObject receiver = handle.accept(GET_RECEIVER, this);
         DefinedTypeDefinition def = element.getEnclosingType();
         VmClassLoaderImpl cl = thread.vm.getClassLoaderForContext(def.getContext());
-        VmClassImpl clazz = cl.loadClass(def.getInternalName());
+        VmClassImpl clazz = (VmClassImpl) def.load().getVmClass();
         clazz.initialize(thread);
         VmInvokable invokable = clazz.getOrCompile(element);
         return invokable.invokeAny(thread, receiver, arguments);
@@ -1897,7 +1897,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     public Object visit(VmThreadImpl thread, New node) {
         DefinedTypeDefinition enclosingType = node.getElement().getEnclosingType();
         VmClassLoaderImpl cl = thread.vm.getClassLoaderForContext(enclosingType.getContext());
-        VmClassImpl clazz = cl.loadClass(node.getClassObjectType().getDefinition().getInternalName());
+        VmClassImpl clazz = (VmClassImpl) node.getClassObjectType().getDefinition().load().getVmClass();
         clazz.initialize(thread);
         return thread.vm.manuallyInitialize(clazz.newInstance());
     }

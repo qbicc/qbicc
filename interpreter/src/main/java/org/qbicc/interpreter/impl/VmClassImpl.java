@@ -326,8 +326,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                     // no superclass
                     return null;
                 } else {
-                    VmClassLoader classLoader = getVm().getClassLoaderForContext(def.getContext());
-                    superClass = (VmClassImpl) classLoader.loadClass(def.getInternalName());
+                    superClass = (VmClassImpl) def.getVmClass();
                 }
                 this.superClass = superClass;
             }
@@ -349,8 +348,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 int i = 0;
                 for (LoadedTypeDefinition def : typeDefinition.getInterfaces()) {
                     // load each interface
-                    VmClassLoader classLoader = getVm().getClassLoaderForContext(def.getContext());
-                    array[i] = (VmClassImpl) classLoader.loadClass(def.getInternalName());
+                    array[i] = (VmClassImpl) def.getVmClass();
                 }
                 newVal = List.of(array);
             }
