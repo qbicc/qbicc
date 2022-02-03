@@ -36,6 +36,8 @@ import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.VoidType;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 
@@ -638,7 +640,9 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
 
     @Override
     public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
-        // todo: we can support "real" tail calls in certain situations
+        if (isTailCallSafe()) {
+            return super.tailCall(target, arguments);
+        }
         // break tail call
         Value retVal = super.call(target, arguments);
         if (isVoidFunction(target)) {
@@ -669,7 +673,9 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         // declare personality function
         MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
         ctxt.getImplicitSection(getRootElement()).declareFunction(null, personalityMethod.getName(), personalityMethod.getType());
-        // todo: we can support "real" tail calls in certain situations
+        if (isTailCallSafe()) {
+            return super.tailInvoke(target, arguments, catchLabel);
+        }
         // break tail invoke
         BlockLabel resumeLabel = new BlockLabel();
         Value retVal = super.invoke(target, arguments, catchLabel, resumeLabel);
@@ -679,6 +685,21 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         } else {
             return super.return_(retVal);
         }
+    }
+
+    private boolean isTailCallSafe() {
+        if (getCurrentElement().hasAllModifiersOf(ClassFile.I_ACC_HIDDEN)) {
+            Node callSite = getCallSite();
+            while (callSite != null) {
+                ExecutableElement element = callSite.getElement();
+                if (!element.hasAllModifiersOf(ClassFile.I_ACC_HIDDEN)) {
+                    return false;
+                }
+                callSite = callSite.getCallSite();
+            }
+            return true;
+        }
+        return false;
     }
 
     private static boolean isVoidFunction(ValueHandle target) {
