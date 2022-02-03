@@ -19,7 +19,8 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.schedule.Schedule;
-import org.qbicc.type.FunctionType;
+import org.qbicc.type.InstanceMethodType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
@@ -323,7 +324,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                             BasicBlockBuilder bbb = context.newBasicBlockBuilder(e);
                                             ReferenceType thisType = ltd.getType().getReference();
                                             ParameterValue thisValue = bbb.parameter(thisType, "this", 0);
-                                            FunctionType type = e.getType();
+                                            InvokableType type = e.getType();
                                             int pcnt = type.getParameterCount();
                                             List<ParameterValue> paramValues = new ArrayList<>(pcnt);
                                             for (int i = 0; i < pcnt; i ++) {
@@ -369,7 +370,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                     BasicBlockBuilder bbb = context.newBasicBlockBuilder(e);
                                     ReferenceType thisType = ltd.getType().getReference();
                                     ParameterValue thisValue = bbb.parameter(thisType, "this", 0);
-                                    FunctionType type = e.getType();
+                                    InstanceMethodType type = (InstanceMethodType) e.getType();
                                     int pcnt = type.getParameterCount();
                                     List<ParameterValue> paramValues = new ArrayList<>(pcnt);
                                     for (int i = 0; i < pcnt; i ++) {

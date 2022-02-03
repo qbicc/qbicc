@@ -105,7 +105,6 @@ import org.qbicc.graph.Shr;
 import org.qbicc.graph.StackAllocation;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
-import org.qbicc.graph.StaticMethodPointerHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
 import org.qbicc.graph.Switch;
@@ -171,6 +170,7 @@ import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
+import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
@@ -2303,6 +2303,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public ExecutableElement visit(Frame param, PointerHandle node) {
+            if (((PointerType)node.getPointerValue().getType()).getPointeeType() instanceof StaticMethodType) {
+                return ((StaticMethodPointer)param.require(node.getPointerValue())).getStaticMethod();
+            }
             throw unsatisfiedLink();
         }
 
@@ -2323,11 +2326,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public ExecutableElement visit(Frame frame, StaticMethodElementHandle node) {
             return node.getExecutable();
-        }
-
-        @Override
-        public ExecutableElement visit(Frame frame, StaticMethodPointerHandle node) {
-            return ((StaticMethodPointer)frame.require(node.getStaticMethodPointer())).getStaticMethod();
         }
     };
 

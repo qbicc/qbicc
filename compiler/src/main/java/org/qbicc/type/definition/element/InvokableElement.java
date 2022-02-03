@@ -1,12 +1,15 @@
 package org.qbicc.type.definition.element;
 
+import java.lang.invoke.ConstantBootstraps;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
-import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.MethodBodyFactory;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -20,6 +23,8 @@ import io.smallrye.common.constraint.Assert;
  * An element which is executable and can be directly invoked.
  */
 public abstract class InvokableElement extends AnnotatedElement implements ExecutableElement, TypeParameterContext {
+    private static final VarHandle typeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "type", VarHandle.class, InvokableElement.class, InvokableType.class);
+
     private final MethodDescriptor descriptor;
     private final MethodSignature signature;
     private final TypeAnnotationList returnVisibleTypeAnnotations;
@@ -27,7 +32,7 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
     private final List<ParameterElement> parameters;
     private List<TypeAnnotationList> parameterVisibleTypeAnnotations;
     private List<TypeAnnotationList> parameterInvisibleTypeAnnotations;
-    private FunctionType type;
+    private volatile InvokableType type;
     final MethodBodyFactory methodBodyFactory;
     final int methodBodyFactoryIndex;
     volatile MethodBody previousMethodBody;
@@ -142,22 +147,18 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         return signature;
     }
 
-    public FunctionType getType() {
-        ClassContext classContext = getEnclosingType().getContext();
-        FunctionType type = this.type;
+    public InvokableType getType() {
+        InvokableType type = this.type;
         if (type == null) {
-            this.type = type = classContext.resolveMethodFunctionType(
-                descriptor,
-                this,
-                signature,
-                returnVisibleTypeAnnotations,
-                getParameterVisibleTypeAnnotations(),
-                returnInvisibleTypeAnnotations,
-                getParameterInvisibleTypeAnnotations()
-            );
+            InvokableType appearing = (InvokableType) typeHandle.compareAndExchange(this, null, type = computeType());
+            if (appearing != null) {
+                return appearing;
+            }
         }
         return type;
     }
+
+    abstract InvokableType computeType();
 
     public int getMinimumLineNumber() {
         return minimumLineNumber;

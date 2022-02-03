@@ -7,6 +7,7 @@ import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.util.ResolutionUtil;
 
 /**
  * An element that represents some function.
@@ -23,6 +24,16 @@ public final class FunctionElement extends InvokableElement implements NamedElem
     @Override
     public String getName() {
         return name;
+    }
+
+    @Override
+    public FunctionType getType() {
+        return (FunctionType) super.getType();
+    }
+
+    @Override
+    FunctionType computeType() {
+        return ResolutionUtil.resolveFunctionType(getEnclosingType().getContext(), this, getDescriptor(), getSignature());
     }
 
     @Override

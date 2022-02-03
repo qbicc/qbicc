@@ -4,7 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
-import org.qbicc.type.FunctionType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -18,13 +18,13 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public final class CallNoSideEffects extends AbstractValue {
     private final ValueHandle target;
     private final List<Value> arguments;
-    private final FunctionType functionType;
+    private final InvokableType calleeType;
 
     CallNoSideEffects(Node callSite, ExecutableElement element, int line, int bci, ValueHandle target, List<Value> arguments) {
         super(callSite, element, line, bci);
         this.target = target;
         this.arguments = arguments;
-        functionType = (FunctionType) target.getValueType();
+        calleeType = (InvokableType) target.getValueType();
     }
 
     @Override
@@ -62,13 +62,13 @@ public final class CallNoSideEffects extends AbstractValue {
         return this == other || other != null && target.equals(other.target) && arguments.equals(other.arguments);
     }
 
-    public FunctionType getFunctionType() {
-        return functionType;
+    public InvokableType getCalleeType() {
+        return calleeType;
     }
 
     @Override
     public ValueType getType() {
-        return getFunctionType().getReturnType();
+        return getCalleeType().getReturnType();
     }
 
     public List<Value> getArguments() {

@@ -16,8 +16,8 @@ import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.InterfaceMethodElementHandle;
 import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.StaticMethodElementHandle;
-import org.qbicc.graph.StaticMethodPointerHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
@@ -38,7 +38,9 @@ import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.plugin.dispatch.DispatchTables;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
+import org.qbicc.type.MethodType;
 import org.qbicc.type.ReferenceType;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FunctionElement;
@@ -258,14 +260,21 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
-    public ValueHandle visit(ArrayList<Value> args, StaticMethodPointerHandle node) {
-        Value pointer = node.getStaticMethodPointer();
-        final BasicBlockBuilder fb = getFirstBuilder();
-        // insert current thread only
-        ValueHandle currentThread = fb.currentThread();
-        args.add(0, fb.load(currentThread, SingleUnshared));
-        // pointer type should already have been converted by MemberPointerCopier
-        return fb.pointerHandle(pointer);
+    public ValueHandle visit(ArrayList<Value> args, PointerHandle node) {
+        // potentially, a pointer to a method
+        Value pointerValue = node.getPointerValue();
+        ValueType valueType = node.getValueType();
+        if (valueType instanceof MethodType mt) {
+            // we have to bitcast it, and also transform the arguments accordingly
+            final BasicBlockBuilder fb = getFirstBuilder();
+            args.add(0, fb.load(fb.currentThread(), SingleUnshared));
+            // NOTE: calls to pointers to instance methods MUST already have the receiver set in the arg list by this point
+            // todo: this is inconsistent with how instance method handles work
+            //   - option 1: add a receiver argument to all call nodes, let backend decide what reg to use
+            //   - option 2: receiver is first arg to all instance calls, backend can rearrange based on callee type
+            return pointerHandle(bitCast(pointerValue, ctxt.getFunctionTypeForInvokableType(mt).getPointer()));
+        }
+        return node;
     }
 
     @Override

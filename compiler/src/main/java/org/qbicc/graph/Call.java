@@ -4,7 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
-import org.qbicc.type.FunctionType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -19,14 +19,14 @@ public final class Call extends AbstractValue implements OrderedNode {
     private final Node dependency;
     private final ValueHandle target;
     private final List<Value> arguments;
-    private final FunctionType functionType;
+    private final InvokableType functionType;
 
     Call(Node callSite, ExecutableElement element, int line, int bci, Node dependency, ValueHandle target, List<Value> arguments) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.target = target;
         this.arguments = arguments;
-        functionType = (FunctionType) target.getValueType();
+        functionType = (InvokableType) target.getValueType();
     }
 
     @Override
@@ -69,13 +69,13 @@ public final class Call extends AbstractValue implements OrderedNode {
         return dependency;
     }
 
-    public FunctionType getFunctionType() {
+    public InvokableType getCalleeType() {
         return functionType;
     }
 
     @Override
     public ValueType getType() {
-        return getFunctionType().getReturnType();
+        return getCalleeType().getReturnType();
     }
 
     public List<Value> getArguments() {

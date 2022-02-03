@@ -18,7 +18,9 @@ import org.qbicc.machine.arch.Platform;
 import org.qbicc.object.Function;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.Section;
+import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.NativeMethodConfigurator;
@@ -121,6 +123,8 @@ public interface CompilationContext extends DiagnosticContext {
     Function getExactFunctionIfExists(ExecutableElement element);
 
     FunctionElement establishExactFunction(ExecutableElement element, FunctionElement function);
+
+    FunctionType getFunctionTypeForInvokableType(InvokableType origType);
 
     FunctionType getFunctionTypeForElement(ExecutableElement element);
 

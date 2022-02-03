@@ -1,6 +1,6 @@
 package org.qbicc.graph;
 
-import org.qbicc.type.FunctionType;
+import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -11,7 +11,7 @@ import org.qbicc.type.descriptor.MethodDescriptor;
 public abstract class InstanceMethodElementHandle extends Executable {
     private final Value instance;
 
-    public InstanceMethodElementHandle(final ExecutableElement currentElement, final int line, final int bci, final ExecutableElement executable, Value instance, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+    public InstanceMethodElementHandle(final ExecutableElement currentElement, final int line, final int bci, final ExecutableElement executable, Value instance, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         super(currentElement, line, bci, executable, callSiteDescriptor, callSiteType);
         this.instance = instance;
     }
@@ -33,6 +33,16 @@ public abstract class InstanceMethodElementHandle extends Executable {
     @Override
     public Value getValueDependency(int index) throws IndexOutOfBoundsException {
         return index == 0 ? instance : Util.throwIndexOutOfBounds(index);
+    }
+
+    @Override
+    public InstanceMethodType getValueType() {
+        return (InstanceMethodType) super.getValueType();
+    }
+
+    @Override
+    public InstanceMethodType getCallSiteType() {
+        return (InstanceMethodType) super.getCallSiteType();
     }
 
     @Override

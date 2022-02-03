@@ -1,6 +1,6 @@
 package org.qbicc.graph;
 
-import org.qbicc.type.FunctionType;
+import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -9,7 +9,7 @@ import org.qbicc.type.descriptor.MethodDescriptor;
  * A handle for an instance interface method.
  */
 public final class InterfaceMethodElementHandle extends InstanceMethodElementHandle {
-    InterfaceMethodElementHandle(ExecutableElement element, int line, int bci, MethodElement methodElement, Value instance, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+    InterfaceMethodElementHandle(ExecutableElement element, int line, int bci, MethodElement methodElement, Value instance, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         super(element, line, bci, methodElement, instance, callSiteDescriptor, callSiteType);
     }
 

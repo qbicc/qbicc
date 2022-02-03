@@ -6,16 +6,13 @@ import java.util.List;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.interpreter.VmClassLoader;
-import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
 import org.qbicc.type.definition.element.ExecutableElement;
-import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
-import org.qbicc.type.generic.MethodSignature;
 import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
 
@@ -50,8 +47,6 @@ public interface ClassContext extends DescriptorTypeResolver {
     void defineClass(String name, DefinedTypeDefinition definition);
 
     ValueType resolveTypeFromDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature, TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations);
-
-    FunctionType resolveMethodFunctionType(MethodDescriptor descriptor, TypeParameterContext paramCtxt, MethodSignature signature, final TypeAnnotationList returnTypeVisible, List<TypeAnnotationList> visibleAnnotations, final TypeAnnotationList returnTypeInvisible, final List<TypeAnnotationList> invisibleAnnotations);
 
     /**
      * Get the entirety of the resource with the given name, or {@code null} if no such resource could be found.

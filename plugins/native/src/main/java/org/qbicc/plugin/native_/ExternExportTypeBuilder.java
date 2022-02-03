@@ -15,6 +15,7 @@ import org.qbicc.object.Section;
 import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.plugin.core.ConditionEvaluation;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.MethodType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
@@ -196,7 +197,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
             }
 
             private void addExtern(final NativeInfo nativeInfo, final MethodElement origMethod, final String name) {
-                FunctionType origType = origMethod.getType();
+                MethodType origType = origMethod.getType();
                 TypeSystem ts = classCtxt.getTypeSystem();
                 FunctionType type;
                 int pc = origType.getParameterCount();
@@ -206,9 +207,9 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                         argTypes[i] = origType.getParameterType(i);
                     }
                     argTypes[pc - 1] = ts.getVariadicType();
-                    type = ts.getFunctionType(origType.getReturnType(), argTypes);
+                    type = ts.getFunctionType(origType.getReturnType(), List.of(argTypes));
                 } else {
-                    type = origType;
+                    type = ts.getFunctionType(origType.getReturnType(), origType.getParameterTypes());
                 }
                 nativeInfo.registerFunctionInfo(
                     origMethod.getEnclosingType().getDescriptor(),
@@ -240,16 +241,19 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 builder.setModifiers(origMethod.getModifiers());
                 builder.setEnclosingType(origMethod.getEnclosingType());
                 builder.setSignature(origMethod.getSignature());
-                FunctionType fnType = origMethod.getType();
-                int parameterCount = fnType.getParameterCount();
-                if (origMethod.isVarargs() && parameterCount > 0 && fnType.getParameterType(parameterCount - 1) instanceof ReferenceArrayObjectType) {
+                TypeSystem ts = ctxt.getTypeSystem();
+                MethodType origType = origMethod.getType();
+                FunctionType fnType;
+                int parameterCount = origType.getParameterCount();
+                if (origMethod.isVarargs() && parameterCount > 0 && origType.getParameterType(parameterCount - 1) instanceof ReferenceArrayObjectType) {
                     ValueType[] newParamTypes = new ValueType[parameterCount];
                     for (int i = 0; i < parameterCount - 1; i ++) {
-                        newParamTypes[i] = fnType.getParameterType(i);
+                        newParamTypes[i] = origType.getParameterType(i);
                     }
-                    TypeSystem ts = ctxt.getTypeSystem();
                     newParamTypes[parameterCount - 1] = ts.getVariadicType();
-                    fnType = ts.getFunctionType(fnType.getReturnType(), newParamTypes);
+                    fnType = ts.getFunctionType(origType.getReturnType(), List.of(newParamTypes));
+                } else {
+                    fnType = ts.getFunctionType(origType.getReturnType(), origType.getParameterTypes());
                 }
                 builder.setType(fnType);
                 builder.setSourceFileName(origMethod.getSourceFileName());

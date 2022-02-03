@@ -1,6 +1,6 @@
 package org.qbicc.graph;
 
-import org.qbicc.type.FunctionType;
+import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -9,13 +9,23 @@ import org.qbicc.type.descriptor.MethodDescriptor;
  * A handle to an initializer, which only is invoked one time.
  */
 public final class InitializerHandle extends Executable {
-    InitializerHandle(ExecutableElement currentElement, int line, int bci, InitializerElement executable, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+    InitializerHandle(ExecutableElement currentElement, int line, int bci, InitializerElement executable, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType) {
         super(currentElement, line, bci, executable, callSiteDescriptor, callSiteType);
     }
 
     @Override
     public InitializerElement getExecutable() {
         return (InitializerElement) super.getExecutable();
+    }
+
+    @Override
+    public StaticMethodType getValueType() {
+        return (StaticMethodType) super.getValueType();
+    }
+
+    @Override
+    public StaticMethodType getCallSiteType() {
+        return (StaticMethodType) super.getCallSiteType();
     }
 
     @Override

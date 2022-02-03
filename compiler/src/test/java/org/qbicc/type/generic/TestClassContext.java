@@ -31,7 +31,9 @@ import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.Section;
 import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
@@ -45,7 +47,6 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.MemberElement;
 import org.qbicc.type.definition.element.MethodElement;
-import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
@@ -155,6 +156,10 @@ public class TestClassContext implements ClassContext {
         }
 
         public FunctionElement establishExactFunction(ExecutableElement element, FunctionElement function) {
+            return null;
+        }
+
+        public FunctionType getFunctionTypeForInvokableType(final InvokableType origType) {
             return null;
         }
 
@@ -371,10 +376,6 @@ public class TestClassContext implements ClassContext {
     }
 
     public ArrayObjectType resolveArrayObjectTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible) {
-        return null;
-    }
-
-    public FunctionType resolveMethodFunctionType(final MethodDescriptor descriptor, TypeParameterContext paramCtxt, final MethodSignature signature, final TypeAnnotationList returnTypeVisible, final List<TypeAnnotationList> visibleAnnotations, final TypeAnnotationList returnTypeInvisible, final List<TypeAnnotationList> invisibleAnnotations) {
         return null;
     }
 
