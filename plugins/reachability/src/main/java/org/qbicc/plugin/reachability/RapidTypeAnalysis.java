@@ -101,11 +101,23 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         if (!info.isInvokableMethod(target)) {
             LoadedTypeDefinition definingClass = target.getEnclosingType().load();
             if (definingClass.isInterface() || info.isInstantiatedClass(definingClass)) {
-                ReachabilityInfo.LOGGER.debugf("Adding method %s (directly invoked in %s)", target, originalElement);
+                if (originalElement == null) {
+                    ReachabilityInfo.LOGGER.debugf("\tadding method %s (dispatch mechanism induced)", target);
+                } else {
+                    ReachabilityInfo.LOGGER.debugf("Adding method %s (directly invoked in %s)", target, originalElement);
+                }
                 info.addInvokableMethod(target);
                 ctxt.enqueue(target);
                 if (!target.isPrivate()) {
                     propagateInvokabilityToOverrides(target);
+                    if (!definingClass.isInterface() && definingClass.getSuperClass() != null) {
+                        // Because we are doing per-class vtables, we also need to ensure that if target overrides a
+                        // superclass method that the superclass method is also considered invoked to ensure compatible vtable layouts
+                        MethodElement superMethod = definingClass.getSuperClass().resolveMethodElementVirtual(target.getName(), target.getDescriptor());
+                        if (superMethod != null) {
+                            processReachableInstanceMethodInvoke(superMethod, null);
+                        }
+                    }
                 }
             } else {
                 ReachabilityInfo.LOGGER.debugf("Deferring method %s (invoked in %s, but no instantiated receiver)", target, originalElement);
@@ -183,10 +195,9 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         for (MethodElement im : type.getInstanceMethods()) {
             if (!info.isInvokableMethod(im)) {
                 if (isDeferredInstanceMethod(im)) {
-                    ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: enqueued deferred instance method: %s", im);
+                    ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: invoking deferred instance method: %s", im);
                     deferredInstanceMethods.remove(im);
-                    info.addInvokableMethod(im);
-                    ctxt.enqueue(im);
+                    processReachableInstanceMethodInvoke(im, null);
                 } else if (type.hasSuperClass()) {
                     MethodElement overiddenMethod = type.getSuperClass().resolveMethodElementVirtual(im.getName(), im.getDescriptor());
                     if (overiddenMethod != null && info.isInvokableMethod(overiddenMethod)) {
@@ -204,10 +215,9 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
                 if (info.isInvokableMethod(sig)) {
                     MethodElement impl = type.resolveMethodElementVirtual(sig.getName(), sig.getDescriptor());
                     if (impl != null && !info.isInvokableMethod(impl)) {
-                        ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: enqueued implementing method:  %s", impl);
-                        info.addInvokableMethod(impl);
+                        ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: simulating invoke of implementing method:  %s", impl);
                         deferredInstanceMethods.remove(impl); // might not be deferred, but remove is a no-op if it isn't present
-                        ctxt.enqueue(impl);
+                        processReachableInstanceMethodInvoke(impl, null);
                     }
                 }
             }
@@ -245,10 +255,8 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
                     cand = c.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
                 }
                 if (cand != null && !info.isInvokableMethod(cand)) {
-                    ReachabilityInfo.LOGGER.debugf("\tadding method (implements): %s", cand);
-                    info.addInvokableMethod(cand);
-                    ctxt.enqueue(cand);
-                    propagateInvokabilityToOverrides(cand);
+                    ReachabilityInfo.LOGGER.debugf("\tsimulating invokie of implementing method: %s", cand);
+                    processReachableInstanceMethodInvoke(cand, null);
                 }
             });
         } else {
