@@ -21,11 +21,13 @@ import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
+import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
@@ -465,7 +467,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new LocalVariable(element, line, bci, variable, variable.getType());
     }
 
-    public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+    public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         return new ExactMethodElementHandle(element, line, bci, method, instance, callSiteDescriptor, callSiteType);
     }
 
@@ -473,7 +475,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("Unresolved instance method");
     }
 
-    public ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+    public ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         return new VirtualMethodElementHandle(element, line, bci, method, instance, callSiteDescriptor, callSiteType);
     }
 
@@ -481,7 +483,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("Unresolved instance method");
     }
 
-    public ValueHandle interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+    public ValueHandle interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         return new InterfaceMethodElementHandle(element, line, bci, method, instance, callSiteDescriptor, callSiteType);
     }
 
@@ -489,7 +491,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("Unresolved instance method");
     }
 
-    public ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+    public ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType) {
         return new StaticMethodElementHandle(element, line, bci, method, callSiteDescriptor, callSiteType);
     }
 
@@ -497,11 +499,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("Unresolved static method");
     }
 
-    public ValueHandle staticMethodPointer(Value pointer) {
-        return new StaticMethodPointerHandle(element, line, bci, pointer);
-    }
-
-    public ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+    public ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         return new ConstructorElementHandle(element, line, bci, constructor, instance, callSiteDescriptor, callSiteType);
     }
 
@@ -514,7 +512,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public ValueHandle initializerOf(InitializerElement initializer) {
-        return new InitializerHandle(element, line, bci, initializer, MethodDescriptor.VOID_METHOD_DESCRIPTOR, typeSystem.getFunctionType(typeSystem.getVoidType()));
+        return new InitializerHandle(element, line, bci, initializer, MethodDescriptor.VOID_METHOD_DESCRIPTOR, typeSystem.getStaticMethodType(typeSystem.getVoidType(), List.of()));
     }
 
     public ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type) {

@@ -13,7 +13,6 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.type.ArrayObjectType;
-import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
@@ -21,9 +20,7 @@ import org.qbicc.type.definition.DefineFailedException;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
 import org.qbicc.type.definition.element.ExecutableElement;
-import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
-import org.qbicc.type.generic.MethodSignature;
 import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
 
@@ -148,10 +145,6 @@ final class ClassContextImpl implements ClassContext {
 
     public ArrayObjectType resolveArrayObjectTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible) {
         return descriptorTypeResolver.resolveArrayObjectTypeFromDescriptor(descriptor, paramCtxt, signature, visible, invisible);
-    }
-
-    public FunctionType resolveMethodFunctionType(MethodDescriptor descriptor, TypeParameterContext paramCtxt, MethodSignature signature, final TypeAnnotationList returnTypeVisible, List<TypeAnnotationList> visibleAnnotations, final TypeAnnotationList returnTypeInvisible, final List<TypeAnnotationList> invisibleAnnotations) {
-        return descriptorTypeResolver.resolveMethodFunctionType(descriptor, paramCtxt, signature, returnTypeVisible, visibleAnnotations, returnTypeInvisible, invisibleAnnotations);
     }
 
     @Override

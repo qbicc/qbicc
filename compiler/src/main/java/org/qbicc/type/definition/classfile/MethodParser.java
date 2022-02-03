@@ -49,8 +49,8 @@ import org.qbicc.interpreter.VmThread;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PointerType;
@@ -1516,7 +1516,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         return;
                     }
                     case OP_IRETURN: {
-                        FunctionType fnType = gf.getCurrentElement().getType();
+                        InvokableType fnType = gf.getCurrentElement().getType();
                         ValueType returnType = fnType.getReturnType();
                         gf.return_(gf.truncate(pop1(), (WordType) returnType));
                         // block complete

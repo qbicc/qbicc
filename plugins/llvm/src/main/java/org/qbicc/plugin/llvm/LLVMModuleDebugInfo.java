@@ -117,10 +117,10 @@ final class LLVMModuleDebugInfo {
     }
 
     private MethodDebugInfo createDebugInfoForFunction(final ExecutableElement element) {
-        LLValue type = getType(element.getType());
+        Function exactFunction = ctxt.getExactFunctionIfExists(element);
+        LLValue type = getType(exactFunction.getValueType());
         int line = element.getMinimumLineNumber();
 
-        Function exactFunction = ctxt.getExactFunctionIfExists(element);
         DISubprogram diSubprogram = module.diSubprogram(getFriendlyName(element), type, diCompileUnit)
             .location(createSourceFile(element), line, line);
 

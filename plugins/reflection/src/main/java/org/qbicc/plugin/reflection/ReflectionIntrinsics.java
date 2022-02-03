@@ -25,7 +25,8 @@ import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.plugin.intrinsics.InstanceIntrinsic;
 import org.qbicc.plugin.intrinsics.Intrinsics;
-import org.qbicc.type.FunctionType;
+import org.qbicc.type.InstanceMethodType;
+import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
@@ -103,7 +104,7 @@ final class ReflectionIntrinsics {
             Reflection reflection = Reflection.get(ctxt);
             BasicBlockBuilder fb = builder.getFirstBuilder();
             if (instance instanceof ObjectLiteral mhLit) {
-                FunctionType callSiteType = target.getCallSiteType();
+                InstanceMethodType callSiteType = target.getCallSiteType();
                 MethodDescriptor callSiteDescriptor = target.getCallSiteDescriptor();
                 // replace with the target invocation type
                 Vm vm = Vm.requireCurrent();
@@ -164,5 +165,47 @@ final class ReflectionIntrinsics {
 
         intrinsics.registerIntrinsic(Phase.ADD, methodHandleDesc, "invokeExact", objArrayToObj, invokeExact);
 
+        InstanceIntrinsic invokeBasic = (builder, instance, target, arguments) -> {
+            ClassTypeDescriptor mhDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/invoke/MethodHandle");
+            ClassTypeDescriptor mnDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/invoke/MemberName");
+            ClassTypeDescriptor lfDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/invoke/LambdaForm");
+
+            BasicBlockBuilder fb = builder.getFirstBuilder();
+            // we want to extract the lambda form and invoke on that...
+            Value form = fb.load(fb.instanceFieldOf(fb.referenceHandle(instance), mhDesc, "form", lfDesc));
+            Value memberName = fb.load(fb.instanceFieldOf(fb.referenceHandle(form), lfDesc, "vmentry", mnDesc));
+            // lambda forms are static, so get the static method pointer off of the vmentry
+            Value smPtr = /* TODO */ lf.zeroInitializerLiteralOfType(ts.getVoidType().getPointer());
+            // cast it to the call site type, which *must* match
+            InstanceMethodType callSiteType = target.getCallSiteType();
+            StaticMethodType invokeType = ts.getStaticMethodType(callSiteType.getReturnType(), callSiteType.getParameterTypes());
+            Value castPtr = fb.bitCast(smPtr, invokeType.getPointer());
+            // unlike linkTo..., do not replace the call frame (todo: maybe we should though)
+            return fb.call(fb.pointerHandle(castPtr), arguments);
+        };
+
+        intrinsics.registerIntrinsic(Phase.ADD, methodHandleDesc, "invokeBasic", objArrayToObj, invokeBasic);
+
+        InstanceIntrinsic linkToStatic = (builder, instance, target, arguments) -> {
+            BasicBlockBuilder fb = builder.getFirstBuilder();
+            // the last argument is the MemberName
+            int argSize = arguments.size();
+            Value memberName = arguments.get(argSize - 1);
+            // get the target pointer
+            Value smPtr = /* TODO */ lf.zeroInitializerLiteralOfType(ts.getVoidType().getPointer());
+            // cast it to the call site type, which *must* match
+            InstanceMethodType callSiteType = target.getCallSiteType();
+            StaticMethodType invokeType = ts.getStaticMethodType(callSiteType.getReturnType(), callSiteType.getParameterTypes().subList(0, argSize - 1));
+            Value castPtr = fb.bitCast(smPtr, invokeType.getPointer());
+            // tail call to target
+            throw new BlockEarlyTermination(fb.tailCall(fb.pointerHandle(castPtr), arguments.subList(0, argSize - 1)));
+        };
+
+        intrinsics.registerIntrinsic(Phase.ADD, methodHandleDesc, "linkToStatic", objArrayToObj, linkToStatic);
+
+        // TODO:
+        //    static native @PolymorphicSignature Object linkToVirtual(Object... args) throws Throwable;
+        //    static native @PolymorphicSignature Object linkToSpecial(Object... args) throws Throwable;
+        //    static native @PolymorphicSignature Object linkToInterface(Object... args) throws Throwable;
     }
 }

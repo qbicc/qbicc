@@ -6,9 +6,11 @@ import java.lang.invoke.VarHandle;
 import java.util.function.Function;
 
 import org.qbicc.pointer.StaticMethodPointer;
+import org.qbicc.type.MethodType;
 import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.util.ResolutionUtil;
 
 /**
  *
@@ -41,6 +43,18 @@ public final class MethodElement extends InvokableElement implements NamedElemen
         super(builder);
         this.name = builder.name;
         this.defaultValue = builder.defaultValue;
+    }
+
+    @Override
+    public MethodType getType() {
+        return (MethodType) super.getType();
+    }
+
+    @Override
+    MethodType computeType() {
+        return isStatic() ?
+            ResolutionUtil.resolveStaticMethodType(getEnclosingType().getContext(), this, getDescriptor(), getSignature()) :
+            ResolutionUtil.resolveInstanceMethodType(getEnclosingType().getContext(), getEnclosingType(), this, getDescriptor(), getSignature());
     }
 
     public String toString() {

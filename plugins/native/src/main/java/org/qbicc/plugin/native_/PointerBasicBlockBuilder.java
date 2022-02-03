@@ -17,7 +17,7 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ArrayType;
-import org.qbicc.type.FunctionType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
@@ -63,7 +63,7 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private List<Value> castVoidPointers(List<Value> arguments, Executable target) {
         int sz = arguments.size();
-        FunctionType callSiteType = target.getCallSiteType();
+        InvokableType callSiteType = target.getCallSiteType();
         for (int i = 0; i < sz; i ++) {
             Value arg = arguments.get(i);
             if (arg != castVoidPointer(arg, callSiteType.getParameterType(i))) {

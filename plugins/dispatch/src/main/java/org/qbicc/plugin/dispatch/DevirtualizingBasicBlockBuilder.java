@@ -3,7 +3,7 @@ package org.qbicc.plugin.dispatch;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.*;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.FunctionType;
+import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
@@ -23,7 +23,7 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public ValueHandle interfaceMethodOf(Value instance, MethodElement target, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+    public ValueHandle interfaceMethodOf(Value instance, MethodElement target, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         MethodElement exactTarget = staticallyBind(instance, target);
         if (exactTarget != null) {
             return exactMethodOf(instance, exactTarget, callSiteDescriptor, callSiteType);
@@ -36,7 +36,7 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public ValueHandle virtualMethodOf(Value instance, MethodElement target, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+    public ValueHandle virtualMethodOf(Value instance, MethodElement target, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         MethodElement exactTarget = staticallyBind(instance, target);
         return exactTarget != null ? exactMethodOf(instance, exactTarget, callSiteDescriptor, callSiteType) : super.virtualMethodOf(instance, target, callSiteDescriptor, callSiteType);
     }

@@ -957,7 +957,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
     public LLValue visit(Void param, org.qbicc.graph.Call node) {
         map(node.getDependency());
-        FunctionType functionType = node.getFunctionType();
+        FunctionType functionType = (FunctionType) node.getCalleeType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
         ValueHandle valueHandle = node.getValueHandle();
@@ -967,7 +967,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail();
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (node.getFunctionType().isVariadic()) {
+        if (functionType.isVariadic()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -977,7 +977,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
     @Override
     public LLValue visit(Void param, CallNoSideEffects node) {
-        FunctionType functionType = node.getFunctionType();
+        FunctionType functionType = (FunctionType) node.getCalleeType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
         ValueHandle valueHandle = node.getValueHandle();
@@ -988,7 +988,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail();
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (node.getFunctionType().isVariadic()) {
+        if (functionType.isVariadic()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -999,7 +999,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     @Override
     public Instruction visit(Void param, CallNoReturn node) {
         map(node.getDependency());
-        FunctionType functionType = node.getFunctionType();
+        FunctionType functionType = (FunctionType) node.getCalleeType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
         ValueHandle valueHandle = node.getValueHandle();
@@ -1010,7 +1010,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail().attribute(FunctionAttributes.noreturn);
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (node.getFunctionType().isVariadic()) {
+        if (functionType.isVariadic()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1022,7 +1022,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     @Override
     public Instruction visit(Void param, TailCall node) {
         map(node.getDependency());
-        FunctionType functionType = node.getFunctionType();
+        FunctionType functionType = (FunctionType) node.getCalleeType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
         ValueHandle valueHandle = node.getValueHandle();
@@ -1033,12 +1033,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).tail(); // hint only
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (node.getFunctionType().isVariadic()) {
+        if (functionType.isVariadic()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
         }
-        ValueType returnType = node.getFunctionType().getReturnType();
+        ValueType returnType = node.getCalleeType().getReturnType();
         if (returnType instanceof VoidType) {
             return builder.ret();
         } else {
@@ -1049,7 +1049,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     @Override
     public Instruction visit(Void param, Invoke node) {
         map(node.getDependency());
-        FunctionType functionType = node.getFunctionType();
+        FunctionType functionType = (FunctionType) node.getCalleeType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
         ValueHandle valueHandle = node.getValueHandle();
@@ -1081,7 +1081,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
         addPersonalityIfNeeded();
-        if (node.getFunctionType().isVariadic()) {
+        if (functionType.isVariadic()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1092,7 +1092,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     @Override
     public Instruction visit(Void param, InvokeNoReturn node) {
         map(node.getDependency());
-        FunctionType functionType = node.getFunctionType();
+        FunctionType functionType = (FunctionType) node.getCalleeType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
         ValueHandle valueHandle = node.getValueHandle();
@@ -1113,7 +1113,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
         addPersonalityIfNeeded();
-        if (node.getFunctionType().isVariadic()) {
+        if (functionType.isVariadic()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1124,7 +1124,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     @Override
     public Instruction visit(Void param, TailInvoke node) {
         map(node.getDependency());
-        FunctionType functionType = node.getFunctionType();
+        FunctionType functionType = (FunctionType) node.getCalleeType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
         ValueHandle valueHandle = node.getValueHandle();
@@ -1143,14 +1143,14 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         }
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        ValueType returnType = node.getFunctionType().getReturnType();
+        ValueType returnType = node.getCalleeType().getReturnType();
         if (returnType instanceof VoidType) {
             LLVM.newBuilder(tailTarget).ret();
         } else {
             LLVM.newBuilder(tailTarget).ret(map(returnType), call.asLocal());
         }
         addPersonalityIfNeeded();
-        if (node.getFunctionType().isVariadic()) {
+        if (functionType.isVariadic()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);

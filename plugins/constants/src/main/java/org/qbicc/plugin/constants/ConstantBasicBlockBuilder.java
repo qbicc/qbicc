@@ -31,6 +31,7 @@ import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NullableType;
 import org.qbicc.type.SignedIntegerType;
+import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -126,7 +127,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private Value fold(final ValueHandle target, final List<Value> arguments) throws Thrown {
         // we fold per call site, so caching does not really make sense
-        if (target instanceof StaticMethodElementHandle sh && target.getValueType() instanceof FunctionType ft) {
+        if (target instanceof StaticMethodElementHandle sh && target.getValueType() instanceof StaticMethodType smt) {
             int size = arguments.size();
             Object[] args = size == 0 ? NO_ARGS : new Object[size];
             for (int i = 0; i < size; i ++) {
@@ -162,7 +163,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 return ctxt.getLiteralFactory().literalOf(result);
             } else if (resultObj instanceof ValueType result) {
                 return ctxt.getLiteralFactory().literalOfType(result);
-            } else if (resultObj == null && ft.getReturnType() instanceof NullableType nt) {
+            } else if (resultObj == null && smt.getReturnType() instanceof NullableType nt) {
                 return ctxt.getLiteralFactory().nullLiteralOfType(nt);
             } else {
                 ctxt.error(getLocation(), "Unmappable constant-folded return value %s", resultObj);

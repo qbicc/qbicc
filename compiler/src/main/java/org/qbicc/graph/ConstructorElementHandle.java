@@ -1,6 +1,6 @@
 package org.qbicc.graph;
 
-import org.qbicc.type.FunctionType;
+import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -12,7 +12,7 @@ import org.qbicc.type.descriptor.MethodDescriptor;
 public final class ConstructorElementHandle extends Executable {
     private final Value instance;
 
-    ConstructorElementHandle(ExecutableElement element, int line, int bci, ConstructorElement constructorElement, Value instance, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+    ConstructorElementHandle(ExecutableElement element, int line, int bci, ConstructorElement constructorElement, Value instance, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         super(element, line, bci, constructorElement, callSiteDescriptor, callSiteType);
         this.instance = instance;
     }
@@ -47,6 +47,16 @@ public final class ConstructorElementHandle extends Executable {
     @Override
     String getNodeName() {
         return "Constructor";
+    }
+
+    @Override
+    public InstanceMethodType getValueType() {
+        return (InstanceMethodType) super.getValueType();
+    }
+
+    @Override
+    public InstanceMethodType getCallSiteType() {
+        return (InstanceMethodType) super.getCallSiteType();
     }
 
     @Override

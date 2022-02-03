@@ -1,9 +1,7 @@
 package org.qbicc.plugin.llvm;
 
-import static org.qbicc.machine.llvm.Types.array;
 import static org.qbicc.machine.llvm.Types.*;
 import static org.qbicc.machine.llvm.Values.*;
-import static java.lang.Math.max;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,11 +52,11 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.MethodType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.Type;
-import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VariadicType;
 import org.qbicc.type.VoidType;
@@ -115,6 +113,9 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue>, Pointe
             } else {
                 throw Assert.unreachableCode();
             }
+        } else if (type instanceof MethodType) {
+            // LLVM does not have an equivalent to method types
+            res = i8;
         } else if (type instanceof PointerType) {
             Type pointeeType = ((PointerType) type).getPointeeType();
             boolean isCollected = ((PointerType) type).isCollected();

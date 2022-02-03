@@ -1,7 +1,7 @@
 package org.qbicc.graph;
 
 import org.qbicc.graph.atomic.AccessMode;
-import org.qbicc.type.FunctionType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -15,9 +15,9 @@ import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 public abstract class Executable extends AbstractValueHandle {
     private final ExecutableElement executable;
     private final MethodDescriptor callSiteDescriptor;
-    private final FunctionType callSiteType;
+    private final InvokableType callSiteType;
 
-    Executable(ExecutableElement currentElement, int line, int bci, ExecutableElement executable, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+    Executable(ExecutableElement currentElement, int line, int bci, ExecutableElement executable, MethodDescriptor callSiteDescriptor, InvokableType callSiteType) {
         super(null, currentElement, line, bci);
         this.executable = executable;
         this.callSiteDescriptor = callSiteDescriptor;
@@ -35,7 +35,7 @@ public abstract class Executable extends AbstractValueHandle {
     }
 
     @Override
-    public FunctionType getValueType() {
+    public InvokableType getValueType() {
         return callSiteType;
     }
 
@@ -47,7 +47,7 @@ public abstract class Executable extends AbstractValueHandle {
         return callSiteDescriptor;
     }
 
-    public FunctionType getCallSiteType() {
+    public InvokableType getCallSiteType() {
         return callSiteType;
     }
 

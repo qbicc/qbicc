@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FunctionElement;
 
@@ -23,6 +24,16 @@ public final class FunctionElementHandle extends Executable {
 
     public boolean equals(final FunctionElementHandle other) {
         return super.equals(other);
+    }
+
+    @Override
+    public FunctionType getValueType() {
+        return (FunctionType) super.getValueType();
+    }
+
+    @Override
+    public FunctionType getCallSiteType() {
+        return (FunctionType) super.getCallSiteType();
     }
 
     public boolean isConstantLocation() {
