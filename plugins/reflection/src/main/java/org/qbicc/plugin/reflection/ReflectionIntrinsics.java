@@ -82,7 +82,7 @@ final class ReflectionIntrinsics {
                     realHandle = lf.literalOf((VmObject) vm.invokeExact(asType, ((ObjectLiteral) instance).getValue(), List.of(realType)));
                 } else {
                     // get the target dynamically
-                    ValueHandle asTypeHandle = fb.exactMethodOf(instance, asType, asType.getDescriptor(), asType.getType());
+                    ValueHandle asTypeHandle = fb.exactMethodOf(instance, asType);
                     realHandle = fb.call(asTypeHandle, List.of(lf.literalOf(realType)));
                 }
                 ValueHandle invokeExactHandle = fb.exactMethodOf(realHandle, methodHandleDesc, "invokeExact", descriptor);

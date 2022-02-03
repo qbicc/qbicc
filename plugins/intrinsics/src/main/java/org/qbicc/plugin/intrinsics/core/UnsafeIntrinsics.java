@@ -588,7 +588,7 @@ public class UnsafeIntrinsics {
             builder.return_(builder.offsetOfField(doubleArrayContentField));
             builder.begin(isNotDouble);
             MethodElement throwCce = RuntimeMethodFinder.get(ctxt).getMethod("raiseClassCastException");
-            throw new BlockEarlyTermination(builder.callNoReturn(builder.staticMethod(throwCce, throwCce.getDescriptor(), throwCce.getType()), List.of()));
+            throw new BlockEarlyTermination(builder.callNoReturn(builder.staticMethod(throwCce), List.of()));
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "arrayBaseOffset0", classToInt, arrayBaseOffset);
@@ -673,7 +673,7 @@ public class UnsafeIntrinsics {
             builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getFloat64Type().getSize()));
             builder.begin(isNotDouble);
             MethodElement throwCce = RuntimeMethodFinder.get(ctxt).getMethod("raiseClassCastException");
-            throw new BlockEarlyTermination(builder.callNoReturn(builder.staticMethod(throwCce, throwCce.getDescriptor(), throwCce.getType()), List.of()));
+            throw new BlockEarlyTermination(builder.callNoReturn(builder.staticMethod(throwCce), List.of()));
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "arrayIndexScale0", classToInt, arrayIndexScale);

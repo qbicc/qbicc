@@ -38,7 +38,7 @@ public class InitCheckLoweringBasicBlockBuilder extends DelegatingBasicBlockBuil
         if_(isNe(done, lf.literalOf(ctxt.getTypeSystem().getSignedInteger8Type(), 0)), goAhead, callInit);
         try {
             begin(callInit);
-            getFirstBuilder().call(getFirstBuilder().virtualMethodOf(initThunk, run, run.getDescriptor(), run.getType()), List.of());
+            getFirstBuilder().call(getFirstBuilder().virtualMethodOf(initThunk, run), List.of());
             goto_(goAhead);
         } catch (BlockEarlyTermination ignored) {
             // continue
