@@ -68,89 +68,617 @@ public interface Memory {
 
     ValueType compareAndExchangeType(int index, ValueType expect, ValueType update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    int getAndSet8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndSet8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load8(index, readMode);
+        int witness;
+        for (;;) {
+            witness = compareAndExchange8(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndSet16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndSet16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load16(index, readMode);
+        int witness;
+        for (;;) {
+            witness = compareAndExchange16(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndSet32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndSet32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load32(index, readMode);
+        int witness;
+        for (;;) {
+            witness = compareAndExchange32(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    long getAndSet64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default long getAndSet64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        long oldVal = load64(index, readMode);
+        long witness;
+        for (;;) {
+            witness = compareAndExchange64(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    VmObject getAndSetRef(int index, VmObject value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default VmObject getAndSetRef(int index, VmObject value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        VmObject oldVal = loadRef(index, readMode);
+        VmObject witness;
+        for (;;) {
+            witness = compareAndExchangeRef(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    ValueType getAndSetType(int index, ValueType value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default ValueType getAndSetType(int index, ValueType value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        ValueType oldVal = loadType(index, readMode);
+        ValueType witness;
+        for (;;) {
+            witness = compareAndExchangeType(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndAdd8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndAdd8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load8(index, readMode);
+        int newVal, witness;
+        for (;;) {
+            newVal = oldVal + value;
+            witness = compareAndExchange8(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndAdd16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndAdd16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load16(index, readMode);
+        int newVal, witness;
+        for (;;) {
+            newVal = oldVal + value;
+            witness = compareAndExchange16(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndAdd32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndAdd32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load32(index, readMode);
+        int newVal, witness;
+        for (;;) {
+            newVal = oldVal + value;
+            witness = compareAndExchange32(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    long getAndAdd64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default long getAndAdd64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        long oldVal = load64(index, readMode);
+        long newVal, witness;
+        for (;;) {
+            newVal = oldVal + value;
+            witness = compareAndExchange64(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndBitwiseAnd8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndBitwiseAnd8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load8(index, readMode);
+        int newVal, witness;
+        for (;;) {
+            newVal = oldVal & value;
+            witness = compareAndExchange8(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndBitwiseAnd16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndBitwiseAnd16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load16(index, readMode);
+        int newVal, witness;
+        for (;;) {
+            newVal = oldVal & value;
+            witness = compareAndExchange16(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndBitwiseAnd32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndBitwiseAnd32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load32(index, readMode);
+        int newVal, witness;
+        for (;;) {
+            newVal = oldVal & value;
+            if (newVal == oldVal) {
+                return oldVal;
+            }
+            witness = compareAndExchange32(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    long getAndBitwiseAnd64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default long getAndBitwiseAnd64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        long oldVal = load64(index, readMode);
+        long newVal, witness;
+        for (;;) {
+            newVal = oldVal & value;
+            if (newVal == oldVal) {
+                return oldVal;
+            }
+            witness = compareAndExchange64(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndBitwiseNand8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndBitwiseNand8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load8(index, readMode);
+        int newVal, witness;
+        for (;;) {
+            newVal = oldVal & ~value;
+            witness = compareAndExchange8(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndBitwiseNand16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndBitwiseNand16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load16(index, readMode);
+        int newVal, witness;
+        for (;;) {
+            newVal = oldVal & ~value;
+            witness = compareAndExchange16(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndBitwiseNand32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndBitwiseNand32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load32(index, readMode);
+        int newVal, witness;
+        for (;;) {
+            newVal = oldVal & ~value;
+            if (newVal == oldVal) {
+                return oldVal;
+            }
+            witness = compareAndExchange32(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    long getAndBitwiseNand64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default long getAndBitwiseNand64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        long oldVal = load64(index, readMode);
+        long newVal, witness;
+        for (;;) {
+            newVal = oldVal & ~value;
+            if (newVal == oldVal) {
+                return oldVal;
+            }
+            witness = compareAndExchange64(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndBitwiseOr8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndBitwiseOr8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load8(index, readMode);
+        int newVal, witness;
+        for (;;) {
+            newVal = oldVal | value;
+            witness = compareAndExchange8(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndBitwiseOr16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndBitwiseOr16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load16(index, readMode);
+        int newVal, witness;
+        for (;;) {
+            newVal = oldVal | value;
+            witness = compareAndExchange16(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndBitwiseOr32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndBitwiseOr32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load32(index, readMode);
+        int newVal, witness;
+        for (;;) {
+            newVal = oldVal | ~value;
+            if (newVal == oldVal) {
+                return oldVal;
+            }
+            witness = compareAndExchange32(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    long getAndBitwiseOr64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default long getAndBitwiseOr64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        long oldVal = load64(index, readMode);
+        long newVal, witness;
+        for (;;) {
+            newVal = oldVal | value;
+            if (newVal == oldVal) {
+                return oldVal;
+            }
+            witness = compareAndExchange64(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndBitwiseXor8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndBitwiseXor8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load8(index, readMode);
+        int newVal, witness;
+        for (;;) {
+            newVal = oldVal ^ value;
+            witness = compareAndExchange8(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndBitwiseXor16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndBitwiseXor16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load16(index, readMode);
+        int newVal, witness;
+        for (;;) {
+            newVal = oldVal ^ value;
+            witness = compareAndExchange16(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndBitwiseXor32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndBitwiseXor32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load32(index, readMode);
+        int newVal, witness;
+        for (;;) {
+            newVal = oldVal ^ value;
+            if (newVal == oldVal) {
+                return oldVal;
+            }
+            witness = compareAndExchange32(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    long getAndBitwiseXor64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default long getAndBitwiseXor64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        long oldVal = load64(index, readMode);
+        long newVal, witness;
+        for (;;) {
+            newVal = oldVal & ~value;
+            if (newVal == oldVal) {
+                return oldVal;
+            }
+            witness = compareAndExchange64(index, oldVal, newVal, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndSetMaxSigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    private int signExtend8(int val) {
+        return (byte) val;
+    }
 
-    int getAndSetMaxSigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    private int signExtend16(int val) {
+        return (short) val;
+    }
 
-    int getAndSetMaxSigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndSetMaxSigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load8(index, readMode);
+        int witness;
+        value = signExtend8(value);
+        for (;;) {
+            if (signExtend8(oldVal) >= value) {
+                return oldVal;
+            }
+            witness = compareAndExchange8(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    long getAndSetMaxSigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndSetMaxSigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load16(index, readMode);
+        int witness;
+        value = signExtend16(value);
+        for (;;) {
+            if (signExtend16(oldVal) >= value) {
+                return oldVal;
+            }
+            witness = compareAndExchange16(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndSetMaxUnsigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndSetMaxSigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load32(index, readMode);
+        int witness;
+        for (;;) {
+            if (oldVal >= value) {
+                return oldVal;
+            }
+            witness = compareAndExchange32(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndSetMaxUnsigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default long getAndSetMaxSigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        long oldVal = load64(index, readMode);
+        long witness;
+        for (;;) {
+            if (oldVal >= value) {
+                return oldVal;
+            }
+            witness = compareAndExchange64(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndSetMaxUnsigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndSetMaxUnsigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load8(index, readMode) & 0xff;
+        int witness;
+        value &= 0xff;
+        for (;;) {
+            if (oldVal >= value) {
+                return oldVal;
+            }
+            witness = compareAndExchange8(index, oldVal, value, readMode, writeMode) & 0xff;
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    long getAndSetMaxUnsigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndSetMaxUnsigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load16(index, readMode) & 0xffff;
+        int witness;
+        value &= 0xffff;
+        for (;;) {
+            if (oldVal >= value) {
+                return oldVal;
+            }
+            witness = compareAndExchange16(index, oldVal, value, readMode, writeMode) & 0xffff;
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndSetMinSigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndSetMaxUnsigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load32(index, readMode);
+        int witness;
+        for (;;) {
+            if (Integer.compareUnsigned(oldVal, value) >= 0) {
+                return oldVal;
+            }
+            witness = compareAndExchange32(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndSetMinSigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default long getAndSetMaxUnsigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        long oldVal = load64(index, readMode);
+        long witness;
+        for (;;) {
+            if (Long.compareUnsigned(oldVal, value) >= 0) {
+                return oldVal;
+            }
+            witness = compareAndExchange64(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndSetMinSigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndSetMinSigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load8(index, readMode);
+        int witness;
+        value = signExtend8(value);
+        for (;;) {
+            if (signExtend8(oldVal) <= value) {
+                return oldVal;
+            }
+            witness = compareAndExchange8(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    long getAndSetMinSigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndSetMinSigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load16(index, readMode);
+        int witness;
+        value = signExtend16(value);
+        for (;;) {
+            if (signExtend16(oldVal) <= value) {
+                return oldVal;
+            }
+            witness = compareAndExchange16(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndSetMinUnsigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndSetMinSigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load32(index, readMode);
+        int witness;
+        for (;;) {
+            if (oldVal <= value) {
+                return oldVal;
+            }
+            witness = compareAndExchange32(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndSetMinUnsigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default long getAndSetMinSigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        long oldVal = load64(index, readMode);
+        long witness;
+        for (;;) {
+            if (oldVal <= value) {
+                return oldVal;
+            }
+            witness = compareAndExchange64(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    int getAndSetMinUnsigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndSetMinUnsigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load8(index, readMode) & 0xff;
+        int witness;
+        value &= 0xff;
+        for (;;) {
+            if (oldVal <= value) {
+                return oldVal;
+            }
+            witness = compareAndExchange8(index, oldVal, value, readMode, writeMode) & 0xff;
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
-    long getAndSetMinUnsigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default int getAndSetMinUnsigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load16(index, readMode) & 0xffff;
+        int witness;
+        value &= 0xffff;
+        for (;;) {
+            if (oldVal <= value) {
+                return oldVal;
+            }
+            witness = compareAndExchange16(index, oldVal, value, readMode, writeMode) & 0xffff;
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
+
+    default int getAndSetMinUnsigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        int oldVal = load32(index, readMode);
+        int witness;
+        for (;;) {
+            if (Integer.compareUnsigned(oldVal, value) <= 0) {
+                return oldVal;
+            }
+            witness = compareAndExchange32(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
+
+    default long getAndSetMinUnsigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        long oldVal = load32(index, readMode);
+        long witness;
+        for (;;) {
+            if (Long.compareUnsigned(oldVal, value) <= 0) {
+                return oldVal;
+            }
+            witness = compareAndExchange64(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
 
     Memory copy(int newSize);
 }
