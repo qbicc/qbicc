@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -802,6 +803,21 @@ public final class VmImpl implements Vm {
             VmClassImpl fdClass = bootstrapClassLoader.loadClass("java/io/FileDescriptor");
             fdClass.registerInvokable("getAppend", (thread, target, args) -> Boolean.FALSE);
             fdClass.registerInvokable("getHandle", (thread, target, args) -> Long.valueOf(-1));
+
+            // ProcessEnvironment
+            VmClassImpl processEnvClass = bootstrapClassLoader.loadClass("java/lang/ProcessEnvironment");
+            processEnvClass.registerInvokable("getHostEnvironment", (thread, target, args) -> {
+                // todo: customize
+                VmArray array = stringClass.getArrayClass().newInstance(4);
+                int i = 0;
+                for (String str : List.of(
+                    "TZ", TimeZone.getDefault().getDisplayName(),
+                    "LANG", Locale.getDefault().toLanguageTag() + "." + Charset.defaultCharset().name()
+                )) {
+                    array.getMemory().storeRef(array.getArrayElementOffset(i++), intern(str), SinglePlain);
+                }
+                return array;
+            });
 
             // Build
             VmClassImpl build = bootstrapClassLoader.loadClass("org/qbicc/runtime/Build");
