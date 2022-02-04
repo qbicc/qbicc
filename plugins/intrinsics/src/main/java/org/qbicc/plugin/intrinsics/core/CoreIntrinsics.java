@@ -157,7 +157,7 @@ public final class CoreIntrinsics {
         StaticIntrinsic classForName0 = (builder, target, arguments) -> {
             // ignore fourth argument
             MethodElement vmhForName = RuntimeMethodFinder.get(ctxt).getMethod("classForName");
-            return builder.call(builder.staticMethod(vmhForName, vmhForName.getDescriptor(), vmhForName.getType()), arguments.subList(0, 3));
+            return builder.call(builder.staticMethod(vmhForName), arguments.subList(0, 3));
         };
 
         intrinsics.registerIntrinsic(jlcDesc, "forName0", stringBoolLoaderClassToClass, classForName0);
@@ -349,17 +349,17 @@ public final class CoreIntrinsics {
 
         InstanceIntrinsic fillInStackTrace = (builder, instance, target, arguments) -> {
             Value frameCount = builder.getFirstBuilder().call(
-                builder.staticMethod(getFrameCountElement, getFrameCountElement.getDescriptor(), getFrameCountElement.getType()),
+                builder.staticMethod(getFrameCountElement),
                 List.of(instance));
             ClassObjectType jsfcClassType = (ClassObjectType) ctxt.getBootstrapClassContext().findDefinedType(jsfcClass).load().getType();
             CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(jsfcClassType.getDefinition()).getCompoundType();
             LiteralFactory lf = ctxt.getLiteralFactory();
             Value visitor = builder.getFirstBuilder().new_(jsfcClassType, lf.literalOfType(jsfcClassType), lf.literalOf(compoundType.getSize()), lf.literalOf(compoundType.getAlign()));
             builder.call(
-                builder.getFirstBuilder().constructorOf(visitor, jsfcConstructor, jsfcConstructor.getDescriptor(), jsfcConstructor.getType()),
+                builder.getFirstBuilder().constructorOf(visitor, jsfcConstructor),
                 List.of(frameCount));
             builder.call(
-                builder.getFirstBuilder().staticMethod(walkStackElement, walkStackElement.getDescriptor(), walkStackElement.getType()),
+                builder.getFirstBuilder().staticMethod(walkStackElement),
                 List.of(instance, visitor));
 
             // set Throwable#backtrace and Throwable#depth fields
@@ -368,7 +368,7 @@ public final class CoreIntrinsics {
             FieldElement backtraceField = jltVal.findField("backtrace");
             FieldElement depthField = jltVal.findField("depth");
             Value backtraceValue = builder.getFirstBuilder().call(
-                builder.virtualMethodOf(visitor, getSourceCodeIndexListElement, getSourceCodeIndexListElement.getDescriptor(), getSourceCodeIndexListElement.getType()),
+                builder.virtualMethodOf(visitor, getSourceCodeIndexListElement),
                 List.of());
             builder.store(builder.instanceFieldOf(builder.referenceHandle(instance), backtraceField), backtraceValue, SingleUnshared);
             builder.store(builder.instanceFieldOf(builder.referenceHandle(instance), depthField), frameCount, SingleUnshared);
@@ -398,7 +398,7 @@ public final class CoreIntrinsics {
             Value backtraceValue = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(1)), backtraceField), SingleUnshared);
             Value depthValue = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(1)), depthField), SingleUnshared);
 
-            return builder.getFirstBuilder().call(builder.staticMethod(fillStackTraceElements, fillStackTraceElements.getDescriptor(), fillStackTraceElements.getType()), List.of(arguments.get(0), backtraceValue, depthValue));
+            return builder.getFirstBuilder().call(builder.staticMethod(fillStackTraceElements), List.of(arguments.get(0), backtraceValue, depthValue));
         };
 
         intrinsics.registerIntrinsic(Phase.ANALYZE, steDesc, "initStackTraceElements", steArrayThrowableToVoidDesc, initStackTraceElements);
@@ -553,23 +553,23 @@ public final class CoreIntrinsics {
             Value scIndex = arguments.get(1);
 
             Value lineNumber = builder.getFirstBuilder().call(
-                builder.staticMethod(getLineNumberElement, getLineNumberElement.getDescriptor(), getLineNumberElement.getType()),
+                builder.staticMethod(getLineNumberElement),
                 List.of(scIndex));
             Value minfoIndex = builder.getFirstBuilder().call(
-                builder.staticMethod(getMethodInfoIndexElement, getMethodInfoIndexElement.getDescriptor(), getMethodInfoIndexElement.getType()),
+                builder.staticMethod(getMethodInfoIndexElement),
                 List.of(scIndex));
 
             Value fileName = builder.getFirstBuilder().call(
-                builder.staticMethod(getFileNameElement, getFileNameElement.getDescriptor(), getFileNameElement.getType()),
+                builder.staticMethod(getFileNameElement),
                 List.of(minfoIndex));
             Value classObject = builder.getFirstBuilder().call(
-                builder.staticMethod(getClassElement, getClassElement.getDescriptor(), getClassElement.getType()),
+                builder.staticMethod(getClassElement),
                 List.of(minfoIndex));
             Value className = builder.getFirstBuilder().call(
-                builder.staticMethod(getClassNameElement, getClassNameElement.getDescriptor(), getClassNameElement.getType()),
+                builder.staticMethod(getClassNameElement),
                 List.of(minfoIndex));
             Value methodName = builder.getFirstBuilder().call(
-                builder.staticMethod(getMethodNameElement, getMethodNameElement.getDescriptor(), getMethodNameElement.getType()),
+                builder.staticMethod(getMethodNameElement),
                 List.of(minfoIndex));
 
             ValueHandle steRefHandle = builder.referenceHandle(arguments.get(0));
@@ -729,7 +729,7 @@ public final class CoreIntrinsics {
             //  2. We are overwriting the object header fields initialized by new when doing the copy
             //     (to make sure we copy any instance fields that have been assigned to use the padding bytes in the basic object header).
             MethodElement method = NoGc.get(ctxt).getCopyMethod();
-            return builder.call(builder.staticMethod(method, method.getDescriptor(), method.getType()), List.of(dst, src, size));
+            return builder.call(builder.staticMethod(method), List.of(dst, src, size));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "copyInstanceFields", copyDesc, copy);
     }
@@ -909,7 +909,7 @@ public final class CoreIntrinsics {
             phi.setValueForBlock(ctxt, builder.getCurrentElement(), from, result);
 
             builder.begin(trueBranch); // true; create Class for array reference
-            result = builder.getFirstBuilder().call(builder.staticMethod(getOrCreateArrayClass, getOrCreateArrayClass.getDescriptor(), getOrCreateArrayClass.getType()), List.of(componentClass, dims));
+            result = builder.getFirstBuilder().call(builder.staticMethod(getOrCreateArrayClass), List.of(componentClass, dims));
             from = builder.goto_(fallThrough);
             phi.setValueForBlock(ctxt, builder.getCurrentElement(), from, result);
             builder.begin(fallThrough);

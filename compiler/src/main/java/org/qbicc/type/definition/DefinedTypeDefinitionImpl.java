@@ -336,7 +336,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                             ClassContext bc = context.getCompilationContext().getBootstrapClassContext();
                                             LoadedTypeDefinition vmHelpers = bc.findDefinedType("org/qbicc/runtime/main/VMHelpers").load();
                                             MethodElement icce = vmHelpers.resolveMethodElementExact("raiseIncompatibleClassChangeError", MethodDescriptor.synthesize(bc, BaseTypeDescriptor.V, List.of()));
-                                            BasicBlock entryBlock = bbb.callNoReturn(bbb.staticMethod(icce, icce.getDescriptor(), icce.getType()), List.of());
+                                            BasicBlock entryBlock = bbb.callNoReturn(bbb.staticMethod(icce), List.of());
                                             bbb.finish();
                                             Schedule schedule = Schedule.forMethod(entryBlock);
                                             return MethodBody.of(entryBlock, schedule, thisValue, paramValues);
@@ -381,7 +381,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                     bbb.begin(entryLabel);
                                     // just cast the list because it's fine; todo: maybe this method should accept List<? extends Value>
                                     //noinspection unchecked,rawtypes
-                                    BasicBlock entryBlock = bbb.tailCall(bbb.exactMethodOf(thisValue, finalDefaultMethod, finalDefaultMethod.getDescriptor(), finalDefaultMethod.getType()), (List<Value>) (List) paramValues);
+                                    BasicBlock entryBlock = bbb.tailCall(bbb.exactMethodOf(thisValue, finalDefaultMethod), (List<Value>) (List) paramValues);
                                     bbb.finish();
                                     Schedule schedule = Schedule.forMethod(entryBlock);
                                     return MethodBody.of(entryBlock, schedule, thisValue, paramValues);

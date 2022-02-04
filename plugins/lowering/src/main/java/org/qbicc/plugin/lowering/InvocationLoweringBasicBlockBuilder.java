@@ -196,7 +196,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         if (info == null) {
             // No realized invocation targets are possible for this method!
             MethodElement method = RuntimeMethodFinder.get(ctxt).getMethod("raiseIncompatibleClassChangeError");
-            throw new BlockEarlyTermination(fb.callNoReturn(staticMethod(method, method.getDescriptor(), method.getType()), List.of()));
+            throw new BlockEarlyTermination(fb.callNoReturn(staticMethod(method), List.of()));
         }
 
         Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
@@ -231,7 +231,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
             begin(failLabel);
             MethodElement method = RuntimeMethodFinder.get(ctxt).getMethod("raiseIncompatibleClassChangeError");
-            callNoReturn(staticMethod(method, method.getDescriptor(), method.getType()), List.of());
+            callNoReturn(staticMethod(method), List.of());
         } catch (BlockEarlyTermination ignored) {
             // ignore; continue to generate validEntry block
         }
@@ -271,6 +271,6 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         Literal arg = ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getType().getReference());
 
         MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseUnsatisfiedLinkError");
-        return callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of(arg));
+        return callNoReturn(staticMethod(helper), List.of(arg));
     }
 }

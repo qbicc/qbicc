@@ -48,7 +48,9 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
             if (value instanceof Literal && ((Literal) value).isZero()) {
                 value = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(expected);
             } else {
-                ctxt.warning(element, this, "Invalid input value for phi: expected %s, got %s", expected, actual);
+                if (DEBUG_PHIS) {
+                    ctxt.debug(element, this, "Invalid input value for phi: expected %s, got %s", expected, actual);
+                }
             }
         }
         if (! nullable && value.isNullable()) {

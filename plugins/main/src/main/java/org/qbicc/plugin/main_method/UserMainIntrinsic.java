@@ -29,7 +29,7 @@ public class UserMainIntrinsic implements StaticIntrinsic {
 
     @Override
     public Value emitIntrinsic(BasicBlockBuilder builder, StaticMethodElementHandle target, List<Value> arguments) {
-        return builder.call(builder.staticMethod(realMain, realMain.getDescriptor(), realMain.getType()), arguments);
+        return builder.call(builder.staticMethod(realMain), arguments);
     }
 
     public static void register(CompilationContext ctxt, MethodElement mainMethod) {

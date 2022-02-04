@@ -48,12 +48,12 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
         if (ptrVal == null) {
             MethodElement method = noGc.getAllocateMethod();
-            ptrVal = notNull(call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(size, align)));
+            ptrVal = notNull(call(staticMethod(method), List.of(size, align)));
         }
 
         // zero initialize the allocated storage
         MethodElement method = noGc.getZeroMethod();
-        call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(ptrVal, size));
+        call(staticMethod(method), List.of(ptrVal, size));
 
         Value oop = valueConvert(ptrVal, type.getReference());
         BasicHeaderInitializer.initializeObjectHeader(ctxt, this, referenceHandle(oop), typeId);
@@ -96,9 +96,9 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
         // Allocate and zero-initialize the storage
         MethodElement method1 = noGc.getAllocateMethod();
-        Value ptrVal = notNull(call(staticMethod(method1, method1.getDescriptor(), method1.getType()), List.of(realSize, align)));
+        Value ptrVal = notNull(call(staticMethod(method1), List.of(realSize, align)));
         MethodElement method = noGc.getZeroMethod();
-        call(staticMethod(method, method.getDescriptor(), method.getType()), List.of(ptrVal, realSize));
+        call(staticMethod(method), List.of(ptrVal, realSize));
 
         return ptrVal;
     }

@@ -202,7 +202,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             try {
                 begin(throwIt);
                 MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseArithmeticException");
-                callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of());
+                callNoReturn(staticMethod(helper), List.of());
             } catch (BlockEarlyTermination ignored) {
                 // continue
             }
@@ -213,12 +213,12 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     private void throwIncompatibleClassChangeError() {
         MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseIncompatibleClassChangeError");
-        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of()));
+        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper), List.of()));
     }
 
     private void throwClassCastException() {
         MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseClassCastException");
-        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of()));
+        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper), List.of()));
     }
 
     private Value check(ValueHandle handle) {
@@ -355,7 +355,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         try {
             begin(throwIt);
             MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseNullPointerException");
-            callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of());
+            callNoReturn(staticMethod(helper), List.of());
         } catch (BlockEarlyTermination ignored) {
             //continue
         }
@@ -380,7 +380,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         try {
             begin(throwIt);
             MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseArrayIndexOutOfBoundsException");
-            callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of());
+            callNoReturn(staticMethod(helper), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
         }
@@ -395,7 +395,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         try {
             begin(throwIt);
             MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseNegativeArraySizeException");
-            callNoReturn(staticMethod(helper, helper.getDescriptor(), helper.getType()), List.of());
+            callNoReturn(staticMethod(helper), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
         }
