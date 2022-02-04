@@ -9,15 +9,12 @@ import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
-import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.BooleanLiteral;
-import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
@@ -36,14 +33,19 @@ import org.qbicc.type.NullableType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.FieldElement;
-import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 /**
- * A basic block builder which substitutes reads from constant static fields with the constant value of the field.
+ * A basic block builder which substitutes reads from trivially constant static fields,
+ * CNative#constants and invocations of @Fold annotated methods with their constant values.
+ *
+ * We leave the wholesale constant folding of loads from final static fields to
+ * the InitializedStaticFieldBasicBlockBuilder, which runs during the ANALYZE
+ * phase after all build time interpretation has been completed and the values
+ * of all final fields have definitely been computed.
  */
 public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
@@ -69,21 +71,6 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             }
         }
         return getDelegate().load(handle, accessMode);
-    }
-
-    @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
-        if (getRootElement() instanceof InitializerElement) {
-            if (handle instanceof StaticField) {
-                final FieldElement fieldElement = ((StaticField) handle).getVariableElement();
-                if (fieldElement.isReallyFinal()) {
-                    if (value instanceof Literal && ! (value instanceof ConstantLiteral) || value instanceof OffsetOfField) {
-                        Constants.get(ctxt).registerConstant(fieldElement, value);
-                    }
-                }
-            }
-        }
-        return super.store(handle, value, accessMode);
     }
 
     @Override

@@ -36,10 +36,6 @@ public final class Constants {
         return constants.putIfAbsent(element, new ConstantFactory(element, factory)) == null;
     }
 
-    public boolean registerConstant(FieldElement element, Value constantValue) {
-        return constants.putIfAbsent(element, Functions.constantSupplier(constantValue)) == null;
-    }
-
     public Value getConstantValue(FieldElement element) {
         Supplier<Value> supplier = constants.get(element);
         return supplier == null ? null : supplier.get();
