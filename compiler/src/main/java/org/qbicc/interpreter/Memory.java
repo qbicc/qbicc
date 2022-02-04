@@ -34,7 +34,7 @@ public interface Memory {
 
     void store32(int index, int value, WriteAccessMode mode);
 
-    default void store32(int index, float value, WriteAccessMode mode) {
+    default void storeFloat(int index, float value, WriteAccessMode mode) {
         store32(index, Float.floatToRawIntBits(value), mode);
     }
 
@@ -44,7 +44,7 @@ public interface Memory {
 
     void store64(int index, long value, WriteAccessMode mode);
 
-    default void store64(int index, double value, WriteAccessMode mode) {
+    default void storeDouble(int index, double value, WriteAccessMode mode) {
         store64(index, Double.doubleToRawLongBits(value), mode);
     }
 
