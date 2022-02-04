@@ -11,7 +11,6 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.Load;
 import org.qbicc.graph.MemberSelector;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -22,7 +21,6 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
-import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
@@ -82,7 +80,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 element = definedType.load().resolveMethodElementVirtual(name, descriptor);
             }
             if (element == null) {
-                throw new BlockEarlyTermination(nsme());
+                throw new BlockEarlyTermination(nsme(name));
             } else {
                 TypeParameterContext tpc = getCurrentElement() instanceof TypeParameterContext ? (TypeParameterContext) getCurrentElement() : definedType;
                 FunctionType callSiteType = getClassContext().resolveMethodFunctionType(
@@ -97,7 +95,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
-            throw new BlockEarlyTermination(nsme());
+            throw new BlockEarlyTermination(nsme(name));
         }
     }
 
@@ -107,7 +105,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
             MethodElement element = definedType.load().resolveMethodElementVirtual(name, descriptor);
             if (element == null) {
-                throw new BlockEarlyTermination(nsme());
+                throw new BlockEarlyTermination(nsme(name));
             } else {
                 TypeParameterContext tpc = getCurrentElement() instanceof TypeParameterContext ? (TypeParameterContext) getCurrentElement() : definedType;
                 FunctionType callSiteType = getClassContext().resolveMethodFunctionType(
@@ -122,7 +120,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
-            throw new BlockEarlyTermination(nsme());
+            throw new BlockEarlyTermination(nsme(name));
         }
     }
 
@@ -132,7 +130,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
             MethodElement element = definedType.load().resolveMethodElementInterface(name, descriptor);
             if (element == null) {
-                throw new BlockEarlyTermination(nsme());
+                throw new BlockEarlyTermination(nsme(name));
             } else {
                 TypeParameterContext tpc = getCurrentElement() instanceof TypeParameterContext ? (TypeParameterContext) getCurrentElement() : definedType;
                 FunctionType callSiteType = getClassContext().resolveMethodFunctionType(
@@ -147,7 +145,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
-            throw new BlockEarlyTermination(nsme());
+            throw new BlockEarlyTermination(nsme(name));
         }
     }
 
@@ -164,7 +162,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 element = definedType.load().resolveMethodElementVirtual(name, descriptor);
             }
             if (element == null) {
-                throw new BlockEarlyTermination(nsme());
+                throw new BlockEarlyTermination(nsme(name));
             } else {
                 TypeParameterContext tpc = getCurrentElement() instanceof TypeParameterContext ? (TypeParameterContext) getCurrentElement() : definedType;
                 FunctionType callSiteType = getClassContext().resolveMethodFunctionType(
@@ -179,7 +177,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
-            throw new BlockEarlyTermination(nsme());
+            throw new BlockEarlyTermination(nsme(name));
         }
     }
 
@@ -189,13 +187,13 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
             ConstructorElement element = definedType.load().resolveConstructorElement(descriptor);
             if (element == null) {
-                throw new BlockEarlyTermination(nsme());
+                throw new BlockEarlyTermination(nsme("<init>"));
             } else {
                 return constructorOf(instance, element, element.getDescriptor(), element.getType());
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
-            throw new BlockEarlyTermination(nsme());
+            throw new BlockEarlyTermination(nsme("<init>"));
         }
     }
 
@@ -213,8 +211,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         } else if (value instanceof UndefinedLiteral) {
             // it may be something we can't really cast.
             return ctxt.getLiteralFactory().undefinedLiteralOfType(castType);
-        } else if (castType instanceof ObjectType) {
-            ObjectType originalToType = (ObjectType) castType;
+        } else if (castType instanceof ObjectType originalToType) {
             ObjectType toType = originalToType;
             int toDimensions = 0;
             if (toType instanceof ReferenceArrayObjectType) {
@@ -271,7 +268,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public Value instanceOf(final Value input, final TypeDescriptor desc) {
         ClassContext cc = getClassContext(); 
         // fetch the classfile's view of the type (or as close as we can synthesize) to save in the InstanceOf node
-        ObjectType ot = null;
+        ObjectType ot;
         int dimensions = 0;
         if (desc instanceof ArrayTypeDescriptor) {
             ot = cc.resolveArrayObjectTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
@@ -279,8 +276,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 dimensions = ((ReferenceArrayObjectType) ot).getDimensionCount();
                 ot = ((ReferenceArrayObjectType) ot).getLeafElementType();
             }
-        } else if (desc instanceof ClassTypeDescriptor) {
-            ClassTypeDescriptor classDesc = (ClassTypeDescriptor) desc;
+        } else if (desc instanceof ClassTypeDescriptor classDesc) {
             String className = (classDesc.getPackageName().isEmpty() ? "" : classDesc.getPackageName() + "/") + classDesc.getClassName();
             DefinedTypeDefinition definedType = cc.findDefinedType(className);
             ot = definedType.load().getType();
@@ -339,14 +335,14 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
             FieldElement element = definedType.load().resolveField(desc, name);
             if (element == null) {
-                throw new BlockEarlyTermination(nsfe());
+                throw new BlockEarlyTermination(nsfe(name));
             } else {
                 // todo: compare descriptor
                 return element;
             }
         } else {
             ctxt.error(getLocation(), "Resolve field on a non-class type `%s` (did you forget a plugin?)", owner);
-            throw new BlockEarlyTermination(nsfe());
+            throw new BlockEarlyTermination(nsfe(name));
         }
     }
 
@@ -364,9 +360,8 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 typeName = ((ClassTypeDescriptor) owner).getPackageName() + "/" + ((ClassTypeDescriptor) owner).getClassName();
             }
             return getClassContext().findDefinedType(typeName);
-        } else if (owner instanceof ArrayTypeDescriptor) {
+        } else if (owner instanceof ArrayTypeDescriptor atd) {
             CoreClasses coreClasses = CoreClasses.get(ctxt);
-            ArrayTypeDescriptor atd = (ArrayTypeDescriptor) owner;
             TypeDescriptor elementDesc = atd.getElementTypeDescriptor();
             if (elementDesc instanceof BaseTypeDescriptor) {
                 // find out which one it belongs to
@@ -395,19 +390,19 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         return null;
     }
 
-    private BasicBlock nsfe() {
+    private BasicBlock nsfe(String name) {
         Info info = Info.get(ctxt);
-        // todo: add class name to exception string
         Value nsfe = new_(info.nsfeClass);
-        call(constructorOf(nsfe, info.nsfeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+        Literal l = ctxt.getLiteralFactory().literalOf(name, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getType().getReference());
+        call(constructorOf(nsfe, info.nsfeClass, info.cd), List.of(l));
         return throw_(nsfe);
     }
 
-    private BasicBlock nsme() {
+    private BasicBlock nsme(String name) {
         Info info = Info.get(ctxt);
-        // todo: add class name to exception string
         Value nsme = new_(info.nsmeClass);
-        call(constructorOf(nsme, info.nsmeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+        Literal l = ctxt.getLiteralFactory().literalOf(name, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getType().getReference());
+        call(constructorOf(nsme, info.nsmeClass, info.cd), List.of(l));
         return throw_(nsme);
     }
 
@@ -418,12 +413,15 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     static final class Info {
         final ClassTypeDescriptor nsmeClass;
         final ClassTypeDescriptor nsfeClass;
+        final MethodDescriptor cd; // void (String)
 
         private Info(final CompilationContext ctxt) {
             DefinedTypeDefinition type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/NoSuchMethodError");
             nsmeClass = type.getDescriptor();
             type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/NoSuchFieldError");
             nsfeClass = type.getDescriptor();
+            ClassTypeDescriptor string = ClassTypeDescriptor.synthesize(ctxt.getBootstrapClassContext(), "java/lang/String");
+            cd = MethodDescriptor.synthesize(ctxt.getBootstrapClassContext(), BaseTypeDescriptor.V, List.of(string));
         }
 
         static Info get(CompilationContext ctxt) {
