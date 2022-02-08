@@ -145,6 +145,7 @@ import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThrowable;
+import org.qbicc.interpreter.pointer.MemoryPointer;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
@@ -1931,8 +1932,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl thread, StackAllocation node) {
-        // todo return new MemoryAllocation(node.getType(), node.getCount())
-        throw new UnsupportedOperationException("stack allocation");
+        return new MemoryPointer(node.getType(), thread.vm.allocate(node.getType().getPointeeType(), unboxLong(node.getCount())));
     }
 
     ///////////
