@@ -8,67 +8,67 @@ import org.qbicc.type.ValueType;
  * A base for a relatively-indexed piece of memory.
  */
 public interface Memory {
-    int load8(int index, ReadAccessMode mode);
+    int load8(long index, ReadAccessMode mode);
 
-    int load16(int index, ReadAccessMode mode);
+    int load16(long index, ReadAccessMode mode);
 
-    int load32(int index, ReadAccessMode mode);
+    int load32(long index, ReadAccessMode mode);
 
-    default float loadFloat(int index, ReadAccessMode mode) {
+    default float loadFloat(long index, ReadAccessMode mode) {
         return Float.intBitsToFloat(load32(index, mode));
     }
 
-    long load64(int index, ReadAccessMode mode);
+    long load64(long index, ReadAccessMode mode);
 
-    VmObject loadRef(int index, ReadAccessMode mode);
+    VmObject loadRef(long index, ReadAccessMode mode);
 
-    ValueType loadType(int index, ReadAccessMode mode);
+    ValueType loadType(long index, ReadAccessMode mode);
 
-    default double loadDouble(int index, ReadAccessMode mode) {
+    default double loadDouble(long index, ReadAccessMode mode) {
         return Double.longBitsToDouble(load64(index, mode));
     }
 
-    void store8(int index, int value, WriteAccessMode mode);
+    void store8(long index, int value, WriteAccessMode mode);
 
-    void store16(int index, int value, WriteAccessMode mode);
+    void store16(long index, int value, WriteAccessMode mode);
 
-    void store32(int index, int value, WriteAccessMode mode);
+    void store32(long index, int value, WriteAccessMode mode);
 
-    default void storeFloat(int index, float value, WriteAccessMode mode) {
+    default void storeFloat(long index, float value, WriteAccessMode mode) {
         store32(index, Float.floatToRawIntBits(value), mode);
     }
 
-    default void store32(int index, long value, WriteAccessMode mode) {
-        store32(index, (int)value, mode);
+    default void store32(long index, long value, WriteAccessMode mode) {
+        store32(index, (int) value, mode);
     }
 
-    void store64(int index, long value, WriteAccessMode mode);
+    void store64(long index, long value, WriteAccessMode mode);
 
-    default void storeDouble(int index, double value, WriteAccessMode mode) {
+    default void storeDouble(long index, double value, WriteAccessMode mode) {
         store64(index, Double.doubleToRawLongBits(value), mode);
     }
 
-    void storeRef(int index, VmObject value, WriteAccessMode mode);
+    void storeRef(long index, VmObject value, WriteAccessMode mode);
 
-    void storeType(int index, ValueType value, WriteAccessMode mode);
+    void storeType(long index, ValueType value, WriteAccessMode mode);
 
-    void storeMemory(int destIndex, Memory src, int srcIndex, int size);
+    void storeMemory(long destIndex, Memory src, long srcIndex, long size);
 
-    void storeMemory(int destIndex, byte[] src, int srcIndex, int size);
+    void storeMemory(long destIndex, byte[] src, int srcIndex, int size);
 
-    int compareAndExchange8(int index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode);
+    int compareAndExchange8(long index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    int compareAndExchange16(int index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode);
+    int compareAndExchange16(long index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    int compareAndExchange32(int index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode);
+    int compareAndExchange32(long index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    long compareAndExchange64(int index, long expect, long update, ReadAccessMode readMode, WriteAccessMode writeMode);
+    long compareAndExchange64(long index, long expect, long update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    VmObject compareAndExchangeRef(int index, VmObject expect, VmObject update, ReadAccessMode readMode, WriteAccessMode writeMode);
+    VmObject compareAndExchangeRef(long index, VmObject expect, VmObject update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    ValueType compareAndExchangeType(int index, ValueType expect, ValueType update, ReadAccessMode readMode, WriteAccessMode writeMode);
+    ValueType compareAndExchangeType(long index, ValueType expect, ValueType update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    default int getAndSet8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndSet8(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load8(index, readMode);
         int witness;
         for (;;) {
@@ -80,7 +80,7 @@ public interface Memory {
         }
     }
 
-    default int getAndSet16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndSet16(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load16(index, readMode);
         int witness;
         for (;;) {
@@ -92,7 +92,7 @@ public interface Memory {
         }
     }
 
-    default int getAndSet32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndSet32(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load32(index, readMode);
         int witness;
         for (;;) {
@@ -104,7 +104,7 @@ public interface Memory {
         }
     }
 
-    default long getAndSet64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default long getAndSet64(long index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         long oldVal = load64(index, readMode);
         long witness;
         for (;;) {
@@ -116,7 +116,7 @@ public interface Memory {
         }
     }
 
-    default VmObject getAndSetRef(int index, VmObject value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default VmObject getAndSetRef(long index, VmObject value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         VmObject oldVal = loadRef(index, readMode);
         VmObject witness;
         for (;;) {
@@ -128,7 +128,7 @@ public interface Memory {
         }
     }
 
-    default ValueType getAndSetType(int index, ValueType value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default ValueType getAndSetType(long index, ValueType value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         ValueType oldVal = loadType(index, readMode);
         ValueType witness;
         for (;;) {
@@ -140,7 +140,7 @@ public interface Memory {
         }
     }
 
-    default int getAndAdd8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndAdd8(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load8(index, readMode);
         int newVal, witness;
         for (;;) {
@@ -153,7 +153,7 @@ public interface Memory {
         }
     }
 
-    default int getAndAdd16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndAdd16(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load16(index, readMode);
         int newVal, witness;
         for (;;) {
@@ -166,7 +166,7 @@ public interface Memory {
         }
     }
 
-    default int getAndAdd32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndAdd32(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load32(index, readMode);
         int newVal, witness;
         for (;;) {
@@ -179,7 +179,7 @@ public interface Memory {
         }
     }
 
-    default long getAndAdd64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default long getAndAdd64(long index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         long oldVal = load64(index, readMode);
         long newVal, witness;
         for (;;) {
@@ -192,7 +192,7 @@ public interface Memory {
         }
     }
 
-    default int getAndBitwiseAnd8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndBitwiseAnd8(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load8(index, readMode);
         int newVal, witness;
         for (;;) {
@@ -205,7 +205,7 @@ public interface Memory {
         }
     }
 
-    default int getAndBitwiseAnd16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndBitwiseAnd16(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load16(index, readMode);
         int newVal, witness;
         for (;;) {
@@ -218,7 +218,7 @@ public interface Memory {
         }
     }
 
-    default int getAndBitwiseAnd32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndBitwiseAnd32(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load32(index, readMode);
         int newVal, witness;
         for (;;) {
@@ -234,7 +234,7 @@ public interface Memory {
         }
     }
 
-    default long getAndBitwiseAnd64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default long getAndBitwiseAnd64(long index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         long oldVal = load64(index, readMode);
         long newVal, witness;
         for (;;) {
@@ -250,7 +250,7 @@ public interface Memory {
         }
     }
 
-    default int getAndBitwiseNand8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndBitwiseNand8(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load8(index, readMode);
         int newVal, witness;
         for (;;) {
@@ -263,7 +263,7 @@ public interface Memory {
         }
     }
 
-    default int getAndBitwiseNand16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndBitwiseNand16(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load16(index, readMode);
         int newVal, witness;
         for (;;) {
@@ -276,7 +276,7 @@ public interface Memory {
         }
     }
 
-    default int getAndBitwiseNand32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndBitwiseNand32(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load32(index, readMode);
         int newVal, witness;
         for (;;) {
@@ -292,7 +292,7 @@ public interface Memory {
         }
     }
 
-    default long getAndBitwiseNand64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default long getAndBitwiseNand64(long index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         long oldVal = load64(index, readMode);
         long newVal, witness;
         for (;;) {
@@ -308,7 +308,7 @@ public interface Memory {
         }
     }
 
-    default int getAndBitwiseOr8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndBitwiseOr8(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load8(index, readMode);
         int newVal, witness;
         for (;;) {
@@ -321,7 +321,7 @@ public interface Memory {
         }
     }
 
-    default int getAndBitwiseOr16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndBitwiseOr16(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load16(index, readMode);
         int newVal, witness;
         for (;;) {
@@ -334,7 +334,7 @@ public interface Memory {
         }
     }
 
-    default int getAndBitwiseOr32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndBitwiseOr32(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load32(index, readMode);
         int newVal, witness;
         for (;;) {
@@ -350,7 +350,7 @@ public interface Memory {
         }
     }
 
-    default long getAndBitwiseOr64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default long getAndBitwiseOr64(long index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         long oldVal = load64(index, readMode);
         long newVal, witness;
         for (;;) {
@@ -366,7 +366,7 @@ public interface Memory {
         }
     }
 
-    default int getAndBitwiseXor8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndBitwiseXor8(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load8(index, readMode);
         int newVal, witness;
         for (;;) {
@@ -379,7 +379,7 @@ public interface Memory {
         }
     }
 
-    default int getAndBitwiseXor16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndBitwiseXor16(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load16(index, readMode);
         int newVal, witness;
         for (;;) {
@@ -392,7 +392,7 @@ public interface Memory {
         }
     }
 
-    default int getAndBitwiseXor32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndBitwiseXor32(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load32(index, readMode);
         int newVal, witness;
         for (;;) {
@@ -408,7 +408,7 @@ public interface Memory {
         }
     }
 
-    default long getAndBitwiseXor64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default long getAndBitwiseXor64(long index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         long oldVal = load64(index, readMode);
         long newVal, witness;
         for (;;) {
@@ -432,7 +432,7 @@ public interface Memory {
         return (short) val;
     }
 
-    default int getAndSetMaxSigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndSetMaxSigned8(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load8(index, readMode);
         int witness;
         value = signExtend8(value);
@@ -448,7 +448,7 @@ public interface Memory {
         }
     }
 
-    default int getAndSetMaxSigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndSetMaxSigned16(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load16(index, readMode);
         int witness;
         value = signExtend16(value);
@@ -464,7 +464,7 @@ public interface Memory {
         }
     }
 
-    default int getAndSetMaxSigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndSetMaxSigned32(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load32(index, readMode);
         int witness;
         for (;;) {
@@ -479,7 +479,7 @@ public interface Memory {
         }
     }
 
-    default long getAndSetMaxSigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default long getAndSetMaxSigned64(long index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         long oldVal = load64(index, readMode);
         long witness;
         for (;;) {
@@ -494,7 +494,7 @@ public interface Memory {
         }
     }
 
-    default int getAndSetMaxUnsigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndSetMaxUnsigned8(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load8(index, readMode) & 0xff;
         int witness;
         value &= 0xff;
@@ -510,7 +510,7 @@ public interface Memory {
         }
     }
 
-    default int getAndSetMaxUnsigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndSetMaxUnsigned16(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load16(index, readMode) & 0xffff;
         int witness;
         value &= 0xffff;
@@ -526,7 +526,7 @@ public interface Memory {
         }
     }
 
-    default int getAndSetMaxUnsigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndSetMaxUnsigned32(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load32(index, readMode);
         int witness;
         for (;;) {
@@ -541,7 +541,7 @@ public interface Memory {
         }
     }
 
-    default long getAndSetMaxUnsigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default long getAndSetMaxUnsigned64(long index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         long oldVal = load64(index, readMode);
         long witness;
         for (;;) {
@@ -556,7 +556,7 @@ public interface Memory {
         }
     }
 
-    default int getAndSetMinSigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndSetMinSigned8(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load8(index, readMode);
         int witness;
         value = signExtend8(value);
@@ -572,7 +572,7 @@ public interface Memory {
         }
     }
 
-    default int getAndSetMinSigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndSetMinSigned16(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load16(index, readMode);
         int witness;
         value = signExtend16(value);
@@ -588,7 +588,7 @@ public interface Memory {
         }
     }
 
-    default int getAndSetMinSigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndSetMinSigned32(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load32(index, readMode);
         int witness;
         for (;;) {
@@ -603,7 +603,7 @@ public interface Memory {
         }
     }
 
-    default long getAndSetMinSigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default long getAndSetMinSigned64(long index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         long oldVal = load64(index, readMode);
         long witness;
         for (;;) {
@@ -618,7 +618,7 @@ public interface Memory {
         }
     }
 
-    default int getAndSetMinUnsigned8(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndSetMinUnsigned8(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load8(index, readMode) & 0xff;
         int witness;
         value &= 0xff;
@@ -634,7 +634,7 @@ public interface Memory {
         }
     }
 
-    default int getAndSetMinUnsigned16(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndSetMinUnsigned16(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load16(index, readMode) & 0xffff;
         int witness;
         value &= 0xffff;
@@ -650,7 +650,7 @@ public interface Memory {
         }
     }
 
-    default int getAndSetMinUnsigned32(int index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default int getAndSetMinUnsigned32(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load32(index, readMode);
         int witness;
         for (;;) {
@@ -665,7 +665,7 @@ public interface Memory {
         }
     }
 
-    default long getAndSetMinUnsigned64(int index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    default long getAndSetMinUnsigned64(long index, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         long oldVal = load32(index, readMode);
         long witness;
         for (;;) {
@@ -680,5 +680,5 @@ public interface Memory {
         }
     }
 
-    Memory copy(int newSize);
+    Memory copy(long newSize);
 }

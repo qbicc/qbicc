@@ -8,7 +8,7 @@ import org.qbicc.type.ArrayObjectType;
 public interface VmArray extends VmObject {
     int getLength();
 
-    int getArrayElementOffset(int index);
+    long getArrayElementOffset(int index);
 
     ArrayObjectType getObjectType();
 

@@ -14,7 +14,7 @@ final class VmBooleanArrayImpl extends VmArrayImpl {
     }
 
     @Override
-    public int getArrayElementOffset(int index) {
+    public long getArrayElementOffset(int index) {
         return getVmClass().getVm().booleanArrayContentOffset + index;
     }
 

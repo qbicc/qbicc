@@ -23,7 +23,7 @@ final class VmByteArrayImpl extends VmArrayImpl {
     }
 
     @Override
-    public int getArrayElementOffset(int index) {
+    public long getArrayElementOffset(int index) {
         return getVmClass().getVm().byteArrayContentOffset + index;
     }
 

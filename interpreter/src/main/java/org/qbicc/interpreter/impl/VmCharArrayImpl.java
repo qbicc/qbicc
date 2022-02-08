@@ -14,8 +14,8 @@ final class VmCharArrayImpl extends VmArrayImpl {
     }
 
     @Override
-    public int getArrayElementOffset(int index) {
-        return getVmClass().getVm().charArrayContentOffset + (index << 1);
+    public long getArrayElementOffset(int index) {
+        return getVmClass().getVm().charArrayContentOffset + ((long) index << 1);
     }
 
     @Override
