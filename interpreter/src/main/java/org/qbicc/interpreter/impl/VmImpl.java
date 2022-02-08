@@ -56,6 +56,7 @@ import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -1069,6 +1070,13 @@ public final class VmImpl implements Vm {
     @Override
     public MemoryImpl allocate(int size) {
         return emptyMemory.copy(size);
+    }
+
+    @Override
+    public Memory allocate(ValueType type, long count) {
+        // todo: typed memory
+        // todo: vector memory
+        return allocate(Math.toIntExact(type.getSize() * count));
     }
 
     @Override

@@ -8,6 +8,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.Primitive;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -215,6 +216,16 @@ public interface Vm {
      * @return the memory (not {@code null})
      */
     Memory allocate(int size);
+
+    /**
+     * Allocate memory of the given dimensions. The memory may be strongly typed (i.e. storing values that do
+     * not correspond to valid members of the given type may throw an exception).
+     *
+     * @param type the type to allocate
+     * @param count the number of copies of the type
+     * @return the memory
+     */
+    Memory allocate(ValueType type, long count);
 
     VmClass getClassForDescriptor(VmClassLoader cl, TypeDescriptor descriptor);
 
