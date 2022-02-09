@@ -263,8 +263,7 @@ public class ReachabilityInfo {
                     MethodElement sm = si.resolveMethodElementInterface(im.getName(), im.getDescriptor());
                     if (sm != null && isInvokableMethod(sm)) {
                         LOGGER.debugf("\tnewly reachable interface: enqueued implementing method:  %s", im);
-                        invokableMethods.add(im);
-                        ctxt.enqueue(im);
+                        analysis.processReachableInstanceMethodInvoke(im, null);
                         continue outer;
                     }
                 }
