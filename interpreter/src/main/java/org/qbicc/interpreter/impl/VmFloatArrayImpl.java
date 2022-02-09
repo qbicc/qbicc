@@ -14,8 +14,8 @@ final class VmFloatArrayImpl extends VmArrayImpl {
     }
 
     @Override
-    public int getArrayElementOffset(int index) {
-        return getVmClass().getVm().floatArrayContentOffset + (index << 2);
+    public long getArrayElementOffset(int index) {
+        return getVmClass().getVm().floatArrayContentOffset + ((long) index << 2);
     }
 
     @Override

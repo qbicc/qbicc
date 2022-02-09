@@ -1354,7 +1354,7 @@ public final class VmImpl implements Vm {
     public VmArray newDoubleArray(double[] array) {
         VmArrayImpl obj = manuallyInitialize(doubleArrayClass.newInstance(array.length));
         for (int i = 0; i < array.length; i ++) {
-            obj.getMemory().store64(obj.getArrayElementOffset(i), array[i], SinglePlain);
+            obj.getMemory().storeDouble(obj.getArrayElementOffset(i), array[i], SinglePlain);
         }
         return obj;
     }
@@ -1363,7 +1363,7 @@ public final class VmImpl implements Vm {
     public VmArray newFloatArray(float[] array) {
         VmArrayImpl obj = manuallyInitialize(floatArrayClass.newInstance(array.length));
         for (int i = 0; i < array.length; i ++) {
-            obj.getMemory().store32(obj.getArrayElementOffset(i), array[i], SinglePlain);
+            obj.getMemory().storeFloat(obj.getArrayElementOffset(i), array[i], SinglePlain);
         }
         return obj;
     }

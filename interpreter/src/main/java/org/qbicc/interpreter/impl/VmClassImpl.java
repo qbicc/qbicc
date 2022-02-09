@@ -169,9 +169,9 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                     }
                 } else if (initValue instanceof FloatLiteral val) {
                     if (field.getType().getSize() == 4) {
-                        staticMemory.store32(member.getOffset(), val.floatValue(), SinglePlain);
+                        staticMemory.storeFloat(member.getOffset(), val.floatValue(), SinglePlain);
                     } else {
-                        staticMemory.store64(member.getOffset(), val.doubleValue(), SinglePlain);
+                        staticMemory.storeDouble(member.getOffset(), val.doubleValue(), SinglePlain);
                     }
                 } else if (initValue instanceof StringLiteral) {
                     if (vm.bootstrapComplete) {
