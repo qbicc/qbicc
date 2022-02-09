@@ -55,10 +55,6 @@ public abstract class Type {
         return equals(other);
     }
 
-    public boolean isCompatibleWith(Type other) {
-        return equals(other);
-    }
-
     /**
      * Determine whether this type is complete (that is, it has a size and can be instantiated).
      *
