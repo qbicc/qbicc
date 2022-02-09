@@ -8,7 +8,7 @@ import org.qbicc.type.PointerType;
 public final class IntegerAsPointer extends RootPointer {
     private final long value;
 
-    IntegerAsPointer(PointerType type, long value) {
+    public IntegerAsPointer(PointerType type, long value) {
         super(type);
         this.value = value;
     }

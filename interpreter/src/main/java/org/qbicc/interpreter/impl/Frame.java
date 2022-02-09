@@ -146,10 +146,14 @@ import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThrowable;
-import org.qbicc.interpreter.pointer.MemoryPointer;
+import org.qbicc.pointer.IntegerAsPointer;
+import org.qbicc.pointer.MemoryPointer;
+import org.qbicc.pointer.Pointer;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
+import org.qbicc.pointer.ReferenceAsPointer;
+import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
@@ -727,8 +731,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             }
         } else if (inputType.equals(outputType)) {
             return require(node.getInput());
-         } else if (isRef(inputType) && isPointer(outputType)) {
-            return require((node.getInput()));
+        } else if (isRef(inputType) && isPointer(outputType)) {
+            return new ReferenceAsPointer((VmObject) require(node.getInput()));
         }
         throw new IllegalStateException("Invalid cast");
     }
@@ -850,6 +854,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Boolean.valueOf((compound.load8(offset, SinglePlain) & 1) != 0);
         } else if (isRef(resultType)) {
             return compound.loadRef(offset, SinglePlain);
+        } else if (resultType instanceof PointerType) {
+            return compound.loadPointer(offset, SinglePlain);
         } else {
             throw new IllegalStateException("Invalid type for extract");
         }
@@ -891,7 +897,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Boolean.valueOf(unboxInt(left) == unboxInt(right));
         } else if (isBool(inputType)) {
             return Boolean.valueOf(unboxBool(left) == unboxBool(right));
-        } else if (isRef(inputType)) {
+        } else if (isRef(inputType) || inputType instanceof PointerType) {
             return Boolean.valueOf(require(left) == require(right));
         } else if (isTypeId(inputType)) {
             return Boolean.valueOf(unboxType(left).equals(unboxType(right)));
@@ -915,7 +921,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Boolean.valueOf(unboxInt(left) != unboxInt(right));
         } else if (isBool(inputType)) {
             return Boolean.valueOf(unboxBool(left) != unboxBool(right));
-        } else if (isRef(inputType)) {
+        } else if (isRef(inputType) || inputType instanceof PointerType) {
             return Boolean.valueOf(require(left) != require(right));
         } else if (isTypeId(inputType)) {
             return Boolean.valueOf(! unboxType(left).equals(unboxType(right)));
@@ -1559,6 +1565,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             int unboxedResult = memory.compareAndExchange8(offset, expected, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode);
             updated = expected == unboxedResult;
             result.store8(resultType.getMember(0).getOffset(), unboxedResult, SinglePlain);
+        } else if (type instanceof PointerType) {
+            Pointer expected = unboxPointer(expect);
+            Pointer resultVal = memory.compareAndExchangePointer(offset, expected, unboxPointer(update), readAccessMode, writeAccessMode);
+            updated = expected == resultVal;
+            result.storePointer(resultType.getMember(0).getOffset(), resultVal, SinglePlain);
         } else {
             throw unsupportedType();
         }
@@ -1727,6 +1738,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Double.valueOf(Double.longBitsToDouble(memory.getAndSet64(offset, Double.doubleToRawLongBits(unboxDouble(update)), readAccessMode, writeAccessMode)));
         } else if (isRef(type)) {
             return memory.getAndSetRef(offset, (VmObject) require(update), readAccessMode, writeAccessMode);
+        } else if (type instanceof PointerType) {
+            return memory.getAndSetPointer(offset, unboxPointer(update), readAccessMode, writeAccessMode);
         } else {
             throw unsupportedType();
         }
@@ -1866,6 +1879,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return memory.loadRef(offset, mode);
         } else if (isTypeId(type)) {
             return memory.loadType(offset, mode);
+        } else if (type instanceof PointerType) {
+            return memory.loadPointer(offset, mode);
         } else {
             throw unsupportedType();
         }
@@ -2048,6 +2063,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             memory.storeRef(offset, (VmObject) require(value), mode);
         } else if (isTypeId(type)) {
             memory.storeType(offset, (ValueType) require(value), mode);
+        } else if (type instanceof PointerType) {
+            memory.storePointer(offset, unboxPointer(value), mode);
         } else {
             throw unsupportedType();
         }
@@ -2318,6 +2335,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         public Memory visit(Frame frame, UnsafeHandle node) {
             return node.getValueHandle().accept(this, frame);
         }
+
+        @Override
+        public Memory visit(Frame frame, PointerHandle node) {
+            return frame.unboxPointer(node.getPointerValue()).offsetByElements(frame.unboxLong(node.getOffsetValue())).getRootMemoryIfExists();
+        }
     };
 
     static final ValueHandleVisitor<Frame, VmObjectImpl> GET_OBJECT = new ValueHandleVisitor<Frame, VmObjectImpl>() {
@@ -2426,8 +2448,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public long visit(Frame frame, PointerHandle node) {
-            // todo: use a special memory+offset holder for pointer values
-            throw unsupportedType();
+            return frame.unboxPointer(node.getPointerValue()).offsetByElements(frame.unboxLong(node.getOffsetValue())).getRootByteOffset();
         }
 
         @Override
@@ -2536,6 +2557,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Long.valueOf(longVal);
         } else if (isBool(type)) {
             return Boolean.valueOf(longVal != 0);
+        } else if (type instanceof PointerType pt) {
+            return new IntegerAsPointer(pt, longVal);
         }
         throw unsupportedType();
     }
@@ -2583,9 +2606,19 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         return required instanceof Boolean boo ? boo.booleanValue() ? 1 : 0 : ((Number) required).intValue();
     }
 
+    private Pointer unboxPointer(final Value rightInput) {
+        return (Pointer) require(rightInput);
+    }
+
     private long unboxLong(final Value rightInput) {
-        Number obj = (Number) require(rightInput);
-        return obj.longValue();
+        Object raw = require(rightInput);
+        if (raw instanceof Number num) {
+            return num.longValue();
+        } else if (raw instanceof IntegerAsPointer iap) {
+            return iap.getValue();
+        } else {
+             throw new ClassCastException();
+        }
     }
 
     private float unboxFloat(final Value rightInput) {
