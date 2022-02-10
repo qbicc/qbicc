@@ -53,6 +53,7 @@ import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.MemberElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.generic.ClassSignature;
 
@@ -308,7 +309,7 @@ final class CompilationContextImpl implements CompilationContext {
     public void enqueue(final ExecutableElement element) {
         Set<ExecutableElement> allowedSet = this.allowedSet;
         if (allowedSet != null && ! allowedSet.contains(element)) {
-            throw new IllegalStateException("Cannot reach previously unreachable element: " + element);
+            error(element, "Element was unreachable in the previous phase but became reachable in this phase");
         }
         if (queued.add(element)) {
             synchronized (queue) {
