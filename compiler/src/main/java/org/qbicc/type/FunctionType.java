@@ -56,6 +56,13 @@ public final class FunctionType extends ValueType {
         return getTypeSystem().getFunctionType(returnType, paramTypes);
     }
 
+    public FunctionType withFirstParameterType(final ValueType type) {
+        ValueType[] newParams = new ValueType[paramTypes.length + 1];
+        newParams[0] = type;
+        System.arraycopy(paramTypes, 0, newParams, 1, paramTypes.length);
+        return getTypeSystem().getFunctionType(returnType, newParams);
+    }
+
     public FunctionType trimLastParameter() throws IndexOutOfBoundsException {
         return getTypeSystem().getFunctionType(returnType, Arrays.copyOf(paramTypes, paramTypes.length - 1));
     }
