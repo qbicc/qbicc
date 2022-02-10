@@ -41,7 +41,6 @@ import org.qbicc.graph.Convert;
 import org.qbicc.graph.CountLeadingZeros;
 import org.qbicc.graph.CountTrailingZeros;
 import org.qbicc.graph.CurrentThread;
-import org.qbicc.graph.CurrentThreadRead;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.ExactMethodElementHandle;
@@ -762,11 +761,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return box(Integer.numberOfTrailingZeros(unboxInt(input) | 0xffffff00), node.getType());
         }
         throw badInputType();
-    }
-
-    @Override
-    public Object visit(VmThreadImpl thread, CurrentThreadRead node) {
-        return thread;
     }
 
     @Override
