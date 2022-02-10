@@ -926,17 +926,6 @@ public final class CNative {
      */
     public static abstract class ptr<T> extends word {
         /**
-         * Dereference the pointer, returning what the pointer points to. This operation
-         * does not necessarily directly translate to a physical memory operation.
-         *
-         * @deprecated use loadUnshared
-         *
-         * @return the pointed-to value
-         */
-        @Deprecated
-        public native T deref();
-
-        /**
          * Get an array view of this pointer value. The array points to the same address as
          * this pointer, but has an incomplete type (no size). If the object being pointed to
          * has an incomplete type, using this method will result in a compilation error.

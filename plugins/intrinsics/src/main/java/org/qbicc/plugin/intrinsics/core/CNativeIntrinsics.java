@@ -553,10 +553,6 @@ final class CNativeIntrinsics {
             intrinsics.registerIntrinsic(ptrDesc, "load" + name, classToObjDesc, loadWithType);
         }
 
-        // TODO: deprecated alias for loadUnshared; remove after release of class libraries
-        intrinsics.registerIntrinsic(ptrDesc, "deref", MethodDescriptor.synthesize(classContext, objDesc, List.of()), (builder, instance, target, arguments) ->
-            builder.load(builder.pointerHandle(instance), SingleUnshared));
-
         // storeXxx()
 
         for (String name : List.of("Unshared", "Plain", "Opaque", "SingleRelease", "Release", "Volatile")) {
