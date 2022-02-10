@@ -926,17 +926,6 @@ public final class CNative {
      */
     public static abstract class ptr<T> extends word {
         /**
-         * Dereference the pointer, returning what the pointer points to. This operation
-         * does not necessarily directly translate to a physical memory operation.
-         *
-         * @deprecated use loadUnshared
-         *
-         * @return the pointed-to value
-         */
-        @Deprecated
-        public native T deref();
-
-        /**
          * Get an array view of this pointer value. The array points to the same address as
          * this pointer, but has an incomplete type (no size). If the object being pointed to
          * has an incomplete type, using this method will result in a compilation error.
@@ -967,83 +956,147 @@ public final class CNative {
         }
 
         public native T loadUnshared();
+        public native <V> V loadUnshared(Class<V> pointeeType);
         public native T loadPlain();
+        public native <V> V loadPlain(Class<V> pointeeType);
         public native T loadOpaque();
+        public native <V> V loadOpaque(Class<V> pointeeType);
         public native T loadSingleAcquire();
+        public native <V> V loadSingleAcquire(Class<V> pointeeType);
         public native T loadAcquire();
+        public native <V> V loadAcquire(Class<V> pointeeType);
         public native T loadVolatile();
+        public native <V> V loadVolatile(Class<V> pointeeType);
 
         public native void storeUnshared(T value);
+        public native <V> void storeUnshared(Class<V> pointeeType, V value);
         public native void storePlain(T value);
+        public native <V> void storePlain(Class<V> pointeeType, V value);
         public native void storeOpaque(T value);
+        public native <V> void storeOpaque(Class<V> pointeeType, V value);
         public native void storeSingleRelease(T value);
+        public native <V> void storeSingleRelease(Class<V> pointeeType, V value);
         public native void storeRelease(T value);
+        public native <V> void storeRelease(Class<V> pointeeType, V value);
         public native void storeVolatile(T value);
+        public native <V> void storeVolatile(Class<V> pointeeType, V value);
 
         public native boolean compareAndSetOpaque(T expect, T update);
+        public native <V> boolean compareAndSetOpaque(Class<V> pointeeType, V expect, V update);
         public native boolean compareAndSetAcquire(T expect, T update);
+        public native <V> boolean compareAndSetAcquire(Class<V> pointeeType, V expect, V update);
         public native boolean compareAndSetRelease(T expect, T update);
+        public native <V> boolean compareAndSetRelease(Class<V> pointeeType, V expect, V update);
         public native boolean compareAndSet(T expect, T update);
+        public native <V> boolean compareAndSet(Class<V> pointeeType, V expect, V update);
 
         public native boolean weakCompareAndSetOpaque(T expect, T update);
+        public native <V> boolean weakCompareAndSetOpaque(Class<V> pointeeType, V expect, V update);
         public native boolean weakCompareAndSetAcquire(T expect, T update);
+        public native <V> boolean weakCompareAndSetAcquire(Class<V> pointeeType, V expect, V update);
         public native boolean weakCompareAndSetRelease(T expect, T update);
+        public native <V> boolean weakCompareAndSetRelease(Class<V> pointeeType, V expect, V update);
         public native boolean weakCompareAndSet(T expect, T update);
+        public native <V> boolean weakCompareAndSet(Class<V> pointeeType, V expect, V update);
 
         public native T compareAndSwapOpaque(T expect, T update);
+        public native <V> V compareAndSwapOpaque(Class<V> pointeeType, V expect, V update);
         public native T compareAndSwapAcquire(T expect, T update);
+        public native <V> V compareAndSwapAcquire(Class<V> pointeeType, V expect, V update);
         public native T compareAndSwapRelease(T expect, T update);
+        public native <V> V compareAndSwapRelease(Class<V> pointeeType, V expect, V update);
         public native T compareAndSwap(T expect, T update);
+        public native <V> V compareAndSwap(Class<V> pointeeType, V expect, V update);
 
         public native T weakCompareAndSwapOpaque(T expect, T update);
+        public native <V> V weakCompareAndSwapOpaque(Class<V> pointeeType, V expect, V update);
         public native T weakCompareAndSwapAcquire(T expect, T update);
+        public native <V> V weakCompareAndSwapAcquire(Class<V> pointeeType, V expect, V update);
         public native T weakCompareAndSwapRelease(T expect, T update);
+        public native <V> V weakCompareAndSwapRelease(Class<V> pointeeType, V expect, V update);
         public native T weakCompareAndSwap(T expect, T update);
+        public native <V> V weakCompareAndSwap(Class<V> pointeeType, V expect, V update);
 
         public native T getAndSetOpaque(T newVal);
+        public native <V> V getAndSetOpaque(Class<V> pointeeType, V newVal);
         public native T getAndSetAcquire(T newVal);
+        public native <V> V getAndSetAcquire(Class<V> pointeeType, V newVal);
         public native T getAndSetRelease(T newVal);
+        public native <V> V getAndSetRelease(Class<V> pointeeType, V newVal);
         public native T getAndSet(T newVal);
+        public native <V> V getAndSet(Class<V> pointeeType, V newVal);
 
         public native T getAndSetMinOpaque(T otherVal);
+        public native <V> V getAndSetMinOpaque(Class<V> pointeeType, V otherVal);
         public native T getAndSetMinAcquire(T otherVal);
+        public native <V> V getAndSetMinAcquire(Class<V> pointeeType, V otherVal);
         public native T getAndSetMinRelease(T otherVal);
+        public native <V> V getAndSetMinRelease(Class<V> pointeeType, V otherVal);
         public native T getAndSetMin(T otherVal);
+        public native <V> V getAndSetMin(Class<V> pointeeType, V otherVal);
 
         public native T getAndSetMaxOpaque(T otherVal);
+        public native <V> V getAndSetMaxOpaque(Class<V> pointeeType, V otherVal);
         public native T getAndSetMaxAcquire(T otherVal);
+        public native <V> V getAndSetMaxAcquire(Class<V> pointeeType, V otherVal);
         public native T getAndSetMaxRelease(T otherVal);
+        public native <V> V getAndSetMaxRelease(Class<V> pointeeType, V otherVal);
         public native T getAndSetMax(T otherVal);
+        public native <V> V getAndSetMax(Class<V> pointeeType, V otherVal);
 
         public native T getAndAddOpaque(T addend);
+        public native <V> V getAndAddOpaque(Class<V> pointeeType, V addend);
         public native T getAndAddAcquire(T addend);
+        public native <V> V getAndAddAcquire(Class<V> pointeeType, V addend);
         public native T getAndAddRelease(T addend);
+        public native <V> V getAndAddRelease(Class<V> pointeeType, V addend);
         public native T getAndAdd(T addend);
+        public native <V> V getAndAdd(Class<V> pointeeType, V addend);
 
         public native T getAndSubtractOpaque(T subtrahend);
+        public native <V> V getAndSubtractOpaque(Class<V> pointeeType, V subtrahend);
         public native T getAndSubtractAcquire(T subtrahend);
+        public native <V> V getAndSubtractAcquire(Class<V> pointeeType, V subtrahend);
         public native T getAndSubtractRelease(T subtrahend);
+        public native <V> V getAndSubtractRelease(Class<V> pointeeType, V subtrahend);
         public native T getAndSubtract(T subtrahend);
+        public native <V> V getAndSubtract(Class<V> pointeeType, V subtrahend);
 
         public native T getAndBitwiseAndOpaque(T bits);
+        public native <V> V getAndBitwiseAndOpaque(Class<V> pointeeType, V bits);
         public native T getAndBitwiseAndAcquire(T bits);
+        public native <V> V getAndBitwiseAndAcquire(Class<V> pointeeType, V bits);
         public native T getAndBitwiseAndRelease(T bits);
+        public native <V> V getAndBitwiseAndRelease(Class<V> pointeeType, V bits);
         public native T getAndBitwiseAnd(T bits);
+        public native <V> V getAndBitwiseAnd(Class<V> pointeeType, V bits);
 
         public native T getAndBitwiseOrOpaque(T bits);
+        public native <V> V getAndBitwiseOrOpaque(Class<V> pointeeType, V bits);
         public native T getAndBitwiseOrAcquire(T bits);
+        public native <V> V getAndBitwiseOrAcquire(Class<V> pointeeType, V bits);
         public native T getAndBitwiseOrRelease(T bits);
+        public native <V> V getAndBitwiseOrRelease(Class<V> pointeeType, V bits);
         public native T getAndBitwiseOr(T bits);
+        public native <V> V getAndBitwiseOr(Class<V> pointeeType, V bits);
 
         public native T getAndBitwiseXorOpaque(T bits);
+        public native <V> V getAndBitwiseXorOpaque(Class<V> pointeeType, V bits);
         public native T getAndBitwiseXorAcquire(T bits);
+        public native <V> V getAndBitwiseXorAcquire(Class<V> pointeeType, V bits);
         public native T getAndBitwiseXorRelease(T bits);
+        public native <V> V getAndBitwiseXorRelease(Class<V> pointeeType, V bits);
         public native T getAndBitwiseXor(T bits);
+        public native <V> V getAndBitwiseXor(Class<V> pointeeType, V bits);
 
         public native T getAndBitwiseNandOpaque(T bits);
+        public native <V> V getAndBitwiseNandOpaque(Class<V> pointeeType, V bits);
         public native T getAndBitwiseNandAcquire(T bits);
+        public native <V> V getAndBitwiseNandAcquire(Class<V> pointeeType, V bits);
         public native T getAndBitwiseNandRelease(T bits);
+        public native <V> V getAndBitwiseNandRelease(Class<V> pointeeType, V bits);
         public native T getAndBitwiseNand(T bits);
+        public native <V> V getAndBitwiseNand(Class<V> pointeeType, V bits);
 
         /**
          * Get a pointer which is offset from the base by the given number of elements.
@@ -1093,6 +1146,16 @@ public final class CNative {
          * @return the selection view of the pointee
          */
         public native T sel();
+
+        /**
+         * Select a subfield from this pointer, which must be passed back through {@link #addr_of} in order
+         * to be used.  The returned subfield has {@code void} type and thus cannot be accessed directly.
+         *
+         * @param <V> the pointee type
+         * @param pointeeType the pointee type class (must not be {@code null})
+         * @return the selection view of the pointee
+         */
+        public native <V> V sel(Class<V> pointeeType);
 
         /**
          * Determine if this pointer instance is a pointer to a pinned Java data structure.
