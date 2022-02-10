@@ -1045,6 +1045,9 @@ public final class Reflection {
      */
     // todo: move to an autoboxing plugin?
     private Object unbox(final VmObject boxed) {
+        if (boxed == null) {
+            return null;
+        }
         VmClass vmClass = boxed.getVmClass();
         if (vmClass == byteClass) {
             return Byte.valueOf((byte) boxed.getMemory().load8(boxed.indexOf(byteValueField), SinglePlain));
