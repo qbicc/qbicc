@@ -399,6 +399,15 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
+    /**
+     * Create a handle for a static method pointer. The call site type must match the pointer's type. This differs
+     * from a plain pointer handle in that static method pointers can be lowered to the appropriate function shape.
+     *
+     * @param pointer the static method pointer (must not be {@code null})
+     * @return the value handle (not {@code null})
+     */
+    ValueHandle staticMethodPointer(Value pointer);
+
     ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, FunctionType callSiteType);
 
     /**

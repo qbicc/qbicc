@@ -68,6 +68,10 @@ public interface ValueHandleVisitorLong<T> {
         return visitUnknown(param, node);
     }
 
+    default long visit(T param, StaticMethodPointerHandle node) {
+        return visitUnknown(param, node);
+    }
+
     default long visit(T param, UnsafeHandle node) {
         return visitUnknown(param, node);
     }

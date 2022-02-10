@@ -105,6 +105,7 @@ import org.qbicc.graph.Shr;
 import org.qbicc.graph.StackAllocation;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
+import org.qbicc.graph.StaticMethodPointerHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
 import org.qbicc.graph.Switch;
@@ -2274,6 +2275,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public ExecutableElement visit(Frame frame, StaticMethodElementHandle node) {
             return node.getExecutable();
+        }
+
+        @Override
+        public ExecutableElement visit(Frame frame, StaticMethodPointerHandle node) {
+            return ((StaticMethodPointer)frame.require(node.getStaticMethodPointer())).getStaticMethod();
         }
     };
 

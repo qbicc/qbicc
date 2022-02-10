@@ -205,6 +205,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().staticMethod(owner, name, descriptor);
     }
 
+    public ValueHandle staticMethodPointer(final Value pointer) {
+        return getDelegate().staticMethodPointer(pointer);
+    }
+
     public ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
         return getDelegate().constructorOf(instance, constructor, callSiteDescriptor, callSiteType);
     }
