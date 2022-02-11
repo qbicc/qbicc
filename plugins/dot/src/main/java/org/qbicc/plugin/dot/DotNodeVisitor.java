@@ -66,7 +66,6 @@ import org.qbicc.graph.IsLt;
 import org.qbicc.graph.IsNe;
 import org.qbicc.graph.CommutativeBinaryValue;
 import org.qbicc.graph.Convert;
-import org.qbicc.graph.CurrentThreadRead;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.Extend;
@@ -874,10 +873,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final Convert node) {
         return node(param, "convert", node);
-    }
-
-    public String visit(final Appendable param, final CurrentThreadRead node) {
-        return node(param, "read thread", node);
     }
 
     public String visit(final Appendable param, final Div node) {

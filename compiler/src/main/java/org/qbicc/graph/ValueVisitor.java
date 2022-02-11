@@ -152,10 +152,6 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, CurrentThreadRead node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, Div node) {
         return visitUnknown(param, node);
     }
