@@ -938,9 +938,9 @@ public final class VmImpl implements Vm {
             //        @Native private static final int _sun_stdout_encoding_NDX = 1 + _sun_stderr_encoding_NDX;
             stdoutEncoding.name(),
             //        @Native private static final int _user_dir_NDX = 1 + _sun_stdout_encoding_NDX;
-            "virtual cwd",
+            "/qbicc/build",
             //        @Native private static final int _user_home_NDX = 1 + _user_dir_NDX;
-            "virtual home",
+            "/qbicc/build/home",
             //        @Native private static final int _user_name_NDX = 1 + _user_home_NDX;
             "nobody")
             //        @Native private static final int FIXED_LENGTH = 1 + _user_name_NDX;
