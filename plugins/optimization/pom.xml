@@ -24,6 +24,19 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-driver</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-layout</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-reachability</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-dot</artifactId>
+        </dependency>
+
         <!-- test -->
         <dependency>
             <groupId>${project.groupId}</groupId>

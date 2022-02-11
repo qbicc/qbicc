@@ -109,13 +109,19 @@ import org.qbicc.plugin.opt.InliningBasicBlockBuilder;
 import org.qbicc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
 import org.qbicc.plugin.opt.PhiOptimizerVisitor;
 import org.qbicc.plugin.opt.SimpleOptBasicBlockBuilder;
+import org.qbicc.plugin.opt.ea.EscapeAnalysisDotGenerator;
+import org.qbicc.plugin.opt.ea.EscapeAnalysisDotVisitor;
 import org.qbicc.plugin.patcher.AccessorBasicBlockBuilder;
 import org.qbicc.plugin.patcher.AccessorTypeBuilder;
 import org.qbicc.plugin.patcher.Patcher;
 import org.qbicc.plugin.patcher.PatcherResolverBasicBlockBuilder;
 import org.qbicc.plugin.patcher.PatcherTypeResolver;
-import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
+import org.qbicc.plugin.opt.ea.EscapeAnalysisInterMethodAnalysis;
+import org.qbicc.plugin.opt.ea.EscapeAnalysisIntraMethodBuilder;
+import org.qbicc.plugin.opt.ea.ConnectionGraphDotGenerator;
+import org.qbicc.plugin.opt.ea.EscapeAnalysisOptimizeVisitor;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
+import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
 import org.qbicc.plugin.reflection.Reflection;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.plugin.serialization.ClassObjectSerializer;
@@ -152,6 +158,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean optPhis;
     private final boolean optGotos;
     private final boolean optInlining;
+    private final boolean optEscapeAnalysis;
     private final Platform platform;
     private final boolean smallTypeIds;
 
@@ -167,6 +174,7 @@ public class Main implements Callable<DiagnosticContext> {
         optInlining = builder.optInlining;
         optPhis = builder.optPhis;
         optGotos = builder.optGotos;
+        optEscapeAnalysis = builder.optEscapeAnalysis;
         platform = builder.platform;
         smallTypeIds = builder.smallTypeIds;
         ArrayList<ClassPathEntry> bootPaths = new ArrayList<>(builder.bootPathsPrepend.size() + 6 + builder.bootPathsAppend.size());
@@ -420,7 +428,14 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ANALYZE, new VMHelpersSetupHook());
                                 builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::forceCoreClassesReachable);
                                 builder.addElementHandler(Phase.ANALYZE, new ElementBodyCopier());
-                                builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new DotGenerator(Phase.ANALYZE, graphGenConfig)));
+                                builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(
+                                    optEscapeAnalysis
+                                        ? new DotGenerator(Phase.ANALYZE, "analyze-intra", graphGenConfig).addVisitorFactory(EscapeAnalysisDotVisitor::new)
+                                        : new DotGenerator(Phase.ANALYZE, graphGenConfig)
+                                ));
+                                if (optEscapeAnalysis && graphGenConfig.isEnabled()) {
+                                    builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new ConnectionGraphDotGenerator("intra")));
+                                }
                                 builder.addElementHandler(Phase.ANALYZE, elem -> ReachabilityInfo.processAutoQueuedElement(elem));
                                 if (optGotos) {
                                     builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
@@ -440,15 +455,28 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (optInlining) {
                                     builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::new);
                                 }
+                                if (optEscapeAnalysis) {
+                                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, EscapeAnalysisIntraMethodBuilder::new);
+                                }
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, LocalVariableFindingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
 
                                 builder.addPostHook(Phase.ANALYZE, ReachabilityInfo::reportStats);
+                                if (optEscapeAnalysis) {
+                                    builder.addPostHook(Phase.ANALYZE, new EscapeAnalysisInterMethodAnalysis());
+                                    builder.addPostHook(Phase.ANALYZE, new EscapeAnalysisDotGenerator(graphGenConfig));
+                                    if (graphGenConfig.isEnabled()) {
+                                        builder.addPostHook(Phase.ANALYZE, new ConnectionGraphDotGenerator("inter"));
+                                    }
+                                }
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
 
                                 builder.addPreHook(Phase.LOWER, new ClassObjectSerializer());
+                                if (optEscapeAnalysis) {
+                                    builder.addCopyFactory(Phase.LOWER, EscapeAnalysisOptimizeVisitor::new);
+                                }
                                 builder.addElementHandler(Phase.LOWER, new FunctionLoweringElementHandler());
                                 builder.addElementHandler(Phase.LOWER, new ElementVisitorAdapter(new DotGenerator(Phase.LOWER, graphGenConfig)));
                                 if (optGotos) {
@@ -561,6 +589,7 @@ public class Main implements Callable<DiagnosticContext> {
             .setOptInlining(optionsProcessor.optArgs.optInlining)
             .setOptGotos(optionsProcessor.optArgs.optGotos)
             .setOptPhis(optionsProcessor.optArgs.optPhis)
+            .setOptEscapeAnalysis(optionsProcessor.optArgs.optEscapeAnalysis)
             .setSmallTypeIds(optionsProcessor.smallTypeIds)
             .setGraphGenConfig(optionsProcessor.graphGenConfig);
         Platform platform = optionsProcessor.platform;
@@ -707,6 +736,8 @@ public class Main implements Callable<DiagnosticContext> {
             boolean optPhis;
             @CommandLine.Option(names = "--no-opt-gotos", negatable = true, defaultValue = "true", description = "Enable/disable `goto` elimination")
             boolean optGotos;
+            @CommandLine.Option(names = "--no-escape-analysis", negatable = true, defaultValue = "true", description = "Enable/disable escape analysis")
+            boolean optEscapeAnalysis;
         }
 
         public CmdResult process(String[] args) {
@@ -757,6 +788,7 @@ public class Main implements Callable<DiagnosticContext> {
             }
 
             if (graphGenArgs != null && graphGenArgs.genGraph) {
+                graphGenConfig.setEnabled(true);
                 if (graphGenArgs.methodsAndPhases == null) {
                     graphGenConfig.addMethodAndPhase(GraphGenConfig.ALL_METHODS, GraphGenConfig.ALL_PHASES);
                 } else {
@@ -793,6 +825,7 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean optInlining = false;
         private boolean optPhis = true;
         private boolean optGotos = true;
+        private boolean optEscapeAnalysis = true;
         private GraphGenConfig graphGenConfig;
         private boolean smallTypeIds = false;
 
@@ -897,6 +930,11 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Builder setOptGotos(boolean optGotos) {
             this.optGotos = optGotos;
+            return this;
+        }
+
+        public Builder setOptEscapeAnalysis(boolean optEscapeAnalysis) {
+            this.optEscapeAnalysis = optEscapeAnalysis;
             return this;
         }
 

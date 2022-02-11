@@ -16,6 +16,8 @@ public class GraphGenConfig {
 
     private EnumMap<Phase, HashSet<String>> phaseToMethodsMap = new EnumMap<>(Phase.class);
 
+    private boolean enabled;
+
     public void addMethodAndPhase(String method, String phaseString) {
         List<Phase> phaseList = new ArrayList<>();
         if (phaseString.equalsIgnoreCase(ALL_PHASES)) {
@@ -41,6 +43,14 @@ public class GraphGenConfig {
 
     public GraphGenFilter getFilter() {
         return new GraphGenOptionsFilter();
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
     class GraphGenOptionsFilter implements GraphGenFilter {
