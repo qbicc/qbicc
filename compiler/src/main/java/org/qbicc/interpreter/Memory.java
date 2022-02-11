@@ -700,4 +700,10 @@ public interface Memory {
     }
 
     Memory copy(long newSize);
+
+    Memory clone();
+
+    Memory cloneZeroed();
+
+    long getSize();
 }
