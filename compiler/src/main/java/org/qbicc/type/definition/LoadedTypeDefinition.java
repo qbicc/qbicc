@@ -252,6 +252,10 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         return getMethod(idx);
     }
 
+    default MethodElement requireSingleMethod(String name) {
+        return requireSingleMethod(me -> me.nameEquals(name));
+    }
+
     default MethodElement resolveMethodElementExact(String name, MethodDescriptor descriptor) {
         int idx = findMethodIndex(name, descriptor);
         return idx == -1 ? null : getMethod(idx);
