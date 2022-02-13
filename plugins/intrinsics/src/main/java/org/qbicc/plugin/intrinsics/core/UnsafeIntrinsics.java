@@ -52,6 +52,7 @@ import org.qbicc.type.descriptor.TypeDescriptor;
 public class UnsafeIntrinsics {
     public static void register(CompilationContext ctxt) {
         registerEmptyLateIntrinsics(ctxt);
+        registerUnsafeConstantsIntrinsics(ctxt);
         registerCompareAndExchangeIntrinsics(ctxt);
         registerCompareAndSetIntrinsics(ctxt);
         registerGetAndModIntrinsics(ctxt);
@@ -77,6 +78,21 @@ public class UnsafeIntrinsics {
             (builder, target, arguments) -> ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType()));
         intrinsics.registerIntrinsic(Phase.ANALYZE, unsafeDesc, "shouldBeInitialized0", classToBool,
             (builder, instance, target, arguments) -> ctxt.getLiteralFactory().literalOf(false));
+    }
+
+    private static void registerUnsafeConstantsIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor unsafeDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/UnsafeConstants");
+
+        MethodDescriptor voidToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
+        MethodDescriptor voidToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
+
+        intrinsics.registerIntrinsic(unsafeDesc, "targetAddressSize", voidToInt,
+            (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getSignedInteger32Type(), ctxt.getTypeSystem().getPointerSize()));
+        intrinsics.registerIntrinsic(unsafeDesc, "targetBigEndian", voidToBool,
+            (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getEndianness().equals(ByteOrder.BIG_ENDIAN)));
     }
 
     // Compare and exchange
