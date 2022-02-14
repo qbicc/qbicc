@@ -23,6 +23,7 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
@@ -795,6 +796,10 @@ public interface Node {
             public Value visit(final Copier param, final PhiValue node) {
                 param.enqueue(node);
                 return param.getBlockBuilder().phi(node.getType(), param.copyBlock(node.getPinnedBlock()), node.possibleValuesAreNullable() ? NO_FLAGS : NOT_NULL_FLAGS);
+            }
+
+            public Value visit(final Copier param, final PointerLiteral node) {
+                return node;
             }
 
             public Value visit(final Copier param, final PopCount node) {

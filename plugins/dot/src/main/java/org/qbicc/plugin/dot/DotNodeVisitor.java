@@ -128,6 +128,7 @@ import org.qbicc.graph.UnsafeHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueReturn;
+import org.qbicc.graph.ValueVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.literal.BitCastLiteral;
@@ -140,6 +141,7 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
@@ -1230,6 +1232,10 @@ public class DotNodeVisitor implements NodeVisitor.Delegating<Appendable, String
         nl(param);
         phiQueue.add(node);
         return delegate.visit(param, node);
+    }
+
+    public String visit(final Appendable param, final PointerLiteral node) {
+        return literal(param, "pointer");
     }
 
     public String visit(final Appendable param, final PopCount node) {
