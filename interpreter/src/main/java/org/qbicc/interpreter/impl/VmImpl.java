@@ -500,6 +500,11 @@ public final class VmImpl implements Vm {
             // Unsafe
             VmClassImpl unsafeClass = bootstrapClassLoader.loadClass("jdk/internal/misc/Unsafe");
 
+            unsafeClass.registerInvokable("allocateMemory0", (thread, target, args) -> {
+                byte[] nativeMem = new byte[Math.toIntExact((Long)args.get(0))];
+                return MemoryFactory.wrap(nativeMem, ctxt.getTypeSystem().getEndianness());
+            });
+
             unsafeClass.registerInvokable("ensureClassInitialized", (thread, target, args) -> {
                 ((VmClassImpl) args.get(0)).initialize((VmThreadImpl) thread);
                 return null;
