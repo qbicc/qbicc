@@ -26,8 +26,13 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
+import org.qbicc.pointer.ReferenceAsPointer;
+import org.qbicc.pointer.RootPointer;
+import org.qbicc.pointer.StaticFieldPointer;
+import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -71,7 +76,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         }
     }
 
-    static final class ReachabilityVisitor implements NodeVisitor<ReachabilityContext, Void, Void, Void, Void> {
+    static final class ReachabilityVisitor implements NodeVisitor<ReachabilityContext, Void, Void, Void, Void>, RootPointer.Visitor<ReachabilityContext, Void> {
         @Override
         public Void visitUnknown(ReachabilityContext param, Action node) {
             visitUnknown(param, (Node) node);
@@ -131,6 +136,34 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         @Override
         public Void visit(ReachabilityContext param, ObjectLiteral value) {
             param.analysis.processReachableObjectLiteral(value, param.originalElement);
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, PointerLiteral value) {
+            RootPointer pointer = value.getPointer().getRootPointer();
+            pointer.accept(this, param);
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, ReferenceAsPointer pointer) {
+            param.analysis.processReachableObjectLiteral(param.ctxt.getLiteralFactory().literalOf(pointer.getReference()), param.originalElement);
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, StaticFieldPointer pointer) {
+            FieldElement f = pointer.getStaticField();
+            param.analysis.processStaticElementInitialization(f.getEnclosingType().load(), f, param.originalElement);
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, StaticMethodPointer pointer) {
+            MethodElement target = pointer.getStaticMethod();
+            param.analysis.processStaticElementInitialization(target.getEnclosingType().load(), target, param.originalElement);
+            param.analysis.processReachableStaticInvoke(target, param.originalElement);
             return null;
         }
 

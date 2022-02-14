@@ -27,12 +27,14 @@ import org.qbicc.object.Section;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
+import org.qbicc.pointer.Pointer;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.PhysicalObjectType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
@@ -316,6 +318,13 @@ public class BuildtimeHeap {
                     memberMap.put(om, lf.zeroInitializerLiteralOfType(om.getType()));
                 } else {
                     memberMap.put(om, lf.bitcastLiteral(serializeVmObject(contents), (WordType) om.getType()));
+                }
+            } else if (im.getType() instanceof PointerType pt) {
+                Pointer pointer = memory.loadPointer(im.getOffset(), SinglePlain);
+                if (pointer == null) {
+                    memberMap.put(om, lf.nullLiteralOfType(pt));
+                } else {
+                    memberMap.put(om, lf.literalOf(pointer));
                 }
             } else {
                 throw new UnsupportedOperationException("Serialization of unsupported member type: " + im.getType());

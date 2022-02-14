@@ -23,6 +23,7 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
@@ -797,6 +798,10 @@ public interface Node {
                 return param.getBlockBuilder().phi(node.getType(), param.copyBlock(node.getPinnedBlock()), node.possibleValuesAreNullable() ? NO_FLAGS : NOT_NULL_FLAGS);
             }
 
+            public Value visit(final Copier param, final PointerLiteral node) {
+                return node;
+            }
+
             public Value visit(final Copier param, final PopCount node) {
                 return param.getBlockBuilder().populationCount(param.copyValue(node.getInput()));
             }
@@ -844,6 +849,10 @@ public interface Node {
 
             public ValueHandle visit(Copier param, StaticMethodElementHandle node) {
                 return param.getBlockBuilder().staticMethod(node.getExecutable(), node.getCallSiteDescriptor(), node.getCallSiteType());
+            }
+
+            public ValueHandle visit(Copier param, StaticMethodPointerHandle node) {
+                return param.getBlockBuilder().staticMethodPointer(param.copyValue(node.getStaticMethodPointer()));
             }
 
             public Node visit(final Copier param, final Store node) {

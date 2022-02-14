@@ -9,6 +9,7 @@ import java.util.function.Function;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.object.ProgramObject;
+import org.qbicc.pointer.Pointer;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
@@ -75,6 +76,8 @@ public interface LiteralFactory {
     Literal valueConvertLiteral(Literal value, WordType toType);
 
     Literal elementOfLiteral(Literal value, Literal index);
+
+    PointerLiteral literalOf(Pointer value);
 
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
@@ -249,6 +252,12 @@ public interface LiteralFactory {
                 } else {
                     throw new IllegalArgumentException("Invalid input type: " + inputType);
                 }
+            }
+
+            @Override
+            public PointerLiteral literalOf(Pointer value) {
+                Assert.checkNotNullParam("value", value);
+                return new PointerLiteral(value);
             }
         };
     }

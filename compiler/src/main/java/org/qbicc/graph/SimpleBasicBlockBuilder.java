@@ -497,6 +497,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("Unresolved static method");
     }
 
+    public ValueHandle staticMethodPointer(Value pointer) {
+        return new StaticMethodPointerHandle(element, line, bci, pointer);
+    }
+
     public ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
         return new ConstructorElementHandle(element, line, bci, constructor, instance, callSiteDescriptor, callSiteType);
     }
