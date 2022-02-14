@@ -10,6 +10,7 @@ import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.pointer.Pointer;
 import org.qbicc.type.ValueType;
 
 /**
@@ -98,6 +99,20 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
+    public Pointer loadPointer(long index, ReadAccessMode mode) {
+        checkAlign(index, 2);
+        if (GlobalPlain.includes(mode)) {
+            return (Pointer) ht.get(things, Math.toIntExact(index >> 1));
+        } else if (SingleOpaque.includes(mode)) {
+            return (Pointer) ht.getOpaque(things, Math.toIntExact(index >> 1));
+        } else if (GlobalAcquire.includes(mode)) {
+            return (Pointer) ht.getAcquire(things, Math.toIntExact(index >> 1));
+        } else {
+            return (Pointer) ht.getVolatile(things, Math.toIntExact(index >> 1));
+        }
+    }
+
+    @Override
     public final void store8(long index, int value, WriteAccessMode mode) {
         if (GlobalPlain.includes(mode)) {
             h8.set(data, Math.toIntExact(index), (byte) value);
@@ -135,6 +150,20 @@ abstract class MemoryImpl implements Memory {
 
     @Override
     public void storeType(long index, ValueType value, WriteAccessMode mode) {
+        checkAlign(index, 2);
+        if (GlobalPlain.includes(mode)) {
+            ht.set(things, Math.toIntExact(index >> 1), value);
+        } else if (SingleOpaque.includes(mode)) {
+            ht.setOpaque(things, Math.toIntExact(index >> 1), value);
+        } else if (GlobalRelease.includes(mode)) {
+            ht.setRelease(things, Math.toIntExact(index >> 1), value);
+        } else {
+            ht.setVolatile(things, Math.toIntExact(index >> 1), value);
+        }
+    }
+
+    @Override
+    public void storePointer(long index, Pointer value, WriteAccessMode mode) {
         checkAlign(index, 2);
         if (GlobalPlain.includes(mode)) {
             ht.set(things, Math.toIntExact(index >> 1), value);
@@ -210,6 +239,24 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
+    public Pointer compareAndExchangePointer(long index, Pointer expect, Pointer update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        checkAlign(index, 2);
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            Pointer val = loadPointer(index, readMode);
+            if (val == expect) {
+                storePointer(index, update, writeMode);
+            }
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            return (Pointer) ht.compareAndExchangeAcquire(things, Math.toIntExact(index >> 1), expect, update);
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
+            return (Pointer) ht.compareAndExchangeRelease(things, Math.toIntExact(index >> 1), expect, update);
+        } else {
+            return (Pointer) ht.compareAndExchange(things, Math.toIntExact(index >> 1), expect, update);
+        }
+    }
+
+    @Override
     public final int getAndSet8(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             int val = load8(index, readMode);
@@ -260,6 +307,21 @@ abstract class MemoryImpl implements Memory {
             return (ValueType) ht.getAndSetRelease(things, Math.toIntExact(index >> 1), value);
         } else {
             return (ValueType) ht.getAndSet(things, Math.toIntExact(index >> 1), value);
+        }
+    }
+
+    @Override
+    public Pointer getAndSetPointer(long index, Pointer value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            Pointer val = loadPointer(index, readMode);
+            storePointer(index, value, writeMode);
+            return val;
+        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
+            return (Pointer) ht.getAndSetAcquire(things, Math.toIntExact(index >> 1), value);
+        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
+            return (Pointer) ht.getAndSetRelease(things, Math.toIntExact(index >> 1), value);
+        } else {
+            return (Pointer) ht.getAndSet(things, Math.toIntExact(index >> 1), value);
         }
     }
 

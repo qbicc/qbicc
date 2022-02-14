@@ -2,6 +2,7 @@ package org.qbicc.interpreter;
 
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
+import org.qbicc.pointer.Pointer;
 import org.qbicc.type.ValueType;
 
 /**
@@ -23,6 +24,8 @@ public interface Memory {
     VmObject loadRef(long index, ReadAccessMode mode);
 
     ValueType loadType(long index, ReadAccessMode mode);
+
+    Pointer loadPointer(long index, ReadAccessMode mode);
 
     default double loadDouble(long index, ReadAccessMode mode) {
         return Double.longBitsToDouble(load64(index, mode));
@@ -52,6 +55,8 @@ public interface Memory {
 
     void storeType(long index, ValueType value, WriteAccessMode mode);
 
+    void storePointer(long index, Pointer value, WriteAccessMode mode);
+
     void storeMemory(long destIndex, Memory src, long srcIndex, long size);
 
     void storeMemory(long destIndex, byte[] src, int srcIndex, int size);
@@ -67,6 +72,8 @@ public interface Memory {
     VmObject compareAndExchangeRef(long index, VmObject expect, VmObject update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
     ValueType compareAndExchangeType(long index, ValueType expect, ValueType update, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    Pointer compareAndExchangePointer(long index, Pointer expect, Pointer update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
     default int getAndSet8(long index, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         int oldVal = load8(index, readMode);
@@ -133,6 +140,18 @@ public interface Memory {
         ValueType witness;
         for (;;) {
             witness = compareAndExchangeType(index, oldVal, value, readMode, writeMode);
+            if (witness == oldVal) {
+                return oldVal;
+            }
+            oldVal = witness;
+        }
+    }
+
+    default Pointer getAndSetPointer(long index, Pointer value, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        Pointer oldVal = loadPointer(index, readMode);
+        Pointer witness;
+        for (;;) {
+            witness = compareAndExchangePointer(index, oldVal, value, readMode, writeMode);
             if (witness == oldVal) {
                 return oldVal;
             }
