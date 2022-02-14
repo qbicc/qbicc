@@ -46,6 +46,7 @@ import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.VmThrowable;
+import org.qbicc.interpreter.memory.MemoryFactory;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
@@ -80,7 +81,7 @@ import org.qbicc.type.methodhandle.MethodMethodHandleConstant;
 
 public final class VmImpl implements Vm {
     private final CompilationContext ctxt;
-    private final Map<GlobalVariableElement, MemoryImpl> globals = new ConcurrentHashMap<>();
+    private final Map<GlobalVariableElement, Memory> globals = new ConcurrentHashMap<>();
     private final Map<String, VmStringImpl> interned = new ConcurrentHashMap<>();
     private final VmClassLoaderImpl bootstrapClassLoader;
     private final AtomicBoolean initialized = new AtomicBoolean();
@@ -1075,8 +1076,14 @@ public final class VmImpl implements Vm {
     @Override
     public Memory allocate(ValueType type, long count) {
         // todo: typed memory
-        // todo: vector memory
-        return allocate(Math.toIntExact(type.getSize() * count));
+        if (count == 0) {
+            return MemoryFactory.getEmpty();
+        } else if (count == 1) {
+            // todo: typed memory
+            return allocate(Math.toIntExact(type.getSize()));
+        } else {
+            return MemoryFactory.replicate(allocate(type, 1), Math.toIntExact(count));
+        }
     }
 
     @Override
@@ -1502,10 +1509,10 @@ public final class VmImpl implements Vm {
     }
 
     public Memory getGlobal(final GlobalVariableElement variableElement) {
-        MemoryImpl memory = globals.get(variableElement);
+        Memory memory = globals.get(variableElement);
         if (memory == null) {
-            memory = allocate((int) variableElement.getType().getSize());
-            MemoryImpl appearing = globals.putIfAbsent(variableElement, memory);
+            memory = allocate(variableElement.getType(), 1);
+            Memory appearing = globals.putIfAbsent(variableElement, memory);
             if (appearing != null) {
                 memory = appearing;
             }

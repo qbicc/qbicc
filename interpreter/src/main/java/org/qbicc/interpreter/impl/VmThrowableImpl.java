@@ -2,6 +2,7 @@ package org.qbicc.interpreter.impl;
 
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
+import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmThrowable;
@@ -35,7 +36,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
         } else {
             backTrace = currentFrame.getBackTrace();
         }
-        MemoryImpl memory = getMemory();
+        Memory memory = getMemory();
         LoadedTypeDefinition throwableClassDef = ((VmImpl)Vm.requireCurrent()).throwableClass.getTypeDefinition();
         Layout interpLayout = Layout.get(throwableClassDef.getContext().getCompilationContext());
         LayoutInfo layout = interpLayout.getInstanceLayoutInfo(throwableClassDef);
@@ -64,7 +65,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
             ExecutableElement frameElement = ip.getElement();
             VmObjectImpl ste = vm.stackTraceElementClass.newInstance();
             vm.manuallyInitialize(ste);
-            MemoryImpl steMemory = ste.getMemory();
+            Memory steMemory = ste.getMemory();
             // initialize the stack trace element
             DefinedTypeDefinition frameClassDef = frameElement.getEnclosingType();
             VmClassImpl frameClass = vm.getClassLoaderForContext(frameClassDef.getContext()).getOrDefineClass(frameClassDef.load());

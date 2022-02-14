@@ -7,6 +7,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
+import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmString;
 
@@ -41,7 +42,7 @@ final class VmStringImpl extends VmObjectImpl implements VmString {
             }
         }
         VmArray byteArray = vm.allocateArray(bytes);
-        MemoryImpl memory = getMemory();
+        Memory memory = getMemory();
         memory.store8(vm.stringCoderOffset, latin1 ? 0 : 1, SinglePlain);
         memory.storeRef(vm.stringValueOffset, byteArray, SinglePlain);
     }
@@ -62,11 +63,11 @@ final class VmStringImpl extends VmObjectImpl implements VmString {
             return content;
         }
         VmImpl vm = getVmClass().getVm();
-        MemoryImpl memory = getMemory();
+        Memory memory = getMemory();
         int coder = memory.load8(vm.stringCoderOffset, SingleAcquire);
         VmByteArrayImpl array = (VmByteArrayImpl) memory.loadRef(vm.stringValueOffset, SingleAcquire);
         Charset charset = coder == 0 ? StandardCharsets.ISO_8859_1 : StandardCharsets.UTF_16BE;
-        byte[] rawArray = array.getMemory().getArray();
+        byte[] rawArray = ((MemoryImpl)array.getMemory()).getArray();
         String newContent = new String(rawArray, vm.byteArrayContentOffset, array.getLength(), charset);
         for (;;) {
             if (contentHandle.compareAndSet(this, null, newContent)) {

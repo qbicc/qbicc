@@ -1,5 +1,6 @@
 package org.qbicc.interpreter.impl;
 
+import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmStaticFieldBaseObject;
 import org.qbicc.plugin.layout.LayoutInfo;
@@ -14,7 +15,7 @@ import org.qbicc.type.definition.element.FieldElement;
 final class VmStaticFieldBase implements VmStaticFieldBaseObject, Referenceable {
     private final VmClassImpl vmClass;
     private final LayoutInfo staticLayout;
-    private final MemoryImpl memory;
+    private final Memory memory;
 
     /**
      * Construct a new instance.
@@ -23,7 +24,7 @@ final class VmStaticFieldBase implements VmStaticFieldBaseObject, Referenceable 
      * @param staticLayout the static layout
      * @param memory the static memory for the class
      */
-    VmStaticFieldBase(VmClassImpl vmClass, LayoutInfo staticLayout, MemoryImpl memory) {
+    VmStaticFieldBase(VmClassImpl vmClass, LayoutInfo staticLayout, Memory memory) {
         this.vmClass = vmClass;
         this.staticLayout = staticLayout;
         this.memory = memory;
@@ -50,7 +51,7 @@ final class VmStaticFieldBase implements VmStaticFieldBaseObject, Referenceable 
     }
 
     @Override
-    public MemoryImpl getMemory() {
+    public Memory getMemory() {
         return memory;
     }
 

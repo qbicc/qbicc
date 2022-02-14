@@ -26,6 +26,7 @@ import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.interpreter.VmReferenceArrayClass;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThrowable;
+import org.qbicc.interpreter.memory.MemoryFactory;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
@@ -76,7 +77,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     /**
      * This is the memory which backs the static fields of this class, as defined by {@link #staticLayoutInfo}.
      */
-    private final MemoryImpl staticMemory;
+    private final Memory staticMemory;
 
     private volatile List<? extends VmClassImpl> interfaces;
     private volatile VmClassImpl superClass;
@@ -110,7 +111,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         CompilationContext ctxt = classContext.getCompilationContext();
         layoutInfo = typeDefinition.isInterface() ? null : Layout.get(ctxt).getInstanceLayoutInfo(typeDefinition);
         staticLayoutInfo = Layout.get(ctxt).getStaticLayoutInfo(typeDefinition);
-        staticMemory = staticLayoutInfo == null ? vmImpl.allocate(0) : vmImpl.allocate((int) staticLayoutInfo.getCompoundType().getSize());
+        staticMemory = staticLayoutInfo == null ? MemoryFactory.getEmpty() : vmImpl.allocate(staticLayoutInfo.getCompoundType(), 1);
         initializeConstantStaticFields();
         staticFieldBase = staticLayoutInfo == null ? null : new VmStaticFieldBase(this, staticLayoutInfo, staticMemory);
     }
@@ -140,7 +141,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         CompilationContext ctxt = classContext.getCompilationContext();
         layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(typeDefinition);
         staticLayoutInfo = Layout.get(ctxt).getStaticLayoutInfo(typeDefinition);
-        staticMemory = staticLayoutInfo == null ? vm.allocate(0) : vm.allocate((int) staticLayoutInfo.getCompoundType().getSize());
+        staticMemory = staticLayoutInfo == null ? MemoryFactory.getEmpty() : vm.allocate(staticLayoutInfo.getCompoundType(), 1);
         superClass = new VmClassImpl(vm, (VmClassClassImpl) this, classContext.findDefinedType("java/lang/Object").load(), null);
         initializeConstantStaticFields();
         staticFieldBase = staticLayoutInfo == null ? null : new VmStaticFieldBase(this, staticLayoutInfo, staticMemory);
@@ -366,7 +367,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     }
 
     @Override
-    public MemoryImpl getStaticMemory() {
+    public Memory getStaticMemory() {
         return staticMemory;
     }
 
