@@ -8,6 +8,7 @@ import java.lang.invoke.VarHandle;
 
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
+import org.qbicc.interpreter.Memory;
 
 final class LittleEndianMemoryImpl extends MemoryImpl {
     static final LittleEndianMemoryImpl EMPTY = new LittleEndianMemoryImpl(0);
@@ -388,7 +389,17 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
         return newMemory;
     }
 
-    protected MemoryImpl clone() {
+    public MemoryImpl clone() {
         return new LittleEndianMemoryImpl(this);
+    }
+
+    @Override
+    public Memory cloneZeroed() {
+        return new LittleEndianMemoryImpl(data.length);
+    }
+
+    @Override
+    public long getSize() {
+        return data.length;
     }
 }

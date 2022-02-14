@@ -10,14 +10,14 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.qbicc.context.CompilationContext;
-import org.qbicc.interpreter.Thrown;
+import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
+import org.qbicc.interpreter.memory.MemoryFactory;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
-import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.PhysicalObjectType;
@@ -36,7 +36,7 @@ class VmObjectImpl implements VmObject, Referenceable {
     /**
      * This is the backing memory of this object, as defined by {@link VmClassImpl#getLayoutInfo() clazz.layoutInfo}.
      */
-    final MemoryImpl memory;
+    final Memory memory;
     /**
      * This is the object monitor, which is lazily instantiated.
      */
@@ -55,18 +55,17 @@ class VmObjectImpl implements VmObject, Referenceable {
      */
     VmObjectImpl(final VmClassImpl clazz) {
         this.clazz = clazz;
-        memory = clazz.getVmClass().getVm().allocate((int) clazz.getLayoutInfo().getCompoundType().getSize());
+        memory = clazz.getVmClass().getVm().allocate(clazz.getLayoutInfo().getCompoundType(), 1);
     }
 
     /**
      * Construct a new array instance.
      * @param clazz the array class (must not be {@code null})
-     * @param arraySize the size of the array
+     * @param arrayMemory the array memory (must not be {@code null})
      */
-    VmObjectImpl(final VmArrayClassImpl clazz, final int arraySize) {
+    VmObjectImpl(final VmArrayClassImpl clazz, final Memory arrayMemory) {
         this.clazz = clazz;
-        ArrayObjectType arrayType = clazz.getInstanceObjectType();
-        memory = clazz.getVm().allocate((int) (clazz.getLayoutInfo().getCompoundType().getSize() + arraySize * arrayType.getElementType().getSize()));
+        memory = MemoryFactory.compose(clazz.getVm().allocate(clazz.getLayoutInfo().getCompoundType(), 1), arrayMemory);
     }
 
     /**
@@ -88,7 +87,7 @@ class VmObjectImpl implements VmObject, Referenceable {
     }
 
     @Override
-    public MemoryImpl getMemory() {
+    public Memory getMemory() {
         return memory;
     }
 

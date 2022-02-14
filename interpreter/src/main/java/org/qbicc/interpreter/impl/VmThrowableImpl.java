@@ -2,8 +2,10 @@ package org.qbicc.interpreter.impl;
 
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
+import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
+import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
@@ -35,7 +37,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
         } else {
             backTrace = currentFrame.getBackTrace();
         }
-        MemoryImpl memory = getMemory();
+        Memory memory = getMemory();
         LoadedTypeDefinition throwableClassDef = ((VmImpl)Vm.requireCurrent()).throwableClass.getTypeDefinition();
         Layout interpLayout = Layout.get(throwableClassDef.getContext().getCompilationContext());
         LayoutInfo layout = interpLayout.getInstanceLayoutInfo(throwableClassDef);
@@ -59,12 +61,13 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
         int fileNameIdx = layout.getMember(steClassDef.findField("fileName")).getOffset();
         int methodNameIdx = layout.getMember(steClassDef.findField("methodName")).getOffset();
         Node[] backTrace = this.backTrace;
+        VmObject[] steArray = ((VmRefArrayImpl) array).getArray();
         for (int i = 0; i < backTrace.length; i++) {
             Node ip = backTrace[i];
             ExecutableElement frameElement = ip.getElement();
             VmObjectImpl ste = vm.stackTraceElementClass.newInstance();
             vm.manuallyInitialize(ste);
-            MemoryImpl steMemory = ste.getMemory();
+            Memory steMemory = ste.getMemory();
             // initialize the stack trace element
             DefinedTypeDefinition frameClassDef = frameElement.getEnclosingType();
             VmClassImpl frameClass = vm.getClassLoaderForContext(frameClassDef.getContext()).getOrDefineClass(frameClassDef.load());
@@ -83,7 +86,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
                 methodName = "<unknown>";
             }
             steMemory.storeRef(methodNameIdx, vm.intern(methodName), SinglePlain);
-            array.getMemory().storeRef(array.getArrayElementOffset(i), ste, SinglePlain);
+            steArray[i] = ste;
         }
     }
 

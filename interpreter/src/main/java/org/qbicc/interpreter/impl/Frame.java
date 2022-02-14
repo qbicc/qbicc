@@ -1315,7 +1315,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl thread, ArrayLiteral node) {
-        MemoryImpl memory = thread.getVM().allocate((int) node.getType().getSize());
+        Memory memory = thread.getVM().allocate(node.getType(), 1);
         List<Literal> nodeValues = node.getValues();
         ValueType elementType = node.getType().getElementType();
         long elementSize = node.getType().getElementSize();
@@ -1503,7 +1503,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         WriteAccessMode writeAccessMode = node.getWriteAccessMode();
         boolean updated;
         CompoundType resultType = node.getType();
-        Memory result = thread.getVM().allocate((int) resultType.getSize());
+        Memory result = thread.getVM().allocate(resultType, 1);
         if (type instanceof ReferenceType) {
             VmObject expected = (VmObject) require(expect);
             VmObject resultVal = memory.compareAndExchangeRef(offset, expected, (VmObject) require(update), readAccessMode, writeAccessMode);
@@ -1879,9 +1879,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         VmArrayImpl outer = newArray(thread, type, size);
         if (dimOffs < dimensions.length - 1) {
             // nested arrays to fill
+            VmObject[] array = (VmObject[]) outer.getArray();
             for (int i = 0; i < size; i++) {
-                long offs = outer.getArrayElementOffset(i);
-                outer.getMemory().storeRef(offs, multiNewArray(thread, (ArrayObjectType) type.getElementType(), dimOffs + 1, dimensions), SinglePlain);
+                array[i] = multiNewArray(thread, (ArrayObjectType) type.getElementType(), dimOffs + 1, dimensions);
             }
         }
         return outer;

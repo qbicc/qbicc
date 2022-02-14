@@ -484,7 +484,7 @@ public final class Reflection {
             }
             FieldElement field = def.getField(i);
             if (! publicOnly || field.isPublic()) {
-                pubFields.getMemory().storeRef(pubFields.getArrayElementOffset(pubIdx++), getField(field), SinglePlain);
+                pubFields.getArray()[pubIdx++] = getField(field);
             }
         }
         VmReferenceArray appearing = map.putIfAbsent(vmClass, pubFields);
@@ -504,9 +504,10 @@ public final class Reflection {
         VmClassLoader classLoader = declaringClass.getClassLoader();
         MethodDescriptor desc = method.getDescriptor();
         List<TypeDescriptor> paramTypes = desc.getParameterTypes();
-        VmArray paramTypesVal = vm.newArrayOf(classClass, paramTypes.size());
+        VmReferenceArray paramTypesVal = vm.newArrayOf(classClass, paramTypes.size());
+        VmObject[] paramTypesValArray = paramTypesVal.getArray();
         for (int j = 0; j < paramTypes.size(); j ++) {
-            paramTypesVal.getMemory().storeRef(paramTypesVal.getArrayElementOffset(j), vm.getClassForDescriptor(classLoader, paramTypes.get(j)), SinglePlain);
+            paramTypesValArray[j] = vm.getClassForDescriptor(classLoader, paramTypes.get(j));
         }
         // annotation default
         VmArray dv;
@@ -559,13 +560,14 @@ public final class Reflection {
         }
         VmReferenceArray pubMethods = vm.newArrayOf(methodClass, total);
         int pubIdx = 0;
+        VmObject[] pubMethodsArray = pubMethods.getArray();
         for (int i = 0; i < def.getMethodCount(); i++) {
             if (def.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
                 continue;
             }
             MethodElement method = def.getMethod(i);
             if (! publicOnly || method.isPublic()) {
-                pubMethods.getMemory().storeRef(pubMethods.getArrayElementOffset(pubIdx++), getMethod(method), SinglePlain);
+                pubMethodsArray[pubIdx++] = getMethod(method);
             }
         }
         VmReferenceArray appearing = map.putIfAbsent(vmClass, pubMethods);
@@ -585,9 +587,10 @@ public final class Reflection {
         VmClassLoader classLoader = declaringClass.getClassLoader();
         MethodDescriptor desc = constructor.getDescriptor();
         List<TypeDescriptor> paramTypes = desc.getParameterTypes();
-        VmArray paramTypesVal = vm.newArrayOf(constructorClass.getArrayClass(), paramTypes.size());
+        VmReferenceArray paramTypesVal = vm.newArrayOf(constructorClass.getArrayClass(), paramTypes.size());
+        VmObject[] paramTypesValArray = paramTypesVal.getArray();
         for (int j = 0; j < paramTypes.size(); j ++) {
-            paramTypesVal.getMemory().storeRef(paramTypesVal.getArrayElementOffset(j), vm.getClassForDescriptor(classLoader, paramTypes.get(j)), SinglePlain);
+            paramTypesValArray[j] = vm.getClassForDescriptor(classLoader, paramTypes.get(j));
         }
         vmObject = vm.newInstance(constructorClass, ctorCtor, Arrays.asList(
             declaringClass,
@@ -624,13 +627,14 @@ public final class Reflection {
         }
         VmReferenceArray pubConstructors = vm.newArrayOf(constructorClass, total);
         int pubIdx = 0;
+        VmObject[] pubConstructorsArray = pubConstructors.getArray();
         for (int i = 0; i < def.getConstructorCount(); i++) {
             if (def.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
                 continue;
             }
             ConstructorElement constructor = def.getConstructor(i);
             if (! publicOnly || constructor.isPublic()) {
-                pubConstructors.getMemory().storeRef(pubConstructors.getArrayElementOffset(pubIdx++), getConstructor(constructor), SinglePlain);
+                pubConstructorsArray[pubIdx++] = getConstructor(constructor);
             }
         }
         VmReferenceArray appearing = map.putIfAbsent(vmClass, pubConstructors);
@@ -910,14 +914,15 @@ public final class Reflection {
         if (rtype == null) {
             throw new Thrown(linkageErrorClass.newInstance("MethodType has null return type"));
         }
-        VmArray ptypes = (VmArray) methodType.getMemory().loadRef(methodType.indexOf(methodTypePTypesField), SinglePlain);
+        VmReferenceArray ptypes = (VmReferenceArray) methodType.getMemory().loadRef(methodType.indexOf(methodTypePTypesField), SinglePlain);
         if (ptypes == null) {
             throw new Thrown(linkageErrorClass.newInstance("MethodType has null param types"));
         }
         int pcnt = ptypes.getLength();
+        VmObject[] ptypesArray = ptypes.getArray();
         ArrayList<TypeDescriptor> paramTypes = new ArrayList<>(pcnt);
         for (int i = 0; i < pcnt; i ++) {
-            VmClass clazz = (VmClass) ptypes.getMemory().loadRef(ptypes.getArrayElementOffset(i), SinglePlain);
+            VmClass clazz = (VmClass) ptypesArray[i];
             paramTypes.add(clazz.getDescriptor());
         }
         return MethodDescriptor.synthesize(classContext, rtype.getDescriptor(), paramTypes);
@@ -981,7 +986,7 @@ public final class Reflection {
 
     private Object nativeConstructorAccessorImplNewInstance0(final VmThread thread, final VmObject ignored, final List<Object> args) {
         VmObject ctor = (VmObject) args.get(0);
-        VmArray argsArray = (VmArray) args.get(1);
+        VmReferenceArray argsArray = (VmReferenceArray) args.get(1);
         // unbox the hyper-boxed arguments
         List<Object> unboxed;
         if (argsArray == null) {
@@ -989,8 +994,9 @@ public final class Reflection {
         } else {
             int argCnt = argsArray.getLength();
             unboxed = new ArrayList<>(argCnt);
+            VmObject[] argsArrayArray = argsArray.getArray();
             for (int i = 0; i < argCnt; i ++) {
-                unboxed.add(unbox(argsArray.getMemory().loadRef(argsArray.getArrayElementOffset(i), SinglePlain)));
+                unboxed.add(unbox(argsArrayArray[i]));
             }
         }
         // the enclosing class
@@ -1009,7 +1015,7 @@ public final class Reflection {
         //    private static native Object invoke0(Method m, Object obj, Object[] args);
         VmObject method = (VmObject) args.get(0);
         VmObject receiver = (VmObject) args.get(1);
-        VmArray argsArray = (VmArray) args.get(2);
+        VmReferenceArray argsArray = (VmReferenceArray) args.get(2);
         // unbox the hyper-boxed arguments
         List<Object> unboxed;
         if (argsArray == null) {
@@ -1017,8 +1023,9 @@ public final class Reflection {
         } else {
             int argCnt = argsArray.getLength();
             unboxed = new ArrayList<>(argCnt);
+            VmObject[] argsArrayArray = argsArray.getArray();
             for (int i = 0; i < argCnt; i ++) {
-                unboxed.add(unbox(argsArray.getMemory().loadRef(argsArray.getArrayElementOffset(i), SinglePlain)));
+                unboxed.add(unbox(argsArrayArray[i]));
             }
         }
         // the enclosing class

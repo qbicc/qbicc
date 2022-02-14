@@ -9,6 +9,9 @@ public interface VmReferenceArray extends VmArray {
     @Override
     ReferenceArrayObjectType getObjectType();
 
+    @Override
+    VmObject[] getArray();
+
     /**
      * Directly store a value into the array.
      *

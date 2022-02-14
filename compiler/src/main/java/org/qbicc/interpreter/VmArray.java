@@ -8,10 +8,15 @@ import org.qbicc.type.ArrayObjectType;
 public interface VmArray extends VmObject {
     int getLength();
 
-    long getArrayElementOffset(int index);
-
     ArrayObjectType getObjectType();
 
     @Override
     VmArrayClass getVmClass();
+
+    /**
+     * Get the raw array portion of this object.
+     *
+     * @return the raw array
+     */
+    Object getArray();
 }

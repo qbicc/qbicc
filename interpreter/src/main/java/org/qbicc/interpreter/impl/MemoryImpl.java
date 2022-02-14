@@ -422,5 +422,5 @@ abstract class MemoryImpl implements Memory {
     }
 
     @Override
-    protected abstract MemoryImpl clone();
+    public abstract MemoryImpl clone();
 }

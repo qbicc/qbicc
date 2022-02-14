@@ -99,8 +99,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         if (! hidden && defined.containsKey(internalName)) {
             throw duplicateClass(vm);
         }
-        MemoryImpl memory = (MemoryImpl) content.getMemory();
-        ClassFile classFile = ClassFile.of(classContext, ByteBuffer.wrap(memory.getArray(), Math.toIntExact(content.getArrayElementOffset(0)), content.getLength()));
+        ClassFile classFile = ClassFile.of(classContext, ByteBuffer.wrap(((VmByteArrayImpl)content).getArray()));
         // todo: proper verification...
         DefinedTypeDefinition.Builder builder = classContext.newTypeBuilder();
         classFile.accept(builder);
