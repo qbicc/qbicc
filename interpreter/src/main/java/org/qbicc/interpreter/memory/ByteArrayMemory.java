@@ -52,39 +52,39 @@ public abstract class ByteArrayMemory implements Memory {
     @Override
     public int load16(long index, ReadAccessMode mode) {
         if (GlobalPlain.includes(mode)) {
-            return (int) h16().get(array, Math.toIntExact(index)) & 0xff;
+            return (int) h16().get(array, Math.toIntExact(index)) & 0xffff;
         } else if (SingleOpaque.includes(mode)) {
-            return (int) h16().getOpaque(array, Math.toIntExact(index)) & 0xff;
+            return (int) h16().getOpaque(array, Math.toIntExact(index)) & 0xffff;
         } else if (GlobalAcquire.includes(mode)) {
-            return (int) h16().getAcquire(array, Math.toIntExact(index)) & 0xff;
+            return (int) h16().getAcquire(array, Math.toIntExact(index)) & 0xffff;
         } else {
-            return (int) h16().getVolatile(array, Math.toIntExact(index)) & 0xff;
+            return (int) h16().getVolatile(array, Math.toIntExact(index)) & 0xffff;
         }
     }
 
     @Override
     public int load32(long index, ReadAccessMode mode) {
         if (GlobalPlain.includes(mode)) {
-            return (int) h32().get(array, Math.toIntExact(index)) & 0xff;
+            return (int) h32().get(array, Math.toIntExact(index));
         } else if (SingleOpaque.includes(mode)) {
-            return (int) h32().getOpaque(array, Math.toIntExact(index)) & 0xff;
+            return (int) h32().getOpaque(array, Math.toIntExact(index));
         } else if (GlobalAcquire.includes(mode)) {
-            return (int) h32().getAcquire(array, Math.toIntExact(index)) & 0xff;
+            return (int) h32().getAcquire(array, Math.toIntExact(index));
         } else {
-            return (int) h32().getVolatile(array, Math.toIntExact(index)) & 0xff;
+            return (int) h32().getVolatile(array, Math.toIntExact(index));
         }
     }
 
     @Override
     public long load64(long index, ReadAccessMode mode) {
         if (GlobalPlain.includes(mode)) {
-            return (long) h64().get(array, Math.toIntExact(index)) & 0xff;
+            return (long) h64().get(array, Math.toIntExact(index));
         } else if (SingleOpaque.includes(mode)) {
-            return (long) h64().getOpaque(array, Math.toIntExact(index)) & 0xff;
+            return (long) h64().getOpaque(array, Math.toIntExact(index));
         } else if (GlobalAcquire.includes(mode)) {
-            return (long) h64().getAcquire(array, Math.toIntExact(index)) & 0xff;
+            return (long) h64().getAcquire(array, Math.toIntExact(index));
         } else {
-            return (long) h64().getVolatile(array, Math.toIntExact(index)) & 0xff;
+            return (long) h64().getVolatile(array, Math.toIntExact(index));
         }
     }
 
