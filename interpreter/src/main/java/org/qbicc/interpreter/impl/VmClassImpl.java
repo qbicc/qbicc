@@ -16,6 +16,7 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
+import org.qbicc.interpreter.InterpreterHaltedException;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.VmClass;
@@ -447,6 +448,8 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                         initException = this.initException = (VmThrowableImpl) t.getThrowable();
                         state = this.state = State.INITIALIZATION_FAILED;
                         log.debug("Failed to initialize a class", t);
+                    } catch (InterpreterHaltedException t) {
+                        state = this.state = State.INITIALIZATION_FAILED;
                     } catch (Throwable t) {
                         vm.getCompilationContext().error(t, "Crash in interpreter while initializing %s", this);
                         state = this.state = State.INITIALIZATION_FAILED;
