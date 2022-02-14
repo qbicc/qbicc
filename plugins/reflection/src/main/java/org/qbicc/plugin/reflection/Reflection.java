@@ -27,6 +27,7 @@ import org.qbicc.interpreter.VmThrowableClass;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.patcher.Patcher;
+import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -948,21 +949,7 @@ public final class Reflection {
     }
 
     private Object methodHandleNativesStaticFieldBase(final VmThread thread, final VmObject ignored, final List<Object> args) {
-        VmObject name = (VmObject) args.get(0);
-        // assume resolved
-        VmClass clazz = (VmClass) name.getMemory().loadRef(name.indexOf(memberNameClazzField), SinglePlain);
-        int idx = name.getMemory().load32(name.indexOf(memberNameIndexField), SinglePlain);
-        if (idx == 0) {
-            // todo: breakpoint
-            idx = 0;
-        }
-        FieldElement field = clazz.getTypeDefinition().getField(idx);
-        LayoutInfo layoutInfo;
-        if (field.isStatic()) {
-            return field.getEnclosingType().load().getVmClass().getStaticFieldBase();
-        } else {
-            throw new Thrown(linkageErrorClass.newInstance("Wrong field kind"));
-        }
+        return null;
     }
 
     private Object methodHandleNativesStaticFieldOffset(final VmThread thread, final VmObject ignored, final List<Object> args) {
@@ -975,13 +962,7 @@ public final class Reflection {
             idx = 0;
         }
         FieldElement field = clazz.getTypeDefinition().getField(idx);
-        LayoutInfo layoutInfo;
-        if (field.isStatic()) {
-            layoutInfo = Layout.get(ctxt).getStaticLayoutInfo(field.getEnclosingType());
-        } else {
-            throw new Thrown(linkageErrorClass.newInstance("Wrong field kind"));
-        }
-        return Long.valueOf(layoutInfo == null ? 0 : layoutInfo.getMember(field).getOffset());
+        return StaticFieldPointer.of(field);
     }
 
     private Object nativeConstructorAccessorImplNewInstance0(final VmThread thread, final VmObject ignored, final List<Object> args) {

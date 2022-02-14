@@ -71,7 +71,6 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
      * This is the singleton layout for the static fields of this class.
      */
     private final LayoutInfo staticLayoutInfo;
-    private final VmStaticFieldBase staticFieldBase;
 
     // memory
 
@@ -114,7 +113,6 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         staticLayoutInfo = Layout.get(ctxt).getStaticLayoutInfo(typeDefinition);
         staticMemory = staticLayoutInfo == null ? MemoryFactory.getEmpty() : vmImpl.allocate(staticLayoutInfo.getCompoundType(), 1);
         initializeConstantStaticFields();
-        staticFieldBase = staticLayoutInfo == null ? null : new VmStaticFieldBase(this, staticLayoutInfo, staticMemory);
     }
 
     VmClassImpl(VmImpl vmImpl, VmClassClassImpl classClass, @SuppressWarnings("unused") int primitivesOnly) {
@@ -129,7 +127,6 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         staticLayoutInfo = null;
         staticMemory = vmImpl.emptyMemory;
         interfaces = List.of();
-        staticFieldBase = null;
     }
 
     VmClassImpl(final VmImpl vm, final ClassContext classContext, @SuppressWarnings("unused") Class<VmClassClassImpl> classClassOnly) {
@@ -145,7 +142,6 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         staticMemory = staticLayoutInfo == null ? MemoryFactory.getEmpty() : vm.allocate(staticLayoutInfo.getCompoundType(), 1);
         superClass = new VmClassImpl(vm, (VmClassClassImpl) this, classContext.findDefinedType("java/lang/Object").load(), null);
         initializeConstantStaticFields();
-        staticFieldBase = staticLayoutInfo == null ? null : new VmStaticFieldBase(this, staticLayoutInfo, staticMemory);
     }
 
     void initializeConstantStaticFields() {
@@ -279,11 +275,6 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         lookup.getMemory().store32(lookup.indexOf(lookupDef.findField("allowedModes")), allowedModes, SinglePlain);
         VarHandle.releaseFence();
         return lookup;
-    }
-
-    @Override
-    public VmObject getStaticFieldBase() {
-        return staticFieldBase;
     }
 
     @Override
