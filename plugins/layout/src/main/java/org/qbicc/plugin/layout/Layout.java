@@ -128,6 +128,7 @@ public final class Layout {
                     minAlignment = member.getAlign();
                 }
                 fieldToMember.put(field, member);
+                field.setOffset(member.getOffset());
             }
         }
         int size;
@@ -137,6 +138,7 @@ public final class Layout {
                 minAlignment = member.getAlign();
             }
             fieldToMember.put(trailingArray, member);
+            trailingArray.setOffset(member.getOffset());
             size = member.getOffset();
         } else {
             size = allocated.length();

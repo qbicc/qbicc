@@ -3,8 +3,10 @@ package org.qbicc.object;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.util.function.Function;
 
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.pointer.ProgramObjectPointer;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
 
@@ -14,6 +16,8 @@ import org.qbicc.type.ValueType;
 public abstract class ProgramObject {
     private static final VarHandle typeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(),
         "type", VarHandle.class, ProgramObject.class, PointerType.class);
+    private static final VarHandle pointerHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(),
+        "pointer", VarHandle.class, ProgramObject.class, ProgramObjectPointer.class);
 
     final String name;
     final ValueType valueType;
@@ -21,6 +25,7 @@ public abstract class ProgramObject {
     private volatile PointerType type;
     volatile Linkage linkage = Linkage.EXTERNAL;
     volatile ThreadLocalMode threadLocalMode;
+    volatile ProgramObjectPointer pointer;
 
     ProgramObject(final String name, final ValueType valueType) {
         this.name = name;
@@ -57,6 +62,33 @@ public abstract class ProgramObject {
             }
         }
         return type;
+    }
+    /**
+     * Get the a pointer to this program object.  Convenience method which delegates to {@link ProgramObjectPointer#of}.
+     *
+     * @return the pointer
+     */
+    public ProgramObjectPointer getPointer() {
+        return ProgramObjectPointer.of(this);
+    }
+
+    /**
+     * Establish the pointer for this program object; intended only for use by {@link ProgramObjectPointer#of}.
+     *
+     * @param factory the factory
+     * @return the pointer
+     * @see ProgramObjectPointer#of
+     */
+    public ProgramObjectPointer getOrCreatePointer(Function<ProgramObject, ProgramObjectPointer> factory) {
+        ProgramObjectPointer pointer = this.pointer;
+        if (pointer == null) {
+            pointer = factory.apply(this);
+            ProgramObjectPointer appearing = (ProgramObjectPointer) pointerHandle.compareAndExchange(this, null, pointer);
+            if (appearing != null) {
+                pointer = appearing;
+            }
+        }
+        return pointer;
     }
 
     public abstract ProgramObject getDeclaration();

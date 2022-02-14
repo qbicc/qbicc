@@ -27,6 +27,7 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
     private final TypeAnnotationList invisibleTypeAnnotations;
     private final TypeParameterContext typeParameterContext;
     private volatile ValueType type;
+    private volatile long offset = -1;
 
     // Interpreter caches
 
@@ -112,6 +113,18 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
 
     public boolean compareAndSetInterpreterOffset(int expect, int update) {
         return interpOffsetHandle.compareAndSet(this, expect, update);
+    }
+
+    public long getOffset() {
+        long offset = this.offset;
+        if (offset == -1) {
+            throw new IllegalStateException();
+        }
+        return offset;
+    }
+
+    public void setOffset(long offset) {
+        this.offset = offset;
     }
 
     public interface Builder extends AnnotatedElement.Builder, NamedElement.Builder {

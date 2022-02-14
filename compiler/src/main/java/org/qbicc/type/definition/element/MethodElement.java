@@ -1,5 +1,11 @@
 package org.qbicc.type.definition.element;
 
+import java.lang.invoke.ConstantBootstraps;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.util.function.Function;
+
+import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -19,8 +25,11 @@ public final class MethodElement extends InvokableElement implements NamedElemen
      */
     public static final MethodElement END_OF_SEARCH = new MethodElement();
 
+    private static final VarHandle pointerHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "pointer", VarHandle.class, MethodElement.class, StaticMethodPointer.class);
+
     private final String name;
     private final AnnotationValue defaultValue;
+    private volatile StaticMethodPointer pointer;
 
     MethodElement() {
         super();
@@ -91,6 +100,39 @@ public final class MethodElement extends InvokableElement implements NamedElemen
             && getName().equals(other.getName())
             && getEnclosingType().load().getType().isSubtypeOf(other.getEnclosingType().load().getType());
     }
+
+    /**
+     * Get the pointer to this (static) method.  Convenience method which delegates to {@link StaticMethodPointer#of}.
+     *
+     * @return the pointer
+     * @throws IllegalArgumentException if this method is not static
+     */
+    public StaticMethodPointer getStaticMethodPointer() {
+        return StaticMethodPointer.of(this);
+    }
+
+    /**
+     * Establish the pointer for this method; intended only for use by {@link StaticMethodPointer#of}.
+     *
+     * @param factory the factory
+     * @return the pointer
+     * @see StaticMethodPointer#of
+     */
+    public StaticMethodPointer getOrCreateStaticMethodPointer(Function<MethodElement, StaticMethodPointer> factory) {
+        StaticMethodPointer pointer = this.pointer;
+        if (pointer == null) {
+            if (! isStatic()) {
+                throw new IllegalArgumentException("Static pointer for instance method");
+            }
+            pointer = factory.apply(this);
+            StaticMethodPointer appearing = (StaticMethodPointer) pointerHandle.compareAndExchange(this, null, pointer);
+            if (appearing != null) {
+                pointer = appearing;
+            }
+        }
+        return pointer;
+    }
+
 
     public interface Builder extends InvokableElement.Builder, NamedElement.Builder {
 
