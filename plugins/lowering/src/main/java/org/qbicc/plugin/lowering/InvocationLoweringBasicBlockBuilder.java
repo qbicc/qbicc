@@ -17,6 +17,7 @@ import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.InterfaceMethodElementHandle;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.StaticMethodElementHandle;
+import org.qbicc.graph.StaticMethodPointerHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
@@ -255,6 +256,17 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);
         final LiteralFactory lf = ctxt.getLiteralFactory();
         return pointerHandle(lf.literalOf(decl));
+    }
+
+    @Override
+    public ValueHandle visit(ArrayList<Value> args, StaticMethodPointerHandle node) {
+        Value pointer = node.getStaticMethodPointer();
+        final BasicBlockBuilder fb = getFirstBuilder();
+        // insert current thread only
+        ValueHandle currentThread = fb.currentThread();
+        args.add(0, fb.load(currentThread, SingleUnshared));
+        // pointer type should already have been converted by MemberPointerCopier
+        return fb.pointerHandle(pointer);
     }
 
     @Override

@@ -82,6 +82,7 @@ import org.qbicc.plugin.llvm.LLVMCompileStage;
 import org.qbicc.plugin.llvm.LLVMGenerator;
 import org.qbicc.plugin.lowering.FunctionLoweringElementHandler;
 import org.qbicc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
+import org.qbicc.plugin.lowering.MemberPointerCopier;
 import org.qbicc.plugin.lowering.StaticFieldLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.ThrowExceptionHelper;
 import org.qbicc.plugin.lowering.ThrowLoweringBasicBlockBuilder;
@@ -486,6 +487,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addCopyFactory(Phase.LOWER, PhiOptimizerVisitor::new);
                                 }
                                 builder.addCopyFactory(Phase.LOWER, BooleanAccessCopier::new);
+                                builder.addCopyFactory(Phase.LOWER, MemberPointerCopier::new);
                                 builder.addCopyFactory(Phase.LOWER, ObjectLiteralSerializingVisitor::new);
 
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ThrowLoweringBasicBlockBuilder::new);
