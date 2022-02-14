@@ -154,6 +154,8 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.pointer.ReferenceAsPointer;
+import org.qbicc.pointer.RootPointer;
+import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
@@ -1869,7 +1871,20 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isInt32(type)) {
             return Integer.valueOf(memory.load32(offset, mode));
         } else if (isInt64(type)) {
-            return Long.valueOf(memory.load64(offset, mode));
+            // todo: memory.getTypeAt(offset)
+            Pointer pointer;
+            try {
+                pointer = memory.loadPointer(offset, mode);
+            } catch (InvalidMemoryAccessException ignored) {
+                return Long.valueOf(memory.load64(offset, mode));
+            }
+            if (pointer == null) {
+                return Long.valueOf(memory.load64(offset, mode));
+            } else if (pointer instanceof IntegerAsPointer iap) {
+                return Long.valueOf(iap.getValue());
+            } else {
+                return pointer;
+            }
         } else if (isFloat32(type)) {
             return Float.valueOf(Float.intBitsToFloat(memory.load32(offset, mode)));
         } else if (isFloat64(type)) {
@@ -2053,7 +2068,15 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isInt32(type)) {
             memory.store32(offset, unboxInt(value), mode);
         } else if (isInt64(type)) {
-            memory.store64(offset, unboxLong(value), mode);
+            Object rawValue = require(value);
+            if (rawValue instanceof Pointer p) {
+                memory.storePointer(offset, p, mode);
+            } else if (rawValue == null) {
+                // equivalent to store64(offset, 0, mode);
+                memory.storePointer(offset, null, mode);
+            } else {
+                memory.store64(offset, ((Long) rawValue).longValue(), mode);
+            }
         } else if (isFloat32(type)) {
             memory.store32(offset, Float.floatToRawIntBits(unboxFloat(value)), mode);
         } else if (isFloat64(type)) {
@@ -2283,6 +2306,34 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
     };
 
+    static final RootPointer.Visitor<Frame, Memory> GET_MEMORY_FROM_POINTER = new RootPointer.Visitor<Frame, Memory>() {
+        @Override
+        public Memory visitAny(Frame frame, RootPointer rootPointer) {
+            throw invalidHandleTypeForOp();
+        }
+
+        @Override
+        public Memory visit(Frame frame, MemoryPointer pointer) {
+            return pointer.getMemory();
+        }
+
+        @Override
+        public Memory visit(Frame frame, ReferenceAsPointer pointer) {
+            return pointer.getReference().getMemory();
+        }
+
+        @Override
+        public Memory visit(Frame frame, StaticFieldPointer pointer) {
+            FieldElement variableElement = pointer.getStaticField();
+            if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
+                throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run time field"));
+            }
+            DefinedTypeDefinition enclosingType = variableElement.getEnclosingType();
+            VmClassImpl clazz = (VmClassImpl) enclosingType.load().getVmClass();
+            return clazz.getStaticMemory();
+        }
+    };
+
     static final ValueHandleVisitor<Frame, Memory> GET_MEMORY = new ValueHandleVisitor<Frame, Memory>() {
         @Override
         public Memory visitUnknown(Frame frame, ValueHandle node) {
@@ -2334,11 +2385,20 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         public Memory visit(Frame frame, ReferenceHandle node) {
             Value referenceValue = node.getReferenceValue();
             VmObject refVal = (VmObject) frame.require(referenceValue);
+            if (refVal == null) {
+                return null;
+            }
             return refVal.getMemory();
         }
 
         @Override
         public Memory visit(Frame frame, UnsafeHandle node) {
+            Object rawVal = frame.require(node.getOffset());
+            if (rawVal instanceof Pointer p) {
+                return p.getRootPointer().accept(GET_MEMORY_FROM_POINTER, frame);
+            } else if (rawVal == null) {
+                return null;
+            }
             return node.getValueHandle().accept(this, frame);
         }
 
@@ -2476,7 +2536,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public long visit(Frame frame, UnsafeHandle node) {
-            return frame.unboxLong(node.getOffset());
+            Object rawVal = frame.require(node.getOffset());
+            if (rawVal instanceof Pointer p) {
+                return p.getRootByteOffset();
+            }
+            return ((Long) rawVal).longValue();
         }
     };
 
