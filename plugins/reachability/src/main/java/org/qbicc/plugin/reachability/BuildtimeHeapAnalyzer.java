@@ -13,9 +13,12 @@ import org.qbicc.interpreter.VmString;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
+import org.qbicc.pointer.Pointer;
+import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.PhysicalObjectType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -99,6 +102,11 @@ class BuildtimeHeapAnalyzer {
                         if (child != null && !visited.containsKey(child)) {
                             worklist.add(child);
                             visited.put(child, Boolean.TRUE);
+                        }
+                    } else if (im.getType() instanceof PointerType) {
+                        Pointer pointer = cur.getMemory().loadPointer(im.getOffset(), SinglePlain);
+                        if (pointer instanceof StaticMethodPointer smp) {
+                            analysis.processReachableStaticInvoke(smp.getStaticMethod(), rootElement);
                         }
                     }
                 }
