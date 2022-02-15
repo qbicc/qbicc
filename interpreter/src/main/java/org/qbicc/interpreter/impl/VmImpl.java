@@ -51,6 +51,7 @@ import org.qbicc.machine.arch.Platform;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
+import org.qbicc.pointer.MemoryPointer;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
@@ -502,7 +503,8 @@ public final class VmImpl implements Vm {
 
             unsafeClass.registerInvokable("allocateMemory0", (thread, target, args) -> {
                 byte[] nativeMem = new byte[Math.toIntExact((Long)args.get(0))];
-                return MemoryFactory.wrap(nativeMem, ctxt.getTypeSystem().getEndianness());
+                Memory mem =  MemoryFactory.wrap(nativeMem, ctxt.getTypeSystem().getEndianness());
+                return new MemoryPointer(ctxt.getTypeSystem().getSignedInteger8Type().getPointer(), mem);
             });
 
             unsafeClass.registerInvokable("ensureClassInitialized", (thread, target, args) -> {
