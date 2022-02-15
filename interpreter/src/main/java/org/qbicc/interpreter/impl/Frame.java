@@ -919,6 +919,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isFloat64(inputType)) {
             return Boolean.valueOf(unboxDouble(left) != unboxDouble(right));
         } else if (isInt64(inputType)) {
+            // Allow "null check" idiom of comparing a MemoryPointer to 0
+            Object leftRaw = require(left);
+            if (leftRaw instanceof MemoryPointer && unboxLong(right) == 0) {
+                return Boolean.valueOf(true);
+            }
             return Boolean.valueOf(unboxLong(left) != unboxLong(right));
         } else if (isInteger(inputType)) {
             return Boolean.valueOf(unboxInt(left) != unboxInt(right));
