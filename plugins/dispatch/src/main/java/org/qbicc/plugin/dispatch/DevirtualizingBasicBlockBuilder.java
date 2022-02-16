@@ -29,7 +29,10 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
             return exactMethodOf(instance, exactTarget, callSiteDescriptor, callSiteType);
         }
         MethodElement virtualTarget = virtualizeInvokeInterface(instance, target);
-        return virtualTarget != null ? virtualMethodOf(instance, virtualTarget, callSiteDescriptor, callSiteType) : super.interfaceMethodOf(instance, target, callSiteDescriptor, callSiteType);
+        if (virtualTarget != null) {
+            return virtualMethodOf(instance, virtualTarget, callSiteDescriptor, callSiteType);
+        }
+        return super.interfaceMethodOf(instance, target, callSiteDescriptor, callSiteType);
     }
 
     @Override
