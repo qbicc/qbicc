@@ -52,6 +52,7 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.pointer.MemoryPointer;
+import org.qbicc.pointer.Pointer;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
@@ -507,6 +508,14 @@ public final class VmImpl implements Vm {
                 return new MemoryPointer(ctxt.getTypeSystem().getSignedInteger8Type().getPointer(), mem);
             });
 
+            unsafeClass.registerInvokable("copyMemory0", 5, (thread, target, args) -> {
+                long bytes = (Long)args.get(4);
+                if (bytes > 0) {
+                    doUnsafeCopyMemory(args.get(0), args.get(1), args.get(2), args.get(3), bytes);
+                }
+                return null;
+            });
+
             unsafeClass.registerInvokable("ensureClassInitialized", (thread, target, args) -> {
                 ((VmClassImpl) args.get(0)).initialize((VmThreadImpl) thread);
                 return null;
@@ -844,6 +853,56 @@ public final class VmImpl implements Vm {
             initialize(bootstrapClassLoader.loadClass("java/lang/ref/Reference"));
             initialize(bootstrapClassLoader.loadClass("java/util/concurrent/ForkJoinPool"));
         }
+    }
+
+    // Helper method to go through the various possible combinations of objects, longs, and null
+    // that could be passed as arguments to Unsafe.copyMemory0,  identify the Memory objects
+    // to use as the source and destination of the copy, and do the copy.
+    private void doUnsafeCopyMemory(Object srcBase, Object srcOffset, Object dstBase, Object dstOffset, long bytes) {
+
+        // copy byte[] to native memory
+        if (srcBase instanceof VmByteArrayImpl sb && srcOffset instanceof Long so && dstBase == null && dstOffset instanceof Pointer p) {
+            Memory srcMem = sb.getMemory();
+            Memory dstMem = p.getRootMemoryIfExists();
+            if (dstMem != null) {
+                long srcAdjustedOffset = so.longValue();
+                long dstAdjustedOffset = p.getRootByteOffset();
+                for (long i = 0; i < bytes; i++) {
+                    dstMem.store8(dstAdjustedOffset + i, srcMem.load8(srcAdjustedOffset + i, SinglePlain), SinglePlain);
+                }
+                return;
+            }
+        }
+
+        // copy native memory to byte[]
+        if (srcBase == null && srcOffset instanceof Pointer p && dstBase instanceof VmByteArrayImpl db && dstOffset instanceof Long dOff) {
+            Memory srcMem = p.getRootMemoryIfExists();
+            if (srcMem != null) {
+                Memory dstMem = db.getMemory();
+                long srcAdjustedOffset = p.getRootByteOffset();
+                long dstAdjustedOffset = dOff.longValue();
+                for (long i = 0; i < bytes; i++) {
+                    dstMem.store8(dstAdjustedOffset + i, srcMem.load8(srcAdjustedOffset + i, SinglePlain), SinglePlain);
+                }
+                return;
+            }
+        }
+
+        // copy native memory to native memory
+        if (srcBase == null && srcOffset instanceof Pointer src && dstBase == null && dstOffset instanceof Pointer dst) {
+            Memory srcMem = src.getRootMemoryIfExists();
+            Memory dstMem = dst.getRootMemoryIfExists();
+            if (srcMem != null && dstMem != null) {
+                long srcAdjustedOffset = src.getRootByteOffset();
+                long dstAdjustedOffset = dst.getRootByteOffset();
+                for (long i = 0; i<bytes; i++) {
+                    dstMem.store8(dstAdjustedOffset + i, srcMem.load8(srcAdjustedOffset + i, SinglePlain), SinglePlain);
+                }
+                return;
+            }
+        }
+
+        throw new UnsupportedOperationException("copyMemory0: Unimplemented combination of src and dst memory");
     }
 
     private VmArray platformProperties(final VmThread thread, final VmObject target, final List<Object> args) {
