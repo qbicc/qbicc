@@ -21,6 +21,11 @@ public final class MemberPointer extends Pointer {
         this.member = member;
     }
 
+    @Override
+    public CompoundType getPointeeType() {
+        return (CompoundType) super.getPointeeType();
+    }
+
     public Pointer getStructurePointer() {
         return structurePointer;
     }

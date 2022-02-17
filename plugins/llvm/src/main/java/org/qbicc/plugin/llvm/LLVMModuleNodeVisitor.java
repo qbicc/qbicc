@@ -25,6 +25,7 @@ import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.NullLiteral;
+import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
@@ -40,6 +41,12 @@ import org.qbicc.machine.llvm.Types;
 import org.qbicc.machine.llvm.Values;
 import org.qbicc.machine.llvm.impl.LLVM;
 import org.qbicc.plugin.coreclasses.CoreClasses;
+import org.qbicc.pointer.ElementPointer;
+import org.qbicc.pointer.IntegerAsPointer;
+import org.qbicc.pointer.MemberPointer;
+import org.qbicc.pointer.OffsetPointer;
+import org.qbicc.pointer.Pointer;
+import org.qbicc.pointer.ProgramObjectPointer;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
@@ -58,7 +65,7 @@ import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import io.smallrye.common.constraint.Assert;
 
-final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
+final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue>, Pointer.Visitor<PointerLiteral, LLValue> {
     final AtomicInteger anonCnt = new AtomicInteger();
     final Module module;
     final CompilationContext ctxt;
@@ -297,6 +304,11 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
         return NULL;
     }
 
+    public LLValue visit(final Void param, final PointerLiteral node) {
+        // see below for pointer visitor implementations
+        return node.getPointer().accept(this, node);
+    }
+
     public LLValue visit(final Void param, final ProgramObjectLiteral node) {
         return Values.global(node.getName());
     }
@@ -339,5 +351,55 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
     public LLValue visitUnknown(final Void param, final Value node) {
         ctxt.error(Location.builder().setNode(node).build(), "llvm: Unrecognized value %s", node.getClass());
         return LLVM.FALSE;
+    }
+
+    @Override
+    public LLValue visitAny(PointerLiteral pointerLiteral, Pointer pointer) {
+        ctxt.error(Location.builder().setNode(pointerLiteral).build(), "llvm: Unrecognized pointer value %s", pointer.getClass());
+        return LLVM.FALSE;
+    }
+
+    @Override
+    public LLValue visit(PointerLiteral pointerLiteral, ElementPointer pointer) {
+        // todo: we can merge GEPs
+        return Values.gepConstant(
+            map(pointer.getPointeeType()),
+            map(pointer.getType()),
+            pointer.getArrayPointer().accept(this, pointerLiteral),
+            ZERO,
+            Values.intConstant(pointer.getIndex())
+        );
+    }
+
+    @Override
+    public LLValue visit(PointerLiteral pointerLiteral, MemberPointer pointer) {
+        // todo: we can merge GEPs
+        return Values.gepConstant(
+            map(pointer.getPointeeType()),
+            map(pointer.getType()),
+            pointer.getStructurePointer().accept(this, pointerLiteral),
+            ZERO,
+            map(pointer.getPointeeType(), pointer.getMember())
+        );
+    }
+
+    @Override
+    public LLValue visit(PointerLiteral pointerLiteral, OffsetPointer pointer) {
+        return Values.gepConstant(
+            map(pointer.getPointeeType()),
+            map(pointer.getType()),
+            pointer.getBasePointer().accept(this, pointerLiteral),
+            Values.intConstant(pointer.getOffset())
+        );
+    }
+
+    @Override
+    public LLValue visit(PointerLiteral pointerLiteral, IntegerAsPointer pointer) {
+        return Values.inttoptrConstant(Values.intConstant(pointer.getValue()), i64, map(pointer.getType()));
+    }
+
+    @Override
+    public LLValue visit(PointerLiteral pointerLiteral, ProgramObjectPointer pointer) {
+        return Values.global(pointer.getProgramObject().getName());
     }
 }
