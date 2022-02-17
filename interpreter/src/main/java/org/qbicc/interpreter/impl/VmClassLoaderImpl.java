@@ -1,6 +1,9 @@
 package org.qbicc.interpreter.impl;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -108,6 +111,13 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
             builder.addModifiers(ClassFile.I_ACC_HIDDEN);
         }
         DefinedTypeDefinition defined = builder.build();
+        // TODO: ↓↓ temporary ↓↓
+        Path outputFile = classContext.getCompilationContext().getOutputFile(defined, "class");
+        try {
+            Files.write(outputFile, ((VmByteArrayImpl)content).getArray());
+        } catch (IOException ignored) {
+        }
+        // TODO: ↑↑ temporary ↑↑
         if (! hidden) {
             classContext.defineClass(internalName, defined);
         }
