@@ -22,12 +22,16 @@ import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.object.Data;
 import org.qbicc.object.DataDeclaration;
+import org.qbicc.object.Function;
+import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.pointer.Pointer;
+import org.qbicc.pointer.ProgramObjectPointer;
+import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -48,6 +52,7 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.MethodElement;
 
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
@@ -323,6 +328,13 @@ public class BuildtimeHeap {
                 Pointer pointer = memory.loadPointer(im.getOffset(), SinglePlain);
                 if (pointer == null) {
                     memberMap.put(om, lf.nullLiteralOfType(pt));
+                } else if (pointer instanceof StaticMethodPointer smp) {
+                    // lower method pointers to their corresponding objects
+                    MethodElement method = smp.getStaticMethod();
+                    ctxt.enqueue(method);
+                    Function function = ctxt.getExactFunction(method);
+                    FunctionDeclaration decl = heapSection.declareFunction(function);
+                    memberMap.put(om, lf.bitcastLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), smp.getType()));
                 } else {
                     memberMap.put(om, lf.literalOf(pointer));
                 }
