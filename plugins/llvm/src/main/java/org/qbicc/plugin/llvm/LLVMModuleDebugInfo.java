@@ -25,6 +25,7 @@ import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.MethodType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
@@ -310,6 +311,8 @@ final class LLVMModuleDebugInfo {
             return createBasicType((FloatType) type, DIEncoding.Float);
         } else if (type instanceof FunctionType) {
             return createFunctionType((FunctionType) type);
+        } else if (type instanceof MethodType mt) {
+            return createType(ctxt.getFunctionTypeForInvokableType(mt));
         } else if (type instanceof PointerType) {
             return createPointerType((PointerType) type, ((PointerType) type).getPointeeType());
         } else if (type instanceof ReferenceType) {
