@@ -59,7 +59,6 @@ public class UnsafeIntrinsics {
         registerGetIntrinsics(ctxt);
         registerPutIntrinsics(ctxt);
         registerFenceIntrinsics(ctxt);
-        registerPlatformStaticIntrinsics(ctxt);
         registerFieldAndArrayIntrinsics(ctxt);
     }
 
@@ -471,43 +470,6 @@ public class UnsafeIntrinsics {
         intrinsics.registerIntrinsic(unsafeDesc, "loadFence", emptyToVoid, new FenceIntrinsic(GlobalAcquire));
         intrinsics.registerIntrinsic(unsafeDesc, "loadLoadFence", emptyToVoid, new FenceIntrinsic(GlobalLoadLoad));
         intrinsics.registerIntrinsic(unsafeDesc, "fullFence", emptyToVoid, new FenceIntrinsic(GlobalSeqCst));
-    }
-
-    // Platform static (build time available) information
-
-    private static void registerPlatformStaticIntrinsics(final CompilationContext ctxt) {
-        Intrinsics intrinsics = Intrinsics.get(ctxt);
-        ClassContext classContext = ctxt.getBootstrapClassContext();
-
-        ClassTypeDescriptor unsafeDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Unsafe");
-
-        MethodDescriptor emptyToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
-        MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
-
-        InstanceIntrinsic addressSize0 = (builder, instance, target, arguments) -> {
-            ClassContext c = builder.getCurrentElement().getEnclosingType().getContext();
-            LiteralFactory lf = c.getLiteralFactory();
-            return lf.literalOf(c.getTypeSystem().getPointerSize());
-        };
-
-        intrinsics.registerIntrinsic(unsafeDesc, "addressSize0", emptyToInt, addressSize0);
-
-        InstanceIntrinsic isBigEndian0 = (builder, instance, target, arguments) -> {
-            ClassContext c = builder.getCurrentElement().getEnclosingType().getContext();
-            LiteralFactory lf = c.getLiteralFactory();
-            return lf.literalOf(c.getTypeSystem().getEndianness() == ByteOrder.BIG_ENDIAN);
-        };
-
-        intrinsics.registerIntrinsic(unsafeDesc, "isBigEndian0", emptyToBool, isBigEndian0);
-
-        InstanceIntrinsic unalignedAccess0 = (builder, instance, target, arguments) -> {
-            ClassContext c = builder.getCurrentElement().getEnclosingType().getContext();
-            LiteralFactory lf = c.getLiteralFactory();
-            // TODO: determine whether unaligned accesses are UB for any given platform in LLVM
-            return lf.literalOf(false);
-        };
-
-        intrinsics.registerIntrinsic(unsafeDesc, "unalignedAccess0", emptyToBool, unalignedAccess0);
     }
 
     // Array and field base/offsets
