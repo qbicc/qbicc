@@ -88,7 +88,7 @@ class BuildtimeHeapAnalyzer {
             }
 
             PhysicalObjectType ot = cur.getObjectType();
-            if (ot instanceof ClassObjectType && !(cur instanceof VmClass || cur instanceof VmString)) {
+            if (ot instanceof ClassObjectType && !(cur instanceof VmString)) {
                 LoadedTypeDefinition concreteType = cur.getObjectType().getDefinition().load();
                 analysis.processBuildtimeInstantiatedObjectType(concreteType, rootElement);
 
