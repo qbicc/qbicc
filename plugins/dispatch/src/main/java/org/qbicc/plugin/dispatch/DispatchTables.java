@@ -117,7 +117,7 @@ public class DispatchTables {
 
         ArrayList<MethodElement> itableVector = new ArrayList<>();
         for (MethodElement m: cls.getInstanceMethods()) {
-            if (ctxt.wasEnqueued(m)) {
+            if (ctxt.wasEnqueued(m) && ! m.isPrivate()) {
                 tlog.debugf("\tadding invokable signature %s%s", m.getName(), m.getDescriptor().toString());
                 itableVector.add(m);
             }
