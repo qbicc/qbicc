@@ -289,7 +289,14 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     public Value new_(final ClassTypeDescriptor desc) {
         ClassContext cc = getClassContext();
-        ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+        ValueType type;
+        DefinedTypeDefinition enclosingType = getCurrentElement().getEnclosingType();
+        if (desc == enclosingType.getDescriptor()) {
+            // always the current class
+            type = enclosingType.load().getType();
+        } else {
+            type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+        }
         if (type instanceof ClassObjectType cot) {
             Layout layout = Layout.get(ctxt);
             CompoundType compoundType = layout.getInstanceLayoutInfo(cot.getDefinition()).getCompoundType();
