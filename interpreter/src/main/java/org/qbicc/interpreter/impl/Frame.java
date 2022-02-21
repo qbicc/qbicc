@@ -314,8 +314,14 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         ValueType inputType = node.getLeftInput().getType();
         assertSameTypes(node);
         if (isInt64(inputType)) {
-            // long math
-            return box(unboxLong(node.getLeftInput()) + unboxLong(node.getRightInput()), node.getType());
+            Object raw = require(node.getLeftInput());
+            if (raw instanceof Pointer p) {
+                // pointer arithmetic
+                return p.offsetInBytes(unboxLong(node.getRightInput()), true);
+            } else {
+                // long math
+                return box(unboxLong(node.getLeftInput()) + unboxLong(node.getRightInput()), node.getType());
+            }
         } else if (isInteger(inputType)) {
             // truncated integer math
             return box(unboxInt(node.getLeftInput()) + unboxInt(node.getRightInput()), node.getType());
