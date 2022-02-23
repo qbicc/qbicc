@@ -155,6 +155,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final String gc;
     private final boolean isPie;
     private final GraphGenConfig graphGenConfig;
+    private final boolean compileOutput;
     private final boolean optMemoryTracking;
     private final boolean optPhis;
     private final boolean optGotos;
@@ -171,6 +172,7 @@ public class Main implements Callable<DiagnosticContext> {
         gc = builder.gc;
         isPie = builder.isPie;
         graphGenConfig = builder.graphGenConfig;
+        compileOutput = builder.compileOutput;
         optMemoryTracking = builder.optMemoryTracking;
         optInlining = builder.optInlining;
         optPhis = builder.optPhis;
@@ -520,10 +522,14 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.GENERATE, new LLVMGenerator(isPie ? 2 : 0, isPie ? 2 : 0));
 
                                 builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
-                                builder.addPostHook(Phase.GENERATE, new LLVMCompileStage(isPie));
+                                if (compileOutput) {
+                                    builder.addPostHook(Phase.GENERATE, new LLVMCompileStage(isPie));
+                                }
                                 builder.addPostHook(Phase.GENERATE, new MethodDataEmitter());
-                                builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(isPie));
-                                builder.addPostHook(Phase.GENERATE, new LinkStage(isPie));
+                                builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(isPie, compileOutput));
+                                if (compileOutput) {
+                                    builder.addPostHook(Phase.GENERATE, new LinkStage(isPie));
+                                }
 
                                 CompilationContext ctxt;
                                 try (Driver driver = builder.build()) {
@@ -587,6 +593,7 @@ public class Main implements Callable<DiagnosticContext> {
             })
             .setGc(optionsProcessor.gc.toString())
             .setIsPie(optionsProcessor.isPie)
+            .setCompileOutput(optionsProcessor.compileOutput)
             .setOptMemoryTracking(optionsProcessor.optArgs.optMemoryTracking)
             .setOptInlining(optionsProcessor.optArgs.optInlining)
             .setOptGotos(optionsProcessor.optArgs.optGotos)
@@ -672,6 +679,8 @@ public class Main implements Callable<DiagnosticContext> {
 
         @CommandLine.Option(names = "--output-path", description = "Specify directory where the executable is placed")
         private Path outputPath;
+        @CommandLine.Option(names = "--no-compile-output", negatable = true, defaultValue = "true", description = "Enable/disable llvm compilation of output files")
+        boolean compileOutput;
         @CommandLine.Option(names = "--debug")
         private boolean debug;
         @CommandLine.Option(names = "--debug-vtables")
@@ -823,6 +832,7 @@ public class Main implements Callable<DiagnosticContext> {
         private String gc = "none";
         // TODO Detect whether the system uses PIEs by default and match that if possible
         private boolean isPie = false;
+        private boolean compileOutput = true;
         private boolean optMemoryTracking = false;
         private boolean optInlining = false;
         private boolean optPhis = true;
@@ -912,6 +922,11 @@ public class Main implements Callable<DiagnosticContext> {
         public Builder setGraphGenConfig(GraphGenConfig graphGenConfig) {
             Assert.checkNotNullParam("graphGenConfig", graphGenConfig);
             this.graphGenConfig = graphGenConfig;
+            return this;
+        }
+
+        public Builder setCompileOutput(boolean compileOutput) {
+            this.compileOutput = compileOutput;
             return this;
         }
 
