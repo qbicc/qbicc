@@ -25,6 +25,7 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
     private final ClassTypeDescriptor autoQueued;
     private final ClassTypeDescriptor noSideEffects;
     private final ClassTypeDescriptor hidden;
+    private final ClassTypeDescriptor jdkHidden;
     private final ClassTypeDescriptor noReflect;
     private final ClassTypeDescriptor noReturn;
     private final ClassTypeDescriptor noThrow;
@@ -37,6 +38,7 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
         autoQueued = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/AutoQueued");
         noSideEffects = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoSideEffects");
         hidden = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/Hidden");
+        jdkHidden = ClassTypeDescriptor.synthesize(classCtxt, "jdk/internal/vm/annotation/Hidden");
         noReflect = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoReflect");
         noReturn = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoReturn");
         noThrow = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoThrow");
@@ -79,6 +81,11 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
                         }
                     } else if (annotation.getDescriptor().equals(fold)) {
                         methodElement.setModifierFlags(ClassFile.I_ACC_FOLD);
+                    }
+                }
+                for (Annotation annotation : methodElement.getVisibleAnnotations()) {
+                    if (annotation.getDescriptor().equals(jdkHidden)) {
+                        methodElement.setModifierFlags(ClassFile.I_ACC_HIDDEN);
                     }
                 }
                 return methodElement;
@@ -130,6 +137,11 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
                                 constructorElement.setModifierFlags(ClassFile.I_ACC_NEVER_INLINE);
                             }
                         }
+                    }
+                }
+                for (Annotation annotation : constructorElement.getVisibleAnnotations()) {
+                    if (annotation.getDescriptor().equals(jdkHidden)) {
+                        constructorElement.setModifierFlags(ClassFile.I_ACC_HIDDEN);
                     }
                 }
                 return constructorElement;
