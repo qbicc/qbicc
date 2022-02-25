@@ -82,6 +82,8 @@ public abstract class BasicElement implements Element {
 
         void addModifiers(int modifiers);
 
+        boolean hasModifiers(int modifiers);
+
         void setEnclosingType(DefinedTypeDefinition enclosingType);
 
         BasicElement build();
@@ -98,6 +100,11 @@ public abstract class BasicElement implements Element {
             @Override
             default void addModifiers(int modifiers) {
                 getDelegate().addModifiers(modifiers);
+            }
+
+            @Override
+            default boolean hasModifiers(int modifiers) {
+                return getDelegate().hasModifiers(modifiers);
             }
 
             @Override
@@ -144,6 +151,10 @@ public abstract class BasicElement implements Element {
 
         public void addModifiers(final int modifiers) {
             this.modifiers |= modifiers;
+        }
+
+        public boolean hasModifiers(int modifiers) {
+            return (this.modifiers & modifiers) == modifiers;
         }
 
         public void setEnclosingType(final DefinedTypeDefinition enclosingType) {
