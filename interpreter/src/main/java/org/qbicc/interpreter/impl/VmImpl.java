@@ -559,6 +559,15 @@ public final class VmImpl implements Vm {
                 return Long.valueOf(member.getOffset());
             });
 
+            unsafeClass.registerInvokable("allocateInstance", (thread, target, args) -> {
+                VmClassImpl clazz = (VmClassImpl) args.get(0);
+                if (clazz.getTypeDefinition().isAbstract()) {
+                    VmThrowableClassImpl ie = (VmThrowableClassImpl) bootstrapClassLoader.loadClass("java/lang/InstantiationException");
+                    throw new Thrown(ie.newInstance("Abstract class"));
+                }
+                return manuallyInitialize(clazz.newInstance());
+            });
+
             // System
             VmClassImpl systemClass = bootstrapClassLoader.loadClass("java/lang/System");
 
