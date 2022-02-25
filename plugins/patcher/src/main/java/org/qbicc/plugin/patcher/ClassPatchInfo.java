@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.definition.MethodBodyFactory;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
@@ -31,6 +32,7 @@ final class ClassPatchInfo {
     private Map<String, Map<MethodDescriptor, MethodDeleteInfo>> deletedMethods;
     private InitializerPatchInfo replacedInitializer;
     private boolean deletedInitializer;
+    private Map<String, Map<MethodDescriptor, MethodBodyPatchInfo>> methodBodyReplacedMethods;
 
     ClassPatchInfo() {
         annotatedFields = Map.of();
@@ -46,6 +48,7 @@ final class ClassPatchInfo {
         replacedMethods = Map.of();
         injectedMethods = List.of();
         deletedMethods = Map.of();
+        methodBodyReplacedMethods = Map.of();
     }
 
     ClassPatchInfo(int ignored) {
@@ -100,6 +103,11 @@ final class ClassPatchInfo {
     MethodPatchInfo getReplacementMethodInfo(final String name, final MethodDescriptor descriptor) {
         assert Thread.holdsLock(this);
         return replacedMethods.getOrDefault(name, Map.of()).get(descriptor);
+    }
+
+    MethodBodyPatchInfo getReplacementMethodBodyInfo(final String name, final MethodDescriptor descriptor) {
+        assert Thread.holdsLock(this);
+        return methodBodyReplacedMethods.getOrDefault(name, Map.of()).get(descriptor);
     }
 
     InitializerPatchInfo getReplacementInitializerInfo() {
@@ -250,6 +258,12 @@ final class ClassPatchInfo {
         final String name = methodPatchInfo.getName();
         final MethodDescriptor descriptor = methodPatchInfo.getDescriptor();
         annotatedMethods = mapWith(annotatedMethods, name, mapWith(annotatedMethods.getOrDefault(name, Map.of()), descriptor, methodPatchInfo));
+    }
+
+    void replaceMethodBody(final String name, final MethodDescriptor descriptor, final MethodBodyFactory methodBodyFactory, final int index) {
+        assert Thread.holdsLock(this);
+        checkCommitted();
+        methodBodyReplacedMethods = mapWith(methodBodyReplacedMethods, name, mapWith(methodBodyReplacedMethods.getOrDefault(name, Map.of()), descriptor, new MethodBodyPatchInfo(methodBodyFactory, index)));
     }
 
     void deleteInitializer() {

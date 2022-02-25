@@ -13,6 +13,7 @@ import org.qbicc.type.definition.ConstructorResolver;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.InitializerResolver;
+import org.qbicc.type.definition.MethodBodyFactory;
 import org.qbicc.type.definition.MethodResolver;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -191,6 +192,7 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
             MethodPatchInfo methodInfo;
             MethodPatchInfo annotateInfo;
             MethodPatchInfo injectedInfo;
+            MethodBodyPatchInfo bodyPatchInfo;
             synchronized (classPatchInfo) {
                 MethodDeleteInfo delInfo = classPatchInfo.getDeletedMethodInfo(name, descriptor);
                 if (delInfo != null && ce.evaluateConditions(classContext, delInfo, delInfo.getAnnotation())) {
@@ -200,6 +202,7 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
                 methodInfo = classPatchInfo.getReplacementMethodInfo(name, descriptor);
                 injectedInfo = addedMethods.getOrDefault(name, Map.of()).get(descriptor);
                 annotateInfo = classPatchInfo.getAnnotatedMethodInfo(name, descriptor);
+                bodyPatchInfo = classPatchInfo.getReplacementMethodBodyInfo(name, descriptor);
             }
             if (methodInfo != null && ce.evaluateConditions(classContext, methodInfo, methodInfo.getAnnotation())) {
                 resolver = methodInfo.getMethodResolver();
@@ -210,6 +213,9 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
             }
             if (annotateInfo != null && ce.evaluateConditions(classContext, annotateInfo, annotateInfo.getAnnotation())) {
                 resolver = new AnnotationAddingResolver(annotateInfo.getAddedAnnotations(), resolver);
+            }
+            if (bodyPatchInfo != null) {
+                resolver = new MethodBodyReplacingResolver(bodyPatchInfo.getMethodBodyFactory(), bodyPatchInfo.getIndex(), resolver);
             }
             getDelegate().addMethod(resolver, index, name, descriptor);
         } else {
@@ -355,6 +361,35 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
         public MethodElement resolveMethod(int index, DefinedTypeDefinition enclosing, MethodElement.Builder builder) {
             builder.addInvisibleAnnotations(additions);
             return methodResolver.resolveMethod(index, enclosing, builder);
+        }
+    }
+
+    static class MethodBodyReplacingResolver implements MethodResolver {
+        private final MethodBodyFactory methodBodyFactory;
+        private final int index;
+        private final MethodResolver resolver;
+
+        MethodBodyReplacingResolver(final MethodBodyFactory methodBodyFactory, final int index, final MethodResolver resolver) {
+            this.methodBodyFactory = methodBodyFactory;
+            this.index = index;
+            this.resolver = resolver;
+        }
+
+        @Override
+        public MethodElement resolveMethod(int index, DefinedTypeDefinition enclosing, MethodElement.Builder builder) {
+            return resolver.resolveMethod(index, enclosing, new MethodElement.Builder.Delegating() {
+                @Override
+                public MethodElement.Builder getDelegate() {
+                    return builder;
+                }
+
+                @Override
+                public MethodElement build() {
+                    MethodElement.Builder delegate = getDelegate();
+                    delegate.setMethodBodyFactory(methodBodyFactory, MethodBodyReplacingResolver.this.index);
+                    return delegate.build();
+                }
+            });
         }
     }
 
