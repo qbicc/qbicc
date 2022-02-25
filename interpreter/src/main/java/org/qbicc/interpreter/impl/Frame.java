@@ -2121,8 +2121,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public BasicBlock visit(VmThreadImpl thread, If node) {
-        Boolean cond = (Boolean) require(node.getCondition());
-        return cond.booleanValue() ? node.getTrueBranch() : node.getFalseBranch();
+        return unboxBool(node.getCondition()) ? node.getTrueBranch() : node.getFalseBranch();
     }
 
     @Override
@@ -2679,7 +2678,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     private boolean unboxBool(final Value rightInput) {
         Object required = require(rightInput);
-        return required instanceof Byte ? ((Byte) required).byteValue() != 0 : ((Boolean)required).booleanValue();
+        return required instanceof Number ? ((Number) required).byteValue() != 0 : ((Boolean)required).booleanValue();
     }
 
     private int unboxInt(final Value rightInput) {
@@ -2697,6 +2696,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return num.longValue();
         } else if (raw instanceof IntegerAsPointer iap) {
             return iap.getValue();
+        } else if (raw instanceof Boolean boo) {
+            return boo.booleanValue() ? 1 : 0;
         } else {
              throw new ClassCastException();
         }
