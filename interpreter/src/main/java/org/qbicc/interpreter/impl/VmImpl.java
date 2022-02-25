@@ -811,7 +811,7 @@ public final class VmImpl implements Vm {
             reflectClass.registerInvokable("getCallerClass", (thread, target, args) -> {
                 Frame currentFrame = ((VmThreadImpl)thread).currentFrame;
                 Frame enclosing = currentFrame.enclosing;
-                while (enclosing.element.getEnclosingType().getInternalName().equals("java/lang/reflect/Method")) {
+                while (enclosing.element.getEnclosingType().getInternalName().equals("java/lang/reflect/Method") || enclosing.element.hasAllModifiersOf(ClassFile.I_ACC_HIDDEN)) {
                     enclosing = enclosing.enclosing;
                 }
                 DefinedTypeDefinition def = enclosing.element.getEnclosingType();
