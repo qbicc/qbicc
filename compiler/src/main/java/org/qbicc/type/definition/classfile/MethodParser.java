@@ -36,7 +36,6 @@ import org.qbicc.graph.Terminator;
 import org.qbicc.graph.TerminatorVisitor;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
@@ -1711,7 +1710,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         // now get the literal method handle, requires a live interpreter
                         VmThread thread = Vm.requireCurrentThread();
                         Vm vm = thread.getVM();
-                        VmObject callSite;
+                        VmObject methodHandle;
                         try {
                             // 5.4.3.6, invoking the bootstrap method handle
                             // (0.) find the element
@@ -1734,35 +1733,33 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             } else {
                                 tpc = rootElement.getEnclosingType();
                             }
-                            Object[] array = vararg ? new Object[4] : new Object[3 + bootstrapArgCnt];
-                            // 1.a. populate first three elements
-                            array[0] = vm.getLookup(gf.getRootElement().getEnclosingType().load().getVmClass());
-                            array[1] = vm.intern(getClassFile().getNameAndTypeConstantName(indyNameAndTypeIdx));
-                            array[2] = vm.createMethodType(ctxt, (MethodDescriptor) getClassFile().getNameAndTypeConstantDescriptor(indyNameAndTypeIdx));
-                            // 1.b. populate remaining elements with constant values
-                            // since we're emulating invokeWithArguments, we have to figure out if the method accepts an array or actual arguments
-                            if (vararg) {
-                                // box the remaining arguments into a VmArray
-                                VmClass objectClass = ctxt.findDefinedType("java/lang/Object").load().getVmClass();
-                                VmReferenceArray inner = vm.newArrayOf(objectClass, 3 + bootstrapArgCnt);
-                                for (int i = 0; i < bootstrapArgCnt; i ++) {
-                                    int argIdx = getClassFile().getBootstrapMethodArgumentConstantIndex(bootstrapMethodIdx, i);
-                                    if (argIdx != 0) {
-                                        inner.store(i, vm.box(ctxt, getClassFile().getConstantValue(argIdx, tpc)));
-                                    }
-                                }
-                                array[3] = inner;
-                            } else {
-                                // the remaining arguments are inline
-                                for (int i = 0; i < bootstrapArgCnt; i ++) {
-                                    int argIdx = getClassFile().getBootstrapMethodArgumentConstantIndex(bootstrapMethodIdx, i);
-                                    if (argIdx != 0) {
-                                        array[i + 3] = vm.boxThin(ctxt, getClassFile().getConstantValue(argIdx, tpc));
-                                    }
+                            VmClass objectClass = ctxt.findDefinedType("java/lang/Object").load().getVmClass();
+                            VmReferenceArray args = vm.newArrayOf(objectClass, bootstrapArgCnt);
+                            VmObject[] argsArray = args.getArray();
+                            for (int i = 0; i < bootstrapArgCnt; i ++) {
+                                int argIdx = getClassFile().getBootstrapMethodArgumentConstantIndex(bootstrapMethodIdx, i);
+                                if (argIdx != 0) {
+                                    argsArray[i] = vm.box(ctxt, getClassFile().getConstantValue(argIdx, tpc));
                                 }
                             }
-                            // 2. call bootstrap method *as if* via `invokeWithArguments`
-                            callSite = (VmObject) vm.invokeExact(targetMethod, null, Arrays.asList(array));
+                            VmReferenceArray appendixResult = vm.newArrayOf(objectClass, 1);
+                            MethodElement linkCallSite = ctxt.findDefinedType("java/lang/invoke/MethodHandleNatives").load().requireSingleMethod("linkCallSite");
+                            // 2. call into the VM to link the call site
+                            VmObject memberName = (VmObject) vm.invokeExact(
+                                linkCallSite,
+                                null,
+                                List.of(
+                                    gf.getCurrentElement().getEnclosingType().load().getVmClass(),
+                                    Integer.valueOf(indyIdx),
+                                    vm.createMethodHandle(ctxt, mh),
+                                    vm.intern(getClassFile().getNameAndTypeConstantName(indyNameAndTypeIdx)),
+                                    vm.createMethodType(ctxt, (MethodDescriptor) getClassFile().getNameAndTypeConstantDescriptor(indyNameAndTypeIdx)),
+                                    args,
+                                    appendixResult
+                                )
+                            );
+                            // extract the method handle that we should call through
+                            methodHandle = appendixResult.getArray()[0];
                         } catch (InterpreterHaltedException ignored) {
                             throw new BlockEarlyTermination(gf.unreachable());
                         } catch (Thrown thrown) {
@@ -1777,13 +1774,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             gf.throw_(error);
                             return;
                         }
-                        ClassTypeDescriptor callSiteDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/CallSite");
                         // Get the method handle instance from the call site
                         ClassTypeDescriptor descOfMethodHandle = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/MethodHandle");
-                        VirtualMethodElementHandle getTargetMethod = (VirtualMethodElementHandle) gf.virtualMethodOf(lf.literalOf(callSite),
-                            callSiteDesc, "getTarget",
-                            MethodDescriptor.synthesize(ctxt, descOfMethodHandle, List.of()));
-                        VmObject methodHandle = (VmObject) vm.invokeVirtual(getTargetMethod.getExecutable(), callSite, List.of());
                         // Invoke on the method handle
                         MethodDescriptor desc = (MethodDescriptor) getClassFile().getDescriptorConstant(getClassFile().getNameAndTypeConstantDescriptorIdx(indyNameAndTypeIdx));
                         if (desc == null) {
@@ -1798,7 +1790,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             args[i] = pop(parameterTypes.get(i).isClass2());
                         }
                         // todo: promote the method handle directly to a ValueHandle?
-                        Value result = gf.call(gf.virtualMethodOf(lf.literalOf(methodHandle), descOfMethodHandle, "invokeExact",
+                        Value result = gf.call(gf.exactMethodOf(lf.literalOf(methodHandle), descOfMethodHandle, "invokeExact",
                             desc), List.of(demote(args, desc)));
                         TypeDescriptor returnType = desc.getReturnType();
                         if (! returnType.isVoid()) {
