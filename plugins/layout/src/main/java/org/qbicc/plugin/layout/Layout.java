@@ -182,6 +182,7 @@ public final class Layout {
                 minAlignment = member.getAlign();
             }
             fieldToMember.put(field, computeMember(allocated, field));
+            field.setOffset(member.getOffset());
         }
         int size = allocated.length();
         CompoundType.Member[] membersArray = fieldToMember.values().toArray(CompoundType.Member[]::new);
