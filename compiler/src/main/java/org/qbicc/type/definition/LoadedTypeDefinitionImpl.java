@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import io.smallrye.common.constraint.Assert;
@@ -22,7 +24,11 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
+import org.qbicc.type.definition.element.ParameterElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.generic.MethodSignature;
+import org.qbicc.type.generic.TypeSignature;
 
 /**
  *
@@ -50,6 +56,7 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
     private volatile VmClass vmClass;
     private LoadedTypeDefinition enclosingMethodClass;
     private MethodElement enclosingMethod;
+    private volatile Map<MethodElement, Map<MethodDescriptor, MethodElement>> sigPolyMethods = null;
 
     LoadedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final LoadedTypeDefinition superType, final LoadedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final MethodElement[] instanceMethods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses, DefinedTypeDefinition nestHost, DefinedTypeDefinition[] nestMembers) {
         this.delegate = delegate;
@@ -206,6 +213,57 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
 
     public MethodElement getMethod(final int index) {
         return methods[index];
+    }
+
+    @Override
+    public MethodElement expandSigPolyMethod(MethodElement original, MethodDescriptor descriptor) {
+        if (original.isSignaturePolymorphic()) {
+            // find or realize a copy of the signature-polymorphic method
+            return getSigPolyMethods().computeIfAbsent(original, LoadedTypeDefinitionImpl::newMap).computeIfAbsent(descriptor, desc -> {
+                MethodElement.Builder builder = MethodElement.builder(original.getName(), desc, original.getIndex());
+                builder.setSignature(MethodSignature.synthesize(getContext(), desc));
+                builder.setEnclosingType(original.getEnclosingType());
+                builder.setMinimumLineNumber(original.getMinimumLineNumber());
+                builder.setMaximumLineNumber(original.getMaximumLineNumber());
+                builder.setModifiers(original.getModifiers() & ~ClassFile.I_ACC_SIGNATURE_POLYMORPHIC | ClassFile.ACC_SYNTHETIC);
+                MethodBodyFactory origFactory = original.getMethodBodyFactory();
+                if (origFactory != null) {
+                    builder.setMethodBodyFactory(origFactory, original.getMethodBodyFactoryIndex());
+                }
+                builder.addInvisibleAnnotations(original.getInvisibleAnnotations());
+                builder.addVisibleAnnotations(original.getVisibleAnnotations());
+                List<TypeDescriptor> parameterTypes = desc.getParameterTypes();
+                int cnt = parameterTypes.size();
+                List<ParameterElement> params = new ArrayList<>(cnt);
+                for (int i = 0; i < cnt; i ++) {
+                    ParameterElement.Builder pb = ParameterElement.builder("p" + i, parameterTypes.get(i), i);
+                    pb.setEnclosingType(original.getEnclosingType());
+                    pb.setTypeParameterContext(original);
+                    pb.setSignature(TypeSignature.synthesize(getContext(), pb.getDescriptor()));
+                    params.add(pb.build());
+                }
+                builder.setParameters(params);
+                return builder.build();
+            });
+        }
+        return original;
+    }
+
+    private static <K, V> Map<K, V> newMap(final Object ignored) {
+        return new ConcurrentHashMap<>();
+    }
+
+    private Map<MethodElement, Map<MethodDescriptor, MethodElement>> getSigPolyMethods() {
+        Map<MethodElement, Map<MethodDescriptor, MethodElement>> sigPolyMethods = this.sigPolyMethods;
+        if (sigPolyMethods == null) {
+            synchronized (this) {
+                sigPolyMethods = this.sigPolyMethods;
+                if (sigPolyMethods == null) {
+                    this.sigPolyMethods = sigPolyMethods = new ConcurrentHashMap<>();
+                }
+            }
+        }
+        return sigPolyMethods;
     }
 
     public int getConstructorCount() {

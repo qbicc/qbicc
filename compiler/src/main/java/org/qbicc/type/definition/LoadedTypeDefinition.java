@@ -180,6 +180,16 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
     MethodElement getMethod(int index);
 
     /**
+     * Expand a possibly signature-polymorphic method into its realized form. If the method is not
+     * signature-polymorphic, the original method is returned.
+     *
+     * @param original the original method (must not be {@code null})
+     * @param callSiteDescriptor the call site descriptor (must not be {@code null})
+     * @return the realized method
+     */
+    MethodElement expandSigPolyMethod(MethodElement original, MethodDescriptor callSiteDescriptor);
+
+    /**
      * Get the method index of the exactly matching method on this class.  If the method is not directly present on this class,
      * {@code -1} is returned.
      *
@@ -258,7 +268,7 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
 
     default MethodElement resolveMethodElementExact(String name, MethodDescriptor descriptor) {
         int idx = findMethodIndex(name, descriptor);
-        return idx == -1 ? null : getMethod(idx);
+        return idx == -1 ? null : expandSigPolyMethod(getMethod(idx), descriptor);
     }
 
     default MethodElement resolveMethodElementVirtual(String name, MethodDescriptor descriptor) {
@@ -289,7 +299,7 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
 
         int result = findMethodIndex(name, descriptor, includePrivate);
         if (result != -1) {
-            return getMethod(result);
+            return expandSigPolyMethod(getMethod(result), descriptor);
         }
 
         // 2.c Otherwise, if C has a superclass, step 2 of method resolution is recursively
