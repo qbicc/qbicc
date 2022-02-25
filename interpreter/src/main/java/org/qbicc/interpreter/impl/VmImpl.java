@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1239,6 +1240,8 @@ public final class VmImpl implements Vm {
         // generate the MethodName instance required by the factory
         VmClassImpl mnClass = bootstrapClassLoader.loadClass("java/lang/invoke/MemberName");
         LoadedTypeDefinition mnDef = mnClass.getTypeDefinition();
+        VmClassImpl mhnClass = bootstrapClassLoader.loadClass("java/lang/invoke/MethodHandleNatives");
+        LoadedTypeDefinition mhnDef = mhnClass.getTypeDefinition();
         String nameStr;
         VmObject type;
         AnnotatedElement resolvedElement;
@@ -1281,13 +1284,20 @@ public final class VmImpl implements Vm {
         int modifiers = resolvedElement.getModifiers() & 0xffff; // only JVM-valid modifiers
         int flags = modifiers | extraFlags | (kind << 24);
 
-        // instantiate the MemberName as fully resolved
+        // instantiate the MemberName
         VmObject mn = manuallyInitialize(mnClass.newInstance());
         mn.getMemory().storeRef(mn.indexOf(mnDef.findField("clazz")), owner, SinglePlain);
         mn.getMemory().storeRef(mn.indexOf(mnDef.findField("name")), nameObj, SinglePlain);
         mn.getMemory().storeRef(mn.indexOf(mnDef.findField("type")), type, SinglePlain);
         mn.getMemory().store32(mn.indexOf(mnDef.findField("flags")), flags, SinglePlain);
-        mn.getMemory().store32(mn.indexOf(mnDef.findField("index")), resolvedElement.getIndex(), SinglePlain);
+        // resolve it
+        // (List.of() forbids null values)
+        mn = (VmObject) invokeExact(mhnDef.requireSingleMethod("resolve"), mn, Arrays.asList(
+            mn,
+            null, // caller unused in our impl (todo: add caller arg to VM.createMethodHandle)
+            Integer.valueOf(-1), // trusted
+            Boolean.FALSE // no speculative resolve
+        ));
 
         // call the factory method
         VmClassImpl dmhClass = bootstrapClassLoader.loadClass("java/lang/invoke/DirectMethodHandle");
