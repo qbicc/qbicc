@@ -785,9 +785,7 @@ public final class VmImpl implements Vm {
                     enclosing = enclosing.enclosing;
                 }
                 DefinedTypeDefinition def = enclosing.element.getEnclosingType();
-                VmClassLoaderImpl cl = ((VmThreadImpl)thread).vm.getClassLoaderForContext(def.getContext());
-                VmClassImpl clazz = cl.loadClass(def.getInternalName());
-                return clazz;
+                return def.load().getVmClass();
             });
             reflectClass.registerInvokable("getClassAccessFlags", (thread, target, args) -> {
                 VmClassImpl cls = (VmClassImpl)args.get(0);
