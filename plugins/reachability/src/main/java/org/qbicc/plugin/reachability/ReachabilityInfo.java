@@ -146,13 +146,15 @@ public class ReachabilityInfo {
         if (elem instanceof MethodElement me) {
             ReachabilityInfo info = get(elem.getEnclosingType().getContext().getCompilationContext());
             if (me.isStatic()) {
-                info.analysis.processReachableStaticInvoke(me, null);
+                info.analysis.processReachableExactInvocation(me, null);
             } else {
-                info.analysis.processReachableInstanceMethodInvoke(me, null);
+                info.analysis.processReachableDispatchedInvocation(me, null);
             }
         } else if (elem instanceof ConstructorElement ce) {
             ReachabilityInfo info = get(elem.getEnclosingType().getContext().getCompilationContext());
-            info.analysis.processReachableConstructorInvoke(ce.getEnclosingType().load(), ce, null);
+            info.analysis.processInstantiatedClass(ce.getEnclosingType().load(), true, false, null);
+            info.analysis.processClassInitialization(ce.getEnclosingType().load());
+            info.analysis.processReachableExactInvocation(ce, null);
         }
     }
 
@@ -263,7 +265,7 @@ public class ReachabilityInfo {
                     MethodElement sm = si.resolveMethodElementInterface(im.getName(), im.getDescriptor());
                     if (sm != null && isInvokableMethod(sm)) {
                         LOGGER.debugf("\tnewly reachable interface: enqueued implementing method:  %s", im);
-                        analysis.processReachableInstanceMethodInvoke(im, null);
+                        analysis.processReachableDispatchedInvocation(im, null);
                         continue outer;
                     }
                 }

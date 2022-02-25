@@ -23,11 +23,9 @@ interface ReachabilityAnalysis {
 
     void processReachableRuntimeInitializer(final InitializerElement target, ExecutableElement originalElement);
 
-    void processReachableStaticInvoke(final InvokableElement target, ExecutableElement originalElement);
+    void processReachableExactInvocation(final InvokableElement target, ExecutableElement originalElement);
 
-    void processReachableConstructorInvoke(LoadedTypeDefinition ltd, ConstructorElement target, ExecutableElement originalElement);
-
-    void processReachableInstanceMethodInvoke(final MethodElement target, ExecutableElement originalElement);
+    void processReachableDispatchedInvocation(final MethodElement target, ExecutableElement originalElement);
 
     void processStaticElementInitialization(final LoadedTypeDefinition ltd, BasicElement cause, ExecutableElement originalElement);
 

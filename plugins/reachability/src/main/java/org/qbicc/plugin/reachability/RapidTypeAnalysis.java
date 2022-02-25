@@ -81,23 +81,14 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         }
     }
 
-    public synchronized void processReachableStaticInvoke(final InvokableElement target, ExecutableElement originalElement) {
+    public synchronized void processReachableExactInvocation(final InvokableElement target, ExecutableElement originalElement) {
         if (!ctxt.wasEnqueued(target)) {
-            ReachabilityInfo.LOGGER.debugf("Adding method %s (statically invoked in %s)", target, originalElement);
+            ReachabilityInfo.LOGGER.debugf("Adding %s (invoked exactly in %s)", target, originalElement);
             ctxt.enqueue(target);
         }
     }
 
-    public synchronized void processReachableConstructorInvoke(LoadedTypeDefinition ltd, ConstructorElement target, ExecutableElement originalElement) {
-        processInstantiatedClass(ltd, true, false, originalElement);
-        processClassInitialization(ltd);
-        if (!ctxt.wasEnqueued(target)) {
-            ReachabilityInfo.LOGGER.debugf("Adding <init> %s (invoked in %s)", target, originalElement);
-            ctxt.enqueue(target);
-        }
-    }
-
-    public synchronized void processReachableInstanceMethodInvoke(final MethodElement target, ExecutableElement originalElement) {
+    public synchronized void processReachableDispatchedInvocation(final MethodElement target, ExecutableElement originalElement) {
         if (!info.isInvokableMethod(target)) {
             LoadedTypeDefinition definingClass = target.getEnclosingType().load();
             if (definingClass.isInterface() || info.isInstantiatedClass(definingClass)) {
@@ -115,7 +106,7 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
                         // superclass method that the superclass method is also considered invoked to ensure compatible vtable layouts
                         MethodElement superMethod = definingClass.getSuperClass().resolveMethodElementVirtual(target.getName(), target.getDescriptor());
                         if (superMethod != null) {
-                            processReachableInstanceMethodInvoke(superMethod, null);
+                            processReachableDispatchedInvocation(superMethod, null);
                         }
                     }
                 }
@@ -197,7 +188,7 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
                 if (isDeferredInstanceMethod(im)) {
                     ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: invoking deferred instance method: %s", im);
                     deferredInstanceMethods.remove(im);
-                    processReachableInstanceMethodInvoke(im, null);
+                    processReachableDispatchedInvocation(im, null);
                 } else if (type.hasSuperClass()) {
                     MethodElement overiddenMethod = type.getSuperClass().resolveMethodElementVirtual(im.getName(), im.getDescriptor());
                     if (overiddenMethod != null && info.isInvokableMethod(overiddenMethod)) {
@@ -217,7 +208,7 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
                     if (impl != null && !info.isInvokableMethod(impl)) {
                         ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: simulating invoke of implementing method:  %s", impl);
                         deferredInstanceMethods.remove(impl); // might not be deferred, but remove is a no-op if it isn't present
-                        processReachableInstanceMethodInvoke(impl, null);
+                        processReachableDispatchedInvocation(impl, null);
                     }
                 }
             }
@@ -256,7 +247,7 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
                 }
                 if (cand != null && !info.isInvokableMethod(cand)) {
                     ReachabilityInfo.LOGGER.debugf("\tsimulating invokie of implementing method: %s", cand);
-                    processReachableInstanceMethodInvoke(cand, null);
+                    processReachableDispatchedInvocation(cand, null);
                 }
             });
         } else {

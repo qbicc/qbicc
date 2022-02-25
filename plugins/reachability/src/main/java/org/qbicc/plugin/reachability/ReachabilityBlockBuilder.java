@@ -14,6 +14,7 @@ import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.InitCheck;
 import org.qbicc.graph.InterfaceMethodElementHandle;
 import org.qbicc.graph.MultiNewArray;
+import org.qbicc.graph.New;
 import org.qbicc.graph.NewReferenceArray;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
@@ -163,7 +164,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         public Void visit(ReachabilityContext param, StaticMethodPointer pointer) {
             MethodElement target = pointer.getStaticMethod();
             param.analysis.processStaticElementInitialization(target.getEnclosingType().load(), target, param.originalElement);
-            param.analysis.processReachableStaticInvoke(target, param.originalElement);
+            param.analysis.processReachableExactInvocation(target, param.originalElement);
             return null;
         }
 
@@ -171,8 +172,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         public Void visit(ReachabilityContext param, ConstructorElementHandle node) {
             if (visitUnknown(param, (Node)node)) {
                 ConstructorElement target = node.getExecutable();
-                LoadedTypeDefinition ltd = target.getEnclosingType().load();
-                param.analysis.processReachableConstructorInvoke(ltd, target, param.originalElement);
+                param.analysis.processReachableExactInvocation(target, param.originalElement);
             }
             return null;
         }
@@ -181,7 +181,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         public Void visit(ReachabilityContext param, FunctionElementHandle node) {
             if (visitUnknown(param, (Node)node)) {
                 FunctionElement target = node.getExecutable();
-                param.analysis.processReachableStaticInvoke(target, param.originalElement);
+                param.analysis.processReachableExactInvocation(target, param.originalElement);
             }
             return null;
         }
@@ -189,7 +189,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         @Override
         public Void visit(ReachabilityContext param, ExactMethodElementHandle node) {
             if (visitUnknown(param, (Node)node)) {
-                param.analysis.processReachableInstanceMethodInvoke(node.getExecutable(), param.originalElement);
+                param.analysis.processReachableDispatchedInvocation(node.getExecutable(), param.originalElement);
             }
             return null;
         }
@@ -197,7 +197,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         @Override
         public Void visit(ReachabilityContext param, VirtualMethodElementHandle node) {
             if (visitUnknown(param, (Node)node)) {
-                param.analysis.processReachableInstanceMethodInvoke(node.getExecutable(), param.originalElement);
+                param.analysis.processReachableDispatchedInvocation(node.getExecutable(), param.originalElement);
             }
             return null;
         }
@@ -205,7 +205,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         @Override
         public Void visit(ReachabilityContext param, InterfaceMethodElementHandle node) {
             if (visitUnknown(param, (Node)node)) {
-                param.analysis.processReachableInstanceMethodInvoke(node.getExecutable(), param.originalElement);
+                param.analysis.processReachableDispatchedInvocation(node.getExecutable(), param.originalElement);
             }
             return null;
         }
@@ -215,7 +215,17 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
             if (visitUnknown(param, (Node)node)) {
                 MethodElement target = node.getExecutable();
                 param.analysis.processStaticElementInitialization(target.getEnclosingType().load(), target, param.originalElement);
-                param.analysis.processReachableStaticInvoke(target, param.originalElement);
+                param.analysis.processReachableExactInvocation(target, param.originalElement);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, New node) {
+            if (visitUnknown(param, (Node)node)) {
+                LoadedTypeDefinition ltd = node.getClassObjectType().getDefinition().load();
+                param.analysis.processInstantiatedClass(ltd, true, false, param.originalElement);
+                param.analysis.processClassInitialization(ltd);
             }
             return null;
         }
@@ -254,7 +264,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
             if (visitUnknown(param, (Node)node)) {
                 param.analysis.processReachableRuntimeInitializer(node.getInitializerElement(), param.originalElement);
                 MethodElement run = RuntimeMethodFinder.get(param.ctxt).getMethod("org/qbicc/runtime/main/Once", "run");
-                param.analysis.processReachableInstanceMethodInvoke(run, param.originalElement);
+                param.analysis.processReachableDispatchedInvocation(run, param.originalElement);
             }
             return null;
         }

@@ -3,9 +3,6 @@ package org.qbicc.plugin.reachability;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.ObjectLiteral;
-import org.qbicc.interpreter.Memory;
-import org.qbicc.interpreter.VmArray;
-import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmStaticFieldBaseObject;
 import org.qbicc.interpreter.VmReferenceArray;
@@ -106,7 +103,7 @@ class BuildtimeHeapAnalyzer {
                     } else if (im.getType() instanceof PointerType) {
                         Pointer pointer = cur.getMemory().loadPointer(im.getOffset(), SinglePlain);
                         if (pointer instanceof StaticMethodPointer smp) {
-                            analysis.processReachableStaticInvoke(smp.getStaticMethod(), rootElement);
+                            analysis.processReachableExactInvocation(smp.getStaticMethod(), rootElement);
                         }
                     }
                 }
