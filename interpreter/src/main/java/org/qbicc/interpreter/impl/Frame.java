@@ -658,6 +658,14 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                     return box((float) unboxLong(input), outputType);
                 } else if (isFloat64(outputType)) {
                     return box((double) unboxLong(input), outputType);
+                } else if (isPointer(outputType)) {
+                    Object val = require(node.getInput());
+                    if (val instanceof Pointer ptr) {
+                        return ptr;
+                    } else if (val instanceof Number num) {
+                        PointerType voidPtr = thread.vm.getCompilationContext().getTypeSystem().getVoidType().getPointer();
+                        return new IntegerAsPointer(voidPtr, num.longValue());
+                    }
                 }
             } else if (isInteger(inputType)) {
                 if (isFloat32(outputType)) {
@@ -742,6 +750,13 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return require(node.getInput());
         } else if (isRef(inputType) && isPointer(outputType)) {
             return new ReferenceAsPointer((VmObject) require(node.getInput()));
+        } else if (isPointer(inputType) && isInt64(outputType)) {
+            Object val = require(node.getInput());
+            if (val instanceof IntegerAsPointer iap) {
+                return Long.valueOf(iap.getValue());
+            } else {
+                return val;
+            }
         }
         throw new IllegalStateException("Invalid cast");
     }
