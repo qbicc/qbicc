@@ -564,6 +564,27 @@ public final class VmImpl implements Vm {
 
             systemClass.registerInvokable("nanoTime", (thread, target, args) -> Long.valueOf(System.nanoTime()));
             systemClass.registerInvokable("currentTimeMillis", (thread, target, args) -> Long.valueOf(System.currentTimeMillis()));
+            systemClass.registerInvokable("arraycopy", (thread, target, args) -> {
+                try {
+                    Object src = ((VmArray) args.get(0)).getArray();
+                    int srcPos = ((Integer) args.get(1)).intValue();
+                    Object dest = ((VmArray) args.get(2)).getArray();
+                    int destPos = ((Integer) args.get(3)).intValue();
+                    int length = ((Integer) args.get(4)).intValue();
+                    //noinspection SuspiciousSystemArraycopy
+                    System.arraycopy(src, srcPos, dest, destPos, length);
+                } catch (ClassCastException ex) {
+                    VmThrowableClassImpl exClass = (VmThrowableClassImpl) bootstrapClassLoader.loadClass("java/lang/ClassCastException");
+                    throw new Thrown(exClass.newInstance());
+                } catch (ArrayStoreException ex) {
+                    VmThrowableClassImpl exClass = (VmThrowableClassImpl) bootstrapClassLoader.loadClass("java/lang/ArrayStoreException");
+                    throw new Thrown(exClass.newInstance());
+                } catch (NullPointerException ex) {
+                    VmThrowableClassImpl exClass = (VmThrowableClassImpl) bootstrapClassLoader.loadClass("java/lang/NullPointerException");
+                    throw new Thrown(exClass.newInstance());
+                }
+                return null;
+            });
 
             // Runtime
             VmClassImpl runtimeClass = bootstrapClassLoader.loadClass("java/lang/Runtime");
