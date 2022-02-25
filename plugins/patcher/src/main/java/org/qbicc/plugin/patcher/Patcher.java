@@ -20,6 +20,7 @@ import org.qbicc.type.definition.ConstructorResolver;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.InitializerResolver;
+import org.qbicc.type.definition.MethodBodyFactory;
 import org.qbicc.type.definition.MethodResolver;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -225,6 +226,13 @@ public class Patcher {
         ClassPatchInfo classInfo = getOrAdd(classContext).getOrAdd(internalName);
         synchronized (classInfo) {
             classInfo.replaceMethod(new MethodPatchInfo(index, addModifiers, resolver, descriptor, methodName, internalName, null, null));
+        }
+    }
+
+    public void replaceMethodBody(final ClassContext classContext, final String internalName, final String methodName, final MethodDescriptor descriptor, final MethodBodyFactory methodBodyFactory, final int index) {
+        ClassPatchInfo classInfo = getOrAdd(classContext).getOrAdd(internalName);
+        synchronized (classInfo) {
+            classInfo.replaceMethodBody(methodName, descriptor, methodBodyFactory, index);
         }
     }
 
