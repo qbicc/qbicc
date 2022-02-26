@@ -87,6 +87,10 @@ public class TestClassContext implements ClassContext {
             return false;
         }
 
+        public int numberEnqueued() {
+            return 0;
+        }
+
         public NativeMethodConfigurator getNativeMethodConfigurator() {
             return null;
         }

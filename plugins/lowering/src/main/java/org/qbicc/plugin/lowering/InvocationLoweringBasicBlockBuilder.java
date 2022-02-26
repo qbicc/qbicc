@@ -141,15 +141,14 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     @Override
     public ValueHandle visit(ArrayList<Value> args, ExactMethodElementHandle node) {
-        if (!ReachabilityInfo.get(ctxt).isInvokableMethod(node.getExecutable())) {
-            // No realized invocation targets are possible for this method!
-            throw new BlockEarlyTermination(unreachable());
-        }
         if (!node.getExecutable().hasMethodBodyFactory() && node.getExecutable().hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
             // Convert native method that wasn't intercepted by an intrinsic to a runtime link error
             throw new BlockEarlyTermination(raiseLinkError(node.getExecutable()));
         }
-
+        if (!ctxt.wasEnqueued(node.getExecutable())) {
+            // No realized invocation targets are possible for this method!
+            throw new BlockEarlyTermination(unreachable());
+        }
         final BasicBlockBuilder fb = getFirstBuilder();
         // insert "this" and current thread
         args.addAll(0, List.of(fb.load(fb.currentThread(), SingleUnshared), node.getInstance()));
@@ -166,7 +165,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         // insert "this" and current thread
         args.addAll(0, List.of(fb.load(fb.currentThread(), SingleUnshared), node.getInstance()));
         final MethodElement target = node.getExecutable();
-        if (!ReachabilityInfo.get(ctxt).isInvokableMethod(target)) {
+        if (!ReachabilityInfo.get(ctxt).isDispatchableMethod(target)) {
             // No realized invocation targets are possible for this method!
             throw new BlockEarlyTermination(unreachable());
         }

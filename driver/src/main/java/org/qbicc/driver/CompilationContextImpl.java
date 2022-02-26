@@ -342,6 +342,10 @@ final class CompilationContextImpl implements CompilationContext {
         queued.clear();
     }
 
+    public int numberEnqueued() {
+        return queued.size();
+    }
+
     public void registerEntryPoint(final ExecutableElement method) {
         enqueue(method);
         entryPoints.add(method);

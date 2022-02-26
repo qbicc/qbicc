@@ -4,7 +4,6 @@ import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.BasicElement;
-import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InvokableElement;
@@ -17,21 +16,21 @@ import org.qbicc.type.definition.element.MethodElement;
 interface ReachabilityAnalysis {
      void processArrayElementType(ObjectType elemType);
 
-    void processBuildtimeInstantiatedObjectType(LoadedTypeDefinition ltd, ExecutableElement originalElement);
+    void processBuildtimeInstantiatedObjectType(LoadedTypeDefinition ltd, ExecutableElement currentElement);
 
-    void processReachableObjectLiteral(ObjectLiteral objectLiteral, ExecutableElement originalElement);
+    void processReachableObjectLiteral(ObjectLiteral objectLiteral, ExecutableElement currentElement);
 
-    void processReachableRuntimeInitializer(final InitializerElement target, ExecutableElement originalElement);
+    void processReachableRuntimeInitializer(final InitializerElement target, ExecutableElement currentElement);
 
-    void processReachableExactInvocation(final InvokableElement target, ExecutableElement originalElement);
+    void processReachableExactInvocation(final InvokableElement target, ExecutableElement currentElement);
 
-    void processReachableDispatchedInvocation(final MethodElement target, ExecutableElement originalElement);
+    void processReachableDispatchedInvocation(final MethodElement target, ExecutableElement currentElement);
 
-    void processStaticElementInitialization(final LoadedTypeDefinition ltd, BasicElement cause, ExecutableElement originalElement);
+    void processStaticElementInitialization(final LoadedTypeDefinition ltd, BasicElement cause, ExecutableElement currentElement);
 
     void processClassInitialization(final LoadedTypeDefinition ltd);
 
-    void processInstantiatedClass(final LoadedTypeDefinition type, boolean directlyInstantiated, boolean onHeapType, ExecutableElement originalElement);
+    void processInstantiatedClass(final LoadedTypeDefinition type, boolean directlyInstantiated, boolean onHeapType, ExecutableElement currentElement);
 
     void clear();
 

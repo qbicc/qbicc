@@ -54,11 +54,11 @@ public class ReachabilityInfo {
     private final Map<LoadedTypeDefinition, Set<LoadedTypeDefinition>> interfaceHierarchy = new ConcurrentHashMap<>();
     // Tracks actually instantiated classes
     private final Set<LoadedTypeDefinition> instantiatedClasses = ConcurrentHashMap.newKeySet();
-    // Tracks classes and interfaces whose <clinit> could be invoked at runtime
+    // Tracks classes and interfaces whose <clinit> was evaluated at build time
     private final Set<LoadedTypeDefinition> initializedTypes = ConcurrentHashMap.newKeySet();
 
-    // Set of invokable instance methods
-    private final Set<MethodElement> invokableMethods = ConcurrentHashMap.newKeySet();
+    // Set of reachable instance methods that are dispatched to (potentially invoked via vtable/itable dispatching tables)
+    private final Set<MethodElement> dispatchableMethods = ConcurrentHashMap.newKeySet();
 
     private final ReachabilityAnalysis analysis;
 
@@ -88,18 +88,19 @@ public class ReachabilityInfo {
         info.interfaceHierarchy.clear();
         info.instantiatedClasses.clear();
         info.initializedTypes.clear();
-        info.invokableMethods.clear();
+        info.dispatchableMethods.clear();
         info.analysis.clear();
     }
 
     public static void reportStats(CompilationContext ctxt) {
         ReachabilityInfo info = get(ctxt);
         LOGGER.debug("Reachability Statistics");
-        LOGGER.debugf("  Reachable interfaces:       %s", info.interfaceHierarchy.size());
-        LOGGER.debugf("  Reachable classes:          %s", info.classHierarchy.size());
-        LOGGER.debugf("  Instantiated classes:       %s", info.instantiatedClasses.size());
-        LOGGER.debugf("  Initialized types:          %s", info.initializedTypes.size());
-        LOGGER.debugf("  Invokable instance methods: %s", info.invokableMethods.size());
+        LOGGER.debugf("  Reachable interfaces:          %s", info.interfaceHierarchy.size());
+        LOGGER.debugf("  Reachable classes:             %s", info.classHierarchy.size());
+        LOGGER.debugf("  Instantiated classes:          %s", info.instantiatedClasses.size());
+        LOGGER.debugf("  Initialized types:             %s", info.initializedTypes.size());
+        LOGGER.debugf("  Reachable functions:           %s", ctxt.numberEnqueued());
+        LOGGER.debugf("  Dispatchable instance methods: %s", info.dispatchableMethods.size());
         info.analysis.reportStats();
     }
 
@@ -158,8 +159,8 @@ public class ReachabilityInfo {
         }
     }
 
-    public boolean isInvokableMethod(MethodElement meth) {
-        return invokableMethods.contains(meth);
+    public boolean isDispatchableMethod(MethodElement meth) {
+        return dispatchableMethods.contains(meth);
     }
 
     public boolean isReachableClass(LoadedTypeDefinition type) {
@@ -260,10 +261,10 @@ public class ReachabilityInfo {
         // check to see if it has the same selector as an "overridden" invokable method.
         outer:
         for (MethodElement im : type.getInstanceMethods()) {
-            if (!isInvokableMethod(im)) {
+            if (!isDispatchableMethod(im)) {
                 for (LoadedTypeDefinition si : type.getInterfaces()) {
                     MethodElement sm = si.resolveMethodElementInterface(im.getName(), im.getDescriptor());
-                    if (sm != null && isInvokableMethod(sm)) {
+                    if (sm != null && isDispatchableMethod(sm)) {
                         LOGGER.debugf("\tnewly reachable interface: enqueued implementing method:  %s", im);
                         analysis.processReachableDispatchedInvocation(im, null);
                         continue outer;
@@ -306,7 +307,7 @@ public class ReachabilityInfo {
         initializedTypes.add(type);
     }
 
-    void addInvokableMethod(MethodElement meth) {
-        this.invokableMethods.add(meth);
+    void addDispatchableMethod(MethodElement meth) {
+        this.dispatchableMethods.add(meth);
     }
 }

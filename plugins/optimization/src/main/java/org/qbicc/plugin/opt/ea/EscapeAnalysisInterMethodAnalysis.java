@@ -176,7 +176,7 @@ public class EscapeAnalysisInterMethodAnalysis implements Consumer<CompilationCo
 
         // TODO this does not seem to be really working (that's why there's the workaround in CG.updateAfterInvokingMethod)
         private boolean isReachable(ExecutableElement executable) {
-            return executable instanceof MethodElement && rta.isInvokableMethod((MethodElement) executable);
+            return executable instanceof MethodElement && rta.isDispatchableMethod((MethodElement) executable);
         }
     }
 

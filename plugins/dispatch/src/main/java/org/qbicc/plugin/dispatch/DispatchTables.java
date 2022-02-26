@@ -280,7 +280,7 @@ public class DispatchTables {
                 } else {
                     Function impl = methImpl.isNative() ? null : ctxt.getExactFunctionIfExists(methImpl);
                     if (impl == null) {
-                        if (!methImpl.isNative() && ReachabilityInfo.get(ctxt).isInvokableMethod(methImpl)) {
+                        if (!methImpl.isNative() && ReachabilityInfo.get(ctxt).isDispatchableMethod(methImpl)) {
                             ctxt.error(methImpl, "Missing method implementation for vtable of %s", cls.getInternalName());
                         } else {
                             MethodElement uleStub = methodFinder.getMethod("raiseUnsatisfiedLinkError");
