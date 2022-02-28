@@ -65,6 +65,8 @@ public interface CompilationContext extends DiagnosticContext {
 
     boolean wasEnqueued(ExecutableElement element);
 
+    int numberEnqueued();
+
     NativeMethodConfigurator getNativeMethodConfigurator();
 
     ExecutableElement dequeue();

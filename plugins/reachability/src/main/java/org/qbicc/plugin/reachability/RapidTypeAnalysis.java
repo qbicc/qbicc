@@ -45,8 +45,11 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
 
     private final BuildtimeHeapAnalyzer heapAnalyzer = new BuildtimeHeapAnalyzer();
 
-    // Set of reachable, but not yet invokable, instance methods
-    private final Set<MethodElement> deferredInstanceMethods = ConcurrentHashMap.newKeySet();
+    // Set of dispatchable, but not yet invokable, instance methods
+    private final Set<MethodElement> deferredDispatchableMethods = ConcurrentHashMap.newKeySet();
+
+    // Set of invoked, but not yet invokable, instance methods
+    private final Set<MethodElement> deferredExactMethods = ConcurrentHashMap.newKeySet();
 
     RapidTypeAnalysis(ReachabilityInfo info, CompilationContext ctxt) {
         this.info = info;
@@ -65,71 +68,72 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         }
     }
 
-    public synchronized void processBuildtimeInstantiatedObjectType(LoadedTypeDefinition ltd, ExecutableElement originalElement) {
-        processInstantiatedClass(ltd, true, true, originalElement);
+    public synchronized void processBuildtimeInstantiatedObjectType(LoadedTypeDefinition ltd, ExecutableElement currentElement) {
+        processInstantiatedClass(ltd, true, true, currentElement);
         processClassInitialization(ltd);
     }
 
-    public synchronized void processReachableObjectLiteral(ObjectLiteral objectLiteral, ExecutableElement originalElement) {
-        heapAnalyzer.traceHeap(ctxt, this, objectLiteral.getValue(), originalElement);
+    public synchronized void processReachableObjectLiteral(ObjectLiteral objectLiteral, ExecutableElement currentElement) {
+        heapAnalyzer.traceHeap(ctxt, this, objectLiteral.getValue(), currentElement);
     }
 
-    public synchronized void processReachableRuntimeInitializer(final InitializerElement target, ExecutableElement originalElement) {
+    public synchronized void processReachableRuntimeInitializer(final InitializerElement target, ExecutableElement currentElement) {
         if (!ctxt.wasEnqueued(target)) {
-            ReachabilityInfo.LOGGER.debugf("Adding <rtinit> %s (potentially invoked from %s)", target, originalElement);
+            ReachabilityInfo.LOGGER.debugf("Adding <rtinit> %s (potentially invoked from %s)", target, currentElement);
             ctxt.enqueue(target);
         }
     }
 
-    public synchronized void processReachableStaticInvoke(final InvokableElement target, ExecutableElement originalElement) {
+    public synchronized void processReachableExactInvocation(final InvokableElement target, ExecutableElement currentElement) {
         if (!ctxt.wasEnqueued(target)) {
-            ReachabilityInfo.LOGGER.debugf("Adding method %s (statically invoked in %s)", target, originalElement);
+            if (target instanceof MethodElement me && !me.isStatic()) {
+                LoadedTypeDefinition definingClass = me.getEnclosingType().load();
+                if (!definingClass.isInterface() && !info.isInstantiatedClass(definingClass)) {
+                    info.addReachableClass(definingClass);
+                    deferredExactMethods.add(me);
+                    ReachabilityInfo.LOGGER.debugf("Deferring method %s (invoked exactly in %s, but no instantiated receiver)", target, currentElement);
+                    return;
+                }
+            }
+
+            ReachabilityInfo.LOGGER.debugf("Adding %s %s (invoked exactly in %s)", target instanceof ConstructorElement ? "<init>" : "method", target, currentElement);
             ctxt.enqueue(target);
         }
     }
 
-    public synchronized void processReachableConstructorInvoke(LoadedTypeDefinition ltd, ConstructorElement target, ExecutableElement originalElement) {
-        processInstantiatedClass(ltd, true, false, originalElement);
-        processClassInitialization(ltd);
-        if (!ctxt.wasEnqueued(target)) {
-            ReachabilityInfo.LOGGER.debugf("Adding <init> %s (invoked in %s)", target, originalElement);
-            ctxt.enqueue(target);
-        }
-    }
-
-    public synchronized void processReachableInstanceMethodInvoke(final MethodElement target, ExecutableElement originalElement) {
-        if (!info.isInvokableMethod(target)) {
+    public synchronized void processReachableDispatchedInvocation(final MethodElement target, ExecutableElement currentElement) {
+        if (!info.isDispatchableMethod(target)) {
             LoadedTypeDefinition definingClass = target.getEnclosingType().load();
             if (definingClass.isInterface() || info.isInstantiatedClass(definingClass)) {
-                if (originalElement == null) {
+                if (currentElement == null) {
                     ReachabilityInfo.LOGGER.debugf("\tadding method %s (dispatch mechanism induced)", target);
                 } else {
-                    ReachabilityInfo.LOGGER.debugf("Adding method %s (directly invoked in %s)", target, originalElement);
+                    ReachabilityInfo.LOGGER.debugf("Adding dispatched method %s (invoked in %s)", target, currentElement);
                 }
-                info.addInvokableMethod(target);
+                info.addDispatchableMethod(target);
                 ctxt.enqueue(target);
                 if (!target.isPrivate()) {
                     propagateInvokabilityToOverrides(target);
                     if (!definingClass.isInterface() && definingClass.getSuperClass() != null) {
                         // Because we are doing per-class vtables, we also need to ensure that if target overrides a
-                        // superclass method that the superclass method is also considered invoked to ensure compatible vtable layouts
+                        // superclass method that the superclass method is also considered dispatched to to ensure compatible vtable layouts
                         MethodElement superMethod = definingClass.getSuperClass().resolveMethodElementVirtual(target.getName(), target.getDescriptor());
                         if (superMethod != null) {
-                            processReachableInstanceMethodInvoke(superMethod, null);
+                            processReachableDispatchedInvocation(superMethod, null);
                         }
                     }
                 }
             } else {
-                ReachabilityInfo.LOGGER.debugf("Deferring method %s (invoked in %s, but no instantiated receiver)", target, originalElement);
+                ReachabilityInfo.LOGGER.debugf("Deferring method %s (dispatched to in %s, but no instantiated receiver)", target, currentElement);
                 info.addReachableClass(definingClass);
-                deferredInstanceMethods.add(target);
+                deferredDispatchableMethods.add(target);
             }
         }
     }
 
-    public synchronized void processStaticElementInitialization(final LoadedTypeDefinition ltd, BasicElement cause, ExecutableElement originalElement) {
+    public synchronized void processStaticElementInitialization(final LoadedTypeDefinition ltd, BasicElement cause, ExecutableElement currentElement) {
         if (info.isInitializedType(ltd)) return;
-        ReachabilityInfo.LOGGER.debugf("Initializing %s (static access to %s in %s)", ltd.getInternalName(), cause, originalElement);
+        ReachabilityInfo.LOGGER.debugf("Initializing %s (static access to %s in %s)", ltd.getInternalName(), cause, currentElement);
         if (ltd.isInterface()) {
             info.addReachableInterface(ltd);
             // JLS: accessing a static field/method of an interface only causes local <clinit> execution
@@ -166,13 +170,13 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         }
     }
 
-    public synchronized void processInstantiatedClass(final LoadedTypeDefinition type, boolean directlyInstantiated, boolean onHeapType, ExecutableElement originalElement) {
+    public synchronized void processInstantiatedClass(final LoadedTypeDefinition type, boolean directlyInstantiated, boolean onHeapType, ExecutableElement currentElement) {
         if (info.isInstantiatedClass(type)) return;
 
         if (onHeapType) {
-            ReachabilityInfo.LOGGER.debugf("Adding class %s (heap reachable from %s)", type.getDescriptor().getClassName(), originalElement);
+            ReachabilityInfo.LOGGER.debugf("Adding class %s (heap reachable from %s)", type.getDescriptor().getClassName(), currentElement);
         } else if (directlyInstantiated) {
-            ReachabilityInfo.LOGGER.debugf("Adding class %s (instantiated in %s)", type.getDescriptor().getClassName(), originalElement);
+            ReachabilityInfo.LOGGER.debugf("Adding class %s (instantiated in %s)", type.getDescriptor().getClassName(), currentElement);
         } else {
             ReachabilityInfo.LOGGER.debugf("\tadding ancestor class: %s", type.getDescriptor().getClassName());
         }
@@ -182,7 +186,7 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         // It's critical that we recur to handle our superclass first.  That means all of its invokable/deferred methods
         // that we override will be processed before we process our own defined instance methods below.
         if (type.hasSuperClass()) {
-            processInstantiatedClass(type.getSuperClass(), false, false, originalElement);
+            processInstantiatedClass(type.getSuperClass(), false, false, currentElement);
         }
 
         // TODO: Now that we are explicitly tracking directly invoked deferred methods, we might be able to
@@ -190,21 +194,26 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         //       adds overridden invoked methods to the deferred set in addReachableClass and processInvokableInstanceMethod
         //       It's not clear yet which of these options is simpler/more efficient/more maintainable...
 
-        // For every instance method that is not already invokable,
+        // For every instance method that is not already dispatchable,
         // check to see if it is either (a) a deferred invoked method or (b) overriding an invokable method and thus should be enqueued.
         for (MethodElement im : type.getInstanceMethods()) {
-            if (!info.isInvokableMethod(im)) {
-                if (isDeferredInstanceMethod(im)) {
-                    ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: invoking deferred instance method: %s", im);
-                    deferredInstanceMethods.remove(im);
-                    processReachableInstanceMethodInvoke(im, null);
+            if (!info.isDispatchableMethod(im)) {
+                if (isDeferredDispatchableMethod(im)) {
+                    ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: dispatching to deferred instance method: %s", im);
+                    deferredDispatchableMethods.remove(im);
+                    processReachableDispatchedInvocation(im, null);
                 } else if (type.hasSuperClass()) {
                     MethodElement overiddenMethod = type.getSuperClass().resolveMethodElementVirtual(im.getName(), im.getDescriptor());
-                    if (overiddenMethod != null && info.isInvokableMethod(overiddenMethod)) {
-                        ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: enqueued overriding instance method: %s", im);
-                        info.addInvokableMethod(im);
+                    if (overiddenMethod != null && info.isDispatchableMethod(overiddenMethod)) {
+                        ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: dispatching to overriding instance method: %s", im);
+                        info.addDispatchableMethod(im);
                         ctxt.enqueue(im);
                     }
+                }
+                if (isDeferredExactMethod(im)) {
+                    ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: invoking deferred exact method: %s", im);
+                    deferredExactMethods.remove(im);
+                    processReachableExactInvocation(im, null);
                 }
             }
         }
@@ -212,12 +221,13 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         // For every invokable interface method, make sure my implementation of that method is invokable.
         for (LoadedTypeDefinition i : type.getInterfaces()) {
             for (MethodElement sig : i.getInstanceMethods()) {
-                if (info.isInvokableMethod(sig)) {
+                if (info.isDispatchableMethod(sig)) {
                     MethodElement impl = type.resolveMethodElementVirtual(sig.getName(), sig.getDescriptor());
-                    if (impl != null && !info.isInvokableMethod(impl)) {
-                        ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: simulating invoke of implementing method:  %s", impl);
-                        deferredInstanceMethods.remove(impl); // might not be deferred, but remove is a no-op if it isn't present
-                        processReachableInstanceMethodInvoke(impl, null);
+                    if (impl != null && !info.isDispatchableMethod(impl)) {
+                        ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: simulating dispatch to implementing method:  %s", impl);
+                        deferredDispatchableMethods.remove(impl); // might not be deferred, but remove is a no-op if it isn't present
+                        deferredExactMethods.remove(impl); // might not be deferred, but remove is a no-op if it isn't present
+                        processReachableDispatchedInvocation(impl, null);
                     }
                 }
             }
@@ -225,20 +235,26 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
     }
 
     public void clear() {
-        deferredInstanceMethods.clear();
+        deferredDispatchableMethods.clear();
+        deferredExactMethods.clear();
         heapAnalyzer.clear();
     }
 
     public void reportStats() {
-        ReachabilityInfo.LOGGER.debugf("  Deferred instance methods:  %s", deferredInstanceMethods.size());
+        ReachabilityInfo.LOGGER.debugf("  Deferred dispatchable methods: %s", deferredDispatchableMethods.size());
+        ReachabilityInfo.LOGGER.debugf("  Deferred exact methods:        %s", deferredExactMethods.size());
     }
 
     /*
      * RTA Helper methods.
      */
 
-    boolean isDeferredInstanceMethod(MethodElement meth) {
-        return deferredInstanceMethods.contains(meth);
+    boolean isDeferredDispatchableMethod(MethodElement meth) {
+        return deferredDispatchableMethods.contains(meth);
+    }
+
+    boolean isDeferredExactMethod(MethodElement meth) {
+        return deferredExactMethods.contains(meth);
     }
 
     void propagateInvokabilityToOverrides(final MethodElement target) {
@@ -254,20 +270,20 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
                 } else if (info.isInstantiatedClass(c)) {
                     cand = c.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
                 }
-                if (cand != null && !info.isInvokableMethod(cand)) {
-                    ReachabilityInfo.LOGGER.debugf("\tsimulating invokie of implementing method: %s", cand);
-                    processReachableInstanceMethodInvoke(cand, null);
+                if (cand != null && !info.isDispatchableMethod(cand)) {
+                    ReachabilityInfo.LOGGER.debugf("\tsimulating dispatch to implementing method: %s", cand);
+                    processReachableDispatchedInvocation(cand, null);
                 }
             });
         } else {
             // Traverse the instantiated subclasses of target's defining class and
-            // ensure that all overriding implementations of this method are marked invokable.
+            // ensure that all overriding implementations of this method are marked dispatchable.
             info.visitReachableSubclassesPreOrder(definingClass, (sc) -> {
                 if (info.isInstantiatedClass(sc)) {
                     MethodElement cand = sc.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
-                    if (!info.isInvokableMethod(cand)) {
-                        ReachabilityInfo.LOGGER.debugf("\tadding method (subclass overrides): %s", cand);
-                        info.addInvokableMethod(cand);
+                    if (!info.isDispatchableMethod(cand)) {
+                        ReachabilityInfo.LOGGER.debugf("\tadding dispatchable method (subclass overrides): %s", cand);
+                        info.addDispatchableMethod(cand);
                         ctxt.enqueue(cand);
                     }
                 }
