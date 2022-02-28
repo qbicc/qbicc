@@ -871,19 +871,20 @@ public final class Reflection {
                 // resolve
                 MethodElement resolved;
                 // todo: consider visibility, caller
+                LoadedTypeDefinition typeDefinition = clazz.getTypeDefinition();
                 if (kind == KIND_INVOKE_STATIC) {
                     // use virtual algorithm to find static
-                    resolved = clazz.getTypeDefinition().resolveMethodElementVirtual(name.getContent(), desc);
+                    resolved = typeDefinition.isInterface() ? typeDefinition.resolveMethodElementInterface(name.getContent(), desc) : typeDefinition.resolveMethodElementVirtual(name.getContent(), desc);
                     // todo: ICCE check...
                 } else if (kind == KIND_INVOKE_INTERFACE) {
                     // interface also uses virtual resolution - against the target class
-                    resolved = clazz.getTypeDefinition().resolveMethodElementVirtual(name.getContent(), desc);
+                    resolved = typeDefinition.isInterface() ? typeDefinition.resolveMethodElementInterface(name.getContent(), desc) : typeDefinition.resolveMethodElementVirtual(name.getContent(), desc);
                     // todo: ICCE check...
                 } else if (kind == KIND_INVOKE_SPECIAL) {
-                    resolved = clazz.getTypeDefinition().resolveMethodElementExact(name.getContent(), desc);
+                    resolved = typeDefinition.resolveMethodElementExact(name.getContent(), desc);
                     // todo: ICCE check...
                 } else if (kind == KIND_INVOKE_VIRTUAL) {
-                    resolved = clazz.getTypeDefinition().resolveMethodElementVirtual(name.getContent(), desc);
+                    resolved = typeDefinition.resolveMethodElementVirtual(name.getContent(), desc);
                     // todo: ICCE check...
                 } else {
                     throw new Thrown(linkageErrorClass.newInstance("Unknown handle kind"));
