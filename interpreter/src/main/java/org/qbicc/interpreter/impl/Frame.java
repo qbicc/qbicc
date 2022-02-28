@@ -2117,6 +2117,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             memory.storeType(offset, (ValueType) require(value), mode);
         } else if (type instanceof PointerType) {
             memory.storePointer(offset, unboxPointer(value), mode);
+        } else if (type instanceof CompoundType ct) {
+            memory.storeMemory(offset, (Memory) require(value), 0, ct.getSize());
         } else {
             throw unsupportedType();
         }
