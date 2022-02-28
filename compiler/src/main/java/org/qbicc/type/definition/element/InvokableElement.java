@@ -4,6 +4,7 @@ import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -12,8 +13,10 @@ import org.qbicc.type.InvokableType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.MethodBodyFactory;
+import org.qbicc.type.definition.ParameterResolver;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.MethodSignature;
 import org.qbicc.type.generic.TypeParameter;
 import org.qbicc.type.generic.TypeParameterContext;
@@ -23,13 +26,21 @@ import io.smallrye.common.constraint.Assert;
  * An element which is executable and can be directly invoked.
  */
 public abstract class InvokableElement extends AnnotatedElement implements ExecutableElement, TypeParameterContext {
+    static final int[] NO_INTS = new int[0];
+    static final ParameterResolver[] NO_PARAMETER_RESOLVERS = new ParameterResolver[0];
+    static final String[] NO_STRINGS = new String[0];
+    static final TypeDescriptor[] NO_DESCS = new TypeDescriptor[0];
+
     private static final VarHandle typeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "type", VarHandle.class, InvokableElement.class, InvokableType.class);
 
     private final MethodDescriptor descriptor;
     private final MethodSignature signature;
     private final TypeAnnotationList returnVisibleTypeAnnotations;
     private final TypeAnnotationList returnInvisibleTypeAnnotations;
-    private final List<ParameterElement> parameters;
+    private final ParameterResolver[] parameterResolvers;
+    private final int[] parameterResolverIndexes;
+    private final String[] parameterNames;
+    private final TypeDescriptor[] parameterDescs;
     private List<TypeAnnotationList> parameterVisibleTypeAnnotations;
     private List<TypeAnnotationList> parameterInvisibleTypeAnnotations;
     private volatile InvokableType type;
@@ -37,6 +48,7 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
     final int methodBodyFactoryIndex;
     volatile MethodBody previousMethodBody;
     volatile MethodBody methodBody;
+    volatile List<ParameterElement> parameters;
     final int minimumLineNumber;
     final int maximumLineNumber;
     boolean inProgress;
@@ -45,7 +57,10 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         super();
         this.descriptor = null;
         this.signature = null;
-        this.parameters = null;
+        this.parameterResolvers = NO_PARAMETER_RESOLVERS;
+        this.parameterResolverIndexes = NO_INTS;
+        this.parameterNames = NO_STRINGS;
+        this.parameterDescs = NO_DESCS;
         this.returnVisibleTypeAnnotations = null;
         this.returnInvisibleTypeAnnotations = null;
         this.methodBodyFactory = null;
@@ -58,7 +73,11 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         super(builder);
         this.descriptor = builder.descriptor;
         this.signature = builder.signature;
-        this.parameters = builder.parameters;
+        int parameterCount = builder.parameterCount;
+        this.parameterResolvers = Arrays.copyOf(builder.parameterResolvers, parameterCount);
+        this.parameterResolverIndexes = Arrays.copyOf(builder.parameterResolverIndexes, parameterCount);
+        this.parameterNames = Arrays.copyOf(builder.parameterNames, parameterCount);
+        this.parameterDescs = Arrays.copyOf(builder.parameterDescs, parameterCount);
         this.returnVisibleTypeAnnotations = builder.returnVisibleTypeAnnotations;
         this.returnInvisibleTypeAnnotations = builder.returnInvisibleTypeAnnotations;
         this.methodBodyFactory = builder.methodBodyFactory;
@@ -178,6 +197,24 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
     }
 
     public List<ParameterElement> getParameters() {
+        List<ParameterElement> parameters = this.parameters;
+        if (parameters == null) {
+            synchronized (this) {
+                parameters = this.parameters;
+                if (parameters == null) {
+                    int cnt = parameterResolvers.length;
+                    ParameterElement[] array = new ParameterElement[cnt];
+                    for (int i = 0; i < cnt; i ++) {
+                        array[i] = parameterResolvers[i].resolveParameter(this, parameterResolverIndexes[i], ParameterElement.builder(
+                            parameterNames[i],
+                            parameterDescs[i],
+                            i
+                        ));
+                    }
+                    parameters = this.parameters = List.of(array);
+                }
+            }
+        }
         return parameters;
     }
 
@@ -212,6 +249,9 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
 
         void setSignature(final MethodSignature signature);
 
+        void addParameter(ParameterResolver resolver, int index, String name, TypeDescriptor descriptor);
+
+        @Deprecated
         void setParameters(final List<ParameterElement> parameters);
 
         void setReturnVisibleTypeAnnotations(final TypeAnnotationList returnVisibleTypeAnnotations);
@@ -238,6 +278,11 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
             @Override
             default void setSignature(final MethodSignature signature) {
                 getDelegate().setSignature(signature);
+            }
+
+            @Override
+            default void addParameter(ParameterResolver resolver, int index, String name, TypeDescriptor descriptor) {
+                getDelegate().addParameter(resolver, index, name, descriptor);
             }
 
             @Override
@@ -279,7 +324,11 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
 
     static abstract class BuilderImpl extends AnnotatedElement.BuilderImpl implements Builder {
         final MethodDescriptor descriptor;
-        List<ParameterElement> parameters = List.of();
+        ParameterResolver[] parameterResolvers = NO_PARAMETER_RESOLVERS;
+        int[] parameterResolverIndexes = NO_INTS;
+        String[] parameterNames = NO_STRINGS;
+        TypeDescriptor[] parameterDescs = NO_DESCS;
+        int parameterCount;
         MethodSignature signature = MethodSignature.VOID_METHOD_SIGNATURE;
         TypeAnnotationList returnVisibleTypeAnnotations = TypeAnnotationList.empty();
         TypeAnnotationList returnInvisibleTypeAnnotations = TypeAnnotationList.empty();
@@ -302,8 +351,50 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
             this.signature = Assert.checkNotNullParam("signature", signature);
         }
 
+        public void addParameter(ParameterResolver resolver, int index, String name, TypeDescriptor descriptor) {
+            int parameterCount = this.parameterCount;
+            if (parameterResolvers.length == parameterCount) {
+                int newSize = parameterCount + 8;
+                parameterResolvers = Arrays.copyOf(parameterResolvers, newSize);
+                parameterResolverIndexes = Arrays.copyOf(parameterResolverIndexes, newSize);
+                parameterNames = Arrays.copyOf(parameterNames, newSize);
+                parameterDescs = Arrays.copyOf(parameterDescs, newSize);
+            }
+            parameterResolvers[parameterCount] = resolver;
+            parameterResolverIndexes[parameterCount] = index;
+            parameterNames[parameterCount] = name;
+            parameterDescs[parameterCount] = descriptor;
+            this.parameterCount = parameterCount + 1;
+        }
+
+        @Deprecated
         public void setParameters(final List<ParameterElement> parameters) {
-            this.parameters = Assert.checkNotNullParam("parameters", parameters);
+            // replace the whole list
+            if (parameters.isEmpty()) {
+                parameterResolvers = NO_PARAMETER_RESOLVERS;
+                parameterResolverIndexes = NO_INTS;
+                parameterNames = NO_STRINGS;
+                parameterDescs = NO_DESCS;
+                parameterCount = 0;
+            } else {
+                int parameterCount = parameters.size();
+                ParameterResolver[] resolvers = new ParameterResolver[parameterCount];
+                int[] indexes = new int[parameterCount];
+                String[] names = new String[parameterCount];
+                TypeDescriptor[] descs = new TypeDescriptor[parameterCount];
+                ParameterResolver parameterResolver = (methodElement, idxCopy, builder) -> parameters.get(idxCopy);
+                for (int i = 0; i < parameterCount; i ++) {
+                    indexes[i] = i;
+                    resolvers[i] = parameterResolver;
+                    names[i] = parameters.get(i).getName();
+                    descs[i] = parameters.get(i).getTypeDescriptor();
+                }
+                parameterResolvers = resolvers;
+                parameterResolverIndexes = indexes;
+                parameterNames = names;
+                parameterDescs = descs;
+                this.parameterCount = parameterCount;
+            }
         }
 
         public void setReturnVisibleTypeAnnotations(final TypeAnnotationList returnVisibleTypeAnnotations) {
