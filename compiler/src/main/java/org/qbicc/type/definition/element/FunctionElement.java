@@ -33,7 +33,7 @@ public final class FunctionElement extends InvokableElement implements NamedElem
 
     @Override
     FunctionType computeType() {
-        return ResolutionUtil.resolveFunctionType(getEnclosingType().getContext(), this, getDescriptor(), getSignature());
+        return ResolutionUtil.resolveFunctionType(getEnclosingType(), this, getDescriptor(), getSignature());
     }
 
     @Override

@@ -85,7 +85,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 throw new BlockEarlyTermination(nsme(name));
             } else {
                 TypeParameterContext tpc = getCurrentElement() instanceof TypeParameterContext ? (TypeParameterContext) getCurrentElement() : definedType;
-                return exactMethodOf(instance, element, descriptor, ResolutionUtil.resolveInstanceMethodType(classContext, definedType, tpc, descriptor, element.getSignature()));
+                return exactMethodOf(instance, element, descriptor, ResolutionUtil.resolveInstanceMethodType(definedType, tpc, descriptor, element.getSignature()));
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
@@ -102,7 +102,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 throw new BlockEarlyTermination(nsme(name));
             } else {
                 TypeParameterContext tpc = getCurrentElement() instanceof TypeParameterContext ? (TypeParameterContext) getCurrentElement() : definedType;
-                return virtualMethodOf(instance, element, descriptor, ResolutionUtil.resolveInstanceMethodType(classContext, definedType, tpc, descriptor, element.getSignature()));
+                return virtualMethodOf(instance, element, descriptor, ResolutionUtil.resolveInstanceMethodType(definedType, tpc, descriptor, element.getSignature()));
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
@@ -119,7 +119,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 throw new BlockEarlyTermination(nsme(name));
             } else {
                 TypeParameterContext tpc = getCurrentElement() instanceof TypeParameterContext ? (TypeParameterContext) getCurrentElement() : definedType;
-                return interfaceMethodOf(instance, element, descriptor, ResolutionUtil.resolveInstanceMethodType(classContext, definedType, tpc, descriptor, element.getSignature()));
+                return interfaceMethodOf(instance, element, descriptor, ResolutionUtil.resolveInstanceMethodType(definedType, tpc, descriptor, element.getSignature()));
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
@@ -143,7 +143,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 throw new BlockEarlyTermination(nsme(name));
             } else {
                 TypeParameterContext tpc = getCurrentElement() instanceof TypeParameterContext ? (TypeParameterContext) getCurrentElement() : definedType;
-                return staticMethod(element, descriptor, ResolutionUtil.resolveStaticMethodType(classContext, tpc, descriptor, element.getSignature()));
+                return staticMethod(element, descriptor, ResolutionUtil.resolveStaticMethodType(definedType, tpc, descriptor, element.getSignature()));
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);

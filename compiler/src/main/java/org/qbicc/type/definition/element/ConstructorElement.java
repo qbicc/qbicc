@@ -21,7 +21,7 @@ public final class ConstructorElement extends InvokableElement {
 
     @Override
     InstanceMethodType computeType() {
-        return ResolutionUtil.resolveInstanceMethodType(getEnclosingType().getContext(), getEnclosingType(), this, getDescriptor(), getSignature());
+        return ResolutionUtil.resolveInstanceMethodType(getEnclosingType(), this, getDescriptor(), getSignature());
     }
 
     public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {

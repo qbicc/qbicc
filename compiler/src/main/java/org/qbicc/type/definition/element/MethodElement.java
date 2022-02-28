@@ -55,8 +55,8 @@ public final class MethodElement extends InvokableElement implements NamedElemen
     @Override
     MethodType computeType() {
         return isStatic() ?
-            ResolutionUtil.resolveStaticMethodType(getEnclosingType().getContext(), this, getDescriptor(), getSignature()) :
-            ResolutionUtil.resolveInstanceMethodType(getEnclosingType().getContext(), getEnclosingType(), this, getDescriptor(), getSignature());
+            ResolutionUtil.resolveStaticMethodType(getEnclosingType(), this, getDescriptor(), getSignature()) :
+            ResolutionUtil.resolveInstanceMethodType(getEnclosingType(), this, getDescriptor(), getSignature());
     }
 
     public String toString() {
