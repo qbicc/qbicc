@@ -135,6 +135,9 @@ final class VmInvokableImpl implements VmInvokable {
         if (false && invCnt == 100) {
             thread.getVM().getCompilationContext().info(element, "Excessive invocation count (JIT candidate)");
         }
+        if (args.size() != element.getType().getParameterTypes().size()) {
+            throw new Thrown(thread.vm.linkageErrorClass.newInstance("Parameter count mismatch"));
+        }
         if (! (element instanceof InitializerElement)) {
             ((VmClassImpl)element.getEnclosingType().load().getVmClass()).initialize(thread);
         }
