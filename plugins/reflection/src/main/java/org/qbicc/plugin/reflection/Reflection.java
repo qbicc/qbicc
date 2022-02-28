@@ -1,7 +1,6 @@
 package org.qbicc.plugin.reflection;
 
-import static org.qbicc.graph.atomic.AccessModes.GlobalRelease;
-import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+import static org.qbicc.graph.atomic.AccessModes.*;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
@@ -13,6 +12,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlock;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.ParameterValue;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
+import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmArray;
@@ -27,24 +34,35 @@ import org.qbicc.interpreter.VmThrowableClass;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.patcher.Patcher;
+import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.StaticFieldPointer;
+import org.qbicc.pointer.StaticMethodPointer;
+import org.qbicc.type.CompoundType;
+import org.qbicc.type.InvokableType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.TypeSystem;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.MethodBody;
+import org.qbicc.type.definition.MethodBodyFactory;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.classfile.ConstantPool;
 import org.qbicc.type.definition.element.AnnotatedElement;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.Element;
+import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
+import org.qbicc.type.definition.element.ParameterElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.BaseTypeSignature;
+import org.qbicc.type.generic.MethodSignature;
 import org.qbicc.type.generic.TypeSignature;
 import org.qbicc.type.methodhandle.MethodHandleKind;
 
@@ -59,23 +77,21 @@ public final class Reflection {
     private static final int CALLER_SENSITIVE = 1 << 20;
     private static final int TRUSTED_FINAL = 1 << 21;
 
-    private static final int KIND_SHIFT = 24;
+    static final int KIND_SHIFT = 24;
 
-    private static final int KIND_GET_FIELD = MethodHandleKind.GET_FIELD.getId();
-    private static final int KIND_GET_STATIC = MethodHandleKind.GET_STATIC.getId();
-    private static final int KIND_PUT_FIELD = MethodHandleKind.PUT_FIELD.getId();
-    private static final int KIND_PUT_STATIC = MethodHandleKind.PUT_STATIC.getId();
-    private static final int KIND_INVOKE_VIRTUAL = MethodHandleKind.INVOKE_VIRTUAL.getId();
-    private static final int KIND_INVOKE_STATIC = MethodHandleKind.INVOKE_STATIC.getId();
-    private static final int KIND_INVOKE_SPECIAL = MethodHandleKind.INVOKE_SPECIAL.getId();
-    private static final int KIND_NEW_INVOKE_SPECIAL = MethodHandleKind.NEW_INVOKE_SPECIAL.getId();
-    private static final int KIND_INVOKE_INTERFACE = MethodHandleKind.INVOKE_INTERFACE.getId();
+    static final int KIND_GET_FIELD = MethodHandleKind.GET_FIELD.getId();
+    static final int KIND_GET_STATIC = MethodHandleKind.GET_STATIC.getId();
+    static final int KIND_PUT_FIELD = MethodHandleKind.PUT_FIELD.getId();
+    static final int KIND_PUT_STATIC = MethodHandleKind.PUT_STATIC.getId();
+    static final int KIND_INVOKE_VIRTUAL = MethodHandleKind.INVOKE_VIRTUAL.getId();
+    static final int KIND_INVOKE_STATIC = MethodHandleKind.INVOKE_STATIC.getId();
+    static final int KIND_INVOKE_SPECIAL = MethodHandleKind.INVOKE_SPECIAL.getId();
+    static final int KIND_NEW_INVOKE_SPECIAL = MethodHandleKind.NEW_INVOKE_SPECIAL.getId();
+    static final int KIND_INVOKE_INTERFACE = MethodHandleKind.INVOKE_INTERFACE.getId();
 
-    private static final int KIND_MASK = 0xf;
+    static final int KIND_MASK = 0xf;
 
     private static final AttachmentKey<Reflection> KEY = new AttachmentKey<>();
-
-    private static final byte[] NO_BYTES = new byte[0];
 
     private final CompilationContext ctxt;
 
@@ -90,6 +106,8 @@ public final class Reflection {
     private final Map<AnnotatedElement, VmArray> annotatedElements = new ConcurrentHashMap<>();
     private final Map<Element, VmObject> reflectionObjects = new ConcurrentHashMap<>();
     private final Map<LoadedTypeDefinition, VmArray> annotatedTypes = new ConcurrentHashMap<>();
+    private final Map<InvokableType, CompoundType> functionCallStructures = new ConcurrentHashMap<>();
+    private final Map<Element, Map<MethodHandleKind, Pointer>> dispatcherCache = new ConcurrentHashMap<>();
     private final VmArray noAnnotations;
     private final Vm vm;
     private final VmClass cpClass;
@@ -126,6 +144,7 @@ public final class Reflection {
     final FieldElement memberNameMethodField; // ResolvedMethodName
     final FieldElement memberNameIndexField; // int (injected)
     final FieldElement memberNameResolvedField; // boolean (injected)
+    final FieldElement memberNameExactDispatcherField; // void (<static method>*)(void *retPtr, const void *argsPtr) (injected)
     // Field
     private final FieldElement fieldClazzField; // Class
     private final FieldElement fieldSlotField; // int
@@ -137,7 +156,7 @@ public final class Reflection {
     private final FieldElement methodNameField; // String
     private final FieldElement methodReturnTypeField; // Class
     private final FieldElement methodParameterTypesField; // Class[]
-    // Method
+    // Constructor
     private final FieldElement ctorClazzField; // Class
     private final FieldElement ctorSlotField; // int
     private final FieldElement ctorParameterTypesField; // Class[]
@@ -147,6 +166,10 @@ public final class Reflection {
     // MethodType
     private final FieldElement methodTypePTypesField; // Class[]
     private final FieldElement methodTypeRTypeField; // Class
+    // MethodHandle
+    final FieldElement methodHandleLambdaFormField;
+    // LambdaForm
+    final FieldElement lambdaFormMemberNameField;
 
     // box type fields
     private final FieldElement byteValueField;
@@ -162,6 +185,8 @@ public final class Reflection {
     final MethodElement methodHandleNativesFindMethodHandleType;
     final MethodElement methodHandleNativesLinkMethod;
     final MethodElement methodHandleNativesResolve;
+    // our injected ones
+    final MethodElement methodHandleCheckType;
 
     private Reflection(CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -172,6 +197,7 @@ public final class Reflection {
 
         patcher.addField(classContext, "java/lang/invoke/MemberName", "index", BaseTypeDescriptor.I, this::resolveIndexField, 0, 0);
         patcher.addField(classContext, "java/lang/invoke/MemberName", "resolved", BaseTypeDescriptor.Z, this::resolveResolvedField, 0, 0);
+        patcher.addField(classContext, "java/lang/invoke/MemberName", "exactDispatcher", BaseTypeDescriptor.V, this::resolveExactDispatcherField, 0, 0);
 
         patcher.addField(classContext, "java/lang/invoke/ResolvedMethodName", "index", BaseTypeDescriptor.I, this::resolveIndexField, 0, 0);
         patcher.addField(classContext, "java/lang/invoke/ResolvedMethodName", "clazz", ClassTypeDescriptor.synthesize(classContext, "java/lang/Class"), this::resolveClazzField, 0, 0);
@@ -217,6 +243,9 @@ public final class Reflection {
         LoadedTypeDefinition ctorDef = classContext.findDefinedType("java/lang/reflect/Constructor").load();
         constructorClass = ctorDef.getVmClass();
         ctorCtor = ctorDef.requireSingleConstructor(ce -> ce.getDescriptor().getParameterTypes().size() == 8);
+        LoadedTypeDefinition mhDef = classContext.findDefinedType("java/lang/invoke/MethodHandle").load();
+        methodHandleCheckType = mhDef.requireSingleMethod("checkType");
+        methodHandleLambdaFormField = mhDef.findField("form");
         LoadedTypeDefinition mhnDef = classContext.findDefinedType("java/lang/invoke/MethodHandleNatives").load();
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("init")), this::methodHandleNativesInit);
         methodHandleNativesResolve = mhnDef.requireSingleMethod(me -> me.nameEquals("resolve"));
@@ -225,6 +254,8 @@ public final class Reflection {
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("staticFieldBase")), this::methodHandleNativesStaticFieldBase);
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("staticFieldOffset")), this::methodHandleNativesStaticFieldOffset);
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("verifyConstants")), (thread, target, args) -> Boolean.TRUE);
+        LoadedTypeDefinition lfDef = classContext.findDefinedType("java/lang/invoke/LambdaForm").load();
+        lambdaFormMemberNameField = lfDef.findField("vmentry");
         LoadedTypeDefinition nativeCtorAccImplDef = classContext.findDefinedType("jdk/internal/reflect/NativeConstructorAccessorImpl").load();
         vm.registerInvokable(nativeCtorAccImplDef.requireSingleMethod(me -> me.nameEquals("newInstance0")), this::nativeConstructorAccessorImplNewInstance0);
         LoadedTypeDefinition nativeMethodAccImplDef = classContext.findDefinedType("jdk/internal/reflect/NativeMethodAccessorImpl").load();
@@ -239,6 +270,7 @@ public final class Reflection {
         memberNameMethodField = memberNameDef.findField("method");
         memberNameIndexField = memberNameDef.findField("index");
         memberNameResolvedField = memberNameDef.findField("resolved");
+        memberNameExactDispatcherField = memberNameDef.findField("exactDispatcher");
         MethodDescriptor memberName4Desc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(
             BaseTypeDescriptor.B,
             classDef.getDescriptor(),
@@ -318,8 +350,6 @@ public final class Reflection {
             Reflection appearing = ctxt.putAttachmentIfAbsent(KEY, instance);
             if (appearing != null) {
                 instance = appearing;
-            } else {
-                ReflectionIntrinsics.register(ctxt);
             }
         }
         return instance;
@@ -793,14 +823,13 @@ public final class Reflection {
     }
 
     Object methodHandleNativesResolve(final VmThread thread, final VmObject ignored, final List<Object> args) {
-        Vm vm = thread.getVM();
         VmObject memberName = (VmObject) args.get(0);
         boolean resolvedFlag = (memberName.getMemory().load8(memberName.indexOf(memberNameResolvedField), SinglePlain) & 1) != 0;
         if (resolvedFlag) {
             return memberName;
         }
         VmClass caller = (VmClass) args.get(1);
-        boolean speculativeResolve = (((Number) args.get(2)).intValue() & 1) != 0;
+        boolean speculativeResolve = args.get(3) instanceof Boolean bv ? bv.booleanValue() : (((Number) args.get(3)).intValue() & 1) != 0;
         VmClass clazz = (VmClass) memberName.getMemory().loadRef(memberName.indexOf(memberNameClazzField), SinglePlain);
         VmString name = (VmString) memberName.getMemory().loadRef(memberName.indexOf(memberNameNameField), SinglePlain);
         VmObject type = memberName.getMemory().loadRef(memberName.indexOf(memberNameTypeField), SinglePlain);
@@ -809,11 +838,12 @@ public final class Reflection {
         if (clazz == null || name == null || type == null) {
             throw new Thrown(linkageErrorClass.newInstance("Null name or class"));
         }
-        ClassContext classContext = clazz.getTypeDefinition().getContext();
+        LoadedTypeDefinition typeDefinition = clazz.getTypeDefinition();
+        ClassContext classContext = typeDefinition.getContext();
         // determine what kind of thing we're resolving
         if ((flags & IS_FIELD) != 0) {
             // find a field with the given name
-            FieldElement resolved = clazz.getTypeDefinition().resolveField(((VmClass)type).getDescriptor(), name.getContent());
+            FieldElement resolved = typeDefinition.resolveField(((VmClass)type).getDescriptor(), name.getContent());
             if (resolved == null && ! speculativeResolve) {
                 throw new Thrown(linkageErrorClass.newInstance("No such field: " + clazz.getName() + "#" + name.getContent()));
             }
@@ -825,24 +855,27 @@ public final class Reflection {
             boolean isSetter = kind == KIND_PUT_STATIC || kind == KIND_PUT_FIELD;
             if (resolved.isStatic()) {
                 if (isSetter) {
-                    newFlags |= KIND_PUT_STATIC << KIND_SHIFT;
+                    kind = KIND_PUT_STATIC;
                 } else {
-                    newFlags |= KIND_GET_STATIC << KIND_SHIFT;
+                    kind = KIND_GET_STATIC;
                 }
             } else {
                 if (isSetter) {
-                    newFlags |= KIND_PUT_FIELD << KIND_SHIFT;
+                    kind = KIND_PUT_FIELD;
                 } else {
-                    newFlags |= KIND_GET_FIELD << KIND_SHIFT;
+                    kind = KIND_GET_FIELD;
                 }
             }
+            newFlags |= kind << KIND_SHIFT;
             if (resolved.isReallyFinal()) {
                 newFlags |= TRUSTED_FINAL;
             }
             memberName.getMemory().store32(memberName.indexOf(memberNameFlagsField), newFlags, SinglePlain);
             memberName.getMemory().store8(memberName.indexOf(memberNameResolvedField), 1, SinglePlain);
-            memberName.getMemory().storeRef(memberName.indexOf(memberNameTypeField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
+            memberName.getMemory().storeRef(memberName.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
+            memberName.getMemory().storeRef(memberName.indexOf(memberNameTypeField), type, SinglePlain);
             memberName.getMemory().store32(memberName.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
+            generateDispatcher(memberName, resolved, MethodHandleKind.forId(kind));
             return memberName;
         } else if ((flags & IS_TYPE) != 0) {
             throw new Thrown(linkageErrorClass.newInstance("Not sure what to do for resolving a type"));
@@ -850,7 +883,7 @@ public final class Reflection {
             // some kind of exec element
             MethodDescriptor desc = createFromMethodType(classContext, type);
             if (((flags & IS_CONSTRUCTOR) != 0)) {
-                int idx = clazz.getTypeDefinition().findConstructorIndex(desc);
+                int idx = typeDefinition.findConstructorIndex(desc);
                 if (idx == -1) {
                     if (! speculativeResolve) {
                         throw new Thrown(linkageErrorClass.newInstance("No such constructor: " + name.getContent() + ":" + desc.toString()));
@@ -860,18 +893,19 @@ public final class Reflection {
                 if (kind != KIND_NEW_INVOKE_SPECIAL) {
                     throw new Thrown(linkageErrorClass.newInstance("Unknown handle kind"));
                 }
-                ConstructorElement resolved = clazz.getTypeDefinition().getConstructor(idx);
+                ConstructorElement resolved = typeDefinition.getConstructor(idx);
                 memberName.getMemory().storeRef(memberName.indexOf(memberNameClazzField), resolved.getEnclosingType().load().getVmClass(), SinglePlain);
                 int newFlags = resolved.getModifiers() & 0xffff | IS_CONSTRUCTOR | (kind << 24);
                 memberName.getMemory().store32(memberName.indexOf(memberNameFlagsField), newFlags, SinglePlain);
                 memberName.getMemory().store8(memberName.indexOf(memberNameResolvedField), 1, SinglePlain);
                 memberName.getMemory().store32(memberName.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
+                // generate a dispatcher
+                generateDispatcher(memberName, resolved, MethodHandleKind.forId(kind));
                 return memberName;
             } else if (((flags & IS_METHOD) != 0)){
                 // resolve
                 MethodElement resolved;
                 // todo: consider visibility, caller
-                LoadedTypeDefinition typeDefinition = clazz.getTypeDefinition();
                 if (kind == KIND_INVOKE_STATIC) {
                     // use virtual algorithm to find static
                     resolved = typeDefinition.isInterface() ? typeDefinition.resolveMethodElementInterface(name.getContent(), desc) : typeDefinition.resolveMethodElementVirtual(name.getContent(), desc);
@@ -900,11 +934,310 @@ public final class Reflection {
                 memberName.getMemory().store32(memberName.indexOf(memberNameFlagsField), newFlags, SinglePlain);
                 memberName.getMemory().store8(memberName.indexOf(memberNameResolvedField), 1, SinglePlain);
                 memberName.getMemory().store32(memberName.indexOf(memberNameIndexField), resolved.getIndex(), GlobalRelease);
+                generateDispatcher(memberName, resolved, MethodHandleKind.forId(kind));
                 return memberName;
             } else {
                 throw new Thrown(linkageErrorClass.newInstance("Unknown resolution request"));
             }
         }
+    }
+
+    private void generateDispatcher(final VmObject memberName, final Element element, final MethodHandleKind kind) {
+        Pointer result = dispatcherCache.computeIfAbsent(element, Reflection::newMap).computeIfAbsent(kind, methodHandleKind ->
+            switch (methodHandleKind) {
+                case GET_FIELD, GET_STATIC ->
+                    generateGetterDispatcher((FieldElement) element, kind);
+                case PUT_FIELD, PUT_STATIC ->
+                    generateSetterDispatcher((FieldElement) element, kind);
+                case NEW_INVOKE_SPECIAL ->
+                    generateNewInstanceDispatcher((ConstructorElement) element);
+                case INVOKE_VIRTUAL, INVOKE_STATIC, INVOKE_SPECIAL, INVOKE_INTERFACE ->
+                    generateInvokerDispatcher((MethodElement) element, kind);
+            }
+        );
+        memberName.getMemory().storePointer(memberName.indexOf(memberNameExactDispatcherField), result, SinglePlain);
+    }
+
+    private static <K, V> ConcurrentHashMap<K, V> newMap(final Object ignored) {
+        return new ConcurrentHashMap<>();
+    }
+
+    private Pointer generateGetterDispatcher(final FieldElement element, final MethodHandleKind kind) {
+        DefinedTypeDefinition enclosingType = element.getEnclosingType();
+        ClassContext classContext = enclosingType.getContext();
+        MethodDescriptor desc;
+        List<ParameterElement> dispatchParams;
+        if (element.isStatic()) {
+            desc = MethodDescriptor.synthesize(classContext, element.getTypeDescriptor(), List.of());
+            dispatchParams = List.of();
+        } else {
+            desc = MethodDescriptor.synthesize(classContext, element.getTypeDescriptor(), List.of(enclosingType.getDescriptor()));
+            ParameterElement.Builder pb = ParameterElement.builder("instance", enclosingType.getDescriptor(), 0);
+            pb.setEnclosingType(enclosingType);
+            pb.setTypeParameterContext(enclosingType);
+            pb.setSignature(TypeSignature.synthesize(classContext, pb.getDescriptor()));
+            dispatchParams = List.of(pb.build());
+        }
+
+        MethodElement.Builder builder = MethodElement.builder("dispatch_get_" + element.getName(), desc, 0);
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC | ClassFile.I_ACC_NO_RESOLVE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_HIDDEN);
+        builder.setEnclosingType(enclosingType);
+        builder.setParameters(dispatchParams);
+        builder.setSignature(MethodSignature.synthesize(classContext, desc));
+        builder.setMethodBodyFactory(new MethodBodyFactory() {
+            @Override
+            public MethodBody createMethodBody(int index, ExecutableElement e) {
+                BasicBlockBuilder bbb = classContext.newBasicBlockBuilder(e);
+                List<ParameterValue> paramValues;
+                if (element.isStatic()) {
+                    paramValues = List.of();
+                } else {
+                    paramValues = List.of(bbb.parameter(e.getEnclosingType().load().getType().getReference(), "p", 0));
+                }
+                bbb.startMethod(paramValues);
+                // build the entry block
+                BlockLabel entryLabel = new BlockLabel();
+                bbb.begin(entryLabel);
+                Value value;
+                if (kind == MethodHandleKind.GET_FIELD) {
+                    // instance field; dispatcher arg 0 is the instance
+                    Value instance = paramValues.get(0);
+                    // load the field value
+                    ReadAccessMode mode = element.isVolatile() ? GlobalSeqCst : SinglePlain;
+                    value = bbb.load(bbb.instanceFieldOf(bbb.referenceHandle(instance), element), mode);
+                } else {
+                    assert kind == MethodHandleKind.GET_STATIC;
+                    // no instance, no structure
+                    // load the field value
+                    ReadAccessMode mode = element.isVolatile() ? GlobalSeqCst : SinglePlain;
+                    value = bbb.load(bbb.staticField(element), mode);
+                }
+                bbb.return_(value);
+                bbb.finish();
+                BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
+                Schedule schedule = Schedule.forMethod(entryBlock);
+                return MethodBody.of(entryBlock, schedule, null, paramValues);
+            }
+        }, 0);
+        MethodElement dispatcher = builder.build();
+        ctxt.enqueue(dispatcher);
+        return StaticMethodPointer.of(dispatcher);
+    }
+
+    private Pointer generateSetterDispatcher(final FieldElement element, final MethodHandleKind kind) {
+        DefinedTypeDefinition enclosingType = element.getEnclosingType();
+        ClassContext classContext = enclosingType.getContext();
+        MethodDescriptor desc;
+        List<ParameterElement> dispatchParams;
+        if (element.isStatic()) {
+            desc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(element.getTypeDescriptor()));
+            ParameterElement.Builder pb = ParameterElement.builder("value", element.getTypeDescriptor(), 0);
+            pb.setEnclosingType(enclosingType);
+            pb.setTypeParameterContext(enclosingType);
+            pb.setSignature(TypeSignature.synthesize(classContext, pb.getDescriptor()));
+            dispatchParams = List.of(pb.build());
+        } else {
+            desc = MethodDescriptor.synthesize(classContext, element.getTypeDescriptor(), List.of(enclosingType.getDescriptor()));
+            ParameterElement.Builder pb = ParameterElement.builder("instance", enclosingType.getDescriptor(), 0);
+            pb.setEnclosingType(enclosingType);
+            pb.setTypeParameterContext(enclosingType);
+            pb.setSignature(TypeSignature.synthesize(classContext, pb.getDescriptor()));
+            ParameterElement instanceParam = pb.build();
+            pb = ParameterElement.builder("value", element.getTypeDescriptor(), 1);
+            pb.setEnclosingType(enclosingType);
+            pb.setTypeParameterContext(enclosingType);
+            pb.setSignature(TypeSignature.synthesize(classContext, pb.getDescriptor()));
+            dispatchParams = List.of(instanceParam, pb.build());
+        }
+
+        MethodElement.Builder builder = MethodElement.builder("dispatch_put_" + element.getName(), desc, 0);
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC | ClassFile.I_ACC_NO_RESOLVE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_HIDDEN);
+        builder.setEnclosingType(enclosingType);
+        builder.setParameters(dispatchParams);
+        builder.setSignature(MethodSignature.synthesize(classContext, desc));
+        builder.setMethodBodyFactory(new MethodBodyFactory() {
+            @Override
+            public MethodBody createMethodBody(int index, ExecutableElement e) {
+                BasicBlockBuilder bbb = classContext.newBasicBlockBuilder(e);
+                List<ParameterValue> paramValues;
+                if (element.isStatic()) {
+                    paramValues = List.of(bbb.parameter(element.getType(), "p", 0));
+                } else {
+                    paramValues = List.of(bbb.parameter(element.getEnclosingType().load().getType().getReference(), "p", 0), bbb.parameter(element.getType(), "p", 1));
+                }
+                bbb.startMethod(paramValues);
+                // build the entry block
+                BlockLabel entryLabel = new BlockLabel();
+                bbb.begin(entryLabel);
+                if (kind == MethodHandleKind.PUT_FIELD) {
+                    Value instance = paramValues.get(0);
+                    Value value = paramValues.get(1);
+                    WriteAccessMode mode = element.isVolatile() ? GlobalSeqCst : SinglePlain;
+                    bbb.store(bbb.instanceFieldOf(bbb.referenceHandle(instance), element), value, mode);
+                } else {
+                    assert kind == MethodHandleKind.PUT_STATIC;
+                    Value value = paramValues.get(0);
+                    WriteAccessMode mode = element.isVolatile() ? GlobalSeqCst : SinglePlain;
+                    bbb.store(bbb.staticField(element), value, mode);
+                }
+                bbb.return_();
+                bbb.finish();
+                BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
+                Schedule schedule = Schedule.forMethod(entryBlock);
+                return MethodBody.of(entryBlock, schedule, null, paramValues);
+            }
+        }, 0);
+        MethodElement dispatcher = builder.build();
+        ctxt.enqueue(dispatcher);
+        return StaticMethodPointer.of(dispatcher);
+    }
+
+    private Pointer generateInvokerDispatcher(final MethodElement element, final MethodHandleKind kind) {
+        if (element.isStatic()) {
+            ctxt.enqueue(element);
+            // just dispatch directly to the method itself - nice!
+            return element.getStaticMethodPointer();
+        }
+        // generate a static dispatch helper method
+        DefinedTypeDefinition enclosingType = element.getEnclosingType();
+        ClassTypeDescriptor enclosingDesc = enclosingType.getDescriptor();
+        ClassContext classContext = enclosingType.getContext();
+        MethodDescriptor origDesc = element.getDescriptor();
+        List<TypeDescriptor> origParamTypes = origDesc.getParameterTypes();
+        List<TypeDescriptor> newParamTypes = new ArrayList<>(origParamTypes.size() + 1);
+        newParamTypes.add(enclosingDesc);
+        newParamTypes.addAll(origParamTypes);
+        MethodDescriptor newDesc = MethodDescriptor.synthesize(classContext, origDesc.getReturnType(), newParamTypes);
+        ParameterElement.Builder pb;
+        List<ParameterElement> origParams = element.getParameters();
+        List<ParameterElement> dispatchParams = new ArrayList<>(origParams.size() + 1);
+        // add a first parameter for the receiver
+        pb = ParameterElement.builder("this", enclosingDesc, 0);
+        pb.setSignature(TypeSignature.synthesize(classContext, enclosingDesc));
+        pb.setEnclosingType(enclosingType);
+        pb.setTypeParameterContext(enclosingType);
+        dispatchParams.add(pb.build());
+        // add each callee parameter
+        int origParamCnt = origParamTypes.size();
+        for (int i = 0; i < origParamCnt; i ++) {
+            pb = ParameterElement.builder(origParams.get(i).getName(), origParamTypes.get(i), i + 1);
+            pb.setSignature(TypeSignature.synthesize(classContext, origParamTypes.get(i)));
+            pb.setEnclosingType(enclosingType);
+            pb.setTypeParameterContext(enclosingType);
+            dispatchParams.add(pb.build());
+        }
+        // optimize a few special cases
+        final MethodHandleKind resolvedKind;
+        if (kind != MethodHandleKind.INVOKE_SPECIAL && (element.isPrivate() || element.isFinal() || enclosingType.isFinal())) {
+            // devirtualize
+            resolvedKind = MethodHandleKind.INVOKE_SPECIAL;
+        } else {
+            resolvedKind = kind;
+        }
+        String kindStr = switch (resolvedKind) {
+            case INVOKE_VIRTUAL -> "virtual_";
+            case INVOKE_SPECIAL -> "special_";
+            case INVOKE_INTERFACE -> "interface_";
+            default -> throw new IllegalStateException();
+        };
+        MethodElement.Builder builder = MethodElement.builder("dispatch_" + kindStr + element.getName(), newDesc, 0);
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC | ClassFile.I_ACC_NO_RESOLVE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_HIDDEN);
+        builder.setEnclosingType(enclosingType);
+        builder.setParameters(dispatchParams);
+        builder.setSignature(MethodSignature.synthesize(classContext, newDesc));
+        builder.setMethodBodyFactory(new MethodBodyFactory() {
+            @SuppressWarnings({ "unchecked", "rawtypes" })
+            @Override
+            public MethodBody createMethodBody(int index, ExecutableElement e) {
+                BasicBlockBuilder bbb = classContext.newBasicBlockBuilder(e);
+                InvokableType type = e.getType();
+                int pcnt = type.getParameterCount();
+                List<ParameterValue> paramValues = new ArrayList<>(pcnt);
+                for (int i = 0; i < pcnt; i ++) {
+                    paramValues.add(bbb.parameter(type.getParameterType(i), "p", i));
+                }
+                bbb.startMethod(paramValues);
+                // build the entry block
+                BlockLabel entryLabel = new BlockLabel();
+                bbb.begin(entryLabel);
+                List<Value> values = (List) paramValues.subList(1, paramValues.size());
+                switch (resolvedKind) {
+                    case INVOKE_VIRTUAL -> bbb.tailCall(bbb.virtualMethodOf(paramValues.get(0), element), values);
+                    case INVOKE_SPECIAL -> bbb.tailCall(bbb.exactMethodOf(paramValues.get(0), element), values);
+                    case INVOKE_INTERFACE -> bbb.tailCall(bbb.interfaceMethodOf(paramValues.get(0), element), values);
+                    default -> throw new IllegalStateException();
+                }
+                bbb.finish();
+                BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
+                Schedule schedule = Schedule.forMethod(entryBlock);
+                return MethodBody.of(entryBlock, schedule, null, paramValues);
+            }
+        }, 0);
+        MethodElement dispatcher = builder.build();
+        ctxt.enqueue(dispatcher);
+        return StaticMethodPointer.of(dispatcher);
+    }
+
+    private Pointer generateNewInstanceDispatcher(final ConstructorElement element) {
+        // generate a static dispatch helper method
+        DefinedTypeDefinition enclosingType = element.getEnclosingType();
+        ClassTypeDescriptor enclosingDesc = enclosingType.getDescriptor();
+        ClassContext classContext = enclosingType.getContext();
+        MethodDescriptor origDesc = element.getDescriptor();
+        List<TypeDescriptor> origParamTypes = origDesc.getParameterTypes();
+        List<TypeDescriptor> newParamTypes = new ArrayList<>(origParamTypes.size() + 1);
+        newParamTypes.add(enclosingDesc);
+        newParamTypes.addAll(origParamTypes);
+        MethodDescriptor newDesc = MethodDescriptor.synthesize(classContext, origDesc.getReturnType(), newParamTypes);
+        ParameterElement.Builder pb;
+        List<ParameterElement> origParams = element.getParameters();
+        List<ParameterElement> dispatchParams = new ArrayList<>(origParams.size() + 1);
+        // add a first parameter for the receiver
+        pb = ParameterElement.builder("this", enclosingDesc, 0);
+        pb.setSignature(TypeSignature.synthesize(classContext, enclosingDesc));
+        pb.setEnclosingType(enclosingType);
+        pb.setTypeParameterContext(enclosingType);
+        dispatchParams.add(pb.build());
+        // add each callee parameter
+        int origParamCnt = origParamTypes.size();
+        for (int i = 0; i < origParamCnt; i ++) {
+            pb = ParameterElement.builder(origParams.get(i).getName(), origParamTypes.get(i), i + 1);
+            pb.setSignature(TypeSignature.synthesize(classContext, origParamTypes.get(i)));
+            pb.setEnclosingType(enclosingType);
+            pb.setTypeParameterContext(enclosingType);
+            dispatchParams.add(pb.build());
+        }
+        MethodElement.Builder builder = MethodElement.builder("dispatch_init", newDesc, 0);
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC | ClassFile.I_ACC_NO_RESOLVE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_HIDDEN);
+        builder.setEnclosingType(enclosingType);
+        builder.setParameters(dispatchParams);
+        builder.setSignature(MethodSignature.synthesize(classContext, newDesc));
+        builder.setMethodBodyFactory(new MethodBodyFactory() {
+            @SuppressWarnings({ "unchecked", "rawtypes" })
+            @Override
+            public MethodBody createMethodBody(int index, ExecutableElement e) {
+                BasicBlockBuilder bbb = classContext.newBasicBlockBuilder(e);
+                InvokableType type = e.getType();
+                int pcnt = type.getParameterCount();
+                List<ParameterValue> paramValues = new ArrayList<>(pcnt);
+                for (int i = 0; i < pcnt; i ++) {
+                    paramValues.add(bbb.parameter(type.getParameterType(i), "p", i));
+                }
+                bbb.startMethod(paramValues);
+                // build the entry block
+                BlockLabel entryLabel = new BlockLabel();
+                bbb.begin(entryLabel);
+                List<Value> values = (List) paramValues.subList(1, paramValues.size());
+                bbb.tailCall(bbb.constructorOf(paramValues.get(0), element), values);
+                bbb.finish();
+                BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
+                Schedule schedule = Schedule.forMethod(entryBlock);
+                return MethodBody.of(entryBlock, schedule, null, paramValues);
+            }
+        }, 0);
+        MethodElement dispatcher = builder.build();
+        ctxt.enqueue(dispatcher);
+        return StaticMethodPointer.of(dispatcher);
     }
 
     MethodDescriptor createFromMethodType(ClassContext classContext, VmObject methodType) {
@@ -1091,6 +1424,22 @@ public final class Reflection {
     }
 
     /**
+     * Resolve the injected {@code exactDispatcher} field of {@code MemberName}.
+     *
+     * @param index the field index (ignored)
+     * @param typeDef the type definition (ignored)
+     * @param builder the field builder
+     * @return the resolved field
+     */
+    private FieldElement resolveExactDispatcherField(final int index, final DefinedTypeDefinition typeDef, final FieldElement.Builder builder) {
+        builder.setEnclosingType(typeDef);
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT);
+        builder.setSignature(BaseTypeSignature.V);
+        builder.setTypeResolver(fe -> ctxt.getTypeSystem().getVoidType().getPointer());
+        return builder.build();
+    }
+
+    /**
      * Resolve the injected {@code clazz} field of {@code ResolvedMethodName}.
      *
      * @param index the field index (ignored)
@@ -1105,4 +1454,23 @@ public final class Reflection {
         return builder.build();
     }
 
+    public CompoundType getCallStructureType(final InvokableType functionType) {
+        CompoundType compoundType = functionCallStructures.get(functionType);
+        if (compoundType == null) {
+            int parameterCount = functionType.getParameterCount();
+            if (parameterCount == 0) {
+                return null;
+            }
+            CompoundType.Builder builder = CompoundType.builder(ctxt.getTypeSystem());
+            for (int i = 0; i < parameterCount; i ++) {
+                builder.addNextMember(functionType.getParameterType(i));
+            }
+            compoundType = builder.build();
+            CompoundType appearing = functionCallStructures.putIfAbsent(functionType, compoundType);
+            if (appearing != null) {
+                compoundType = appearing;
+            }
+        }
+        return compoundType;
+    }
 }
