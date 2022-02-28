@@ -2,9 +2,14 @@ package org.qbicc.type.generic;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
+import java.util.Set;
 
+import org.eclipse.collections.api.map.ImmutableMap;
+import org.eclipse.collections.impl.factory.Iterables;
 import org.qbicc.context.ClassContext;
+import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 
 /**
  *
@@ -25,7 +30,11 @@ public final class BaseTypeSignature extends TypeSignature {
     private final String fullName;
 
     private BaseTypeSignature(final String shortName, final String fullName) {
-        super(Objects.hash(BaseTypeSignature.class, shortName, fullName));
+        this(shortName, fullName, Iterables.iMap());
+    }
+
+    private BaseTypeSignature(final String shortName, final String fullName, final ImmutableMap<ClassTypeDescriptor, Annotation> annotations) {
+        super(Objects.hash(BaseTypeSignature.class, shortName, fullName), annotations);
         this.shortName = shortName;
         this.fullName = fullName;
     }
@@ -36,6 +45,10 @@ public final class BaseTypeSignature extends TypeSignature {
 
     public String getFullName() {
         return fullName;
+    }
+
+    public int getCodePoint() {
+        return shortName.charAt(0);
     }
 
     public boolean equals(final TypeSignature other) {
@@ -58,22 +71,52 @@ public final class BaseTypeSignature extends TypeSignature {
         return target.append(shortName);
     }
 
+    @Override
+    public BaseTypeSignature withAnnotation(Annotation annotation) {
+        return (BaseTypeSignature) super.withAnnotation(annotation);
+    }
+
+    @Override
+    public BaseTypeSignature withAnnotations(Set<Annotation> set) {
+        return (BaseTypeSignature) super.withAnnotations(set);
+    }
+
+    @Override
+    public BaseTypeSignature withOnlyAnnotations(Set<Annotation> set) {
+        return (BaseTypeSignature) super.withOnlyAnnotations(set);
+    }
+
+    @Override
+    public BaseTypeSignature withoutAnnotation(Annotation annotation) {
+        return (BaseTypeSignature) super.withoutAnnotation(annotation);
+    }
+
+    @Override
+    public BaseTypeSignature withoutAnnotation(ClassTypeDescriptor descriptor) {
+        return (BaseTypeSignature) super.withoutAnnotation(descriptor);
+    }
+
+    @Override
+    BaseTypeSignature replacingAnnotationMap(ImmutableMap<ClassTypeDescriptor, Annotation> newMap) {
+        return new BaseTypeSignature(shortName, fullName, newMap);
+    }
+
     static BaseTypeSignature parse(ByteBuffer buf) {
         return forChar(next(buf));
     }
 
     static BaseTypeSignature forChar(final int i) {
-        switch (i) {
-            case 'B': return B;
-            case 'C': return C;
-            case 'D': return D;
-            case 'F': return F;
-            case 'I': return I;
-            case 'J': return J;
-            case 'S': return S;
-            case 'V': return V;
-            case 'Z': return Z;
-            default: throw parseError();
-        }
+        return switch (i) {
+            case 'B' -> B;
+            case 'C' -> C;
+            case 'D' -> D;
+            case 'F' -> F;
+            case 'I' -> I;
+            case 'J' -> J;
+            case 'S' -> S;
+            case 'V' -> V;
+            case 'Z' -> Z;
+            default -> throw parseError();
+        };
     }
 }

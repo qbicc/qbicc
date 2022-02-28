@@ -42,9 +42,8 @@ public final class LocalVariableElement extends VariableElement {
             return classContext.resolveTypeFromMethodDescriptor(
                             getTypeDescriptor(),
                             paramCtxt,
-                            getTypeSignature(),
-                            getVisibleTypeAnnotations(),
-                            getInvisibleTypeAnnotations());
+                            getTypeSignature()
+            );
         }
         return super.resolveTypeDescriptor(classContext, paramCtxt);
     }

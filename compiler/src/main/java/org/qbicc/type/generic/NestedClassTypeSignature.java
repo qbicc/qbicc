@@ -3,8 +3,12 @@ package org.qbicc.type.generic;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
+import org.eclipse.collections.api.factory.Maps;
+import org.eclipse.collections.api.map.ImmutableMap;
 import org.qbicc.context.ClassContext;
+import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 
 /**
@@ -13,9 +17,13 @@ import org.qbicc.type.descriptor.ClassTypeDescriptor;
 public final class NestedClassTypeSignature extends ClassTypeSignature {
     private final ClassTypeSignature enclosing;
 
-    NestedClassTypeSignature(final ClassTypeSignature enclosing, final String identifier, final List<TypeArgument> typeArguments) {
-        super(Objects.hash(NestedClassTypeSignature.class, enclosing), identifier, typeArguments);
+    NestedClassTypeSignature(final ClassTypeSignature enclosing, final String identifier, final List<TypeArgument> typeArguments, ImmutableMap<ClassTypeDescriptor, Annotation> annotations) {
+        super(Objects.hash(NestedClassTypeSignature.class, enclosing), identifier, typeArguments, annotations);
         this.enclosing = enclosing;
+    }
+
+    NestedClassTypeSignature(final ClassTypeSignature enclosing, final String identifier, final List<TypeArgument> typeArguments) {
+        this(enclosing, identifier, typeArguments, Maps.immutable.empty());
     }
 
     public ClassTypeSignature getEnclosing() {
@@ -59,6 +67,41 @@ public final class NestedClassTypeSignature extends ClassTypeSignature {
                 b.appendCodePoint(codePoint(buf));
             }
         }
+    }
+
+    @Override
+    public NestedClassTypeSignature withAnnotation(Annotation annotation) {
+        return (NestedClassTypeSignature) super.withAnnotation(annotation);
+    }
+
+    @Override
+    public NestedClassTypeSignature withAnnotations(Set<Annotation> set) {
+        return (NestedClassTypeSignature) super.withAnnotations(set);
+    }
+
+    @Override
+    public NestedClassTypeSignature withOnlyAnnotations(Set<Annotation> set) {
+        return (NestedClassTypeSignature) super.withOnlyAnnotations(set);
+    }
+
+    @Override
+    public NestedClassTypeSignature withNoAnnotations() {
+        return (NestedClassTypeSignature) super.withNoAnnotations();
+    }
+
+    @Override
+    public NestedClassTypeSignature withoutAnnotation(Annotation annotation) {
+        return (NestedClassTypeSignature) super.withoutAnnotation(annotation);
+    }
+
+    @Override
+    public NestedClassTypeSignature withoutAnnotation(ClassTypeDescriptor descriptor) {
+        return (NestedClassTypeSignature) super.withoutAnnotation(descriptor);
+    }
+
+    @Override
+    NestedClassTypeSignature replacingAnnotationMap(ImmutableMap<ClassTypeDescriptor, Annotation> newMap) {
+        return new NestedClassTypeSignature(enclosing, getIdentifier(), getTypeArguments(), newMap);
     }
 
     ClassTypeDescriptor makeDescriptor(final ClassContext classContext) {

@@ -6,16 +6,12 @@ import java.util.List;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.type.ArrayType;
-import org.qbicc.type.FunctionType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
-import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.WordType;
 import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.annotation.IntAnnotationValue;
-import org.qbicc.type.annotation.type.TypeAnnotation;
-import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DescriptorTypeResolver;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -40,6 +36,9 @@ import org.qbicc.type.generic.Variance;
  * This type resolver is responsible for translating pointer types from reference types to actual pointer types.
  */
 public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
+    private final ClassTypeDescriptor restrictAnnotation;
+    private final ClassTypeDescriptor arraySizeAnnotation;
+
     private final ClassContext classCtxt;
     private final CompilationContext ctxt;
     private final DescriptorTypeResolver delegate;
@@ -48,6 +47,8 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
         this.classCtxt = classCtxt;
         ctxt = classCtxt.getCompilationContext();
         this.delegate = delegate;
+        restrictAnnotation = ClassTypeDescriptor.synthesize(classCtxt, Native.ANN_RESTRICT);
+        arraySizeAnnotation = ClassTypeDescriptor.synthesize(classCtxt, Native.ANN_ARRAY_SIZE);
     }
 
     public DescriptorTypeResolver getDelegate() {
@@ -63,15 +64,8 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
         return getDelegate().resolveTypeFromClassName(packageName, internalName);
     }
 
-    public ValueType resolveTypeFromDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature, TypeAnnotationList visibleAnnotations, TypeAnnotationList invisibleAnnotations) {
-        boolean restrict = false;
-        for (TypeAnnotation typeAnnotation : visibleAnnotations) {
-            Annotation annotation = typeAnnotation.getAnnotation();
-            if (annotation.getDescriptor().getClassName().equals(Native.ANN_RESTRICT)) {
-                restrict = true;
-                break;
-            }
-        }
+    public ValueType resolveTypeFromDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature) {
+        boolean restrict = signature.hasAnnotation(restrictAnnotation);
         // special handling for pointers and functions
         out: if (descriptor instanceof ClassTypeDescriptor) {
             ClassTypeDescriptor ctd = (ClassTypeDescriptor) descriptor;
@@ -95,10 +89,8 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
                             }
                             TypeArgument typeArgument = args.get(0);
                             ValueType pointeeType;
-                            visibleAnnotations = visibleAnnotations.onTypeArgument(0);
-                            invisibleAnnotations = invisibleAnnotations.onTypeArgument(0);
                             if (typeArgument instanceof AnyTypeArgument) {
-                                pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, paramCtxt, BaseTypeSignature.V, visibleAnnotations, invisibleAnnotations);
+                                pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, paramCtxt, BaseTypeSignature.V);
                             } else {
                                 assert typeArgument instanceof BoundTypeArgument;
                                 BoundTypeArgument bound = (BoundTypeArgument) typeArgument;
@@ -107,13 +99,13 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
                                     ReferenceTypeSignature pointeeSig = bound.getBound();
                                     // todo: use context to resolve type variable bounds
                                     TypeDescriptor pointeeDesc = pointeeSig.asDescriptor(classCtxt);
-                                    pointeeType = classCtxt.resolveTypeFromDescriptor(pointeeDesc, paramCtxt, pointeeSig, visibleAnnotations, invisibleAnnotations);
+                                    pointeeType = classCtxt.resolveTypeFromDescriptor(pointeeDesc, paramCtxt, pointeeSig);
                                     if (pointeeType instanceof ObjectType) {
-                                        pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, paramCtxt, BaseTypeSignature.V, visibleAnnotations, invisibleAnnotations);
+                                        pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, paramCtxt, BaseTypeSignature.V);
                                     }
                                 } else {
                                     ctxt.warning("Incorrect number of generic signature arguments (expected a %s but got \"%s\")", ptr.class, sig);
-                                    pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, paramCtxt, BaseTypeSignature.V, visibleAnnotations, invisibleAnnotations);
+                                    pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, paramCtxt, BaseTypeSignature.V);
                                 }
                             }
                             pointerType = pointeeType.getPointer();
@@ -122,7 +114,7 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
                         TypeParameter resolved = paramCtxt.resolveTypeParameter(tvs.getIdentifier());
                         ReferenceTypeSignature classBound = resolved.getClassBound();
                         if (classBound instanceof TopLevelClassTypeSignature sig && sig.getIdentifier().equals(Native.PTR)) {
-                            return resolveTypeFromMethodDescriptor(descriptor, paramCtxt, sig, visibleAnnotations, invisibleAnnotations);
+                            return resolveTypeFromMethodDescriptor(descriptor, paramCtxt, sig);
                         }
                         // the pointer type is just unknown
                         pointerType = ctxt.getTypeSystem().getVoidType().getPointer();
@@ -142,45 +134,37 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
             TypeDescriptor elemDesc = ((ArrayTypeDescriptor) descriptor).getElementTypeDescriptor();
             TypeSignature elemSig = signature instanceof ArrayTypeSignature ? ((ArrayTypeSignature) signature).getElementTypeSignature() : TypeSignature.synthesize(classCtxt, elemDesc);
             // resolve element type
-            ValueType elemType = classCtxt.resolveTypeFromDescriptor(elemDesc, paramCtxt, elemSig, visibleAnnotations.inArray(), invisibleAnnotations.inArray());
+            ValueType elemType = classCtxt.resolveTypeFromDescriptor(elemDesc, paramCtxt, elemSig);
             if (elemType instanceof ArrayType) {
                 // it's an array of arrays, make it into a native array instead of a reference array
-                return ctxt.getTypeSystem().getArrayType(elemType, detectArraySize(visibleAnnotations));
+                return ctxt.getTypeSystem().getArrayType(elemType, detectArraySize(signature));
             } else if (! (elemType instanceof ObjectType) && elemDesc instanceof ClassTypeDescriptor) {
                 // this means it's an array of native type (wrapped as ref type) and should be transformed to a "real" array type
-                return ctxt.getTypeSystem().getArrayType(elemType, detectArraySize(visibleAnnotations));
+                return ctxt.getTypeSystem().getArrayType(elemType, detectArraySize(signature));
             }
             // else fall out
         }
         if (restrict) {
             ctxt.error("Only pointers can have `restrict` qualifier (\"%s\" \"%s\")", descriptor, signature);
         }
-        return getDelegate().resolveTypeFromDescriptor(descriptor, paramCtxt, signature, visibleAnnotations, invisibleAnnotations);
+        return getDelegate().resolveTypeFromDescriptor(descriptor, paramCtxt, signature);
     }
 
-    private int detectArraySize(final TypeAnnotationList visibleAnnotations) {
-        int arraySize = 0;
-        for (TypeAnnotation annotation : visibleAnnotations) {
-            ClassTypeDescriptor desc = annotation.getAnnotation().getDescriptor();
-            if (desc.getPackageName().equals(Native.NATIVE_PKG) && desc.getClassName().equals(Native.ANN_ARRAY_SIZE)) {
-                arraySize = ((IntAnnotationValue) annotation.getAnnotation().getValue("value")).intValue();
-            }
+    private int detectArraySize(final TypeSignature visibleAnnotations) {
+        Annotation annotation = visibleAnnotations.getAnnotation(arraySizeAnnotation);
+        if (annotation == null) {
+            return 0;
         }
-        return arraySize;
-    }
-
-    public ValueType resolveTypeFromMethodDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {
-        return deArray(getDelegate().resolveTypeFromMethodDescriptor(descriptor, paramCtxt, signature, visibleAnnotations, invisibleAnnotations));
-    }
-
-    private FunctionType translateFunctionType(FunctionType functionType) {
-        ValueType returnType = deArray(functionType.getReturnType());
-        int cnt = functionType.getParameterCount();
-        ValueType[] paramTypes = new ValueType[cnt];
-        for (int i = 0; i < cnt; i ++) {
-            paramTypes[i] = deArray(functionType.getParameterType(i));
+        AnnotationValue value = annotation.getValue("value");
+        if (value instanceof IntAnnotationValue iav) {
+            return iav.intValue();
+        } else {
+            return 0;
         }
-        return classCtxt.getTypeSystem().getFunctionType(returnType, paramTypes);
+    }
+
+    public ValueType resolveTypeFromMethodDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature) {
+        return deArray(getDelegate().resolveTypeFromMethodDescriptor(descriptor, paramCtxt, signature));
     }
 
     private ValueType deArray(ValueType orig) {

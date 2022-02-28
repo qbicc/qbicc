@@ -2,14 +2,17 @@ package org.qbicc.type.generic;
 
 import java.nio.ByteBuffer;
 
+import org.eclipse.collections.api.map.ImmutableMap;
 import org.qbicc.context.ClassContext;
+import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 
 /**
  *
  */
-public abstract class ReferenceTypeSignature extends org.qbicc.type.generic.TypeSignature {
-    ReferenceTypeSignature(final int hashCode) {
-        super(hashCode);
+public abstract class ReferenceTypeSignature extends TypeSignature {
+    ReferenceTypeSignature(final int hashCode, ImmutableMap<ClassTypeDescriptor, Annotation> annotations) {
+        super(hashCode, annotations);
     }
 
     public final boolean equals(final TypeSignature other) {

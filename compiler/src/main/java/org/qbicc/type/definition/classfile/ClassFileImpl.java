@@ -378,7 +378,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         if (name.startsWith("[")) {
             TypeDescriptor desc = (TypeDescriptor) getDescriptorConstant(nameIdx);
             // todo: acquire the correct signature and type annotation info from the bytecode index and method info
-            return ctxt.resolveTypeFromDescriptor(desc, paramCtxt, TypeSignature.synthesize(ctxt, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+            return ctxt.resolveTypeFromDescriptor(desc, paramCtxt, TypeSignature.synthesize(ctxt, desc));
         } else {
             int slash = name.lastIndexOf('/');
             String packageName = slash == -1 ? "" : ctxt.deduplicate(name.substring(0, slash));

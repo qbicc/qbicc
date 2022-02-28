@@ -31,9 +31,8 @@ public final class ParameterElement extends VariableElement {
         return classContext.resolveTypeFromMethodDescriptor(
                         getTypeDescriptor(),
                         paramCtxt,
-                        getTypeSignature(),
-                        getVisibleTypeAnnotations(),
-                        getInvisibleTypeAnnotations());
+                        getTypeSignature()
+        );
     }
 
     public interface Builder extends VariableElement.Builder {

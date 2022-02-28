@@ -2,7 +2,6 @@ package org.qbicc.plugin.native_;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DescriptorTypeResolver;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -27,7 +26,7 @@ public class ConstTypeResolver implements DescriptorTypeResolver.Delegating {
         return delegate;
     }
 
-    public ValueType resolveTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {
-        return getDelegate().resolveTypeFromDescriptor(descriptor, paramCtxt, signature, visibleAnnotations, invisibleAnnotations);
+    public ValueType resolveTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature) {
+        return getDelegate().resolveTypeFromDescriptor(descriptor, paramCtxt, signature);
     }
 }

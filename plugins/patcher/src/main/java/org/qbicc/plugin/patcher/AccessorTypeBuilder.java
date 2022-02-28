@@ -14,7 +14,6 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.ArrayAnnotationValue;
 import org.qbicc.type.annotation.ClassAnnotationValue;
-import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -86,7 +85,7 @@ public final class AccessorTypeBuilder implements DefinedTypeDefinition.Builder.
             private VmObject createAccessor(final FieldElement fieldElement, final Annotation annotation) {
                 ClassAnnotationValue value = (ClassAnnotationValue) annotation.getValue("value");
                 TypeDescriptor desc = value.getDescriptor();
-                ValueType valueType = classContext.resolveTypeFromDescriptor(desc, TypeParameterContext.EMPTY, TypeSignature.synthesize(classContext, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+                ValueType valueType = classContext.resolveTypeFromDescriptor(desc, TypeParameterContext.EMPTY, TypeSignature.synthesize(classContext, desc));
                 if (valueType instanceof ClassObjectType cot) {
                     VmThread vmThread = Vm.requireCurrentThread();
                     LoadedTypeDefinition definition = cot.getDefinition().load();

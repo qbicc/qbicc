@@ -4,7 +4,6 @@ import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
@@ -33,7 +32,7 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
         }
     }
 
-    public ValueType resolveTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible) {
+    public ValueType resolveTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature) {
         TypeSystem ts = classContext.getCompilationContext().getTypeSystem();
         if (descriptor instanceof BaseTypeDescriptor) {
             switch (((BaseTypeDescriptor) descriptor).getShortName()) {
@@ -53,12 +52,12 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
             return classContext.resolveTypeFromClassName(classTypeDescriptor.getPackageName(), classTypeDescriptor.getClassName());
         } else {
             assert descriptor instanceof ArrayTypeDescriptor;
-            ArrayObjectType arrayObjectType = resolveArrayObjectTypeFromDescriptor(descriptor, paramCtxt, signature, visible, invisible);
+            ArrayObjectType arrayObjectType = resolveArrayObjectTypeFromDescriptor(descriptor, paramCtxt, signature);
             return arrayObjectType;
         }
      }
 
-    public ArrayObjectType resolveArrayObjectTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible) {
+    public ArrayObjectType resolveArrayObjectTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature) {
         if (descriptor instanceof BaseTypeDescriptor) {
             throw new ResolutionFailedException("Cannot resolve type as array " + descriptor);
         } else if (descriptor instanceof ClassTypeDescriptor) {
@@ -93,13 +92,13 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
                 } else {
                     elemSig = TypeSignature.synthesize(classContext, elemDescriptor);
                 }
-                ArrayObjectType elementArrayObj = resolveArrayObjectTypeFromDescriptor(elemDescriptor, paramCtxt, elemSig, visible, invisible);
+                ArrayObjectType elementArrayObj = resolveArrayObjectTypeFromDescriptor(elemDescriptor, paramCtxt, elemSig);
                 return elementArrayObj.getReferenceArrayObject();
             }
         }
     }
 
-    public ValueType resolveTypeFromMethodDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {
-        return classContext.resolveTypeFromDescriptor(descriptor, paramCtxt, signature, visibleAnnotations, invisibleAnnotations);
+    public ValueType resolveTypeFromMethodDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature) {
+        return classContext.resolveTypeFromDescriptor(descriptor, paramCtxt, signature);
     }
 }

@@ -90,9 +90,8 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         return classContext.resolveTypeFromDescriptor(
                         getTypeDescriptor(),
                         paramCtxt,
-                        getTypeSignature(),
-                        getVisibleTypeAnnotations(),
-                        getInvisibleTypeAnnotations());
+                        getTypeSignature()
+        );
     }
 
     public boolean isFinal() {

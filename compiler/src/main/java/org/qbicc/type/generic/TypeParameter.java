@@ -4,10 +4,18 @@ import static org.qbicc.type.generic.Signature.*;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
+import org.eclipse.collections.api.factory.Maps;
+import org.eclipse.collections.api.factory.Sets;
+import org.eclipse.collections.api.map.ImmutableMap;
+import org.eclipse.collections.impl.block.factory.Functions;
 import org.qbicc.context.ClassContext;
+import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 
 /**
  *
@@ -16,13 +24,23 @@ public final class TypeParameter {
     private final String identifier;
     private final ReferenceTypeSignature classBound;
     private final List<ReferenceTypeSignature> interfaceBounds;
+    private final ImmutableMap<ClassTypeDescriptor, Annotation> annotations;
     private final int hashCode;
 
-    TypeParameter(final String identifier, final ReferenceTypeSignature classBound, final List<ReferenceTypeSignature> interfaceBounds) {
+    private TypeParameter(final String identifier, final ReferenceTypeSignature classBound, final List<ReferenceTypeSignature> interfaceBounds, ImmutableMap<ClassTypeDescriptor, Annotation> annotations) {
         this.identifier = identifier;
         this.classBound = classBound;
         this.interfaceBounds = interfaceBounds;
+        this.annotations = annotations;
         hashCode = Objects.hash(TypeParameter.class, identifier, classBound, interfaceBounds);
+    }
+
+    private TypeParameter(final TypeParameter orig, ImmutableMap<ClassTypeDescriptor, Annotation> annotations) {
+        this(orig.identifier, orig.classBound, orig.interfaceBounds, annotations);
+    }
+
+    TypeParameter(final String identifier, final ReferenceTypeSignature classBound, final List<ReferenceTypeSignature> interfaceBounds) {
+        this(identifier, classBound, interfaceBounds, Maps.immutable.empty());
     }
 
     public String getIdentifier() {
@@ -37,13 +55,73 @@ public final class TypeParameter {
         return interfaceBounds;
     }
 
+    public Collection<Annotation> getAnnotations() {
+        return annotations.castToMap().values();
+    }
+
+    public boolean hasAnnotation(ClassTypeDescriptor desc) {
+        return annotations.containsKey(desc);
+    }
+
+    public boolean hasAnnotation(Annotation annotation) {
+        return annotation.equals(annotations.get(annotation.getDescriptor()));
+    }
+
+    public Annotation getAnnotation(ClassTypeDescriptor desc) {
+        return annotations.get(desc);
+    }
+
+    public TypeParameter withAnnotation(Annotation annotation) {
+        if (annotation.equals(annotations.get(annotation.getDescriptor()))) {
+            // we have that one
+            return this;
+        } else {
+            // add or replace it
+            return new TypeParameter(this, annotations.newWithKeyValue(annotation.getDescriptor(), annotation));
+        }
+    }
+
+    public TypeParameter withAnnotations(Set<Annotation> set) {
+        if (annotations.valuesView().containsAll(set)) {
+            return this;
+        } else {
+            return new TypeParameter(this, annotations.newWithMap(Sets.immutable.ofAll(set).toImmutableMap(Annotation::getDescriptor, Functions.identity()).castToMap()));
+        }
+    }
+
+    public TypeParameter withOnlyAnnotations(Set<Annotation> set) {
+        return new TypeParameter(this, Sets.immutable.ofAll(set).toImmutableMap(Annotation::getDescriptor, Functions.identity()));
+    }
+
+    public TypeParameter withNoAnnotations() {
+        return annotations.isEmpty() ? this : new TypeParameter(identifier, classBound, interfaceBounds, Maps.immutable.empty());
+    }
+
+    public TypeParameter withoutAnnotation(Annotation annotation) {
+        ClassTypeDescriptor descriptor = annotation.getDescriptor();
+        if (annotation.equals(annotations.get(annotation.getDescriptor()))) {
+            return new TypeParameter(this, annotations.newWithoutKey(descriptor));
+        } else {
+            return this;
+        }
+    }
+
+    public TypeParameter withoutAnnotation(ClassTypeDescriptor descriptor) {
+        if (annotations.containsKey(descriptor)) {
+            return new TypeParameter(this, annotations.newWithoutKey(descriptor));
+        } else {
+            return this;
+        }
+    }
+
     public boolean equals(final Object obj) {
         return obj instanceof TypeParameter && equals((TypeParameter) obj);
     }
 
     public boolean equals(final TypeParameter other) {
         return this == other || other != null && hashCode == other.hashCode && identifier.equals(other.identifier)
-            && Objects.equals(classBound, other.classBound) && interfaceBounds.equals(other.interfaceBounds);
+            && Objects.equals(classBound, other.classBound) && interfaceBounds.equals(other.interfaceBounds)
+            && annotations.equals(other.annotations);
     }
 
     public int hashCode() {

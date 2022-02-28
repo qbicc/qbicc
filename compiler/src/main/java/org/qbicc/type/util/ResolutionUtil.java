@@ -9,7 +9,6 @@ import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -91,7 +90,7 @@ public final class ResolutionUtil {
             return enclosingType.load().getType().getReference();
         }
         ClassContext classContext = enclosingType.getContext();
-        ValueType resolvedReturnType = classContext.resolveTypeFromMethodDescriptor(returnType, nestedCtxt, returnTypeSignature, TypeAnnotationList.empty(), TypeAnnotationList.empty());
+        ValueType resolvedReturnType = classContext.resolveTypeFromMethodDescriptor(returnType, nestedCtxt, returnTypeSignature);
         if (resolvedReturnType instanceof ObjectType) {
             resolvedReturnType = ((ObjectType) resolvedReturnType).getReference();
         }

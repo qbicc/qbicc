@@ -21,19 +21,16 @@ import org.qbicc.driver.Driver;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.probe.Qualifier;
 import org.qbicc.plugin.core.ConditionEvaluation;
-import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.linker.Linker;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
-import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.annotation.ArrayAnnotationValue;
 import org.qbicc.type.annotation.ClassAnnotationValue;
 import org.qbicc.type.annotation.IntAnnotationValue;
 import org.qbicc.type.annotation.StringAnnotationValue;
 import org.qbicc.type.annotation.type.TypeAnnotation;
-import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -191,9 +188,7 @@ final class NativeInfo {
                                             ValueType resolvedType = classContext.resolveTypeFromDescriptor(
                                                 cav.getDescriptor(),
                                                 definedType,
-                                                TypeSignature.synthesize(classContext, definedType.getDescriptor()),
-                                                TypeAnnotationList.empty(),
-                                                TypeAnnotationList.empty()
+                                                TypeSignature.synthesize(classContext, definedType.getDescriptor())
                                             );
                                             annotatedAlign = resolvedType.getAlign();
                                         }
@@ -213,9 +208,7 @@ final class NativeInfo {
                                                             ValueType resolvedType = classContext.resolveTypeFromDescriptor(
                                                                 cav.getDescriptor(),
                                                                 definedType,
-                                                                TypeSignature.synthesize(classContext, definedType.getDescriptor()),
-                                                                TypeAnnotationList.empty(),
-                                                                TypeAnnotationList.empty()
+                                                                TypeSignature.synthesize(classContext, definedType.getDescriptor())
                                                             );
                                                             annotatedAlign = resolvedType.getAlign();
                                                             // stop searching for alignments
@@ -392,7 +385,7 @@ final class NativeInfo {
         }
         ClassContext classContext = definedType.getContext();
         // todo: acquire type annotation list from supertype description
-        ValueType pointeeType = classContext.resolveTypeFromDescriptor(bound.asDescriptor(classContext), definedType, bound, TypeAnnotationList.empty(), TypeAnnotationList.empty());
+        ValueType pointeeType = classContext.resolveTypeFromDescriptor(bound.asDescriptor(classContext), definedType, bound);
         return pointeeType.getPointer();
     }
 
