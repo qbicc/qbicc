@@ -162,6 +162,8 @@ import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PhysicalObjectType;
@@ -2226,6 +2228,19 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         public VmObjectImpl visit(Frame frame, StaticMethodElementHandle node) {
             return null;
         }
+
+        @Override
+        public VmObjectImpl visit(Frame frame, PointerHandle node) {
+            if (node.getPointerValue().getType() instanceof PointerType pt) {
+                if (pt.getPointeeType() instanceof StaticMethodType || pt.getPointeeType() instanceof FunctionType) {
+                    // no receiver
+                    return null;
+                } else if (pt.getPointeeType() instanceof InstanceMethodType) {
+                    throw new IllegalStateException("Cannot determine receiver value from type");
+                }
+            }
+            return visitUnknown(frame, node);
+        }
     };
 
     static final ValueHandleVisitor<Frame, ExecutableElement> GET_EXECUTABLE_ELEMENT = new ValueHandleVisitor<Frame, ExecutableElement>() {
@@ -2304,7 +2319,12 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public ExecutableElement visit(Frame param, PointerHandle node) {
             if (((PointerType)node.getPointerValue().getType()).getPointeeType() instanceof StaticMethodType) {
-                return ((StaticMethodPointer)param.require(node.getPointerValue())).getStaticMethod();
+                StaticMethodPointer pointer = (StaticMethodPointer) param.require(node.getPointerValue());
+                if (pointer == null) {
+                    // or perhaps null pointer...
+                    throw unsatisfiedLink();
+                }
+                return pointer.getStaticMethod();
             }
             throw unsatisfiedLink();
         }
