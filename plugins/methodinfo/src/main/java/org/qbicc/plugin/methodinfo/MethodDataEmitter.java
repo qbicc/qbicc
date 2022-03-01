@@ -70,6 +70,10 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         String fileName = element.getSourceFileName();
         String methodDesc = element.getDescriptor().toString();
         int typeId = element.getEnclosingType().load().getTypeId();
+        if (typeId == -1) {
+            // todo: we should use 0 always as the invalid type ID value
+            typeId = 0;
+        }
 
         Vm vm = ctxt.getVm();
         BuildtimeHeap btHeap = BuildtimeHeap.get(ctxt);
