@@ -25,7 +25,6 @@ import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
@@ -45,6 +44,7 @@ import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
+import org.qbicc.type.util.ResolutionUtil;
 
 /**
  * A block builder that resolves member references to their elements.
@@ -53,10 +53,12 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     private static final AttachmentKey<Info> KEY = new AttachmentKey<>();
 
     private final CompilationContext ctxt;
+    private final ClassContext classContext;
 
     public MemberResolvingBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
+        this.classContext = getRootElement().getEnclosingType().getContext();
     }
 
     public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
@@ -83,15 +85,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 throw new BlockEarlyTermination(nsme(name));
             } else {
                 TypeParameterContext tpc = getCurrentElement() instanceof TypeParameterContext ? (TypeParameterContext) getCurrentElement() : definedType;
-                FunctionType callSiteType = getClassContext().resolveMethodFunctionType(
-                    descriptor,
-                    tpc,
-                    element.getSignature(),
-                    TypeAnnotationList.empty(),
-                    element.getParameterVisibleTypeAnnotations(),
-                    TypeAnnotationList.empty(),
-                    element.getParameterInvisibleTypeAnnotations());
-                return exactMethodOf(instance, element, descriptor, callSiteType);
+                return exactMethodOf(instance, element, descriptor, ResolutionUtil.resolveInstanceMethodType(definedType, tpc, descriptor, element.getSignature()));
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
@@ -108,15 +102,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 throw new BlockEarlyTermination(nsme(name));
             } else {
                 TypeParameterContext tpc = getCurrentElement() instanceof TypeParameterContext ? (TypeParameterContext) getCurrentElement() : definedType;
-                FunctionType callSiteType = getClassContext().resolveMethodFunctionType(
-                    descriptor,
-                    tpc,
-                    element.getSignature(),
-                    TypeAnnotationList.empty(),
-                    element.getParameterVisibleTypeAnnotations(),
-                    TypeAnnotationList.empty(),
-                    element.getParameterInvisibleTypeAnnotations());
-                return virtualMethodOf(instance, element, descriptor, callSiteType);
+                return virtualMethodOf(instance, element, descriptor, ResolutionUtil.resolveInstanceMethodType(definedType, tpc, descriptor, element.getSignature()));
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
@@ -133,15 +119,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 throw new BlockEarlyTermination(nsme(name));
             } else {
                 TypeParameterContext tpc = getCurrentElement() instanceof TypeParameterContext ? (TypeParameterContext) getCurrentElement() : definedType;
-                FunctionType callSiteType = getClassContext().resolveMethodFunctionType(
-                    descriptor,
-                    tpc,
-                    element.getSignature(),
-                    TypeAnnotationList.empty(),
-                    element.getParameterVisibleTypeAnnotations(),
-                    TypeAnnotationList.empty(),
-                    element.getParameterInvisibleTypeAnnotations());
-                return interfaceMethodOf(instance, element, descriptor, callSiteType);
+                return interfaceMethodOf(instance, element, descriptor, ResolutionUtil.resolveInstanceMethodType(definedType, tpc, descriptor, element.getSignature()));
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
@@ -165,15 +143,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 throw new BlockEarlyTermination(nsme(name));
             } else {
                 TypeParameterContext tpc = getCurrentElement() instanceof TypeParameterContext ? (TypeParameterContext) getCurrentElement() : definedType;
-                FunctionType callSiteType = getClassContext().resolveMethodFunctionType(
-                    descriptor,
-                    tpc,
-                    element.getSignature(),
-                    TypeAnnotationList.empty(),
-                    element.getParameterVisibleTypeAnnotations(),
-                    TypeAnnotationList.empty(),
-                    element.getParameterInvisibleTypeAnnotations());
-                return staticMethod(element, descriptor, callSiteType);
+                return staticMethod(element, descriptor, ResolutionUtil.resolveStaticMethodType(definedType, tpc, descriptor, element.getSignature()));
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
@@ -189,6 +159,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             if (element == null) {
                 throw new BlockEarlyTermination(nsme("<init>"));
             } else {
+                // no sig-poly constructors exist
                 return constructorOf(instance, element, element.getDescriptor(), element.getType());
             }
         } else {

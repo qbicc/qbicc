@@ -1,6 +1,6 @@
 package org.qbicc.graph;
 
-import org.qbicc.type.FunctionType;
+import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -10,7 +10,7 @@ import org.qbicc.type.descriptor.MethodDescriptor;
  */
 public final class ExactMethodElementHandle extends InstanceMethodElementHandle {
 
-    ExactMethodElementHandle(ExecutableElement element, int line, int bci, MethodElement methodElement, Value instance, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+    ExactMethodElementHandle(ExecutableElement element, int line, int bci, MethodElement methodElement, Value instance, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         super(element, line, bci, methodElement, instance, callSiteDescriptor, callSiteType);
     }
 

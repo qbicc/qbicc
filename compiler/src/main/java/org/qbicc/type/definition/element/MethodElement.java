@@ -5,10 +5,14 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.function.Function;
 
+import org.qbicc.pointer.InstanceMethodPointer;
+import org.qbicc.pointer.RootPointer;
 import org.qbicc.pointer.StaticMethodPointer;
+import org.qbicc.type.MethodType;
 import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.util.ResolutionUtil;
 
 /**
  *
@@ -25,11 +29,11 @@ public final class MethodElement extends InvokableElement implements NamedElemen
      */
     public static final MethodElement END_OF_SEARCH = new MethodElement();
 
-    private static final VarHandle pointerHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "pointer", VarHandle.class, MethodElement.class, StaticMethodPointer.class);
+    private static final VarHandle pointerHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "pointer", VarHandle.class, MethodElement.class, RootPointer.class);
 
     private final String name;
     private final AnnotationValue defaultValue;
-    private volatile StaticMethodPointer pointer;
+    private volatile RootPointer pointer;
 
     MethodElement() {
         super();
@@ -41,6 +45,18 @@ public final class MethodElement extends InvokableElement implements NamedElemen
         super(builder);
         this.name = builder.name;
         this.defaultValue = builder.defaultValue;
+    }
+
+    @Override
+    public MethodType getType() {
+        return (MethodType) super.getType();
+    }
+
+    @Override
+    MethodType computeType() {
+        return isStatic() ?
+            ResolutionUtil.resolveStaticMethodType(getEnclosingType(), this, getDescriptor(), getSignature()) :
+            ResolutionUtil.resolveInstanceMethodType(getEnclosingType(), this, getDescriptor(), getSignature());
     }
 
     public String toString() {
@@ -112,6 +128,16 @@ public final class MethodElement extends InvokableElement implements NamedElemen
     }
 
     /**
+     * Get the pointer to this (instance) method.  Convenience method which delegates to {@link InstanceMethodPointer#of}.
+     *
+     * @return the pointer
+     * @throws IllegalArgumentException if this method is static
+     */
+    public InstanceMethodPointer getInstanceMethodPointer() {
+        return InstanceMethodPointer.of(this);
+    }
+
+    /**
      * Establish the pointer for this method; intended only for use by {@link StaticMethodPointer#of}.
      *
      * @param factory the factory
@@ -119,7 +145,7 @@ public final class MethodElement extends InvokableElement implements NamedElemen
      * @see StaticMethodPointer#of
      */
     public StaticMethodPointer getOrCreateStaticMethodPointer(Function<MethodElement, StaticMethodPointer> factory) {
-        StaticMethodPointer pointer = this.pointer;
+        StaticMethodPointer pointer = (StaticMethodPointer) this.pointer;
         if (pointer == null) {
             if (! isStatic()) {
                 throw new IllegalArgumentException("Static pointer for instance method");
@@ -133,6 +159,27 @@ public final class MethodElement extends InvokableElement implements NamedElemen
         return pointer;
     }
 
+    /**
+     * Establish the pointer for this method; intended only for use by {@link InstanceMethodPointer#of}.
+     *
+     * @param factory the factory
+     * @return the pointer
+     * @see InstanceMethodPointer#of
+     */
+    public InstanceMethodPointer getOrCreateInstanceMethodPointer(Function<MethodElement, InstanceMethodPointer> factory) {
+        InstanceMethodPointer pointer = (InstanceMethodPointer) this.pointer;
+        if (pointer == null) {
+            if (isStatic()) {
+                throw new IllegalArgumentException("Instance pointer for static method");
+            }
+            pointer = factory.apply(this);
+            InstanceMethodPointer appearing = (InstanceMethodPointer) pointerHandle.compareAndExchange(this, null, pointer);
+            if (appearing != null) {
+                pointer = appearing;
+            }
+        }
+        return pointer;
+    }
 
     public interface Builder extends InvokableElement.Builder, NamedElement.Builder {
 

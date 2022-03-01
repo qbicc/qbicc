@@ -4,7 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
-import org.qbicc.type.FunctionType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -22,7 +22,7 @@ public final class TailInvoke extends AbstractTerminator {
     private final BasicBlock terminatedBlock;
     private final ValueHandle target;
     private final List<Value> arguments;
-    private final FunctionType functionType;
+    private final InvokableType calleeType;
     private final BlockLabel catchLabel;
 
     TailInvoke(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
@@ -32,7 +32,7 @@ public final class TailInvoke extends AbstractTerminator {
         this.target = target;
         this.arguments = arguments;
         this.catchLabel = catchLabel;
-        functionType = (FunctionType) target.getValueType();
+        calleeType = (InvokableType) target.getValueType();
     }
 
     @Override
@@ -75,8 +75,8 @@ public final class TailInvoke extends AbstractTerminator {
         return dependency;
     }
 
-    public FunctionType getFunctionType() {
-        return functionType;
+    public InvokableType getCalleeType() {
+        return calleeType;
     }
 
     public List<Value> getArguments() {

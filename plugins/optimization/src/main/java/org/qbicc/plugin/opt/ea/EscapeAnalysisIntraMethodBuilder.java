@@ -38,6 +38,7 @@ import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.ConstructorElement;
@@ -138,7 +139,7 @@ public final class EscapeAnalysisIntraMethodBuilder extends DelegatingBasicBlock
     }
 
     @Override
-    public ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+    public ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         return supports(super.constructorOf(instance, constructor, callSiteDescriptor, callSiteType));
     }
 
@@ -228,7 +229,7 @@ public final class EscapeAnalysisIntraMethodBuilder extends DelegatingBasicBlock
     }
 
     @Override
-    public ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+    public ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         return supports(super.virtualMethodOf(instance, method, callSiteDescriptor, callSiteType));
     }
 

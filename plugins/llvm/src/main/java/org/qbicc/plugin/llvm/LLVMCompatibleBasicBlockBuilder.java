@@ -21,6 +21,7 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.machine.arch.Cpu;
+import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
@@ -656,7 +657,8 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
         // declare personality function
         MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
-        ctxt.getImplicitSection(getRootElement()).declareFunction(null, personalityMethod.getName(), personalityMethod.getType());
+        Function function = ctxt.getExactFunction(personalityMethod);
+        ctxt.getImplicitSection(getRootElement()).declareFunction(function);
         return super.invokeNoReturn(target, arguments, catchLabel);
     }
 
@@ -664,7 +666,8 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
         // declare personality function
         MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
-        ctxt.getImplicitSection(getRootElement()).declareFunction(null, personalityMethod.getName(), personalityMethod.getType());
+        Function function = ctxt.getExactFunction(personalityMethod);
+        ctxt.getImplicitSection(getRootElement()).declareFunction(function);
         return super.invoke(target, arguments, catchLabel, resumeLabel);
     }
 
@@ -672,7 +675,8 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
         // declare personality function
         MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
-        ctxt.getImplicitSection(getRootElement()).declareFunction(null, personalityMethod.getName(), personalityMethod.getType());
+        Function function = ctxt.getExactFunction(personalityMethod);
+        ctxt.getImplicitSection(getRootElement()).declareFunction(function);
         if (isTailCallSafe()) {
             return super.tailInvoke(target, arguments, catchLabel);
         }

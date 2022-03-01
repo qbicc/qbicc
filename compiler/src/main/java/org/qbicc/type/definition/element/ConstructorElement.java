@@ -1,6 +1,8 @@
 package org.qbicc.type.definition.element;
 
+import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.util.ResolutionUtil;
 
 /**
  *
@@ -10,6 +12,16 @@ public final class ConstructorElement extends InvokableElement {
 
     ConstructorElement(BuilderImpl builder) {
         super(builder);
+    }
+
+    @Override
+    public InstanceMethodType getType() {
+        return (InstanceMethodType) super.getType();
+    }
+
+    @Override
+    InstanceMethodType computeType() {
+        return ResolutionUtil.resolveInstanceMethodType(getEnclosingType(), this, getDescriptor(), getSignature());
     }
 
     public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {

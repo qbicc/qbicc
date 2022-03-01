@@ -1,15 +1,7 @@
 package org.qbicc.driver;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import org.qbicc.type.ArrayObjectType;
-import org.qbicc.type.FunctionType;
-import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
-import org.qbicc.type.PhysicalObjectType;
-import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
@@ -20,10 +12,8 @@ import org.qbicc.type.definition.ResolutionFailedException;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
-import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.ArrayTypeSignature;
-import org.qbicc.type.generic.MethodSignature;
 import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
 
@@ -107,43 +97,6 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
                 return elementArrayObj.getReferenceArrayObject();
             }
         }
-    }
-
-    public FunctionType resolveMethodFunctionType(final MethodDescriptor descriptor, TypeParameterContext paramCtxt, final MethodSignature signature, final TypeAnnotationList returnTypeVisible, List<TypeAnnotationList> visible, final TypeAnnotationList returnTypeInvisible, List<TypeAnnotationList> invisible) {
-        TypeDescriptor returnType = descriptor.getReturnType();
-        List<TypeDescriptor> parameterTypes = descriptor.getParameterTypes();
-        TypeSignature returnTypeSignature = signature.getReturnTypeSignature();
-        List<TypeSignature> paramSignatures = signature.getParameterTypes();
-        int cnt = parameterTypes.size();
-        if (paramSignatures.size() != cnt) {
-            // sig-poly or bad generic data
-            TypeSignature[] array = new TypeSignature[cnt];
-            for (int i = 0; i < cnt; i ++) {
-                array[i] = TypeSignature.synthesize(classContext, parameterTypes.get(i));
-            }
-            paramSignatures = Arrays.asList(array);
-        }
-        if (visible.size() != cnt) {
-            // sig-poly or bad annotation data
-            visible = Collections.nCopies(cnt, TypeAnnotationList.empty());
-        }
-        if (invisible.size() != cnt) {
-            // sig-poly or bad annotation data
-            invisible = Collections.nCopies(cnt, TypeAnnotationList.empty());
-        }
-        TypeParameterContext nestedCtxt = TypeParameterContext.create(paramCtxt, signature);
-        ValueType resolvedReturnType = classContext.resolveTypeFromMethodDescriptor(returnType, nestedCtxt, returnTypeSignature, returnTypeVisible, returnTypeInvisible);
-        if (resolvedReturnType instanceof ObjectType) {
-            resolvedReturnType = ((ObjectType) resolvedReturnType).getReference();
-        }
-        ValueType[] resolvedParamTypes = new ValueType[cnt];
-        for (int i = 0; i < cnt; i ++) {
-            resolvedParamTypes[i] = classContext.resolveTypeFromMethodDescriptor(parameterTypes.get(i), nestedCtxt, paramSignatures.get(i), visible.get(i), invisible.get(i));
-            if (resolvedParamTypes[i] instanceof ObjectType) {
-                resolvedParamTypes[i] = ((ObjectType) resolvedParamTypes[i]).getReference();
-            }
-        }
-        return classContext.getTypeSystem().getFunctionType(resolvedReturnType, resolvedParamTypes);
     }
 
     public ValueType resolveTypeFromMethodDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {

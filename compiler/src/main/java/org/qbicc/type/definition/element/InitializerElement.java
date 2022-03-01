@@ -1,6 +1,8 @@
 package org.qbicc.type.definition.element;
 
-import org.qbicc.type.FunctionType;
+import java.util.List;
+
+import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.MethodBody;
@@ -84,10 +86,10 @@ public final class InitializerElement extends BasicElement implements Executable
         this.methodBody = replacement;
     }
 
-    public FunctionType getType() {
+    public StaticMethodType getType() {
         ClassContext classContext = getEnclosingType().getContext();
         TypeSystem ts = classContext.getTypeSystem();
-        return ts.getFunctionType(ts.getVoidType());
+        return ts.getStaticMethodType(ts.getVoidType(), List.of());
     }
 
     public MethodDescriptor getDescriptor() {

@@ -30,6 +30,7 @@ import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
+import org.qbicc.pointer.InstanceMethodPointer;
 import org.qbicc.pointer.ReferenceAsPointer;
 import org.qbicc.pointer.RootPointer;
 import org.qbicc.pointer.StaticFieldPointer;
@@ -144,6 +145,13 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         public Void visit(ReachabilityContext param, PointerLiteral value) {
             RootPointer pointer = value.getPointer().getRootPointer();
             pointer.accept(this, param);
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext reachabilityContext, InstanceMethodPointer pointer) {
+            MethodElement target = pointer.getInstanceMethod();
+            reachabilityContext.analysis.processReachableExactInvocation(target, reachabilityContext.currentElement);
             return null;
         }
 

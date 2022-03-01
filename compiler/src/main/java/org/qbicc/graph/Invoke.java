@@ -4,7 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
-import org.qbicc.type.FunctionType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -23,7 +23,7 @@ public final class Invoke extends AbstractTerminator implements Resume {
     private final BasicBlock terminatedBlock;
     private final ValueHandle target;
     private final List<Value> arguments;
-    private final FunctionType functionType;
+    private final InvokableType calleeType;
     private final BlockLabel catchLabel;
     private final BlockLabel resumeLabel;
     private final ReturnValue returnValue;
@@ -36,7 +36,7 @@ public final class Invoke extends AbstractTerminator implements Resume {
         this.arguments = arguments;
         this.catchLabel = catchLabel;
         this.resumeLabel = resumeLabel;
-        functionType = (FunctionType) target.getValueType();
+        calleeType = (InvokableType) target.getValueType();
         returnValue = new ReturnValue();
     }
 
@@ -80,8 +80,8 @@ public final class Invoke extends AbstractTerminator implements Resume {
         return dependency;
     }
 
-    public FunctionType getFunctionType() {
-        return functionType;
+    public InvokableType getCalleeType() {
+        return calleeType;
     }
 
     public ReturnValue getReturnValue() {
@@ -170,7 +170,7 @@ public final class Invoke extends AbstractTerminator implements Resume {
 
         @Override
         public ValueType getType() {
-            return getFunctionType().getReturnType();
+            return getCalleeType().getReturnType();
         }
 
         @Override

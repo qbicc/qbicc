@@ -15,12 +15,14 @@ public final class MethodData {
     public static native int getModifiers(int minfoIndex);
 
     public static String getClassName(int minfoIndex) {
-        return getClass(minfoIndex).getName();
+        Class<?> clazz = getClass(minfoIndex);
+        return clazz == null ? "<no class>" : clazz.getName();
     }
 
     public static Class<?> getClass(int minfoIndex) {
         type_id typeId = getTypeId(minfoIndex);
-        return CompilerIntrinsics.getClassFromTypeId(typeId, word(0));
+        Class<?> clazz = typeId.isZero() ? null : CompilerIntrinsics.getClassFromTypeId(typeId, word(0));
+        return clazz;
     }
 
     public static boolean hasAllModifiersOf(int minfoIndex, int mask) {

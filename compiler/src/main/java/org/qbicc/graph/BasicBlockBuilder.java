@@ -11,14 +11,15 @@ import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.BlockLiteral;
-import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
+import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
@@ -336,7 +337,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle localVariable(LocalVariableElement variable);
 
-    ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType);
+    ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
 
     /**
      * Convenience method to construct a method handle whose descriptor and type match the element's descriptor and type.
@@ -347,12 +348,12 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the value handle (not {@code null})
      */
     default ValueHandle exactMethodOf(Value instance, MethodElement method) {
-        return exactMethodOf(instance, method, method.getDescriptor(), method.getType());
+        return exactMethodOf(instance, method, method.getDescriptor(), (InstanceMethodType) method.getType());
     }
 
     ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
-    ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType);
+    ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
 
     /**
      * Convenience method to construct a method handle whose descriptor and type match the element's descriptor and type.
@@ -363,12 +364,12 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the value handle (not {@code null})
      */
     default ValueHandle virtualMethodOf(Value instance, MethodElement method) {
-        return virtualMethodOf(instance, method, method.getDescriptor(), method.getType());
+        return virtualMethodOf(instance, method, method.getDescriptor(), (InstanceMethodType) method.getType());
     }
 
     ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
-    ValueHandle interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType);
+    ValueHandle interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
 
     /**
      * Convenience method to construct a method handle whose descriptor and type match the element's descriptor and type.
@@ -379,12 +380,12 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the value handle (not {@code null})
      */
     default ValueHandle interfaceMethodOf(Value instance, MethodElement method) {
-        return interfaceMethodOf(instance, method, method.getDescriptor(), method.getType());
+        return interfaceMethodOf(instance, method, method.getDescriptor(), (InstanceMethodType) method.getType());
     }
 
     ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
-    ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, FunctionType callSiteType);
+    ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType);
 
     /**
      * Convenience method to construct a method handle whose descriptor and type match the element's descriptor and type.
@@ -394,21 +395,12 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the value handle (not {@code null})
      */
     default ValueHandle staticMethod(MethodElement method) {
-        return staticMethod(method, method.getDescriptor(), method.getType());
+        return staticMethod(method, method.getDescriptor(), (StaticMethodType) method.getType());
     }
 
     ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
-    /**
-     * Create a handle for a static method pointer. The call site type must match the pointer's type. This differs
-     * from a plain pointer handle in that static method pointers can be lowered to the appropriate function shape.
-     *
-     * @param pointer the static method pointer (must not be {@code null})
-     * @return the value handle (not {@code null})
-     */
-    ValueHandle staticMethodPointer(Value pointer);
-
-    ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, FunctionType callSiteType);
+    ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
 
     /**
      * Convenience method to construct a constructor handle whose descriptor and type match the element's descriptor and type.

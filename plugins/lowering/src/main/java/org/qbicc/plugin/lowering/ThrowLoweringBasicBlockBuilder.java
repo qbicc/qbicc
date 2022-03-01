@@ -9,6 +9,8 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.MethodType;
+import org.qbicc.type.TypeSystem;
 import org.qbicc.type.definition.element.FieldElement;
 
 import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
@@ -22,6 +24,7 @@ public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     public BasicBlock throw_(final Value value) {
+        TypeSystem ts = ctxt.getTypeSystem();
         ThrowExceptionHelper teh = ThrowExceptionHelper.get(ctxt);
         FieldElement exceptionField = ctxt.getExceptionField();
         store(instanceFieldOf(referenceHandle(load(currentThread(), SingleUnshared)), exceptionField), value, SingleUnshared);
@@ -30,7 +33,8 @@ public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         Value ptr = bitCast(addressOf(instanceFieldOf(referenceHandle(load(currentThread(), SingleUnshared)), teh.getUnwindExceptionField())), teh.getUnwindExceptionField().getType().getPointer());
 
         String functionName = "_Unwind_RaiseException";
-        FunctionType functionType = teh.getRaiseExceptionMethod().getType();
+        MethodType origType = teh.getRaiseExceptionMethod().getType();
+        FunctionType functionType = ts.getFunctionType(origType.getReturnType(), origType.getParameterTypes());
         FunctionDeclaration decl = ctxt.getImplicitSection(getRootElement()).declareFunction(teh.getRaiseExceptionMethod(), functionName, functionType);
         return callNoReturn(pointerHandle(ctxt.getLiteralFactory().literalOf(decl)), List.of(ptr));
     }

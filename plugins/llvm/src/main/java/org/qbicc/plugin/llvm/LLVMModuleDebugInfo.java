@@ -25,6 +25,7 @@ import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.MethodType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
@@ -117,10 +118,10 @@ final class LLVMModuleDebugInfo {
     }
 
     private MethodDebugInfo createDebugInfoForFunction(final ExecutableElement element) {
-        LLValue type = getType(element.getType());
+        Function exactFunction = ctxt.getExactFunctionIfExists(element);
+        LLValue type = getType(exactFunction.getValueType());
         int line = element.getMinimumLineNumber();
 
-        Function exactFunction = ctxt.getExactFunctionIfExists(element);
         DISubprogram diSubprogram = module.diSubprogram(getFriendlyName(element), type, diCompileUnit)
             .location(createSourceFile(element), line, line);
 
@@ -310,6 +311,8 @@ final class LLVMModuleDebugInfo {
             return createBasicType((FloatType) type, DIEncoding.Float);
         } else if (type instanceof FunctionType) {
             return createFunctionType((FunctionType) type);
+        } else if (type instanceof MethodType mt) {
+            return createType(ctxt.getFunctionTypeForInvokableType(mt));
         } else if (type instanceof PointerType) {
             return createPointerType((PointerType) type, ((PointerType) type).getPointeeType());
         } else if (type instanceof ReferenceType) {

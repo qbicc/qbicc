@@ -105,7 +105,6 @@ import org.qbicc.graph.Shr;
 import org.qbicc.graph.StackAllocation;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
-import org.qbicc.graph.StaticMethodPointerHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
 import org.qbicc.graph.Switch;
@@ -163,6 +162,8 @@ import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PhysicalObjectType;
@@ -171,6 +172,7 @@ import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
+import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
@@ -2115,6 +2117,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             memory.storeType(offset, (ValueType) require(value), mode);
         } else if (type instanceof PointerType) {
             memory.storePointer(offset, unboxPointer(value), mode);
+        } else if (type instanceof CompoundType ct) {
+            memory.storeMemory(offset, (Memory) require(value), 0, ct.getSize());
         } else {
             throw unsupportedType();
         }
@@ -2226,6 +2230,19 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         public VmObjectImpl visit(Frame frame, StaticMethodElementHandle node) {
             return null;
         }
+
+        @Override
+        public VmObjectImpl visit(Frame frame, PointerHandle node) {
+            if (node.getPointerValue().getType() instanceof PointerType pt) {
+                if (pt.getPointeeType() instanceof StaticMethodType || pt.getPointeeType() instanceof FunctionType) {
+                    // no receiver
+                    return null;
+                } else if (pt.getPointeeType() instanceof InstanceMethodType) {
+                    throw new IllegalStateException("Cannot determine receiver value from type");
+                }
+            }
+            return visitUnknown(frame, node);
+        }
     };
 
     static final ValueHandleVisitor<Frame, ExecutableElement> GET_EXECUTABLE_ELEMENT = new ValueHandleVisitor<Frame, ExecutableElement>() {
@@ -2303,6 +2320,14 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public ExecutableElement visit(Frame param, PointerHandle node) {
+            if (((PointerType)node.getPointerValue().getType()).getPointeeType() instanceof StaticMethodType) {
+                StaticMethodPointer pointer = (StaticMethodPointer) param.require(node.getPointerValue());
+                if (pointer == null) {
+                    // or perhaps null pointer...
+                    throw unsatisfiedLink();
+                }
+                return pointer.getStaticMethod();
+            }
             throw unsatisfiedLink();
         }
 
@@ -2323,11 +2348,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public ExecutableElement visit(Frame frame, StaticMethodElementHandle node) {
             return node.getExecutable();
-        }
-
-        @Override
-        public ExecutableElement visit(Frame frame, StaticMethodPointerHandle node) {
-            return ((StaticMethodPointer)frame.require(node.getStaticMethodPointer())).getStaticMethod();
         }
     };
 

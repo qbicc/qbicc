@@ -1,6 +1,6 @@
 package org.qbicc.graph;
 
-import org.qbicc.type.FunctionType;
+import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -10,13 +10,23 @@ import org.qbicc.type.descriptor.MethodDescriptor;
  */
 public final class StaticMethodElementHandle extends Executable {
 
-    StaticMethodElementHandle(ExecutableElement element, int line, int bci, MethodElement methodElement, MethodDescriptor callSiteDescriptor, FunctionType callSiteType) {
+    StaticMethodElementHandle(ExecutableElement element, int line, int bci, MethodElement methodElement, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType) {
         super(element, line, bci, methodElement, callSiteDescriptor, callSiteType);
     }
 
     @Override
     public MethodElement getExecutable() {
         return (MethodElement) super.getExecutable();
+    }
+
+    @Override
+    public StaticMethodType getValueType() {
+        return (StaticMethodType) super.getValueType();
+    }
+
+    @Override
+    public StaticMethodType getCallSiteType() {
+        return (StaticMethodType) super.getCallSiteType();
     }
 
     public boolean equals(final Executable other) {

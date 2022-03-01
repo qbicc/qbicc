@@ -3,6 +3,7 @@ package org.qbicc.driver;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -36,6 +37,9 @@ import org.qbicc.object.ProgramModule;
 import org.qbicc.object.Section;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.InstanceMethodType;
+import org.qbicc.type.InvokableType;
+import org.qbicc.type.MethodType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.context.ClassContext;
@@ -433,10 +437,7 @@ final class CompilationContextImpl implements CompilationContext {
         }
         return exactFunctions.computeIfAbsent(element, e -> {
             Section implicit = getImplicitSection(element);
-            FunctionType elementType = element.getType();
-            if (element instanceof FunctionElement fe) {
-                return implicit.addFunction(element, fe.getName(), elementType);
-            }
+            InvokableType elementType = element.getType();
             FunctionType functionType = getFunctionTypeForElement(element);
             return implicit.addFunction(element, getExactNameForElement(element, elementType), functionType);
         });
@@ -521,13 +522,15 @@ final class CompilationContextImpl implements CompilationContext {
         return vm;
     }
 
-    private String getExactNameForElement(final ExecutableElement element, final FunctionType type) {
+    private String getExactNameForElement(final ExecutableElement element, final InvokableType type) {
         // todo: encode class loader ID
         // todo: cache :-(
         DefinedTypeDefinition enclosingType = element.getEnclosingType();
         String internalDotName = enclosingType.load().getVmClass().getName().replace('/', '~');
         if (element instanceof InitializerElement) {
             return "clinit." + internalDotName;
+        } else if (element instanceof FunctionElement fe) {
+            return fe.getName();
         }
         StringBuilder b = new StringBuilder();
         assert element instanceof InvokableElement;
@@ -549,43 +552,38 @@ final class CompilationContextImpl implements CompilationContext {
         return b.toString();
     }
 
-    private FunctionType getFunctionTypeForElement(ExecutableElement element, final ClassObjectType threadType) {
-        TypeSystem ts = typeSystem;
-        if (element instanceof InitializerElement) {
-            // todo: initializers should not survive the copy
-            return ts.getFunctionType(ts.getVoidType(), threadType.getReference());
-        }
-        assert element instanceof InvokableElement;
-        FunctionType methodType = element.getType();
-        // function type is the same as the method type, except with current thread/receiver first
-        int pcnt = methodType.getParameterCount();
-        ValueType[] argTypes;
-        int j;
-        if (element.isStatic()) {
-            argTypes = new ValueType[pcnt + 1];
-            j = 1;
+    @Override
+    public FunctionType getFunctionTypeForInvokableType(final InvokableType origType) {
+        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").load().getClassType();
+        int pcnt = origType.getParameterCount();
+        if (origType instanceof FunctionType ft) {
+            // already a function
+            return ft;
         } else {
-            argTypes = new ValueType[pcnt + 2];
-            argTypes[1] = element.getEnclosingType().load().getType().getReference();
-            j = 2;
+            // some kind of method
+            assert origType instanceof MethodType;
+            MethodType mt = (MethodType) origType;
+            ArrayList<ValueType> argTypes;
+            argTypes = new ArrayList<>(pcnt + 2);
+            argTypes.add(threadType.getReference());
+            if (origType instanceof InstanceMethodType imt) {
+                // instance methods also get the receiver
+                argTypes.add(imt.getReceiverType());
+            }
+            argTypes.addAll(origType.getParameterTypes());
+            return typeSystem.getFunctionType(mt.getReturnType(), List.copyOf(argTypes));
         }
-        argTypes[0] = threadType.getReference();
-        for (int i = 0; i < pcnt; i ++, j ++) {
-            argTypes[j] = methodType.getParameterType(i);
-        }
-        return ts.getFunctionType(methodType.getReturnType(), argTypes);
     }
 
     public FunctionType getFunctionTypeForElement(final ExecutableElement element) {
         // look up the thread ID literal - todo: lazy cache?
-        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").load().getClassType();
-        return getFunctionTypeForElement(element, threadType);
+        return getFunctionTypeForInvokableType(element.getType());
     }
 
     public FunctionType getFunctionTypeForInitializer() {
         // look up the thread ID literal - todo: lazy cache?
         ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").load().getClassType();
-        return typeSystem.getFunctionType(typeSystem.getVoidType(), threadType.getReference());
+        return typeSystem.getFunctionType(typeSystem.getVoidType(), List.of(threadType.getReference()));
     }
 
     public Iterable<ExecutableElement> getEntryPoints() {

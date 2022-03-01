@@ -851,10 +851,6 @@ public interface Node {
                 return param.getBlockBuilder().staticMethod(node.getExecutable(), node.getCallSiteDescriptor(), node.getCallSiteType());
             }
 
-            public ValueHandle visit(Copier param, StaticMethodPointerHandle node) {
-                return param.getBlockBuilder().staticMethodPointer(param.copyValue(node.getStaticMethodPointer()));
-            }
-
             public Node visit(final Copier param, final Store node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().store(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getValue()), node.getAccessMode());
