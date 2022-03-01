@@ -6,6 +6,8 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
+import org.qbicc.facts.Facts;
+import org.qbicc.facts.core.ExecutableReachabilityFacts;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
@@ -53,7 +55,11 @@ public interface CompilationContext extends DiagnosticContext {
 
     ClassContext constructAppClassLoaderClassContext(VmClassLoader appClassLoaderObject);
 
-    void enqueue(ExecutableElement element);
+    <T> void submitTask(T item, Consumer<T> itemConsumer);
+
+    default void enqueue(ExecutableElement element) {
+        Facts.get(this).discover(element, ExecutableReachabilityFacts.IS_INVOKED);
+    }
 
     /**
      * Determine whether the given element was already enqueued in the <em>current</em> phase.  Note that unless this
@@ -63,7 +69,9 @@ public interface CompilationContext extends DiagnosticContext {
      * @param element the element to check
      * @return {@code true} if the element was already enqueued in the <em>current</em> phase, or {@code false} otherwise
      */
-    boolean wasEnqueued(ExecutableElement element);
+    default boolean wasEnqueued(ExecutableElement element) {
+        return Facts.get(this).isDiscovered(element, ExecutableReachabilityFacts.IS_INVOKED);
+    }
 
     /**
      * Determine whether the given element was enqueued in the previous phase and thus is eligible to be enqueued again in
@@ -71,15 +79,18 @@ public interface CompilationContext extends DiagnosticContext {
      *
      * @param element the element to check
      * @return {@code true} if the element may be enqueued in this phase, or {@code false} if enqueuing the element will
-     *      result in an exception
+     * result in an exception
      */
-    boolean mayBeEnqueued(ExecutableElement element);
+    default boolean mayBeEnqueued(ExecutableElement element) {
+        Facts facts = Facts.get(this);
+        return !facts.hasPreviousFacts() || facts.hadFact(element, ExecutableReachabilityFacts.IS_INVOKED);
+    }
 
-    int numberEnqueued();
+    default int numberEnqueued() {
+        return (int) Facts.get(this).getDiscoveredCount(ExecutableReachabilityFacts.IS_INVOKED);
+    }
 
     NativeMethodConfigurator getNativeMethodConfigurator();
-
-    ExecutableElement dequeue();
 
     /**
      * EntryPoints form the "root set" of methods that must be included

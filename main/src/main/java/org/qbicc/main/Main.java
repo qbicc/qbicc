@@ -50,6 +50,7 @@ import org.qbicc.driver.ElementVisitorAdapter;
 import org.qbicc.driver.GraphGenConfig;
 import org.qbicc.driver.Phase;
 import org.qbicc.driver.plugin.DriverPlugin;
+import org.qbicc.plugin.reachability.ReachabilityFactsSetup;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.impl.VmImpl;
@@ -172,6 +173,7 @@ import org.qbicc.plugin.vfs.VFS;
 import org.qbicc.plugin.vio.VIO;
 import org.qbicc.tool.llvm.LlvmToolChain;
 import org.qbicc.type.TypeSystem;
+import org.qbicc.type.definition.element.ExecutableElement;
 import picocli.CommandLine;
 import picocli.CommandLine.ParameterException;
 import picocli.CommandLine.ParseResult;
@@ -271,13 +273,32 @@ public class Main implements Callable<DiagnosticContext> {
 
     public DiagnosticContext call() {
         BaseDiagnosticContext ctxt = new BaseDiagnosticContext();
+        // 16 MB is the default stack size
+        long stackSize = 0x1000000L;
+        Thread mainThread = new Thread(Thread.currentThread().getThreadGroup(), () -> {
+            try {
+                call0(ctxt);
+            } catch (Throwable t) {
+                t.printStackTrace(System.err);
+                ctxt.error(t, "Compilation failed due to an exception");
+            }
+        }, "Main compiler thread", stackSize, false);
+        mainThread.start();
+        boolean intr = false;
         try {
-            call0(ctxt);
-        } catch (Throwable t) {
-            t.printStackTrace(System.err);
-            ctxt.error(t, "Compilation failed due to an exception");
+            for (;;) try {
+                mainThread.join();
+                break;
+            } catch (InterruptedException ie) {
+                mainThread.interrupt();
+                intr = true;
+            }
+            diagnosticsHandler.accept(ctxt.getDiagnostics());
+        } finally {
+            if (intr) {
+                Thread.currentThread().interrupt();
+            }
         }
-        diagnosticsHandler.accept(ctxt.getDiagnostics());
         return ctxt;
     }
 
@@ -457,6 +478,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     Vm vm = ctxt.getVm();
                                     vm.doAttached(vm.newThread(Thread.currentThread().getName(), vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> wrapper.accept(ctxt));
                                 });
+                                builder.addPreHook(Phase.ADD, ReachabilityFactsSetup::setupAdd);
                                 if (llvm) {
                                     builder.addPreHook(Phase.ADD, LLVMIntrinsics::register);
                                 }
@@ -492,12 +514,14 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
                                     GraalFeatureProcessor.process(compilationContext, graalFeatures, hostAppClassLoader);
                                 });
-                                builder.addElementHandler(Phase.ADD, new ElementBodyCreator());
-                                builder.addElementHandler(Phase.ADD, new BuildTimeOnlyElementHandler());
-                                builder.addElementHandler(Phase.ADD, new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig)));
-                                builder.addElementHandler(Phase.ADD, new ElementInitializer());
-                                builder.addElementHandler(Phase.ADD, elem -> ReachabilityInfo.processReachableElement(elem)); // In the add phase, elements may be enqueued via multiple paths.  This makes sure Reachability Analysis sees them.
-                                builder.addElementHandler(Phase.ADD, new ReflectiveMethodAccessorGenerator());
+                                builder.addPreHook(Phase.ADD, new ElementReachableAdapter(
+                                    new ElementBodyCreator()
+                                    .andThen(new BuildTimeOnlyElementHandler())
+                                    .andThen(new ElementInitializer())));
+                                // In the add phase, elements may be enqueued via multiple paths.  This makes sure Reachability Analysis sees them.
+                                builder.addPreHook(Phase.ADD, new ElementReachableAdapter(ReachabilityInfo::processReachableElement));
+                                builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new ReflectiveMethodAccessorGenerator()));
+                                builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig))));
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MultiNewArrayExpansionBasicBlockBuilder::new);
@@ -541,17 +565,18 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.ADD, ReachabilityInfo::reportStats);
                                 builder.addPostHook(Phase.ADD, ReachabilityInfo::clear);
 
+                                builder.addPreHook(Phase.ANALYZE, ReachabilityFactsSetup::setupAnalyze);
                                 builder.addPreHook(Phase.ANALYZE, new VMHelpersSetupHook());
                                 builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::forceCoreClassesReachable);
                                 builder.addPreHook(Phase.ANALYZE, ReachabilityRoots::processRootsForAnalyze);
-                                builder.addElementHandler(Phase.ANALYZE, new ElementBodyCopier());
+                                builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementBodyCopier()));
                                 if (optEscapeAnalysis) {
-                                    builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new EscapeAnalysisIntraMethodAnalysis()));
-                                    builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(
+                                    builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementVisitorAdapter(new EscapeAnalysisIntraMethodAnalysis())));
+                                    builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementVisitorAdapter(
                                         new DotGenerator(Phase.ANALYZE, "analyze-intra", graphGenConfig).addVisitorFactory(EscapeAnalysisDotVisitor::new))
-                                    );
+                                    ));
                                 } else {
-                                    builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new DotGenerator(Phase.ANALYZE, graphGenConfig)));
+                                    builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ANALYZE, graphGenConfig))));
                                 }
                                 if (optGotos) {
                                     builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
@@ -583,13 +608,14 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
 
+                                builder.addPreHook(Phase.LOWER, ReachabilityFactsSetup::setupLower);
                                 builder.addPreHook(Phase.LOWER, ReachabilityRoots::processRootsForLower);
                                 builder.addPreHook(Phase.LOWER, new ClassObjectSerializer());
                                 if (optEscapeAnalysis) {
                                     builder.addCopyFactory(Phase.LOWER, EscapeAnalysisOptimizeVisitor::new);
                                 }
-                                builder.addElementHandler(Phase.LOWER, new FunctionLoweringElementHandler());
-                                builder.addElementHandler(Phase.LOWER, new ElementVisitorAdapter(new DotGenerator(Phase.LOWER, graphGenConfig)));
+                                builder.addPreHook(Phase.LOWER, new ElementReachableAdapter(new FunctionLoweringElementHandler()));
+                                builder.addPreHook(Phase.LOWER, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.LOWER, graphGenConfig))));
                                 if (optGotos) {
                                     builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
                                 }
@@ -637,6 +663,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 LLVMCompiler.Factory llvmCompilerFactory =
                                     isWasm? LLVMEmscriptenCompiler::new : LLVMCompilerImpl::new;
 
+                                builder.addPreHook(Phase.GENERATE, ReachabilityFactsSetup::setupGenerate);
                                 builder.addPreHook(Phase.GENERATE, new StringInternTableEmitter());
                                 builder.addPreHook(Phase.GENERATE, new SupersDisplayEmitter());
                                 builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());

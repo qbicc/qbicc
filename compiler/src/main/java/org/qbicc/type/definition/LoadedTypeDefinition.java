@@ -1,5 +1,6 @@
 package org.qbicc.type.definition;
 
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -13,6 +14,7 @@ import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -457,8 +459,47 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         }
     }
 
+    default void forEachSigPolyInstanceMethod(Consumer<? super InstanceMethodElement> consumer) {
+        forEachSigPolyInstanceMethod(consumer, Consumer::accept);
+    }
 
-    void forEachSigPolyMethod(Consumer<MethodElement> consumer);
+    default void forEachSigPolyMethod(Consumer<? super MethodElement> consumer) {
+        forEachSigPolyMethod(consumer, Consumer::accept);
+    }
+
+    <T> void forEachSigPolyInstanceMethod(T argument, BiConsumer<T, ? super InstanceMethodElement> consumer);
+
+    <T> void forEachSigPolyMethod(T argument, BiConsumer<T, ? super MethodElement> consumer);
+
+    default void forEachMethod(Consumer<? super MethodElement> consumer) {
+        int mc = getMethodCount();
+        for (int i = 0; i < mc; i ++) {
+            consumer.accept(getMethod(i));
+        }
+        forEachSigPolyMethod(consumer);
+    }
+
+    default void forEachNonStaticMethod(Consumer<? super InstanceMethodElement> consumer) {
+        int mc = getMethodCount();
+        for (int i = 0; i < mc; i ++) {
+            MethodElement method = getMethod(i);
+            if (! method.isStatic()) {
+                consumer.accept((InstanceMethodElement) method);
+            }
+        }
+        forEachSigPolyInstanceMethod(consumer);
+    }
+
+    default <T> void forEachNonStaticMethod(T argument, BiConsumer<T, ? super InstanceMethodElement> consumer) {
+        int mc = getMethodCount();
+        for (int i = 0; i < mc; i ++) {
+            MethodElement method = getMethod(i);
+            if (! method.isStatic()) {
+                consumer.accept(argument, (InstanceMethodElement) method);
+            }
+        }
+        forEachSigPolyInstanceMethod(argument, consumer);
+    }
 
     ConstructorElement getConstructor(int index);
 

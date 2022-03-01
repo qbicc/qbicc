@@ -19,8 +19,10 @@ import java.util.function.Supplier;
 import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Diagnostic;
+import org.qbicc.context.Locatable;
 import org.qbicc.context.Location;
 import org.qbicc.context.PhaseAttachmentKey;
 import org.qbicc.graph.BasicBlock;
@@ -33,8 +35,8 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.machine.arch.Platform;
-import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ModuleSection;
+import org.qbicc.object.ProgramModule;
 import org.qbicc.object.Section;
 import org.qbicc.object.Segment;
 import org.qbicc.type.ClassObjectType;
@@ -44,7 +46,6 @@ import org.qbicc.type.InvokableType;
 import org.qbicc.type.MethodType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
-import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
 import org.qbicc.type.definition.NativeMethodConfigurator;
@@ -70,9 +71,7 @@ final class CompilationContextImpl implements CompilationContext {
     private final LiteralFactory literalFactory;
     private final BaseDiagnosticContext baseDiagnosticContext;
     private final ConcurrentMap<VmClassLoader, ClassContext> classLoaderContexts = new ConcurrentHashMap<>();
-    volatile Set<ExecutableElement> allowedSet = null;
-    final Set<ExecutableElement> queued = ConcurrentHashMap.newKeySet();
-    final Queue<ExecutableElement> queue = new ArrayDeque<>();
+    final Queue<Object> queue = new ArrayDeque<>();
     final Set<ExecutableElement> entryPoints = ConcurrentHashMap.newKeySet();
     final ClassContext bootstrapClassContext;
     final Function<VmClassLoader, ClassContext> appClassContextFactory;
@@ -286,49 +285,18 @@ final class CompilationContextImpl implements CompilationContext {
         return classContext;
     }
 
-    public void enqueue(final ExecutableElement element) {
-        Set<ExecutableElement> allowedSet = this.allowedSet;
-        if (allowedSet != null && ! allowedSet.contains(element)) {
-            error(element, "Element was unreachable in the previous phase but became reachable in this phase");
-        }
-        if (queued.add(element)) {
-            synchronized (queue) {
-                queue.add(element);
-                queue.notify();
-            }
-        }
-    }
-
-    public boolean wasEnqueued(final ExecutableElement element) {
-        return queued.contains(element);
-    }
-
     @Override
-    public boolean mayBeEnqueued(ExecutableElement element) {
-        return allowedSet == null || allowedSet.contains(element);
+    public <T> void submitTask(T item, Consumer<T> itemConsumer) {
+        synchronized (queue) {
+            queue.add(item);
+            queue.add(itemConsumer);
+            queue.notify();
+        }
     }
 
     @Override
     public NativeMethodConfigurator getNativeMethodConfigurator() {
         return nativeMethodConfigurator;
-    }
-
-    public ExecutableElement dequeue() {
-        synchronized (queue) {
-            return queue.poll();
-        }
-    }
-
-    void lockEnqueuedSet() {
-        allowedSet = Set.copyOf(queued);
-    }
-
-    void clearEnqueuedSet() {
-        queued.clear();
-    }
-
-    public int numberEnqueued() {
-        return queued.size();
     }
 
     public void registerEntryPoint(final ExecutableElement method) {
@@ -407,7 +375,7 @@ final class CompilationContextImpl implements CompilationContext {
         if (function != null) {
             return function;
         }
-        if (! queued.contains(element)) {
+        if (! mayBeEnqueued(element)) {
             throw new IllegalArgumentException("Cannot access function for un-lowered element " + element);
         }
         return exactFunctions.computeIfAbsent(element, e -> {
@@ -795,16 +763,17 @@ final class CompilationContextImpl implements CompilationContext {
 
     int waiting;
 
-    void processQueue(Consumer<ExecutableElement> consumer) {
+    void processQueue() {
         synchronized (this) {
             waiting = 0;
         }
         runParallelTask(ctxt -> {
-            ExecutableElement element;
+            Object item;
+            Consumer<?> consumer;
             for (;;) {
                 synchronized (queue) {
-                    element = queue.poll();
-                    if (element == null) {
+                    item = queue.poll();
+                    if (item == null) {
                         waiting++;
                         if (waiting == activeThreads) {
                             // no elements left! let everyone know
@@ -817,8 +786,8 @@ final class CompilationContextImpl implements CompilationContext {
                             } catch (InterruptedException ignored) {
                                 // safe to ignore
                             }
-                            element = queue.poll();
-                            if (element != null) {
+                            item = queue.poll();
+                            if (item != null) {
                                 break;
                             }
                             if (waiting == activeThreads) {
@@ -828,15 +797,25 @@ final class CompilationContextImpl implements CompilationContext {
                         }
                         waiting--;
                     }
+                    consumer = (Consumer<?>) queue.poll();
                 }
+                assert consumer != null;
                 try {
-                    consumer.accept(element);
+                    safeAccept(consumer, item);
                 } catch (Throwable e) {
                     log.error("An exception was thrown from a queue processing task", e);
-                    error(element, "Exception while processing queue task for element: %s", e);
+                    if (item instanceof Locatable loc) {
+                        error(loc.getLocation(), "Exception while processing queue task %s for %s: %s", consumer, item, e);
+                    } else {
+                        error("Exception while processing queue task %s for %s: %s", consumer, item, e);
+                    }
                 }
             }
         });
+    }
+
+    static <T> void safeAccept(Consumer<T> consumer, Object item) {
+        consumer.accept((T) item);
     }
 
     void startThreads(final int threadCnt, final long stackSize) {

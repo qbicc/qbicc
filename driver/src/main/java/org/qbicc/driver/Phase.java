@@ -67,6 +67,7 @@ public enum Phase {
         complete(ctxt);
         ctxt.putAttachment(KEY, this);
         MDC.put("phase", name());
+        ctxt.runParallelTask(context -> MDC.put("phase", name()));
         log.info("Entering phase");
     }
 

@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import io.smallrye.common.constraint.Assert;
@@ -23,6 +24,7 @@ import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.definition.element.ParameterElement;
@@ -272,12 +274,26 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
     }
 
     @Override
-    public void forEachSigPolyMethod(Consumer<MethodElement> consumer) {
+    public <T> void forEachSigPolyInstanceMethod(T arg, BiConsumer<T, ? super InstanceMethodElement> consumer) {
         Map<MethodElement, Map<MethodDescriptor, MethodElement>> sigPolyMethods = this.sigPolyMethods;
         if (sigPolyMethods != null) {
             for (Map<MethodDescriptor, MethodElement> subMap : sigPolyMethods.values()) {
                 for (MethodElement element : subMap.values()) {
-                    consumer.accept(element);
+                    if (element instanceof InstanceMethodElement ime) {
+                        consumer.accept(arg, ime);
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public <T> void forEachSigPolyMethod(T arg, BiConsumer<T, ? super MethodElement> consumer) {
+        Map<MethodElement, Map<MethodDescriptor, MethodElement>> sigPolyMethods = this.sigPolyMethods;
+        if (sigPolyMethods != null) {
+            for (Map<MethodDescriptor, MethodElement> subMap : sigPolyMethods.values()) {
+                for (MethodElement element : subMap.values()) {
+                    consumer.accept(arg, element);
                 }
             }
         }
