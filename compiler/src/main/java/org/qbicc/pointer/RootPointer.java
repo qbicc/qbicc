@@ -32,6 +32,20 @@ public abstract class RootPointer extends Pointer {
     }
 
     @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+
+    @Override
+    public final boolean equals(Pointer other) {
+        return other instanceof RootPointer rp && equals(rp);
+    }
+
+    public boolean equals(RootPointer other) {
+        return other != null;
+    }
+
+    @Override
     public final <T, R> R accept(Pointer.Visitor<T, R> visitor, T t) {
         return accept((Visitor<T, R>) visitor, t);
     }

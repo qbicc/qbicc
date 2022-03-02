@@ -23,6 +23,30 @@ public final class MemoryPointer extends RootPointer {
         return getMemory();
     }
 
+    @Override
+    public int hashCode() {
+        return super.hashCode() * 19 + memory.hashCode();
+    }
+
+    @Override
+    public boolean equals(RootPointer other) {
+        return other instanceof MemoryPointer mp && equals(mp);
+    }
+
+    public boolean equals(MemoryPointer other) {
+        return this == other || super.equals(other) && memory == other.memory;
+    }
+
+    @Override
+    public String toString() {
+        return "{memory}";
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return b.append(this);
+    }
+
     public <T, R> R accept(final Visitor<T, R> visitor, final T t) {
         return visitor.visit(t, this);
     }

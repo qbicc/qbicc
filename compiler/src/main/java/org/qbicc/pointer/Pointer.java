@@ -107,6 +107,42 @@ public abstract class Pointer {
 
     public abstract String getRootSymbolIfExists();
 
+    @Override
+    public int hashCode() {
+        return getRootPointer().hashCode() * 19 + Long.hashCode(getRootByteOffset());
+    }
+
+    /**
+     * Determine pointer equality as described in {@link #equals(Pointer)}.
+     *
+     * @param obj the other value
+     * @return {@code true} if the other value is equal to this pointer, or {@code false} otherwise
+     * @see #equals(Pointer)
+     */
+    @Override
+    public final boolean equals(Object obj) {
+        return obj instanceof Pointer p && equals(p);
+    }
+
+    /**
+     * Determine pointer equality. Two pointers are equal if they share the same root pointer and offset. If this
+     * method returns {@code false}, the pointers still may end up being equal at run time.
+     *
+     * @param other the other pointer
+     * @return {@code true} if this pointer is definitely equal to the other pointer, or {@code false} otherwise
+     *      (including the case where equality cannot be determined)
+     */
+    public boolean equals(Pointer other) {
+        return this == other || other != null && getRootPointer().equals(other.getRootPointer()) && getRootByteOffset() == other.getRootByteOffset();
+    }
+
+    @Override
+    public String toString() {
+        return toString(new StringBuilder()).toString();
+    }
+
+    public abstract StringBuilder toString(StringBuilder b);
+
     public abstract <T, R> R accept(Visitor<T, R> visitor, T t);
 
     public interface Visitor<T, R> extends RootPointer.Visitor<T, R> {

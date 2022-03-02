@@ -61,6 +61,11 @@ public final class ElementPointer extends Pointer {
         return arrayPointer.getRootSymbolIfExists();
     }
 
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return arrayPointer.toString(b).append('[').append(index).append(']');
+    }
+
     public <T, R> R accept(final Visitor<T, R> visitor, final T t) {
         return visitor.visit(t, this);
     }
