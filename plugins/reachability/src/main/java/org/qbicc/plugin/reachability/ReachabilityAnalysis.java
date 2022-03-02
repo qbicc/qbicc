@@ -3,8 +3,8 @@ package org.qbicc.plugin.reachability;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
-import org.qbicc.type.definition.element.BasicElement;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -26,9 +26,9 @@ interface ReachabilityAnalysis {
 
     void processReachableDispatchedInvocation(final MethodElement target, ExecutableElement currentElement);
 
-    void processStaticElementInitialization(final LoadedTypeDefinition ltd, BasicElement cause, ExecutableElement currentElement);
+    void processReachableStaticFieldAccess(final FieldElement field, ExecutableElement currentElement);
 
-    void processClassInitialization(final LoadedTypeDefinition ltd);
+    void processReachableType(final LoadedTypeDefinition ltd, ExecutableElement currentElement);
 
     void processInstantiatedClass(final LoadedTypeDefinition type, boolean directlyInstantiated, boolean onHeapType, ExecutableElement currentElement);
 

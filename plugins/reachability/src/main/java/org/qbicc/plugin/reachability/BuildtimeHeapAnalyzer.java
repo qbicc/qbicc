@@ -1,13 +1,19 @@
 package org.qbicc.plugin.reachability;
 
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+
+import java.util.ArrayDeque;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Map;
+
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.interpreter.VmObject;
-import org.qbicc.interpreter.VmStaticFieldBaseObject;
 import org.qbicc.interpreter.VmReferenceArray;
+import org.qbicc.interpreter.VmStaticFieldBaseObject;
 import org.qbicc.interpreter.VmString;
-import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.pointer.Pointer;
@@ -21,13 +27,6 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
-
-import java.util.ArrayDeque;
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.Map;
-
-import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
 /**
  * This class supports reachability analysis by providing the capability of
@@ -46,20 +45,16 @@ class BuildtimeHeapAnalyzer {
     }
 
     /**
-     * Trace the build-time heap starting from the statics of the given type
+     * Trace the build-time heap starting from a given static field
      * to identify instantiated types.
-     * @param ltd Type whose static fields are the roots for this trace
+     * @param f static field which is the starting point for this trace
      */
-    void traceHeap(CompilationContext ctxt, ReachabilityAnalysis analysis, LoadedTypeDefinition ltd) {
-        int fieldCount = ltd.getFieldCount();
-        for (int i=0; i<fieldCount; i++) {
-            FieldElement f = ltd.getField(i);
-            if (f.isStatic() && f.getType() instanceof ReferenceType && !f.isThreadLocal() && f.getRunTimeInitializer() == null) {
-                Value v = ltd.getInitialValue(f);
-                if (v instanceof ObjectLiteral) {
-                    VmObject vo = ((ObjectLiteral) v).getValue();
-                    traceHeap(ctxt, analysis, vo, ltd.getInitializer());
-                }
+    void traceHeap(CompilationContext ctxt, ReachabilityAnalysis analysis, FieldElement f, ExecutableElement currentElement) {
+        if (f.isStatic() && f.getType() instanceof ReferenceType && !f.isThreadLocal() && f.getRunTimeInitializer() == null) {
+            Value v = f.getEnclosingType().load().getInitialValue(f);
+            if (v instanceof ObjectLiteral) {
+                VmObject vo = ((ObjectLiteral) v).getValue();
+                traceHeap(ctxt, analysis, vo, currentElement);
             }
         }
     }
@@ -78,7 +73,6 @@ class BuildtimeHeapAnalyzer {
         worklist.add(root);
 
         Layout interpreterLayout = Layout.get(ctxt);
-        CoreClasses coreClasses = CoreClasses.get(ctxt);
         while (!worklist.isEmpty()) {
             VmObject cur = worklist.pop();
 

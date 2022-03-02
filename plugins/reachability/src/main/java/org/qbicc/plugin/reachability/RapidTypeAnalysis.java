@@ -1,23 +1,20 @@
 package org.qbicc.plugin.reachability;
 
-import io.smallrye.common.constraint.Assert;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
-import org.qbicc.type.definition.element.BasicElement;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.MethodElement;
-
-import java.util.ArrayDeque;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * An implementation of Rapid Type Analysis (RTA).
@@ -36,8 +33,6 @@ import java.util.concurrent.ConcurrentHashMap;
  *    class has already been instantiated.  If the class is only reachable, but not instantiated
  *    then these methods are added to a set of deferred instance methods.  If their defining class
  *    later is instantiated, these deferred methods are make invokable.
- * 4. We also handle class initialization semantics, to be able to determine which <clinit>
- *     methods become invokable.
  */
 public final class RapidTypeAnalysis implements ReachabilityAnalysis {
     private final ReachabilityInfo info;
@@ -70,7 +65,6 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
 
     public synchronized void processBuildtimeInstantiatedObjectType(LoadedTypeDefinition ltd, ExecutableElement currentElement) {
         processInstantiatedClass(ltd, true, true, currentElement);
-        processClassInitialization(ltd);
     }
 
     public synchronized void processReachableObjectLiteral(ObjectLiteral objectLiteral, ExecutableElement currentElement) {
@@ -86,10 +80,11 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
 
     public synchronized void processReachableExactInvocation(final InvokableElement target, ExecutableElement currentElement) {
         if (!ctxt.wasEnqueued(target)) {
+            processReachableType(target.getEnclosingType().load(), currentElement);
+
             if (target instanceof MethodElement me && !me.isStatic()) {
                 LoadedTypeDefinition definingClass = me.getEnclosingType().load();
                 if (!definingClass.isInterface() && !info.isInstantiatedClass(definingClass)) {
-                    info.addReachableClass(definingClass);
                     deferredExactMethods.add(me);
                     ReachabilityInfo.LOGGER.debugf("Deferring method %s (invoked exactly in %s, but no instantiated receiver)", target, currentElement);
                     return;
@@ -104,6 +99,7 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
     public synchronized void processReachableDispatchedInvocation(final MethodElement target, ExecutableElement currentElement) {
         if (!info.isDispatchableMethod(target)) {
             LoadedTypeDefinition definingClass = target.getEnclosingType().load();
+            info.addReachableType(definingClass);
             if (definingClass.isInterface() || info.isInstantiatedClass(definingClass)) {
                 if (currentElement == null) {
                     ReachabilityInfo.LOGGER.debugf("\tadding method %s (dispatch mechanism induced)", target);
@@ -125,49 +121,21 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
                 }
             } else {
                 ReachabilityInfo.LOGGER.debugf("Deferring method %s (dispatched to in %s, but no instantiated receiver)", target, currentElement);
-                info.addReachableClass(definingClass);
                 deferredDispatchableMethods.add(target);
             }
         }
     }
 
-    public synchronized void processStaticElementInitialization(final LoadedTypeDefinition ltd, BasicElement cause, ExecutableElement currentElement) {
-        if (info.isInitializedType(ltd)) return;
-        ReachabilityInfo.LOGGER.debugf("Initializing %s (static access to %s in %s)", ltd.getInternalName(), cause, currentElement);
-        if (ltd.isInterface()) {
-            info.addReachableInterface(ltd);
-            // JLS: accessing a static field/method of an interface only causes local <clinit> execution
-            info.addInitializedType(ltd);
-        } else {
-            // JLS: accessing a static field/method of a class <clinit> all the way up the class/interface hierarchy
-            processClassInitialization(ltd);
+    public synchronized void processReachableStaticFieldAccess(final FieldElement field, ExecutableElement currentElement) {
+        if (!info.isAccessedStaticField(field)) {
+            processReachableType(field.getEnclosingType().load(), null);
+            info.addAccessedStaticField(field);
+            heapAnalyzer.traceHeap(ctxt, this, field, currentElement);
         }
     }
 
-    public synchronized void processClassInitialization(final LoadedTypeDefinition ltd) {
-        Assert.assertFalse(ltd.isInterface());
-        if (info.isInitializedType(ltd)) return;
-        info.addReachableClass(ltd);
-
-        if (ltd.hasSuperClass()) {
-            // force superclass initialization
-            processClassInitialization(ltd.getSuperClass());
-        }
-        info.addInitializedType(ltd);
-
-        heapAnalyzer.traceHeap(ctxt, this, ltd);
-
-        // Annoyingly, because an intermediate interface could be marked initialized due to a static field
-        // access which doesn't cause the initialization of its superinterfaces, we can't short-circuit
-        // this walk up the entire interface hierarchy when we hit an already initialized interfaces.
-        ArrayDeque<LoadedTypeDefinition> worklist = new ArrayDeque<>(List.of(ltd.getInterfaces()));
-        while (!worklist.isEmpty()) {
-            LoadedTypeDefinition i = worklist.pop();
-            if (i.declaresDefaultMethods() && !info.isInitializedType(i)) {
-                info.addInitializedType(i);
-            }
-            worklist.addAll(List.of(i.getInterfaces()));
-        }
+    public synchronized void processReachableType(final LoadedTypeDefinition ltd, ExecutableElement currentElement) {
+        info.addReachableType(ltd);
     }
 
     public synchronized void processInstantiatedClass(final LoadedTypeDefinition type, boolean directlyInstantiated, boolean onHeapType, ExecutableElement currentElement) {

@@ -13,6 +13,7 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
@@ -54,11 +55,11 @@ public class ReachabilityInfo {
     private final Map<LoadedTypeDefinition, Set<LoadedTypeDefinition>> interfaceHierarchy = new ConcurrentHashMap<>();
     // Tracks actually instantiated classes
     private final Set<LoadedTypeDefinition> instantiatedClasses = ConcurrentHashMap.newKeySet();
-    // Tracks classes and interfaces whose <clinit> was evaluated at build time
-    private final Set<LoadedTypeDefinition> initializedTypes = ConcurrentHashMap.newKeySet();
 
     // Set of reachable instance methods that are dispatched to (potentially invoked via vtable/itable dispatching tables)
     private final Set<MethodElement> dispatchableMethods = ConcurrentHashMap.newKeySet();
+    // Set of static fields that are potentially accessed by reachable code
+    private final Set<FieldElement> accessedStaticField = ConcurrentHashMap.newKeySet();
 
     private final ReachabilityAnalysis analysis;
 
@@ -87,8 +88,8 @@ public class ReachabilityInfo {
         info.classHierarchy.clear();
         info.interfaceHierarchy.clear();
         info.instantiatedClasses.clear();
-        info.initializedTypes.clear();
         info.dispatchableMethods.clear();
+        info.accessedStaticField.clear();
         info.analysis.clear();
     }
 
@@ -98,9 +99,9 @@ public class ReachabilityInfo {
         LOGGER.debugf("  Reachable interfaces:          %s", info.interfaceHierarchy.size());
         LOGGER.debugf("  Reachable classes:             %s", info.classHierarchy.size());
         LOGGER.debugf("  Instantiated classes:          %s", info.instantiatedClasses.size());
-        LOGGER.debugf("  Initialized types:             %s", info.initializedTypes.size());
         LOGGER.debugf("  Reachable functions:           %s", ctxt.numberEnqueued());
         LOGGER.debugf("  Dispatchable instance methods: %s", info.dispatchableMethods.size());
+        LOGGER.debugf("  Accessed static fields:        %s", info.accessedStaticField.size());
         info.analysis.reportStats();
     }
 
@@ -115,32 +116,27 @@ public class ReachabilityInfo {
         LoadedTypeDefinition cloneable = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Cloneable").load();
         LoadedTypeDefinition serializable = ctxt.getBootstrapClassContext().findDefinedType("java/io/Serializable").load();
         info.analysis.processInstantiatedClass(obj, true, false,null);
-        info.analysis.processClassInitialization(obj);
         info.addReachableInterface(cloneable);
         info.addReachableInterface(serializable);
         for (String d : desc) {
             LoadedTypeDefinition at = cc.getArrayLoadedTypeDefinition(d);
             info.addInterfaceEdge(at, cloneable);
             info.addInterfaceEdge(at, serializable);
-            info.addInitializedType(at);
             info.analysis.processInstantiatedClass(at, true, false,null);
         }
 
         LOGGER.debugf("Forcing java.lang.Class reachable/instantiated");
         LoadedTypeDefinition clz = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
         info.analysis.processInstantiatedClass(clz, true, false,null);
-        info.analysis.processClassInitialization(clz);
 
         LOGGER.debugf("Forcing jdk.internal.misc.Unsafe reachable/instantiated");
         LoadedTypeDefinition unsafe = ctxt.getBootstrapClassContext().findDefinedType("jdk/internal/misc/Unsafe").load();
         info.analysis.processInstantiatedClass(unsafe, true, false,null);
-        info.analysis.processClassInitialization(unsafe);
 
         // The main Thread is instantiated in native code, and thus not visible to analysis.
         LOGGER.debugf("Forcing java.lang.Thread reachable/instantiated");
         LoadedTypeDefinition thr = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread").load();
         info.analysis.processInstantiatedClass(thr, true, false,null);
-        info.analysis.processClassInitialization(thr);
     }
 
     public static void processAutoQueuedElement(ExecutableElement elem) {
@@ -154,7 +150,6 @@ public class ReachabilityInfo {
         } else if (elem instanceof ConstructorElement ce) {
             ReachabilityInfo info = get(elem.getEnclosingType().getContext().getCompilationContext());
             info.analysis.processInstantiatedClass(ce.getEnclosingType().load(), true, false, null);
-            info.analysis.processClassInitialization(ce.getEnclosingType().load());
             info.analysis.processReachableExactInvocation(ce, null);
         }
     }
@@ -163,16 +158,16 @@ public class ReachabilityInfo {
         return dispatchableMethods.contains(meth);
     }
 
+    public boolean isAccessedStaticField(FieldElement field) {
+        return accessedStaticField.contains(field);
+    }
+
     public boolean isReachableClass(LoadedTypeDefinition type) {
         return classHierarchy.containsKey(type);
     }
 
     public boolean isReachableInterface(LoadedTypeDefinition type) {
         return interfaceHierarchy.containsKey(type);
-    }
-
-    public boolean isInitializedType(LoadedTypeDefinition type) {
-        return initializedTypes.contains(type);
     }
 
     public boolean isInstantiatedClass(LoadedTypeDefinition type) {
@@ -223,12 +218,6 @@ public class ReachabilityInfo {
         for (LoadedTypeDefinition sc : subclasses) {
             visitReachableSubclassesPostOrder(sc, function);
             function.accept(sc);
-        }
-    }
-
-    public void visitInitializedTypes(Consumer<LoadedTypeDefinition> function) {
-        for (LoadedTypeDefinition t: initializedTypes) {
-            function.accept(t);
         }
     }
 
@@ -297,17 +286,19 @@ public class ReachabilityInfo {
         instantiatedClasses.add(type);
     }
 
-    void addInitializedType(LoadedTypeDefinition type) {
-        if (isInitializedType(type)) return;
+    void addReachableType(LoadedTypeDefinition type) {
         if (type.isInterface()) {
             addReachableInterface(type);
         } else {
             addReachableClass(type);
         }
-        initializedTypes.add(type);
     }
 
     void addDispatchableMethod(MethodElement meth) {
         this.dispatchableMethods.add(meth);
+    }
+
+    void addAccessedStaticField(FieldElement field) {
+        this.accessedStaticField.add(field);
     }
 }
