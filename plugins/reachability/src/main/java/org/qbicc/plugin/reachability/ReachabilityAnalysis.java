@@ -5,6 +5,7 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.BasicElement;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -25,6 +26,8 @@ interface ReachabilityAnalysis {
     void processReachableExactInvocation(final InvokableElement target, ExecutableElement currentElement);
 
     void processReachableDispatchedInvocation(final MethodElement target, ExecutableElement currentElement);
+
+    void processReachableStaticFieldAccess(final FieldElement field, ExecutableElement currentElement);
 
     void processStaticElementInitialization(final LoadedTypeDefinition ltd, BasicElement cause, ExecutableElement currentElement);
 

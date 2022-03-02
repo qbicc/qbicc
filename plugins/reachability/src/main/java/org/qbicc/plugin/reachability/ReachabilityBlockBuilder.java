@@ -165,6 +165,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         public Void visit(ReachabilityContext param, StaticFieldPointer pointer) {
             FieldElement f = pointer.getStaticField();
             param.analysis.processStaticElementInitialization(f.getEnclosingType().load(), f, param.currentElement);
+            param.analysis.processReachableStaticFieldAccess(f, param.currentElement);
             return null;
         }
 
@@ -263,6 +264,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
             if (visitUnknown(param, (Node)node)) {
                 FieldElement f = node.getVariableElement();
                 param.analysis.processStaticElementInitialization(f.getEnclosingType().load(), f, param.currentElement);
+                param.analysis.processReachableStaticFieldAccess(f, param.currentElement);
             }
             return null;
         }

@@ -10,6 +10,7 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.BasicElement;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -131,6 +132,13 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         }
     }
 
+    public synchronized void processReachableStaticFieldAccess(final FieldElement field, ExecutableElement currentElement) {
+        if (!info.isAccessedStaticField(field)) {
+            info.addAccessedStaticField(field);
+            heapAnalyzer.traceHeap(ctxt, this, field, currentElement);
+        }
+    }
+
     public synchronized void processStaticElementInitialization(final LoadedTypeDefinition ltd, BasicElement cause, ExecutableElement currentElement) {
         if (info.isInitializedType(ltd)) return;
         ReachabilityInfo.LOGGER.debugf("Initializing %s (static access to %s in %s)", ltd.getInternalName(), cause, currentElement);
@@ -154,8 +162,6 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
             processClassInitialization(ltd.getSuperClass());
         }
         info.addInitializedType(ltd);
-
-        heapAnalyzer.traceHeap(ctxt, this, ltd);
 
         // Annoyingly, because an intermediate interface could be marked initialized due to a static field
         // access which doesn't cause the initialization of its superinterfaces, we can't short-circuit

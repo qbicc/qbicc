@@ -13,6 +13,7 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
@@ -59,6 +60,8 @@ public class ReachabilityInfo {
 
     // Set of reachable instance methods that are dispatched to (potentially invoked via vtable/itable dispatching tables)
     private final Set<MethodElement> dispatchableMethods = ConcurrentHashMap.newKeySet();
+    // Set of static fields that are potentially accessed by reachable code
+    private final Set<FieldElement> accessedStaticField = ConcurrentHashMap.newKeySet();
 
     private final ReachabilityAnalysis analysis;
 
@@ -89,6 +92,7 @@ public class ReachabilityInfo {
         info.instantiatedClasses.clear();
         info.initializedTypes.clear();
         info.dispatchableMethods.clear();
+        info.accessedStaticField.clear();
         info.analysis.clear();
     }
 
@@ -101,6 +105,7 @@ public class ReachabilityInfo {
         LOGGER.debugf("  Initialized types:             %s", info.initializedTypes.size());
         LOGGER.debugf("  Reachable functions:           %s", ctxt.numberEnqueued());
         LOGGER.debugf("  Dispatchable instance methods: %s", info.dispatchableMethods.size());
+        LOGGER.debugf("  Accessed static fields:        %s", info.accessedStaticField.size());
         info.analysis.reportStats();
     }
 
@@ -163,6 +168,10 @@ public class ReachabilityInfo {
         return dispatchableMethods.contains(meth);
     }
 
+    public boolean isAccessedStaticField(FieldElement field) {
+        return dispatchableMethods.contains(field);
+    }
+
     public boolean isReachableClass(LoadedTypeDefinition type) {
         return classHierarchy.containsKey(type);
     }
@@ -223,12 +232,6 @@ public class ReachabilityInfo {
         for (LoadedTypeDefinition sc : subclasses) {
             visitReachableSubclassesPostOrder(sc, function);
             function.accept(sc);
-        }
-    }
-
-    public void visitInitializedTypes(Consumer<LoadedTypeDefinition> function) {
-        for (LoadedTypeDefinition t: initializedTypes) {
-            function.accept(t);
         }
     }
 
@@ -309,5 +312,9 @@ public class ReachabilityInfo {
 
     void addDispatchableMethod(MethodElement meth) {
         this.dispatchableMethods.add(meth);
+    }
+
+    void addAccessedStaticField(FieldElement field) {
+        this.accessedStaticField.add(field);
     }
 }
