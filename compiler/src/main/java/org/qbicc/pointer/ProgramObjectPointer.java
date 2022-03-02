@@ -26,6 +26,25 @@ public final class ProgramObjectPointer extends RootPointer {
         return programObject.getName();
     }
 
+    @Override
+    public int hashCode() {
+        return super.hashCode() * 19 + programObject.getName().hashCode();
+    }
+
+    @Override
+    public boolean equals(RootPointer other) {
+        return other instanceof ProgramObjectPointer pop && equals(pop);
+    }
+
+    public boolean equals(ProgramObjectPointer other) {
+        return this == other || super.equals(other) && programObject.getName().equals(other.programObject.getName());
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return b.append('&').append(programObject.getName());
+    }
+
     public <T, R> R accept(final Visitor<T, R> visitor, final T t) {
         return visitor.visit(t, this);
     }

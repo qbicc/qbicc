@@ -54,6 +54,11 @@ public final class MemberPointer extends Pointer {
         return structurePointer.getRootSymbolIfExists();
     }
 
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return structurePointer.toString(b).append('.').append(member.getName());
+    }
+
     public <T, R> R accept(final Visitor<T, R> visitor, final T t) {
         return visitor.visit(t, this);
     }

@@ -44,6 +44,11 @@ public final class InstanceFieldPointer extends Pointer {
         return objectPointer.getRootSymbolIfExists();
     }
 
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return objectPointer.toString(b).append('.').append(fieldElement.getName());
+    }
+
     public <T, R> R accept(final Visitor<T, R> visitor, final T t) {
         return visitor.visit(t, this);
     }

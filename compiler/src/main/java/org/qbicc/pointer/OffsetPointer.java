@@ -54,6 +54,11 @@ public final class OffsetPointer extends Pointer {
         return basePointer.getRootSymbolIfExists();
     }
 
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return b.append("+").append(offset);
+    }
+
     public <T, R> R accept(final Visitor<T, R> visitor, final T t) {
         return visitor.visit(t, this);
     }

@@ -23,6 +23,25 @@ public final class ReferenceAsPointer extends RootPointer {
         return reference.getMemory();
     }
 
+    @Override
+    public int hashCode() {
+        return super.hashCode() * 19 + reference.hashCode();
+    }
+
+    @Override
+    public boolean equals(RootPointer other) {
+        return other instanceof ReferenceAsPointer rap && equals(rap);
+    }
+
+    public boolean equals(ReferenceAsPointer other) {
+        return this == other || super.equals(other) && reference == other.reference;
+    }
+
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return b.append("refToPtr(").append(reference).append(")");
+    }
+
     public <T, R> R accept(final Visitor<T, R> visitor, final T t) {
         return visitor.visit(t, this);
     }
