@@ -57,7 +57,6 @@ import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.MemberElement;
 import org.qbicc.type.definition.element.MethodElement;
-import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.generic.ClassSignature;
 
@@ -325,6 +324,11 @@ final class CompilationContextImpl implements CompilationContext {
 
     public boolean wasEnqueued(final ExecutableElement element) {
         return queued.contains(element);
+    }
+
+    @Override
+    public boolean mayBeEnqueued(ExecutableElement element) {
+        return allowedSet == null || allowedSet.contains(element);
     }
 
     @Override

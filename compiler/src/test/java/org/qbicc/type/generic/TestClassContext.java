@@ -86,6 +86,10 @@ public class TestClassContext implements ClassContext {
             return false;
         }
 
+        public boolean mayBeEnqueued(final ExecutableElement element) {
+            return false;
+        }
+
         public int numberEnqueued() {
             return 0;
         }
