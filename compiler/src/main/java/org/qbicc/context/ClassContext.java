@@ -8,7 +8,6 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -46,7 +45,7 @@ public interface ClassContext extends DescriptorTypeResolver {
 
     void defineClass(String name, DefinedTypeDefinition definition);
 
-    ValueType resolveTypeFromDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature, TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations);
+    ValueType resolveTypeFromDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature);
 
     /**
      * Get the entirety of the resource with the given name, or {@code null} if no such resource could be found.

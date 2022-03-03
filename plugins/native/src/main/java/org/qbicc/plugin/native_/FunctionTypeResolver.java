@@ -8,7 +8,6 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
@@ -41,7 +40,7 @@ public class FunctionTypeResolver implements DescriptorTypeResolver.Delegating {
         return delegate;
     }
 
-    public ValueType resolveTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, TypeAnnotationList visibleAnnotations, TypeAnnotationList invisibleAnnotations) {
+    public ValueType resolveTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature) {
         out: if (descriptor instanceof ClassTypeDescriptor) {
             ClassTypeDescriptor ctd = (ClassTypeDescriptor) descriptor;
             if (ctd.getPackageName().equals(Native.NATIVE_PKG)) {
@@ -117,6 +116,6 @@ public class FunctionTypeResolver implements DescriptorTypeResolver.Delegating {
                 break out;
             }
         }
-        return getDelegate().resolveTypeFromDescriptor(descriptor, paramCtxt, signature, visibleAnnotations, invisibleAnnotations);
+        return getDelegate().resolveTypeFromDescriptor(descriptor, paramCtxt, signature);
     }
 }

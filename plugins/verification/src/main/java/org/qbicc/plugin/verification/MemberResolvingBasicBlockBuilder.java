@@ -32,7 +32,6 @@ import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -175,7 +174,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public Value checkcast(final Value value, final TypeDescriptor desc) {
         ClassContext cc = getClassContext();
         // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
-        ValueType castType = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+        ValueType castType = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc));
         if (value instanceof ConstantLiteral) {
             // it may be something we can't really cast.
             return ctxt.getLiteralFactory().constantLiteralOfType(castType);
@@ -242,7 +241,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         ObjectType ot;
         int dimensions = 0;
         if (desc instanceof ArrayTypeDescriptor) {
-            ot = cc.resolveArrayObjectTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+            ot = cc.resolveArrayObjectTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc));
             if (ot instanceof ReferenceArrayObjectType) {
                 dimensions = ((ReferenceArrayObjectType) ot).getDimensionCount();
                 ot = ((ReferenceArrayObjectType) ot).getLeafElementType();
@@ -266,7 +265,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // always the current class
             type = enclosingType.load().getType();
         } else {
-            type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+            type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc));
         }
         if (type instanceof ClassObjectType cot) {
             Layout layout = Layout.get(ctxt);
@@ -279,7 +278,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     public Value newArray(final ArrayTypeDescriptor desc, final Value size) {
         ClassContext cc = getClassContext();
-        ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+        ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc));
         if (type instanceof PrimitiveArrayObjectType pat) {
             return super.newArray(pat, size);
         } else if (type instanceof ReferenceArrayObjectType rat) {
@@ -300,7 +299,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     public Value multiNewArray(final ArrayTypeDescriptor desc, final List<Value> dimensions) {
         ClassContext cc = getClassContext();
-        ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+        ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc));
         if (type instanceof ArrayObjectType) {
             return super.multiNewArray((ArrayObjectType) type, dimensions);
         }

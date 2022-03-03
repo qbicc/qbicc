@@ -2,7 +2,6 @@ package org.qbicc.type.definition;
 
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
@@ -28,16 +27,14 @@ public interface DescriptorTypeResolver {
      * @param descriptor the type descriptor (must not be {@code null})
      * @param paramCtxt the type parameter context (must not be {@code null})
      * @param signature the type signature (must not be {@code null})
-     * @param visibleAnnotations the visible type annotations list in this use site (must not be {@code null})
-     * @param invisibleAnnotations the invisible type annotations list in this use site (must not be {@code null})
      * @return the resolved type
      */
-    ValueType resolveTypeFromDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature, TypeAnnotationList visibleAnnotations, TypeAnnotationList invisibleAnnotations);
+    ValueType resolveTypeFromDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature);
 
-    ValueType resolveTypeFromMethodDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature, TypeAnnotationList visibleAnnotations, TypeAnnotationList invisibleAnnotations);
+    ValueType resolveTypeFromMethodDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature);
 
-    ArrayObjectType resolveArrayObjectTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible);
-        
+    ArrayObjectType resolveArrayObjectTypeFromDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature);
+
     interface Delegating extends DescriptorTypeResolver {
         DescriptorTypeResolver getDelegate();
 
@@ -45,16 +42,16 @@ public interface DescriptorTypeResolver {
             return getDelegate().resolveTypeFromClassName(packageName, internalName);
         }
 
-        default ValueType resolveTypeFromDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature, TypeAnnotationList visibleAnnotations, TypeAnnotationList invisibleAnnotations) {
-            return getDelegate().resolveTypeFromDescriptor(descriptor, paramCtxt, signature, visibleAnnotations, invisibleAnnotations);
+        default ValueType resolveTypeFromDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature) {
+            return getDelegate().resolveTypeFromDescriptor(descriptor, paramCtxt, signature);
         }
 
-        default public ArrayObjectType resolveArrayObjectTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible) {
-            return getDelegate().resolveArrayObjectTypeFromDescriptor(descriptor, paramCtxt, signature, visible, invisible);
+        default ArrayObjectType resolveArrayObjectTypeFromDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature) {
+            return getDelegate().resolveArrayObjectTypeFromDescriptor(descriptor, paramCtxt, signature);
         }
 
-        default ValueType resolveTypeFromMethodDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature, TypeAnnotationList visibleAnnotations, TypeAnnotationList invisibleAnnotations) {
-            return getDelegate().resolveTypeFromMethodDescriptor(descriptor, paramCtxt, signature, visibleAnnotations, invisibleAnnotations);
+        default ValueType resolveTypeFromMethodDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature) {
+            return getDelegate().resolveTypeFromMethodDescriptor(descriptor, paramCtxt, signature);
         }
     }
 }

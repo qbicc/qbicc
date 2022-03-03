@@ -5,7 +5,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
+import org.eclipse.collections.api.map.ImmutableMap;
 import org.qbicc.context.ClassContext;
+import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 
 /**
@@ -15,8 +17,8 @@ public abstract class ClassTypeSignature extends ThrowsSignature {
     private final String identifier;
     private final List<TypeArgument> typeArguments;
 
-    ClassTypeSignature(final int hashCode, final String identifier, final List<TypeArgument> typeArguments) {
-        super(Objects.hash(identifier, typeArguments) * 19 + hashCode);
+    ClassTypeSignature(final int hashCode, final String identifier, final List<TypeArgument> typeArguments, ImmutableMap<ClassTypeDescriptor, Annotation> annotations) {
+        super(Objects.hash(identifier, typeArguments) * 19 + hashCode, annotations);
         this.identifier = identifier;
         this.typeArguments = typeArguments;
     }

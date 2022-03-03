@@ -2,10 +2,13 @@ package org.qbicc.type.generic;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
+import java.util.Set;
 
+import org.eclipse.collections.api.factory.Maps;
+import org.eclipse.collections.api.map.ImmutableMap;
 import org.qbicc.context.ClassContext;
+import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
-import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  *
@@ -14,7 +17,11 @@ public final class TypeVariableSignature extends ThrowsSignature {
     private final String identifier;
 
     TypeVariableSignature(final String identifier) {
-        super(Objects.hash(TypeVariableSignature.class, identifier));
+        this(identifier, Maps.immutable.empty());
+    }
+
+    TypeVariableSignature(final String identifier, ImmutableMap<ClassTypeDescriptor, Annotation> annotations) {
+        super(Objects.hash(TypeVariableSignature.class, identifier), annotations);
         this.identifier = identifier;
     }
 
@@ -34,11 +41,46 @@ public final class TypeVariableSignature extends ThrowsSignature {
         return target.append('T').append(identifier).append(';');
     }
 
+    @Override
+    public TypeVariableSignature withAnnotation(Annotation annotation) {
+        return (TypeVariableSignature) super.withAnnotation(annotation);
+    }
+
+    @Override
+    public TypeVariableSignature withAnnotations(Set<Annotation> set) {
+        return (TypeVariableSignature) super.withAnnotations(set);
+    }
+
+    @Override
+    public TypeVariableSignature withOnlyAnnotations(Set<Annotation> set) {
+        return (TypeVariableSignature) super.withOnlyAnnotations(set);
+    }
+
+    @Override
+    public TypeVariableSignature withNoAnnotations() {
+        return (TypeVariableSignature) super.withNoAnnotations();
+    }
+
+    @Override
+    public TypeVariableSignature withoutAnnotation(Annotation annotation) {
+        return (TypeVariableSignature) super.withoutAnnotation(annotation);
+    }
+
+    @Override
+    public TypeVariableSignature withoutAnnotation(ClassTypeDescriptor descriptor) {
+        return (TypeVariableSignature) super.withoutAnnotation(descriptor);
+    }
+
+    @Override
+    TypeVariableSignature replacingAnnotationMap(ImmutableMap<ClassTypeDescriptor, Annotation> newMap) {
+        return new TypeVariableSignature(identifier, newMap);
+    }
+
     public ClassTypeDescriptor asDescriptor(final ClassContext classContext) {
         return (ClassTypeDescriptor) super.asDescriptor(classContext);
     }
 
-    TypeDescriptor makeDescriptor(final ClassContext classContext) {
+    ClassTypeDescriptor makeDescriptor(final ClassContext classContext) {
         return ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
     }
 

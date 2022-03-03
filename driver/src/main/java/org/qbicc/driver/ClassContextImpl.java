@@ -15,7 +15,6 @@ import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.DefineFailedException;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
@@ -139,12 +138,12 @@ final class ClassContextImpl implements ClassContext {
         return descriptorTypeResolver.resolveTypeFromClassName(packageName, internalName);
     }
 
-    public ValueType resolveTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {
-        return descriptorTypeResolver.resolveTypeFromDescriptor(descriptor, paramCtxt, signature, visibleAnnotations, invisibleAnnotations);
+    public ValueType resolveTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature) {
+        return descriptorTypeResolver.resolveTypeFromDescriptor(descriptor, paramCtxt, signature);
     }
 
-    public ArrayObjectType resolveArrayObjectTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible) {
-        return descriptorTypeResolver.resolveArrayObjectTypeFromDescriptor(descriptor, paramCtxt, signature, visible, invisible);
+    public ArrayObjectType resolveArrayObjectTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature) {
+        return descriptorTypeResolver.resolveArrayObjectTypeFromDescriptor(descriptor, paramCtxt, signature);
     }
 
     @Override
@@ -156,7 +155,7 @@ final class ClassContextImpl implements ClassContext {
         return builder;
     }
 
-    public ValueType resolveTypeFromMethodDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {
-        return descriptorTypeResolver.resolveTypeFromMethodDescriptor(descriptor, paramCtxt, signature, visibleAnnotations, invisibleAnnotations);
+    public ValueType resolveTypeFromMethodDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature) {
+        return descriptorTypeResolver.resolveTypeFromMethodDescriptor(descriptor, paramCtxt, signature);
     }
 }
