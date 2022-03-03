@@ -749,7 +749,7 @@ public class Main implements Callable<DiagnosticContext> {
             boolean optPhis;
             @CommandLine.Option(names = "--no-opt-gotos", negatable = true, defaultValue = "true", description = "Enable/disable `goto` elimination")
             boolean optGotos;
-            @CommandLine.Option(names = "--no-escape-analysis", negatable = true, defaultValue = "true", description = "Enable/disable escape analysis")
+            @CommandLine.Option(names = "--escape-analysis", negatable = true, defaultValue = "false", description = "Enable/disable escape analysis")
             boolean optEscapeAnalysis;
         }
 
@@ -839,7 +839,7 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean optInlining = false;
         private boolean optPhis = true;
         private boolean optGotos = true;
-        private boolean optEscapeAnalysis = true;
+        private boolean optEscapeAnalysis = false;
         private GraphGenConfig graphGenConfig;
         private boolean smallTypeIds = false;
 
