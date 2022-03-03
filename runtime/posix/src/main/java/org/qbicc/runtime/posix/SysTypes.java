@@ -10,7 +10,7 @@ import org.qbicc.runtime.Build;
 @include(value = "<sys/types.h>", when = Build.Target.IsPosix.class)
 public final class SysTypes {
 
-    public static final String LARGEFILE64_SOURCE = "_LARGEFILE64_SOURCE";
+    public static final java.lang.String LARGEFILE64_SOURCE = "_LARGEFILE64_SOURCE";
 
     public static final class ssize_t extends word {
     }
