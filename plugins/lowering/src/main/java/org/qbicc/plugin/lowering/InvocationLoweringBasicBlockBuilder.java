@@ -147,7 +147,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             // Convert native method that wasn't intercepted by an intrinsic to a runtime link error
             throw new BlockEarlyTermination(raiseLinkError(node.getExecutable()));
         }
-        if (!ctxt.wasEnqueued(node.getExecutable())) {
+        if (!ctxt.mayBeEnqueued(node.getExecutable())) {
             // No realized invocation targets are possible for this method!
             throw new BlockEarlyTermination(unreachable());
         }
