@@ -65,7 +65,25 @@ public interface CompilationContext extends DiagnosticContext {
 
     void enqueue(ExecutableElement element);
 
+    /**
+     * Determine whether the given element was already enqueued in the <em>current</em> phase.  Note that unless this
+     * is used in a post-hook, an element could become enqueued by another thread at any time, so it should only
+     * be used as a check (optimization) to short-circuit an otherwise idempotent operation in that case.
+     *
+     * @param element the element to check
+     * @return {@code true} if the element was already enqueued in the <em>current</em> phase, or {@code false} otherwise
+     */
     boolean wasEnqueued(ExecutableElement element);
+
+    /**
+     * Determine whether the given element was enqueued in the previous phase and thus is eligible to be enqueued again in
+     * <em>this</em> phase.
+     *
+     * @param element the element to check
+     * @return {@code true} if the element may be enqueued in this phase, or {@code false} if enqueuing the element will
+     *      result in an exception
+     */
+    boolean mayBeEnqueued(ExecutableElement element);
 
     int numberEnqueued();
 
