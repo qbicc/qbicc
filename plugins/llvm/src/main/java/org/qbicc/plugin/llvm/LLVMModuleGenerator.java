@@ -38,7 +38,9 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.VariadicType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.MethodBody;
+import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.MethodElement;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -100,6 +102,12 @@ final class LLVMModuleGenerator {
                     BasicBlock entryBlock = body.getEntryBlock();
                     FunctionDefinition functionDefinition = module.define(name).linkage(linkage);
                     LLValue topSubprogram;
+
+                    if (element instanceof MethodElement me) {
+                        functionDefinition.comment(me.getEnclosingType().getDescriptor().getClassName()+"."+me.getName()+" "+me.getDescriptor());
+                    } else if (element instanceof ConstructorElement ce) {
+                        functionDefinition.comment(ce.getEnclosingType().getDescriptor().getClassName()+".<init> "+ce.getDescriptor());
+                    }
 
                     if (isExact) {
                         topSubprogram = debugInfo.getDebugInfoForFunction(element).getSubprogram();
