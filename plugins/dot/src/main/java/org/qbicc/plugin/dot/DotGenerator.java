@@ -9,10 +9,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
@@ -22,13 +20,8 @@ import org.qbicc.context.Diagnostic;
 import org.qbicc.driver.GraphGenConfig;
 import org.qbicc.driver.GraphGenFilter;
 import org.qbicc.driver.Phase;
-import org.qbicc.graph.Action;
 import org.qbicc.graph.BasicBlock;
-import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
-import org.qbicc.graph.Terminator;
-import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.object.Function;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ProgramObject;
@@ -49,7 +42,7 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
     private final Phase phase;
     private final String name;
     private final GraphGenFilter filter;
-    private final List<BiFunction<DotGenerationContext, NodeVisitor<Appendable, String, String, String, String>, NodeVisitor<Appendable, String, String, String, String>>> visitorFactories = new ArrayList<>();
+    private final List<BiFunction<CompilationContext, NodeVisitor<DotContext, String, String, String, String>, NodeVisitor<DotContext, String, String, String, String>>> visitorFactories = new ArrayList<>();
 
     public DotGenerator(Phase p, GraphGenConfig graphGenConfig) {
         this(p, p.toString(), graphGenConfig);
@@ -63,9 +56,10 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
         } else {
             filter = null;
         }
+        this.addVisitorFactory(DotNodeVisitor::new);
     }
 
-    public DotGenerator addVisitorFactory(BiFunction<DotGenerationContext, NodeVisitor<Appendable, String, String, String, String>, NodeVisitor<Appendable, String, String, String, String>> factory) {
+    public DotGenerator addVisitorFactory(BiFunction<CompilationContext, NodeVisitor<DotContext, String, String, String, String>, NodeVisitor<DotContext, String, String, String, String>> factory) {
         visitorFactories.add(factory);
         return this;
     }
@@ -152,12 +146,7 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
                 bw.write("edge [ splines = true ];");
                 bw.newLine();
                 bw.newLine();
-                Map<Node, String> visited = new HashMap<>();
-                var decorators = constructDecorators();
-                final Terminus terminus = new Terminus(visited);
-                final DotGenerationContext dctxt = new DotGenerationContext(ctxt, element, visited);
-                DotNodeVisitor visitor = new DotNodeVisitor(entryBlock, visited, decorators.apply(dctxt, terminus));
-                visitor.process(bw);
+                new DotContext(bw, entryBlock, element, ctxt, constructDecorators()).process();
                 bw.write("}");
             } catch (IOException e) {
                 failedToWrite(ctxt, path, e);
@@ -183,7 +172,7 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
         return ctxt.warning("Failed to write \"%s\": %s", path, cause);
     }
 
-    private BiFunction<DotGenerationContext, NodeVisitor<Appendable, String, String, String, String>, NodeVisitor<Appendable, String, String, String, String>> constructDecorators() {
+    private BiFunction<CompilationContext, NodeVisitor<DotContext, String, String, String, String>, NodeVisitor<DotContext, String, String, String, String>> constructDecorators() {
         if (visitorFactories.isEmpty()) {
             return (dtxt, v) -> v;
         }
@@ -200,34 +189,5 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
             }
             return v;
         };
-    }
-
-    private static final class Terminus implements NodeVisitor<Appendable, String, String, String, String>
-    {
-        private final Map<Node, String> visited;
-
-        private Terminus(Map<Node, String> visited) {
-            this.visited = visited;
-        }
-
-        @Override
-        public String visitUnknown(Appendable param, Action node) {
-            return visited.get(node);
-        }
-
-        @Override
-        public String visitUnknown(Appendable param, Terminator node) {
-            return visited.get(node);
-        }
-
-        @Override
-        public String visitUnknown(Appendable param, ValueHandle node) {
-            return visited.get(node);
-        }
-
-        @Override
-        public String visitUnknown(Appendable param, Value node) {
-            return visited.get(node);
-        }
     }
 }

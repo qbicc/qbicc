@@ -1,39 +1,37 @@
 
 package org.qbicc.plugin.opt.ea;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-
+import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.New;
 import org.qbicc.graph.NodeVisitor;
-import org.qbicc.plugin.dot.DotGenerationContext;
+import org.qbicc.plugin.dot.DotContext;
 
-public final class EscapeAnalysisDotVisitor implements NodeVisitor.Delegating<Appendable, String, String, String, String> {
-    private final DotGenerationContext dtxt;
-    private final NodeVisitor<Appendable, String, String, String, String> delegate;
-    private final ConnectionGraph connectionGraph;
-    private boolean attr;
-    private boolean commaNeeded;
+public final class EscapeAnalysisDotVisitor implements NodeVisitor.Delegating<DotContext, String, String, String, String> {
+    private final NodeVisitor<DotContext, String, String, String, String> delegate;
+    private final EscapeAnalysisState escapeAnalysisState;
 
-    public EscapeAnalysisDotVisitor(DotGenerationContext dtxt, NodeVisitor<Appendable, String, String, String, String> delegate) {
-        this.dtxt = dtxt;
+    public EscapeAnalysisDotVisitor(CompilationContext ctxt, NodeVisitor<DotContext, String, String, String, String> delegate) {
         this.delegate = delegate;
-        this.connectionGraph = EscapeAnalysisState.get(dtxt.ctxt).getConnectionGraph(dtxt.element);
+        this.escapeAnalysisState = EscapeAnalysisState.get(ctxt);
     }
 
     @Override
-    public NodeVisitor<Appendable, String, String, String, String> getDelegateNodeVisitor() {
+    public NodeVisitor<DotContext, String, String, String, String> getDelegateNodeVisitor() {
         return delegate;
     }
 
     @Override
-    public String visit(Appendable param, New node) {
-        final String name = dtxt.visited.get(node);
-        appendTo(param, name);
-        attr(param, "style", "filled");
-        attr(param, "fillcolor", nodeType(connectionGraph.getEscapeValue(node)).fillColor);
-        nl(param);
+    public String visit(DotContext param, New node) {
+        final String name = param.getName(node);
+        param.appendTo(name);
+        param.attr("style", "filled");
+        param.attr("fillcolor", nodeType(getConnectionGraph(param).getEscapeValue(node)).fillColor);
+        param.nl();
         return name;
+    }
+
+    private ConnectionGraph getConnectionGraph(DotContext dtxt) {
+        return escapeAnalysisState.getConnectionGraph(dtxt.getElement());
     }
 
     private NodeType nodeType(EscapeValue value) {
@@ -43,65 +41,6 @@ public final class EscapeAnalysisDotVisitor implements NodeVisitor.Delegating<Ap
             case NO_ESCAPE -> NodeType.NO_ESCAPE;
             case UNKNOWN -> NodeType.UNKNOWN;
         };
-    }
-
-    // TODO copied from DotNodeVisitor
-    private void attr(Appendable param, String name, String val) {
-        if (!attr) {
-            attr = true;
-            appendTo(param, " [");
-        }
-        if (commaNeeded) {
-            appendTo(param, ',');
-        } else {
-            commaNeeded = true;
-        }
-        appendTo(param, name);
-        appendTo(param, '=');
-        quote(param, val);
-    }
-
-    // TODO copied from DotNodeVisitor
-    static void quote(Appendable output, String orig) {
-        appendTo(output, '"');
-        int cp;
-        for (int i = 0; i < orig.length(); i += Character.charCount(cp)) {
-            cp = orig.codePointAt(i);
-            if (cp == '"') {
-                appendTo(output, '\\');
-            } else if (cp == '\\') {
-                if ((i + 1) == orig.length() ||
-                    "nlrGNTHE".indexOf(orig.codePointAt(i + 1)) == -1) {
-                    appendTo(output, '\\');
-                }
-            }
-            if (Character.charCount(cp) == 1) {
-                appendTo(output, (char) cp);
-            } else {
-                appendTo(output, Character.highSurrogate(cp));
-                appendTo(output, Character.lowSurrogate(cp));
-            }
-        }
-        appendTo(output, '"');
-    }
-    // TODO copied from DotNodeVisitor
-
-    private void nl(final Appendable param) {
-        if (attr) {
-            appendTo(param, ']');
-            attr = false;
-            commaNeeded = false;
-        }
-        appendTo(param, System.lineSeparator());
-    }
-    // TODO copied from DotNodeVisitor
-
-    static void appendTo(Appendable param, Object obj) {
-        try {
-            param.append(obj.toString());
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
     }
 
     private enum NodeType {
