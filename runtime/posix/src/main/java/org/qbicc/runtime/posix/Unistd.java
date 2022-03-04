@@ -5,6 +5,8 @@ import static org.qbicc.runtime.posix.SysTypes.*;
 import static org.qbicc.runtime.stdc.Stddef.*;
 
 import org.qbicc.runtime.Build;
+import org.qbicc.runtime.CNative;
+import org.qbicc.runtime.stdc.Stddef;
 
 /**
  *
@@ -85,4 +87,6 @@ public final class Unistd {
 
     @extern
     public static char_ptr_ptr environ;
+
+    public static native char_ptr getcwd(char_ptr buf, size_t size);
 }
