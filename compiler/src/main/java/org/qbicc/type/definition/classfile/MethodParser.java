@@ -162,8 +162,19 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     if (! graphFactory.getCurrentElement().isStatic()) {
                         offset = 1;
                     }
-                    if (slot >= offset && slot < parameters.size() + offset) {
-                        builder.setReflectsParameter(parameters.get(slot - offset));
+                    if (slot >= offset) {
+                        int pos = offset;
+                        for (ParameterElement parameter : parameters) {
+                            if (pos == slot) {
+                                builder.setReflectsParameter(parameter);
+                                break;
+                            }
+                            if (parameter.getTypeDescriptor().isClass2()) {
+                                pos += 2;
+                            } else {
+                                pos++;
+                            }
+                        }
                     }
                 }
                 builder.setBci(startPc);
