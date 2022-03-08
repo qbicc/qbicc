@@ -43,6 +43,7 @@ import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.MethodBodyFactory;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.BasicElement;
+import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -62,6 +63,7 @@ public final class ReflectionIntrinsics {
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
         String methodHandleInt = "java/lang/invoke/MethodHandle";
+        String varHandleInt = "java/lang/invoke/VarHandle";
         ClassTypeDescriptor methodHandleDesc = ClassTypeDescriptor.synthesize(classContext, methodHandleInt);
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor internalErrorDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/InternalError");
@@ -70,6 +72,8 @@ public final class ReflectionIntrinsics {
         ArrayTypeDescriptor objArrayDesc = ArrayTypeDescriptor.of(classContext, objDesc);
 
         MethodDescriptor objArrayToObj = MethodDescriptor.synthesize(classContext, objDesc, List.of(objArrayDesc));
+        MethodDescriptor objArrayToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(objArrayDesc));
+        MethodDescriptor objArrayToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objArrayDesc));
         MethodDescriptor throwableToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(throwableDesc));
 
 
@@ -442,86 +446,69 @@ public final class ReflectionIntrinsics {
 
         // VarHandle
 
-        LoadedTypeDefinition vhDef = classContext.findDefinedType("java/lang/invoke/VarHandle").load();
-        MethodElement getMethodHandle = vhDef.resolveMethodElementExact(
-            "getMethodHandle",
-            MethodDescriptor.synthesize(classContext, methodHandleDesc, List.of(BaseTypeDescriptor.I))
-        );
-        ClassTypeDescriptor varHandleDesc = vhDef.getDescriptor();
+        LoadedTypeDefinition wmteDef = classContext.findDefinedType("java/lang/invoke/WrongMethodTypeException").load();
+        ConstructorElement wmteCtor = wmteDef.requireSingleConstructor(ce -> ce.getParameters().isEmpty());
 
-        final class VarHandleIntrinsic implements InstanceIntrinsic {
-            private final int index;
-
-            VarHandleIntrinsic(int index) {
-                this.index = index;
-            }
-
+        final class VarHandleBodyIntrinsic implements InstanceIntrinsic {
             @Override
             public Value emitIntrinsic(BasicBlockBuilder builder, Value instance, InstanceMethodElementHandle target, List<Value> arguments) {
-                // extract the method handle during build if possible
-                LiteralFactory lf = ctxt.getLiteralFactory();
-                Value methodHandle;
-                if (instance instanceof ObjectLiteral objLit) {
-                    Vm vm = Vm.requireCurrent();
-                    VmObject mh = (VmObject) vm.invokeExact(getMethodHandle, objLit.getValue(), List.of(Integer.valueOf(index)));
-                    methodHandle = lf.literalOf(mh);
+                MethodElement methodElement = target.getExecutable();
+                MethodDescriptor descriptor = methodElement.getDescriptor();
+                DefinedTypeDefinition enclosingType = methodElement.getEnclosingType();
+                if (Reflection.isErased(descriptor)) {
+                    // base method implementation with erased type throws WrongMethodTypeException; overridden in subclasses
+                    Value ex = builder.new_(wmteDef.getDescriptor());
+                    builder.call(builder.constructorOf(ex, wmteCtor), List.of());
+                    throw new BlockEarlyTermination(builder.throw_(ex));
                 } else {
-                    // todo: we may have to do something to pre-cache these...
-                    methodHandle = builder.call(builder.exactMethodOf(instance, getMethodHandle), List.of(lf.literalOf(index)));
+                    // not erased; delegate to erased version
+                    MethodDescriptor erased = Reflection.erase(classContext, descriptor);
+                    TypeDescriptor returnTypeDesc = descriptor.getReturnType();
+                    if (Reflection.isErased(returnTypeDesc)) {
+                        // no cast needed
+                        throw new BlockEarlyTermination(builder.tailCall(builder.virtualMethodOf(instance, enclosingType.getDescriptor(), methodElement.getName(), erased), arguments));
+                    } else {
+                        Value result = builder.call(builder.virtualMethodOf(instance, enclosingType.getDescriptor(), methodElement.getName(), erased), arguments);
+                        throw new BlockEarlyTermination(builder.return_(builder.checkcast(result, returnTypeDesc)));
+                    }
                 }
-                // now translate into an exact call on the method handle
-                MethodDescriptor callSiteDesc = target.getCallSiteDescriptor();
-                List<TypeDescriptor> parameterTypes = callSiteDesc.getParameterTypes();
-                int paramCnt = parameterTypes.size();
-                ArrayList<TypeDescriptor> modifiedParamTypes = new ArrayList<>(paramCnt + 1);
-                modifiedParamTypes.add(varHandleDesc);
-                modifiedParamTypes.addAll(parameterTypes);
-                MethodDescriptor modifiedDesc = MethodDescriptor.synthesize(builder.getCurrentElement().getEnclosingType().getContext(),
-                    callSiteDesc.getReturnType(), modifiedParamTypes);
-                MethodElement invokeExact = ctxt.getBootstrapClassContext().findDefinedType("java/lang/invoke/MethodHandle").load().resolveMethodElementExact(
-                    "invokeExact",
-                    modifiedDesc
-                );
-                ArrayList<Value> modifiedArgs = new ArrayList<>(paramCnt + 1);
-                modifiedArgs.add(instance);
-                modifiedArgs.addAll(arguments);
-                return builder.call(builder.exactMethodOf(methodHandle, invokeExact), modifiedArgs);
             }
+
         }
 
-        // Keep this exact order, matching the order of the `java.lang.invoke.VarHandle.AccessMode` enumeration
+        InstanceIntrinsicMethodBodyFactory varHandleBodyFactory = new InstanceIntrinsicMethodBodyFactory(new VarHandleBodyIntrinsic());
 
-        intrinsics.registerIntrinsic(varHandleDesc, "get", new VarHandleIntrinsic(0));
-        intrinsics.registerIntrinsic(varHandleDesc, "set", new VarHandleIntrinsic(1));
-        intrinsics.registerIntrinsic(varHandleDesc, "getVolatile", new VarHandleIntrinsic(2));
-        intrinsics.registerIntrinsic(varHandleDesc, "setVolatile", new VarHandleIntrinsic(3));
-        intrinsics.registerIntrinsic(varHandleDesc, "getAcquire", new VarHandleIntrinsic(4));
-        intrinsics.registerIntrinsic(varHandleDesc, "setRelease", new VarHandleIntrinsic(5));
-        intrinsics.registerIntrinsic(varHandleDesc, "getOpaque", new VarHandleIntrinsic(6));
-        intrinsics.registerIntrinsic(varHandleDesc, "setOpaque", new VarHandleIntrinsic(7));
-        intrinsics.registerIntrinsic(varHandleDesc, "compareAndSet", new VarHandleIntrinsic(8));
-        intrinsics.registerIntrinsic(varHandleDesc, "compareAndExchange", new VarHandleIntrinsic(9));
-        intrinsics.registerIntrinsic(varHandleDesc, "compareAndExchangeAcquire", new VarHandleIntrinsic(10));
-        intrinsics.registerIntrinsic(varHandleDesc, "compareAndExchangeRelease", new VarHandleIntrinsic(11));
-        intrinsics.registerIntrinsic(varHandleDesc, "weakCompareAndSetPlain", new VarHandleIntrinsic(12));
-        intrinsics.registerIntrinsic(varHandleDesc, "weakCompareAndSet", new VarHandleIntrinsic(13));
-        intrinsics.registerIntrinsic(varHandleDesc, "weakCompareAndSetAcquire", new VarHandleIntrinsic(14));
-        intrinsics.registerIntrinsic(varHandleDesc, "weakCompareAndSetRelease", new VarHandleIntrinsic(15));
-        intrinsics.registerIntrinsic(varHandleDesc, "getAndSet", new VarHandleIntrinsic(16));
-        intrinsics.registerIntrinsic(varHandleDesc, "getAndSetAcquire", new VarHandleIntrinsic(17));
-        intrinsics.registerIntrinsic(varHandleDesc, "getAndSetRelease", new VarHandleIntrinsic(18));
-        intrinsics.registerIntrinsic(varHandleDesc, "getAndAdd", new VarHandleIntrinsic(19));
-        intrinsics.registerIntrinsic(varHandleDesc, "getAndAddAcquire", new VarHandleIntrinsic(20));
-        intrinsics.registerIntrinsic(varHandleDesc, "getAndAddRelease", new VarHandleIntrinsic(21));
-        intrinsics.registerIntrinsic(varHandleDesc, "getAndBitwiseOr", new VarHandleIntrinsic(22));
-        intrinsics.registerIntrinsic(varHandleDesc, "getAndBitwiseOrRelease", new VarHandleIntrinsic(23));
-        intrinsics.registerIntrinsic(varHandleDesc, "getAndBitwiseOrAcquire", new VarHandleIntrinsic(24));
-        intrinsics.registerIntrinsic(varHandleDesc, "getAndBitwiseAnd", new VarHandleIntrinsic(25));
-        intrinsics.registerIntrinsic(varHandleDesc, "getAndBitwiseAndRelease", new VarHandleIntrinsic(26));
-        intrinsics.registerIntrinsic(varHandleDesc, "getAndBitwiseAndAcquire", new VarHandleIntrinsic(27));
-        intrinsics.registerIntrinsic(varHandleDesc, "getAndBitwiseXor", new VarHandleIntrinsic(28));
-        intrinsics.registerIntrinsic(varHandleDesc, "getAndBitwiseXorRelease", new VarHandleIntrinsic(29));
-        intrinsics.registerIntrinsic(varHandleDesc, "getAndBitwiseXorAcquire", new VarHandleIntrinsic(30));
+        patcher.replaceMethodBody(classContext, varHandleInt, "get", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "set", objArrayToVoid, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getVolatile", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "setVolatile", objArrayToVoid, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getAcquire", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "setRelease", objArrayToVoid, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getOpaque", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "setOpaque", objArrayToVoid, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "compareAndSet", objArrayToBool, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "compareAndExchange", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "compareAndExchangeAcquire", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "compareAndExchangeRelease", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "weakCompareAndSetPlain", objArrayToBool, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "weakCompareAndSet", objArrayToBool, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "weakCompareAndSetAcquire", objArrayToBool, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "weakCompareAndSetRelease", objArrayToBool, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getAndSet", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getAndSetAcquire", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getAndSetRelease", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getAndAdd", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getAndAddAcquire", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getAndAddRelease", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseOr", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseOrRelease", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseOrAcquire", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseAnd", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseAndRelease", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseAndAcquire", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseXor", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseXorRelease", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseXorAcquire", objArrayToObj, varHandleBodyFactory, 0);
     }
 
     /**

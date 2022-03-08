@@ -32,6 +32,10 @@ public final class ClassObjectType extends PhysicalObjectType {
         return superClassType;
     }
 
+    public List<InterfaceObjectType> getInterfaces() {
+        return interfaces;
+    }
+
     public long getSize() {
         // todo: probe definition for layout size? or, maybe never report layout and rely on lowering to struct instead
         throw new IllegalStateException("Object layout has not yet taken place");

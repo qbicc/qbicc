@@ -355,6 +355,52 @@ public final class Reflection {
         return instance;
     }
 
+    static MethodDescriptor erase(final ClassContext classContext, final MethodDescriptor descriptor) {
+        TypeDescriptor erasedRetType = erase(classContext, descriptor.getReturnType());
+        List<TypeDescriptor> erasedTypes = erase(classContext, descriptor.getParameterTypes());
+        return MethodDescriptor.synthesize(classContext, erasedRetType, erasedTypes);
+    }
+
+    static TypeDescriptor erase(ClassContext classContext, final TypeDescriptor type) {
+        if (type instanceof BaseTypeDescriptor btd) {
+            return btd;
+        } else {
+            return ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
+        }
+    }
+
+    static List<TypeDescriptor> erase(final ClassContext classContext, final List<TypeDescriptor> types) {
+        if (types.isEmpty()) {
+            return List.of();
+        } else if (types.size() == 1) {
+            return List.of(erase(classContext, types.get(0)));
+        } else {
+            ArrayList<TypeDescriptor> list = new ArrayList<>(types.size());
+            for (TypeDescriptor type : types) {
+                list.add(erase(classContext, type));
+            }
+            return list;
+        }
+    }
+
+    static boolean isErased(MethodDescriptor descriptor) {
+        return isErased(descriptor.getReturnType()) && isErased(descriptor.getParameterTypes());
+    }
+
+    static boolean isErased(final TypeDescriptor typeDescriptor) {
+        return typeDescriptor instanceof BaseTypeDescriptor ||
+            typeDescriptor instanceof ClassTypeDescriptor ctd && ctd.packageAndClassNameEquals("java/lang", "Object");
+    }
+
+    static boolean isErased(final List<TypeDescriptor> types) {
+        for (TypeDescriptor type : types) {
+            if (! isErased(type)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     ConstantPool getConstantPoolForClass(VmClass vmClass) {
         return cpObjs.computeIfAbsent(cpMap.computeIfAbsent(vmClass, this::makePoolObj), Reflection::makePool);
     }

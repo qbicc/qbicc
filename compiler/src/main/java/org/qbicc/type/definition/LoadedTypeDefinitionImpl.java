@@ -225,7 +225,7 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
                 builder.setEnclosingType(original.getEnclosingType());
                 builder.setMinimumLineNumber(original.getMinimumLineNumber());
                 builder.setMaximumLineNumber(original.getMaximumLineNumber());
-                builder.setModifiers(original.getModifiers() & ~ClassFile.I_ACC_SIGNATURE_POLYMORPHIC | ClassFile.ACC_SYNTHETIC);
+                builder.setModifiers(original.getModifiers() & ~ClassFile.I_ACC_SIGNATURE_POLYMORPHIC & ~ClassFile.ACC_FINAL & ~ClassFile.ACC_NATIVE | ClassFile.ACC_SYNTHETIC);
                 MethodBodyFactory origFactory = original.getMethodBodyFactory();
                 if (origFactory != null) {
                     builder.setMethodBodyFactory(origFactory, original.getMethodBodyFactoryIndex());
@@ -264,6 +264,18 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
             }
         }
         return sigPolyMethods;
+    }
+
+    @Override
+    public void forEachSigPolyMethod(Consumer<MethodElement> consumer) {
+        Map<MethodElement, Map<MethodDescriptor, MethodElement>> sigPolyMethods = this.sigPolyMethods;
+        if (sigPolyMethods != null) {
+            for (Map<MethodDescriptor, MethodElement> subMap : sigPolyMethods.values()) {
+                for (MethodElement element : subMap.values()) {
+                    consumer.accept(element);
+                }
+            }
+        }
     }
 
     public int getConstructorCount() {
