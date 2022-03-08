@@ -136,6 +136,7 @@ import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.ParameterElement;
@@ -268,7 +269,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             ParameterElement param = variable.getReflectsParameter();
             if (param != null) {
                 // debug args are 1-based
-                metadataNode.argument(param.getIndex() + 1);
+                int index = ((InvokableElement) functionObj.getOriginalElement()).getParameters().indexOf(param);
+                metadataNode.argument(index + 1);
             }
             localVariables.put(variable, metadataNode);
         }
