@@ -264,7 +264,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         if (metadataNode == null) {
             // first occurrence
             // todo: get alignment from variable
-            metadataNode = module.diLocalVariable(variable.getName(), debugInfo.getType(valueType), topSubprogram, debugInfo.createSourceFile(node.getElement()), node.getSourceLine(), valueType.getAlign());
+            metadataNode = module.diLocalVariable(variable.getName(), debugInfo.getType(variable.getType()), topSubprogram, debugInfo.createSourceFile(node.getElement()), node.getSourceLine(), valueType.getAlign());
             ParameterElement param = variable.getReflectsParameter();
             if (param != null) {
                 // debug args are 1-based
