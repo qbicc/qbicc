@@ -14,6 +14,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.interpreter.InterpreterHaltedException;
@@ -31,9 +32,15 @@ import org.qbicc.interpreter.memory.MemoryFactory;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
+import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.FloatType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.SignedIntegerType;
+import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -369,31 +376,42 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     public Literal getValueForStaticField(FieldElement field) {
         int offset = staticLayoutInfo.getMember(field).getOffset();
-        TypeDescriptor desc = field.getTypeDescriptor();
-        if (desc.equals(BaseTypeDescriptor.Z)) {
+        ValueType fieldType = field.getType();
+        LiteralFactory lf = vm.getCompilationContext().getLiteralFactory();
+        if (fieldType instanceof BooleanType) {
             int val = staticMemory.load8(offset, SinglePlain);
-            return vm.getCompilationContext().getLiteralFactory().literalOf(val != 0);
-        } else if (desc.equals(BaseTypeDescriptor.B)) {
-            return vm.getCompilationContext().getLiteralFactory().literalOf((byte) staticMemory.load8(offset, SinglePlain));
-        } else if (desc.equals(BaseTypeDescriptor.S)) {
-            return vm.getCompilationContext().getLiteralFactory().literalOf((short) staticMemory.load16(offset, SinglePlain));
-        } else if (desc.equals(BaseTypeDescriptor.C)) {
-            return vm.getCompilationContext().getLiteralFactory().literalOf((char) staticMemory.load16(offset, SinglePlain));
-        } else if (desc.equals(BaseTypeDescriptor.I)) {
-            return vm.getCompilationContext().getLiteralFactory().literalOf(staticMemory.load32(offset, SinglePlain));
-        } else if (desc.equals(BaseTypeDescriptor.F)) {
-            return vm.getCompilationContext().getLiteralFactory().literalOf(staticMemory.loadFloat(offset, SinglePlain));
-        } else if (desc.equals(BaseTypeDescriptor.J)) {
-            return vm.getCompilationContext().getLiteralFactory().literalOf(staticMemory.load64(offset, SinglePlain));
-        } else if (desc.equals(BaseTypeDescriptor.D)) {
-            return vm.getCompilationContext().getLiteralFactory().literalOf(staticMemory.loadDouble(offset, SinglePlain));
-        } else {
+            return lf.literalOf(val != 0);
+        } else if (fieldType instanceof SignedIntegerType sit) {
+            return switch (sit.getMinBits()) {
+                case 8 -> lf.literalOf((byte) staticMemory.load8(offset, SinglePlain));
+                case 16 -> lf.literalOf((short) staticMemory.load16(offset, SinglePlain));
+                case 32 -> lf.literalOf(staticMemory.load32(offset, SinglePlain));
+                case 64 -> lf.literalOf(staticMemory.load64(offset, SinglePlain));
+                default -> throw Assert.impossibleSwitchCase(sit.getMinBits());
+            };
+        } else if (fieldType instanceof UnsignedIntegerType uit) {
+            return switch (uit.getMinBits()) {
+                case 8 -> lf.literalOf(uit, staticMemory.load8(offset, SinglePlain));
+                case 16 -> lf.literalOf((char) staticMemory.load16(offset, SinglePlain));
+                case 32 -> lf.literalOf(uit, staticMemory.load32(offset, SinglePlain));
+                case 64 -> lf.literalOf(uit, staticMemory.load64(offset, SinglePlain));
+                default -> throw Assert.impossibleSwitchCase(uit.getMinBits());
+            };
+        } else if (fieldType instanceof FloatType ft) {
+            return switch (ft.getMinBits()) {
+                case 32 -> lf.literalOf(staticMemory.loadFloat(offset, SinglePlain));
+                case 64 -> lf.literalOf(staticMemory.loadDouble(offset, SinglePlain));
+                default -> throw Assert.impossibleSwitchCase(ft.getMinBits());
+            };
+        } else if (fieldType instanceof ReferenceType rt) {
             VmObject value = staticMemory.loadRef(offset, SinglePlain);
             if (value == null) {
-                return vm.getCompilationContext().getLiteralFactory().zeroInitializerLiteralOfType(field.getType());
+                return lf.nullLiteralOfType(rt);
             } else {
-                return vm.getCompilationContext().getLiteralFactory().literalOf(value);
+                return lf.literalOf(value);
             }
+        } else {
+            throw new IllegalStateException("Unsupported type");
         }
     }
 
