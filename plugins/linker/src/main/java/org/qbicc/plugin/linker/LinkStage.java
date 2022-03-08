@@ -13,9 +13,11 @@ import org.qbicc.machine.tool.ToolMessageHandler;
  *
  */
 public class LinkStage implements Consumer<CompilationContext> {
+    private final String outputName;
     private final boolean isPie;
 
-    public LinkStage(final boolean isPie) {
+    public LinkStage(String outputName, final boolean isPie) {
+        this.outputName = outputName;
         this.isPie = isPie;
     }
 
@@ -29,7 +31,7 @@ public class LinkStage implements Consumer<CompilationContext> {
         Linker linker = Linker.get(context);
         linkerInvoker.addObjectFiles(linker.getObjectFilePaths());
         linkerInvoker.addLibraries(linker.getLibraries());
-        linkerInvoker.setOutputPath(context.getOutputDirectory().resolve("a.out"));
+        linkerInvoker.setOutputPath(context.getOutputDirectory().resolve(outputName));
         linkerInvoker.setMessageHandler(ToolMessageHandler.reporting(context));
         linkerInvoker.setIsPie(isPie);
         try {

@@ -151,6 +151,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final List<ClassPathEntry> bootPaths;
     private final List<ClassPathEntry> appPaths;
     private final Path outputPath;
+    private final String outputName;
     private final Consumer<Iterable<Diagnostic>> diagnosticsHandler;
     private final String mainClass;
     private final String gc;
@@ -167,6 +168,7 @@ public class Main implements Callable<DiagnosticContext> {
 
     Main(Builder builder) {
         outputPath = builder.outputPath;
+        outputName = builder.outputName;
         diagnosticsHandler = builder.diagnosticsHandler;
         // todo: this becomes optional
         mainClass = Assert.checkNotNullParam("builder.mainClass", builder.mainClass);
@@ -530,7 +532,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.GENERATE, new MethodDataEmitter());
                                 builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(isPie, compileOutput));
                                 if (compileOutput) {
-                                    builder.addPostHook(Phase.GENERATE, new LinkStage(isPie));
+                                    builder.addPostHook(Phase.GENERATE, new LinkStage(outputName, isPie));
                                 }
 
                                 CompilationContext ctxt;
@@ -582,6 +584,7 @@ public class Main implements Callable<DiagnosticContext> {
             .prependBootPaths(optionsProcessor.prependedBootPathEntries)
             .addAppPaths(optionsProcessor.appPathEntries)
             .setOutputPath(optionsProcessor.outputPath)
+            .setOutputName(optionsProcessor.outputName)
             .setMainClass(optionsProcessor.mainClass)
             .setDiagnosticsHandler(diagnostics -> {
                 for (Diagnostic diagnostic : diagnostics) {
@@ -679,8 +682,10 @@ public class Main implements Callable<DiagnosticContext> {
         }
         private final List<ClassPathEntry> appPathEntries = new ArrayList<>();
 
-        @CommandLine.Option(names = "--output-path", description = "Specify directory where the executable is placed")
+        @CommandLine.Option(names = "--output-path", description = "Specify directory where build files are placed")
         private Path outputPath;
+        @CommandLine.Option(names = { "--output-name", "-o" }, defaultValue = "a.out", description = "Specify the name of the output executable file or library")
+        private String outputName;
         @CommandLine.Option(names = "--no-compile-output", negatable = true, defaultValue = "true", description = "Enable/disable llvm compilation of output files")
         boolean compileOutput;
         @CommandLine.Option(names = "--debug")
@@ -828,6 +833,7 @@ public class Main implements Callable<DiagnosticContext> {
         private final List<ClassPathEntry> appPaths = new ArrayList<>();
         private String classLibVersion = MainProperties.CLASSLIB_DEFAULT_VERSION;
         private Path outputPath;
+        private String outputName = "a.out";
         private Consumer<Iterable<Diagnostic>> diagnosticsHandler = diagnostics -> {};
         private Platform platform = Platform.HOST_PLATFORM;
         private String mainClass;
@@ -890,6 +896,12 @@ public class Main implements Callable<DiagnosticContext> {
         public Builder setOutputPath(Path path) {
             Assert.checkNotNullParam("path", path);
             this.outputPath = path;
+            return this;
+        }
+
+        public Builder setOutputName(String outputName) {
+            Assert.checkNotNullParam("outputName", outputName);
+            this.outputName = outputName;
             return this;
         }
 
