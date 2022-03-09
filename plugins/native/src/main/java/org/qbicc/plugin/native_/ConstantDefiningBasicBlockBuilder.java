@@ -18,8 +18,10 @@ import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.plugin.constants.Constants;
+import org.qbicc.plugin.core.ConditionEvaluation;
 import org.qbicc.runtime.CNative;
 import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.ArrayAnnotationValue;
 import org.qbicc.type.annotation.StringAnnotationValue;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -74,6 +76,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
 
     private void processConstant(final FieldElement fieldElement) {
         Constants constants = Constants.get(ctxt);
+        ConditionEvaluation conditionEvaluation = ConditionEvaluation.get(ctxt);
         ClassContext classContext = fieldElement.getEnclosingType().getContext();
         /* Capture location during the ADD phase since constants are defined lazily. */
         Location location = getLocation();
@@ -81,6 +84,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
             CProbe.Builder builder = CProbe.builder();
             // get the element's info
             String name = fieldElement.getName();
+            boolean nameOverridden = false;
             // process enclosing type first
             ProbeUtils.ProbeProcessor pp = new ProbeUtils.ProbeProcessor(classContext, fieldElement.getEnclosingType());
             for (Annotation annotation : fieldElement.getEnclosingType().getInvisibleAnnotations()) {
@@ -94,9 +98,32 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
                 if (pp.processAnnotation(annotation)) {
                     continue;
                 }
-                if (desc.getPackageName().equals(Native.NATIVE_PKG) && desc.getClassName().equals(Native.ANN_NAME)) {
-                    name = ((StringAnnotationValue) annotation.getValue("value")).getString();
-                }
+                if (desc.getPackageName().equals(Native.NATIVE_PKG))
+                    if (desc.getClassName().equals(Native.ANN_NAME) && ! nameOverridden) {
+                        if (conditionEvaluation.evaluateConditions(classContext, () -> location, annotation)) {
+                            name = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                            nameOverridden = true;
+                        }
+                    } else if (desc.getClassName().equals(Native.ANN_NAME_LIST) && ! nameOverridden) {
+                        if (annotation.getValue("value") instanceof ArrayAnnotationValue aav) {
+                            int cnt = aav.getElementCount();
+                            for (int j = 0; j < cnt; j ++) {
+                                if (aav.getValue(j) instanceof Annotation nested) {
+                                    ClassTypeDescriptor nestedDesc = nested.getDescriptor();
+                                    if (nestedDesc.getPackageName().equals(Native.NATIVE_PKG)) {
+                                        if (nestedDesc.getClassName().equals(Native.ANN_NAME)) {
+                                            if (conditionEvaluation.evaluateConditions(classContext, () -> location, annotation)) {
+                                                name = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                                                nameOverridden = true;
+                                                // stop searching for names
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
             }
             pp.accept(builder);
             // todo: recursively process enclosing types (requires InnerClasses support)
