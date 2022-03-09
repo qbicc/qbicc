@@ -32,11 +32,13 @@ import org.qbicc.interpreter.memory.MemoryFactory;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
+import org.qbicc.pointer.Pointer;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.UnsignedIntegerType;
@@ -407,6 +409,13 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             VmObject value = staticMemory.loadRef(offset, SinglePlain);
             if (value == null) {
                 return lf.nullLiteralOfType(rt);
+            } else {
+                return lf.literalOf(value);
+            }
+        } else if (fieldType instanceof PointerType pt) {
+            Pointer value = staticMemory.loadPointer(offset, SinglePlain);
+            if (value == null) {
+                return lf.nullLiteralOfType(pt);
             } else {
                 return lf.literalOf(value);
             }
