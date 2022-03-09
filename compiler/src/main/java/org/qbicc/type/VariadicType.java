@@ -10,7 +10,7 @@ public final class VariadicType extends ValueType {
 
     @Override
     public StringBuilder toFriendlyString(StringBuilder b) {
-        return b.append("variadic");
+        return b.append("...");
     }
 
     @Override

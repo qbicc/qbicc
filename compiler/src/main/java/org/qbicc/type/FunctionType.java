@@ -56,14 +56,4 @@ public final class FunctionType extends InvokableType {
         b.append(returnType);
         return b;
     }
-
-    public StringBuilder toFriendlyString(final StringBuilder b) {
-        b.append("fn.");
-        returnType.toFriendlyString(b);
-        b.append('.').append(paramTypes.size());
-        for (ValueType paramType : paramTypes) {
-            paramType.toFriendlyString(b.append('.'));
-        }
-        return b;
-    }
 }

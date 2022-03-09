@@ -95,4 +95,14 @@ public abstract class ObjectType extends ValueType {
     public boolean equals(ObjectType other) {
         return super.equals(other);
     }
+
+    public StringBuilder toFriendlyString(final StringBuilder b) {
+        // override in subclasses that do not have a definition
+        DefinedTypeDefinition definition = getDefinition();
+        b.append(definition.getInternalName().replace('/', '.'));
+        if (definition.isHidden()) {
+            b.append('/').append(definition.getHiddenClassIndex());
+        }
+        return b;
+    }
 }

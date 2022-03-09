@@ -35,10 +35,6 @@ public final class PrimitiveArrayObjectType extends ArrayObjectType {
         return equals(other) ? this : super.getCommonSupertype(other);
     }
 
-    public StringBuilder toFriendlyString(final StringBuilder b) {
-        return elementType.toFriendlyString(b.append("prim_array").append('.'));
-    }
-
     @Override
     public final boolean equals(ObjectType other) {
         return other instanceof PrimitiveArrayObjectType && equals((PrimitiveArrayObjectType) other);

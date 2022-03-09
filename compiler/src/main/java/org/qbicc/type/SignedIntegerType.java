@@ -96,7 +96,14 @@ public final class SignedIntegerType extends IntegerType {
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
-        return b.append('s').append(minBits);
+        return b.append(switch (minBits) {
+            case 8 -> "byte";
+            case 16 -> "short";
+            case 32 -> "int";
+            case 64 -> "long";
+            case 128 -> "s128";
+            default -> throw Assert.impossibleSwitchCase(minBits);
+        });
     }
 
     public String toString(final IntegerLiteral literal) {

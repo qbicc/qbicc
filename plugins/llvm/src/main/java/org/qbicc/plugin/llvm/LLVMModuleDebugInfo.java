@@ -8,6 +8,7 @@ import org.qbicc.machine.llvm.ModuleFlagBehavior;
 import org.qbicc.machine.llvm.Types;
 import org.qbicc.machine.llvm.Values;
 import org.qbicc.machine.llvm.debuginfo.DICompositeType;
+import org.qbicc.machine.llvm.debuginfo.DIDerivedType;
 import org.qbicc.machine.llvm.debuginfo.DIEncoding;
 import org.qbicc.machine.llvm.debuginfo.DIFlags;
 import org.qbicc.machine.llvm.debuginfo.DISubprogram;
@@ -18,6 +19,7 @@ import org.qbicc.machine.llvm.debuginfo.MetadataTuple;
 import org.qbicc.object.Function;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
@@ -38,6 +40,7 @@ import org.qbicc.type.VoidType;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -229,9 +232,12 @@ final class LLVMModuleDebugInfo {
         return result;
     }
 
-    private LLValue createPhysicalObjectType(final PhysicalObjectType type, final CompoundType compoundType) {
-        DICompositeType diType = module.diCompositeType(DITag.StructureType, compoundType.getSize() * 8, compoundType.getAlign() * 8)
+    private LLValue createPhysicalObjectType(final PhysicalObjectType type, LayoutInfo instanceLayoutInfo, final CompoundType compoundType) {
+        DICompositeType diType = module.diCompositeType(DITag.ClassType, compoundType.getSize() * 8, compoundType.getAlign() * 8)
             .name(type.toFriendlyString());
+        if (!(type instanceof ClassObjectType cot) || cot.getDefinition().isPublic()) {
+            diType.flags(EnumSet.of(DIFlags.Public));
+        }
         LLValue result = registerType(type, diType);
 
         Set<CompoundType.Member> exclude;
@@ -244,7 +250,25 @@ final class LLVMModuleDebugInfo {
             exclude = Set.of();
         }
 
-        MetadataTuple elements = populateCompoundType(compoundType, diType, exclude);
+        MetadataTuple elements = module.metadataTuple();
+        diType.elements(elements.asRef());
+
+        for (FieldElement fieldElement : instanceLayoutInfo.getFieldsMap().keySet()) {
+            CompoundType.Member member = instanceLayoutInfo.getMember(fieldElement);
+            if (exclude.contains(member)) {
+                continue;
+            }
+            ValueType mt = fieldElement.getType();
+            DIFlags access = fieldElement.isPublic() ? DIFlags.Public : fieldElement.isPrivate() ? DIFlags.Private : fieldElement.isProtected() ? DIFlags.Protected : null;
+            DIDerivedType derivedType = module.diDerivedType(DITag.Member, mt.getSize() * 8, mt.getAlign() * 8)
+                .name(member.getName())
+                .baseType(getType(mt))
+                .offset((long) member.getOffset() * 8);
+            if (access != null) {
+                derivedType.flags(EnumSet.of(access));
+            }
+            elements.elem(null, derivedType.asRef());
+        }
 
         if (type.hasSuperClass()) {
             ClassObjectType superType = type.getSuperClassType();
@@ -255,6 +279,7 @@ final class LLVMModuleDebugInfo {
                 module.diDerivedType(DITag.Inheritance, superCompoundType.getSize() * 8, superCompoundType.getAlign() * 8)
                     .baseType(superDiType)
                     .offset(0)
+                    .flags(EnumSet.of(DIFlags.Public, DIFlags.SingleInheritance))
                     .asRef()
             );
         }
@@ -263,13 +288,15 @@ final class LLVMModuleDebugInfo {
     }
 
     private LLValue createClassObjectType(final ClassObjectType type) {
-        CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(type.getDefinition()).getCompoundType();
-        return createPhysicalObjectType(type, compoundType);
+        LayoutInfo instanceLayoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(type.getDefinition());
+        CompoundType compoundType = instanceLayoutInfo.getCompoundType();
+        return createPhysicalObjectType(type, instanceLayoutInfo, compoundType);
     }
 
     private LLValue createArrayObjectType(final ArrayObjectType type) {
-        CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(CoreClasses.get(ctxt).getArrayContentField(type).getEnclosingType()).getCompoundType();
-        return createPhysicalObjectType(type, compoundType);
+        LayoutInfo instanceLayoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(CoreClasses.get(ctxt).getArrayContentField(type).getEnclosingType());
+        CompoundType compoundType = instanceLayoutInfo.getCompoundType();
+        return createPhysicalObjectType(type, instanceLayoutInfo, compoundType);
     }
 
     private LLValue createArrayType(final ArrayType type) {

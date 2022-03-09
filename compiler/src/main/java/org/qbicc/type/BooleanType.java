@@ -48,7 +48,7 @@ public final class BooleanType extends WordType {
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
-        return b.append("bool");
+        return b.append("boolean");
     }
 
     public Primitive asPrimitive() {

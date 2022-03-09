@@ -85,9 +85,14 @@ public abstract class InvokableType extends ValueType {
                 b.append(',').append(paramTypes.get(i));
             }
         }
-        b.append("):");
+        b.append(")");
         b.append(returnType);
         return b;
+    }
+
+    @Override
+    public StringBuilder toFriendlyString(StringBuilder b) {
+        return toString(b);
     }
 
     public abstract InvokableType withReturnType(ValueType returnType);

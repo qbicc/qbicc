@@ -55,4 +55,8 @@ public abstract class ArrayObjectType extends PhysicalObjectType {
     public StringBuilder toString(final StringBuilder b) {
         return getElementType().toString(super.toString(b).append("array").append('[')).append(']');
     }
+
+    public StringBuilder toFriendlyString(final StringBuilder b) {
+        return getElementType().toFriendlyString(b).append("[]");
+    }
 }

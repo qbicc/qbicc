@@ -55,16 +55,4 @@ public final class InstanceMethodType extends MethodType {
         b.append("instance method ").append(receiverType);
         return super.toString(b);
     }
-
-    public StringBuilder toFriendlyString(final StringBuilder b) {
-        b.append("im.");
-        receiverType.toFriendlyString(b);
-        b.append('.');
-        returnType.toFriendlyString(b);
-        b.append('.').append(paramTypes.size());
-        for (ValueType paramType : paramTypes) {
-            paramType.toFriendlyString(b.append('.'));
-        }
-        return b;
-    }
 }
