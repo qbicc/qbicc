@@ -14,6 +14,9 @@ import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
+import org.qbicc.machine.arch.Cpu;
+import org.qbicc.machine.arch.OS;
+import org.qbicc.machine.arch.Platform;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.ArrayAnnotationValue;
 import org.qbicc.type.annotation.ClassAnnotationValue;
@@ -34,9 +37,24 @@ public final class ConditionEvaluation {
     private final CompilationContext ctxt;
 
     private final Map<DefinedTypeDefinition, Boolean> cachedResults = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> predefinedResults;
 
     private ConditionEvaluation(final CompilationContext ctxt) {
         this.ctxt = ctxt;
+        Platform platform = ctxt.getPlatform();
+        predefinedResults = Map.ofEntries(
+            // Operating systems
+            Map.entry("org/qbicc/runtime/Build$Target$IsAix", Boolean.FALSE /* todo */),
+            Map.entry("org/qbicc/runtime/Build$Target$IsApple", Boolean.valueOf(platform.getOs() == OS.DARWIN)),
+            Map.entry("org/qbicc/runtime/Build$Target$IsLinux", Boolean.valueOf(platform.getOs() == OS.LINUX)),
+            Map.entry("org/qbicc/runtime/Build$Target$IsMacOs", Boolean.valueOf(platform.getOs() == OS.DARWIN)),
+            Map.entry("org/qbicc/runtime/Build$Target$IsPosix", Boolean.valueOf(platform.getOs() != OS.WIN32)),
+            Map.entry("org/qbicc/runtime/Build$Target$IsUnix", Boolean.valueOf(platform.getOs() != OS.WIN32)),
+
+            // CPU architectures
+            Map.entry("org/qbicc/runtime/Build$Target$IsAmd64", Boolean.valueOf(platform.getCpu() == Cpu.X86_64)),
+            Map.entry("org/qbicc/runtime/Build$Target$IsArm", Boolean.valueOf(platform.getCpu() == Cpu.ARM))
+        );
     }
 
     public static ConditionEvaluation get(CompilationContext ctxt) {
@@ -78,6 +96,9 @@ public final class ConditionEvaluation {
         TypeDescriptor rawDescriptor = value.getDescriptor();
         if (rawDescriptor instanceof ClassTypeDescriptor descriptor) {
             String internalName = descriptor.getPackageName() + "/" + descriptor.getClassName();
+            if (predefinedResults.containsKey(internalName)) {
+                return predefinedResults.get(internalName).booleanValue();
+            }
             String niceName = internalName.replace('/', '.');
             DefinedTypeDefinition definedType = classContext.findDefinedType(internalName);
             if (definedType == null) {
