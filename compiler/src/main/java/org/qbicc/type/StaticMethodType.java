@@ -44,14 +44,4 @@ public final class StaticMethodType extends MethodType {
         b.append("static method");
         return super.toString(b);
     }
-
-    public StringBuilder toFriendlyString(final StringBuilder b) {
-        b.append("sm.");
-        returnType.toFriendlyString(b);
-        b.append('.').append(paramTypes.size());
-        for (ValueType paramType : paramTypes) {
-            paramType.toFriendlyString(b.append('.'));
-        }
-        return b;
-    }
 }

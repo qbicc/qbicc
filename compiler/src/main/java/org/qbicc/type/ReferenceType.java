@@ -384,17 +384,20 @@ public final class ReferenceType extends NullableType {
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
+        b.append("ref<");
         Set<InterfaceObjectType> interfaceBounds = this.interfaceBounds;
         PhysicalObjectType upperBound = this.upperBound;
+        boolean and = false;
         if (upperBound.hasSuperClassType() || interfaceBounds.isEmpty()) {
-            b.append("ref").append('.').append(1 + interfaceBounds.size());
-            upperBound.toFriendlyString(b.append('.'));
-        } else {
-            b.append("ref").append('.').append(interfaceBounds.size());
+            upperBound.toFriendlyString(b);
+            and = true;
         }
         for (InterfaceObjectType interfaceBound : interfaceBounds) {
-            interfaceBound.toFriendlyString(b.append('.'));
+            if (and) b.append('&');
+            interfaceBound.toFriendlyString(b);
+            and = true;
         }
+        b.append('>');
         return b;
     }
 }

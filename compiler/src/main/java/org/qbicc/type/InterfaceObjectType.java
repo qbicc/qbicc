@@ -87,10 +87,6 @@ public final class InterfaceObjectType extends ObjectType {
         return b.append("interface").append('(').append(definition.getInternalName()).append(')');
     }
 
-    public StringBuilder toFriendlyString(final StringBuilder b) {
-        return b.append("interface").append('.').append(definition.getInternalName().replace('/', '-'));
-    }
-
     @Override
     public final boolean equals(ObjectType other) {
         return other instanceof InterfaceObjectType && equals((InterfaceObjectType) other);

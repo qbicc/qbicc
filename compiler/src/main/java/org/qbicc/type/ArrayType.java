@@ -52,6 +52,6 @@ public final class ArrayType extends ValueType {
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
-        return elementType.toFriendlyString(b.append("array.").append(elementCount));
+        return elementType.toFriendlyString(b).append('[').append(elementCount).append(']');
     }
 }

@@ -141,7 +141,7 @@ public final class PointerType extends NullableType {
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
-        return pointeeType.toFriendlyString(b.append("ptr."));
+        return pointeeType.toFriendlyString(b).append('*');
     }
 
     public PointerType getConstraintType() {

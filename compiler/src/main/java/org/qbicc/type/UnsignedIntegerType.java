@@ -85,7 +85,14 @@ public final class UnsignedIntegerType extends IntegerType {
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
-        return b.append('u').append(minBits);
+        return b.append(switch (minBits) {
+            case 8 -> "u8";
+            case 16 -> "char";
+            case 32 -> "u32";
+            case 64 -> "u64";
+            case 128 -> "u128";
+            default -> throw Assert.impossibleSwitchCase(minBits);
+        });
     }
 
     public String toString(final IntegerLiteral literal) {

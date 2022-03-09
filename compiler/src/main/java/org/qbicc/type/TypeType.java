@@ -43,7 +43,7 @@ public final class TypeType extends WordType {
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
-        return upperBound.toFriendlyString(b.append("typeof").append('.'));
+        return upperBound.toFriendlyString(b.append("typeof").append('(')).append(')');
     }
 
     @Override

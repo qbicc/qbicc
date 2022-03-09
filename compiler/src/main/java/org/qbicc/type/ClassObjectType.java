@@ -82,10 +82,6 @@ public final class ClassObjectType extends PhysicalObjectType {
         return super.toString(b).append("class").append('(').append(definition.getInternalName()).append(')');
     }
 
-    public StringBuilder toFriendlyString(final StringBuilder b) {
-        return b.append("class").append('.').append(definition.getInternalName().replace('/', '-'));
-    }
-
     @Override
     public final boolean equals(ObjectType other) {
         return other instanceof ClassObjectType && equals((ClassObjectType) other);

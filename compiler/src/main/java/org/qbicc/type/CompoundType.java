@@ -264,11 +264,7 @@ public final class CompoundType extends ValueType {
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
-        b.append("compound.");
-        b.append(tag.toString());
-        b.append('.');
-        b.append(getName());
-        return b;
+        return b.append(getName());
     }
 
     public static CompoundType.Builder builder(TypeSystem typeSystem) {
