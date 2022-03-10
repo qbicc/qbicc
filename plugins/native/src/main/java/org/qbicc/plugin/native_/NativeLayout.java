@@ -83,8 +83,8 @@ public final class NativeLayout {
                                     ClassTypeDescriptor nestedDesc = nested.getDescriptor();
                                     if (nestedDesc.getPackageName().equals(Native.NATIVE_PKG)) {
                                         if (nestedDesc.getClassName().equals(Native.ANN_NAME)) {
-                                            if (conditionEvaluation.evaluateConditions(validated.getContext(), type, annotation)) {
-                                                fieldName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                                            if (conditionEvaluation.evaluateConditions(validated.getContext(), type, nested)) {
+                                                fieldName = ((StringAnnotationValue) nested.getValue("value")).getString();
                                                 nameOverridden = true;
                                                 // stop searching for names
                                                 break;
