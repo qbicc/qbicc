@@ -148,8 +148,28 @@ final class NativeInfo {
                                 continue;
                             }
                             if (annDesc.getPackageName().equals(Native.NATIVE_PKG)) {
-                                if (annDesc.getClassName().equals(Native.ANN_NAME)) {
-                                    simpleName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                                if (annDesc.getClassName().equals(Native.ANN_NAME) && simpleName == null) {
+                                    if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
+                                        simpleName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                                    }
+                                } else if (annDesc.getClassName().equals(Native.ANN_NAME_LIST) && simpleName == null) {
+                                    if (annotation.getValue("value") instanceof ArrayAnnotationValue aav) {
+                                        int cnt = aav.getElementCount();
+                                        for (int i = 0; i < cnt; i ++) {
+                                            if (aav.getValue(i) instanceof Annotation nested) {
+                                                ClassTypeDescriptor nestedDesc = nested.getDescriptor();
+                                                if (nestedDesc.getPackageName().equals(Native.NATIVE_PKG)) {
+                                                    if (nestedDesc.getClassName().equals(Native.ANN_NAME)) {
+                                                        if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
+                                                            simpleName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                                                            // stop searching for names
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 } else if (annDesc.getClassName().equals(Native.ANN_INCOMPLETE)) {
                                     if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
                                         incomplete = true;
@@ -247,13 +267,36 @@ final class NativeInfo {
                         eachField: for (int i = 0; i < fc; i ++) {
                             // compound type
                             FieldElement field = vt.getField(i);
+                            boolean nameOverridden = false;
                             String fieldName = field.getName();
                             if (! field.isStatic()) {
                                 for (Annotation annotation : field.getInvisibleAnnotations()) {
                                     ClassTypeDescriptor annDesc = annotation.getDescriptor();
                                     if (annDesc.getPackageName().equals(Native.NATIVE_PKG)) {
-                                        if (annDesc.getClassName().equals(Native.ANN_NAME)) {
-                                            fieldName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                                        if (annDesc.getClassName().equals(Native.ANN_NAME) && ! nameOverridden) {
+                                            if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
+                                                fieldName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                                                nameOverridden = true;
+                                            }
+                                        } else if (annDesc.getClassName().equals(Native.ANN_NAME_LIST) && ! nameOverridden) {
+                                            if (annotation.getValue("value") instanceof ArrayAnnotationValue aav) {
+                                                int cnt = aav.getElementCount();
+                                                for (int j = 0; j < cnt; j ++) {
+                                                    if (aav.getValue(j) instanceof Annotation nested) {
+                                                        ClassTypeDescriptor nestedDesc = nested.getDescriptor();
+                                                        if (nestedDesc.getPackageName().equals(Native.NATIVE_PKG)) {
+                                                            if (nestedDesc.getClassName().equals(Native.ANN_NAME)) {
+                                                                if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
+                                                                    fieldName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                                                                    nameOverridden = true;
+                                                                    // stop searching for names
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         } else if (annDesc.getClassName().equals(Native.ANN_INCOMPLETE)) {
                                             if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
                                                 continue eachField;

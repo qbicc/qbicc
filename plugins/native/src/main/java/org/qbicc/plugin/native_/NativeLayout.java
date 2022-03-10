@@ -14,6 +14,7 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.ArrayAnnotationValue;
 import org.qbicc.type.annotation.StringAnnotationValue;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -65,11 +66,34 @@ public final class NativeLayout {
             int size = (int) fieldType.getSize();
             int align = fieldType.getAlign();
             String fieldName = field.getName();
+            boolean nameOverridden = false;
             for (Annotation annotation : field.getInvisibleAnnotations()) {
                 ClassTypeDescriptor annDesc = annotation.getDescriptor();
                 if (annDesc.getPackageName().equals(Native.NATIVE_PKG)) {
-                    if (annDesc.getClassName().equals(Native.ANN_NAME)) {
-                        fieldName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                    if (annDesc.getClassName().equals(Native.ANN_NAME) && ! nameOverridden) {
+                        if (conditionEvaluation.evaluateConditions(validated.getContext(), type, annotation)) {
+                            fieldName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                            nameOverridden = true;
+                        }
+                    } else if (annDesc.getClassName().equals(Native.ANN_NAME_LIST) && ! nameOverridden) {
+                        if (annotation.getValue("value") instanceof ArrayAnnotationValue aav) {
+                            int annCnt = aav.getElementCount();
+                            for (int j = 0; j < annCnt; j ++) {
+                                if (aav.getValue(j) instanceof Annotation nested) {
+                                    ClassTypeDescriptor nestedDesc = nested.getDescriptor();
+                                    if (nestedDesc.getPackageName().equals(Native.NATIVE_PKG)) {
+                                        if (nestedDesc.getClassName().equals(Native.ANN_NAME)) {
+                                            if (conditionEvaluation.evaluateConditions(validated.getContext(), type, annotation)) {
+                                                fieldName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                                                nameOverridden = true;
+                                                // stop searching for names
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     } else if (annDesc.getClassName().equals(Native.ANN_INCOMPLETE)) {
                         if (conditionEvaluation.evaluateConditions(type.getContext(), field, annotation)) {
                             continue eachField;

@@ -1361,11 +1361,33 @@ public final class CNative {
     public @interface macro {
     }
 
+    @Repeatable(name.List.class)
     @Target({ ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
     @Retention(RetentionPolicy.CLASS)
     @Documented
     public @interface name {
         String value();
+
+        /**
+         * Cause this annotation to take effect only if <em>all</em> of the given conditions return {@code true}.
+         *
+         * @return the condition classes
+         */
+        Class<? extends BooleanSupplier>[] when() default {};
+
+        /**
+         * Prevent this annotation from taking effect if <em>all</em> of the given conditions return {@code true}.
+         *
+         * @return the condition classes
+         */
+        Class<? extends BooleanSupplier>[] unless() default {};
+
+        @Target({ ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
+        @Retention(RetentionPolicy.CLASS)
+        @Documented
+        @interface List {
+            name[] value();
+        }
     }
 
     /**
