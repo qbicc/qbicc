@@ -1624,8 +1624,6 @@ public final class CNative {
     @Retention(RetentionPolicy.CLASS)
     @Documented
     public @interface export {
-        String withName() default "";
-
         ExportScope withScope() default ExportScope.GLOBAL;
 
         CallingConvention callingConvention() default CallingConvention.C;

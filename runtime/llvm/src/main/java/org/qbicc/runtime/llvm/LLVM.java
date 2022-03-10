@@ -14,55 +14,66 @@ public final class LLVM {
 
     // Variable argument lists
 
-    @extern(withName = "llvm.va_start")
+    @extern
+    @name("llvm.va_start")
     @NoThrow
     public static native void va_start(va_list_ptr arglist);
 
-    @extern(withName = "llvm.va_end")
+    @extern
+    @name("llvm.va_end")
     @NoThrow
     public static native void va_end(va_list_ptr arglist);
 
-    @extern(withName = "llvm.va_copy")
+    @extern
+    @name("llvm.va_copy")
     @NoThrow
     public static native void va_copy(va_list_ptr dest_arglist, va_list_ptr src_arglist);
 
     // Code generator
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.returnaddress")
+    @extern
+    @name("llvm.returnaddress")
     @NoThrow
     public static native void_ptr returnAddress(uint32_t level);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.addressofreturnaddress")
+    @extern
+    @name("llvm.addressofreturnaddress")
     @NoThrow
     public static native void_ptr addressOfReturnAddress();
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sponentry")
+    @extern
+    @name("llvm.sponentry")
     @NoThrow
     public static native void_ptr spOnEntry();
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.frameaddress")
+    @extern
+    @name("llvm.frameaddress")
     @NoThrow
     public static native void_ptr frameAddress(uint32_t level);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.stacksave")
+    @extern
+    @name("llvm.stacksave")
     @NoThrow
     public static native void_ptr stackSave();
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.stackrestore")
+    @extern
+    @name("llvm.stackrestore")
     @NoThrow
     public static native void stackRestore(void_ptr ptr);
 
-    @extern(withName = "llvm.prefetch")
+    @extern
+    @name("llvm.prefetch")
     @NoThrow
     public static native void prefetch(void_ptr address, uint32_t rw, uint32_t locality, uint32_t cacheType);
 
-    @extern(withName = "llvm.thread.pointer")
+    @extern
+    @name("llvm.thread.pointer")
     @NoThrow
     public static native void_ptr threadPointer();
 
@@ -80,660 +91,786 @@ public final class LLVM {
         return abs(val, false);
     }
 
-    @extern(withName = "llvm.abs.i32")
+    @extern
+    @name("llvm.abs.i32")
     private static native int abs(int src, boolean is_int_min_poison);
 
-    @extern(withName = "llvm.abs.i64")
+    @extern
+    @name("llvm.abs.i64")
     private static native long abs(long src, boolean is_int_min_poison);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fabs.f32")
+    @extern
+    @name("llvm.fabs.f32")
     @NoThrow
     public static native float abs(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fabs.f64")
+    @extern
+    @name("llvm.fabs.f64")
     @NoThrow
     public static native double abs(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.smin.i8")
+    @extern
+    @name("llvm.smin.i8")
     @NoThrow
     public static native byte min(byte a, byte b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.umin.i8")
+    @extern
+    @name("llvm.umin.i8")
     @NoThrow
     public static native uint8_t min(uint8_t a, uint8_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.smin.i16")
+    @extern
+    @name("llvm.smin.i16")
     @NoThrow
     public static native short min(short a, short b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.umin.i16")
+    @extern
+    @name("llvm.umin.i16")
     @NoThrow
     public static native char min(char a, char b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.smin.i32")
+    @extern
+    @name("llvm.smin.i32")
     @NoThrow
     public static native int min(int a, int b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.umin.i32")
+    @extern
+    @name("llvm.umin.i32")
     @NoThrow
     public static native uint32_t min(uint32_t a, uint32_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.smin.i64")
+    @extern
+    @name("llvm.smin.i64")
     @NoThrow
     public static native long min(long a, long b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.umin.i64")
+    @extern
+    @name("llvm.umin.i64")
     @NoThrow
     public static native uint64_t min(uint64_t a, uint64_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.minimum.f32")
+    @extern
+    @name("llvm.minimum.f32")
     @NoThrow
     public static native float min(float a, float b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.minnum.f32")
+    @extern
+    @name("llvm.minnum.f32")
     @NoThrow
     public static native float min_libm(float a, float b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.minimum.f64")
+    @extern
+    @name("llvm.minimum.f64")
     @NoThrow
     public static native double min(double a, double b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.minnum.f64")
+    @extern
+    @name("llvm.minnum.f64")
     @NoThrow
     public static native double min_libm(double a, double b);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.smax.i8")
+    @extern
+    @name("llvm.smax.i8")
     @NoThrow
     public static native byte max(byte a, byte b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.umax.i8")
+    @extern
+    @name("llvm.umax.i8")
     @NoThrow
     public static native uint8_t max(uint8_t a, uint8_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.smax.i16")
+    @extern
+    @name("llvm.smax.i16")
     @NoThrow
     public static native short max(short a, short b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.umax.i16")
+    @extern
+    @name("llvm.umax.i16")
     @NoThrow
     public static native char max(char a, char b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.smax.i32")
+    @extern
+    @name("llvm.smax.i32")
     @NoThrow
     public static native int max(int a, int b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.umax.i32")
+    @extern
+    @name("llvm.umax.i32")
     @NoThrow
     public static native uint32_t max(uint32_t a, uint32_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.smax.i64")
+    @extern
+    @name("llvm.smax.i64")
     @NoThrow
     public static native long max(long a, long b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.umax.i64")
+    @extern
+    @name("llvm.umax.i64")
     @NoThrow
     public static native uint64_t max(uint64_t a, uint64_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.maximum.f32")
+    @extern
+    @name("llvm.maximum.f32")
     @NoThrow
     public static native float max(float a, float b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.maxnum.f32")
+    @extern
+    @name("llvm.maxnum.f32")
     @NoThrow
     public static native float max_libm(float a, float b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.maximum.f64")
+    @extern
+    @name("llvm.maximum.f64")
     @NoThrow
     public static native double max(double a, double b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.maxnum.f64")
+    @extern
+    @name("llvm.maxnum.f64")
     @NoThrow
     public static native double max_libm(double a, double b);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sqrt.f32")
+    @extern
+    @name("llvm.sqrt.f32")
     @NoThrow
     public static native float sqrt(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sqrt.f64")
+    @extern
+    @name("llvm.sqrt.f64")
     @NoThrow
     public static native double sqrt(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.powi.f32.i32")
+    @extern
+    @name("llvm.powi.f32.i32")
     @NoThrow
     public static native float powi(float val, int power);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.powi.f32.i64")
+    @extern
+    @name("llvm.powi.f32.i64")
     @NoThrow
     public static native float powi(float val, long power);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.powi.f64.i32")
+    @extern
+    @name("llvm.powi.f64.i32")
     @NoThrow
     public static native double powi(double val, int power);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.powi.f64.i64")
+    @extern
+    @name("llvm.powi.f64.i64")
     @NoThrow
     public static native double powi(double val, long power);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sin.f32")
+    @extern
+    @name("llvm.sin.f32")
     @NoThrow
     public static native float sin(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sin.f64")
+    @extern
+    @name("llvm.sin.f64")
     @NoThrow
     public static native double sin(double val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.cos.f32")
+    @extern
+    @name("llvm.cos.f32")
     @NoThrow
     public static native float cos(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.cos.f64")
+    @extern
+    @name("llvm.cos.f64")
     @NoThrow
     public static native double cos(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.pow.f32")
+    @extern
+    @name("llvm.pow.f32")
     @NoThrow
     public static native float pow(float val, float power);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.pow.f64")
+    @extern
+    @name("llvm.pow.f64")
     @NoThrow
     public static native double pow(double val, double power);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.exp.f32")
+    @extern
+    @name("llvm.exp.f32")
     @NoThrow
     public static native float exp(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.exp.f64")
+    @extern
+    @name("llvm.exp.f64")
     @NoThrow
     public static native double exp(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.exp2.f32")
+    @extern
+    @name("llvm.exp2.f32")
     @NoThrow
     public static native float exp2(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.exp2.f64")
+    @extern
+    @name("llvm.exp2.f64")
     @NoThrow
     public static native double exp2(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.log.f32")
+    @extern
+    @name("llvm.log.f32")
     @NoThrow
     public static native float log(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.log.f64")
+    @extern
+    @name("llvm.log.f64")
     @NoThrow
     public static native double log(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.log10.f32")
+    @extern
+    @name("llvm.log10.f32")
     @NoThrow
     public static native float log10(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.log10.f64")
+    @extern
+    @name("llvm.log10.f64")
     @NoThrow
     public static native double log10(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.log2.f32")
+    @extern
+    @name("llvm.log2.f32")
     @NoThrow
     public static native float log2(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.log2.f64")
+    @extern
+    @name("llvm.log2.f64")
     @NoThrow
     public static native double log2(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fma.f32")
+    @extern
+    @name("llvm.fma.f32")
     @NoThrow
     public static native float fma(float a, float b, float c);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fma.f64")
+    @extern
+    @name("llvm.fma.f64")
     @NoThrow
     public static native double fma(double a, double b, double c);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fmuladd.f32")
+    @extern
+    @name("llvm.fmuladd.f32")
     @NoThrow
     public static native float fmuladd(float a, float b, float c);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fmuladd.f64")
+    @extern
+    @name("llvm.fmuladd.f64")
     @NoThrow
     public static native double fmuladd(double a, double b, double c);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.copysign.f32")
+    @extern
+    @name("llvm.copysign.f32")
     @NoThrow
     public static native float copySign(float mag, float sign);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.copysign.f64")
+    @extern
+    @name("llvm.copysign.f64")
     @NoThrow
     public static native double copySign(double mag, double sign);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.floor.f32")
+    @extern
+    @name("llvm.floor.f32")
     @NoThrow
     public static native float floor(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.floor.f64")
+    @extern
+    @name("llvm.floor.f64")
     @NoThrow
     public static native double floor(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ceil.f32")
+    @extern
+    @name("llvm.ceil.f32")
     @NoThrow
     public static native float ceil(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ceil.f64")
+    @extern
+    @name("llvm.ceil.f64")
     @NoThrow
     public static native double ceil(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.trunc.f32")
+    @extern
+    @name("llvm.trunc.f32")
     @NoThrow
     public static native float trunc(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.trunc.f64")
+    @extern
+    @name("llvm.trunc.f64")
     @NoThrow
     public static native double trunc(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.rint.f32")
+    @extern
+    @name("llvm.rint.f32")
     @NoThrow
     public static native float roundToInt(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.rint.f64")
+    @extern
+    @name("llvm.rint.f64")
     @NoThrow
     public static native double roundToInt(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.nearbyint.f32")
+    @extern
+    @name("llvm.nearbyint.f32")
     @NoThrow
     public static native float nearbyInt(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.nearbyint.f64")
+    @extern
+    @name("llvm.nearbyint.f64")
     @NoThrow
     public static native double nearbyInt(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.round.f32")
+    @extern
+    @name("llvm.round.f32")
     @NoThrow
     public static native float round(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.round.f64")
+    @extern
+    @name("llvm.round.f64")
     @NoThrow
     public static native double round(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.roundeven.f32")
+    @extern
+    @name("llvm.roundeven.f32")
     @NoThrow
     public static native float roundEven(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.roundeven.f64")
+    @extern
+    @name("llvm.roundeven.f64")
     @NoThrow
     public static native double roundEven(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.lround.i32.f32")
+    @extern
+    @name("llvm.lround.i32.f32")
     @NoThrow
     public static native int lround(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.lround.i32.f64")
+    @extern
+    @name("llvm.lround.i32.f64")
     @NoThrow
     public static native int lround(double val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.lround.i64.f32")
+    @extern
+    @name("llvm.lround.i64.f32")
     @NoThrow
     public static native long lround64(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.lround.i64.f64")
+    @extern
+    @name("llvm.lround.i64.f64")
     @NoThrow
     public static native long lround64(double val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.llround.i64.f32")
+    @extern
+    @name("llvm.llround.i64.f32")
     @NoThrow
     public static native long llround(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.llround.i64.f64")
+    @extern
+    @name("llvm.llround.i64.f64")
     @NoThrow
     public static native long llround(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.lrint.i32.f32")
+    @extern
+    @name("llvm.lrint.i32.f32")
     @NoThrow
     public static native int lrint(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.lrint.i32.f64")
+    @extern
+    @name("llvm.lrint.i32.f64")
     @NoThrow
     public static native int lrint(double val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.lrint.i64.f32")
+    @extern
+    @name("llvm.lrint.i64.f32")
     @NoThrow
     public static native long lrint64(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.lrint.i64.f64")
+    @extern
+    @name("llvm.lrint.i64.f64")
     @NoThrow
     public static native long lrint64(double val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.llrint.i64.f32")
+    @extern
+    @name("llvm.llrint.i64.f32")
     @NoThrow
     public static native long llrint(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.llrint.i64.f64")
+    @extern
+    @name("llvm.llrint.i64.f64")
     @NoThrow
     public static native long llrint(double val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fptosi.sat.i32.f32")
+    @extern
+    @name("llvm.fptosi.sat.i32.f32")
     @NoThrow
     public static native int convertToInt(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fptosi.sat.i32.f64")
+    @extern
+    @name("llvm.fptosi.sat.i32.f64")
     @NoThrow
     public static native int convertToInt(double val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fptoui.sat.i32.f32")
+    @extern
+    @name("llvm.fptoui.sat.i32.f32")
     @NoThrow
     public static native int convertToIntUnsigned(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fptoui.sat.i32.f64")
+    @extern
+    @name("llvm.fptoui.sat.i32.f64")
     @NoThrow
     public static native int convertToIntUnsigned(double val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fptosi.sat.i64.f32")
+    @extern
+    @name("llvm.fptosi.sat.i64.f32")
     @NoThrow
     public static native long convertToLong(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fptosi.sat.i64.f64")
+    @extern
+    @name("llvm.fptosi.sat.i64.f64")
     @NoThrow
     public static native long convertToLong(double val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fptoui.sat.i64.f32")
+    @extern
+    @name("llvm.fptoui.sat.i64.f32")
     @NoThrow
     public static native long convertToLongUnsigned(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fptoui.sat.i64.f64")
+    @extern
+    @name("llvm.fptoui.sat.i64.f64")
     @NoThrow
     public static native long convertToLongUnsigned(double val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.canonicalize.f32")
+    @extern
+    @name("llvm.canonicalize.f32")
     @NoThrow
     public static native float canonicalize(float val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.canonicalize.f64")
+    @extern
+    @name("llvm.canonicalize.f64")
     @NoThrow
     public static native double canonicalize(double val);
 
     // Bit manipulation
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.bitreverse.i8")
+    @extern
+    @name("llvm.bitreverse.i8")
     @NoThrow
     public static native byte bitReverse(byte val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.bitreverse.i16")
+    @extern
+    @name("llvm.bitreverse.i16")
     @NoThrow
     public static native short bitReverse(short val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.bitreverse.i16")
+    @extern
+    @name("llvm.bitreverse.i16")
     @NoThrow
     public static native char bitReverse(char val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.bitreverse.i32")
+    @extern
+    @name("llvm.bitreverse.i32")
     @NoThrow
     public static native int bitReverse(int val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.bitreverse.i64")
+    @extern
+    @name("llvm.bitreverse.i64")
     @NoThrow
     public static native long bitReverse(long val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.bswap.i16")
+    @extern
+    @name("llvm.bswap.i16")
     @NoThrow
     public static native short byteSwap(short val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.bswap.i16")
+    @extern
+    @name("llvm.bswap.i16")
     @NoThrow
     public static native char byteSwap(char val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.bswap.i32")
+    @extern
+    @name("llvm.bswap.i32")
     @NoThrow
     public static native int byteSwap(int val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.bswap.i64")
+    @extern
+    @name("llvm.bswap.i64")
     @NoThrow
     public static native long byteSwap(long val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ctpop.i8")
+    @extern
+    @name("llvm.ctpop.i8")
     @NoThrow
     public static native byte bitCount(byte val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ctpop.i16")
+    @extern
+    @name("llvm.ctpop.i16")
     @NoThrow
     public static native short bitCount(short val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ctpop.i16")
+    @extern
+    @name("llvm.ctpop.i16")
     @NoThrow
     public static native char bitCount(char val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ctpop.i32")
+    @extern
+    @name("llvm.ctpop.i32")
     @NoThrow
     public static native int bitCount(int val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ctpop.i64")
+    @extern
+    @name("llvm.ctpop.i64")
     @NoThrow
     public static native long bitCount(long val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ctlz.i8")
+    @extern
+    @name("llvm.ctlz.i8")
     @NoThrow
     public static native byte numberOfLeadingZeros(byte val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ctlz.i16")
+    @extern
+    @name("llvm.ctlz.i16")
     @NoThrow
     public static native short numberOfLeadingZeros(short val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ctlz.i16")
+    @extern
+    @name("llvm.ctlz.i16")
     @NoThrow
     public static native char numberOfLeadingZeros(char val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ctlz.i32")
+    @extern
+    @name("llvm.ctlz.i32")
     @NoThrow
     public static native int numberOfLeadingZeros(int val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ctlz.i64")
+    @extern
+    @name("llvm.ctlz.i64")
     @NoThrow
     public static native long numberOfLeadingZeros(long val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.cttz.i8")
+    @extern
+    @name("llvm.cttz.i8")
     @NoThrow
     public static native byte numberOfTrailingZeros(byte val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.cttz.i16")
+    @extern
+    @name("llvm.cttz.i16")
     @NoThrow
     public static native short numberOfTrailingZeros(short val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.cttz.i16")
+    @extern
+    @name("llvm.cttz.i16")
     @NoThrow
     public static native char numberOfTrailingZeros(char val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.cttz.i32")
+    @extern
+    @name("llvm.cttz.i32")
     @NoThrow
     public static native int numberOfTrailingZeros(int val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.cttz.i64")
+    @extern
+    @name("llvm.cttz.i64")
     @NoThrow
     public static native long numberOfTrailingZeros(long val);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fshl.i8")
+    @extern
+    @name("llvm.fshl.i8")
     @NoThrow
     public static native byte funnelShiftLeft(byte a, byte b, byte c);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fshl.i16")
+    @extern
+    @name("llvm.fshl.i16")
     @NoThrow
     public static native short funnelShiftLeft(short a, short b, short c);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fshl.i16")
+    @extern
+    @name("llvm.fshl.i16")
     @NoThrow
     public static native char funnelShiftLeft(char a, char b, char c);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fshl.i32")
+    @extern
+    @name("llvm.fshl.i32")
     @NoThrow
     public static native int funnelShiftLeft(int a, int b, int c);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fshl.i64")
+    @extern
+    @name("llvm.fshl.i64")
     @NoThrow
     public static native long funnelShiftLeft(long a, long b, long c);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fshr.i8")
+    @extern
+    @name("llvm.fshr.i8")
     @NoThrow
     public static native byte funnelShiftRight(byte a, byte b, byte c);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fshr.i16")
+    @extern
+    @name("llvm.fshr.i16")
     @NoThrow
     public static native short funnelShiftRight(short a, short b, short c);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fshr.i16")
+    @extern
+    @name("llvm.fshr.i16")
     @NoThrow
     public static native char funnelShiftRight(char a, char b, char c);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fshr.i32")
+    @extern
+    @name("llvm.fshr.i32")
     @NoThrow
     public static native int funnelShiftRight(int a, int b, int c);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.fshr.i64")
+    @extern
+    @name("llvm.fshr.i64")
     @NoThrow
     public static native long funnelShiftRight(long a, long b, long c);
 
@@ -797,248 +934,296 @@ public final class LLVM {
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sadd.with.overflow.i8")
+    @extern
+    @name("llvm.sadd.with.overflow.i8")
     @NoThrow
     public static native byte_with_overflow addWithOverflow(byte a, byte b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.uadd.with.overflow.i8")
+    @extern
+    @name("llvm.uadd.with.overflow.i8")
     @NoThrow
     public static native uint8_t_with_overflow addWithOverflow(uint8_t a, uint8_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sadd.with.overflow.i16")
+    @extern
+    @name("llvm.sadd.with.overflow.i16")
     @NoThrow
     public static native short_with_overflow addWithOverflow(short a, short b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.uadd.with.overflow.i16")
+    @extern
+    @name("llvm.uadd.with.overflow.i16")
     @NoThrow
     public static native char_with_overflow addWithOverflow(char a, char b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sadd.with.overflow.i32")
+    @extern
+    @name("llvm.sadd.with.overflow.i32")
     @NoThrow
     public static native int_with_overflow addWithOverflow(int a, int b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.uadd.with.overflow.i32")
+    @extern
+    @name("llvm.uadd.with.overflow.i32")
     @NoThrow
     public static native uint32_t_with_overflow addWithOverflow(uint32_t a, uint32_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sadd.with.overflow.i64")
+    @extern
+    @name("llvm.sadd.with.overflow.i64")
     @NoThrow
     public static native long_with_overflow addWithOverflow(long a, long b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.uadd.with.overflow.i64")
+    @extern
+    @name("llvm.uadd.with.overflow.i64")
     @NoThrow
     public static native uint64_t_with_overflow addWithOverflow(uint64_t a, uint64_t b);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ssub.with.overflow.i8")
+    @extern
+    @name("llvm.ssub.with.overflow.i8")
     @NoThrow
     public static native byte_with_overflow subWithOverflow(byte a, byte b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.usub.with.overflow.i8")
+    @extern
+    @name("llvm.usub.with.overflow.i8")
     @NoThrow
     public static native uint8_t_with_overflow subWithOverflow(uint8_t a, uint8_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ssub.with.overflow.i16")
+    @extern
+    @name("llvm.ssub.with.overflow.i16")
     @NoThrow
     public static native short_with_overflow subWithOverflow(short a, short b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.usub.with.overflow.i16")
+    @extern
+    @name("llvm.usub.with.overflow.i16")
     @NoThrow
     public static native char_with_overflow subWithOverflow(char a, char b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ssub.with.overflow.i32")
+    @extern
+    @name("llvm.ssub.with.overflow.i32")
     @NoThrow
     public static native int_with_overflow subWithOverflow(int a, int b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.usub.with.overflow.i32")
+    @extern
+    @name("llvm.usub.with.overflow.i32")
     @NoThrow
     public static native uint32_t_with_overflow subWithOverflow(uint32_t a, uint32_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ssub.with.overflow.i64")
+    @extern
+    @name("llvm.ssub.with.overflow.i64")
     @NoThrow
     public static native long_with_overflow subWithOverflow(long a, long b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.usub.with.overflow.i64")
+    @extern
+    @name("llvm.usub.with.overflow.i64")
     @NoThrow
     public static native uint64_t_with_overflow subWithOverflow(uint64_t a, uint64_t b);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.smul.with.overflow.i8")
+    @extern
+    @name("llvm.smul.with.overflow.i8")
     @NoThrow
     public static native byte_with_overflow mulWithOverflow(byte a, byte b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.umul.with.overflow.i8")
+    @extern
+    @name("llvm.umul.with.overflow.i8")
     @NoThrow
     public static native uint8_t_with_overflow mulWithOverflow(uint8_t a, uint8_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.smul.with.overflow.i16")
+    @extern
+    @name("llvm.smul.with.overflow.i16")
     @NoThrow
     public static native short_with_overflow mulWithOverflow(short a, short b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.umul.with.overflow.i16")
+    @extern
+    @name("llvm.umul.with.overflow.i16")
     @NoThrow
     public static native char_with_overflow mulWithOverflow(char a, char b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.smul.with.overflow.i32")
+    @extern
+    @name("llvm.smul.with.overflow.i32")
     @NoThrow
     public static native int_with_overflow mulWithOverflow(int a, int b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.umul.with.overflow.i32")
+    @extern
+    @name("llvm.umul.with.overflow.i32")
     @NoThrow
     public static native uint32_t_with_overflow mulWithOverflow(uint32_t a, uint32_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.smul.with.overflow.i64")
+    @extern
+    @name("llvm.smul.with.overflow.i64")
     @NoThrow
     public static native long_with_overflow mulWithOverflow(long a, long b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.umul.with.overflow.i64")
+    @extern
+    @name("llvm.umul.with.overflow.i64")
     @NoThrow
     public static native uint64_t_with_overflow mulWithOverflow(uint64_t a, uint64_t b);
 
     // saturation
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sadd.sat.i8")
+    @extern
+    @name("llvm.sadd.sat.i8")
     @NoThrow
     public static native byte addSaturating(byte a, byte b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.uadd.sat.i8")
+    @extern
+    @name("llvm.uadd.sat.i8")
     @NoThrow
     public static native uint8_t addSaturating(uint8_t a, uint8_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sadd.sat.i16")
+    @extern
+    @name("llvm.sadd.sat.i16")
     @NoThrow
     public static native short addSaturating(short a, short b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.uadd.sat.i16")
+    @extern
+    @name("llvm.uadd.sat.i16")
     @NoThrow
     public static native char addSaturating(char a, char b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sadd.sat.i32")
+    @extern
+    @name("llvm.sadd.sat.i32")
     @NoThrow
     public static native int addSaturating(int a, int b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.uadd.sat.i32")
+    @extern
+    @name("llvm.uadd.sat.i32")
     @NoThrow
     public static native uint32_t addSaturating(uint32_t a, uint32_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sadd.sat.i64")
+    @extern
+    @name("llvm.sadd.sat.i64")
     @NoThrow
     public static native long addSaturating(long a, long b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.uadd.sat.i64")
+    @extern
+    @name("llvm.uadd.sat.i64")
     @NoThrow
     public static native uint64_t addSaturating(uint64_t a, uint64_t b);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ssub.sat.i8")
+    @extern
+    @name("llvm.ssub.sat.i8")
     @NoThrow
     public static native byte subSaturating(byte a, byte b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.usub.sat.i8")
+    @extern
+    @name("llvm.usub.sat.i8")
     @NoThrow
     public static native uint8_t subSaturating(uint8_t a, uint8_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ssub.sat.i16")
+    @extern
+    @name("llvm.ssub.sat.i16")
     @NoThrow
     public static native short subSaturating(short a, short b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.usub.sat.i16")
+    @extern
+    @name("llvm.usub.sat.i16")
     @NoThrow
     public static native char subSaturating(char a, char b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ssub.sat.i32")
+    @extern
+    @name("llvm.ssub.sat.i32")
     @NoThrow
     public static native int subSaturating(int a, int b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.usub.sat.i32")
+    @extern
+    @name("llvm.usub.sat.i32")
     @NoThrow
     public static native uint32_t subSaturating(uint32_t a, uint32_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ssub.sat.i64")
+    @extern
+    @name("llvm.ssub.sat.i64")
     @NoThrow
     public static native long subSaturating(long a, long b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.usub.sat.i64")
+    @extern
+    @name("llvm.usub.sat.i64")
     @NoThrow
     public static native uint64_t subSaturating(uint64_t a, uint64_t b);
 
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sshl.sat.i8")
+    @extern
+    @name("llvm.sshl.sat.i8")
     @NoThrow
     public static native byte shiftLeftSaturating(byte a, byte b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ushl.sat.i8")
+    @extern
+    @name("llvm.ushl.sat.i8")
     @NoThrow
     public static native uint8_t shiftLeftSaturating(uint8_t a, uint8_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sshl.sat.i16")
+    @extern
+    @name("llvm.sshl.sat.i16")
     @NoThrow
     public static native short shiftLeftSaturating(short a, short b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ushl.sat.i16")
+    @extern
+    @name("llvm.ushl.sat.i16")
     @NoThrow
     public static native char shiftLeftSaturating(char a, char b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sshl.sat.i32")
+    @extern
+    @name("llvm.sshl.sat.i32")
     @NoThrow
     public static native int shiftLeftSaturating(int a, int b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ushl.sat.i32")
+    @extern
+    @name("llvm.ushl.sat.i32")
     @NoThrow
     public static native uint32_t shiftLeftSaturating(uint32_t a, uint32_t b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.sshl.sat.i64")
+    @extern
+    @name("llvm.sshl.sat.i64")
     @NoThrow
     public static native long shiftLeftSaturating(long a, long b);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ushl.sat.i64")
+    @extern
+    @name("llvm.ushl.sat.i64")
     @NoThrow
     public static native uint64_t shiftLeftSaturating(uint64_t a, uint64_t b);
 
@@ -1051,161 +1236,194 @@ public final class LLVM {
     public static final int ROUND_NEAREST_TIES_AWAY_FROM_ZERO = 4;
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.flt.rounds")
+    @extern
+    @name("llvm.flt.rounds")
     @NoThrow
     public static native int getRoundingMode();
 
-    @extern(withName = "llvm.set.rounding")
+    @extern
+    @name("llvm.set.rounding")
     @NoThrow
     public static native void setRoundingMode(int mode);
 
     // traps
 
-    @extern(withName = "llvm.trap")
+    @extern
+    @name("llvm.trap")
     @NoReturn
     @NoThrow
     public static native void trap();
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.debugtrap")
+    @extern
+    @name("llvm.debugtrap")
     @NoThrow
     public static native void debugTrap();
 
     // expect/assume
 
-    @extern(withName = "llvm.expect.i1")
+    @extern
+    @name("llvm.expect.i1")
     @NoThrow
     public static native boolean expect(boolean value, boolean expectedValue);
 
-    @extern(withName = "llvm.expect.i8")
+    @extern
+    @name("llvm.expect.i8")
     @NoThrow
     public static native byte expect(byte value, byte expectedValue);
 
-    @extern(withName = "llvm.expect.i16")
+    @extern
+    @name("llvm.expect.i16")
     @NoThrow
     public static native short expect(short value, short expectedValue);
 
-    @extern(withName = "llvm.expect.i32")
+    @extern
+    @name("llvm.expect.i32")
     @NoThrow
     public static native int expect(int value, int expectedValue);
 
-    @extern(withName = "llvm.expect.i64")
+    @extern
+    @name("llvm.expect.i64")
     @NoThrow
     public static native long expect(long value, long expectedValue);
 
-    @extern(withName = "llvm.expect.with.probability.i1")
+    @extern
+    @name("llvm.expect.with.probability.i1")
     @NoThrow
     public static native boolean expect(boolean value, boolean expectedValue, double probability);
 
-    @extern(withName = "llvm.expect.with.probability.i8")
+    @extern
+    @name("llvm.expect.with.probability.i8")
     @NoThrow
     public static native byte expect(byte value, byte expectedValue, double probability);
 
-    @extern(withName = "llvm.expect.with.probability.i16")
+    @extern
+    @name("llvm.expect.with.probability.i16")
     @NoThrow
     public static native short expect(short value, short expectedValue, double probability);
 
-    @extern(withName = "llvm.expect.with.probability.i32")
+    @extern
+    @name("llvm.expect.with.probability.i32")
     @NoThrow
     public static native int expect(int value, int expectedValue, double probability);
 
-    @extern(withName = "llvm.expect.with.probability.i64")
+    @extern
+    @name("llvm.expect.with.probability.i64")
     @NoThrow
     public static native long expect(long value, long expectedValue, double probability);
 
-    @extern(withName = "llvm.assume")
+    @extern
+    @name("llvm.assume")
     @NoThrow
     public static native void assume(boolean value);
 
     // fences/guards/misc
 
-    @extern(withName = "llvm.arithmetic.fence")
+    @extern
+    @name("llvm.arithmetic.fence")
     @NoThrow
     public static native float arithmeticFence(float val);
 
-    @extern(withName = "llvm.arithmetic.fence")
+    @extern
+    @name("llvm.arithmetic.fence")
     @NoThrow
     public static native double arithmeticFence(double val);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.donothing")
+    @extern
+    @name("llvm.donothing")
     // can be called with invoke
     public static native void doNothing();
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.ptrmask")
+    @extern
+    @name("llvm.ptrmask")
     @NoThrow
     public static native void_ptr ptrMask(void_ptr orig, long mask);
 
     // memory move/set
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.memcpy.p0i8.p0i8.i32")
+    @extern
+    @name("llvm.memcpy.p0i8.p0i8.i32")
     @NoThrow
     public static native void memCopy(void_ptr dest, const_void_ptr src, int size, boolean setToFalse);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.memcpy.p0i8.p0i8.i64")
+    @extern
+    @name("llvm.memcpy.p0i8.p0i8.i64")
     @NoThrow
     public static native void memCopy(void_ptr dest, const_void_ptr src, long size, boolean setToFalse);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.memcpy.inline.p0i8.p0i8.i32")
+    @extern
+    @name("llvm.memcpy.inline.p0i8.p0i8.i32")
     @NoThrow
     public static native void memCopyInline(void_ptr dest, const_void_ptr src, int size, boolean setToFalse);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.memcpy.inline.p0i8.p0i8.i64")
+    @extern
+    @name("llvm.memcpy.inline.p0i8.p0i8.i64")
     @NoThrow
     public static native void memCopyInline(void_ptr dest, const_void_ptr src, long size, boolean setToFalse);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.memmove.p0i8.p0i8.i32")
+    @extern
+    @name("llvm.memmove.p0i8.p0i8.i32")
     @NoThrow
     public static native void memMove(void_ptr dest, const_void_ptr src, int size, boolean setToFalse);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.memmove.p0i8.p0i8.i64")
+    @extern
+    @name("llvm.memmove.p0i8.p0i8.i64")
     @NoThrow
     public static native void memMove(void_ptr dest, const_void_ptr src, long size, boolean setToFalse);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.memcpy.element.unordered.atomic.p0i8.p0i8.i32")
+    @extern
+    @name("llvm.memcpy.element.unordered.atomic.p0i8.p0i8.i32")
     @NoThrow
     public static native void memCopyUnordered(void_ptr dest, const_void_ptr src, int size, int elementSize);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.memcpy.element.unordered.atomic.p0i8.p0i8.i64")
+    @extern
+    @name("llvm.memcpy.element.unordered.atomic.p0i8.p0i8.i64")
     @NoThrow
     public static native void memCopyUnordered(void_ptr dest, const_void_ptr src, int size, long elementSize);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.memmove.element.unordered.atomic.p0i8.p0i8.i32")
+    @extern
+    @name("llvm.memmove.element.unordered.atomic.p0i8.p0i8.i32")
     @NoThrow
     public static native void memMoveUnordered(void_ptr dest, const_void_ptr src, int size, int elementSize);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.memmove.element.unordered.atomic.p0i8.p0i8.i64")
+    @extern
+    @name("llvm.memmove.element.unordered.atomic.p0i8.p0i8.i64")
     @NoThrow
     public static native void memMoveUnordered(void_ptr dest, const_void_ptr src, int size, long elementSize);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.memset.p0i8.i32")
+    @extern
+    @name("llvm.memset.p0i8.i32")
     @NoThrow
     public static native void memSet(void_ptr dest, byte val, int size, boolean setToFalse);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.memset.p0i8.i64")
+    @extern
+    @name("llvm.memset.p0i8.i64")
     @NoThrow
     public static native void memSet(void_ptr dest, byte val, long size, boolean setToFalse);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.memset.element.unordered.atomic.p0i8.i32")
+    @extern
+    @name("llvm.memset.element.unordered.atomic.p0i8.i32")
     @NoThrow
     public static native void memSetUnordered(void_ptr dest, byte val, int size, int elementSize);
 
     @SuppressWarnings("SpellCheckingInspection")
-    @extern(withName = "llvm.memset.element.unordered.atomic.p0i8.i64")
+    @extern
+    @name("llvm.memset.element.unordered.atomic.p0i8.i64")
     @NoThrow
     public static native void memSetUnordered(void_ptr dest, byte val, long size, int elementSize);
 
