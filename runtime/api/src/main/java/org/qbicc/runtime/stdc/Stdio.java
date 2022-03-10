@@ -27,7 +27,10 @@ public final class Stdio {
 
     public static native c_int fclose(FILE_ptr stream);
 
-    public static final FILE_ptr stdin = constant();
-    public static final FILE_ptr stdout = constant();
-    public static final FILE_ptr stderr = constant();
+    @extern
+    public static FILE_ptr stdin;
+    @extern
+    public static FILE_ptr stdout;
+    @extern
+    public static FILE_ptr stderr;
 }
