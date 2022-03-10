@@ -30,7 +30,7 @@ interface ReachabilityAnalysis {
 
     void processReachableType(final LoadedTypeDefinition ltd, ExecutableElement currentElement);
 
-    void processInstantiatedClass(final LoadedTypeDefinition type, boolean directlyInstantiated, boolean onHeapType, ExecutableElement currentElement);
+    void processInstantiatedClass(final LoadedTypeDefinition type, boolean onHeapType, ExecutableElement currentElement);
 
     void clear();
 

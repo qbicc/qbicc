@@ -17,27 +17,40 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
- * ReachabilityInfo tracks the types and methods that have been determined to be reachable
- * and/or instantiatable from a program entrypoint.
+ * ReachabilityInfo records the types and methods that have been determined to be reachable
+ * and/or instantiatable/invokable from a program entrypoint.
  *
- * A class or interface is called reachable if a reference to a
- * static program element it defines or its java.lang.Class instance
+ * A class or interface is reachable if a reference to
+ * (1) a program element it defines or (2) its java.lang.Class instance
  * could be executed by an invokable method.
  *
- * A class is called instantiated if a `new` of the class (or one of its subclasses)
+ * If a class is reachable, its superclass and all its implemented interfaces are
+ * also considered to be reachable.
+ *
+ * If an interface is reachable, then all of its superinterfaces are also considered
+ * to be reachable.
+ *
+ * A class is called instantiated if a `new` of the class
  * could be executed by an invokable method.
  *
- * A reachable static method is considered to be invokable.
- * A reachable interface method is considered to be invokable.
- * A reachable instance method of a class is only considered to be invokable if its defining class is instantiated.
+ * A reachable direct call of a static method or function makes that method invokable.
  *
- * If a class is reachable, its superclass is also considered to be reachable.
- * Class reachability does not imply reachability of its implemented interfaces.
+ * A reachable direct call of an instance method (invokespecial) that has at least one
+ * instantiated receiver class makes that method invokable.
  *
- * If a class is instantiated, then its superclass is also considered to be instantiated.
- * If a class is instantiated, then both its directly implemented interfaces and all of their
- * ancestor interfaces are considered to be reachable.
- * An instantiated class is always also a reachable class.
+ * Instance methods may also be invoked via dynamically dispatched calls (invokevirtual, invokeinterface).
+ * We track dispatchable methods and the subset of those dispatchable methods that are actually invokable.
+ * Being dispatchable indicates that there is a reachable dispatched call
+ * of at least one method in a method family (name+descriptor+override hierarchy).
+ * Being invokable indicates that both the method is dispatchable and that
+ * there is an instantiated class such that if an instance of that class were
+ * used as the receiver of a dispatched call then the method would be invoked dynamically.
+ * Therefore, space must be allocated in the runtime method dispatching structures for
+ * all dispatchable methods, but we need only enqueue/compile the invokable instance methods.
+ * Slots for dispatchable, but not invokable methods will never be used at runtime
+ * and can be filled with an error thunk.  The actual tracking of instantiated classes
+ * and the resulting computing of invokability is delegated to the ReachabilityAnalysis
+ * implementation, which provides an extension point for using different algorithms.
  *
  * All classes and interfaces that are reachable after the ANALYZE phase completes
  * will be assigned typeIds.
@@ -53,20 +66,18 @@ public class ReachabilityInfo {
     private final Map<LoadedTypeDefinition, Set<LoadedTypeDefinition>> classHierarchy = new ConcurrentHashMap<>();
     // Tracks reachable interfaces and their (direct) reachable implementors
     private final Map<LoadedTypeDefinition, Set<LoadedTypeDefinition>> interfaceHierarchy = new ConcurrentHashMap<>();
-    // Tracks actually instantiated classes
-    private final Set<LoadedTypeDefinition> instantiatedClasses = ConcurrentHashMap.newKeySet();
 
-    // Set of reachable instance methods that are dispatched to (potentially invoked via vtable/itable dispatching tables)
+    // Set of instance methods of reachable types that are dispatched to (need slots allocated in vtable/itable dispatching tables)
     private final Set<MethodElement> dispatchableMethods = ConcurrentHashMap.newKeySet();
+    // Set of instance methods that are both dispatchable and have an instantiated receiver class
+    private final Set<MethodElement> invokableInstanceMethods = ConcurrentHashMap.newKeySet();
+
     // Set of static fields that are potentially accessed by reachable code
     private final Set<FieldElement> accessedStaticField = ConcurrentHashMap.newKeySet();
 
     private final ReachabilityAnalysis analysis;
 
-    private final CompilationContext ctxt;
-
     private ReachabilityInfo(final CompilationContext ctxt) {
-        this.ctxt = ctxt;
         // TODO: Currently hardwired to RTA; eventually will support multiple analysis algorithms
         this.analysis = new RapidTypeAnalysis(this, ctxt);
     }
@@ -87,8 +98,8 @@ public class ReachabilityInfo {
         ReachabilityInfo info = get(ctxt);
         info.classHierarchy.clear();
         info.interfaceHierarchy.clear();
-        info.instantiatedClasses.clear();
         info.dispatchableMethods.clear();
+        info.invokableInstanceMethods.clear();
         info.accessedStaticField.clear();
         info.analysis.clear();
     }
@@ -98,9 +109,9 @@ public class ReachabilityInfo {
         LOGGER.debug("Reachability Statistics");
         LOGGER.debugf("  Reachable interfaces:          %s", info.interfaceHierarchy.size());
         LOGGER.debugf("  Reachable classes:             %s", info.classHierarchy.size());
-        LOGGER.debugf("  Instantiated classes:          %s", info.instantiatedClasses.size());
         LOGGER.debugf("  Reachable functions:           %s", ctxt.numberEnqueued());
         LOGGER.debugf("  Dispatchable instance methods: %s", info.dispatchableMethods.size());
+        LOGGER.debugf("  Invokable instance methods:    %s", info.invokableInstanceMethods.size());
         LOGGER.debugf("  Accessed static fields:        %s", info.accessedStaticField.size());
         info.analysis.reportStats();
     }
@@ -115,28 +126,28 @@ public class ReachabilityInfo {
         LoadedTypeDefinition obj = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load();
         LoadedTypeDefinition cloneable = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Cloneable").load();
         LoadedTypeDefinition serializable = ctxt.getBootstrapClassContext().findDefinedType("java/io/Serializable").load();
-        info.analysis.processInstantiatedClass(obj, true, false,null);
+        info.analysis.processInstantiatedClass(obj, false,null);
         info.addReachableInterface(cloneable);
         info.addReachableInterface(serializable);
         for (String d : desc) {
             LoadedTypeDefinition at = cc.getArrayLoadedTypeDefinition(d);
             info.addInterfaceEdge(at, cloneable);
             info.addInterfaceEdge(at, serializable);
-            info.analysis.processInstantiatedClass(at, true, false,null);
+            info.analysis.processInstantiatedClass(at,  false,null);
         }
 
         LOGGER.debugf("Forcing java.lang.Class reachable/instantiated");
         LoadedTypeDefinition clz = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
-        info.analysis.processInstantiatedClass(clz, true, false,null);
+        info.analysis.processInstantiatedClass(clz, false,null);
 
         LOGGER.debugf("Forcing jdk.internal.misc.Unsafe reachable/instantiated");
         LoadedTypeDefinition unsafe = ctxt.getBootstrapClassContext().findDefinedType("jdk/internal/misc/Unsafe").load();
-        info.analysis.processInstantiatedClass(unsafe, true, false,null);
+        info.analysis.processInstantiatedClass(unsafe,  false,null);
 
         // The main Thread is instantiated in native code, and thus not visible to analysis.
         LOGGER.debugf("Forcing java.lang.Thread reachable/instantiated");
         LoadedTypeDefinition thr = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread").load();
-        info.analysis.processInstantiatedClass(thr, true, false,null);
+        info.analysis.processInstantiatedClass(thr, false,null);
     }
 
     public static void processAutoQueuedElement(ExecutableElement elem) {
@@ -149,13 +160,17 @@ public class ReachabilityInfo {
             }
         } else if (elem instanceof ConstructorElement ce) {
             ReachabilityInfo info = get(elem.getEnclosingType().getContext().getCompilationContext());
-            info.analysis.processInstantiatedClass(ce.getEnclosingType().load(), true, false, null);
+            info.analysis.processInstantiatedClass(ce.getEnclosingType().load(), false, null);
             info.analysis.processReachableExactInvocation(ce, null);
         }
     }
 
     public boolean isDispatchableMethod(MethodElement meth) {
         return dispatchableMethods.contains(meth);
+    }
+
+    public boolean isInvokableInstanceMethod(MethodElement meth) {
+        return invokableInstanceMethods.contains(meth);
     }
 
     public boolean isAccessedStaticField(FieldElement field) {
@@ -168,10 +183,6 @@ public class ReachabilityInfo {
 
     public boolean isReachableInterface(LoadedTypeDefinition type) {
         return interfaceHierarchy.containsKey(type);
-    }
-
-    public boolean isInstantiatedClass(LoadedTypeDefinition type) {
-        return instantiatedClasses.contains(type);
     }
 
     public void visitReachableInterfaces(Consumer<LoadedTypeDefinition> function) {
@@ -240,50 +251,74 @@ public class ReachabilityInfo {
 
     void addReachableInterface(LoadedTypeDefinition type) {
         if (isReachableInterface(type)) return;
-        interfaceHierarchy.computeIfAbsent(type, t -> ConcurrentHashMap.newKeySet());
-        for (LoadedTypeDefinition i: type.getInterfaces()) {
-            addReachableInterface(i);
-            addInterfaceEdge(type, i);
-        }
+        synchronized (this) {
+            interfaceHierarchy.computeIfAbsent(type, t -> ConcurrentHashMap.newKeySet());
+            for (LoadedTypeDefinition i : type.getInterfaces()) {
+                addReachableInterface(i);
+                addInterfaceEdge(type, i);
+            }
 
-        // For every instance method that is not already invokable,
-        // check to see if it has the same selector as an "overridden" invokable method.
-        outer:
-        for (MethodElement im : type.getInstanceMethods()) {
-            if (!isDispatchableMethod(im)) {
-                for (LoadedTypeDefinition si : type.getInterfaces()) {
-                    MethodElement sm = si.resolveMethodElementInterface(im.getName(), im.getDescriptor());
-                    if (sm != null && isDispatchableMethod(sm)) {
-                        LOGGER.debugf("\tnewly reachable interface: enqueued implementing method:  %s", im);
-                        analysis.processReachableDispatchedInvocation(im, null);
-                        continue outer;
+            // For every instance method that is not already dispatchable,
+            // check to see if it has the same selector as an "overridden" dispatchable method.
+            outer:
+            for (MethodElement im : type.getInstanceMethods()) {
+                if (!isDispatchableMethod(im)) {
+                    for (LoadedTypeDefinition si : type.getInterfaces()) {
+                        MethodElement sm = si.resolveMethodElementInterface(im.getName(), im.getDescriptor());
+                        if (sm != null && isDispatchableMethod(sm)) {
+                            LOGGER.debugf("\tnewly reachable interface: dispatchable method:  %s", im);
+                            analysis.processReachableDispatchedInvocation(im, null);
+                            continue outer;
+                        }
                     }
                 }
             }
         }
     }
-    void addInterfaceEdge(LoadedTypeDefinition child, LoadedTypeDefinition parent) {
+
+    private void addInterfaceEdge(LoadedTypeDefinition child, LoadedTypeDefinition parent) {
         interfaceHierarchy.computeIfAbsent(parent, t -> ConcurrentHashMap.newKeySet()).add(child);
     }
 
     void addReachableClass(LoadedTypeDefinition type) {
         if (isReachableClass(type)) return;
-        classHierarchy.computeIfAbsent(type, t -> ConcurrentHashMap.newKeySet());
-        LoadedTypeDefinition superClass = type.getSuperClass();
-        if (superClass != null) {
-            addReachableClass(superClass);
-            classHierarchy.get(superClass).add(type);
-        }
-        for (LoadedTypeDefinition i: type.getInterfaces()) {
-            addReachableInterface(i);
-            addInterfaceEdge(type, i);
-        }
-        // force class to be loaded (will fail if new reachable classes are discovered after ADD)
-        type.getVmClass();
-    }
+        synchronized (this) {
+            classHierarchy.computeIfAbsent(type, t -> ConcurrentHashMap.newKeySet());
+            LoadedTypeDefinition superClass = type.getSuperClass();
+            if (superClass != null) {
+                addReachableClass(superClass);
+                classHierarchy.get(superClass).add(type);
+            }
+            for (LoadedTypeDefinition i : type.getInterfaces()) {
+                addReachableInterface(i);
+                addInterfaceEdge(type, i);
+            }
+            // force class to be loaded (will fail if new reachable classes are discovered after ADD)
+            type.getVmClass();
 
-    void addInstantiatedClass(LoadedTypeDefinition type) {
-        instantiatedClasses.add(type);
+            // If I override a dispatchable superclass or interface method, make my version of that method dispatchable.
+            methodLoop:
+            for (MethodElement im : type.getInstanceMethods()) {
+                if (!isDispatchableMethod(im)) {
+                    if (type.hasSuperClass()) {
+                        MethodElement overiddenMethod = type.getSuperClass().resolveMethodElementVirtual(im.getName(), im.getDescriptor());
+                        if (overiddenMethod != null && isDispatchableMethod(overiddenMethod)) {
+                            ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: dispatchable method %s from %s", im, type.getSuperClass());
+                            analysis.processReachableDispatchedInvocation(im, null);
+                            continue methodLoop;
+                        }
+                    }
+                    for (LoadedTypeDefinition i : type.getInterfaces()) {
+                        MethodElement sm = i.resolveMethodElementInterface(im.getName(), im.getDescriptor());
+                        if (sm != null && isDispatchableMethod(sm)) {
+                            ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: dispatchable method: %s from %s", im, i);
+                            analysis.processReachableDispatchedInvocation(im, null);
+                            continue methodLoop;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     void addReachableType(LoadedTypeDefinition type) {
@@ -295,7 +330,57 @@ public class ReachabilityInfo {
     }
 
     void addDispatchableMethod(MethodElement meth) {
-        this.dispatchableMethods.add(meth);
+        if (dispatchableMethods.contains(meth)) return;
+        synchronized (this) {
+            addReachableType(meth.getEnclosingType().load());
+            dispatchableMethods.add(meth);
+
+            // First we must propagate dispatchability down the method family
+            LoadedTypeDefinition definingClass = meth.getEnclosingType().load();
+
+            if (definingClass.isInterface()) {
+                // Traverse the reachable extenders and implementors and handle as-if we just saw
+                // an invokevirtual/invokeinterface  of their overriding/implementing method
+                visitReachableImplementors(definingClass, (c) -> {
+                    MethodElement cand;
+                    if (c.isInterface()) {
+                        cand = c.resolveMethodElementInterface(meth.getName(), meth.getDescriptor());
+                    } else {
+                        cand = c.resolveMethodElementVirtual(meth.getName(), meth.getDescriptor());
+                    }
+                    if (cand != null && !isDispatchableMethod(cand)) {
+                        ReachabilityInfo.LOGGER.debugf("\tnewly dispatchable method due to down propagation: %s", cand);
+                        analysis.processReachableDispatchedInvocation(cand, null);
+                    }
+                });
+            } else {
+                // Traverse the instantiated subclasses of target's defining class and
+                // ensure that all overriding implementations of this method are marked dispatchable.
+                visitReachableSubclassesPreOrder(definingClass, (sc) -> {
+                    MethodElement cand = sc.resolveMethodElementVirtual(meth.getName(), meth.getDescriptor());
+                    if (cand != null && !isDispatchableMethod(cand)) {
+                        ReachabilityInfo.LOGGER.debugf("\tnewly dispatchable method due to down propagation: %s", cand);
+                        analysis.processReachableDispatchedInvocation(cand, null);
+                    }
+                });
+                // To ensure compatible vtable layouts, we must also propagate dispatchability up the class hierarchy.
+                // We do not have to propagate dispatchability up the interface hierarchy because the itable dispatch
+                // mechanism does not have the strong identical-prefix requirements for superinterfaces that vtables do for superclasses.
+                LoadedTypeDefinition ancestor = definingClass.getSuperClass();
+                while (ancestor != null) {
+                    MethodElement cand = ancestor.resolveMethodElementVirtual(meth.getName(), meth.getDescriptor());
+                    if (cand != null && !isDispatchableMethod(cand)) {
+                        ReachabilityInfo.LOGGER.debugf("\tnewly dispatchable method due to up propagation: %s", cand);
+                        analysis.processReachableDispatchedInvocation(cand, null);
+                    }
+                    ancestor = ancestor.getSuperClass();
+                }
+            }
+        }
+    }
+
+    void addInvokableInstanceMethod(MethodElement meth) {
+        this.invokableInstanceMethods.add(meth);
     }
 
     void addAccessedStaticField(FieldElement field) {
