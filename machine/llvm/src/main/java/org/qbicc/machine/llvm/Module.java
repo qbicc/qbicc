@@ -10,6 +10,8 @@ import org.qbicc.machine.llvm.debuginfo.DIDerivedType;
 import org.qbicc.machine.llvm.debuginfo.DIEncoding;
 import org.qbicc.machine.llvm.debuginfo.DIExpression;
 import org.qbicc.machine.llvm.debuginfo.DIFile;
+import org.qbicc.machine.llvm.debuginfo.DIGlobalVariable;
+import org.qbicc.machine.llvm.debuginfo.DIGlobalVariableExpression;
 import org.qbicc.machine.llvm.debuginfo.DILocalVariable;
 import org.qbicc.machine.llvm.debuginfo.DILocation;
 import org.qbicc.machine.llvm.debuginfo.DISubprogram;
@@ -51,6 +53,8 @@ public interface Module {
     DISubroutineType diSubroutineType(LLValue types);
     DILocalVariable diLocalVariable(String name, LLValue type, LLValue scope, LLValue file, int line, int align);
     DIExpression diExpression();
+    DIGlobalVariableExpression diGlobalVariableExpression(LLValue var_, LLValue expr);
+    DIGlobalVariable diGlobalVariable(String name, LLValue type, LLValue scope, LLValue file, int line, int align);
 
     void addFlag(ModuleFlagBehavior behavior, String name, LLValue type, LLValue value);
 

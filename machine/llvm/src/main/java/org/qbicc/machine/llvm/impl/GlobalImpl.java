@@ -173,6 +173,7 @@ final class GlobalImpl extends AbstractYieldingInstruction implements Global {
             target.append(' ');
             target.append(Integer.toString(alignment));
         }
+        appendMeta(target);
         return target;
     }
 }

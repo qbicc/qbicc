@@ -40,6 +40,7 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.MemberElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 import java.io.BufferedWriter;
@@ -180,6 +181,10 @@ final class LLVMModuleGenerator {
                     }
                     if (item.getAddrspace() != 0) {
                         obj.addressSpace(data.getAddrspace());
+                    }
+                    MemberElement element = data.getOriginalElement();
+                    if (element != null) {
+                        obj.meta("dbg", debugInfo.getDebugInfoForGlobal(data, element));
                     }
                     obj.asGlobal(data.getName());
                 } else {
