@@ -8,4 +8,8 @@ public final class NotReachableException extends IllegalStateException {
 
     public NotReachableException() {
     }
+
+    public NotReachableException(String s) {
+        super(s);
+    }
 }
