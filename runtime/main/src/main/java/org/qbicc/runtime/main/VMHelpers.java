@@ -6,6 +6,7 @@ import org.qbicc.runtime.Inline;
 import org.qbicc.runtime.InlineCondition;
 import org.qbicc.runtime.NoReturn;
 import org.qbicc.runtime.NoSideEffects;
+import org.qbicc.runtime.NotReachableException;
 
 import static org.qbicc.runtime.CNative.*;
 import static org.qbicc.runtime.posix.PThread.*;
@@ -187,7 +188,7 @@ public final class VMHelpers {
     @Inline(InlineCondition.NEVER)
     @AutoQueued
     static void raiseUnreachableCodeError(String target) {
-        throw new NoSuchMethodError(target);
+        throw new NotReachableException(target);
     }
 
 
