@@ -160,8 +160,8 @@ final class NativeInfo {
                                                 ClassTypeDescriptor nestedDesc = nested.getDescriptor();
                                                 if (nestedDesc.getPackageName().equals(Native.NATIVE_PKG)) {
                                                     if (nestedDesc.getClassName().equals(Native.ANN_NAME)) {
-                                                        if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
-                                                            simpleName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                                                        if (conditionEvaluation.evaluateConditions(classContext, definedType, nested)) {
+                                                            simpleName = ((StringAnnotationValue) nested.getValue("value")).getString();
                                                             // stop searching for names
                                                             break;
                                                         }
@@ -286,8 +286,8 @@ final class NativeInfo {
                                                         ClassTypeDescriptor nestedDesc = nested.getDescriptor();
                                                         if (nestedDesc.getPackageName().equals(Native.NATIVE_PKG)) {
                                                             if (nestedDesc.getClassName().equals(Native.ANN_NAME)) {
-                                                                if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
-                                                                    fieldName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                                                                if (conditionEvaluation.evaluateConditions(classContext, definedType, nested)) {
+                                                                    fieldName = ((StringAnnotationValue) nested.getValue("value")).getString();
                                                                     nameOverridden = true;
                                                                     // stop searching for names
                                                                     break;
