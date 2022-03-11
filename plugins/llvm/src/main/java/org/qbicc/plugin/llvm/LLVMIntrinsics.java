@@ -1,5 +1,6 @@
 package org.qbicc.plugin.llvm;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -14,19 +15,23 @@ import org.qbicc.graph.NewArray;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.plugin.intrinsics.StaticIntrinsic;
+import org.qbicc.type.ArrayType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
+import org.qbicc.type.VariadicType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -279,25 +284,32 @@ public final class LLVMIntrinsics {
         }
 
         // Arguments.
-        int argCount;
-        Value[] args;
+        List<Value> args;
         FunctionType type;
-        // todo: we could alternatively get the array length and see if it's a literal.
-        if (argsValue instanceof NewArray na) {
-            if (na.getSize() instanceof IntegerLiteral szl) {
-                argCount = szl.intValue();
-                args = new Value[argCount];
-                ValueType[] types = new ValueType[argCount];
-                ValueHandle arrayHandle = bb.referenceHandle(argsValue);
-                for (int i = 0; i < argCount; i ++) {
-                    Value value = bb.load(bb.elementOf(arrayHandle, lf.literalOf(i)));
-                    args[i] = value;
-                    types[i] = value.getType();
-                }
-                type = ts.getFunctionType(returnType, types);
-            } else {
-                ctxt.error(bb.getLocation(), "Flags argument to `asm` must be an integer literal or constant value");
+        if (argsValue.getType() instanceof ArrayType at) {
+            long length = at.getElementCount();
+            if (length > 255) {
+                ctxt.error(bb.getLocation(), "Too many arguments to `asm`");
                 return lf.zeroInitializerLiteralOfType(ts.getVoidType());
+            }
+            if (length == 0) {
+                // no arguments
+                args = List.of();
+                type = ts.getFunctionType(returnType, List.of());
+            } else if (length == 1) {
+                // just one argument
+                args = List.of(bb.extractElement(argsValue, lf.literalOf(0)));
+                type = ts.getFunctionType(returnType, List.of(args.get(0).getType()));
+            } else {
+                int cnt = (int) length;
+                args = new ArrayList<>(cnt);
+                List<ValueType> argTypes = new ArrayList<>(cnt);
+                for (int i = 0; i < cnt; i ++) {
+                    Value itemValue = bb.extractElement(argsValue, lf.literalOf(i));
+                    args.add(itemValue);
+                    argTypes.add(itemValue.getType());
+                }
+                type = ts.getFunctionType(returnType, argTypes);
             }
         } else {
             ctxt.error(bb.getLocation(), "Arguments to `asm` must be an immediate new array creation");
@@ -329,13 +341,13 @@ public final class LLVMIntrinsics {
         ValueHandle asm = bb.asm(instruction, operands, flagSet, type);
 
         if (noReturn) {
-            throw new BlockEarlyTermination(bb.callNoReturn(asm, List.of(args)));
+            throw new BlockEarlyTermination(bb.callNoReturn(asm, args));
         }
 
         if (generalSideEffects) {
-            return bb.call(asm, List.of(args));
+            return bb.call(asm, args);
         } else {
-            return bb.callNoSideEffects(asm, List.of(args));
+            return bb.callNoSideEffects(asm, args);
         }
     }
 }
