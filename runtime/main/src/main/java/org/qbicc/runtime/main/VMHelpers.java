@@ -182,6 +182,14 @@ public final class VMHelpers {
         throw new UnsatisfiedLinkError(target);
     }
 
+    @Hidden
+    @NoReturn
+    @Inline(InlineCondition.NEVER)
+    @AutoQueued
+    static void raiseUnreachableCodeError(String target) {
+        throw new NoSuchMethodError(target);
+    }
+
 
     // Run time class loading
 

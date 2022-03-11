@@ -87,12 +87,17 @@ public class DispatchTables {
 
     void buildFilteredVTable(LoadedTypeDefinition cls) {
         tlog.debugf("Building VTable for %s", cls.getDescriptor());
+        ReachabilityInfo reachabilityInfo = ReachabilityInfo.get(ctxt);
 
         ArrayList<MethodElement> vtableVector = new ArrayList<>();
         for (MethodElement m: cls.getInstanceMethods()) {
-            if (ctxt.wasEnqueued(m)) {
-                tlog.debugf("\tadding reachable method %s%s", m.getName(), m.getDescriptor().toString());
-                ctxt.registerAutoQueuedElement(m);
+            if (!m.isPrivate() && reachabilityInfo.isDispatchableMethod(m)) {
+                if (reachabilityInfo.isInvokableInstanceMethod(m)) {
+                    tlog.debugf("\tadding dispatchable and invokable method %s%s", m.getName(), m.getDescriptor().toString());
+                    ctxt.registerAutoQueuedElement(m);
+                } else {
+                    tlog.debugf("\tadding dispatchable but not invokable method %s%s", m.getName(), m.getDescriptor().toString());
+                }
                 vtableVector.add(m);
             }
         }
@@ -114,10 +119,11 @@ public class DispatchTables {
 
     void buildFilteredITableForInterface(LoadedTypeDefinition cls) {
         tlog.debugf("Building ITable for %s", cls.getDescriptor());
+        ReachabilityInfo reachabilityInfo = ReachabilityInfo.get(ctxt);
 
         ArrayList<MethodElement> itableVector = new ArrayList<>();
         for (MethodElement m: cls.getInstanceMethods()) {
-            if (ctxt.wasEnqueued(m) && ! m.isPrivate()) {
+            if (reachabilityInfo.isDispatchableMethod(m) && ! m.isPrivate()) {
                 tlog.debugf("\tadding invokable signature %s%s", m.getName(), m.getDescriptor().toString());
                 itableVector.add(m);
             }
@@ -184,6 +190,7 @@ public class DispatchTables {
             return;
         }
         RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
+        ReachabilityInfo reachabilityInfo = ReachabilityInfo.get(ctxt);
         VTableInfo info = getVTableInfo(cls);
         MethodElement[] vtable = info.getVtable();
         Section section = ctxt.getImplicitSection(cls);
@@ -196,16 +203,22 @@ public class DispatchTables {
                 FunctionDeclaration decl = section.declareFunction(stub, stubImpl.getName(), stubImpl.getValueType());
                 ProgramObjectLiteral literal = ctxt.getLiteralFactory().literalOf(decl);
                 valueMap.put(info.getType().getMember(i), ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getFunctionTypeForElement(vtable[i]).getPointer()));
+            } else if (!reachabilityInfo.isInvokableInstanceMethod(vtable[i])) {
+                MethodElement stub = methodFinder.getMethod("raiseUnreachableCodeError");
+                Function stubImpl = ctxt.getExactFunction(stub);
+                FunctionDeclaration decl = section.declareFunction(stub, stubImpl.getName(), stubImpl.getValueType());
+                ProgramObjectLiteral literal = ctxt.getLiteralFactory().literalOf(decl);
+                valueMap.put(info.getType().getMember(i), ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getFunctionTypeForElement(vtable[i]).getPointer()));
             } else {
                 Function impl = ctxt.getExactFunctionIfExists(vtable[i]);
                 if (impl == null) {
                     ctxt.error(vtable[i], "Missing method implementation for vtable of %s", cls.getInternalName());
-                    continue;
+                } else {
+                    if (!vtable[i].getEnclosingType().load().equals(cls)) {
+                        section.declareFunction(vtable[i], impl.getName(), funType);
+                    }
+                    valueMap.put(info.getType().getMember(i), ctxt.getLiteralFactory().literalOf(impl));
                 }
-                if (!vtable[i].getEnclosingType().load().equals(cls)) {
-                    section.declareFunction(vtable[i], impl.getName(), funType);
-                }
-                valueMap.put(info.getType().getMember(i), ctxt.getLiteralFactory().literalOf(impl));
             }
         }
         Literal vtableLiteral = ctxt.getLiteralFactory().literalOf(info.getType(), valueMap);
@@ -259,6 +272,7 @@ public class DispatchTables {
 
         ArrayList<Literal> itableLiterals = new ArrayList<>(myITables.size() + 1);
         RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
+        ReachabilityInfo reachabilityInfo = ReachabilityInfo.get(ctxt);
         for (ITableInfo itableInfo : myITables) {
             MethodElement[] itable = itableInfo.getItable();
             LoadedTypeDefinition currentInterface = itableInfo.getInterface();
@@ -277,17 +291,20 @@ public class DispatchTables {
                     Function ameImpl = ctxt.getExactFunction(ameStub);
                     ProgramObjectLiteral ameLiteral = lf.literalOf(cSection.declareFunction(ameImpl));
                     valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(ameLiteral, implType.getPointer()));
+                } else if (methImpl.isNative()) {
+                    MethodElement uleStub = methodFinder.getMethod("raiseUnsatisfiedLinkError");
+                    Function uleImpl = ctxt.getExactFunction(uleStub);
+                    ProgramObjectLiteral uleLiteral = lf.literalOf(cSection.declareFunction(uleImpl));
+                    valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(uleLiteral, implType.getPointer()));
+                } else if (!reachabilityInfo.isInvokableInstanceMethod(methImpl)) {
+                    MethodElement uceStub = methodFinder.getMethod("raiseUnreachableCodeError");
+                    Function uceImpl = ctxt.getExactFunction(uceStub);
+                    ProgramObjectLiteral uceLiteral = lf.literalOf(cSection.declareFunction(uceImpl));
+                    valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(uceLiteral, implType.getPointer()));
                 } else {
-                    Function impl = methImpl.isNative() ? null : ctxt.getExactFunctionIfExists(methImpl);
+                    Function impl = ctxt.getExactFunctionIfExists(methImpl);
                     if (impl == null) {
-                        if (!methImpl.isNative() && ReachabilityInfo.get(ctxt).isDispatchableMethod(methImpl)) {
-                            ctxt.error(methImpl, "Missing method implementation for vtable of %s", cls.getInternalName());
-                        } else {
-                            MethodElement uleStub = methodFinder.getMethod("raiseUnsatisfiedLinkError");
-                            Function uleImpl = ctxt.getExactFunction(uleStub);
-                            ProgramObjectLiteral uleLiteral = lf.literalOf(cSection.declareFunction(uleImpl));
-                            valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(uleLiteral, implType.getPointer()));
-                        }
+                        ctxt.error(methImpl, "Missing method implementation for itable of %s", cls.getInternalName());
                     } else {
                         if (!methImpl.getEnclosingType().load().equals(cls)) {
                             cSection.declareFunction(methImpl, impl.getName(), implType);

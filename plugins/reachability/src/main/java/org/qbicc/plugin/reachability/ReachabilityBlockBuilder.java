@@ -230,7 +230,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         public Void visit(ReachabilityContext param, New node) {
             if (visitUnknown(param, (Node)node)) {
                 LoadedTypeDefinition ltd = node.getClassObjectType().getDefinition().load();
-                param.analysis.processInstantiatedClass(ltd, true, false, param.currentElement);
+                param.analysis.processInstantiatedClass(ltd, false, param.currentElement);
             }
             return null;
         }
@@ -278,7 +278,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         public Void visit(ReachabilityContext param, ClassOf node) {
             if (visitUnknown(param, (Node)node)) {
                 MethodElement methodElement = RuntimeMethodFinder.get(param.ctxt).getMethod("getClassFromTypeId");
-                param.ctxt.enqueue(methodElement);
+                param.analysis.processReachableExactInvocation(methodElement, param.currentElement);
                 if (node.getInput() instanceof TypeLiteral tl && tl.getValue() instanceof ClassObjectType cot) {
                     param.analysis.processReachableType(cot.getDefinition().load(), param.currentElement);
                 }
