@@ -112,8 +112,8 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
                                     ClassTypeDescriptor nestedDesc = nested.getDescriptor();
                                     if (nestedDesc.getPackageName().equals(Native.NATIVE_PKG)) {
                                         if (nestedDesc.getClassName().equals(Native.ANN_NAME)) {
-                                            if (conditionEvaluation.evaluateConditions(classContext, () -> location, annotation)) {
-                                                name = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                                            if (conditionEvaluation.evaluateConditions(classContext, () -> location, nested)) {
+                                                name = ((StringAnnotationValue) nested.getValue("value")).getString();
                                                 nameOverridden = true;
                                                 // stop searching for names
                                                 break;
