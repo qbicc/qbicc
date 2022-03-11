@@ -33,4 +33,6 @@ public final class Stdio {
     public static FILE_ptr stdout;
     @extern
     public static FILE_ptr stderr;
+
+    public static native c_int fflush(ptr<FILE> stream);
 }
