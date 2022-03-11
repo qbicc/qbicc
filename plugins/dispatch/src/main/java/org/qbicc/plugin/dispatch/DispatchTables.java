@@ -2,6 +2,7 @@ package org.qbicc.plugin.dispatch;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -101,6 +102,14 @@ public class DispatchTables {
                 vtableVector.add(m);
             }
         }
+        // now, sig-poly methods (if any)
+        cls.forEachSigPolyMethod(m -> {
+            if (ctxt.wasEnqueued(m)) {
+                tlog.debugf("\tadding reachable method %s%s", m.getName(), m.getDescriptor().toString());
+                ctxt.registerAutoQueuedElement(m);
+                vtableVector.add(m);
+            }
+        });
         MethodElement[] vtable = vtableVector.toArray(MethodElement.NO_METHODS);
 
         String vtableName = "vtable-" + cls.getInternalName().replace('/', '.');

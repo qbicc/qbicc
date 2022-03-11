@@ -445,7 +445,7 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
     }
 
 
-
+    void forEachSigPolyMethod(Consumer<MethodElement> consumer);
 
     ConstructorElement getConstructor(int index);
 
