@@ -132,6 +132,10 @@ public interface ClassFile extends FieldResolver,
      * For methods which have the JDK {@code @CallerSensitive} annotation.
      */
     int I_ACC_CALLER_SENSITIVE = 1 << 29;
+    /**
+     * For methods which are only invokable at build time.  Members with this annotation are not invokable during runtime.
+     */
+    int I_ACC_BUILD_TIME_ONLY = 1 << 30;
 
     int OP_NOP = 0x00;
     int OP_ACONST_NULL = 0x01;

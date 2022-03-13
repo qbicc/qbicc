@@ -54,6 +54,7 @@ import org.qbicc.plugin.core.CoreAnnotationTypeBuilder;
 import org.qbicc.plugin.coreclasses.ArrayLengthBasicBlockBuilder;
 import org.qbicc.plugin.coreclasses.BasicHeaderManualInitializer;
 import org.qbicc.plugin.coreclasses.CoreClasses;
+import org.qbicc.plugin.correctness.BuildTimeOnlyElementHandler;
 import org.qbicc.plugin.correctness.RuntimeChecksBasicBlockBuilder;
 import org.qbicc.plugin.correctness.StaticChecksBasicBlockBuilder;
 import org.qbicc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
@@ -401,6 +402,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachable);
                                 builder.addElementHandler(Phase.ADD, new ElementBodyCreator());
+                                builder.addElementHandler(Phase.ADD, new BuildTimeOnlyElementHandler());
                                 builder.addElementHandler(Phase.ADD, new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig)));
                                 builder.addElementHandler(Phase.ADD, new ElementInitializer());
                                 builder.addElementHandler(Phase.ADD, elem -> ReachabilityInfo.processAutoQueuedElement(elem));

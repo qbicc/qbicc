@@ -31,6 +31,7 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
     private final ClassTypeDescriptor noThrow;
     private final ClassTypeDescriptor inline;
     private final ClassTypeDescriptor fold;
+    private final ClassTypeDescriptor buildTime;
 
     public CoreAnnotationTypeBuilder(final ClassContext classCtxt, DefinedTypeDefinition.Builder delegate) {
         this.delegate = delegate;
@@ -44,6 +45,7 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
         noThrow = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoThrow");
         inline = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/Inline");
         fold = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/Fold");
+        buildTime = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/BuildTimeOnly");
     }
 
     @Override
@@ -81,6 +83,8 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
                         }
                     } else if (annotation.getDescriptor().equals(fold)) {
                         methodElement.setModifierFlags(ClassFile.I_ACC_FOLD);
+                    } else if (annotation.getDescriptor().equals(buildTime)) {
+                        methodElement.setModifierFlags(ClassFile.I_ACC_BUILD_TIME_ONLY);
                     }
                 }
                 for (Annotation annotation : methodElement.getVisibleAnnotations()) {
