@@ -19,4 +19,8 @@ public class String {
     public static native void_ptr memset(void_ptr dest, c_int data, size_t len);
 
     public static native c_int memcmp(const_void_ptr src1, const_void_ptr src2, size_t len);
+
+    public static native c_int strcmp(const_char_ptr src1, const_char_ptr src2);
+
+    public static native c_int strncmp(const_char_ptr src1, const_char_ptr src2, size_t len);
 }

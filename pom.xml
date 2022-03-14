@@ -123,13 +123,25 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qbicc-runtime-main</artifactId>
+                <artifactId>qbicc-runtime-gc-heap</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-runtime-gc-nogc</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-runtime-linux</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-runtime-main</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -330,6 +342,12 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-plugin-intrinsics</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-plugin-gc-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

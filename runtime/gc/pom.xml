@@ -18,6 +18,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>heap</module>
         <module>nogc</module>
     </modules>
 </project>

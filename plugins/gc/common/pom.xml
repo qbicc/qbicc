@@ -6,27 +6,32 @@
 
     <parent>
         <groupId>org.qbicc</groupId>
-        <artifactId>qbicc-runtime-gc-parent</artifactId>
+        <artifactId>qbicc-plugin-gc-parent</artifactId>
         <version>0.20.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qbicc-runtime-gc-nogc</artifactId>
+    <artifactId>qbicc-plugin-gc-common</artifactId>
 
-    <name>Qbicc Run Time: GC: No GC</name>
-    <description>Qbicc no-GC GC implementation</description>
+    <name>Qbicc Plugin: GC: Common</name>
+    <description>Plugin supporting all GC implementations</description>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-runtime-api</artifactId>
+            <artifactId>qbicc-compiler</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-runtime-posix</artifactId>
+            <artifactId>qbicc-driver</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-intrinsics</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-runtime-gc-heap</artifactId>
+            <artifactId>qbicc-plugin-layout</artifactId>
         </dependency>
     </dependencies>
 </project>
