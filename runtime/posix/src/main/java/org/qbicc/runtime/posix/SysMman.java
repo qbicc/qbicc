@@ -4,9 +4,12 @@ import static org.qbicc.runtime.CNative.*;
 import static org.qbicc.runtime.posix.SysTypes.*;
 import static org.qbicc.runtime.stdc.Stddef.*;
 
+import org.qbicc.runtime.Build;
+
 @SuppressWarnings("SpellCheckingInspection")
 @include("<sys/mman.h>")
 @define(value = "_POSIX_C_SOURCE", as = "200809L")
+@define(value = "_DARWIN_C_SOURCE", when = Build.Target.IsApple.class)
 public final class SysMman {
     private SysMman() {}
 
