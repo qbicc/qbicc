@@ -90,47 +90,83 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
             @Override
             public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
                 NativeInfo nativeInfo = NativeInfo.get(ctxt);
+                ConditionEvaluation conditionEvaluation = ConditionEvaluation.get(ctxt);
                 FieldElement resolved = resolver.resolveField(index, enclosing, builder);
-                // look for annotations
+                String name = resolved.getName();
+                // look for annotations that indicate that this method requires special handling
+                boolean nameOverridden = false;
+                boolean isExtern = false;
+                boolean isExport = false;
                 for (Annotation annotation : resolved.getInvisibleAnnotations()) {
                     ClassTypeDescriptor desc = annotation.getDescriptor();
                     if (desc.getPackageName().equals(Native.NATIVE_PKG)) {
-                        if (desc.getClassName().equals(Native.ANN_EXTERN)) {
-                            AnnotationValue nameVal = annotation.getValue("withName");
-                            String name = nameVal == null ? resolved.getName() : ((StringAnnotationValue) nameVal).getString();
-                            if (! resolved.isStatic()) {
-                                ctxt.error(resolved, "External (imported) fields must be `static`");
+                        if (desc.getClassName().equals(Native.ANN_NAME) && ! nameOverridden) {
+                            if (annotation.getValue("value") instanceof StringAnnotationValue sav) {
+                                if (conditionEvaluation.evaluateConditions(classCtxt, resolved, annotation)) {
+                                    name = sav.getString();
+                                    nameOverridden = true;
+                                }
                             }
-                            // declare it
-                            Section section = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
-                            ValueType fieldType = resolved.getType();
-                            DataDeclaration decl = section.declareData(resolved, name, fieldType);
-                            if (resolved.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {
-                                decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
+                        } else if (desc.getClassName().equals(Native.ANN_NAME_LIST) && ! nameOverridden) {
+                            if (annotation.getValue("value") instanceof ArrayAnnotationValue aav) {
+                                int cnt = aav.getElementCount();
+                                for (int i = 0; i < cnt; i ++) {
+                                    if (aav.getValue(i) instanceof Annotation nested) {
+                                        ClassTypeDescriptor nestedDesc = nested.getDescriptor();
+                                        if (nestedDesc.packageAndClassNameEquals(Native.NATIVE_PKG, Native.ANN_NAME)) {
+                                            if (nested.getValue("value") instanceof StringAnnotationValue sav) {
+                                                if (conditionEvaluation.evaluateConditions(classCtxt, resolved, annotation)) {
+                                                    name = sav.getString();
+                                                    nameOverridden = true;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
-                            decl.setLinkage(Linkage.COMMON);
-                            // and register as an external data object
-                            addExtern(nativeInfo, resolved, decl);
-                            // all done
-                            return resolved;
+                        } else if (desc.getClassName().equals(Native.ANN_EXTERN)) {
+                            if (isExport) {
+                                ctxt.error(resolved, "Field cannot have both `@extern` and `@export");
+                                return resolved;
+                            }
+                            isExtern = true;
                         } else if (desc.getClassName().equals(Native.ANN_EXPORT)) {
-                            // immediately generate the call-in stub
-                            AnnotationValue nameVal = annotation.getValue("withName");
-                            String name = nameVal == null ? resolved.getName() : ((StringAnnotationValue) nameVal).getString();
-                            // define it
-                            Section section = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
-                            ValueType fieldType = resolved.getType();
-                            Data data = section.addData(resolved, name, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldType));
-                            if (resolved.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {
-                                data.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
+                            if (isExtern) {
+                                ctxt.error(resolved, "Field cannot have both `@extern` and `@export");
+                                return resolved;
                             }
-                            data.setLinkage(Linkage.COMMON);
-                            // and register it
-                            addExport(nativeInfo, resolved, data);
-                            // all done
-                            return resolved;
+                            isExport = true;
                         }
                     }
+                }
+                if (isExtern) {
+                    if (! resolved.isStatic()) {
+                        ctxt.error(resolved, "External (imported) fields must be `static`");
+                    }
+                    // declare it
+                    Section section = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+                    ValueType fieldType = resolved.getType();
+                    DataDeclaration decl = section.declareData(resolved, name, fieldType);
+                    if (resolved.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {
+                        decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
+                    }
+                    decl.setLinkage(Linkage.COMMON);
+                    // and register as an external data object
+                    addExtern(nativeInfo, resolved, decl);
+                } else if (isExport) {
+                    if (! resolved.isStatic()) {
+                        ctxt.error(resolved, "Exported fields must be `static`");
+                    }
+                    // define it
+                    Section section = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+                    ValueType fieldType = resolved.getType();
+                    Data data = section.addData(resolved, name, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldType));
+                    if (resolved.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {
+                        data.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
+                    }
+                    data.setLinkage(Linkage.COMMON);
+                    // and register it
+                    addExport(nativeInfo, resolved, data);
                 }
                 return resolved;
             }
@@ -159,39 +195,65 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
         delegate.addMethod(new MethodResolver() {
             public MethodElement resolveMethod(final int index, final DefinedTypeDefinition enclosing, MethodElement.Builder builder) {
                 NativeInfo nativeInfo = NativeInfo.get(ctxt);
+                ConditionEvaluation conditionEvaluation = ConditionEvaluation.get(ctxt);
                 MethodElement origMethod = resolver.resolveMethod(index, enclosing, builder);
                 String name = origMethod.getName();
                 // look for annotations that indicate that this method requires special handling
+                boolean nameOverridden = false;
+                boolean isExtern = false;
+                boolean isExport = false;
                 for (Annotation annotation : origMethod.getInvisibleAnnotations()) {
                     ClassTypeDescriptor desc = annotation.getDescriptor();
                     if (desc.getPackageName().equals(Native.NATIVE_PKG)) {
-                        if (desc.getClassName().equals(Native.ANN_EXTERN)) {
-                            AnnotationValue nameVal = annotation.getValue("withName");
-                            if (nameVal != null) {
-                                name = ((StringAnnotationValue) nameVal).getString();
+                        if (desc.getClassName().equals(Native.ANN_NAME) && ! nameOverridden) {
+                            if (annotation.getValue("value") instanceof StringAnnotationValue sav) {
+                                if (conditionEvaluation.evaluateConditions(classCtxt, origMethod, annotation)) {
+                                    name = sav.getString();
+                                    nameOverridden = true;
+                                }
                             }
-                            // register as a function
-                            addExtern(nativeInfo, origMethod, name);
-                            // all done
-                            return origMethod;
+                        } else if (desc.getClassName().equals(Native.ANN_NAME_LIST) && ! nameOverridden) {
+                            if (annotation.getValue("value") instanceof ArrayAnnotationValue aav) {
+                                int cnt = aav.getElementCount();
+                                for (int i = 0; i < cnt; i ++) {
+                                    if (aav.getValue(i) instanceof Annotation nested) {
+                                        ClassTypeDescriptor nestedDesc = nested.getDescriptor();
+                                        if (nestedDesc.packageAndClassNameEquals(Native.NATIVE_PKG, Native.ANN_NAME)) {
+                                            if (nested.getValue("value") instanceof StringAnnotationValue sav) {
+                                                if (conditionEvaluation.evaluateConditions(classCtxt, origMethod, annotation)) {
+                                                    name = sav.getString();
+                                                    nameOverridden = true;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } else if (desc.getClassName().equals(Native.ANN_EXTERN)) {
+                            if (isExport) {
+                                ctxt.error(origMethod, "Method cannot have both `@extern` and `@export");
+                                return origMethod;
+                            }
+                            isExtern = true;
                         } else if (desc.getClassName().equals(Native.ANN_EXPORT)) {
-                            // immediately generate the call-in stub
-                            AnnotationValue nameVal = annotation.getValue("withName");
-                            if (nameVal != null) {
-                                name = ((StringAnnotationValue) nameVal).getString();
+                            if (isExtern) {
+                                ctxt.error(origMethod, "Method cannot have both `@extern` and `@export");
+                                return origMethod;
                             }
-                            addExport(nativeInfo, origMethod, name);
-                            // all done
-                            return origMethod;
+                            isExport = true;
                         } else if (desc.getClassName().equals(Native.ANN_MACRO)) {
                             name = getFunctionNameFromMacro(origMethod);
                         }
                     }
                 }
-                boolean isNative = origMethod.hasAllModifiersOf(ClassFile.ACC_NATIVE);
-                if (isNative && hasInclude) {
-                    // treat it as extern with the default name
+                if (! isExtern && ! isExport && origMethod.hasAllModifiersOf(ClassFile.ACC_NATIVE) && hasInclude) {
+                    // treat it as extern
+                    isExtern = true;
+                }
+                if (isExtern) {
                     addExtern(nativeInfo, origMethod, name);
+                } else if (isExport) {
+                    addExport(nativeInfo, origMethod, name);
                 }
                 return origMethod;
             }
