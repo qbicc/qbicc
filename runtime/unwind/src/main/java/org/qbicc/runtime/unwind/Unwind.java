@@ -149,26 +149,22 @@ public final class Unwind {
     }
 
     public static long getHandlerOffset(uint8_t_ptr lsda, long pcOffset) {
-        int[] offset = new int[1]; /* TODO: Avoid using new in these methods. offset should instead be passed as pointer */
-        offset[0] = 0;
-        uint8_t header = lsda.plus(offset[0]).loadPlain();   // encoding of landingpad base which is generally DW_EH_PE_omit(0xff)
-        int headerValue = header.byteValue();
-        offset[0] += 1;
-        uint8_t typeEncodingEncoding = lsda.plus(offset[0]).loadPlain();
-        offset[0] += 1;
+        int offset = 0;
+        int32_t_ptr offsetPtr = addr_of(offset);
+        uint8_t header = lsda.plus(offset++).loadPlain();   // encoding of landingpad base which is generally DW_EH_PE_omit(0xff)
+        uint8_t typeEncodingEncoding = lsda.plus(offset++).loadPlain();
         if (typeEncodingEncoding.byteValue() != (byte)0xff) {   // check for DW_EH_PE_omit(0xff)
-            long typeBaseOffset = readULEB(lsda, offset);
+            long typeBaseOffset = readULEB(lsda, offsetPtr);
         }
-        uint8_t callSiteEncodingEncoding = lsda.plus(offset[0]).loadPlain();
-        offset[0] += 1;
+        uint8_t callSiteEncodingEncoding = lsda.plus(offset++).loadPlain();
         int callSiteEncoding = callSiteEncodingEncoding.byteValue();
-        long callSiteTableLength = readULEB(lsda, offset);
-        long callSiteTableEnd = offset[0] + callSiteTableLength;
-        while (offset[0] < callSiteTableEnd) {
-            long startOffset = read(lsda, offset, callSiteEncoding);
-            long size = read(lsda, offset, callSiteEncoding);
-            long lpOffset = read(lsda, offset, callSiteEncoding);
-            long action = readULEB(lsda, offset);
+        long callSiteTableLength = readULEB(lsda, offsetPtr);
+        long callSiteTableEnd = offset + callSiteTableLength;
+        while (offsetPtr.loadUnshared().intValue() < callSiteTableEnd) {
+            long startOffset = read(lsda, offsetPtr, callSiteEncoding);
+            long size = read(lsda, offsetPtr, callSiteEncoding);
+            long lpOffset = read(lsda, offsetPtr, callSiteEncoding);
+            long action = readULEB(lsda, offsetPtr);
             if ((startOffset <= pcOffset) && (pcOffset < (startOffset + size))) {
                 return lpOffset;
             }
@@ -176,30 +172,30 @@ public final class Unwind {
         return 0;
     }
 
-    public static long read(uint8_t_ptr lsda, int[] offset, int callSiteEncoding) {
+    public static long read(uint8_t_ptr lsda, int32_t_ptr offset, int callSiteEncoding) {
         long result = 0;
-        switch(callSiteEncoding) {
-            case 0x1:
-                result = readULEB(lsda, offset);
-                break;
-            case 0x3:
-                result = lsda.plus(offset[0]).cast(uint32_t_ptr.class).loadPlain().longValue();
-                offset[0] += 4;
-                break;
-            default:
-                break;
+        switch (callSiteEncoding) {
+            case 0x1 -> result = readULEB(lsda, offset);
+            case 0x3 -> {
+                int offsetVal = offset.loadPlain().intValue();
+                result = lsda.plus(offsetVal).cast(uint32_t_ptr.class).loadPlain().longValue();
+                offset.storePlain(word(offsetVal + 4));
+            }
+            default -> {
+            }
         }
         return result;
     }
 
-    public static long readULEB(uint8_t_ptr lsda, int[] offset) {
+    public static long readULEB(uint8_t_ptr lsda, int32_t_ptr offset) {
         long result = 0;
         int shift = 0;
         byte singleByte = 0;
         do {
-            singleByte = lsda.plus(offset[0]).loadPlain().byteValue();
-            offset[0] += 1;
-            result |= (singleByte & 0x7f) << shift;
+            int offsetVal = offset.loadPlain().intValue();
+            singleByte = lsda.plus(offsetVal).loadPlain().byteValue();
+            offset.storePlain(word(offsetVal + 1));
+            result |= (singleByte & 0x7fL) << shift;
             shift += 7;
         } while ((singleByte & 0x80) != 0);
         return result;
