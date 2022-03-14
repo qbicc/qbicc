@@ -54,4 +54,45 @@ jobs:
         if: failure()
         with:
           name: test-reports
-          path: 'test-reports.tgz'
+          path: 'linux/test-reports.tgz'
+  build-macos:
+    name: "Mac OS x86_64"
+    runs-on: macos-latest
+    env:
+      CC: gcc
+    steps:
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v1.5.0
+        with:
+          version: "12.0.0"
+          directory: ${{ runner.temp }}/llvm-install
+
+      - name: Install OpenJDK 17
+        uses: joschi/setup-jdk@v2
+        with:
+          java-version: '17'
+          architecture: 'x64'
+
+      - name: Clone qbicc
+        uses: actions/checkout@v2
+        with:
+          path: myqbicc
+
+      - name: Install qbicc
+        env:
+            LIBRARY_PATHS: $(brew --prefix gcc)/lib/gcc/11
+        run: |
+          mvn --batch-mode install
+        working-directory: ./myqbicc
+
+      - name: Prepare failure archive (if maven failed)
+        if: failure()
+        shell: bash
+        run: find . -type d -name '*-reports' -o -name "*-logs" | tar -czf test-reports.tgz -T -
+
+      - name: Upload failure Archive (if maven failed)
+        uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: test-reports
+          path: 'macos/test-reports.tgz'
