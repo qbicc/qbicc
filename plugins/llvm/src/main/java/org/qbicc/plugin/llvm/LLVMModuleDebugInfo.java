@@ -1,5 +1,7 @@
 package org.qbicc.plugin.llvm;
 
+import static org.qbicc.machine.llvm.Values.metadataString;
+
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.machine.llvm.LLValue;
@@ -17,6 +19,7 @@ import org.qbicc.machine.llvm.debuginfo.DebugEmissionKind;
 import org.qbicc.machine.llvm.debuginfo.MetadataNode;
 import org.qbicc.machine.llvm.debuginfo.MetadataTuple;
 import org.qbicc.object.Function;
+import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
@@ -37,6 +40,7 @@ import org.qbicc.type.TypeType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -61,15 +65,27 @@ final class LLVMModuleDebugInfo {
     private final Map<LocationKey, LLValue> locations = new HashMap<>();
     private final Map<String, LLValue> files = new HashMap<>();
 
-    LLVMModuleDebugInfo(final Module module, final CompilationContext ctxt) {
+    LLVMModuleDebugInfo(ProgramModule programModule, final Module module, final CompilationContext ctxt) {
         this.module = module;
         this.ctxt = ctxt;
 
         module.addFlag(ModuleFlagBehavior.Warning, "Debug Info Version", Types.i32, Values.intConstant(3));
         module.addFlag(ModuleFlagBehavior.Warning, "Dwarf Version", Types.i32, Values.intConstant(4));
+        module.metadataTuple("llvm.ident").elem(null, module.metadataTuple().elem(null, metadataString("qbicc")).asRef());
 
-        // TODO Generate correct filenames
-        diCompileUnit = module.diCompileUnit("DW_LANG_Java", module.diFile("<stdin>", "").asRef(), DebugEmissionKind.FullDebug).asRef();
+        final DefinedTypeDefinition typeDefinition = programModule.getTypeDefinition();
+        final String fullPath = typeDefinition.getInternalName() + ".java";
+        final int idx = fullPath.lastIndexOf('/');
+        final String dirName, fileName;
+        if (idx == -1) {
+            dirName = "";
+            fileName = fullPath;
+        } else {
+            dirName = fullPath.substring(0, idx);
+            fileName = fullPath.substring(idx + 1);
+        }
+
+        diCompileUnit = module.diCompileUnit("DW_LANG_Java", module.diFile(fileName, dirName).asRef(), DebugEmissionKind.FullDebug).producer("qbicc").asRef();
     }
 
     private String getFriendlyName(final ExecutableElement element) {

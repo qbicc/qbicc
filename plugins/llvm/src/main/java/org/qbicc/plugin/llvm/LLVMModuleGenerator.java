@@ -66,7 +66,7 @@ final class LLVMModuleGenerator {
         Path outputFile = context.getOutputFile(def, "ll");
         final Module module = Module.newModule();
         final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(module, context);
-        final LLVMModuleDebugInfo debugInfo = new LLVMModuleDebugInfo(module, context);
+        final LLVMModuleDebugInfo debugInfo = new LLVMModuleDebugInfo(programModule, module, context);
         final LLVMPseudoIntrinsics pseudoIntrinsics = new LLVMPseudoIntrinsics(module);
 
         if (picLevel != 0) {
