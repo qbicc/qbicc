@@ -104,14 +104,60 @@ public class DispatchTables {
         }
         // now, sig-poly methods (if any)
         cls.forEachSigPolyMethod(m -> {
-            if (ctxt.wasEnqueued(m)) {
-                tlog.debugf("\tadding reachable method %s%s", m.getName(), m.getDescriptor().toString());
-                ctxt.registerAutoQueuedElement(m);
+            if (reachabilityInfo.isDispatchableMethod(m)) {
+                if (reachabilityInfo.isInvokableInstanceMethod(m)) {
+                    tlog.debugf("\tadding dispatchable and invokable SigPoly method %s%s", m.getName(), m.getDescriptor().toString());
+                    ctxt.registerAutoQueuedElement(m);
+                } else {
+                    tlog.debugf("\tadding dispatchable but not invokable SigPoly method %s%s", m.getName(), m.getDescriptor().toString());
+                }
                 vtableVector.add(m);
             }
         });
         MethodElement[] vtable = vtableVector.toArray(MethodElement.NO_METHODS);
+        buildVTableType(cls, vtable);
+    }
 
+    // Implement proper overriding of "inherited" SigPoly methods because we can't do this early when types are loaded.
+    void adjustVTableForSigPloySubclass(LoadedTypeDefinition cls, VTableInfo sigPolyClass) {
+        tlog.debugf("Recompute SigPoly VTable for %s", cls.getDescriptor());
+        ReachabilityInfo reachabilityInfo = ReachabilityInfo.get(ctxt);
+
+        MethodElement[] baseVTable = sigPolyClass.getVtable();
+        ArrayList<MethodElement> vtableVector = new ArrayList<>();
+        for (MethodElement m: baseVTable) {
+            vtableVector.add(m);
+        }
+
+        for (MethodElement m: cls.getInstanceMethods()) {
+            if (!m.isPrivate() && reachabilityInfo.isDispatchableMethod(m)) {
+                if (reachabilityInfo.isInvokableInstanceMethod(m)) {
+                    ctxt.registerAutoQueuedElement(m);
+                }
+                boolean override = false;
+                for (int i=0; i<baseVTable.length; i++) {
+                    if (m.getName().equals(baseVTable[i].getName()) && m.getDescriptor().equals(baseVTable[i].getDescriptor())) {
+                        override = true;
+                        vtableVector.set(i, m);
+                        tlog.debugf("\tinjecting overriding method %s%s", m.getName(), m.getDescriptor().toString());
+                        break;
+                    }
+                }
+                if (!override) {
+                    if (reachabilityInfo.isInvokableInstanceMethod(m)) {
+                        tlog.debugf("\tadding dispatchable and invokable method %s%s", m.getName(), m.getDescriptor().toString());
+                    } else {
+                        tlog.debugf("\tadding dispatchable but not invokable method %s%s", m.getName(), m.getDescriptor().toString());
+                    }
+                    vtableVector.add(m);
+                }
+            }
+        }
+        MethodElement[] vtable = vtableVector.toArray(MethodElement.NO_METHODS);
+        buildVTableType(cls, vtable);
+    }
+
+    private void buildVTableType(LoadedTypeDefinition cls, MethodElement[] vtable) {
         String vtableName = "vtable-" + cls.getInternalName().replace('/', '.');
         if (cls.isHidden()) vtableName += "~" + cls.getHiddenClassIndex();
         TypeSystem ts = ctxt.getTypeSystem();
@@ -123,7 +169,7 @@ public class DispatchTables {
         CompoundType vtableType = ts.getCompoundType(CompoundType.Tag.STRUCT, vtableName, vtable.length * ts.getPointerSize(),
             ts.getPointerAlignment(), () -> List.of(functions));
 
-        vtables.put(cls,new VTableInfo(vtable, vtableType, vtableName));
+        vtables.put(cls, new VTableInfo(vtable, vtableType, vtableName));
     }
 
     void buildFilteredITableForInterface(LoadedTypeDefinition cls) {
