@@ -18,6 +18,7 @@ import org.qbicc.machine.llvm.debuginfo.DITag;
 import org.qbicc.machine.llvm.debuginfo.DebugEmissionKind;
 import org.qbicc.machine.llvm.debuginfo.MetadataNode;
 import org.qbicc.machine.llvm.debuginfo.MetadataTuple;
+import org.qbicc.object.Data;
 import org.qbicc.object.Function;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -46,7 +47,9 @@ import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
+import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.MemberElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 import java.util.EnumSet;
@@ -64,6 +67,8 @@ final class LLVMModuleDebugInfo {
     private final Map<Type, LLValue> types = new HashMap<>();
     private final Map<LocationKey, LLValue> locations = new HashMap<>();
     private final Map<String, LLValue> files = new HashMap<>();
+    private final LLValue file;
+    private final MetadataTuple globals;
 
     LLVMModuleDebugInfo(ProgramModule programModule, final Module module, final CompilationContext ctxt) {
         this.module = module;
@@ -85,7 +90,9 @@ final class LLVMModuleDebugInfo {
             fileName = fullPath.substring(idx + 1);
         }
 
-        diCompileUnit = module.diCompileUnit("DW_LANG_Java", module.diFile(fileName, dirName).asRef(), DebugEmissionKind.FullDebug).producer("qbicc").asRef();
+        file = module.diFile(fileName, dirName).asRef();
+        globals = module.metadataTuple();
+        diCompileUnit = module.diCompileUnit("DW_LANG_Java", file, DebugEmissionKind.FullDebug).producer("qbicc").globals(globals.asRef()).asRef();
     }
 
     private String getFriendlyName(final ExecutableElement element) {
@@ -394,6 +401,23 @@ final class LLVMModuleDebugInfo {
         location = module.diLocation(line, column, scope, inlinedAt).asRef();
         locations.put(key, location);
         return location;
+    }
+
+    public LLValue getDebugInfoForGlobal(final Data data, final MemberElement element) {
+        String name = data.getName();
+        ValueType valueType;
+        if (element instanceof FieldElement fe) {
+            valueType = fe.getType();
+        } else {
+            valueType = data.getValueType();
+        }
+        LLValue type = getType(valueType);
+        // todo: the alignment should derive from the member/object
+        int align = valueType.getAlign();
+        LLValue sourceFile = createSourceFile(element);
+        LLValue var_ = module.diGlobalVariable(name, type, diCompileUnit, sourceFile, 1, align).isDefinition().asRef();
+        globals.elem(null, var_);
+        return module.diGlobalVariableExpression(var_, Values.diExpression().asValue()).asRef();
     }
 
     final static class LocationKey {

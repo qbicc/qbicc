@@ -21,6 +21,8 @@ import org.qbicc.machine.llvm.debuginfo.DIDerivedType;
 import org.qbicc.machine.llvm.debuginfo.DIEncoding;
 import org.qbicc.machine.llvm.debuginfo.DIExpression;
 import org.qbicc.machine.llvm.debuginfo.DIFile;
+import org.qbicc.machine.llvm.debuginfo.DIGlobalVariable;
+import org.qbicc.machine.llvm.debuginfo.DIGlobalVariableExpression;
 import org.qbicc.machine.llvm.debuginfo.DILocalVariable;
 import org.qbicc.machine.llvm.debuginfo.DILocation;
 import org.qbicc.machine.llvm.debuginfo.DISubprogram;
@@ -156,6 +158,21 @@ final class ModuleImpl implements Module {
 
     public DIExpression diExpression() {
         return add(meta, new DIExpressionImpl(nextMetadataNodeId()));
+    }
+
+    public DIGlobalVariableExpression diGlobalVariableExpression(LLValue var_, LLValue expr) {
+        Assert.checkNotNullParam("var_", var_);
+        Assert.checkNotNullParam("expr", expr);
+        return add(meta, new DIGlobalVariableExpressionImpl(nextMetadataNodeId(), (AbstractValue) var_, (AbstractValue) expr));
+    }
+
+    @Override
+    public DIGlobalVariable diGlobalVariable(String name, LLValue type, LLValue scope, LLValue file, int line, int align) {
+        Assert.checkNotNullParam("name", name);
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("scope", scope);
+        Assert.checkNotNullParam("file", file);
+        return add(meta, new DIGlobalVariableImpl(nextMetadataNodeId(), name, (AbstractValue) type, (AbstractValue) scope, (AbstractValue) file, line, align));
     }
 
     int nextGlobalId() {

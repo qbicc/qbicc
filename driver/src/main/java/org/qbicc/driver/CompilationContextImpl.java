@@ -54,7 +54,6 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.InitializerElement;
-import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.MemberElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -526,32 +525,68 @@ final class CompilationContextImpl implements CompilationContext {
         return vm;
     }
 
+    private static final char[] hexDigits = "0123456789abcdef".toCharArray();
+
+    private StringBuilder appendHex(StringBuilder b, char hex) {
+        b.append(hexDigits[hex >> 12 & 0xf]);
+        b.append(hexDigits[hex >> 8 & 0xf]);
+        b.append(hexDigits[hex >> 4 & 0xf]);
+        b.append(hexDigits[hex >> 0 & 0xf]);
+        return b;
+    }
+
+    private StringBuilder mangleTo(StringBuilder b, String str) {
+        int length = str.length();
+        for (int i = 0; i < length; i++) {
+            char ch = str.charAt(i);
+            switch (ch) {
+                case '/' -> b.append('_');
+                case '_' -> b.append("_1");
+                case ';' -> b.append("_2");
+                case '[' -> b.append("_3");
+                // extensions
+                case '<' -> b.append("_4");
+                case '>' -> b.append("_5");
+                default -> {
+                    if ('A' <= ch && ch <= 'Z' || 'a' <= ch && ch <= 'z' || '0' <= ch && ch <= '9') {
+                        b.append(ch);
+                    } else {
+                        appendHex(b.append("_0"), ch);
+                    }
+                }
+            }
+        }
+        return b;
+    }
+
     private String getExactNameForElement(final ExecutableElement element, final InvokableType type) {
         // todo: encode class loader ID
         // todo: cache :-(
         DefinedTypeDefinition enclosingType = element.getEnclosingType();
-        String internalDotName = enclosingType.load().getVmClass().getName().replace('/', '~');
-        if (element instanceof InitializerElement) {
-            return "clinit." + internalDotName;
-        } else if (element instanceof FunctionElement fe) {
+        String internalDotName = enclosingType.load().getVmClass().getName();
+        if (element instanceof FunctionElement fe) {
             return fe.getName();
         }
-        StringBuilder b = new StringBuilder();
-        assert element instanceof InvokableElement;
-        int parameterCount = type.getParameterCount();
-        if (element instanceof ConstructorElement) {
-            b.append("init.");
-            b.append(internalDotName).append('.');
+        StringBuilder b = new StringBuilder(internalDotName.length() << 1);
+        b.append("_J"); // identify Java mangled name
+        mangleTo(b, internalDotName);
+        b.append('_');
+        boolean overloaded;
+        if (element instanceof InitializerElement) {
+            mangleTo(b, "<clinit>");
+            overloaded = false;
+        } else if (element instanceof ConstructorElement ce) {
+            mangleTo(b, "<init>");
+            overloaded = true; // todo: detect
+        } else if (element instanceof MethodElement me) {
+            mangleTo(b, me.getName());
+            overloaded = true; // todo: detect
         } else {
-            b.append("exact.");
-            b.append(internalDotName).append('.');
-            b.append(((MethodElement)element).getName()).append('.');
-            type.getReturnType().toFriendlyString(b).append('.');
+            throw new IllegalStateException();
         }
-        b.append(parameterCount);
-        for (int i = 0; i < parameterCount; i ++) {
-            b.append('.');
-            type.getParameterType(i).toFriendlyString(b);
+        if (overloaded) {
+            b.append("__");
+            mangleTo(b, element.getDescriptor().toString());
         }
         return b.toString();
     }
