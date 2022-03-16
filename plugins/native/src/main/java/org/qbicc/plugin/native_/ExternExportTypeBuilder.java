@@ -250,10 +250,12 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                     // treat it as extern
                     isExtern = true;
                 }
-                if (isExtern) {
-                    addExtern(nativeInfo, origMethod, name);
-                } else if (isExport) {
-                    addExport(nativeInfo, origMethod, name);
+                if (name != null) {
+                    if (isExtern) {
+                        addExtern(nativeInfo, origMethod, name);
+                    } else if (isExport) {
+                        addExport(nativeInfo, origMethod, name);
+                    }
                 }
                 return origMethod;
             }
