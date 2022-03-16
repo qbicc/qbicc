@@ -286,6 +286,8 @@ final class QbiccMavenResolver {
                             element.close();
                             throw t;
                         }
+                    } else if (! Files.exists(path)) {
+                        ctxt.warning("Class path entry \"%s\" does not exist", path);
                     }
                 }
             }

@@ -73,6 +73,8 @@ public class AddMainClassHook implements Consumer<CompilationContext> {
                 } else {
                     runtimeMain.load();
                 }
+            } else {
+                ctxt.error("Main class \"%s\" not found on class path", mainClass);
             }
         }
     }
