@@ -416,8 +416,9 @@ final class LLVMModuleDebugInfo {
         int align = valueType.getAlign();
         LLValue sourceFile = createSourceFile(element);
         LLValue var_ = module.diGlobalVariable(name, type, diCompileUnit, sourceFile, 1, align).isDefinition().asRef();
-        globals.elem(null, var_);
-        return module.diGlobalVariableExpression(var_, Values.diExpression().asValue()).asRef();
+        LLValue expr = module.diGlobalVariableExpression(var_, Values.diExpression().asValue()).asRef();
+        globals.elem(null, expr);
+        return expr;
     }
 
     final static class LocationKey {
