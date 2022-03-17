@@ -104,6 +104,7 @@ public class LLVMCompiler {
             return null;
         }
         OptInvoker optInvoker = llvmToolChain.newOptInvoker();
+        optInvoker.setMessageHandler(ToolMessageHandler.reporting(context));
         optInvoker.addOptimizationPass(OptPass.RewriteStatepointsForGc);
         optInvoker.addOptimizationPass(OptPass.AlwaysInline);
         return optInvoker;

@@ -66,7 +66,8 @@ abstract class AbstractLlvmInvoker implements LlvmInvoker {
     }
 
     public OutputDestination invokerAsDestination() {
-        OutputDestination errorHandler = OutputDestination.of(AbstractLlvmInvoker::collectError, this, StandardCharsets.UTF_8);
+        StringBuilder b = new StringBuilder();
+        OutputDestination errorHandler = OutputDestination.of(b, StandardCharsets.UTF_8);
         List<String> cmd = new ArrayList<>();
         cmd.add(execPath.toString());
         addArguments(cmd);
@@ -76,8 +77,14 @@ abstract class AbstractLlvmInvoker implements LlvmInvoker {
         pb.environment().put("LANG", "C");
         return OutputDestination.of(pb, errorHandler, destination, p -> {
             int ev = p.exitValue();
-            if (ev != 0) {
-                throw new CompilationFailureException("Compiler terminated with exit code " + ev);
+            ToolMessageHandler.Level level = ev == 0 ? ToolMessageHandler.Level.WARNING : ToolMessageHandler.Level.ERROR;
+            if (! b.isEmpty()) {
+                if (ev != 0) {
+                    b.append("\n(exit code = ").append(ev).append(')');
+                }
+                messageHandler.handleMessage(this, level, source.toString(), -1, -1, b.toString());
+            } else if (ev != 0) {
+                messageHandler.handleMessage(this, level, source.toString(), -1, -1, "Tool execution failed (exit code = " + ev + ")");
             }
         });
     }
@@ -86,64 +93,5 @@ abstract class AbstractLlvmInvoker implements LlvmInvoker {
 
     public void invoke() throws IOException {
         getSource().transferTo(invokerAsDestination());
-    }
-
-    private static final String FATAL_ERROR_STR = "Instruction does not dominate all uses!";
-
-    void collectError(final Reader reader) throws IOException {
-        final String quotedExecPath = Pattern.quote(execPath.toString());
-        final Pattern pattern = Pattern.compile("(?:(?:" + quotedExecPath + ": )?(" + LEVEL_PATTERN + "): )?(?:" + quotedExecPath + ": )?(?:([^:]+):(?:(\\d+):(?:(\\d+): )?)?)?(" + LEVEL_PATTERN + "): (.*)");
-        final ToolMessageHandler handler = getMessageHandler();
-        try (BufferedReader br = new BufferedReader(reader)) {
-            String line;
-            Matcher matcher;
-            StringBuilder b = new StringBuilder();
-            ToolMessageHandler.Level level = null;
-            int errLine = -1;
-            while ((line = br.readLine()) != null) {
-                line = line.trim();
-                if (line.equals(FATAL_ERROR_STR)) {
-                    if (b.length() > 0) {
-                        handler.handleMessage(this, level, source.toString(), errLine, -1, b.toString());
-                        b.setLength(0);
-                    }
-                    level = ToolMessageHandler.Level.ERROR;
-                    errLine = -1;
-                    b.append(line);
-                } else if ((matcher = pattern.matcher(line)).matches()) {
-                    if (b.length() > 0) {
-                        handler.handleMessage(this, level, source.toString(), errLine, -1, b.toString());
-                        b.setLength(0);
-                    }
-                    String levelStr = matcher.group(5);
-                    String otherLevelStr = matcher.group(1);
-                    if (otherLevelStr != null) {
-                        level = getLevel(levelStr).max(getLevel(otherLevelStr));
-                    } else {
-                        level = getLevel(levelStr);
-                    }
-                    String lineStr = matcher.group(3);
-                    if (lineStr != null) {
-                        errLine = Integer.parseInt(lineStr);
-                    } else {
-                        errLine = -1;
-                    }
-                    b.append(matcher.group(6));
-                } else if (level != null) {
-                    b.append('\n').append(line);
-                }
-            }
-            if (b.length() > 0) {
-                handler.handleMessage(this, level, source.toString(), errLine, -1, b.toString());
-            }
-        }
-    }
-
-    private ToolMessageHandler.Level getLevel(final String levelStr) {
-        switch (levelStr.toLowerCase(Locale.ROOT)) {
-            case "note": return ToolMessageHandler.Level.INFO;
-            case "warning": return ToolMessageHandler.Level.WARNING;
-            default: return ToolMessageHandler.Level.ERROR;
-        }
     }
 }
