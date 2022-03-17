@@ -20,6 +20,7 @@ import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Executable;
 import org.qbicc.graph.InstanceFieldOf;
+import org.qbicc.graph.Invoke;
 import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.New;
 import org.qbicc.graph.Node;
@@ -36,9 +37,14 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
+import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InstanceMethodType;
+import org.qbicc.type.IntegerType;
+import org.qbicc.type.NumericType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -153,12 +159,26 @@ public final class EscapeAnalysisIntraMethodBuilder extends DelegatingBasicBlock
     public BasicBlock return_(Value value) {
         final BasicBlock result = super.return_(value);
 
-        // Skip primitive values truncated, they are not objects
-        if (!(value instanceof Truncate)) {
+        if (value instanceof Call call && !isPrimitive(call.getType())) {
+            for (Value argument : call.getArguments()) {
+                connectionGraph.trackReturn(argument);
+            }
+        } else if (value instanceof Invoke.ReturnValue ret && !isPrimitive(ret.getType())) {
+            for (Value argument : ret.getInvoke().getArguments()) {
+                connectionGraph.trackReturn(argument);
+            }
+        } else if (!(value instanceof Truncate)) {
+            // Skip primitive values truncated, they are not objects
             connectionGraph.trackReturn(value);
         }
 
         return supports(result.getTerminator(), result);
+    }
+
+    private boolean isPrimitive(ValueType type) {
+        return type instanceof VoidType
+            || type instanceof BooleanType
+            || type instanceof NumericType;
     }
 
     @Override
