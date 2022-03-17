@@ -57,6 +57,8 @@ import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MemberElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.ClassSignature;
 
 final class CompilationContextImpl implements CompilationContext {
@@ -563,19 +565,23 @@ final class CompilationContextImpl implements CompilationContext {
         // todo: encode class loader ID
         // todo: cache :-(
         DefinedTypeDefinition enclosingType = element.getEnclosingType();
-        String internalDotName = enclosingType.load().getVmClass().getName();
+        String internalName = enclosingType.getInternalName();
         if (element instanceof FunctionElement fe) {
             return fe.getName();
         }
-        StringBuilder b = new StringBuilder(internalDotName.length() << 1);
+        StringBuilder b = new StringBuilder(internalName.length() << 1);
         b.append("_J"); // identify Java mangled name
-        mangleTo(b, internalDotName);
+        mangleTo(b, internalName);
+        if (enclosingType.isHidden()) {
+            b.append("$");
+            b.append(enclosingType.getHiddenClassIndex());
+        }
         b.append('_');
         boolean overloaded;
         if (element instanceof InitializerElement) {
             mangleTo(b, "<clinit>");
             overloaded = false;
-        } else if (element instanceof ConstructorElement ce) {
+        } else if (element instanceof ConstructorElement) {
             mangleTo(b, "<init>");
             overloaded = true; // todo: detect
         } else if (element instanceof MethodElement me) {
@@ -586,7 +592,15 @@ final class CompilationContextImpl implements CompilationContext {
         }
         if (overloaded) {
             b.append("__");
-            mangleTo(b, element.getDescriptor().toString());
+            MethodDescriptor elementDescriptor = element.getDescriptor();
+            for (TypeDescriptor descriptor : elementDescriptor.getParameterTypes()) {
+                mangleTo(b, descriptor.toString());
+            }
+            // unlike JNI, we must also add the return type (but only if one is possible)
+            if (element instanceof MethodElement) {
+                b.append("_");
+                mangleTo(b, elementDescriptor.getReturnType().toString());
+            }
         }
         return b.toString();
     }
