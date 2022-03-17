@@ -92,7 +92,8 @@ final class LLVMModuleDebugInfo {
 
         file = module.diFile(fileName, dirName).asRef();
         globals = module.metadataTuple();
-        diCompileUnit = module.diCompileUnit("DW_LANG_Java", file, DebugEmissionKind.FullDebug).producer("qbicc").globals(globals.asRef()).asRef();
+        // todo: change back to DW_LANG_Java as soon as debugger support is solidified
+        diCompileUnit = module.diCompileUnit("DW_LANG_C_plus_plus", file, DebugEmissionKind.FullDebug).producer("qbicc").globals(globals.asRef()).asRef();
     }
 
     private String getFriendlyName(final ExecutableElement element) {
