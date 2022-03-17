@@ -133,6 +133,7 @@ import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
+import org.qbicc.graph.literal.ValueConvertLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 
 public class ConnectionGraphDotVisitor implements NodeVisitor<Appendable, String, String, String, String> {
@@ -994,6 +995,11 @@ public class ConnectionGraphDotVisitor implements NodeVisitor<Appendable, String
     @Override
     public String visit(final Appendable param, final Xor node) {
         return bypass(param, node);
+    }
+
+    @Override
+    public String visit(Appendable param, ValueConvertLiteral node) {
+        return register(node);
     }
 
     private void addEdge(Appendable param, String fromName, String toName, EdgeType edge) {
