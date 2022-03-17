@@ -879,7 +879,7 @@ public final class CProbe {
             Pattern namePattern = Pattern.compile("([a-zA-Z_][a-zA-Z_0-9]*)[(][)]");
             Matcher matcher = namePattern.matcher(resolvedName);
             if (!matcher.matches()) {
-                throw new IllegalArgumentException("Unexpected function name pattern after macro expansion");
+                return null;
             }
             return matcher.group(1);
         }
