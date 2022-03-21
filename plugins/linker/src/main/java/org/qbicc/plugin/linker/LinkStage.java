@@ -1,6 +1,8 @@
 package org.qbicc.plugin.linker;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.function.Consumer;
 
 import org.qbicc.context.CompilationContext;
@@ -15,10 +17,12 @@ import org.qbicc.machine.tool.ToolMessageHandler;
 public class LinkStage implements Consumer<CompilationContext> {
     private final String outputName;
     private final boolean isPie;
+    private final List<Path> librarySearchPaths;
 
-    public LinkStage(String outputName, final boolean isPie) {
+    public LinkStage(String outputName, final boolean isPie, List<Path> librarySearchPaths) {
         this.outputName = outputName;
         this.isPie = isPie;
+        this.librarySearchPaths = librarySearchPaths;
     }
 
     public void accept(final CompilationContext context) {
@@ -31,6 +35,7 @@ public class LinkStage implements Consumer<CompilationContext> {
         Linker linker = Linker.get(context);
         linkerInvoker.addObjectFiles(linker.getObjectFilePaths());
         linkerInvoker.addLibraries(linker.getLibraries());
+        linkerInvoker.addLibraryPaths(librarySearchPaths);
         linkerInvoker.setOutputPath(context.getOutputDirectory().resolve(outputName));
         linkerInvoker.setMessageHandler(ToolMessageHandler.reporting(context));
         linkerInvoker.setIsPie(isPie);

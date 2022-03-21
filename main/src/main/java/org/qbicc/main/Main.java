@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -168,6 +169,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean optEscapeAnalysis;
     private final Platform platform;
     private final boolean smallTypeIds;
+    private final List<Path> librarySearchPaths;
 
     Main(Builder builder) {
         outputPath = builder.outputPath;
@@ -203,6 +205,7 @@ public class Main implements Callable<DiagnosticContext> {
         bootPaths.addAll(builder.bootPathsAppend);
         this.bootPaths = bootPaths;
         appPaths = List.copyOf(builder.appPaths);
+        librarySearchPaths = builder.librarySearchPaths;
     }
 
     public DiagnosticContext call() {
@@ -538,7 +541,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.GENERATE, new MethodDataEmitter());
                                 builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(isPie, compileOutput));
                                 if (compileOutput) {
-                                    builder.addPostHook(Phase.GENERATE, new LinkStage(outputName, isPie));
+                                    builder.addPostHook(Phase.GENERATE, new LinkStage(outputName, isPie, librarySearchPaths));
                                 }
 
                                 CompilationContext ctxt;
@@ -577,6 +580,32 @@ public class Main implements Callable<DiagnosticContext> {
         result.forEach(classPathItemConsumer);
     }
 
+    private static List<Path> splitPathString(String str) {
+        if (str == null || str.isEmpty()) {
+            return List.of();
+        }
+        char psc = File.pathSeparatorChar;
+        int start = 0;
+        int idx = str.indexOf(psc);
+        ArrayList<Path> list = new ArrayList<>();
+        for (;;) {
+            String subStr;
+            if (idx == -1) {
+                subStr = str.substring(start);
+            } else {
+                subStr = str.substring(start, idx);
+            }
+            if (! subStr.isEmpty()) {
+                list.add(Path.of(subStr));
+            }
+            if (idx == -1) {
+                return list;
+            } else {
+                start = idx + 1;
+            }
+        }
+    }
+
     public static void main(String[] args) {
         System.setProperty("java.util.logging.manager", LogManager.class.getName());
         CommandLineProcessor optionsProcessor = new CommandLineProcessor();
@@ -611,7 +640,9 @@ public class Main implements Callable<DiagnosticContext> {
             .setOptPhis(optionsProcessor.optArgs.optPhis)
             .setOptEscapeAnalysis(optionsProcessor.optArgs.optEscapeAnalysis)
             .setSmallTypeIds(optionsProcessor.smallTypeIds)
-            .setGraphGenConfig(optionsProcessor.graphGenConfig);
+            .setGraphGenConfig(optionsProcessor.graphGenConfig)
+            .addLibrarySearchPaths(splitPathString(System.getenv("LIBRARY_PATH")))
+            .addLibrarySearchPaths(optionsProcessor.libSearchPaths);
         Platform platform = optionsProcessor.platform;
         if (platform != null) {
             mainBuilder.setPlatform(platform);
@@ -720,6 +751,9 @@ public class Main implements Callable<DiagnosticContext> {
         private Platform platform;
         @CommandLine.Option(names = "--string-pool-stats")
         private boolean stringPoolStats;
+
+        @CommandLine.Option(names = { "--library-search-path", "-L" }, description = "Additional library search paths")
+        private List<Path> libSearchPaths;
 
         @CommandLine.Option(names = "--small-type-ids", negatable = true, defaultValue = "false", description = "Use narrow (16-bit) type ID values if true, wide (32-bit) type ID values if false")
         private boolean smallTypeIds;
@@ -854,6 +888,7 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean optEscapeAnalysis = false;
         private GraphGenConfig graphGenConfig;
         private boolean smallTypeIds = false;
+        private List<Path> librarySearchPaths = List.of();
 
         Builder() {}
 
@@ -977,6 +1012,21 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Builder setSmallTypeIds(boolean smallTypeIds) {
             this.smallTypeIds = smallTypeIds;
+            return this;
+        }
+
+        public Builder addLibrarySearchPaths(List<Path> librarySearchPaths) {
+            if (librarySearchPaths != null && !librarySearchPaths.isEmpty()) {
+                if (this.librarySearchPaths.isEmpty()) {
+                    this.librarySearchPaths = List.copyOf(librarySearchPaths);
+                } else {
+                    Path[] p1 = this.librarySearchPaths.toArray(Path[]::new);
+                    Path[] p2 = librarySearchPaths.toArray(Path[]::new);
+                    Path[] finalPaths = Arrays.copyOf(p1, p1.length + p2.length);
+                    System.arraycopy(p2, 0, finalPaths, p1.length, p2.length);
+                    this.librarySearchPaths = List.of(finalPaths);
+                }
+            }
             return this;
         }
 
