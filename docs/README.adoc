@@ -71,22 +71,17 @@ Please ensure the follow are installed and available on your path:
 
 To prevent Java versioning errors it is best to install Maven manually rather than with homebrew (see https://maven.apache.org/install.html). The homebrew Maven install has a dependency on Java 16 which may cause Maven to use the wrong version of Java when building qbicc.
 
-The `libgcc_s.dylib` is also required to be available and must be present (or symlinked) to
-`/usr/local/lib/libgcc_s.dylib`.
+The `libgcc_s.1.dylib` is also required to be available and must be present (or symlinked) to
+`/usr/local/lib/libgcc_s.1.dylib`, or the path to that library must be added to the `LIBRARY_PATH` environment variable.
 
-One way to get this library, if it's not already on your system, is to `brew install gcc`
-and symlink the file.
+One way to get this library, if it's not already on your system, is to `brew install gcc`.
 
-For Catalina, it may already be present and the following symlink will resolve the compile
-failures
+For Catalina, it may already be present; check in `/usr/lib` for `libgcc_s.1.dylib`. If it is present, no further action is necessary.
+
+For BigSur, the `brew install gcc` path is likely necessary and following symlink resolves the issue:
 [source,shell]
 -----
-ln -s /usr/lib/libgcc_s.1.dylib /usr/local/lib/libgcc_s.dylib
+ln -s $(brew --prefix gcc)/lib/gcc/11/libgcc_s.1.dylib /usr/local/lib/libgcc_s.1.dylib
 -----
 
-For BigSur, the `brew install gcc` path is likely necessary and following symlink resolves
-the issue
-[source,shell]
------
-ln -s /usr/local/Cellar/gcc/11.1.0/lib/gcc/11/libgcc_s.1.dylib /usr/local/lib/libgcc_s.dylib
------
+Alternatively, you can ensure that `$(brew --prefix gcc)/lib/gcc/11` is set on the `LIBRARY_PATH` environment variable.
