@@ -46,7 +46,7 @@ public final class ParameterValue extends AbstractValue implements Unschedulable
     }
 
     int calcHashCode() {
-        return Objects.hash(ParameterValue.class, type, label) * 19 + index;
+        return Objects.hash(ParameterValue.class, type, label, getElement()) * 19 + index;
     }
 
     @Override
@@ -72,6 +72,7 @@ public final class ParameterValue extends AbstractValue implements Unschedulable
         return this == other || other != null
             && index == other.index
             && label.equals(other.label)
-            && type.equals(other.type);
+            && type.equals(other.type)
+            && getElement().equals(other.getElement());
     }
 }
