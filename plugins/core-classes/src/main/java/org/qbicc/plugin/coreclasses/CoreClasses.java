@@ -245,17 +245,6 @@ public final class CoreClasses {
             }
         }, 0, 0);
 
-        // inject a field to hold the object monitor
-        patcher.addField(classContext, OBJECT_INT_NAME, "nativeObjectMonitor", BaseTypeDescriptor.J, new FieldResolver() {
-            @Override
-            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
-                builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
-                builder.setEnclosingType(enclosing);
-                builder.setSignature(BaseTypeSignature.J);
-                return builder.build();
-            }
-        }, 0, 0);
-
         // now inject a field of ClassObjectType into Class to hold the corresponding run time type
         patcher.addField(classContext, CLASS_INT_NAME, "id", BaseTypeDescriptor.V, new FieldResolver() {
             @Override
