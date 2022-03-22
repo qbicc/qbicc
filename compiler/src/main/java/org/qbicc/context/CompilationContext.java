@@ -53,16 +53,6 @@ public interface CompilationContext extends DiagnosticContext {
 
     ClassContext constructClassContext(VmClassLoader classLoaderObject);
 
-    /**
-     * @deprecated
-     */
-    MethodElement getVMHelperMethod(String helperName);
-
-    /**
-     * @deprecated
-     */
-    MethodElement getOMHelperMethod(String helperName);
-
     void enqueue(ExecutableElement element);
 
     /**

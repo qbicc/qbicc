@@ -44,7 +44,6 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.MemberElement;
-import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
@@ -73,10 +72,6 @@ public class TestClassContext implements ClassContext {
         public ClassContext constructClassContext(final VmClassLoader classLoaderObject) {
             return null;
         }
-
-        public MethodElement getVMHelperMethod(String helperName) { return null; }
-
-        public MethodElement getOMHelperMethod(String helperName) { return null; }
 
         public void enqueue(final ExecutableElement element) {
 
