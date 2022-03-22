@@ -45,7 +45,6 @@ import org.qbicc.type.ValueType;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
-import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.NativeMethodConfigurator;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
@@ -271,43 +270,6 @@ final class CompilationContextImpl implements CompilationContext {
     private ClassContext handleNewClassContext(ClassContext classContext) {
         classContextListener.accept(classContext);
         return classContext;
-    }
-
-    /**
-     * @deprecated
-     */
-    public MethodElement getVMHelperMethod(String name) {
-        DefinedTypeDefinition dtd = bootstrapClassContext.findDefinedType("org/qbicc/runtime/main/VMHelpers");
-        if (dtd == null) {
-            error("Can't find runtime library class: " + "org/qbicc/runtime/main/VMHelpers");
-            return null;
-        }
-        LoadedTypeDefinition helpers = dtd.load();
-        int idx = helpers.findMethodIndex(e -> name.equals(e.getName()));
-        if (idx == -1) {
-            error("Can't find the runtime helper method %s", name);
-            return null;
-        }
-        return helpers.getMethod(idx);
-    }
-
-    /**
-     * @deprecated
-     */
-    public MethodElement getOMHelperMethod(String name) {
-        DefinedTypeDefinition dtd = bootstrapClassContext.findDefinedType("org/qbicc/runtime/main/ObjectModel");
-        if (dtd == null) {
-            error("Can't find runtime library class: " + "org/qbicc/runtime/main/ObjectModel");
-            return null;
-        }
-        LoadedTypeDefinition helpers = dtd.load();
-        int idx = helpers.findMethodIndex(e -> name.equals(e.getName()));
-        if (idx == -1) {
-            error("Can't find the runtime helper method %s", name);
-            return null;
-        }
-        return helpers.getMethod(idx);
-
     }
 
     public void enqueue(final ExecutableElement element) {
