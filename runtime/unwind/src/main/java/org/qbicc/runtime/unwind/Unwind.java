@@ -10,7 +10,8 @@ import org.qbicc.runtime.Build;
  * Unwind ABI as described at <a href="https://itanium-cxx-abi.github.io/cxx-abi/abi-eh.html">https://itanium-cxx-abi.github.io/cxx-abi/abi-eh.html</a>.
  */
 @include("<unwind.h>")
-@lib("gcc_s") // todo: -static-libgcc
+@lib(value = "gcc_s", unless = Build.Target.IsMacOs.class) // todo: -static-libgcc
+@lib(value = "gcc_s.1", when = Build.Target.IsMacOs.class) // todo: -static-libgcc
 public final class Unwind {
     private Unwind() {
     }
