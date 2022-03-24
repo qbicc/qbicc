@@ -143,10 +143,12 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                     if (! resolved.isStatic()) {
                         ctxt.error(resolved, "External (imported) fields must be `static`");
                     }
+                    // probe the symbol
+                    String symbolName = probeSymbolName(resolved, name);
                     // declare it
                     Section section = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
                     ValueType fieldType = resolved.getType();
-                    DataDeclaration decl = section.declareData(resolved, name, fieldType);
+                    DataDeclaration decl = section.declareData(resolved, symbolName, fieldType);
                     if (resolved.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {
                         decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
                     }
@@ -188,6 +190,38 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                     new NativeDataInfo(resolved, fieldType, ctxt.getLiteralFactory().literalOf(data))
                 );
             }
+
+            private String probeSymbolName(final FieldElement field, final String name) {
+                CProbe.Builder builder = CProbe.builder();
+                ProbeUtils.ProbeProcessor pp = new ProbeUtils.ProbeProcessor(classCtxt, field.getEnclosingType());
+                for (Annotation annotation : field.getEnclosingType().getInvisibleAnnotations()) {
+                    pp.processAnnotation(annotation);
+                }
+                pp.accept(builder);
+                pp = new ProbeUtils.ProbeProcessor(classCtxt, field);
+                for (Annotation annotation : field.getInvisibleAnnotations()) {
+                    pp.processAnnotation(annotation);
+                }
+                pp.accept(builder);
+                builder.probeConstant(name, field.getSourceFileName(), 0);
+                CProbe probe = builder.build();
+                CProbe.Result result;
+                try {
+                    result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), null);
+                    if (result == null) {
+                        return name;
+                    }
+                } catch (IOException e) {
+                    return null;
+                }
+                CProbe.ConstantInfo constantInfo = result.getConstantInfo(name);
+                if (constantInfo.hasSymbol()) {
+                    return constantInfo.getSymbol();
+                } else {
+                    return name;
+                }
+            }
+
         }, index, name, descriptor);
     }
 
