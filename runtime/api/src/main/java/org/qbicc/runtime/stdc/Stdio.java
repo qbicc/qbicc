@@ -2,6 +2,8 @@ package org.qbicc.runtime.stdc;
 
 import static org.qbicc.runtime.CNative.*;
 
+import org.qbicc.runtime.Build;
+
 /**
  * C standard I/O should only be used for specialized debugging purposes.
  */
@@ -28,10 +30,13 @@ public final class Stdio {
     public static native c_int fclose(FILE_ptr stream);
 
     @extern
+    @name(value = "__stdinp", when = Build.Target.IsMacOs.class)
     public static FILE_ptr stdin;
     @extern
+    @name(value = "__stdoutp", when = Build.Target.IsMacOs.class)
     public static FILE_ptr stdout;
     @extern
+    @name(value = "__stderrp", when = Build.Target.IsMacOs.class)
     public static FILE_ptr stderr;
 
     public static native c_int fflush(ptr<FILE> stream);
