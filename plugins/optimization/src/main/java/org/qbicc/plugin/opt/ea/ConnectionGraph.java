@@ -23,6 +23,8 @@ import org.qbicc.graph.StaticField;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 
+import static java.util.stream.Collectors.groupingBy;
+
 final class ConnectionGraph {
     // TODO Handle situations where a node has multiple points-to.
     //      Even if a reference is potentially assigned multiple New nodes (e.g. branches), the refs are currently different.
@@ -246,13 +248,28 @@ final class ConnectionGraph {
     }
 
     private void propagateGlobalEscape() {
-        final List<Node> argEscapeOnly = escapeValues.entrySet().stream()
+        final List<Node> globalEscape = escapeValues.entrySet().stream()
             .filter(e -> e.getValue().isGlobalEscape())
             .map(Map.Entry::getKey)
             .toList();
 
         // Separate computing from filtering since it modifies the collection itself
-        argEscapeOnly.forEach(this::computeGlobalEscape);
+        globalEscape.forEach(this::computeGlobalEscape);
+
+        // Propagate global escape for all parameter values with same index
+        // To do that, group all parameter values by index
+        // (there can be multiple when interacting with interface or abstract/overridden methods)
+        final Map<Integer, List<ParameterValue>> indexedParameterValues = escapeValues.keySet().stream()
+            .filter(key -> key instanceof ParameterValue)
+            .map(key -> (ParameterValue) key)
+            .collect(groupingBy(ParameterValue::getIndex));
+        // Then, find those global parameter values,
+        // and use its index to propagate escape value to other parameters values with same index
+        globalEscape.stream()
+            .filter(n -> n instanceof ParameterValue)
+            .map(key -> (ParameterValue) key)
+            .flatMap(pv ->  indexedParameterValues.get(pv.getIndex()).stream())
+            .forEach(pv -> setEscapeValue(pv, EscapeValue.GLOBAL_ESCAPE));
     }
 
     private void computeGlobalEscape(Node from) {
@@ -367,7 +384,13 @@ final class ConnectionGraph {
         return deferredEdges.putIfAbsent(from, to) == null;
     }
 
-    private void setEscapeValue(Node node, EscapeValue escapeValue) {
-        escapeValues.put(node, escapeValue);
+    private boolean setEscapeValue(Node node, EscapeValue escapeValue) {
+        final EscapeValue prev = escapeValues.get(node);
+        if (prev == null || prev != EscapeValue.merge(prev, escapeValue)) {
+            escapeValues.put(node, escapeValue);
+            return true;
+        }
+
+        return false;
     }
 }
