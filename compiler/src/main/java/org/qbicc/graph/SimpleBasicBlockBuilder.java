@@ -15,7 +15,6 @@ import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
@@ -416,7 +415,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public ValueHandle currentThread() {
-        ReferenceType refType = element.getEnclosingType().getContext().getCompilationContext().getBootstrapClassContext().findDefinedType("java/lang/Thread").load().getType().getReference();
+        ReferenceType refType = element.getEnclosingType().getContext().getCompilationContext().getBootstrapClassContext().findDefinedType("java/lang/Thread").load().getObjectType().getReference();
         return new CurrentThread(element, line, bci, refType);
     }
 

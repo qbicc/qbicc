@@ -179,7 +179,7 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         MethodDataTypes mdTypes = MethodDataTypes.get(ctxt);
 
         LoadedTypeDefinition jls = ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load();
-        ReferenceType jlsRef = jls.getType().getReference();
+        ReferenceType jlsRef = jls.getObjectType().getReference();
         CompoundType methodInfoType = mdTypes.getMethodInfoType();
 
         Literal[] minfoLiterals = Arrays.stream(minfoList).parallel().map(minfo -> {

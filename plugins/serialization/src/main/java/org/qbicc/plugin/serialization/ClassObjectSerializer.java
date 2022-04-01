@@ -32,7 +32,7 @@ public class ClassObjectSerializer implements Consumer<CompilationContext> {
         LoadedTypeDefinition jlc = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
         ModuleSection section = ctxt.getImplicitSection(jlc);
         ProgramModule programModule = section.getProgramModule();
-        ReferenceType jlcRef = jlc.getType().getReference();
+        ReferenceType jlcRef = jlc.getObjectType().getReference();
         ArrayType rootArrayType = ctxt.getTypeSystem().getArrayType(jlcRef, tables.get_number_of_typeids());
 
         // create the GlobalVariable for shared access to the Class array

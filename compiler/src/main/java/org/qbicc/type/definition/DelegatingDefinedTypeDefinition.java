@@ -6,8 +6,8 @@ import org.qbicc.context.ClassContext;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.classfile.BootstrapMethod;
-import org.qbicc.type.descriptor.ClassTypeDescriptor;
-import org.qbicc.type.generic.ClassSignature;
+import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.generic.Signature;
 
 /**
  *
@@ -37,7 +37,7 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
         return getDelegate().internalPackageAndNameEquals(intPackageName, className);
     }
 
-    public ClassTypeDescriptor getDescriptor() {
+    public TypeDescriptor getDescriptor() {
         return getDelegate().getDescriptor();
     }
 
@@ -89,7 +89,7 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
         return getDelegate().getConstructorCount();
     }
 
-    public ClassSignature getSignature() {
+    public Signature getSignature() {
         return getDelegate().getSignature();
     }
 

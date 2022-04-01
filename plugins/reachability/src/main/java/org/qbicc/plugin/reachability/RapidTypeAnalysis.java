@@ -137,9 +137,9 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         if (instantiatedClasses.contains(type)) return;
 
         if (onHeapType) {
-            ReachabilityInfo.LOGGER.debugf("Adding class %s (heap reachable from %s)", type.getDescriptor().getClassName(), currentElement);
+            ReachabilityInfo.LOGGER.debugf("Adding class %s (heap reachable from %s)", type.getDescriptor(), currentElement);
         } else {
-            ReachabilityInfo.LOGGER.debugf("Adding class %s (instantiated in %s)", type.getDescriptor().getClassName(), currentElement);
+            ReachabilityInfo.LOGGER.debugf("Adding class %s (instantiated in %s)", type.getDescriptor(), currentElement);
         }
 
         info.addReachableClass(type);

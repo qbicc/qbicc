@@ -6,6 +6,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.context.ClassContext;
+import org.qbicc.type.Primitive;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 
@@ -31,16 +32,25 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         LoadedTypeDefinition jlo = jloDef.load();
         tables.buildSupersDisplay(jlo);
         info.visitReachableSubclassesPreOrder(jlo, tables::buildSupersDisplay);
+        CoreClasses coreClasses = CoreClasses.get(ctxt);
+
         // Assign typeIDs to classes
         // [0] Poisoned entry for easier debugging
         tables.reserveTypeIds(1);
-        // [1 - 9] for primitive types
-        tables.assignTypeIdToPrimitives();
+        // [1 - 9] for void and primitive types
+        Primitive.VOID.setTypeId(tables.assignTypeID(coreClasses.getVoidTypeDefinition()));
+        Primitive.BOOLEAN.setTypeId(tables.assignTypeID(coreClasses.getBooleanTypeDefinition()));
+        Primitive.BYTE.setTypeId(tables.assignTypeID(coreClasses.getByteTypeDefinition()));
+        Primitive.SHORT.setTypeId(tables.assignTypeID(coreClasses.getShortTypeDefinition()));
+        Primitive.CHAR.setTypeId(tables.assignTypeID(coreClasses.getCharTypeDefinition()));
+        Primitive.INT.setTypeId(tables.assignTypeID(coreClasses.getIntTypeDefinition()));
+        Primitive.FLOAT.setTypeId(tables.assignTypeID(coreClasses.getFloatTypeDefinition()));
+        Primitive.LONG.setTypeId(tables.assignTypeID(coreClasses.getLongTypeDefinition()));
+        Primitive.DOUBLE.setTypeId(tables.assignTypeID(coreClasses.getDoubleTypeDefinition()));
 
         // object
         tables.assignTypeID(jlo);
         // arrays, including reference array
-        CoreClasses coreClasses = CoreClasses.get(ctxt);
         tables.assignTypeID(coreClasses.getArrayBaseTypeDefinition());
         // [Object + 1] boolean[].class
         tables.assignTypeID(coreClasses.getArrayLoadedTypeDefinition("[Z"));

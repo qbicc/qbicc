@@ -150,9 +150,9 @@ final class LLVMModuleGenerator {
                     LLValue topSubprogram;
 
                     if (element instanceof MethodElement me) {
-                        functionDefinition.comment(me.getEnclosingType().getDescriptor().getClassName()+"."+me.getName()+" "+me.getDescriptor());
+                        functionDefinition.comment(me.getEnclosingType().getInternalName()+"."+me.getName()+" "+me.getDescriptor());
                     } else if (element instanceof ConstructorElement ce) {
-                        functionDefinition.comment(ce.getEnclosingType().getDescriptor().getClassName()+".<init> "+ce.getDescriptor());
+                        functionDefinition.comment(ce.getEnclosingType().getInternalName()+".<init> "+ce.getDescriptor());
                     }
 
                     if (isExact) {

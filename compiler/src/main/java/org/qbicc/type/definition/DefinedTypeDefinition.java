@@ -11,10 +11,10 @@ import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.classfile.BootstrapMethod;
 import org.qbicc.type.definition.classfile.ClassFile;
-import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.ClassSignature;
+import org.qbicc.type.generic.Signature;
 import org.qbicc.type.generic.TypeParameter;
 import org.qbicc.type.generic.TypeParameterContext;
 
@@ -39,17 +39,19 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
 
     boolean internalPackageAndNameEquals(String intPackageName, String className);
 
-    ClassTypeDescriptor getDescriptor();
+    TypeDescriptor getDescriptor();
 
-    ClassSignature getSignature();
+    Signature getSignature();
 
     @Override
     default TypeParameter resolveTypeParameter(String parameterName) throws NoSuchElementException {
-        TypeParameter parameter = getSignature().getTypeParameter(parameterName);
-        if (parameter == null) {
-            return getEnclosingTypeParameterContext().resolveTypeParameter(parameterName);
+        if (getSignature() instanceof ClassSignature cs) {
+            TypeParameter parameter = cs.getTypeParameter(parameterName);
+            if (parameter != null) {
+                return parameter;
+            }
         }
-        return parameter;
+        return getEnclosingTypeParameterContext().resolveTypeParameter(parameterName);
     }
 
     @Override
@@ -109,6 +111,10 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
 
     default boolean isInterface() {
         return hasAllModifiersOf(ClassFile.ACC_INTERFACE);
+    }
+
+    default boolean isPrimitive() {
+        return hasAllModifiersOf(ClassFile.I_ACC_PRIMITIVE);
     }
 
     default boolean isFinal() {
@@ -238,9 +244,9 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
 
         void addInterfaceName(String interfaceInternalName);
 
-        void setDescriptor(ClassTypeDescriptor descriptor);
+        void setDescriptor(TypeDescriptor descriptor);
 
-        void setSignature(ClassSignature signature);
+        void setSignature(Signature signature);
 
         void setVisibleAnnotations(List<Annotation> annotations);
 
@@ -341,11 +347,11 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
                 getDelegate().addInterfaceName(interfaceInternalName);
             }
 
-            default void setDescriptor(ClassTypeDescriptor descriptor) {
+            default void setDescriptor(TypeDescriptor descriptor) {
                 getDelegate().setDescriptor(descriptor);
             }
 
-            default void setSignature(ClassSignature signature) {
+            default void setSignature(Signature signature) {
                 getDelegate().setSignature(signature);
             }
 

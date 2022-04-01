@@ -457,7 +457,7 @@ public final class ReflectionIntrinsics {
                 DefinedTypeDefinition enclosingType = methodElement.getEnclosingType();
                 if (Reflection.isErased(descriptor)) {
                     // base method implementation with erased type throws WrongMethodTypeException; overridden in subclasses
-                    Value ex = builder.new_(wmteDef.getDescriptor());
+                    Value ex = builder.new_((ClassTypeDescriptor) wmteDef.getDescriptor());
                     builder.call(builder.constructorOf(ex, wmteCtor), List.of());
                     throw new BlockEarlyTermination(builder.throw_(ex));
                 } else {
@@ -579,7 +579,7 @@ public final class ReflectionIntrinsics {
             DefinedTypeDefinition enclosingType = element.getEnclosingType();
             ClassContext classContext = enclosingType.getContext();
             BasicBlockBuilder bbb = classContext.newBasicBlockBuilder(element);
-            ParameterValue this_ = bbb.parameter(element.getEnclosingType().load().getType().getReference(), "this", 0);
+            ParameterValue this_ = bbb.parameter(element.getEnclosingType().load().getObjectType().getReference(), "this", 0);
             List<ParameterValue> paramValues = new ArrayList<>(type.getParameterCount());
             int cnt = type.getParameterCount();
             for (int i = 0; i < cnt; i ++) {

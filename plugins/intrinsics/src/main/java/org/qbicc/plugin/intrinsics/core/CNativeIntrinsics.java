@@ -165,7 +165,7 @@ final class CNativeIntrinsics {
                     return builder.valueConvert(value, ot.getReference());
                 } else {
                     // we don't know the exact type; use Object
-                    ReferenceType objRef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load().getType().getReference();
+                    ReferenceType objRef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load().getObjectType().getReference();
                     return builder.valueConvert(value, objRef);
                 }
             } else {

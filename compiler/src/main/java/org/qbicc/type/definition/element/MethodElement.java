@@ -11,7 +11,10 @@ import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.MethodType;
 import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.util.ResolutionUtil;
 
 /**
@@ -60,11 +63,18 @@ public final class MethodElement extends InvokableElement implements NamedElemen
     }
 
     public String toString() {
-        final String packageName = getEnclosingType().getDescriptor().getPackageName();
-        if (packageName.isEmpty()) {
-            return getEnclosingType().getDescriptor().getClassName()+"."+getName()+getDescriptor();
+        TypeDescriptor desc = getEnclosingType().getDescriptor();
+        if (desc instanceof ClassTypeDescriptor ctd) {
+            final String packageName = ctd.getPackageName();
+            if (packageName.isEmpty()) {
+                return ctd.getClassName() + "." + getName() + getDescriptor();
+            }
+            return packageName + "." + ctd.getClassName() + "." + getName() + getDescriptor();
+        } else if (desc instanceof BaseTypeDescriptor btd) {
+            return btd.getFullName() + "." + getName() + getDescriptor();
+        } else {
+            throw new IllegalStateException();
         }
-        return packageName+"."+getEnclosingType().getDescriptor().getClassName()+"."+getName()+getDescriptor();
     }
 
     public String getName() {
@@ -114,7 +124,7 @@ public final class MethodElement extends InvokableElement implements NamedElemen
             && ! other.isFinal()
             && getDescriptor().equals(other.getDescriptor())
             && getName().equals(other.getName())
-            && getEnclosingType().load().getType().isSubtypeOf(other.getEnclosingType().load().getType());
+            && getEnclosingType().load().getObjectType().isSubtypeOf(other.getEnclosingType().load().getObjectType());
     }
 
     /**

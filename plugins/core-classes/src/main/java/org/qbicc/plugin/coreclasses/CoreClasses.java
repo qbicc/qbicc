@@ -10,6 +10,7 @@ import org.qbicc.plugin.patcher.Patcher;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.Primitive;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
@@ -83,6 +84,20 @@ public final class CoreClasses {
     private final FieldElement floatArrayContentField;
     private final FieldElement doubleArrayContentField;
 
+    private final DefinedTypeDefinition voidDef;
+
+    private final DefinedTypeDefinition byteDef;
+    private final DefinedTypeDefinition shortDef;
+    private final DefinedTypeDefinition intDef;
+    private final DefinedTypeDefinition longDef;
+
+    private final DefinedTypeDefinition charDef;
+
+    private final DefinedTypeDefinition floatDef;
+    private final DefinedTypeDefinition doubleDef;
+
+    private final DefinedTypeDefinition booleanDef;
+
     private CoreClasses(final CompilationContext ctxt) {
         this.ctxt = ctxt;
         ClassContext classContext = ctxt.getBootstrapClassContext();
@@ -130,7 +145,23 @@ public final class CoreClasses {
 
         arrayLengthField = baseType.load().getField(0);
 
-        // primitives first
+        // primitive types
+
+        voidDef = definePrimitiveType(BaseTypeDescriptor.V);
+
+        byteDef = definePrimitiveType(BaseTypeDescriptor.B);
+        shortDef = definePrimitiveType(BaseTypeDescriptor.S);
+        intDef = definePrimitiveType(BaseTypeDescriptor.I);
+        longDef = definePrimitiveType(BaseTypeDescriptor.J);
+
+        charDef = definePrimitiveType(BaseTypeDescriptor.C);
+
+        floatDef = definePrimitiveType(BaseTypeDescriptor.F);
+        doubleDef = definePrimitiveType(BaseTypeDescriptor.D);
+
+        booleanDef = definePrimitiveType(BaseTypeDescriptor.Z);
+
+        // primitives arrays first
 
         booleanArrayContentField = defineArrayType(classContext, baseType, ts.getBooleanType(), "[Z").load().getField(0);
 
@@ -151,6 +182,20 @@ public final class CoreClasses {
         refArrayElementTypeIdField = refArrayType.getField(1);
         refArrayContentField = refArrayType.getField(2);
 
+    }
+
+    private DefinedTypeDefinition definePrimitiveType(final BaseTypeDescriptor desc) {
+        DefinedTypeDefinition.Builder typeBuilder = DefinedTypeDefinition.Builder.basic();
+        Primitive primitive = Primitive.getPrimitiveFor(desc);
+        typeBuilder.setDescriptor(desc);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+        typeBuilder.setSignature(BaseTypeSignature.synthesize(classContext, desc));
+        typeBuilder.setContext(classContext);
+        typeBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_ABSTRACT | ClassFile.ACC_PUBLIC | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_PRIMITIVE);
+        typeBuilder.setName(primitive.getName());
+        // no fields
+        typeBuilder.setInitializer(EMPTY_INIT, 0);
+        return typeBuilder.build();
     }
 
     private static DefinedTypeDefinition defineArrayType(ClassContext classContext, DefinedTypeDefinition superClass, ValueType realMemberType, String simpleName) {
@@ -578,4 +623,39 @@ public final class CoreClasses {
         return doubleArrayContentField;
     }
 
+    public LoadedTypeDefinition getVoidTypeDefinition() {
+        return voidDef.load();
+    }
+
+    public LoadedTypeDefinition getByteTypeDefinition() {
+        return byteDef.load();
+    }
+
+    public LoadedTypeDefinition getShortTypeDefinition() {
+        return shortDef.load();
+    }
+
+    public LoadedTypeDefinition getIntTypeDefinition() {
+        return intDef.load();
+    }
+
+    public LoadedTypeDefinition getLongTypeDefinition() {
+        return longDef.load();
+    }
+
+    public LoadedTypeDefinition getCharTypeDefinition() {
+        return charDef.load();
+    }
+
+    public LoadedTypeDefinition getFloatTypeDefinition() {
+        return floatDef.load();
+    }
+
+    public LoadedTypeDefinition getDoubleTypeDefinition() {
+        return doubleDef.load();
+    }
+
+    public LoadedTypeDefinition getBooleanTypeDefinition() {
+        return booleanDef.load();
+    }
 }

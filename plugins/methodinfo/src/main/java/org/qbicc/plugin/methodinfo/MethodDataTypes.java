@@ -31,7 +31,7 @@ public class MethodDataTypes {
         this.ctxt = ctxt;
         TypeSystem ts = ctxt.getTypeSystem();
         LoadedTypeDefinition jls = ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load();
-        ReferenceType jlsRef = jls.getType().getReference();
+        ReferenceType jlsRef = jls.getObjectType().getReference();
         ValueType uint8Type = ts.getUnsignedInteger8Type();
         ValueType uint32Type = ts.getUnsignedInteger32Type();
         ValueType uint64Type = ts.getUnsignedInteger64Type();
