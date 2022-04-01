@@ -80,7 +80,7 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
     }
 
     default boolean hasNoModifiersOf(int mask) {
-        return (getModifiers() & mask) == mask;
+        return (getModifiers() & mask) == 0;
     }
 
     default boolean isStatic() {
