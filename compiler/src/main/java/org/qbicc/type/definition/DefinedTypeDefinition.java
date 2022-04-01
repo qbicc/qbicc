@@ -66,6 +66,13 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
 
     int getModifiers();
 
+    /**
+     * Set additional modifier bits. Only should be used to add bits which are considered only at run time.
+     *
+     * @param additionalBits the additional bits to set
+     */
+    void addModifierBits(int additionalBits);
+
     String getEnclosingClassInternalName();
 
     default boolean hasAllModifiersOf(int mask) {

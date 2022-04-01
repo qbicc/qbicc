@@ -45,6 +45,10 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
         return getDelegate().getModifiers();
     }
 
+    public void addModifierBits(int additionalBits) {
+        getDelegate().addModifierBits(additionalBits);
+    }
+
     public String getEnclosingClassInternalName() {
         return getDelegate().getEnclosingClassInternalName();
     }
