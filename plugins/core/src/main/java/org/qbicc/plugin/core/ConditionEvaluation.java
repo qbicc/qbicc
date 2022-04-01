@@ -8,7 +8,6 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Locatable;
-import org.qbicc.interpreter.InterpreterHaltedException;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
@@ -134,8 +133,6 @@ public final class ConditionEvaluation {
             try {
                 VmObject obj = vm.newInstance(vmClass, constructor, List.of());
                 result = (Boolean) vm.invokeVirtual(getGetAsBoolean(), obj, List.of());
-            } catch (InterpreterHaltedException e) {
-                return errorCondition;
             } catch (Thrown t) {
                 ctxt.error(locatable.getLocation(), "Failed to evaluate condition class `%s`: %s", t.getMessage());
                 return errorCondition;

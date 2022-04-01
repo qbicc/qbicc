@@ -17,7 +17,6 @@ import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
-import org.qbicc.interpreter.InterpreterHaltedException;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.VmClass;
@@ -48,7 +47,6 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
-import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
@@ -467,8 +465,6 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                         initException = this.initException = (VmThrowableImpl) t.getThrowable();
                         state = this.state = State.INITIALIZATION_FAILED;
                         log.debug("Failed to initialize a class", t);
-                    } catch (InterpreterHaltedException t) {
-                        state = this.state = State.INITIALIZATION_FAILED;
                     } catch (Throwable t) {
                         vm.getCompilationContext().error(t, "Crash in interpreter while initializing %s", this);
                         state = this.state = State.INITIALIZATION_FAILED;
@@ -573,6 +569,11 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     }
 
     private VmInvokable compile(ExecutableElement element) {
+        if (! element.tryCreateMethodBody()) {
+            return (thread, target, args) -> {
+                throw new Thrown(vm.linkageErrorClass.newInstance("No method body"));
+            };
+        }
         return new VmInvokableImpl(element);
     }
 
