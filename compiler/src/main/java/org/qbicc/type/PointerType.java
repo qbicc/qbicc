@@ -11,16 +11,20 @@ public final class PointerType extends NullableType {
     private final PointerType asRestrict;
     private final PointerType withConstPointee;
     private final PointerType asCollected;
+    private final int size;
+    private final PointerType asWide;
 
-    PointerType(final TypeSystem typeSystem, final ValueType pointeeType, final boolean restrict, final boolean constPointee, final boolean collected) {
+    PointerType(final TypeSystem typeSystem, final ValueType pointeeType, final boolean restrict, final boolean constPointee, final boolean collected, int size) {
         super(typeSystem, pointeeType.hashCode() * 19 + Boolean.hashCode(restrict));
         this.pointeeType = pointeeType;
         this.restrict = restrict;
         this.constPointee = constPointee;
         this.collected = collected;
-        this.asRestrict = restrict ? this : new PointerType(typeSystem, pointeeType, true, constPointee, collected);
-        this.withConstPointee = constPointee ? this : new PointerType(typeSystem, pointeeType, restrict, true, collected);
-        this.asCollected = collected ? this : new PointerType(typeSystem, pointeeType, restrict, constPointee, true);
+        this.asRestrict = restrict ? this : new PointerType(typeSystem, pointeeType, true, constPointee, collected, size);
+        this.withConstPointee = constPointee ? this : new PointerType(typeSystem, pointeeType, restrict, true, collected, size);
+        this.asCollected = collected ? this : new PointerType(typeSystem, pointeeType, restrict, constPointee, true, size);
+        this.asWide = size == 8 ? this : new PointerType(typeSystem, pointeeType, restrict, constPointee, collected, 8);
+        this.size = size;
     }
 
     /**
@@ -66,8 +70,19 @@ public final class PointerType extends NullableType {
         return pointerType;
     }
 
+    /**
+     * Get a pointer type which is equivalent to this one but which has the same number of bits
+     * as a Java {@code long}.
+     * On 64-bit systems this will generally return the same type.
+     *
+     * @return the wide pointer type (not {@code null})
+     */
+    public PointerType asWide() {
+        return asWide;
+    }
+
     public long getSize() {
-        return typeSystem.getPointerSize();
+        return size;
     }
 
     public int getMinBits() {
@@ -131,6 +146,9 @@ public final class PointerType extends NullableType {
         }
         if (restrict) {
             b.append("restrict ");
+        }
+        if (size == 8 && typeSystem.getPointerSize() < 8) {
+            b.append("wide ");
         }
         b.append("pointer to ");
         if (constPointee) {
