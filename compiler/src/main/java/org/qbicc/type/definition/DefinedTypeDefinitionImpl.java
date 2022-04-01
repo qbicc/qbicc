@@ -1,5 +1,6 @@
 package org.qbicc.type.definition;
 
+import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
@@ -44,6 +45,8 @@ import org.qbicc.type.generic.MethodSignature;
  *
  */
 final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
+    private static final VarHandle modifiersHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "modifiers", VarHandle.class, DefinedTypeDefinitionImpl.class, int.class);
+
     private static final DefinedTypeDefinition[] NO_DEFINED_TYPES = new DefinedTypeDefinition[0];
     private static final LoadedTypeDefinition[] NO_LOADED_TYPES = new LoadedTypeDefinition[0];
 
@@ -51,7 +54,8 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private final String simpleName;
     private final String internalName;
     private final String superClassName;
-    private final int modifiers;
+    @SuppressWarnings({ "unused", "FieldMayBeFinal" }) // VarHandle
+    private volatile int modifiers;
     private final String[] interfaceNames;
     private final ClassTypeDescriptor descriptor;
     private final ClassSignature signature;
@@ -210,6 +214,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
     public boolean interfaceInternalNameEquals(final int index, final String internalName) throws IndexOutOfBoundsException {
         return getInterfaceInternalName(index).equals(internalName);
+    }
+
+    public void addModifierBits(int additionalBits) {
+        modifiersHandle.getAndBitwiseOr(this, additionalBits);
     }
 
     public LoadedTypeDefinition load() throws VerifyFailedException {
