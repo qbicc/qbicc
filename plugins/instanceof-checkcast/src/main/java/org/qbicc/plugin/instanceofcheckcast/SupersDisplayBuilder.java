@@ -41,6 +41,7 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         tables.assignTypeID(jlo);
         // arrays, including reference array
         CoreClasses coreClasses = CoreClasses.get(ctxt);
+        tables.assignTypeID(coreClasses.getArrayBaseTypeDefinition());
         // [Object + 1] boolean[].class
         tables.assignTypeID(coreClasses.getArrayLoadedTypeDefinition("[Z"));
         // [Object + 2] byte[].class
