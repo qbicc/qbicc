@@ -25,7 +25,6 @@ import org.qbicc.type.InvokableType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
-import org.qbicc.type.definition.classfile.BootstrapMethod;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -76,7 +75,6 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private final List<Annotation> invisibleAnnotations;
     private final TypeAnnotationList visibleTypeAnnotations;
     private final TypeAnnotationList invisibleTypeAnnotations;
-    private final List<BootstrapMethod> bootstrapMethods;
     private final EnclosingClassResolver enclosingClassResolver;
     private final int enclosingClassResolverIndex;
     private final String enclosingClassName;
@@ -136,7 +134,6 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         this.invisibleAnnotations = builder.invisibleAnnotations;
         this.visibleTypeAnnotations = builder.visibleTypeAnnotations;
         this.invisibleTypeAnnotations = builder.invisibleTypeAnnotations;
-        this.bootstrapMethods = builder.bootstrapMethods;
         this.initializerResolver = Assert.checkNotNullParam("builder.initializerResolver", builder.initializerResolver);
         this.initializerIndex = builder.initializerIndex;
         this.enclosingClassResolver = builder.enclosingClassResolver;
@@ -591,14 +588,6 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         return invisibleTypeAnnotations;
     }
 
-    public List<BootstrapMethod> getBootstrapMethods() {
-        return bootstrapMethods;
-    }
-
-    public BootstrapMethod getBootstrapMethod(final int index) {
-        return bootstrapMethods.get(index);
-    }
-
     public int getHiddenClassIndex() {
         return hiddenClassIndex;
     }
@@ -638,7 +627,6 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         List<Annotation> invisibleAnnotations = List.of();
         TypeAnnotationList visibleTypeAnnotations = TypeAnnotationList.empty();
         TypeAnnotationList invisibleTypeAnnotations = TypeAnnotationList.empty();
-        List<BootstrapMethod> bootstrapMethods = List.of();
         String simpleName;
         EnclosingClassResolver enclosingClassResolver;
         String enclosingClassInternalName;
@@ -871,10 +859,6 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
         public void setInvisibleTypeAnnotations(final TypeAnnotationList annotationList) {
             this.invisibleTypeAnnotations = Assert.checkNotNullParam("annotationList", annotationList);
-        }
-
-        public void setBootstrapMethods(final List<BootstrapMethod> bootstrapMethods) {
-            this.bootstrapMethods = Assert.checkNotNullParam("bootstrapMethods", bootstrapMethods);
         }
 
         public void setSuperClass(final DefinedTypeDefinition superClass) {
