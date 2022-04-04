@@ -164,7 +164,7 @@ public final class CoreClasses {
         typeBuilder.setSuperClassName(superClass.getInternalName());
         typeBuilder.setSimpleName(simpleName);
         typeBuilder.setContext(classContext);
-        typeBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PUBLIC | ClassFile.I_ACC_NO_REFLECT);
+        typeBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_ABSTRACT | ClassFile.ACC_PUBLIC | ClassFile.I_ACC_NO_REFLECT);
         typeBuilder.setName(internalName);
         // add fields in this order, which is relied upon up above
         int idx = 0;
