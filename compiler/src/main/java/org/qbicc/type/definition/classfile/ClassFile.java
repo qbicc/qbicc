@@ -107,7 +107,7 @@ public interface ClassFile extends FieldResolver,
      */
     int I_ACC_NO_REFLECT = 1 << 23;
     /**
-     * For members which should never be symbolically resolvable.
+     * For members which should never be symbolically resolvable and classes that should not be registered to the class loader.
      */
     int I_ACC_NO_RESOLVE = 1 << 24;
     /**

@@ -108,7 +108,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         classFile.accept(builder);
         if (hidden) {
             builder.setHiddenClassIndex(getHiddenClassSeq(internalName));
-            builder.addModifiers(ClassFile.I_ACC_HIDDEN);
+            builder.addModifiers(ClassFile.I_ACC_HIDDEN | ClassFile.I_ACC_NO_RESOLVE);
         }
         DefinedTypeDefinition defined = builder.build();
         // TODO: ↓↓ temporary ↓↓
@@ -118,7 +118,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         } catch (IOException ignored) {
         }
         // TODO: ↑↑ temporary ↑↑
-        if (! hidden) {
+        if (defined.hasNoModifiersOf(ClassFile.I_ACC_NO_RESOLVE)) {
             classContext.defineClass(internalName, defined);
         }
         LoadedTypeDefinition loaded = defined.load();
