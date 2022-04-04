@@ -241,7 +241,7 @@ public class DispatchTables {
     }
 
     void emitVTable(LoadedTypeDefinition cls) {
-        if (cls.isAbstract()) {
+        if (cls.isAbstract() && ! cls.isFinal()) {
             return;
         }
         RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
@@ -290,7 +290,7 @@ public class DispatchTables {
         Arrays.fill(vtableLiterals, zeroLiteral);
         for (Map.Entry<LoadedTypeDefinition, VTableInfo> e: vtables.entrySet()) {
             LoadedTypeDefinition cls = e.getKey();
-            if (!cls.isAbstract()) {
+            if (!cls.isAbstract() || cls.isFinal()) {
                 DataDeclaration decl = section.declareData(null, e.getValue().getName(), e.getValue().getType());
                 ProgramObjectLiteral symbol = ctxt.getLiteralFactory().literalOf(decl);
                 int typeId = cls.getTypeId();
@@ -305,7 +305,7 @@ public class DispatchTables {
     }
 
     public void emitITables(LoadedTypeDefinition cls) {
-        if (cls.isAbstract()) {
+        if (cls.isAbstract() && ! cls.isFinal()) {
             return;
         }
         HashSet<ITableInfo> myITables = new HashSet<>();
