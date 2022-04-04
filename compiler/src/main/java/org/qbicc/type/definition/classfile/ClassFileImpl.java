@@ -721,8 +721,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             } else if (attributeNameEquals(i, "RuntimeInvisibleTypeAnnotations")) {
                 TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getRawAttributeContent(i));
                 builder.setInvisibleTypeAnnotations(list);
-            } else if (attributeNameEquals(i, "Deprecated")) {
-                access |= I_ACC_DEPRECATED;
             } else if (attributeNameEquals(i, "Synthetic")) {
                 access |= ACC_SYNTHETIC;
             } else if (attributeNameEquals(i, "Signature")) {

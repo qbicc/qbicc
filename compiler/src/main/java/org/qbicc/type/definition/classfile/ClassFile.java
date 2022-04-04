@@ -87,7 +87,7 @@ public interface ClassFile extends FieldResolver,
      * For classes which must be pinned in memory (i.e. allocated in a non-moving generation or on the stack).
      */
     int I_ACC_PINNED = 1 << 16;
-    int I_ACC_DEPRECATED = 1 << 17;
+    // UNUSED = 1 << 17
     /**
      * On methods, hide from stack traces.  On classes, defined as a JEP 371 "hidden class".
      */
