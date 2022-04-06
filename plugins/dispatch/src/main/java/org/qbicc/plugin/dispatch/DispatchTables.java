@@ -207,8 +207,8 @@ public class DispatchTables {
     void buildVTablesGlobal(DefinedTypeDefinition containingType) {
         GlobalVariableElement.Builder builder = GlobalVariableElement.builder("qbicc_vtables_array", BaseTypeDescriptor.V);
         // Invariant: typeIds are assigned from 1...N, where N is the number of reachable classes as computed by RTA
-        // plus 18 for 8 primitive types, void, 8 primitive arrays and reference array.
-        builder.setType(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getVoidType().getPointer().getPointer(), vtables.size()+19));  //TODO: communicate this +19 better
+        // plus 20 for the poison type, void, 8 primitive types, the array base class, 8 primitive arrays and reference array.
+        builder.setType(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getVoidType().getPointer().getPointer(), vtables.size()+20));  //TODO: communicate this +20 better
         builder.setEnclosingType(containingType);
         builder.setSignature(BaseTypeSignature.V);
         vtablesGlobal = builder.build();
@@ -223,8 +223,8 @@ public class DispatchTables {
 
         GlobalVariableElement.Builder builder = GlobalVariableElement.builder("qbicc_itable_dicts_array", BaseTypeDescriptor.V);
         // Invariant: typeIds are assigned from 1...N, where N is the number of reachable classes as computed by RTA
-        // plus 18 for 8 primitive types, void, 8 primitive arrays and reference array.
-        builder.setType(ts.getArrayType(ts.getArrayType(itableDictType, 0).getPointer(), vtables.size()+19));  //TODO: communicate this +19 better
+        // plus 20 for the poison type, void, 8 primitive types, the array base class, 8 primitive arrays and reference array.
+        builder.setType(ts.getArrayType(ts.getArrayType(itableDictType, 0).getPointer(), vtables.size()+20));  //TODO: communicate this +20 better
         builder.setEnclosingType(containingType);
         builder.setSignature(BaseTypeSignature.V);
         itablesGlobal = builder.build();
