@@ -1,4 +1,4 @@
-package org.qbicc.plugin.gc.nogc;
+package org.qbicc.plugin.gc.common;
 
 import java.util.Iterator;
 import java.util.List;
@@ -16,12 +16,13 @@ import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.Descriptor;
 
 /**
- *
+ * Expand a multiNewArray into a loop nest that allocates and
+ * connects all of the constituent one dimensional arrays.
  */
-public class NoGcMultiNewArrayBasicBlockBuilder extends DelegatingBasicBlockBuilder {
+public class MultiNewArrayExpansionBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public NoGcMultiNewArrayBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public MultiNewArrayExpansionBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
     }
