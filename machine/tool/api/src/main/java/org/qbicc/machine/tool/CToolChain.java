@@ -37,12 +37,13 @@ public interface CToolChain extends Tool {
         String cc = System.getenv("CC");
         if (cc != null) {
             names.add(cc);
+        } else {
+            if (os == OS.LINUX && (os != Platform.HOST_PLATFORM.getOs() || cpu != Platform.HOST_PLATFORM.getCpu())) {
+                names.add(cpuName + "-" + osName + "-gnu-gcc");
+            }
+            // generic compiler names
+            names.addAll(List.of("cc", "gcc", "clang"));
         }
-        if (os == OS.LINUX && (os != Platform.HOST_PLATFORM.getOs() || cpu != Platform.HOST_PLATFORM.getCpu())) {
-            names.add(cpuName + "-" + osName + "-gnu-gcc");
-        }
-        // generic compiler names
-        names.addAll(List.of("cc", "gcc", "clang"));
         for (String name : names) {
             Path path = ToolUtil.findExecutable(name);
             if (path != null) {
