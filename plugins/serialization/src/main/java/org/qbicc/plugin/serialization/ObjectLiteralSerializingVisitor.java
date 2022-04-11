@@ -32,13 +32,13 @@ public class ObjectLiteralSerializingVisitor implements NodeVisitor.Delegating<N
     public Value visit(final Node.Copier param, final StringLiteral node) {
         VmString vString = ctxt.getVm().intern(node.getValue());
         ProgramObjectLiteral literal = BuildtimeHeap.get(ctxt).serializeVmObject(vString);
-        ctxt.getImplicitSection(param.getBlockBuilder().getRootElement()).declareData(literal.getProgramObject());
+        ctxt.getOrAddProgramModule(param.getBlockBuilder().getRootElement()).declareData(literal.getProgramObject());
         return param.getBlockBuilder().notNull(ctxt.getLiteralFactory().bitcastLiteral(literal, node.getType()));
     }
 
     public Value visit(final Node.Copier param, final ObjectLiteral node) {
         ProgramObjectLiteral literal = BuildtimeHeap.get(ctxt).serializeVmObject(node.getValue());
-        ctxt.getImplicitSection(param.getBlockBuilder().getRootElement()).declareData(literal.getProgramObject());
+        ctxt.getOrAddProgramModule(param.getBlockBuilder().getRootElement()).declareData(literal.getProgramObject());
         return param.getBlockBuilder().notNull(ctxt.getLiteralFactory().bitcastLiteral(literal, node.getType()));
     }
 }

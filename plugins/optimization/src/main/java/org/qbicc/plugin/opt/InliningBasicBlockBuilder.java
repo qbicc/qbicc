@@ -56,10 +56,11 @@ import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.ValueReturn;
 import org.qbicc.graph.Xor;
 import org.qbicc.object.DataDeclaration;
+import org.qbicc.object.Declaration;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ProgramObject;
-import org.qbicc.object.Section;
+import org.qbicc.object.ModuleSection;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -263,13 +264,11 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
     private void copyDeclarations(final ExecutableElement target) {
         ProgramModule ourModule = ctxt.getOrAddProgramModule(getRootElement().getEnclosingType());
         ProgramModule module = ctxt.getOrAddProgramModule(target.getEnclosingType());
-        for (Section section : module.sections()) {
-            for (ProgramObject object : section.contents()) {
-                if (object instanceof FunctionDeclaration declaration) {
-                    ourModule.getOrAddSection(section.getName()).declareFunction(declaration);
-                } else if (object instanceof DataDeclaration declaration) {
-                    ourModule.getOrAddSection(section.getName()).declareData(declaration);
-                }
+        for (Declaration decl : module.declarations()) {
+            if (decl instanceof FunctionDeclaration declaration) {
+                ourModule.declareFunction(declaration);
+            } else if (decl instanceof DataDeclaration declaration) {
+                ourModule.declareData(declaration);
             }
         }
     }

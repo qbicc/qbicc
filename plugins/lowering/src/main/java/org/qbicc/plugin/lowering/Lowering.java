@@ -18,7 +18,7 @@ import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.object.Data;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Linkage;
-import org.qbicc.object.Section;
+import org.qbicc.object.ModuleSection;
 import org.qbicc.plugin.constants.Constants;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
@@ -80,7 +80,7 @@ public class Lowering {
         }
         // we added it, so we must add the definition as well
         LiteralFactory lf = ctxt.getLiteralFactory();
-        Section section = ctxt.getOrAddProgramModule(typeDef).getOrAddSection(sectionName);
+        ModuleSection section = ctxt.getOrAddProgramModule(typeDef).getOrAddSection(sectionName);
         Value initialValue;
         boolean hasValue;
         if (field.getRunTimeInitializer() != null) {
@@ -125,7 +125,7 @@ public class Lowering {
         }
         if (initialValue instanceof ObjectLiteral ol) {
             ProgramObjectLiteral objLit = BuildtimeHeap.get(ctxt).serializeVmObject(ol.getValue());
-            DataDeclaration decl = section.declareData(objLit.getProgramObject());
+            DataDeclaration decl = section.getProgramModule().declareData(objLit.getProgramObject());
             decl.setAddrspace(1);
             ProgramObjectLiteral refToLiteral = lf.literalOf(decl);
             initialValue = lf.valueConvertLiteral(refToLiteral, ol.getType());

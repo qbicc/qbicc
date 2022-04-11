@@ -4,7 +4,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ValueHandle;
-import org.qbicc.object.Section;
+import org.qbicc.object.ProgramModule;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
@@ -31,8 +31,8 @@ public class StaticFieldLoweringBasicBlockBuilder extends DelegatingBasicBlockBu
         DefinedTypeDefinition fieldHolder = field.getEnclosingType();
         if (! fieldHolder.equals(ourHolder)) {
             // we have to declare it in our translation unit
-            Section section = ctxt.getOrAddProgramModule(ourHolder).getOrAddSection(global.getSection());
-            section.declareData(field, global.getName(), global.getType());
+            ProgramModule programModule = ctxt.getOrAddProgramModule(ourHolder);
+            programModule.declareData(field, global.getName(), global.getType());
         }
         return globalVariable(global);
     }

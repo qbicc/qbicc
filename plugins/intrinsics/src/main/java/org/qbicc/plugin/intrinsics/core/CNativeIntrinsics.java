@@ -35,7 +35,7 @@ import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.object.Data;
-import org.qbicc.object.Section;
+import org.qbicc.object.ModuleSection;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.intrinsics.InstanceIntrinsic;
 import org.qbicc.plugin.intrinsics.Intrinsics;
@@ -344,11 +344,11 @@ final class CNativeIntrinsics {
             Literal literal = lf.literalOf(ts.getArrayType(ts.getUnsignedInteger8Type(), bytes.length), bytes);
             Data data = utf8zCache.computeIfAbsent(literal, bal -> {
                 ExecutableElement currentElement = builder.getCurrentElement();
-                Section section = ctxt.getImplicitSection(currentElement);
+                ModuleSection section = ctxt.getImplicitSection(currentElement);
                 return section.addData(null, "utf8z_" + cnt.incrementAndGet(), bal);
             });
             final IntegerLiteral z = lf.literalOf(0);
-            final ProgramObjectLiteral global = lf.literalOf(ctxt.getImplicitSection(builder.getCurrentElement()).declareData(data));
+            final ProgramObjectLiteral global = lf.literalOf(ctxt.getOrAddProgramModule(builder.getCurrentElement().getEnclosingType()).declareData(data));
             // get the zeroth array element of the zeroth pointer element of the global
             return builder.addressOf(builder.elementOf(builder.pointerHandle(global), z));
         };

@@ -11,7 +11,8 @@ import org.qbicc.machine.probe.CProbe;
 import org.qbicc.object.Data;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Linkage;
-import org.qbicc.object.Section;
+import org.qbicc.object.ModuleSection;
+import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.plugin.core.ConditionEvaluation;
 import org.qbicc.type.FunctionType;
@@ -20,7 +21,6 @@ import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
-import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.annotation.ArrayAnnotationValue;
 import org.qbicc.type.annotation.IntAnnotationValue;
 import org.qbicc.type.annotation.StringAnnotationValue;
@@ -144,9 +144,9 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                         ctxt.error(resolved, "External (imported) fields must be `static`");
                     }
                     // declare it
-                    Section section = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+                    ProgramModule programModule = ctxt.getOrAddProgramModule(enclosing);
                     ValueType fieldType = resolved.getType();
-                    DataDeclaration decl = section.declareData(resolved, name, fieldType);
+                    DataDeclaration decl = programModule.declareData(resolved, name, fieldType);
                     if (resolved.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {
                         decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
                     }
@@ -158,7 +158,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                         ctxt.error(resolved, "Exported fields must be `static`");
                     }
                     // define it
-                    Section section = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+                    ModuleSection section = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
                     ValueType fieldType = resolved.getType();
                     Data data = section.addData(resolved, name, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldType));
                     if (resolved.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {

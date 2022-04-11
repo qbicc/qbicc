@@ -14,7 +14,6 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
-import org.qbicc.object.Section;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.ValueType;
@@ -148,7 +147,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
             // declare it
-            return pointerHandle(ctxt.getLiteralFactory().literalOf(ctxt.getImplicitSection(getRootElement())
+            return pointerHandle(ctxt.getLiteralFactory().literalOf(ctxt.getOrAddProgramModule(getRootElement())
                 .declareFunction(null, functionInfo.getName(), functionInfo.getType())));
         }
         return super.staticMethod(owner, name, deNative(descriptor));
@@ -230,8 +229,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         ProgramObjectLiteral sym = fieldInfo.symbolLiteral;
         DefinedTypeDefinition ourType = getRootElement().getEnclosingType();
         // declare it
-        Section section = ctxt.getImplicitSection(ourType);
-        return ctxt.getLiteralFactory().literalOf(section.declareData(sym.getProgramObject()));
+        return ctxt.getLiteralFactory().literalOf(ctxt.getOrAddProgramModule(ourType).declareData(sym.getProgramObject()));
     }
 
 }

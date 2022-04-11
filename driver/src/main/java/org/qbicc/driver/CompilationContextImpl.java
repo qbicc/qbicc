@@ -34,7 +34,10 @@ import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.object.ProgramModule;
+import org.qbicc.object.ModuleSection;
 import org.qbicc.object.Section;
+import org.qbicc.object.Segment;
+import org.qbicc.plugin.metrics.Metrics;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
@@ -75,6 +78,7 @@ final class CompilationContextImpl implements CompilationContext {
     final Set<ExecutableElement> autoQueuedElements = ConcurrentHashMap.newKeySet();
     final ClassContext bootstrapClassContext;
     private final ConcurrentMap<DefinedTypeDefinition, ProgramModule> programModules = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Section> sections = new ConcurrentHashMap<>();
     private final ConcurrentMap<ExecutableElement, org.qbicc.object.Function> exactFunctions = new ConcurrentHashMap<>();
     private final ConcurrentMap<ExecutableElement, FunctionElement> establishedFunctions = new ConcurrentHashMap<>();
     private final Path outputDir;
@@ -89,6 +93,7 @@ final class CompilationContextImpl implements CompilationContext {
     private final Vm vm;
     private final NativeMethodConfigurator nativeMethodConfigurator;
     private final Consumer<ClassContext> classContextListener;
+    private final Section implicitSection = addSection(IMPLICIT_SECTION_NAME, 0, Segment.DATA);
 
     CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory, BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder, BiFunction<ClassContext, String, byte[]> bootstrapResourceFinder, BiFunction<ClassContext, String, List<byte[]>> bootstrapResourcesFinder, Function<CompilationContext, Vm> vmFactory, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories, List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories, NativeMethodConfigurator nativeMethodConfigurator, Consumer<ClassContext> classContextListener) {
         this.baseDiagnosticContext = baseDiagnosticContext;
@@ -377,10 +382,6 @@ final class CompilationContextImpl implements CompilationContext {
         }
     }
 
-    public ProgramModule getProgramModule(final DefinedTypeDefinition type) {
-        return programModules.get(type);
-    }
-
     public ProgramModule getOrAddProgramModule(final DefinedTypeDefinition type) {
         return programModules.computeIfAbsent(type, t -> new ProgramModule(t, typeSystem, literalFactory));
     }
@@ -403,7 +404,7 @@ final class CompilationContextImpl implements CompilationContext {
             throw new IllegalArgumentException("Cannot access function for un-lowered element " + element);
         }
         return exactFunctions.computeIfAbsent(element, e -> {
-            Section implicit = getImplicitSection(element);
+            ModuleSection implicit = getImplicitSection(element);
             InvokableType elementType = element.getType();
             FunctionType functionType = getFunctionTypeForElement(element);
             return implicit.addFunction(element, getExactNameForElement(element, elementType), functionType);
@@ -457,13 +458,31 @@ final class CompilationContextImpl implements CompilationContext {
         }
     }
 
-    public Section getImplicitSection(ExecutableElement element) {
+    @Override
+    public Section getSection(String name) {
+        return sections.get(name);
+    }
+
+    @Override
+    public Section addSection(String name, int index, Segment segment, Section.Attribute... attributes) {
+        Section section = new Section(index, name, segment, attributes);
+        if (sections.putIfAbsent(name, section) != null) {
+            throw new IllegalArgumentException("Section " + name + " already defined");
+        }
+        return section;
+    }
+
+    public ModuleSection getImplicitSection(ExecutableElement element) {
         return getImplicitSection(element.getEnclosingType());
     }
 
-    public Section getImplicitSection(DefinedTypeDefinition typeDefinition) {
-        ProgramModule programModule = getOrAddProgramModule(typeDefinition);
-        return programModule.getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+    public ModuleSection getImplicitSection(DefinedTypeDefinition typeDefinition) {
+        return getOrAddProgramModule(typeDefinition).inSection(getImplicitSection());
+    }
+
+    @Override
+    public Section getImplicitSection() {
+        return implicitSection;
     }
 
     public FieldElement getExceptionField() {

@@ -53,6 +53,25 @@ public final class Platform {
         return cpu.getSimpleName() + '-' + os + '-' + abi + '-' + objectType;
     }
 
+    /**
+     * Format a section name according to the rules of this platform.
+     *
+     * @param segmentName the simple segment name (must not be {@code null})
+     * @param simpleName the simple section name (must not be {@code null})
+     * @return the platform-specific section name (not {@code null})
+     */
+    public String formatSectionName(String segmentName, String simpleName) {
+        return objectType.formatSectionName(segmentName, simpleName);
+    }
+
+    public String formatStartOfSectionSymbolName(String segmentName, String simpleName) {
+        return objectType.formatStartOfSectionSymbolName(segmentName, simpleName);
+    }
+
+    public String formatEndOfSectionSymbolName(String segmentName, String simpleName) {
+        return objectType.formatEndOfSectionSymbolName(segmentName, simpleName);
+    }
+
     public boolean isSupersetOf(Platform other) {
         return cpu.incorporates(other.cpu) && os.equals(other.os) && abi.equals(other.abi);
     }

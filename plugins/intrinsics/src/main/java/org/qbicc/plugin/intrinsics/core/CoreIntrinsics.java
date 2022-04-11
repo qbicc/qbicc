@@ -35,7 +35,7 @@ import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.machine.probe.CProbe;
-import org.qbicc.object.Section;
+import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.plugin.dispatch.DispatchTables;
@@ -968,8 +968,8 @@ public final class CoreIntrinsics {
         StaticIntrinsic callRuntimeInitializer = (builder, target, arguments) -> {
             Value index = arguments.get(0);
             GlobalVariableElement rtinitTable = DispatchTables.get(ctxt).getRTInitsGlobal();
-            Section section = ctxt.getImplicitSection(builder.getCurrentElement().getEnclosingType());
-            section.declareData(null, rtinitTable.getName(), rtinitTable.getType());
+            ProgramModule programModule = ctxt.getOrAddProgramModule(builder.getCurrentElement().getEnclosingType());
+            programModule.declareData(null, rtinitTable.getName(), rtinitTable.getType());
             Value initFunc = builder.load(builder.elementOf(builder.globalVariable(rtinitTable), index));
             return builder.call(builder.pointerHandle(initFunc), List.of(builder.load(builder.currentThread(), SingleUnshared)));
         };

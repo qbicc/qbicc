@@ -36,7 +36,7 @@ public final class NativeXtorLoweringHook {
                 ctxt.error(functionElement, "No lowered function for entry point element");
                 continue;
             }
-            ProgramModule programModule = ctxt.getProgramModule(enclosingType);
+            ProgramModule programModule = ctxt.getOrAddProgramModule(enclosingType);
             if (programModule == null) {
                 ctxt.error(functionElement, "No program module for reachable element");
                 continue;

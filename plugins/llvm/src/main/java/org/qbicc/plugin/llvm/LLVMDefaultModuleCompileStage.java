@@ -17,7 +17,7 @@ public class LLVMDefaultModuleCompileStage implements Consumer<CompilationContex
     @Override
     public void accept(CompilationContext context) {
         LLVMModuleGenerator generator = new LLVMModuleGenerator(context, isPie ? 2 : 0, isPie ? 2 : 0);
-        Path modulePath = generator.processProgramModule(context.getProgramModule(context.getDefaultTypeDefinition()));
+        Path modulePath = generator.processProgramModule(context.getOrAddProgramModule(context.getDefaultTypeDefinition()));
         if (compileOutput) {
             LLVMCompiler compiler = new LLVMCompiler(context, isPie);
             compiler.compileModule(context, modulePath);

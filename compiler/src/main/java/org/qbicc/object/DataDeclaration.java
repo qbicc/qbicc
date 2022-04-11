@@ -6,17 +6,14 @@ import org.qbicc.type.definition.element.MemberElement;
 /**
  * A declaration of some global data item.
  */
-public class DataDeclaration extends SectionObject {
-    DataDeclaration(final MemberElement originalElement, final String name, final ValueType valueType) {
-        super(originalElement, name, valueType);
+public class DataDeclaration extends Declaration {
+
+    DataDeclaration(final MemberElement originalElement, ProgramModule programModule, final String name, final ValueType valueType) {
+        super(originalElement, programModule, name, valueType);
     }
 
     DataDeclaration(final Data original) {
         super(original);
-    }
-
-    public MemberElement getOriginalElement() {
-        return (MemberElement) super.getOriginalElement();
     }
 
     @Override

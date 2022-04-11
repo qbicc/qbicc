@@ -25,7 +25,8 @@ import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.Linkage;
-import org.qbicc.object.Section;
+import org.qbicc.object.ModuleSection;
+import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
@@ -83,7 +84,7 @@ public class BuildtimeHeap {
     /**
      * The initial heap
      */
-    private final Section heapSection;
+    private final ModuleSection heapSection;
     /**
      * The global array of java.lang.Class instances that is part of the serialized heap
      */
@@ -135,8 +136,8 @@ public class BuildtimeHeap {
     public GlobalVariableElement getAndRegisterGlobalClassArray(ExecutableElement originalElement) {
         Assert.assertNotNull(classArrayGlobal);
         if (!classArrayGlobal.getEnclosingType().equals(originalElement.getEnclosingType())) {
-            Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
-            section.declareData(null, classArrayGlobal.getName(), classArrayGlobal.getType());
+            ProgramModule programModule = ctxt.getOrAddProgramModule(originalElement.getEnclosingType());
+            programModule.declareData(null, classArrayGlobal.getName(), classArrayGlobal.getType());
         }
         return classArrayGlobal;
     }
@@ -158,7 +159,7 @@ public class BuildtimeHeap {
             LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
             String name = nextLiteralName();
             // declare it
-            DataDeclaration decl = heapSection.declareData(null, name, objLayout.getCompoundType());
+            DataDeclaration decl = heapSection.getProgramModule().declareData(null, name, objLayout.getCompoundType());
             decl.setAddrspace(1);
             sl = ctxt.getLiteralFactory().literalOf(decl);
             vmObjects.put(value, sl);
@@ -172,7 +173,7 @@ public class BuildtimeHeap {
             int length = memory.load32(info.getMember(coreClasses.getArrayLengthField()).getOffset(), SinglePlain);
             CompoundType literalCT = arrayLiteralType(contentsField, length);
             // declare it
-            DataDeclaration decl = heapSection.declareData(null, nextLiteralName(), literalCT);
+            DataDeclaration decl = heapSection.getProgramModule().declareData(null, nextLiteralName(), literalCT);
             decl.setAddrspace(1);
             sl = ctxt.getLiteralFactory().literalOf(decl);
             vmObjects.put(value, sl);
@@ -333,7 +334,7 @@ public class BuildtimeHeap {
                     MethodElement method = smp.getStaticMethod();
                     ctxt.enqueue(method);
                     Function function = ctxt.getExactFunction(method);
-                    FunctionDeclaration decl = heapSection.declareFunction(function);
+                    FunctionDeclaration decl = heapSection.getProgramModule().declareFunction(function);
                     memberMap.put(om, lf.bitcastLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), smp.getType()));
                 } else {
                     memberMap.put(om, lf.literalOf(pointer));

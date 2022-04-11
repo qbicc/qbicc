@@ -9,7 +9,7 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
-import org.qbicc.object.Section;
+import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.pointer.ElementPointer;
 import org.qbicc.pointer.InstanceFieldPointer;
@@ -52,14 +52,14 @@ public final class MemberPointerCopier implements NodeVisitor.Delegating<Node.Co
         if (pointer instanceof StaticMethodPointer smp) {
             MethodElement method = smp.getStaticMethod();
             Function function = ctxt.getExactFunction(method);
-            Section section = ctxt.getImplicitSection(copier.getBlockBuilder().getCurrentElement());
-            DataDeclaration decl = section.declareData(function);
+            ProgramModule programModule = ctxt.getOrAddProgramModule(copier.getBlockBuilder().getCurrentElement().getEnclosingType());
+            DataDeclaration decl = programModule.declareData(function);
             return ProgramObjectPointer.of(decl);
         } else if (pointer instanceof StaticFieldPointer sfp) {
             FieldElement field = sfp.getStaticField();
             GlobalVariableElement global = Lowering.get(ctxt).getGlobalForStaticField(field);
-            Section section = ctxt.getImplicitSection(copier.getBlockBuilder().getCurrentElement());
-            DataDeclaration decl = section.declareData(field, global.getName(), global.getType());
+            ProgramModule programModule = ctxt.getOrAddProgramModule(copier.getBlockBuilder().getCurrentElement().getEnclosingType());
+            DataDeclaration decl = programModule.declareData(field, global.getName(), global.getType());
             return ProgramObjectPointer.of(decl);
         } else if (pointer instanceof ElementPointer ep) {
             return new ElementPointer(lowerPointer(copier, ep.getArrayPointer()), ep.getIndex());

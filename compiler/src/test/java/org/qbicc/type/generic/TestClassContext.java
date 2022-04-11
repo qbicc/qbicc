@@ -29,7 +29,9 @@ import org.qbicc.machine.arch.Platform;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramModule;
+import org.qbicc.object.ModuleSection;
 import org.qbicc.object.Section;
+import org.qbicc.object.Segment;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.InvokableType;
@@ -120,10 +122,6 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
-        public ProgramModule getProgramModule(final DefinedTypeDefinition type) {
-            return null;
-        }
-
         public ProgramModule getOrAddProgramModule(final DefinedTypeDefinition type) {
             return null;
         }
@@ -136,12 +134,24 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
-        public Section getImplicitSection(ExecutableElement element) {
+        public ModuleSection getImplicitSection(ExecutableElement element) {
             return null;  // TODO: Customise this generated block
         }
         
-        public Section getImplicitSection(DefinedTypeDefinition typeDefinition) {
+        public ModuleSection getImplicitSection(DefinedTypeDefinition typeDefinition) {
             return null;  // TODO: Customise this generated block
+        }
+
+        public Section getSection(String name) {
+            return null;
+        }
+
+        public Section addSection(String name, int index, Segment segment, Section.Attribute... attributes) {
+            return null;
+        }
+
+        public Section getImplicitSection() {
+            return null;
         }
 
         public Function getExactFunction(final ExecutableElement element) {

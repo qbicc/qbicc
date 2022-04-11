@@ -8,7 +8,8 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.object.DataDeclaration;
-import org.qbicc.object.Section;
+import org.qbicc.object.ModuleSection;
+import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.type.ArrayType;
@@ -29,7 +30,8 @@ public class ClassObjectSerializer implements Consumer<CompilationContext> {
         SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
         ReachabilityInfo reachabilityInfo = ReachabilityInfo.get(ctxt);
         LoadedTypeDefinition jlc = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
-        Section section = ctxt.getImplicitSection(jlc);
+        ModuleSection section = ctxt.getImplicitSection(jlc);
+        ProgramModule programModule = section.getProgramModule();
         ReferenceType jlcRef = jlc.getType().getReference();
         ArrayType rootArrayType = ctxt.getTypeSystem().getArrayType(jlcRef, tables.get_number_of_typeids());
 
@@ -47,7 +49,7 @@ public class ClassObjectSerializer implements Consumer<CompilationContext> {
         Arrays.fill(rootTable, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(jlcRef));
         reachabilityInfo.visitReachableTypes(ltd -> {
             ProgramObjectLiteral cls = bth.serializeClassObject(ltd);
-            DataDeclaration decl = section.declareData(cls.getProgramObject());
+            DataDeclaration decl = programModule.declareData(cls.getProgramObject());
             decl.setAddrspace(1);
             ProgramObjectLiteral refToClass = ctxt.getLiteralFactory().literalOf(decl);
             rootTable[ltd.getTypeId()] = ctxt.getLiteralFactory().bitcastLiteral(refToClass, jlcRef);
@@ -56,7 +58,7 @@ public class ClassObjectSerializer implements Consumer<CompilationContext> {
         Primitive.forEach(type -> {
             ProgramObjectLiteral cls = bth.serializeClassObject(type);
             if (cls != null) {
-                DataDeclaration decl = section.declareData(cls.getProgramObject());
+                DataDeclaration decl = programModule.declareData(cls.getProgramObject());
                 decl.setAddrspace(1);
                 ProgramObjectLiteral refToClass = ctxt.getLiteralFactory().literalOf(decl);
                 rootTable[type.getTypeId()] = ctxt.getLiteralFactory().bitcastLiteral(refToClass, jlcRef);

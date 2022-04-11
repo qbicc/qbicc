@@ -1,7 +1,5 @@
 package org.qbicc.plugin.llvm;
 
-import static java.lang.Math.max;
-
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
@@ -21,12 +19,14 @@ import org.qbicc.machine.llvm.Types;
 import org.qbicc.machine.llvm.Values;
 import org.qbicc.object.Data;
 import org.qbicc.object.DataDeclaration;
+import org.qbicc.object.Declaration;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.GlobalXtor;
+import org.qbicc.object.ModuleSection;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ProgramObject;
-import org.qbicc.object.Section;
+import org.qbicc.object.SectionObject;
 import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
@@ -87,9 +87,40 @@ final class LLVMModuleGenerator {
         processXtors(programModule.constructors(), "llvm.global_ctors", module, moduleVisitor);
         processXtors(programModule.destructors(), "llvm.global_dtors", module, moduleVisitor);
 
-        for (Section section : programModule.sections()) {
+        for (Declaration item : programModule.declarations()) {
+            String name = item.getName();
+            Linkage linkage = map(item.getLinkage());
+            if (item instanceof FunctionDeclaration fn) {
+                decl = module.declare(name).linkage(linkage);
+                FunctionType fnType = fn.getValueType();
+                decl.returns(moduleVisitor.map(fnType.getReturnType()));
+                int cnt = fnType.getParameterCount();
+                for (int i = 0; i < cnt; i++) {
+                    ValueType type = fnType.getParameterType(i);
+                    if (type instanceof VariadicType) {
+                        if (i < cnt - 1) {
+                            throw new IllegalStateException("Variadic type as non-final parameter type");
+                        }
+                        decl.variadic();
+                    } else {
+                        decl.param(moduleVisitor.map(type));
+                    }
+                }
+            } else if (item instanceof DataDeclaration) {
+                Global obj = module.global(moduleVisitor.map(item.getValueType())).linkage(Linkage.EXTERNAL);
+                ThreadLocalMode tlm = item.getThreadLocalMode();
+                if (tlm != null) {
+                    obj.threadLocal(map(tlm));
+                }
+                obj.asGlobal(item.getName());
+                if (item.getAddrspace() != 0) {
+                    obj.addressSpace(item.getAddrspace());
+                }
+            }
+        }
+        for (ModuleSection section : programModule.sections()) {
             String sectionName = section.getName();
-            for (ProgramObject item : section.contents()) {
+            for (SectionObject item : section.contents()) {
                 String name = item.getName();
                 Linkage linkage = map(item.getLinkage());
                 if (item instanceof Function fn) {
@@ -130,35 +161,6 @@ final class LLVMModuleGenerator {
                     }
 
                     nodeVisitor.execute();
-                } else if (item instanceof FunctionDeclaration fn) {
-                    decl = module.declare(name).linkage(linkage);
-                    FunctionType fnType = fn.getValueType();
-                    decl.returns(moduleVisitor.map(fnType.getReturnType()));
-                    int cnt = fnType.getParameterCount();
-                    for (int i = 0; i < cnt; i++) {
-                        ValueType type = fnType.getParameterType(i);
-                        if (type instanceof VariadicType) {
-                            if (i < cnt - 1) {
-                                throw new IllegalStateException("Variadic type as non-final parameter type");
-                            }
-                            decl.variadic();
-                        } else {
-                            decl.param(moduleVisitor.map(type));
-                        }
-                    }
-                } else if (item instanceof DataDeclaration) {
-                    Global obj = module.global(moduleVisitor.map(item.getValueType())).linkage(Linkage.EXTERNAL);
-                    ThreadLocalMode tlm = item.getThreadLocalMode();
-                    if (tlm != null) {
-                        obj.threadLocal(map(tlm));
-                    }
-                    obj.asGlobal(item.getName());
-                    if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
-                        obj.section(sectionName);
-                    }
-                    if (item.getAddrspace() != 0) {
-                        obj.addressSpace(item.getAddrspace());
-                    }
                 } else if (item instanceof Data data) {
                     Literal value = (Literal) data.getValue();
                     Global obj = module.global(moduleVisitor.map(data.getValueType()));

@@ -103,7 +103,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     private Value minMaxIntrinsic(String funcName, NumericType numericType, Value v1, Value v2) {
         TypeSystem tps = ctxt.getTypeSystem();
         FunctionType functionType = tps.getFunctionType(numericType, numericType, numericType);
-        FunctionDeclaration declaration = ctxt.getImplicitSection(getRootElement()).declareFunction(null, funcName, functionType);
+        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, funcName, functionType);
         final LiteralFactory lf = ctxt.getLiteralFactory();
         return getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v1, v2));
     }
@@ -118,7 +118,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             throw new IllegalArgumentException("Invalid integer type " + inputType + " for byte swap (must be a multiple of 16 bits)");
         }
         String functionName = "llvm.bswap.i" + minBits;
-        FunctionDeclaration declaration = ctxt.getImplicitSection(getRootElement()).declareFunction(null, functionName, functionType);
+        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType);
         final LiteralFactory lf = ctxt.getLiteralFactory();
         return getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v));
     }
@@ -130,7 +130,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         FunctionType functionType = tps.getFunctionType(inputType, inputType);
         int minBits = inputType.getMinBits();
         String functionName = "llvm.bitreverse.i" + minBits;
-        FunctionDeclaration declaration = ctxt.getImplicitSection(getRootElement()).declareFunction(null, functionName, functionType);
+        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType);
         final LiteralFactory lf = ctxt.getLiteralFactory();
         return getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v));
     }
@@ -142,7 +142,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         FunctionType functionType = tps.getFunctionType(inputType.asUnsigned(), inputType, tps.getBooleanType());
         int minBits = inputType.getMinBits();
         String functionName = "llvm.ctlz.i" + minBits;
-        FunctionDeclaration declaration = ctxt.getImplicitSection(getRootElement()).declareFunction(null, functionName, functionType);
+        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType);
         LiteralFactory lf = ctxt.getLiteralFactory();
         Value result = getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v, lf.literalOf(false)));
         // LLVM always returns the same type as the input
@@ -165,7 +165,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         FunctionType functionType = tps.getFunctionType(inputType.asUnsigned(), inputType, tps.getBooleanType());
         int minBits = inputType.getMinBits();
         String functionName = "llvm.cttz.i" + minBits;
-        FunctionDeclaration declaration = ctxt.getImplicitSection(getRootElement()).declareFunction(null, functionName, functionType);
+        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType);
         LiteralFactory lf = ctxt.getLiteralFactory();
         Value result = getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v, lf.literalOf(false)));
         // LLVM always returns the same type as the input
@@ -188,7 +188,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         FunctionType functionType = tps.getFunctionType(inputType.asUnsigned(), inputType);
         int minBits = inputType.getMinBits();
         String functionName = "llvm.ctpop.i" + minBits;
-        FunctionDeclaration declaration = ctxt.getImplicitSection(getRootElement()).declareFunction(null, functionName, functionType);
+        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType);
         final LiteralFactory lf = ctxt.getLiteralFactory();
         Value result = getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v));
         // LLVM always returns the same type as the input
@@ -283,7 +283,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     @Override
     public BasicBlock unreachable() {
         TypeSystem ts = ctxt.getTypeSystem();
-        FunctionDeclaration decl = ctxt.getImplicitSection(getRootElement()).declareFunction(null, "llvm.trap", ts.getFunctionType(ts.getVoidType()));
+        FunctionDeclaration decl = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, "llvm.trap", ts.getFunctionType(ts.getVoidType()));
         return callNoReturn(pointerHandle(ctxt.getLiteralFactory().literalOf(decl)), List.of());
     }
 
@@ -658,7 +658,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         // declare personality function
         MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
         Function function = ctxt.getExactFunction(personalityMethod);
-        ctxt.getImplicitSection(getRootElement()).declareFunction(function);
+        ctxt.getOrAddProgramModule(getRootElement()).declareFunction(function);
         return super.invokeNoReturn(target, arguments, catchLabel);
     }
 
@@ -667,7 +667,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         // declare personality function
         MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
         Function function = ctxt.getExactFunction(personalityMethod);
-        ctxt.getImplicitSection(getRootElement()).declareFunction(function);
+        ctxt.getOrAddProgramModule(getRootElement()).declareFunction(function);
         return super.invoke(target, arguments, catchLabel, resumeLabel);
     }
 
@@ -676,7 +676,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         // declare personality function
         MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
         Function function = ctxt.getExactFunction(personalityMethod);
-        ctxt.getImplicitSection(getRootElement()).declareFunction(function);
+        ctxt.getOrAddProgramModule(getRootElement()).declareFunction(function);
         if (isTailCallSafe()) {
             return super.tailInvoke(target, arguments, catchLabel);
         }

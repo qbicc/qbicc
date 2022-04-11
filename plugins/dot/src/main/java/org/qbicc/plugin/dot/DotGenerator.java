@@ -25,7 +25,8 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.object.Function;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ProgramObject;
-import org.qbicc.object.Section;
+import org.qbicc.object.ModuleSection;
+import org.qbicc.object.SectionObject;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -66,8 +67,8 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
 
     static final class Producer {
         private final Iterator<ProgramModule> pmIter;
-        private Iterator<Section> sectionIter;
-        private Iterator<ProgramObject> fnIter;
+        private Iterator<ModuleSection> sectionIter;
+        private Iterator<SectionObject> fnIter;
 
         Producer(CompilationContext ctxt) {
             pmIter = ctxt.getAllProgramModules().iterator();
@@ -75,7 +76,7 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
 
         Function next() {
             synchronized (this) {
-                ProgramObject item;
+                SectionObject item;
                 do {
                     while (fnIter == null || ! fnIter.hasNext()) {
                         while (sectionIter == null || ! sectionIter.hasNext()) {

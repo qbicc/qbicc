@@ -31,7 +31,7 @@ import org.qbicc.interpreter.VmString;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
-import org.qbicc.object.Section;
+import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
@@ -73,9 +73,9 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     @Override
     public ValueHandle currentThread() {
         if (originalElement instanceof FunctionElement fe) {
-            Section section = ctxt.getImplicitSection(fe.getEnclosingType());
+            ProgramModule programModule = ctxt.getOrAddProgramModule(fe.getEnclosingType());
             ReferenceType type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread").load().getClassType().getReference();
-            DataDeclaration decl = section.declareData(null, "_qbicc_bound_thread", type);
+            DataDeclaration decl = programModule.declareData(null, "_qbicc_bound_thread", type);
             decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
             final LiteralFactory lf = ctxt.getLiteralFactory();
             return pointerHandle(lf.literalOf(decl));
@@ -126,7 +126,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         ctxt.enqueue(node.getExecutable());
         Function function = ctxt.getExactFunction(node.getExecutable());
         node.getExecutable();
-        FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);
+        FunctionDeclaration decl = ctxt.getOrAddProgramModule(originalElement).declareFunction(function);
         final LiteralFactory lf = ctxt.getLiteralFactory();
         return pointerHandle(lf.literalOf(decl));
     }
@@ -136,7 +136,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         ctxt.enqueue(node.getExecutable());
         Function function = ctxt.getExactFunction(node.getExecutable());
         node.getExecutable();
-        FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);
+        FunctionDeclaration decl = ctxt.getOrAddProgramModule(originalElement).declareFunction(function);
         final LiteralFactory lf = ctxt.getLiteralFactory();
         return pointerHandle(lf.literalOf(decl));
     }
@@ -156,7 +156,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         args.addAll(0, List.of(fb.load(fb.currentThread(), SingleUnshared), node.getInstance()));
         ctxt.enqueue(node.getExecutable());
         Function function = ctxt.getExactFunction(node.getExecutable());
-        FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);
+        FunctionDeclaration decl = ctxt.getOrAddProgramModule(originalElement).declareFunction(function);
         final LiteralFactory lf = ctxt.getLiteralFactory();
         return pointerHandle(lf.literalOf(decl), lf.literalOf(0));
     }
@@ -176,8 +176,8 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         Assert.assertNotNull(info); // If the target method is invokable, there must be a VTableInfo for it.
         GlobalVariableElement vtables = dt.getVTablesGlobal();
         if (!vtables.getEnclosingType().equals(originalElement.getEnclosingType())) {
-            Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
-            section.declareData(null, vtables.getName(), vtables.getType());
+            ProgramModule programModule = ctxt.getOrAddProgramModule(originalElement.getEnclosingType());
+            programModule.declareData(null, vtables.getName(), vtables.getType());
         }
         int index = dt.getVTableIndex(target);
         Value typeId = fb.load(fb.instanceFieldOf(fb.referenceHandle(node.getInstance()), CoreClasses.get(ctxt).getObjectTypeIdField()));
@@ -201,10 +201,10 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             throw new BlockEarlyTermination(fb.callNoReturn(staticMethod(method), List.of()));
         }
 
-        Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
+        ProgramModule programModule = ctxt.getOrAddProgramModule(originalElement.getEnclosingType());
         GlobalVariableElement rootITables = dt.getITablesGlobal();
         if (!rootITables.getEnclosingType().equals(originalElement.getEnclosingType())) {
-            section.declareData(null, rootITables.getName(), rootITables.getType());
+            programModule.declareData(null, rootITables.getName(), rootITables.getType());
         }
 
         // Use the receiver's typeId to get the itable dictionary for its class
@@ -254,7 +254,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         args.add(0, fb.load(fb.currentThread(), SingleUnshared));
         ctxt.enqueue(node.getExecutable());
         Function function = ctxt.getExactFunction(node.getExecutable());
-        FunctionDeclaration decl = ctxt.getImplicitSection(originalElement).declareFunction(function);
+        FunctionDeclaration decl = ctxt.getOrAddProgramModule(originalElement).declareFunction(function);
         final LiteralFactory lf = ctxt.getLiteralFactory();
         return pointerHandle(lf.literalOf(decl));
     }
@@ -287,7 +287,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         // Perform the transformation done by ObjectLiteralSerializingVisitor.visit(StringLiteral) because this BBB runs during LOWER
         VmString vString = ctxt.getVm().intern(target.getEnclosingType().getInternalName().replace("/", ".")+"."+target.getName());
         ProgramObjectLiteral literal = BuildtimeHeap.get(ctxt).serializeVmObject(vString);
-        ctxt.getImplicitSection(originalElement).declareData(literal.getProgramObject());
+        ctxt.getOrAddProgramModule(originalElement).declareData(literal.getProgramObject());
         Literal arg = ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getType().getReference());
 
         MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseUnsatisfiedLinkError");
