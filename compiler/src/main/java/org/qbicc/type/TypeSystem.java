@@ -127,6 +127,10 @@ public final class TypeSystem {
         return referenceSize;
     }
 
+    public int getReferenceAlignment() {
+        return referenceAlign;
+    }
+
     public UnresolvedType getUnresolvedType() {
         return unresolvedType;
     }

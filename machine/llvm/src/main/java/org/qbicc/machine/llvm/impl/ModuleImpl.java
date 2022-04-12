@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.qbicc.machine.llvm.DataLayout;
 import org.qbicc.machine.llvm.Function;
 import org.qbicc.machine.llvm.FunctionDefinition;
 import org.qbicc.machine.llvm.Global;
@@ -37,6 +38,7 @@ import io.smallrye.common.constraint.Assert;
  *
  */
 final class ModuleImpl implements Module {
+    private final List<Emittable> header = new ArrayList<>();
     private final List<Emittable> types = new ArrayList<>();
     private final List<Emittable> globals = new ArrayList<>();
     private final List<Emittable> functions = new ArrayList<>();
@@ -52,6 +54,10 @@ final class ModuleImpl implements Module {
     private <E extends Emittable> E add(List<Emittable> itemList, E item) {
         itemList.add(item);
         return item;
+    }
+
+    public DataLayout dataLayout() {
+        return add(header, new DataLayoutImpl());
     }
 
     public FunctionDefinition define(final String name) {
@@ -215,6 +221,7 @@ final class ModuleImpl implements Module {
     }
 
     public void writeTo(final BufferedWriter output) throws IOException {
+        writeItems(header, output, true);
         writeItems(types, output, false);
         writeItems(globals, output, false);
         writeItems(functions, output, true);

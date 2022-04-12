@@ -26,6 +26,8 @@ import org.qbicc.machine.llvm.impl.LLVM;
  *
  */
 public interface Module {
+    DataLayout dataLayout();
+
     // todo: metadata goes at the end for definitions
     FunctionDefinition define(String name);
 
