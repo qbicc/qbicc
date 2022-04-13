@@ -23,6 +23,11 @@ final class VmRefArrayClassImpl extends VmArrayClassImpl implements VmReferenceA
     }
 
     @Override
+    void initVmClass() {
+        // no operation
+    }
+
+    @Override
     public String getName() {
         return name;
     }
