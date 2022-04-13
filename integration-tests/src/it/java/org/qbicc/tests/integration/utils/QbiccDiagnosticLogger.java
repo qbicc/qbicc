@@ -15,7 +15,7 @@ public class QbiccDiagnosticLogger implements Consumer<Iterable<Diagnostic>> {
     @Override
     public void accept(Iterable<Diagnostic> diagnostics) {
         for (Diagnostic diagnostic : diagnostics) {
-            String message = diagnostic.toString();
+            String message = diagnostic.toString().trim();
             switch (diagnostic.getLevel()) {
                 case ERROR:
                     logger.error(message);
