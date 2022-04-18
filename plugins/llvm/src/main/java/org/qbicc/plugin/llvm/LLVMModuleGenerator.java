@@ -66,6 +66,20 @@ final class LLVMModuleGenerator {
         DefinedTypeDefinition def = programModule.getTypeDefinition();
         Path outputFile = context.getOutputFile(def, "ll");
         final Module module = Module.newModule();
+        TypeSystem ts = context.getTypeSystem();
+        module.dataLayout()
+            .byteOrder(ts.getEndianness())
+            .pointerSize(ts.getPointerSize() * 8)
+            .pointerAlign(ts.getPointerAlignment() * 8)
+            .refSize(ts.getReferenceSize() * 8)
+            .refAlign(ts.getReferenceAlignment() * 8)
+            .int8Align(ts.getUnsignedInteger8Type().getAlign() * 8)
+            .int16Align(ts.getUnsignedInteger16Type().getAlign() * 8)
+            .int32Align(ts.getUnsignedInteger32Type().getAlign() * 8)
+            .int64Align(ts.getUnsignedInteger64Type().getAlign() * 8)
+            .float32Align(ts.getFloat32Type().getAlign() * 8)
+            .float64Align(ts.getFloat64Type().getAlign() * 8)
+            ;
         final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(module, context);
         final LLVMModuleDebugInfo debugInfo = new LLVMModuleDebugInfo(programModule, module, context);
         final LLVMPseudoIntrinsics pseudoIntrinsics = new LLVMPseudoIntrinsics(module);
