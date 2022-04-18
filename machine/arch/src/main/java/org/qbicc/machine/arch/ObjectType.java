@@ -10,6 +10,7 @@ public final class ObjectType extends PlatformComponent {
     public static final ObjectType ELF = new ObjectType("elf", "o");
     public static final ObjectType MACH_O = new ObjectType("macho", "o");
     public static final ObjectType COFF = new ObjectType("coff", "obj");
+    public static final ObjectType WASM = new ObjectType("wasm", "o");
 
     private final String objectSuffix;
 

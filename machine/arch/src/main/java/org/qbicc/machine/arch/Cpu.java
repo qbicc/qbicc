@@ -26,6 +26,7 @@ public class Cpu extends PlatformComponent {
     public static final Cpu ARM = new Cpu(4, "arm", "armv7", "armv7hl");
     public static final Cpu PPC32 = new Cpu(4, "ppc32");
     public static final Cpu PPC64 = new Cpu(8, "ppc64");
+    public static final Cpu WASM32 = new Cpu(4, "wasm32", "wasm");
 
     private final int wordSize;
 
