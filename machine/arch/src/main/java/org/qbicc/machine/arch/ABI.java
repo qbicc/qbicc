@@ -17,6 +17,7 @@ public final class ABI extends PlatformComponent {
     public static final ABI GNUEABIHF = new ABI("gnueabihf"); // arm
     public static final ABI ELF = new ABI("elf");
     public static final ABI WIN32 = new ABI("win32");
+    public static final ABI WASI = new ABI("wasi");
 
     ABI(final String name) {
         super(name);
