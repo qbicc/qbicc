@@ -17,8 +17,9 @@ import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.object.Function;
 import org.qbicc.object.ProgramModule;
+import org.qbicc.object.ModuleSection;
 import org.qbicc.object.Section;
-import org.qbicc.type.ClassObjectType;
+import org.qbicc.object.Segment;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.TypeSystem;
@@ -28,7 +29,6 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.MemberElement;
-import org.qbicc.type.definition.element.MethodElement;
 
 /**
  *
@@ -114,7 +114,9 @@ public interface CompilationContext extends DiagnosticContext {
 
     Path getOutputDirectory(MemberElement element);
 
-    ProgramModule getProgramModule(final DefinedTypeDefinition type);
+    default ProgramModule getOrAddProgramModule(MemberElement element) {
+        return getOrAddProgramModule(element.getEnclosingType());
+    }
 
     ProgramModule getOrAddProgramModule(DefinedTypeDefinition type);
 
@@ -122,9 +124,18 @@ public interface CompilationContext extends DiagnosticContext {
 
     DefinedTypeDefinition getDefaultTypeDefinition();
 
-    Section getImplicitSection(ExecutableElement element);
+    ModuleSection getImplicitSection(ExecutableElement element);
 
-    Section getImplicitSection(DefinedTypeDefinition typeDefinition);
+    ModuleSection getImplicitSection(DefinedTypeDefinition typeDefinition);
+
+    /**
+     * Get the implicit section.
+     * This is a section which holds all external declarations and data.
+     * The implicit section is not emitted in the final program.
+     *
+     * @return the implicit section
+     */
+    Section getImplicitSection();
 
     Function getExactFunction(ExecutableElement element);
 
@@ -168,4 +179,24 @@ public interface CompilationContext extends DiagnosticContext {
      * @throws IllegalStateException if the current phase does not have a copier
      */
     BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> getCopier();
+
+    /**
+     * Get the section with the given name, if it exists.
+     *
+     * @param name the section name (must not be {@code null})
+     * @return the section, or {@code null} if the section does not exist
+     */
+    Section getSection(String name);
+
+    /**
+     * Add a section to the program.
+     *
+     * @param name the section name (must not be {@code null})
+     * @param index the section index, used for ordering purposes
+     * @param segment the segment into which the section should be loaded
+     * @param attributes the section attributes (must not be {@code null}, may be empty)
+     * @return the new section (not {@code null})
+     * @throws IllegalArgumentException if a section with the given name already exists with a different index or segment
+     */
+    Section addSection(String name, int index, Segment segment, Section.Attribute... attributes);
 }

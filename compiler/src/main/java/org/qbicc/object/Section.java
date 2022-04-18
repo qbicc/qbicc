@@ -1,362 +1,165 @@
 package org.qbicc.object;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.qbicc.graph.Value;
-import org.qbicc.type.FunctionType;
-import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
-import org.qbicc.type.definition.element.MemberElement;
-import io.smallrye.common.constraint.Assert;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.type.TypeSystem;
 
 /**
- * A section in a program.
+ * A program section. Program modules define objects into sections.
  */
-public final class Section extends ProgramObject {
-    final ProgramModule programModule;
-    final Map<String, ProgramObject> definedObjects = Collections.synchronizedMap(new LinkedHashMap<>());
-
-    Section(final String name, final ValueType valueType, final ProgramModule programModule) {
-        super(name, valueType);
-        this.programModule = programModule;
-    }
-
-    public Data addData(MemberElement originalElement, String name, Value value) {
-        Data obj = new Data(originalElement,
-            Assert.checkNotNullParam("name", name),
-            Assert.checkNotNullParam("value", value).getType(),
-            value
-        );
-        Map<String, ProgramObject> definedObjects = this.definedObjects;
-        synchronized (definedObjects) {
-            ProgramObject existing = definedObjects.get(name);
-            if (existing == null) {
-                definedObjects.put(name, obj);
-            } else {
-                if (existing instanceof DataDeclaration decl) {
-                    if (! decl.getValueType().equals(obj.getValueType())) {
-                        clash(originalElement, name);
-                    } else {
-                        obj.initDeclaration(decl);
-                        definedObjects.replace(name, decl, obj);
-                    }
-                } else {
-                    twice(originalElement, name);
-                }
-            }
-        }
-        return obj;
-    }
-
-    private void twice(MemberElement originalElement, final String name) {
-        if (originalElement != null) {
-            programModule.getTypeDefinition().getContext().getCompilationContext().error(originalElement, "Object '%s' defined twice", name);
-        } else {
-            programModule.getTypeDefinition().getContext().getCompilationContext().error("Synthetic object '%s' defined twice", name);
-        }
-    }
-
-    public Function addFunction(ExecutableElement originalElement, String name, FunctionType type) {
-        Function obj = new Function(originalElement,
-            Assert.checkNotNullParam("name", name),
-            Assert.checkNotNullParam("type", type),
-            Function.getFunctionFlags(originalElement)
-        );
-        Map<String, ProgramObject> definedObjects = this.definedObjects;
-        synchronized (definedObjects) {
-            ProgramObject existing = definedObjects.get(name);
-            if (existing == null) {
-                definedObjects.put(name, obj);
-            } else {
-                if (existing instanceof FunctionDeclaration decl) {
-                    if (! decl.getSymbolType().equals(obj.getSymbolType())) {
-                        clash(originalElement, name);
-                    } else {
-                        obj.initDeclaration(decl);
-                        definedObjects.replace(name, existing, obj);
-                    }
-                } else if (existing instanceof Function) {
-                    twice(originalElement, name);
-                } else {
-                    clash(originalElement, name);
-                }
-            }
-        }
-        return obj;
-    }
+public final class Section implements Comparable<Section> {
+    private final int index;
+    private final String name;
+    private final Segment segment;
+    private final boolean dataOnly;
 
     /**
-     * Convenience method to produce a function declaration in this section for the given original program object, which
-     * must be a function definition or a function declaration.
+     * Construct a new instance.
      *
-     * @param original the original item (must not be {@code null})
-     * @return the function declaration (not {@code null})
+     * @param index the section index
+     * @param name the section name (must not be {@code null})
+     * @param segment the section segments (must not be {@code null})
+     * @param attributes the section attributes, if any
      */
-    public FunctionDeclaration declareFunction(ProgramObject original) {
-        if (original instanceof Function fn) {
-            return declareFunction(fn);
-        } else if (original instanceof FunctionDeclaration decl) {
-            return declareFunction(decl);
-        } else {
-            throw new IllegalArgumentException("Invalid input type");
-        }
-    }
-
-    /**
-     * Convenience method to produce a function declaration in this section for the given original function.
-     *
-     * @param originalFunction the original function (must not be {@code null})
-     * @return the function declaration (not {@code null})
-     */
-    public FunctionDeclaration declareFunction(Function originalFunction) {
-        Assert.checkNotNullParam("originalFunction", originalFunction);
-        String name = originalFunction.getName();
-        Map<String, ProgramObject> definedObjects = this.definedObjects;
-        synchronized (definedObjects) {
-            ProgramObject existing = definedObjects.get(name);
-            FunctionDeclaration origDecl = originalFunction.getDeclaration();
-            if (existing == null) {
-                definedObjects.put(name, origDecl);
-                return origDecl;
-            } else {
-                if (existing == origDecl) {
-                    // fast/common path
-                    return origDecl;
-                } else if (existing instanceof FunctionDeclaration decl) {
-                    if (! originalFunction.getSymbolType().equals(decl.getSymbolType())) {
-                        clash(originalFunction.getOriginalElement(), name);
-                        return origDecl;
-                    }
-                    return decl;
-                } else if (existing instanceof Function fn) {
-                    if (! originalFunction.getSymbolType().equals(fn.getSymbolType())) {
-                        clash(originalFunction.getOriginalElement(), name);
-                        return origDecl;
-                    }
-                    return fn.getDeclaration();
-                } else {
-                    clash(originalFunction.getOriginalElement(), name);
-                    return origDecl;
-                }
+    public Section(int index, String name, Segment segment, Attribute... attributes) {
+        this.index = index;
+        this.name = name;
+        this.segment = segment;
+        boolean dataOnly = false;
+        for (Attribute attribute : attributes) {
+            if (attribute == Flag.DATA_ONLY) {
+                dataOnly = true;
+                continue;
             }
         }
-    }
-
-    /**
-     * Convenience method to produce a function declaration in this section for the given original function declaration.
-     *
-     * @param originalDecl the original function declaration (must not be {@code null})
-     * @return the function declaration (not {@code null})
-     */
-    public FunctionDeclaration declareFunction(FunctionDeclaration originalDecl) {
-        Assert.checkNotNullParam("originalDecl", originalDecl);
-        String name = originalDecl.getName();
-        Map<String, ProgramObject> definedObjects = this.definedObjects;
-        synchronized (definedObjects) {
-            ProgramObject existing = definedObjects.get(name);
-            if (existing == null) {
-                definedObjects.put(name, originalDecl);
-                return originalDecl;
-            } else {
-                if (existing == originalDecl) {
-                    // fast/common path
-                    return originalDecl;
-                } else if (existing instanceof FunctionDeclaration decl) {
-                    if (! originalDecl.getSymbolType().equals(decl.getSymbolType())) {
-                        clash(originalDecl.getOriginalElement(), name);
-                        return originalDecl;
-                    }
-                    return decl;
-                } else if (existing instanceof Function fn) {
-                    if (! originalDecl.getSymbolType().equals(fn.getSymbolType())) {
-                        clash(originalDecl.getOriginalElement(), name);
-                        return originalDecl.getDeclaration();
-                    }
-                    return fn.getDeclaration();
-                } else {
-                    clash(originalDecl.getOriginalElement(), name);
-                    return originalDecl;
-                }
-            }
-        }
-    }
-
-    public FunctionDeclaration declareFunction(ExecutableElement originalElement, String name, FunctionType type) {
-        Assert.checkNotNullParam("name", name);
-        Map<String, ProgramObject> definedObjects = this.definedObjects;
-        synchronized (definedObjects) {
-            ProgramObject existing = definedObjects.get(name);
-            if (existing == null) {
-                FunctionDeclaration decl = new FunctionDeclaration(originalElement, name, type);
-                definedObjects.put(name, decl);
-                return decl;
-            } else {
-                if (existing instanceof FunctionDeclaration decl) {
-                    if (! type.equals(decl.getValueType())) {
-                        clash(originalElement, name);
-                        return new FunctionDeclaration(originalElement, name, type);
-                    }
-                    return decl;
-                } else if (existing instanceof Function fn) {
-                    if (! type.equals(fn.getValueType())) {
-                        clash(originalElement, name);
-                        return new FunctionDeclaration(originalElement, name, type);
-                    }
-                    return fn.getDeclaration();
-                } else {
-                    clash(originalElement, name);
-                    return new FunctionDeclaration(originalElement, name, type);
-                }
-            }
-        }
-    }
-
-    /**
-     * Convenience method to produce a data declaration in this section for the given original program object, which
-     * must be a data definition or a data declaration.
-     *
-     * @param original the original item (must not be {@code null})
-     * @return the data declaration (not {@code null})
-     */
-    public DataDeclaration declareData(ProgramObject original) {
-        if (original instanceof Data data) {
-            return declareData(data);
-        } else if (original instanceof DataDeclaration decl) {
-            return declareData(decl);
-        } else {
-            throw new IllegalArgumentException("Invalid input type");
-        }
-    }
-
-    /**
-     * Convenience method to produce a data declaration in this section for the given original data definition.
-     *
-     * @param originalData the original data definition (must not be {@code null})
-     * @return the data declaration (not {@code null})
-     */
-    public DataDeclaration declareData(Data originalData) {
-        Assert.checkNotNullParam("originalData", originalData);
-        String name = originalData.getName();
-        Map<String, ProgramObject> definedObjects = this.definedObjects;
-        synchronized (definedObjects) {
-            ProgramObject existing = definedObjects.get(name);
-            DataDeclaration origDecl = originalData.getDeclaration();
-            if (existing == null) {
-                definedObjects.put(name, origDecl);
-                return origDecl;
-            } else {
-                if (existing == origDecl) {
-                    // fast/common path
-                    return origDecl;
-                } else if (existing instanceof DataDeclaration decl) {
-                    if (! originalData.getSymbolType().equals(decl.getSymbolType())) {
-                        clash(originalData.getOriginalElement(), name);
-                        return origDecl;
-                    }
-                    return decl;
-                } else if (existing instanceof Data data) {
-                    if (! originalData.getSymbolType().equals(data.getSymbolType())) {
-                        clash(originalData.getOriginalElement(), name);
-                        return origDecl;
-                    }
-                    return data.getDeclaration();
-                } else {
-                    clash(originalData.getOriginalElement(), name);
-                    return origDecl;
-                }
-            }
-        }
-    }
-
-    /**
-     * Convenience method to produce a data declaration in this section for the given original data declaration.
-     *
-     * @param originalDecl the original data declaration (must not be {@code null})
-     * @return the data declaration (not {@code null})
-     */
-    public DataDeclaration declareData(DataDeclaration originalDecl) {
-        Assert.checkNotNullParam("originalDecl", originalDecl);
-        String name = originalDecl.getName();
-        Map<String, ProgramObject> definedObjects = this.definedObjects;
-        synchronized (definedObjects) {
-            ProgramObject existing = definedObjects.get(name);
-            if (existing == null) {
-                // reuse original decl
-                definedObjects.put(name, originalDecl);
-                return originalDecl;
-            } else {
-                if (existing == originalDecl) {
-                    // fast/common path
-                    return originalDecl;
-                } else if (existing instanceof DataDeclaration decl) {
-                    if (! originalDecl.getSymbolType().equals(decl.getSymbolType())) {
-                        clash(originalDecl.getOriginalElement(), name);
-                        return originalDecl;
-                    }
-                    return decl;
-                } else if (existing instanceof Data data) {
-                    if (! originalDecl.getSymbolType().equals(data.getSymbolType())) {
-                        clash(originalDecl.getOriginalElement(), name);
-                        return originalDecl;
-                    }
-                    return data.getDeclaration();
-                } else {
-                    clash(originalDecl.getOriginalElement(), name);
-                    return originalDecl;
-                }
-            }
-        }
-    }
-
-    public DataDeclaration declareData(MemberElement originalElement, String name, ValueType type) {
-        Assert.checkNotNullParam("name", name);
-        Map<String, ProgramObject> definedObjects = this.definedObjects;
-        synchronized (definedObjects) {
-            ProgramObject existing = definedObjects.get(name);
-            if (existing == null) {
-                DataDeclaration decl = new DataDeclaration(originalElement, name, type);
-                definedObjects.put(name, decl);
-                return decl;
-            } else {
-                if (existing instanceof DataDeclaration decl) {
-                    if (! type.equals(decl.getValueType())) {
-                        clash(originalElement, name);
-                    }
-                    return decl;
-                } else if (existing instanceof Data data) {
-                    if (! type.equals(data.getValueType())) {
-                        clash(originalElement, name);
-                    }
-                    return data.getDeclaration();
-                } else {
-                    clash(originalElement, name);
-                    return new DataDeclaration(originalElement, name, type);
-                }
-            }
-        }
-    }
-
-    private void clash(final MemberElement originalElement, final String name) {
-        if (originalElement != null) {
-            originalElement.getEnclosingType().getContext().getCompilationContext().error(originalElement, "Object '%s' redeclared with different type", name);
-        } else {
-            programModule.getTypeDefinition().getContext().getCompilationContext().error("Synthetic object '%s' redeclared with different type", name);
-        }
-    }
-
-    public Iterable<ProgramObject> contents() {
-        ProgramObject[] array = definedObjects.values().toArray(ProgramObject[]::new);
-        Arrays.sort(array, Comparator.comparing(ProgramObject::getName));
-        return List.of(array);
+        this.dataOnly = dataOnly;
     }
 
     @Override
-    public Section getDeclaration() {
-        return this;
+    public int compareTo(Section o) {
+        int res = segment.compareTo(o.segment);
+        if (res == 0) res = Integer.compare(index, o.index);
+        if (res == 0) res = name.compareTo(o.name);
+        return res;
+    }
+
+    /**
+     * Get the section index.
+     * The index is used for ordering the section within the segment.
+     * Sections with lower indices will be placed earlier (lower) in memory than sections with higher indices.
+     *
+     * @return the section index
+     */
+    public int getIndex() {
+        return index;
+    }
+
+    /**
+     * Get the section name.
+     * Note that section names are typically transformed in some target-specific manner.
+     * Therefore, the name that appears in the output assembly might differ.
+     *
+     * @return the section name (not {@code null})
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Get the segment.
+     * The section will be loaded into the given segment.
+     *
+     * @return the segment (not {@code null})
+     */
+    public Segment getSegment() {
+        return segment;
+    }
+
+    /**
+     * Determine whether this is the implicit section.
+     *
+     * @return {@code true} if this is the implicit section, or {@code false} otherwise
+     */
+    public boolean isImplicit() {
+        return getName().equals(CompilationContext.IMPLICIT_SECTION_NAME);
+    }
+
+    /**
+     * Determine whether this is a data-only section.
+     *
+     * @return {@code true} if this is a data-only section, or {@code false} if it is a mixed code and data section
+     */
+    public boolean isDataOnly() {
+        return dataOnly;
+    }
+
+    /**
+     * Get a data declaration whose value is the start address of the segment.
+     * If an existing declaration exists, it is returned.
+     * The type of the declaration is pointer-to-{@code void} so it must be cast before it can be used.
+     *
+     * @param programModule the program module into which the declaration should be created
+     * @return the data declaration (not {@code null})
+     */
+    public DataDeclaration getSegmentStartDeclaration(ProgramModule programModule) {
+        CompilationContext ctxt = programModule.getTypeDefinition().getContext().getCompilationContext();
+        TypeSystem ts = ctxt.getTypeSystem();
+        return programModule.declareData(null, ctxt.getPlatform().formatStartOfSectionSymbolName(segment.toString(), name), ts.getVoidType().getPointer());
+    }
+
+    /**
+     * Get a data declaration whose value is the end address of the segment.
+     * If an existing declaration exists, it is returned.
+     * The type of the declaration is pointer-to-{@code void} so it must be cast before it can be used.
+     *
+     * @param programModule the program module into which the declaration should be created
+     * @return the data declaration (not {@code null})
+     */
+    public DataDeclaration getSegmentEndDeclaration(ProgramModule programModule) {
+        CompilationContext ctxt = programModule.getTypeDefinition().getContext().getCompilationContext();
+        TypeSystem ts = ctxt.getTypeSystem();
+        return programModule.declareData(null, ctxt.getPlatform().formatEndOfSectionSymbolName(segment.toString(), name), ts.getVoidType().getPointer());
+    }
+
+    /**
+     * An attribute of a section.
+     */
+    public abstract static class Attribute {
+        Attribute() {}
+    }
+
+    /**
+     * Boolean-typed section attributes.
+     */
+    public static final class Flag extends Attribute {
+        private final String name;
+
+        private Flag(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public int hashCode() {
+            return name.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof Flag flag && equals(flag);
+        }
+
+        public boolean equals(Flag other) {
+            return this == other;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+
+        /**
+         * A flag indicating that this section may <em>only</em> contain data.
+         * Objects in data-only sections are fixed in size and thus have knowable offsets.
+         */
+        public static final Flag DATA_ONLY = new Flag("DATA_ONLY");
     }
 }

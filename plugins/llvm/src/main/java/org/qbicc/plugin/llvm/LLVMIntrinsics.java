@@ -11,18 +11,15 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Load;
-import org.qbicc.graph.NewArray;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
-import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.intrinsics.Intrinsics;
@@ -31,7 +28,6 @@ import org.qbicc.type.ArrayType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.VariadicType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -174,7 +170,7 @@ public final class LLVMIntrinsics {
             TypeSystem ts = ctxt.getTypeSystem();
             LiteralFactory lf = ctxt.getLiteralFactory();
             FunctionType fnType = ts.getFunctionType(ts.getSignedInteger32Type(), ts.getFloat32Type());
-            FunctionDeclaration decl = ctxt.getImplicitSection(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i32.f32", fnType);
+            FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i32.f32", fnType);
             return builder.getFirstBuilder().callNoSideEffects(builder.pointerHandle(lf.literalOf(decl)), arguments);
         };
 
@@ -184,7 +180,7 @@ public final class LLVMIntrinsics {
             TypeSystem ts = ctxt.getTypeSystem();
             LiteralFactory lf = ctxt.getLiteralFactory();
             FunctionType fnType = ts.getFunctionType(ts.getSignedInteger64Type(), ts.getFloat32Type());
-            FunctionDeclaration decl = ctxt.getImplicitSection(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i64.f32", fnType);
+            FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i64.f32", fnType);
             return builder.getFirstBuilder().callNoSideEffects(builder.pointerHandle(lf.literalOf(decl)), arguments);
         };
 
@@ -194,7 +190,7 @@ public final class LLVMIntrinsics {
             TypeSystem ts = ctxt.getTypeSystem();
             LiteralFactory lf = ctxt.getLiteralFactory();
             FunctionType fnType = ts.getFunctionType(ts.getSignedInteger32Type(), ts.getFloat64Type());
-            FunctionDeclaration decl = ctxt.getImplicitSection(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i32.f64", fnType);
+            FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i32.f64", fnType);
             return builder.getFirstBuilder().callNoSideEffects(builder.pointerHandle(lf.literalOf(decl)), arguments);
         };
 
@@ -204,7 +200,7 @@ public final class LLVMIntrinsics {
             TypeSystem ts = ctxt.getTypeSystem();
             LiteralFactory lf = ctxt.getLiteralFactory();
             FunctionType fnType = ts.getFunctionType(ts.getSignedInteger64Type(), ts.getFloat64Type());
-            FunctionDeclaration decl = ctxt.getImplicitSection(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i64.f64", fnType);
+            FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i64.f64", fnType);
             return builder.getFirstBuilder().callNoSideEffects(builder.pointerHandle(lf.literalOf(decl)), arguments);
         };
 

@@ -16,7 +16,8 @@ import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.object.Data;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
-import org.qbicc.object.Section;
+import org.qbicc.object.ModuleSection;
+import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.linker.Linker;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.type.CompoundType;
@@ -155,10 +156,9 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
 
     private Literal castHeapSymbolTo(CompilationContext ctxt, ProgramObjectLiteral literal, WordType toType) {
         LiteralFactory lf = ctxt.getLiteralFactory();
-        Section section = ctxt.getImplicitSection(ctxt.getDefaultTypeDefinition());
         Literal result;
         if (literal != null) {
-            DataDeclaration decl = section.declareData(literal.getProgramObject());
+            DataDeclaration decl = ctxt.getOrAddProgramModule(ctxt.getDefaultTypeDefinition()).declareData(literal.getProgramObject());
             decl.setAddrspace(1);
             ProgramObjectLiteral refToString = ctxt.getLiteralFactory().literalOf(decl);
             result = ctxt.getLiteralFactory().bitcastLiteral(refToString, toType);
@@ -169,7 +169,7 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
     }
 
     private Data defineData(CompilationContext ctxt, String variableName, Literal value) {
-        Section section = ctxt.getImplicitSection(ctxt.getDefaultTypeDefinition());
+        ModuleSection section = ctxt.getImplicitSection(ctxt.getDefaultTypeDefinition());
         return section.addData(null, variableName, value);
     }
 
@@ -247,7 +247,7 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
     Literal emitInstructionList(CompilationContext ctxt, InstructionMap[] imapList) {
         TypeSystem ts = ctxt.getTypeSystem();
         LiteralFactory lf = ctxt.getLiteralFactory();
-        Section section = ctxt.getImplicitSection(ctxt.getDefaultTypeDefinition());
+        ProgramModule programModule = ctxt.getOrAddProgramModule(ctxt.getDefaultTypeDefinition());
         ValueType uint64Type = ts.getUnsignedInteger64Type();
 
         Literal[] instructionLiterals = IntStream.range(0, imapList.length)
@@ -256,7 +256,7 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
                 Function function = ctxt.getExactFunction(imapList[i].getFunction());
                 Literal functionCastLiteral = lf.bitcastLiteral(lf.literalOf(function), ts.getUnsignedInteger8Type().getPointer());
                 Literal instructionAddrLiteral = lf.valueConvertLiteral(lf.elementOfLiteral(functionCastLiteral, lf.literalOf(imapList[i].getOffset())), ts.getUnsignedInteger64Type());
-                section.declareFunction(null, function.getName(), function.getValueType());
+                programModule.declareFunction(null, function.getName(), function.getValueType());
                 return instructionAddrLiteral;
             }).toArray(Literal[]::new);
 

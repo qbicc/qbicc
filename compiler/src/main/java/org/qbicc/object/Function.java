@@ -16,8 +16,8 @@ public final class Function extends SectionObject {
     private volatile MethodBody body;
     private volatile FunctionDeclaration declaration;
 
-    Function(final ExecutableElement originalElement, final String name, final FunctionType functionType, int fnFlags) {
-        super(originalElement, name, functionType);
+    Function(final ExecutableElement originalElement, ModuleSection moduleSection, final String name, final FunctionType functionType, int fnFlags) {
+        super(originalElement, name, functionType, moduleSection);
         this.fnFlags = fnFlags;
     }
 

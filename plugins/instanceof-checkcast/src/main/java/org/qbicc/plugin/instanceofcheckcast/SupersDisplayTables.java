@@ -12,7 +12,8 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.object.Section;
+import org.qbicc.object.ModuleSection;
+import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables.IdAndRange.Factory;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.type.ArrayType;
@@ -459,7 +460,7 @@ public class SupersDisplayTables {
         Literal typeIdsValue = ctxt.getLiteralFactory().literalOf((ArrayType)typeIdArrayGlobal.getType(), List.of(typeIdTable));
         
         /* Write the data into Object's section */
-        Section section = ctxt.getImplicitSection(jlo);
+        ModuleSection section = ctxt.getImplicitSection(jlo);
         section.addData(null, GLOBAL_TYPEID_ARRAY, typeIdsValue);
     }
 
@@ -475,8 +476,8 @@ public class SupersDisplayTables {
     public GlobalVariableElement getAndRegisterGlobalTypeIdArray(ExecutableElement originalElement) {
         Assert.assertNotNull(typeIdArrayGlobal);
         if (!typeIdArrayGlobal.getEnclosingType().equals(originalElement.getEnclosingType())) {
-            Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
-            section.declareData(null, typeIdArrayGlobal.getName(), typeIdArrayGlobal.getType());
+            ProgramModule programModule = ctxt.getOrAddProgramModule(originalElement.getEnclosingType());
+            programModule.declareData(null, typeIdArrayGlobal.getName(), typeIdArrayGlobal.getType());
         }
         return typeIdArrayGlobal;
     }

@@ -8,18 +8,20 @@ import org.qbicc.type.definition.element.MemberElement;
  * A data object definition.
  */
 public final class Data extends SectionObject {
-    private volatile Value value;
+    private final Value value;
     private volatile DataDeclaration declaration;
     private volatile boolean dsoLocal;
+    private volatile long offset;
 
-    Data(final MemberElement originalElement, final String name, final ValueType valueType, final Value value) {
-        super(originalElement, name, valueType);
+    Data(final MemberElement originalElement, ModuleSection moduleSection, final String name, final ValueType valueType, final Value value) {
+        super(originalElement, name, valueType, moduleSection);
         this.value = value;
+        offset = -1;
     }
 
     @Override
     public MemberElement getOriginalElement() {
-        return (MemberElement) super.getOriginalElement();
+        return super.getOriginalElement();
     }
 
     public String getName() {
@@ -30,8 +32,30 @@ public final class Data extends SectionObject {
         return value;
     }
 
-    public void setValue(final Value value) {
-        this.value = value;
+    /**
+     * Get this object's offset within its enclosing module section.
+     *
+     * @return the relative offset
+     */
+    public long getOffset() {
+        long offset = this.offset;
+        if (offset == -1) {
+            throw new IllegalArgumentException("Offset unknown");
+        }
+        return offset;
+    }
+
+    void initOffset(long offset) {
+        this.offset = offset;
+    }
+
+    /**
+     * Get this object's actual size.
+     *
+     * @return the object's actual size
+     */
+    public long getSize() {
+        return value.getType().getSize();
     }
 
     public DataDeclaration getDeclaration() {

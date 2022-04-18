@@ -3,7 +3,7 @@ package org.qbicc.plugin.methodinfo;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.object.Section;
+import org.qbicc.object.ProgramModule;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
@@ -90,8 +90,8 @@ public class MethodDataTypes {
     public GlobalVariableElement getAndRegisterGlobalMethodData(ExecutableElement originalElement) {
         Assert.assertNotNull(globalMethodData);
         if (originalElement != null && !globalMethodData.getEnclosingType().equals(originalElement.getEnclosingType())) {
-            Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
-            section.declareData(null, globalMethodData.getName(), globalMethodData.getType());
+            ProgramModule programModule = ctxt.getOrAddProgramModule(originalElement.getEnclosingType());
+            programModule.declareData(null, globalMethodData.getName(), globalMethodData.getType());
         }
         return globalMethodData;
     }

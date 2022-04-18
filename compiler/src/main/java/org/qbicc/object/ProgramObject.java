@@ -40,6 +40,8 @@ public abstract class ProgramObject {
         this.threadLocalMode = original.getThreadLocalMode();
     }
 
+    public abstract ProgramModule getProgramModule();
+
     public String getName() {
         return name;
     }
@@ -91,7 +93,7 @@ public abstract class ProgramObject {
         return pointer;
     }
 
-    public abstract ProgramObject getDeclaration();
+    public abstract Declaration getDeclaration();
 
     /**
      * Get the type of the value contained in this object.  This is the pointee of the symbol type,
