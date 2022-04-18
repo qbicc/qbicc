@@ -42,6 +42,7 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -252,6 +253,10 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             throw e;
         }
         vm.manuallyInitialize(this);
+    }
+
+    void initVmClass() {
+        typeDefinition.setVmClass(this);
     }
 
     VmArrayClassImpl constructArrayClass() {
@@ -624,8 +629,9 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         oldMembers = (VmRefArrayImpl) getMemory().loadRef(nestMembersIdx, SingleAcquire);
         for (;;) {
             if (oldMembers == null) {
-                insert = 0;
-                newMembers = (VmRefArrayImpl) vm.newArrayOf(getVmClass(), 1);
+                insert = 1;
+                newMembers = (VmRefArrayImpl) vm.newArrayOf(getVmClass(), 2);
+                newMembers.store(0, this);
             } else {
                 insert = oldMembers.getLength();
                 newMembers = (VmRefArrayImpl) vm.newArrayOf(getVmClass(), insert + 1);
@@ -645,6 +651,29 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         // this is a `final` field
         CoreClasses coreClasses = CoreClasses.get(vm.getCompilationContext());
         getMemory().storeRef(indexOf(coreClasses.getClassNestHostField()), host, SingleRelease);
+    }
+
+    VmClassImpl getNestHost() {
+        CoreClasses coreClasses = CoreClasses.get(vm.getCompilationContext());
+        VmClassImpl nestHost = (VmClassImpl) getMemory().loadRef(indexOf(coreClasses.getClassNestHostField()), SingleAcquire);
+        // todo: temporary workaround
+        if (nestHost == null) {
+            LoadedTypeDefinition typeDefinition = this.typeDefinition;
+            if (typeDefinition == null) {
+                setNestHost(this);
+                return this;
+            } else {
+                DefinedTypeDefinition nestHostDef = typeDefinition.getNestHost();
+                if (nestHostDef == null) {
+                    setNestHost(this);
+                    return this;
+                } else {
+                    nestHost = (VmClassImpl) nestHostDef.load().getVmClass();
+                    setNestHost(nestHost);
+                }
+            }
+        }
+        return nestHost;
     }
 
     enum State {

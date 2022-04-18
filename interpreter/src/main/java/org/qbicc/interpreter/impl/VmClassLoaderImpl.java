@@ -132,21 +132,28 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
             thread.setThrown(throwable);
             throw new Thrown(throwable);
         }
+        initNestHost(loaded, vmClass);
+        return vmClass;
+    }
+
+    private void initNestHost(final LoadedTypeDefinition loaded, final VmClassImpl vmClass) {
         DefinedTypeDefinition nestHost = loaded.getNestHost();
-        if (nestHost != null && nestHost.load() != loaded) {
+        if (nestHost != null) {
             // real nest host
-            vmClass.setNestHost((VmClassImpl) nestHost.load().getVmClass());
-        }
-        DefinedTypeDefinition[] nestMembers = loaded.getNestMembers();
-        if (nestMembers != null && nestMembers.length > 0) {
-            for (DefinedTypeDefinition nestMember : nestMembers) {
-                LoadedTypeDefinition loadedMember = nestMember.load();
-                if (loadedMember != loaded) {
-                    vmClass.addNestMember((VmClassImpl) loadedMember.getVmClass());
+            for (;;) {
+                DefinedTypeDefinition innerHost = nestHost.load().getNestHost();
+                if (innerHost != null && innerHost != nestHost) {
+                    nestHost = innerHost;
+                } else {
+                    break;
                 }
             }
+            VmClassImpl hostClass = ((VmClassImpl) nestHost.load().getVmClass()).getNestHost();
+            vmClass.setNestHost(hostClass);
+            hostClass.addNestMember(vmClass);
+        } else {
+            vmClass.setNestHost(vmClass);
         }
-        return vmClass;
     }
 
     public VmClassImpl getOrDefineClass(LoadedTypeDefinition loaded) {
@@ -161,6 +168,9 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
             VmClassImpl appearing = defined.putIfAbsent(internalName, vmClass);
             if (appearing != null) {
                 vmClass = appearing;
+            } else {
+                vmClass.initVmClass();
+                initNestHost(loaded, vmClass);
             }
         }
         return vmClass;
