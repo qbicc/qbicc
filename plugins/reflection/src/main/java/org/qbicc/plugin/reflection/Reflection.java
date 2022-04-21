@@ -39,8 +39,6 @@ import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.InvokableType;
-import org.qbicc.type.ReferenceType;
-import org.qbicc.type.TypeSystem;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -1038,7 +1036,7 @@ public final class Reflection {
                 if (element.isStatic()) {
                     paramValues = List.of();
                 } else {
-                    paramValues = List.of(bbb.parameter(e.getEnclosingType().load().getType().getReference(), "p", 0));
+                    paramValues = List.of(bbb.parameter(e.getEnclosingType().load().getObjectType().getReference(), "p", 0));
                 }
                 bbb.startMethod(paramValues);
                 // build the entry block
@@ -1109,7 +1107,7 @@ public final class Reflection {
                 if (element.isStatic()) {
                     paramValues = List.of(bbb.parameter(element.getType(), "p", 0));
                 } else {
-                    paramValues = List.of(bbb.parameter(element.getEnclosingType().load().getType().getReference(), "p", 0), bbb.parameter(element.getType(), "p", 1));
+                    paramValues = List.of(bbb.parameter(element.getEnclosingType().load().getObjectType().getReference(), "p", 0), bbb.parameter(element.getType(), "p", 1));
                 }
                 bbb.startMethod(paramValues);
                 // build the entry block
@@ -1146,7 +1144,7 @@ public final class Reflection {
         }
         // generate a static dispatch helper method
         DefinedTypeDefinition enclosingType = element.getEnclosingType();
-        ClassTypeDescriptor enclosingDesc = enclosingType.getDescriptor();
+        TypeDescriptor enclosingDesc = enclosingType.getDescriptor();
         ClassContext classContext = enclosingType.getContext();
         MethodDescriptor origDesc = element.getDescriptor();
         List<TypeDescriptor> origParamTypes = origDesc.getParameterTypes();
@@ -1227,7 +1225,7 @@ public final class Reflection {
     private Pointer generateNewInstanceDispatcher(final ConstructorElement element) {
         // generate a static dispatch helper method
         DefinedTypeDefinition enclosingType = element.getEnclosingType();
-        ClassTypeDescriptor enclosingDesc = enclosingType.getDescriptor();
+        TypeDescriptor enclosingDesc = enclosingType.getDescriptor();
         ClassContext classContext = enclosingType.getContext();
         MethodDescriptor origDesc = element.getDescriptor();
         List<TypeDescriptor> origParamTypes = origDesc.getParameterTypes();

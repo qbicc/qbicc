@@ -236,7 +236,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                     if (arrayType instanceof ReferenceArrayObjectType referenceArrayType && storedValue != null) {
                         Value toTypeId = load(instanceFieldOf(arrayHandle, CoreClasses.get(ctxt).getRefArrayElementTypeIdField()));
                         Value toDimensions;
-                        ObjectType jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load().getType();
+                        ObjectType jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load().getObjectType();
                         if (referenceArrayType.getLeafElementType().equals(jlo)) {
                             // All arrays are subtypes of Object, so if the leafElementType is Object, we won't know the real dimension count until runtime!
                             toDimensions = sub(load(instanceFieldOf(arrayHandle, CoreClasses.get(ctxt).getRefArrayDimensionsField())), ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), 1));

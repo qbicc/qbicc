@@ -16,7 +16,6 @@ import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
-import org.qbicc.type.definition.element.NamedElement;
 
 /**
  * An element handler which detects methods annotated with BuildTimeOnly
@@ -41,7 +40,7 @@ public class BuildTimeOnlyElementHandler implements Consumer<ExecutableElement> 
             builder.begin(entryLabel);
             try {
                 MethodElement helper = RuntimeMethodFinder.get(compilationContext).getMethod("raiseUnreachableCodeError");
-                Literal msg = compilationContext.getLiteralFactory().literalOf(element.toString(), classContext.findDefinedType("java/lang/String").load().getType().getReference());
+                Literal msg = compilationContext.getLiteralFactory().literalOf(element.toString(), classContext.findDefinedType("java/lang/String").load().getObjectType().getReference());
                 builder.callNoReturn(builder.staticMethod(helper), List.of(msg));
             } catch (BlockEarlyTermination ignored) {}
             builder.finish();

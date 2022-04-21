@@ -18,7 +18,6 @@ import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables.IdAndRange.Facto
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.Primitive;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -258,13 +257,10 @@ public class SupersDisplayTables {
         supersLog.debug("Interface bits[] space (in bytes): " + (typeids.size() * bytesPerClass));
     }
 
-    void assignTypeIdToPrimitives() {
-        Primitive.forEach(type -> type.setTypeId(idAndRange.nextID().typeid));
-    }
-
-    void assignTypeID(LoadedTypeDefinition cls) {
+    int assignTypeID(LoadedTypeDefinition cls) {
         IdAndRange myID = typeids.computeIfAbsent(cls, theCls -> idAndRange.nextID());
         log.debug("[" + myID.typeid + "] Class: " + cls.getInternalName());
+        return myID.typeid;
     }
 
     void assignMaximumSubtypeId(LoadedTypeDefinition cls) {
@@ -312,8 +308,8 @@ public class SupersDisplayTables {
     }
 
     int getNumberOfInterfacesInTypeIds() {
-        // + 10 to handle poisioned 0 entry and the 8 prims and void
-        return typeids.size() - idAndRange.first_interface_typeid + 10;
+        // + 1 to handle poisoned 0 entry
+        return typeids.size() - idAndRange.first_interface_typeid + 1;
     }
 
     public int getNumberOfBytesInInterfaceBitsArray() {
@@ -496,9 +492,9 @@ public class SupersDisplayTables {
     }
 
     public int get_number_of_typeids() {
-        Assert.assertTrue(idAndRange.typeid_index == (typeids.size() + 10));
-        supersLog.debug("get_highest_typeid == " + (typeids.size() + 10));
-        return typeids.size() + 10; // invalid zero + 8 prims + void
+        Assert.assertTrue(idAndRange.typeid_index == (typeids.size() + 1));
+        supersLog.debug("get_highest_typeid == " + (typeids.size() + 1));
+        return typeids.size() + 1; // invalid zero
     }
 }
 

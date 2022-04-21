@@ -402,9 +402,9 @@ final class NativeInfo {
 
     private ValueType decodePointerType(final DefinedTypeDefinition definedType) {
         TypeSystem ts = ctxt.getTypeSystem();
-        ClassSignature signature = definedType.getSignature();
-        ClassTypeSignature superClassSignature = signature.getSuperClassSignature();
-        List<TypeArgument> typeArguments = superClassSignature.getTypeArguments();
+        Signature signature = definedType.getSignature();
+        ClassTypeSignature superClassSignature = signature instanceof ClassSignature cs ? cs.getSuperClassSignature() : null;
+        List<TypeArgument> typeArguments = superClassSignature == null ? List.of() : superClassSignature.getTypeArguments();
         if (typeArguments.isEmpty()) {
             return ts.getVoidType().getPointer();
         }
@@ -471,7 +471,7 @@ final class NativeInfo {
         MethodElement method = fiData.getMethodElement();
 
         /* Map generic types to the ValueTypes they represent */
-        List<TypeParameter> genericTypeParameters = definedType.getSignature().getTypeParameters();
+        List<TypeParameter> genericTypeParameters = definedType.getSignature() instanceof ClassSignature cs ? cs.getTypeParameters() : List.of();
         for (int i = 0; i < arguments.size(); i++) {
             String genericTypeId = genericTypeParameters.get(i).getIdentifier();
             BoundTypeArgument argument = (BoundTypeArgument) arguments.get(i);
@@ -486,7 +486,7 @@ final class NativeInfo {
         *   In this case R should be mapped to the same ValueType as T.
         */
         List<TypeArgument> classTypeParameters = fiData.getClassTypeSignature().getTypeArguments();
-        List<TypeParameter> methodsTypeParameters = method.getEnclosingType().getSignature().getTypeParameters();
+        List<TypeParameter> methodsTypeParameters = method.getEnclosingType().getSignature() instanceof ClassSignature cs ? cs.getTypeParameters() : List.of();
         for (int i = 0; i < classTypeParameters.size(); i++) {
             TypeParameter methodParam = methodsTypeParameters.get(i);
             ValueType existingArgument = genericTypeMap.get(methodParam.getIdentifier());

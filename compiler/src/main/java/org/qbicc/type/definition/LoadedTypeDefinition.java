@@ -8,6 +8,7 @@ import org.qbicc.interpreter.VmClass;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -26,14 +27,33 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         return this;
     }
 
-    ObjectType getType();
+    ValueType getType();
+
+    default ObjectType getObjectType() {
+        if (getType() instanceof ObjectType ot) {
+            return ot;
+        } else {
+            // breakpoint
+            throw new ClassCastException("Wrong type");
+        }
+    }
 
     default ClassObjectType getClassType() {
-        return (ClassObjectType) getType();
+        if (getObjectType() instanceof ClassObjectType cot) {
+            return cot;
+        } else {
+            // breakpoint
+            throw new ClassCastException("Wrong type");
+        }
     }
 
     default InterfaceObjectType getInterfaceType() {
-        return (InterfaceObjectType) getType();
+        if (getObjectType() instanceof InterfaceObjectType iot) {
+            return iot;
+        } else {
+            // breakpoint
+            throw new ClassCastException("Wrong type");
+        }
     }
 
     LoadedTypeDefinition getSuperClass();
@@ -57,7 +77,7 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
     void forEachInterfaceFullImplementedSet(Consumer<LoadedTypeDefinition> function);
 
     default boolean isSubtypeOf(LoadedTypeDefinition other) {
-        return getType().isSubtypeOf(other.getType());
+        return getObjectType().isSubtypeOf(other.getObjectType());
     }
 
     DefinedTypeDefinition getNestHost();

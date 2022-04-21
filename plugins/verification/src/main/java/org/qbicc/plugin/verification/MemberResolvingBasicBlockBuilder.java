@@ -249,7 +249,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         } else if (desc instanceof ClassTypeDescriptor classDesc) {
             String className = (classDesc.getPackageName().isEmpty() ? "" : classDesc.getPackageName() + "/") + classDesc.getClassName();
             DefinedTypeDefinition definedType = cc.findDefinedType(className);
-            ot = definedType.load().getType();
+            ot = definedType.load().getObjectType();
         } else {
             // this comes from the classfile - it better be something the verifier allows in instanceof/checkcast expressions
             throw Assert.unreachableCode();
@@ -263,7 +263,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         DefinedTypeDefinition enclosingType = getCurrentElement().getEnclosingType();
         if (desc == enclosingType.getDescriptor()) {
             // always the current class
-            type = enclosingType.load().getType();
+            type = enclosingType.load().getObjectType();
         } else {
             type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc));
         }
@@ -370,7 +370,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     private BasicBlock nsfe(String name) {
         Info info = Info.get(ctxt);
         Value nsfe = new_(info.nsfeClass);
-        Literal l = ctxt.getLiteralFactory().literalOf(name, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getType().getReference());
+        Literal l = ctxt.getLiteralFactory().literalOf(name, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getObjectType().getReference());
         call(constructorOf(nsfe, info.nsfeClass, info.cd), List.of(l));
         return throw_(nsfe);
     }
@@ -378,7 +378,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     private BasicBlock nsme(String name) {
         Info info = Info.get(ctxt);
         Value nsme = new_(info.nsmeClass);
-        Literal l = ctxt.getLiteralFactory().literalOf(name, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getType().getReference());
+        Literal l = ctxt.getLiteralFactory().literalOf(name, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getObjectType().getReference());
         call(constructorOf(nsme, info.nsmeClass, info.cd), List.of(l));
         return throw_(nsme);
     }
@@ -394,9 +394,9 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
         private Info(final CompilationContext ctxt) {
             DefinedTypeDefinition type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/NoSuchMethodError");
-            nsmeClass = type.getDescriptor();
+            nsmeClass = (ClassTypeDescriptor) type.getDescriptor();
             type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/NoSuchFieldError");
-            nsfeClass = type.getDescriptor();
+            nsfeClass = (ClassTypeDescriptor) type.getDescriptor();
             ClassTypeDescriptor string = ClassTypeDescriptor.synthesize(ctxt.getBootstrapClassContext(), "java/lang/String");
             cd = MethodDescriptor.synthesize(ctxt.getBootstrapClassContext(), BaseTypeDescriptor.V, List.of(string));
         }

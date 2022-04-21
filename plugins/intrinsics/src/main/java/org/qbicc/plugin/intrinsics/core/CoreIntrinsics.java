@@ -264,7 +264,7 @@ public final class CoreIntrinsics {
 
             DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
             LoadedTypeDefinition jltVal = jlt.load();
-            ReferenceType jltType = jltVal.getType().getReference();
+            ReferenceType jltType = jltVal.getObjectType().getReference();
             Value threadObject = builder.valueConvert(threadVoidPtr, jltType);
             ValueHandle threadObjectHandle = builder.referenceHandle(threadObject);
 
@@ -351,7 +351,7 @@ public final class CoreIntrinsics {
             Value frameCount = builder.getFirstBuilder().call(
                 builder.staticMethod(getFrameCountElement),
                 List.of(instance));
-            ClassObjectType jsfcClassType = (ClassObjectType) ctxt.getBootstrapClassContext().findDefinedType(jsfcClass).load().getType();
+            ClassObjectType jsfcClassType = (ClassObjectType) ctxt.getBootstrapClassContext().findDefinedType(jsfcClass).load().getObjectType();
             CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(jsfcClassType.getDefinition()).getCompoundType();
             LiteralFactory lf = ctxt.getLiteralFactory();
             Value visitor = builder.getFirstBuilder().new_(jsfcClassType, lf.literalOfType(jsfcClassType), lf.literalOf(compoundType.getSize()), lf.literalOf(compoundType.getAlign()));
@@ -699,7 +699,7 @@ public final class CoreIntrinsics {
 
         MethodDescriptor newRefArrayDesc =  MethodDescriptor.synthesize(classContext, objDesc, List.of(clsDesc, BaseTypeDescriptor.I, BaseTypeDescriptor.I));
         StaticIntrinsic newRefArray = (builder, target, arguments) -> {
-            ReferenceArrayObjectType upperBound = classContext.findDefinedType("java/lang/Object").load().getType().getReferenceArrayObject();
+            ReferenceArrayObjectType upperBound = classContext.findDefinedType("java/lang/Object").load().getObjectType().getReferenceArrayObject();
             Value typeId = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassTypeIdField()));
             Value dims = builder.truncate(arguments.get(1), (WordType) coreClasses.getRefArrayDimensionsField().getType());
             return builder.newReferenceArray(upperBound, typeId, dims, arguments.get(2));
@@ -773,21 +773,21 @@ public final class CoreIntrinsics {
 
         FieldElement elementTypeField = coreClasses.getRefArrayElementTypeIdField();
         StaticIntrinsic elementTypeOf = (builder, target, arguments) -> {
-            ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), elementTypeField.getEnclosingType().load().getType().getReference()));
+            ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), elementTypeField.getEnclosingType().load().getObjectType().getReference()));
             return builder.load(builder.instanceFieldOf(handle, elementTypeField));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "elementTypeIdOf", objTypeIdDesc, elementTypeOf);
 
         FieldElement dimensionsField = coreClasses.getRefArrayDimensionsField();
         StaticIntrinsic dimensionsOf = (builder, target, arguments) -> {
-            ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), dimensionsField.getEnclosingType().load().getType().getReference()));
+            ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), dimensionsField.getEnclosingType().load().getObjectType().getReference()));
             return builder.load(builder.instanceFieldOf(handle, dimensionsField));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "dimensionsOf", objUint8Desc, dimensionsOf);
 
         FieldElement lengthField = coreClasses.getArrayLengthField();
         StaticIntrinsic lengthOf = (builder, target, arguments) -> {
-            ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), lengthField.getEnclosingType().load().getType().getReference()));
+            ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), lengthField.getEnclosingType().load().getObjectType().getReference()));
             return builder.load(builder.instanceFieldOf(handle, lengthField));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "lengthOf", objIntDesc, lengthOf);
@@ -801,26 +801,26 @@ public final class CoreIntrinsics {
 
         StaticIntrinsic isObject = (builder, target, arguments) -> {
             LoadedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").load();
-            return builder.isEq(arguments.get(0), lf.literalOfType(jlo.getType()));
+            return builder.isEq(arguments.get(0), lf.literalOfType(jlo.getObjectType()));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "isJavaLangObject", typeIdBooleanDesc, isObject);
 
         StaticIntrinsic isCloneable = (builder, target, arguments) -> {
             LoadedTypeDefinition jlc = classContext.findDefinedType("java/lang/Cloneable").load();
-            return builder.isEq(arguments.get(0), lf.literalOfType(jlc.getType()));
+            return builder.isEq(arguments.get(0), lf.literalOfType(jlc.getObjectType()));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "isJavaLangCloneable", typeIdBooleanDesc, isCloneable);
 
         StaticIntrinsic isSerializable = (builder, target, arguments) -> {
             LoadedTypeDefinition jis = classContext.findDefinedType("java/io/Serializable").load();
-            return builder.isEq(arguments.get(0), lf.literalOfType(jis.getType()));
+            return builder.isEq(arguments.get(0), lf.literalOfType(jis.getObjectType()));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "isJavaIoSerializable", typeIdBooleanDesc, isSerializable);
 
         StaticIntrinsic isClass = (builder, target, arguments) -> {
             LoadedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").load();
-            ValueType refArray = coreClasses.getArrayLoadedTypeDefinition("[ref").getType();
-            Value isObj = builder.isEq(arguments.get(0), lf.literalOfType(jlo.getType()));
+            ValueType refArray = coreClasses.getArrayLoadedTypeDefinition("[ref").getObjectType();
+            Value isObj = builder.isEq(arguments.get(0), lf.literalOfType(jlo.getObjectType()));
             Value isAboveRef = builder.isLt(lf.literalOfType(refArray), arguments.get(0));
             Value isNotInterface = builder.isLt(arguments.get(0), lf.literalOf(ctxt.getTypeSystem().getTypeIdLiteralType(), tables.getFirstInterfaceTypeId()));
             return builder.or(isObj, builder.and(isAboveRef, isNotInterface));
@@ -833,23 +833,23 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "isInterface", typeIdBooleanDesc, isInterface);
 
         StaticIntrinsic isPrimArray = (builder, target, arguments) -> {
-            ValueType firstPrimArray = coreClasses.getArrayLoadedTypeDefinition("[Z").getType();
-            ValueType lastPrimArray = coreClasses.getArrayLoadedTypeDefinition("[D").getType();
+            ValueType firstPrimArray = coreClasses.getArrayLoadedTypeDefinition("[Z").getObjectType();
+            ValueType lastPrimArray = coreClasses.getArrayLoadedTypeDefinition("[D").getObjectType();
             return builder.and(builder.isGe(arguments.get(0), lf.literalOfType(firstPrimArray)),
                 builder.isLe(arguments.get(0), lf.literalOfType(lastPrimArray)));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "isPrimArray", typeIdBooleanDesc, isPrimArray);
 
         StaticIntrinsic isPrimitive = (builder, target, arguments) -> {
-            ValueType firstPrimType = Primitive.getPrimitiveFor('Z').getType();
-            ValueType lastPrimType = Primitive.getPrimitiveFor('V').getType();
+            ValueType firstPrimType = Primitive.VOID.getType();
+            ValueType lastPrimType = Primitive.DOUBLE.getType();
             return builder.and(builder.isGe(arguments.get(0), lf.literalOfType(firstPrimType)),
                                builder.isLe(arguments.get(0), lf.literalOfType(lastPrimType)));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "isPrimitive", typeIdBooleanDesc, isPrimitive);
 
         StaticIntrinsic isRefArray = (builder, target, arguments) -> {
-            ValueType refArray = coreClasses.getArrayLoadedTypeDefinition("[ref").getType();
+            ValueType refArray = coreClasses.getArrayLoadedTypeDefinition("[ref").getObjectType();
             return builder.isEq(arguments.get(0), lf.literalOfType(refArray));
         };
 
@@ -932,7 +932,7 @@ public final class CoreIntrinsics {
 
         StaticIntrinsic setArrayClass = (builder, target, arguments) -> {
             LoadedTypeDefinition jlc = classContext.findDefinedType("java/lang/Class").load();
-            ReferenceType refType = jlc.getType().getReference();
+            ReferenceType refType = jlc.getObjectType().getReference();
             Value expect = ctxt.getLiteralFactory().nullLiteralOfType(refType);
             Value update = arguments.get(1);
             Value result = builder.cmpAndSwap(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), CoreClasses.get(ctxt).getArrayClassField()), expect, update, GlobalAcquire, GlobalRelease, CmpAndSwap.Strength.STRONG);
@@ -946,7 +946,7 @@ public final class CoreIntrinsics {
         FieldElement jlcCompType = classContext.findDefinedType("java/lang/Class").load().findField("componentType");
 
         StaticIntrinsic createClass = (builder, target, arguments) -> {
-            ClassObjectType jlcType = (ClassObjectType) ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load().getType();
+            ClassObjectType jlcType = (ClassObjectType) ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load().getObjectType();
             CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(jlcType.getDefinition()).getCompoundType();
             Value instance = builder.new_(jlcType, lf.literalOfType(jlcType), lf.literalOf(compoundType.getSize()), lf.literalOf(compoundType.getAlign()));
             ValueHandle instanceHandle = builder.referenceHandle(instance);

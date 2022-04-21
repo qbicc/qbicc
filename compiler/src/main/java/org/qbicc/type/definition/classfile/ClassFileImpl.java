@@ -344,7 +344,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         switch (constantType) {
             case CONSTANT_Class: return setIfNull(literals, idx, literalFactory.literalOfType(getTypeConstant(idx, paramCtxt)));
             case CONSTANT_String:
-                return setIfNull(literals, idx, literalFactory.literalOf(getStringConstant(idx), ctxt.findDefinedType("java/lang/String").load().getType().getReference()));
+                return setIfNull(literals, idx, literalFactory.literalOf(getStringConstant(idx), ctxt.findDefinedType("java/lang/String").load().getObjectType().getReference()));
             case CONSTANT_Integer:
                 return setIfNull(literals, idx, literalFactory.literalOf(getIntConstant(idx)));
             case CONSTANT_Float:
@@ -384,7 +384,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             String packageName = slash == -1 ? "" : ctxt.deduplicate(name.substring(0, slash));
             String className = slash == -1 ? name : ctxt.deduplicate(name.substring(slash + 1));
             if (paramCtxt instanceof DefinedTypeDefinition dtd && dtd.internalPackageAndNameEquals(packageName, className)) {
-                return dtd.load().getType();
+                return dtd.load().getObjectType();
             }
             return ctxt.resolveTypeFromClassName(packageName, className);
         }
@@ -1249,7 +1249,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             int j = 0;
             if (nonStatic) {
                 // instance method or constructor
-                thisValue = gf.parameter(enclosing.load().getType().getReference(), "this", 0);
+                thisValue = gf.parameter(enclosing.load().getObjectType().getReference(), "this", 0);
                 currentVarTypes[j++] = thisValue.getType();
             } else {
                 thisValue = null;
@@ -1469,7 +1469,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             // todo: bottom object type?
             return ctxt.findDefinedType("java/lang/Object").load().getClassType().getReference();
         } else if (viTag == 6) { // uninitialized this
-            return element.getEnclosingType().load().getType().getReference();
+            return element.getEnclosingType().load().getObjectType().getReference();
         } else if (viTag == 7) { // object
             int cpIdx = sm.getShort() & 0xffff;
             ValueType type = getTypeConstant(cpIdx, TypeParameterContext.of(element));

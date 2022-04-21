@@ -21,8 +21,8 @@ class VmPrimitiveClassImpl extends VmClassImpl implements VmPrimitiveClass {
     private final BaseTypeDescriptor descriptor;
     private final Primitive primitive;
 
-    VmPrimitiveClassImpl(VmImpl vmImpl, VmClassClassImpl classClass, Primitive primitive, LoadedTypeDefinition arrayTypeDefinition, BaseTypeDescriptor descriptor) {
-        super(vmImpl, classClass, 0);
+    VmPrimitiveClassImpl(VmImpl vmImpl, VmClassClassImpl classClass, Primitive primitive, LoadedTypeDefinition typeDefinition, LoadedTypeDefinition arrayTypeDefinition, BaseTypeDescriptor descriptor) {
+        super(vmImpl, classClass, typeDefinition, 0);
         this.arrayTypeDefinition = arrayTypeDefinition;
         this.descriptor = descriptor;
         this.primitive = primitive;

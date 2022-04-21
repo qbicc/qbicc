@@ -177,7 +177,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
     }
 
     private VmClassImpl createVmClass(final VmObject protectionDomain, final VmImpl vm, final LoadedTypeDefinition loaded, boolean hidden) {
-        ObjectType type = loaded.getType();
+        ObjectType type = loaded.getObjectType();
         ClassObjectType classLoaderType = vm.classLoaderClass.getTypeDefinition().getClassType();
         ClassObjectType throwableType = vm.throwableClass.getTypeDefinition().getClassType();
         ClassObjectType threadType = vm.threadClass.getTypeDefinition().getClassType();

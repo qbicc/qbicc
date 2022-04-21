@@ -29,7 +29,7 @@ public final class ResolutionUtil {
         TypeSignature returnTypeSignature = signature.getReturnTypeSignature();
         List<TypeSignature> paramSignatures = signature.getParameterTypes();
         // todo: if InlineObject, receiver is just the type...
-        ValueType receiverType = owner.load().getType().getReference();
+        ValueType receiverType = owner.load().getObjectType().getReference();
         paramSignatures = computeSignatures(classContext, parameterTypes, paramSignatures);
         TypeParameterContext nestedCtxt = TypeParameterContext.create(tpc, signature);
         ValueType resolvedReturnType = resolveSingleType(owner, returnType, returnTypeSignature, nestedCtxt);
@@ -87,7 +87,7 @@ public final class ResolutionUtil {
 
     public static ValueType resolveSingleType(final DefinedTypeDefinition enclosingType, final TypeDescriptor returnType, final TypeSignature returnTypeSignature, final TypeParameterContext nestedCtxt) {
         if (returnType == enclosingType.getDescriptor()) {
-            return enclosingType.load().getType().getReference();
+            return enclosingType.load().getObjectType().getReference();
         }
         ClassContext classContext = enclosingType.getContext();
         ValueType resolvedReturnType = classContext.resolveTypeFromMethodDescriptor(returnType, nestedCtxt, returnTypeSignature);

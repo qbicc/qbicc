@@ -34,12 +34,11 @@ import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.definition.element.ParameterElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
-import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
-import org.qbicc.type.generic.ClassSignature;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.generic.MethodSignature;
+import org.qbicc.type.generic.Signature;
 
 /**
  *
@@ -57,8 +56,8 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     @SuppressWarnings({ "unused", "FieldMayBeFinal" }) // VarHandle
     private volatile int modifiers;
     private final String[] interfaceNames;
-    private final ClassTypeDescriptor descriptor;
-    private final ClassSignature signature;
+    private final TypeDescriptor descriptor;
+    private final Signature signature;
     private final String[] methodNames;
     private final MethodDescriptor[] methodDescriptors;
     private final MethodResolver[] methodResolvers;
@@ -180,11 +179,11 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             && className.regionMatches(0, internalName, pkgLen + 1, classLen);
     }
 
-    public ClassTypeDescriptor getDescriptor() {
+    public TypeDescriptor getDescriptor() {
         return descriptor;
     }
 
-    public ClassSignature getSignature() {
+    public Signature getSignature() {
         return signature;
     }
 
@@ -330,7 +329,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                         builder.setMethodBodyFactory((index, e) -> {
                                             LoadedTypeDefinition ltd = e.getEnclosingType().load();
                                             BasicBlockBuilder bbb = context.newBasicBlockBuilder(e);
-                                            ReferenceType thisType = ltd.getType().getReference();
+                                            ReferenceType thisType = ltd.getObjectType().getReference();
                                             ParameterValue thisValue = bbb.parameter(thisType, "this", 0);
                                             InvokableType type = e.getType();
                                             int pcnt = type.getParameterCount();
@@ -376,7 +375,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                 builder.setMethodBodyFactory((index, e) -> {
                                     LoadedTypeDefinition ltd = e.getEnclosingType().load();
                                     BasicBlockBuilder bbb = context.newBasicBlockBuilder(e);
-                                    ReferenceType thisType = ltd.getType().getReference();
+                                    ReferenceType thisType = ltd.getObjectType().getReference();
                                     ParameterValue thisValue = bbb.parameter(thisType, "this", 0);
                                     InstanceMethodType type = (InstanceMethodType) e.getType();
                                     int pcnt = type.getParameterCount();
@@ -617,8 +616,8 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         int modifiers = ClassFile.ACC_SUPER;
         int interfaceCount;
         String[] interfaceNames = NO_STRINGS;
-        ClassTypeDescriptor descriptor;
-        ClassSignature signature;
+        TypeDescriptor descriptor;
+        Signature signature;
         int methodCount;
         MethodResolver[] methodResolvers = NO_METHODS;
         int[] methodIndexes = NO_INTS;
@@ -849,12 +848,12 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             this.interfaceCount = interfaceCount + 1;
         }
 
-        public void setSignature(final ClassSignature signature) {
+        public void setSignature(final Signature signature) {
             Assert.checkNotNullParam("signature", signature);
             this.signature = signature;
         }
 
-        public void setDescriptor(final ClassTypeDescriptor descriptor) {
+        public void setDescriptor(final TypeDescriptor descriptor) {
             this.descriptor = Assert.checkNotNullParam("descriptor", descriptor);
         }
 

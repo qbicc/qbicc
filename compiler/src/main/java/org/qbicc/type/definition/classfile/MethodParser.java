@@ -241,7 +241,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         ExceptionHandlerImpl(final int index, final BasicBlockBuilder.ExceptionHandler delegate) {
             this.index = index;
             this.delegate = delegate;
-            this.phi = gf.phi(throwable.load().getType().getReference(), new BlockLabel(), PhiValue.Flag.NOT_NULL);
+            this.phi = gf.phi(throwable.load().getObjectType().getReference(), new BlockLabel(), PhiValue.Flag.NOT_NULL);
         }
 
         public BlockLabel getHandler() {
@@ -308,7 +308,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     exType = null;
                 } else {
                     ObjectType objType = (ObjectType) getClassFile().getTypeConstant(exTypeIdx, TypeParameterContext.of(gf.getCurrentElement()));
-                    if (objType.equals(throwable.load().getType())) {
+                    if (objType.equals(throwable.load().getObjectType())) {
                         catchAll = true;
                         exType = null;
                     } else {

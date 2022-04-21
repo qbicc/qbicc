@@ -6,6 +6,10 @@ import org.qbicc.type.descriptor.BaseTypeDescriptor;
 
 public enum Primitive {
     // Predefine the set of primitive types in Java
+
+    // Void goes first
+    VOID("void"),
+
     BOOLEAN("boolean"),
     BYTE("byte"),
     SHORT("short"),
@@ -14,7 +18,7 @@ public enum Primitive {
     FLOAT("float"),
     LONG("long"),
     DOUBLE("double"),
-    VOID("void");
+    ;
 
     private final String name;
     volatile private int typeId;

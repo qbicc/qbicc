@@ -41,12 +41,16 @@ public final class FieldElement extends VariableElement implements MemberElement
     }
 
     public String toString() {
-        final ClassTypeDescriptor desc = getEnclosingType().getDescriptor();
-        final String packageName = desc.getPackageName();
-        if (packageName.isEmpty()) {
-            return desc.getClassName()+"."+getName();
+        final TypeDescriptor desc = getEnclosingType().getDescriptor();
+        if (desc instanceof ClassTypeDescriptor ctd) {
+            final String packageName = ctd.getPackageName();
+            if (packageName.isEmpty()) {
+                return ctd.getClassName()+"."+getName();
+            }
+            return packageName + "." + ctd.getClassName() + "." + getName();
+        } else {
+            throw new IllegalStateException();
         }
-        return packageName + "." + desc.getClassName() + "." + getName();
     }
 
     public boolean isVolatile() {

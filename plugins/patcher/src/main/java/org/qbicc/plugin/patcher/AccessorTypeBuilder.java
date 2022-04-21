@@ -89,8 +89,8 @@ public final class AccessorTypeBuilder implements DefinedTypeDefinition.Builder.
                 if (valueType instanceof ClassObjectType cot) {
                     VmThread vmThread = Vm.requireCurrentThread();
                     LoadedTypeDefinition definition = cot.getDefinition().load();
-                    ObjectType accessorInterface = classContext.getCompilationContext().getBootstrapClassContext().findDefinedType("org/qbicc/runtime/patcher/Accessor").load().getType();
-                    if (! definition.getType().isSubtypeOf(accessorInterface)) {
+                    ObjectType accessorInterface = classContext.getCompilationContext().getBootstrapClassContext().findDefinedType("org/qbicc/runtime/patcher/Accessor").load().getObjectType();
+                    if (! definition.getObjectType().isSubtypeOf(accessorInterface)) {
                         classContext.getCompilationContext().error(fieldElement, "Accessor class must extend %s", accessorInterface);
                         return null;
                     }

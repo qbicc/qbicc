@@ -1,7 +1,10 @@
 package org.qbicc.type.definition.element;
 
 import org.qbicc.type.InstanceMethodType;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.util.ResolutionUtil;
 
 /**
@@ -29,11 +32,18 @@ public final class ConstructorElement extends InvokableElement {
     }
 
     public String toString() {
-        final String packageName = getEnclosingType().getDescriptor().getPackageName();
-        if (packageName.isEmpty()) {
-            return getEnclosingType().getDescriptor().getClassName()+getDescriptor();
+        TypeDescriptor descriptor = getEnclosingType().getDescriptor();
+        if (descriptor instanceof ClassTypeDescriptor ctd) {
+            final String packageName = ctd.getPackageName();
+            if (packageName.isEmpty()) {
+                return ctd.getClassName() + getDescriptor();
+            }
+            return packageName + "." + ctd.getClassName() + getDescriptor();
+        } else if (descriptor instanceof BaseTypeDescriptor btd) {
+            return btd.getFullName() + getDescriptor();
+        } else {
+            throw new IllegalStateException();
         }
-        return packageName+"."+getEnclosingType().getDescriptor().getClassName()+getDescriptor();
     }
 
     public static Builder builder(MethodDescriptor descriptor, int index) {

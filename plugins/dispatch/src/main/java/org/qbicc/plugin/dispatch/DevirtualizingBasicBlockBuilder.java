@@ -67,7 +67,7 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
         LoadedTypeDefinition definition = classType.getDefinition().load();
         MethodElement virtual = definition.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
         if (virtual != null) {
-            log.debugf("Deinterfacing call to %s::%s", target.getEnclosingType().getDescriptor().getClassName(), target.getName());
+            log.debugf("Deinterfacing call to %s::%s", target.getEnclosingType().getDescriptor(), target.getName());
             return virtual;
         }
         return null;
@@ -80,7 +80,7 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
     private MethodElement staticallyBind(final Value instance, final MethodElement target) {
         // Handle a very trivial case as a proof of concept that the phase actually does something..
         if (target.isFinal() || target.getEnclosingType().isFinal() || target.isPrivate()) {
-            log.debugf("Devirtualizing call to %s::%s", target.getEnclosingType().getDescriptor().getClassName(), target.getName());
+            log.debugf("Devirtualizing call to %s::%s", target.getEnclosingType().getDescriptor(), target.getName());
             return target;
         }
 

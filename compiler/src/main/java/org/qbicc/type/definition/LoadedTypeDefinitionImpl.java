@@ -17,7 +17,8 @@ import org.qbicc.graph.Value;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.type.InterfaceObjectType;
-import org.qbicc.type.ObjectType;
+import org.qbicc.type.Primitive;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -25,6 +26,7 @@ import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.definition.element.ParameterElement;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.MethodSignature;
@@ -36,7 +38,7 @@ import org.qbicc.type.generic.TypeSignature;
 final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition implements LoadedTypeDefinition {
     private static final VarHandle vmClassHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "vmClass", VarHandle.class, LoadedTypeDefinitionImpl.class, VmClass.class);
 
-    private final ObjectType type;
+    private final ValueType type;
     private final DefinedTypeDefinitionImpl delegate;
     private final LoadedTypeDefinition superType;
     private final LoadedTypeDefinition[] interfaces;
@@ -76,7 +78,9 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
         for (int i = 0; i < interfaceCnt; i ++) {
             interfaceTypes[i] = interfaces[i].getInterfaceType();
         }
-        if (isInterface()) {
+        if (isPrimitive()) {
+            type = Primitive.getPrimitiveFor((BaseTypeDescriptor) getDescriptor()).getType();
+        } else if (isInterface()) {
             type = getContext().getTypeSystem().generateInterfaceObjectType(delegate, List.of(interfaceTypes));
         } else {
             type = getContext().getTypeSystem().generateClassObjectType(delegate, superType == null ? null : superType.getClassType(), List.of(interfaceTypes));
@@ -125,7 +129,7 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
 
     // local methods
 
-    public ObjectType getType() {
+    public ValueType getType() {
         return type;
     }
 

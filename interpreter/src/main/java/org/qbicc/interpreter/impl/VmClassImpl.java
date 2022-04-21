@@ -123,12 +123,13 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         initializeConstantStaticFields();
     }
 
-    VmClassImpl(VmImpl vmImpl, VmClassClassImpl classClass, @SuppressWarnings("unused") int primitivesOnly) {
+    VmClassImpl(VmImpl vmImpl, VmClassClassImpl classClass, LoadedTypeDefinition typeDefinition, @SuppressWarnings("unused") int primitivesOnly) {
         // special ctor for primitive classes
         super(classClass);
         vm = vmImpl;
         state = State.INITIALIZED;
-        typeDefinition = null;
+        this.typeDefinition = typeDefinition;
+        typeDefinition.setVmClass(this);
         protectionDomain = null;
         classLoader = null;
         layoutInfo = null;
@@ -142,6 +143,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         super(vm, VmClassImpl.class, Layout.get(classContext.getCompilationContext()).getInstanceLayoutInfo(classContext.findDefinedType("java/lang/Class").load()));
         this.vm = vm;
         typeDefinition = classContext.findDefinedType("java/lang/Class").load();
+        typeDefinition.setVmClass(this);
         protectionDomain = null;
         classLoader = null;
         CompilationContext ctxt = classContext.getCompilationContext();
@@ -301,7 +303,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     @Override
     public ObjectType getInstanceObjectType() {
-        return typeDefinition.getType();
+        return typeDefinition.getObjectType();
     }
 
     @Override

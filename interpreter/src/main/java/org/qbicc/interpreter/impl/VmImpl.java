@@ -190,15 +190,15 @@ public final class VmImpl implements Vm {
         threadClass = new VmThreadClassImpl(this, bcc.findDefinedType("java/lang/Thread").load(), null);
         throwableClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/Throwable").load(), null);
 
-        byteClass = new VmPrimitiveClassImpl(this, classClass, Primitive.BYTE, coreClasses.getByteArrayTypeDefinition(),  BaseTypeDescriptor.B);
-        shortClass = new VmPrimitiveClassImpl(this, classClass, Primitive.SHORT, coreClasses.getShortArrayTypeDefinition(),  BaseTypeDescriptor.S);
-        intClass = new VmPrimitiveClassImpl(this, classClass, Primitive.INT, coreClasses.getIntArrayTypeDefinition(), BaseTypeDescriptor.I);
-        longClass = new VmPrimitiveClassImpl(this, classClass, Primitive.LONG, coreClasses.getLongArrayTypeDefinition(),  BaseTypeDescriptor.J);
-        floatClass = new VmPrimitiveClassImpl(this, classClass, Primitive.FLOAT, coreClasses.getFloatArrayTypeDefinition(), BaseTypeDescriptor.F);
-        doubleClass = new VmPrimitiveClassImpl(this, classClass, Primitive.DOUBLE, coreClasses.getDoubleArrayTypeDefinition(), BaseTypeDescriptor.D);
-        charClass = new VmPrimitiveClassImpl(this, classClass, Primitive.CHAR, coreClasses.getCharArrayTypeDefinition(), BaseTypeDescriptor.C);
-        booleanClass = new VmPrimitiveClassImpl(this, classClass, Primitive.BOOLEAN, coreClasses.getBooleanArrayTypeDefinition(), BaseTypeDescriptor.Z);
-        voidClass = new VmPrimitiveClassImpl(this, classClass, Primitive.VOID, null, BaseTypeDescriptor.V);
+        byteClass = new VmPrimitiveClassImpl(this, classClass, Primitive.BYTE, coreClasses.getByteTypeDefinition(), coreClasses.getByteArrayTypeDefinition(),  BaseTypeDescriptor.B);
+        shortClass = new VmPrimitiveClassImpl(this, classClass, Primitive.SHORT, coreClasses.getShortTypeDefinition(), coreClasses.getShortArrayTypeDefinition(),  BaseTypeDescriptor.S);
+        intClass = new VmPrimitiveClassImpl(this, classClass, Primitive.INT, coreClasses.getIntTypeDefinition(), coreClasses.getIntArrayTypeDefinition(), BaseTypeDescriptor.I);
+        longClass = new VmPrimitiveClassImpl(this, classClass, Primitive.LONG, coreClasses.getLongTypeDefinition(), coreClasses.getLongArrayTypeDefinition(),  BaseTypeDescriptor.J);
+        floatClass = new VmPrimitiveClassImpl(this, classClass, Primitive.FLOAT, coreClasses.getFloatTypeDefinition(), coreClasses.getFloatArrayTypeDefinition(), BaseTypeDescriptor.F);
+        doubleClass = new VmPrimitiveClassImpl(this, classClass, Primitive.DOUBLE, coreClasses.getDoubleTypeDefinition(), coreClasses.getDoubleArrayTypeDefinition(), BaseTypeDescriptor.D);
+        charClass = new VmPrimitiveClassImpl(this, classClass, Primitive.CHAR, coreClasses.getCharTypeDefinition(), coreClasses.getCharArrayTypeDefinition(), BaseTypeDescriptor.C);
+        booleanClass = new VmPrimitiveClassImpl(this, classClass, Primitive.BOOLEAN, coreClasses.getBooleanTypeDefinition(), coreClasses.getBooleanArrayTypeDefinition(), BaseTypeDescriptor.Z);
+        voidClass = new VmPrimitiveClassImpl(this, classClass, Primitive.VOID, coreClasses.getVoidTypeDefinition(), null, BaseTypeDescriptor.V);
 
         FieldElement arrayLengthField = coreClasses.getArrayLengthField();
         LoadedTypeDefinition arrayBaseClassDef = arrayLengthField.getEnclosingType().load();

@@ -191,7 +191,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
         private Info(final CompilationContext ctxt) {
             DefinedTypeDefinition type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/NoClassDefFoundError");
-            ncdfeClass = type.getDescriptor();
+            ncdfeClass = (ClassTypeDescriptor) type.getDescriptor();
         }
 
         static Info get(CompilationContext ctxt) {

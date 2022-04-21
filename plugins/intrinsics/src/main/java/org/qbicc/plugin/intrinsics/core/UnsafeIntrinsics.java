@@ -117,7 +117,7 @@ public class UnsafeIntrinsics {
 
         ValueType expectType = expect.getType();
         if (expectType instanceof ReferenceType) {
-            ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getType();
+            ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getObjectType();
             expectType = objectType.getReference();
         }
         ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, expectType);
@@ -183,7 +183,7 @@ public class UnsafeIntrinsics {
 
         ValueType expectType = expect.getType();
         if (expectType instanceof ReferenceType) {
-            ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getType();
+            ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getObjectType();
             expectType = objectType.getReference();
         }
         ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, expectType);
@@ -271,7 +271,7 @@ public class UnsafeIntrinsics {
 
         ValueType operandType = operand.getType();
         if (operandType instanceof ReferenceType) {
-            ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getType();
+            ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getObjectType();
             operandType = objectType.getReference();
         }
         ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, operandType);
@@ -344,7 +344,7 @@ public class UnsafeIntrinsics {
             BaseTypeDescriptor.C, ts.getUnsignedInteger16Type(),
             BaseTypeDescriptor.F, ts.getFloat32Type(),
             BaseTypeDescriptor.D, ts.getFloat64Type(),
-            objDesc, CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getType().getReference()
+            objDesc, CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getObjectType().getReference()
         );
 
         for (Map.Entry<String, TypeDescriptor> typeNameAndDesc : Map.of(
@@ -412,7 +412,7 @@ public class UnsafeIntrinsics {
             BaseTypeDescriptor.C, ts.getUnsignedInteger16Type(),
             BaseTypeDescriptor.F, ts.getFloat32Type(),
             BaseTypeDescriptor.D, ts.getFloat64Type(),
-            objDesc, CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getType().getReference()
+            objDesc, CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getObjectType().getReference()
         );
 
         for (Map.Entry<String, TypeDescriptor> typeNameAndDesc : Map.of(
@@ -525,42 +525,42 @@ public class UnsafeIntrinsics {
             builder.return_(builder.offsetOfField(refArrayContentField));
             builder.begin(isNotRef);
             Value typeId = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassTypeIdField()));
-            Value isBoolBool = builder.isEq(typeId, lf.literalOfType(booleanArrayContentField.getEnclosingType().load().getType()));
+            Value isBoolBool = builder.isEq(typeId, lf.literalOfType(booleanArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isBoolBool, isBool, isNotBool);
             builder.begin(isBool);
             builder.return_(builder.offsetOfField(booleanArrayContentField));
             builder.begin(isNotBool);
-            Value isByteBool = builder.isEq(typeId, lf.literalOfType(byteArrayContentField.getEnclosingType().load().getType()));
+            Value isByteBool = builder.isEq(typeId, lf.literalOfType(byteArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isByteBool, isByte, isNotByte);
             builder.begin(isByte);
             builder.return_(builder.offsetOfField(byteArrayContentField));
             builder.begin(isNotByte);
-            Value isShortBool = builder.isEq(typeId, lf.literalOfType(shortArrayContentField.getEnclosingType().load().getType()));
+            Value isShortBool = builder.isEq(typeId, lf.literalOfType(shortArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isShortBool, isShort, isNotShort);
             builder.begin(isShort);
             builder.return_(builder.offsetOfField(shortArrayContentField));
             builder.begin(isNotShort);
-            Value isIntBool = builder.isEq(typeId, lf.literalOfType(intArrayContentField.getEnclosingType().load().getType()));
+            Value isIntBool = builder.isEq(typeId, lf.literalOfType(intArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isIntBool, isInt, isNotInt);
             builder.begin(isInt);
             builder.return_(builder.offsetOfField(intArrayContentField));
             builder.begin(isNotInt);
-            Value isLongBool = builder.isEq(typeId, lf.literalOfType(longArrayContentField.getEnclosingType().load().getType()));
+            Value isLongBool = builder.isEq(typeId, lf.literalOfType(longArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isLongBool, isLong, isNotLong);
             builder.begin(isLong);
             builder.return_(builder.offsetOfField(longArrayContentField));
             builder.begin(isNotLong);
-            Value isCharBool = builder.isEq(typeId, lf.literalOfType(charArrayContentField.getEnclosingType().load().getType()));
+            Value isCharBool = builder.isEq(typeId, lf.literalOfType(charArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isCharBool, isChar, isNotChar);
             builder.begin(isChar);
             builder.return_(builder.offsetOfField(charArrayContentField));
             builder.begin(isNotChar);
-            Value isFloatBool = builder.isEq(typeId, lf.literalOfType(floatArrayContentField.getEnclosingType().load().getType()));
+            Value isFloatBool = builder.isEq(typeId, lf.literalOfType(floatArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isFloatBool, isFloat, isNotFloat);
             builder.begin(isFloat);
             builder.return_(builder.offsetOfField(floatArrayContentField));
             builder.begin(isNotFloat);
-            Value isDoubleBool = builder.isEq(typeId, lf.literalOfType(doubleArrayContentField.getEnclosingType().load().getType()));
+            Value isDoubleBool = builder.isEq(typeId, lf.literalOfType(doubleArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isDoubleBool, isDouble, isNotDouble);
             builder.begin(isDouble);
             builder.return_(builder.offsetOfField(doubleArrayContentField));
@@ -610,42 +610,42 @@ public class UnsafeIntrinsics {
             builder.return_(lf.literalOf(ctxt.getTypeSystem().getReferenceSize()));
             builder.begin(isNotRef);
             Value typeId = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassTypeIdField()));
-            Value isBoolBool = builder.isEq(typeId, lf.literalOfType(booleanArrayContentField.getEnclosingType().load().getType()));
+            Value isBoolBool = builder.isEq(typeId, lf.literalOfType(booleanArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isBoolBool, isBool, isNotBool);
             builder.begin(isBool);
             builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getBooleanType().getSize()));
             builder.begin(isNotBool);
-            Value isByteBool = builder.isEq(typeId, lf.literalOfType(byteArrayContentField.getEnclosingType().load().getType()));
+            Value isByteBool = builder.isEq(typeId, lf.literalOfType(byteArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isByteBool, isByte, isNotByte);
             builder.begin(isByte);
             builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getSignedInteger8Type().getSize()));
             builder.begin(isNotByte);
-            Value isShortBool = builder.isEq(typeId, lf.literalOfType(shortArrayContentField.getEnclosingType().load().getType()));
+            Value isShortBool = builder.isEq(typeId, lf.literalOfType(shortArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isShortBool, isShort, isNotShort);
             builder.begin(isShort);
             builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getSignedInteger16Type().getSize()));
             builder.begin(isNotShort);
-            Value isIntBool = builder.isEq(typeId, lf.literalOfType(intArrayContentField.getEnclosingType().load().getType()));
+            Value isIntBool = builder.isEq(typeId, lf.literalOfType(intArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isIntBool, isInt, isNotInt);
             builder.begin(isInt);
             builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getSignedInteger32Type().getSize()));
             builder.begin(isNotInt);
-            Value isLongBool = builder.isEq(typeId, lf.literalOfType(longArrayContentField.getEnclosingType().load().getType()));
+            Value isLongBool = builder.isEq(typeId, lf.literalOfType(longArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isLongBool, isLong, isNotLong);
             builder.begin(isLong);
             builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getSignedInteger64Type().getSize()));
             builder.begin(isNotLong);
-            Value isCharBool = builder.isEq(typeId, lf.literalOfType(charArrayContentField.getEnclosingType().load().getType()));
+            Value isCharBool = builder.isEq(typeId, lf.literalOfType(charArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isCharBool, isChar, isNotChar);
             builder.begin(isChar);
             builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getUnsignedInteger16Type().getSize()));
             builder.begin(isNotChar);
-            Value isFloatBool = builder.isEq(typeId, lf.literalOfType(floatArrayContentField.getEnclosingType().load().getType()));
+            Value isFloatBool = builder.isEq(typeId, lf.literalOfType(floatArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isFloatBool, isFloat, isNotFloat);
             builder.begin(isFloat);
             builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getFloat32Type().getSize()));
             builder.begin(isNotFloat);
-            Value isDoubleBool = builder.isEq(typeId, lf.literalOfType(doubleArrayContentField.getEnclosingType().load().getType()));
+            Value isDoubleBool = builder.isEq(typeId, lf.literalOfType(doubleArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isDoubleBool, isDouble, isNotDouble);
             builder.begin(isDouble);
             builder.return_(lf.literalOf((int)ctxt.getTypeSystem().getFloat64Type().getSize()));

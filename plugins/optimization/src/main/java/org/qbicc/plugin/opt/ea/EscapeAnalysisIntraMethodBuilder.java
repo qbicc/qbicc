@@ -37,7 +37,6 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.WordType;
@@ -79,7 +78,7 @@ public final class EscapeAnalysisIntraMethodBuilder extends DelegatingBasicBlock
     }
 
     private boolean isSubtypeOfClass(String name, ClassObjectType type) {
-        return type.isSubtypeOf(bootstrapClassContext.findDefinedType(name).load().getType());
+        return type.isSubtypeOf(bootstrapClassContext.findDefinedType(name).load().getObjectType());
     }
 
     @Override

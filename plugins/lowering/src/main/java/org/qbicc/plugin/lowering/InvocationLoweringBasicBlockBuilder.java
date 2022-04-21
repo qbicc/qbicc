@@ -228,7 +228,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         if_(isEq(candidateId, ctxt.getLiteralFactory().literalOf(info.getInterface().getTypeId())), exitMatched, checkForICCE);
         try {
             begin(checkForICCE);
-            BasicBlock body = if_(isEq(candidateId, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(info.getInterface().getType().getTypeType())), failLabel, loop);
+            BasicBlock body = if_(isEq(candidateId, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(info.getInterface().getObjectType().getTypeType())), failLabel, loop);
             phi.setValueForBlock(ctxt, getCurrentElement(), body, fb.add(phi, ctxt.getLiteralFactory().literalOf(1)));
 
             begin(failLabel);
@@ -288,7 +288,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         VmString vString = ctxt.getVm().intern(target.getEnclosingType().getInternalName().replace("/", ".")+"."+target.getName());
         ProgramObjectLiteral literal = BuildtimeHeap.get(ctxt).serializeVmObject(vString);
         ctxt.getOrAddProgramModule(originalElement).declareData(literal.getProgramObject());
-        Literal arg = ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getType().getReference());
+        Literal arg = ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getObjectType().getReference());
 
         MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseUnsatisfiedLinkError");
         return callNoReturn(staticMethod(helper), List.of(arg));
