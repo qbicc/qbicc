@@ -56,6 +56,10 @@
             <artifactId>qbicc-machine-file-macho</artifactId>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-machine-file-wasm</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

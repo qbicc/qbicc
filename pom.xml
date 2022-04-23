@@ -236,6 +236,11 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-machine-file-wasm</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-machine-file-object</artifactId>
                 <version>${project.version}</version>
             </dependency>
