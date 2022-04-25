@@ -4,8 +4,6 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.Call;
-import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
