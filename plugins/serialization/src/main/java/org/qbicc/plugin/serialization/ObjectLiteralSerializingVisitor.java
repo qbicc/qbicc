@@ -6,6 +6,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
@@ -30,15 +31,17 @@ public class ObjectLiteralSerializingVisitor implements NodeVisitor.Delegating<N
     }
 
     public Value visit(final Node.Copier param, final StringLiteral node) {
+        BuildtimeHeap bth = BuildtimeHeap.get(ctxt);
         VmString vString = ctxt.getVm().intern(node.getValue());
-        ProgramObjectLiteral literal = BuildtimeHeap.get(ctxt).serializeVmObject(vString);
-        ctxt.getOrAddProgramModule(param.getBlockBuilder().getRootElement()).declareData(literal.getProgramObject());
-        return param.getBlockBuilder().notNull(ctxt.getLiteralFactory().bitcastLiteral(literal, node.getType()));
+        bth.serializeVmObject(vString);
+        Literal literal = bth.referToSerializedVmObject(vString, node.getType(), ctxt.getOrAddProgramModule(param.getBlockBuilder().getRootElement()));
+        return param.getBlockBuilder().notNull(literal);
     }
 
     public Value visit(final Node.Copier param, final ObjectLiteral node) {
-        ProgramObjectLiteral literal = BuildtimeHeap.get(ctxt).serializeVmObject(node.getValue());
-        ctxt.getOrAddProgramModule(param.getBlockBuilder().getRootElement()).declareData(literal.getProgramObject());
-        return param.getBlockBuilder().notNull(ctxt.getLiteralFactory().bitcastLiteral(literal, node.getType()));
+        BuildtimeHeap bth = BuildtimeHeap.get(ctxt);
+        bth.serializeVmObject(node.getValue());
+        Literal literal = bth.referToSerializedVmObject(node.getValue(), node.getType(), ctxt.getOrAddProgramModule(param.getBlockBuilder().getRootElement()));
+        return param.getBlockBuilder().notNull(literal);
     }
 }

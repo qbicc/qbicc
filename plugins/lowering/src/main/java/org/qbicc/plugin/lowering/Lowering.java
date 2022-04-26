@@ -124,11 +124,9 @@ public class Lowering {
             }
         }
         if (initialValue instanceof ObjectLiteral ol) {
-            ProgramObjectLiteral objLit = BuildtimeHeap.get(ctxt).serializeVmObject(ol.getValue());
-            DataDeclaration decl = section.getProgramModule().declareData(objLit.getProgramObject());
-            decl.setAddrspace(1);
-            ProgramObjectLiteral refToLiteral = lf.literalOf(decl);
-            initialValue = lf.valueConvertLiteral(refToLiteral, ol.getType());
+            BuildtimeHeap bth = BuildtimeHeap.get(ctxt);
+            bth.serializeVmObject(ol.getValue());
+            initialValue = bth.referToSerializedVmObject(ol.getValue(), ol.getType(), section.getProgramModule());
         }
         final Data data = section.addData(field, globalName, initialValue);
         data.setLinkage(hasValue ? Linkage.EXTERNAL : Linkage.COMMON);
