@@ -44,6 +44,10 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
+/**
+ * The MethodDataEmitter runs very late in compilation (after the BuildTimeHeap is emitted).
+ * All of the Java Strings it needs to reference were already serialized by MethodDataStringsEmitter.
+ */
 public class MethodDataEmitter implements Consumer<CompilationContext> {
     private static final Logger slog = Logger.getLogger("org.qbicc.plugin.methodinfo.stats");
 

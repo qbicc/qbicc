@@ -4,8 +4,6 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.Call;
-import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -18,6 +16,10 @@ import org.qbicc.type.definition.element.MethodElement;
 
 import java.util.List;
 
+/**
+ * This BBB ensures that all the Strings that will be needed by MethodDataEmitter
+ * are interned and serialized to the BuildTimeHeap before the heap is emitted.
+ */
 public final class MethodDataStringsSerializer extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
@@ -46,6 +48,7 @@ public final class MethodDataStringsSerializer extends DelegatingBasicBlockBuild
         String className = element.getEnclosingType().getInternalName().replace('/', '.');
         String methodDesc = element.getDescriptor().toString();
 
+        // the ProgramObjects being created here will be looked up by MethodDateEmitter later.
         if (fileName != null) {
             heap.serializeVmObject(vm.intern(fileName));
         }
