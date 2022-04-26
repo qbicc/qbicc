@@ -16,6 +16,10 @@ import org.qbicc.type.definition.element.MethodElement;
 
 import java.util.List;
 
+/**
+ * This BBB ensures that all the Strings that will be needed by MethodDataEmitter
+ * are interned and serialized to the BuildTimeHeap before the heap is emitted.
+ */
 public final class MethodDataStringsSerializer extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
@@ -44,6 +48,7 @@ public final class MethodDataStringsSerializer extends DelegatingBasicBlockBuild
         String className = element.getEnclosingType().getInternalName().replace('/', '.');
         String methodDesc = element.getDescriptor().toString();
 
+        // the ProgramObjects being created here will be looked up by MethodDateEmitter later.
         if (fileName != null) {
             heap.serializeVmObject(vm.intern(fileName));
         }
