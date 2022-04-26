@@ -524,7 +524,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
                                 }
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
-                                // MethodDataStringsSerializer should be the last BBB in the list
+                                // To avoid serializing Strings we won't need, MethodDataStringsSerializer should be the last "real" BBB
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, MethodDataStringsSerializer::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
                                 builder.addPostHook(Phase.LOWER, NativeXtorLoweringHook::process);
