@@ -96,6 +96,10 @@ final class ClassContextImpl implements ClassContext {
         return resourcesFinder.apply(this, resourceName);
     }
 
+    public boolean isBootstrap() {
+        return this == compilationContext.getBootstrapClassContext();
+    }
+
     public String deduplicate(final ByteBuffer buffer, final int offset, final int length) {
         return compilationContext.deduplicate(buffer, offset, length);
     }

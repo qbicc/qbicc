@@ -394,6 +394,10 @@ public class TestClassContext implements ClassContext {
         return null;
     }
 
+    public boolean isBootstrap() {
+        return true;
+    }
+
     public DefinedTypeDefinition.Builder newTypeBuilder() {
         return null;
     }

@@ -93,10 +93,10 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
     }
 
     public VmClassImpl defineClass(VmString name, VmArray content, VmObject protectionDomain) throws Thrown {
-        return defineClass(name, content, protectionDomain, false);
+        return defineClass(name, content, false);
     }
 
-    public VmClassImpl defineClass(VmString name, VmArray content, VmObject protectionDomain, boolean hidden) throws Thrown {
+    public VmClassImpl defineClass(VmString name, VmArray content, boolean hidden) throws Thrown {
         VmImpl vm = VmImpl.require();
         String internalName = name.getContent();
         if (! hidden && defined.containsKey(internalName)) {
@@ -122,7 +122,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
             classContext.defineClass(internalName, defined);
         }
         LoadedTypeDefinition loaded = defined.load();
-        VmClassImpl vmClass = createVmClass(protectionDomain, vm, loaded, hidden);
+        VmClassImpl vmClass = createVmClass(vm, loaded, hidden);
         if (hidden) {
             loaded.setVmClass(vmClass);
         }
@@ -164,7 +164,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         VmClassImpl vmClass = defined.get(internalName);
         if (vmClass == null) {
             VmImpl vm = getVmClass().getVm();
-            vmClass = createVmClass(null, vm, loaded, false);
+            vmClass = createVmClass(vm, loaded, false);
             VmClassImpl appearing = defined.putIfAbsent(internalName, vmClass);
             if (appearing != null) {
                 vmClass = appearing;
@@ -176,7 +176,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         return vmClass;
     }
 
-    private VmClassImpl createVmClass(final VmObject protectionDomain, final VmImpl vm, final LoadedTypeDefinition loaded, boolean hidden) {
+    private VmClassImpl createVmClass(final VmImpl vm, final LoadedTypeDefinition loaded, boolean hidden) {
         ObjectType type = loaded.getObjectType();
         ClassObjectType classLoaderType = vm.classLoaderClass.getTypeDefinition().getClassType();
         ClassObjectType throwableType = vm.throwableClass.getTypeDefinition().getClassType();
@@ -184,13 +184,13 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         // here is where we decide what kind of VmClass we're producing; note that some kinds of class cannot be defined
         VmClassImpl vmClass;
         if (type.isSubtypeOf(classLoaderType)) {
-            vmClass = new VmClassLoaderClassImpl(vm, loaded, protectionDomain);
+            vmClass = new VmClassLoaderClassImpl(vm, loaded);
         } else if (type.isSubtypeOf(throwableType)) {
-            vmClass = new VmThrowableClassImpl(vm, loaded, protectionDomain);
+            vmClass = new VmThrowableClassImpl(vm, loaded);
         } else if (type.isSubtypeOf(threadType)) {
-            vmClass = new VmThreadClassImpl(vm, loaded, protectionDomain);
+            vmClass = new VmThreadClassImpl(vm, loaded);
         } else {
-            vmClass = new VmClassImpl(vm, loaded, protectionDomain);
+            vmClass = new VmClassImpl(vm, loaded);
         }
         vmClass.postConstruct(vm);
         return vmClass;

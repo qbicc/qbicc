@@ -13,7 +13,7 @@ abstract class VmArrayClassImpl extends VmClassImpl implements VmArrayClass {
     private final String simpleName;
 
     VmArrayClassImpl(final VmImpl vm, final VmClassClassImpl classClass, final LoadedTypeDefinition classDef, final VmClassImpl elementType, final VmObjectImpl protectionDomain) {
-        super(vm, classClass, classDef, protectionDomain);
+        super(vm, classClass, classDef);
         this.elementType = elementType;
         simpleName = elementType.getSimpleName() + "[]";
     }
