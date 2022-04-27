@@ -53,6 +53,8 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.ArrayTypeDescriptor;
+import org.qbicc.type.generic.TypeSignature;
 
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
@@ -77,9 +79,13 @@ public class BuildtimeHeap {
      */
     private final ModuleSection heapSection;
     /**
-     * The global array of java.lang.Class instances that is part of the serialized heap
+     * The global array of root java.lang.Class instances
      */
     private GlobalVariableElement classArrayGlobal;
+    /**
+     * The values, indexed by typeId to be serialized in the classArrayGlobal
+     */
+    private Literal[] rootClasses;
 
     private int literalCounter = 0;
 
@@ -120,8 +126,26 @@ public class BuildtimeHeap {
             .forEach(e -> slog.debugf("  %,6d instances of %s", e.getValue(), e.getKey().getDescriptor()));
     }
 
-    void setClassArrayGlobal(GlobalVariableElement g) {
-        this.classArrayGlobal = g;
+    void initializeRootClassArray(int numTypeIds) {
+        LoadedTypeDefinition ih = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap").load();
+        LoadedTypeDefinition jlc = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
+        ReferenceType jlcRef = jlc.getObjectType().getReference();
+        ArrayType rootArrayType = ctxt.getTypeSystem().getArrayType(jlcRef, numTypeIds);
+
+        // create the GlobalVariable for shared access to the Class array
+        ArrayTypeDescriptor desc = ArrayTypeDescriptor.of(ctxt.getBootstrapClassContext(), jlc.getDescriptor());
+        GlobalVariableElement.Builder builder = GlobalVariableElement.builder("qbicc_jlc_lookup_table", desc);
+        builder.setType(rootArrayType);
+        builder.setEnclosingType(ih);
+        builder.setSignature(TypeSignature.synthesize(ctxt.getBootstrapClassContext(), desc));
+        classArrayGlobal = builder.build();
+
+        rootClasses = new Literal[numTypeIds];
+        rootClasses[0] = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(jlcRef); // Poison type for typeId 0. TODO: Remove if we use typeId 0 for void
+    }
+
+    void emitRootClassArray() {
+        heapSection.addData(null, classArrayGlobal.getName(), ctxt.getLiteralFactory().literalOf((ArrayType)classArrayGlobal.getType(), List.of(rootClasses)));
     }
 
     public GlobalVariableElement getAndRegisterGlobalClassArray(ExecutableElement originalElement) {
@@ -154,12 +178,14 @@ public class BuildtimeHeap {
             // Could be part of a cyclic object graph; must record the symbol for this object before we serialize its fields
             LoadedTypeDefinition concreteType = ot.getDefinition().load();
             LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
-            if (value instanceof VmClass vmClass && !(vmClass instanceof VmReferenceArrayClass) && vmClass.getTypeDefinition().getTypeId() != -1) {
-                String name = "qbicc_root_class_obj_"+vmClass.getTypeDefinition().getTypeId();
+            if (isRootClass(value)) {
+                int typeId = ((VmClass)value).getTypeDefinition().getTypeId();
+                String name = "qbicc_root_class_obj_"+typeId;
                 DataDeclaration decl = heapSection.getProgramModule().declareData(null, name, objLayout.getCompoundType());
                 decl.setAddrspace(1);
                 vmObjects.put(value, decl); // record declaration
                 serializeVmObject(concreteType, objLayout, decl, value); // now serialize
+                rootClasses[typeId] = referToSerializedVmObject(value, value.getObjectType().getReference(), heapSection.getProgramModule());
             } else {
                 String name = nextLiteralName();
                 DataDeclaration decl = heapSection.getProgramModule().declareData(null, name, objLayout.getCompoundType());
@@ -181,6 +207,14 @@ public class BuildtimeHeap {
         } else {
             // Can't be part of cyclic structure; don't need to record declaration first
             vmObjects.put(value, serializePrimArray((PrimitiveArrayObjectType) ot, (VmArray)value));
+        }
+    }
+
+    private boolean isRootClass(VmObject value) {
+        if (value instanceof VmClass vmClass && !(vmClass instanceof VmReferenceArrayClass) && vmClass.getTypeDefinition().getTypeId() != -1) {
+            return true;
+        } else {
+            return false;
         }
     }
 

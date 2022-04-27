@@ -26,41 +26,19 @@ public class ClassObjectSerializer implements Consumer<CompilationContext> {
     @Override
     public void accept(CompilationContext ctxt) {
         BuildtimeHeap bth = BuildtimeHeap.get(ctxt);
-        SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
-        ReachabilityInfo reachabilityInfo = ReachabilityInfo.get(ctxt);
-        LoadedTypeDefinition jlc = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
-        ModuleSection section = ctxt.getImplicitSection(jlc);
-        ProgramModule programModule = section.getProgramModule();
-        ReferenceType jlcRef = jlc.getObjectType().getReference();
-        ArrayType rootArrayType = ctxt.getTypeSystem().getArrayType(jlcRef, tables.get_number_of_typeids());
 
-        // create the GlobalVariable for shared access to the Class array
-        ArrayTypeDescriptor desc = ArrayTypeDescriptor.of(ctxt.getBootstrapClassContext(), jlc.getDescriptor());
-        GlobalVariableElement.Builder builder = GlobalVariableElement.builder("qbicc_jlc_lookup_table", desc);
-        builder.setType(rootArrayType);
-        builder.setEnclosingType(jlc);
-        builder.setSignature(TypeSignature.synthesize(ctxt.getBootstrapClassContext(), desc));
-        GlobalVariableElement classArrayGlobal = builder.build();
-        bth.setClassArrayGlobal(classArrayGlobal);
+        bth.initializeRootClassArray(SupersDisplayTables.get(ctxt).get_number_of_typeids());
 
-        // initialize the Class array by serializing java.lang.Class instances for all reachable types and primitive types
-        Literal[] rootTable = new Literal[tables.get_number_of_typeids()];
-        Arrays.fill(rootTable, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(jlcRef));
-        reachabilityInfo.visitReachableTypes(ltd -> {
+        // Serialize all the root Class instances
+        ReachabilityInfo.get(ctxt).visitReachableTypes(ltd -> {
             VmClass vmClass = ltd.getVmClass();
             bth.serializeVmObject(vmClass);
-            Literal lit = bth.referToSerializedVmObject(vmClass, jlcRef, programModule);
-            rootTable[ltd.getTypeId()] = lit;
         });
-
         Primitive.forEach(type -> {
             VmClass vmClass = ctxt.getVm().getPrimitiveClass(type);
             bth.serializeVmObject(vmClass);
-            Literal lit = bth.referToSerializedVmObject(vmClass, jlcRef, programModule);
-            rootTable[type.getTypeId()] = lit;
         });
 
-        // Add the final data value for the constructed Class array
-        section.addData(null, classArrayGlobal.getName(), ctxt.getLiteralFactory().literalOf(rootArrayType, List.of(rootTable)));
+        bth.emitRootClassArray();
     }
 }
