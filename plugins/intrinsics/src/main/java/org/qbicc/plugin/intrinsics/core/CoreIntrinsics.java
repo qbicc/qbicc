@@ -36,6 +36,7 @@ import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.object.ProgramModule;
+import org.qbicc.object.ProgramObject;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.plugin.dispatch.DispatchTables;
@@ -47,6 +48,7 @@ import org.qbicc.plugin.intrinsics.StaticIntrinsic;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.methodinfo.MethodDataTypes;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
+import org.qbicc.pointer.ProgramObjectPointer;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.IntegerType;
@@ -884,6 +886,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getTypeIdFromClass", clsTypeId, getTypeIdFromClass);
 
         MethodElement getOrCreateArrayClass = methodFinder.getMethod("getOrCreateClassForRefArray");
+        ReferenceType jlcRef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load().getObjectType().getReference();
         StaticIntrinsic getClassFromTypeId = (builder, target, arguments) -> {
             /* Pseudo code for this intrinsic:
              *    Class<?> componentClass = qbicc_jlc_lookup_table[typeId];
@@ -899,9 +902,10 @@ public final class CoreIntrinsics {
             BlockLabel fallThrough = new BlockLabel();
 
             BuildtimeHeap buildtimeHeap = BuildtimeHeap.get(ctxt);
-            GlobalVariableElement classArrayGlobal = buildtimeHeap.getAndRegisterGlobalClassArray(builder.getCurrentElement());
-            // todo: if this is changed from load to referenceTo, also delete isConstant from ClassOf and fix it in getClassFromTypeIdSimple
-            Value componentClass = builder.load(builder.elementOf(builder.globalVariable(classArrayGlobal), typeId));
+            ProgramObject rootArray = buildtimeHeap.getAndRegisterGlobalClassArray(builder.getCurrentElement());
+            Literal base = lf.literalOf(ProgramObjectPointer.of(rootArray));
+            ValueHandle elem = builder.elementOf(builder.pointerHandle(base) ,arguments.get(0));
+            Value componentClass = builder.valueConvert(builder.addressOf(elem), jlcRef);
             Value result = componentClass;
             PhiValue phi = builder.phi(result.getType(), fallThrough);
 
@@ -919,9 +923,10 @@ public final class CoreIntrinsics {
 
         StaticIntrinsic getClassFromTypeIdSimple = (builder, target, arguments) -> {
             BuildtimeHeap buildtimeHeap = BuildtimeHeap.get(ctxt);
-            GlobalVariableElement classArrayGlobal = buildtimeHeap.getAndRegisterGlobalClassArray(builder.getCurrentElement());
-            // todo: if this is changed from load to referenceTo, also delete isConstant from ClassOf and fix it in getClassFromTypeId
-            return builder.load(builder.elementOf(builder.globalVariable(classArrayGlobal), arguments.get(0)));
+            ProgramObject rootArray = buildtimeHeap.getAndRegisterGlobalClassArray(builder.getCurrentElement());
+            Literal base = lf.literalOf(ProgramObjectPointer.of(rootArray));
+            ValueHandle elem = builder.elementOf(builder.pointerHandle(base) ,arguments.get(0));
+            return builder.valueConvert(builder.addressOf(elem), jlcRef);
         };
 
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getClassFromTypeIdSimple", typeIdToClassDesc, getClassFromTypeIdSimple);

@@ -27,6 +27,7 @@ import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.ModuleSection;
 import org.qbicc.object.ProgramModule;
+import org.qbicc.object.ProgramObject;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
@@ -51,10 +52,7 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
-import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
-import org.qbicc.type.descriptor.ArrayTypeDescriptor;
-import org.qbicc.type.generic.TypeSignature;
 
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
@@ -81,7 +79,7 @@ public class BuildtimeHeap {
     /**
      * The global array of root java.lang.Class instances
      */
-    private GlobalVariableElement classArrayGlobal;
+    private DataDeclaration rootClassesDecl;
     /**
      * The values, indexed by typeId to be serialized in the classArrayGlobal
      */
@@ -127,50 +125,57 @@ public class BuildtimeHeap {
     }
 
     void initializeRootClassArray(int numTypeIds) {
-        LoadedTypeDefinition ih = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap").load();
         LoadedTypeDefinition jlc = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
-        ReferenceType jlcRef = jlc.getObjectType().getReference();
-        ArrayType rootArrayType = ctxt.getTypeSystem().getArrayType(jlcRef, numTypeIds);
-
-        // create the GlobalVariable for shared access to the Class array
-        ArrayTypeDescriptor desc = ArrayTypeDescriptor.of(ctxt.getBootstrapClassContext(), jlc.getDescriptor());
-        GlobalVariableElement.Builder builder = GlobalVariableElement.builder("qbicc_jlc_lookup_table", desc);
-        builder.setType(rootArrayType);
-        builder.setEnclosingType(ih);
-        builder.setSignature(TypeSignature.synthesize(ctxt.getBootstrapClassContext(), desc));
-        classArrayGlobal = builder.build();
-
+        CompoundType jlcType = layout.getInstanceLayoutInfo(jlc).getCompoundType();
+        ArrayType rootArrayType = ctxt.getTypeSystem().getArrayType(jlcType, numTypeIds);
+        rootClassesDecl = heapSection.getProgramModule().declareData(null, "qbicc_jlc_lookup_table", rootArrayType);
         rootClasses = new Literal[numTypeIds];
-        rootClasses[0] = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(jlcRef); // Poison type for typeId 0. TODO: Remove if we use typeId 0 for void
+        rootClasses[0] = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(jlc.getObjectType()); // TODO: Remove if we assign void typeId 0 instead of using 0 as an invalid typeId
     }
 
     void emitRootClassArray() {
-        heapSection.addData(null, classArrayGlobal.getName(), ctxt.getLiteralFactory().literalOf((ArrayType)classArrayGlobal.getType(), List.of(rootClasses)));
+        Data d = heapSection.addData(null, rootClassesDecl.getName(), ctxt.getLiteralFactory().literalOf((ArrayType) rootClassesDecl.getValueType(), List.of(rootClasses)));
+        d.setLinkage(Linkage.EXTERNAL);
+        d.setAddrspace(1);
     }
 
-    public GlobalVariableElement getAndRegisterGlobalClassArray(ExecutableElement originalElement) {
-        Assert.assertNotNull(classArrayGlobal);
-        if (!classArrayGlobal.getEnclosingType().equals(originalElement.getEnclosingType())) {
-            ProgramModule programModule = ctxt.getOrAddProgramModule(originalElement.getEnclosingType());
-            programModule.declareData(null, classArrayGlobal.getName(), classArrayGlobal.getType());
-        }
-        return classArrayGlobal;
+    public ProgramObject getAndRegisterGlobalClassArray(ExecutableElement originalElement) {
+        ProgramModule programModule = ctxt.getOrAddProgramModule(originalElement.getEnclosingType());
+        DataDeclaration decl = programModule.declareData(rootClassesDecl);
+        decl.setAddrspace(1);
+        return decl;
     }
 
     public synchronized Literal referToSerializedVmObject(VmObject value, NullableType desiredType, ProgramModule from) {
-        DataDeclaration objDecl = vmObjects.get(value);
-        if (objDecl == null) {
-            ctxt.warning("Requested VmObject not found in build time heap: "+value);
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(desiredType);
+        if (isRootClass(value)) {
+            LiteralFactory lf  = ctxt.getLiteralFactory();
+            DataDeclaration d = from.declareData(rootClassesDecl);
+            d.setAddrspace(1);
+            int typeId = ((VmClass)value).getTypeDefinition().getTypeId();
+            Literal base = lf.bitcastLiteral(lf.literalOf(ProgramObjectPointer.of(rootClassesDecl)), ((ArrayType)rootClassesDecl.getValueType()).getElementType().getPointer().asCollected());
+            Literal elem = lf.elementOfLiteral(base, lf.literalOf(typeId));
+            return ctxt.getLiteralFactory().bitcastLiteral(elem, desiredType);
+        } else {
+            DataDeclaration objDecl = vmObjects.get(value);
+            if (objDecl == null) {
+                ctxt.warning("Requested VmObject not found in build time heap: " + value);
+                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(desiredType);
+            }
+            DataDeclaration decl = from.declareData(objDecl);
+            decl.setAddrspace(1);
+            return ctxt.getLiteralFactory().bitcastLiteral(ctxt.getLiteralFactory().literalOf(decl), desiredType);
         }
-        DataDeclaration decl = from.declareData(objDecl);
-        decl.setAddrspace(1);
-        return ctxt.getLiteralFactory().bitcastLiteral(ctxt.getLiteralFactory().literalOf(decl), desiredType);
     }
 
     public synchronized void serializeVmObject(VmObject value) {
         if (vmObjects.containsKey(value)) {
             return;
+        }
+        if (isRootClass(value)) {
+            int typeId = ((VmClass)value).getTypeDefinition().getTypeId();
+            if (rootClasses[typeId] != null) {
+                return;
+            }
         }
         Layout layout = Layout.get(ctxt);
         PhysicalObjectType ot = value.getObjectType();
@@ -180,18 +185,14 @@ public class BuildtimeHeap {
             LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
             if (isRootClass(value)) {
                 int typeId = ((VmClass)value).getTypeDefinition().getTypeId();
-                String name = "qbicc_root_class_obj_"+typeId;
-                DataDeclaration decl = heapSection.getProgramModule().declareData(null, name, objLayout.getCompoundType());
-                decl.setAddrspace(1);
-                vmObjects.put(value, decl); // record declaration
-                serializeVmObject(concreteType, objLayout, decl, value); // now serialize
-                rootClasses[typeId] = referToSerializedVmObject(value, value.getObjectType().getReference(), heapSection.getProgramModule());
+                rootClasses[typeId] = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(value.getObjectType()); // indicate serialization has started
+                serializeVmObject(concreteType, objLayout, value, typeId, null); // now serialize and update rootClass[typeId]
             } else {
                 String name = nextLiteralName();
                 DataDeclaration decl = heapSection.getProgramModule().declareData(null, name, objLayout.getCompoundType());
                 decl.setAddrspace(1);
                 vmObjects.put(value, decl); // record declaration
-                serializeVmObject(concreteType, objLayout, decl, value); // now serialize
+                serializeVmObject(concreteType, objLayout, value, -1, decl.getName()); // now serialize and define a Data
             }
         } else if (ot instanceof ReferenceArrayObjectType) {
             // Could be part of a cyclic object graph; must record the symbol for this array before we serialize its elements
@@ -211,11 +212,7 @@ public class BuildtimeHeap {
     }
 
     private boolean isRootClass(VmObject value) {
-        if (value instanceof VmClass vmClass && !(vmClass instanceof VmReferenceArrayClass) && vmClass.getTypeDefinition().getTypeId() != -1) {
-            return true;
-        } else {
-            return false;
-        }
+        return value instanceof VmClass vmClass && !(vmClass instanceof VmReferenceArrayClass) && vmClass.getTypeDefinition().getTypeId() != -1;
     }
 
     private String nextLiteralName() {
@@ -259,7 +256,7 @@ public class BuildtimeHeap {
         return sizedArrayType;
     }
 
-    private void serializeVmObject(LoadedTypeDefinition concreteType, LayoutInfo objLayout, DataDeclaration decl, VmObject value) {
+    private void serializeVmObject(LoadedTypeDefinition concreteType, LayoutInfo objLayout, VmObject value, int typeId, String name) {
         Memory memory = value.getMemory();
         LayoutInfo memLayout = layout.getInstanceLayoutInfo(concreteType);
         CompoundType objType = objLayout.getCompoundType();
@@ -268,7 +265,11 @@ public class BuildtimeHeap {
         populateMemberMap(concreteType, objType, objLayout, memLayout, memory, memberMap);
 
         // Define it!
-        defineData(decl.getName(), ctxt.getLiteralFactory().literalOf(objType, memberMap));
+        if (typeId == -1) {
+            defineData(name, ctxt.getLiteralFactory().literalOf(objType, memberMap));
+        } else {
+            rootClasses[typeId] = ctxt.getLiteralFactory().literalOf(objType, memberMap);
+        }
     }
 
     private void populateMemberMap(final LoadedTypeDefinition concreteType, final CompoundType objType, final LayoutInfo objLayout, final LayoutInfo memLayout, final Memory memory, final HashMap<CompoundType.Member, Literal> memberMap) {
