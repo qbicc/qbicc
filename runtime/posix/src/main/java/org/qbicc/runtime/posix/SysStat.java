@@ -73,12 +73,12 @@ public final class SysStat {
     public static final mode_t S_IWOTH = constant();
     public static final mode_t S_IXOTH = constant();
 
-    @name(value = "stat$INODE64", when = Build.Target.IsMacOs.class)
+    @name(value = "stat$INODE64", when = { Build.Target.IsMacOs.class, Build.Target.IsAmd64.class })
     public static native c_int stat(const_char_ptr pathName, struct_stat_ptr statBuf);
-    @name(value = "fstat$INODE64", when = Build.Target.IsMacOs.class)
+    @name(value = "fstat$INODE64", when = { Build.Target.IsMacOs.class, Build.Target.IsAmd64.class })
     public static native c_int fstat(c_int fd, struct_stat_ptr statBuf);
-    @name(value = "lstat$INODE64", when = Build.Target.IsMacOs.class)
+    @name(value = "lstat$INODE64", when = { Build.Target.IsMacOs.class, Build.Target.IsAmd64.class })
     public static native c_int lstat(const_char_ptr pathName, struct_stat_ptr statBuf);
-    @name(value = "fstatat$INODE64", when = Build.Target.IsMacOs.class)
+    @name(value = "fstatat$INODE64", when = { Build.Target.IsMacOs.class, Build.Target.IsAmd64.class })
     public static native c_int fstatat(c_int dirFd, const_char_ptr pathName, struct_stat_ptr statBuf, c_int flags);
 }
