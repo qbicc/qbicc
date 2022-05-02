@@ -133,6 +133,7 @@ import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.plugin.serialization.ClassObjectSerializer;
 import org.qbicc.plugin.serialization.MethodDataStringsSerializer;
 import org.qbicc.plugin.serialization.ObjectLiteralSerializingVisitor;
+import org.qbicc.plugin.serialization.StringInternTableEmitter;
 import org.qbicc.plugin.threadlocal.ThreadLocalBasicBlockBuilder;
 import org.qbicc.plugin.threadlocal.ThreadLocalTypeBuilder;
 import org.qbicc.plugin.trycatch.LocalThrowHandlingBasicBlockBuilder;
@@ -530,6 +531,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.LOWER, NativeXtorLoweringHook::process);
                                 builder.addPostHook(Phase.LOWER, BuildtimeHeap::reportStats);
 
+                                builder.addPreHook(Phase.GENERATE, new StringInternTableEmitter());
                                 builder.addPreHook(Phase.GENERATE, new SupersDisplayEmitter());
                                 builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
                                 builder.addPreHook(Phase.GENERATE, new LLVMGenerator(isPie ? 2 : 0, isPie ? 2 : 0));

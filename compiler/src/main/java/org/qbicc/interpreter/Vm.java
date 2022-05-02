@@ -2,6 +2,7 @@ package org.qbicc.interpreter;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.function.Consumer;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
@@ -235,6 +236,12 @@ public interface Vm {
      * @return the interned VmString
      */
     VmString intern(String string);
+
+    /**
+     * Iterate over all interned VmStrings
+     * @param thunk the function to apply to each VmString
+     */
+    void forEachInternedString(Consumer<VmString> thunk);
 
     /**
      * Convenience method to get the actual (non-{@code null}) class loader for the given class context.
