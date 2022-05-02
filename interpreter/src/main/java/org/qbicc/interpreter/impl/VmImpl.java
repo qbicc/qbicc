@@ -1427,6 +1427,15 @@ public final class VmImpl implements Vm {
         return (VmReferenceArray) manuallyInitialize(((VmClassImpl)elementType).getArrayClass().newInstance(size));
     }
 
+    public VmReferenceArray newArrayOf(final VmClass elementType, final VmObject[] array) {
+        if (elementType instanceof VmPrimitiveClass) {
+            throw new IllegalArgumentException("Cannot create a reference array with a primitive element type");
+        }
+        VmRefArrayImpl obj = (VmRefArrayImpl) manuallyInitialize(((VmClassImpl) elementType).getArrayClass().newInstance(array.length));
+        System.arraycopy(array, 0, obj.getArray(), 0, array.length);
+        return obj;
+    }
+
     @Override
     public VmByteArrayImpl newByteArray(byte[] array) {
         VmByteArrayImpl obj = manuallyInitialize(byteArrayClass.newInstance(array.length));

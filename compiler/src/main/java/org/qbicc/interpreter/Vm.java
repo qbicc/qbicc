@@ -306,6 +306,8 @@ public interface Vm {
      */
     VmReferenceArray newArrayOf(VmClass elementType, int size);
 
+    VmReferenceArray newArrayOf(VmClass elementType, VmObject[] array);
+
     VmArray newByteArray(byte[] array);
 
     VmArray newCharArray(char[] array);
