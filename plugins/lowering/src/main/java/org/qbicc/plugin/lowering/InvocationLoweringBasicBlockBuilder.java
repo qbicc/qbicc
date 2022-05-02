@@ -286,9 +286,11 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     private BasicBlock raiseLinkError(MethodElement target) {
         // Perform the transformation done by ObjectLiteralSerializingVisitor.visit(StringLiteral) because this BBB runs during LOWER
         VmString vString = ctxt.getVm().intern(target.getEnclosingType().getInternalName().replace("/", ".")+"."+target.getName());
-        ProgramObjectLiteral literal = BuildtimeHeap.get(ctxt).serializeVmObject(vString);
-        ctxt.getOrAddProgramModule(originalElement).declareData(literal.getProgramObject());
-        Literal arg = ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getObjectType().getReference());
+        BuildtimeHeap bth = BuildtimeHeap.get(ctxt);
+        bth.serializeVmObject(vString);
+        Literal arg = bth.referToSerializedVmObject(vString,
+            ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getObjectType().getReference(),
+            ctxt.getOrAddProgramModule(originalElement));
 
         MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseUnsatisfiedLinkError");
         return callNoReturn(staticMethod(helper), List.of(arg));

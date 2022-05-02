@@ -1,6 +1,5 @@
 package org.qbicc.plugin.methodinfo;
 
-import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Driver;
@@ -14,13 +13,13 @@ import org.qbicc.machine.llvm.stackmap.StackMapVisitor;
 import org.qbicc.machine.object.ObjectFile;
 import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.object.Data;
-import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
 import org.qbicc.object.ModuleSection;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.linker.Linker;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.NullableType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
@@ -61,7 +60,7 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
     private int instructionListCount;
     private int instructionListSize;
 
-    private int createMethodInfo(CompilationContext ctxt, MethodData methodData, ExecutableElement element) {
+    private int createMethodInfo(CompilationContext ctxt, NullableType jlsRef, ProgramModule from, MethodData methodData, ExecutableElement element) {
         String methodName = "";
         if (element instanceof ConstructorElement) {
             methodName = "<init>";
@@ -82,32 +81,31 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
 
         Vm vm = ctxt.getVm();
         BuildtimeHeap btHeap = BuildtimeHeap.get(ctxt);
-        ProgramObjectLiteral fnLiteral = null;
-        if (fileName != null) {
-            fnLiteral = btHeap.getSerializedVmObject(vm.intern(fileName));
-            Assert.assertNotNull(fnLiteral);
+        Literal fnLiteral;
+        if (fileName == null) {
+            fnLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(jlsRef);
+        } else {
+            fnLiteral = btHeap.referToSerializedVmObject(vm.intern(fileName), jlsRef, from);
         }
-        ProgramObjectLiteral mnLiteral = btHeap.getSerializedVmObject(vm.intern(methodName));
-        Assert.assertNotNull(mnLiteral);
-        ProgramObjectLiteral mdLiteral = btHeap.getSerializedVmObject(vm.intern(methodDesc));
-        Assert.assertNotNull(mdLiteral);
+        Literal mnLiteral = btHeap.referToSerializedVmObject(vm.intern(methodName), jlsRef, from);
+        Literal mdLiteral = btHeap.referToSerializedVmObject(vm.intern(methodDesc), jlsRef, from);
 
         return methodData.add(new MethodInfo(fnLiteral, mnLiteral, mdLiteral, typeId, element.getModifiers()));
     }
 
-    private int createSourceCodeInfo(CompilationContext ctxt, MethodData methodData, ExecutableElement element, int lineNumber, int bcIndex, int inlinedAtIndex) {
-        int minfoIndex = createMethodInfo(ctxt, methodData, element);
+    private int createSourceCodeInfo(CompilationContext ctxt, MethodData methodData,  NullableType jlsRef, ProgramModule from, ExecutableElement element, int lineNumber, int bcIndex, int inlinedAtIndex) {
+        int minfoIndex = createMethodInfo(ctxt, jlsRef, from, methodData, element);
         return methodData.add(new SourceCodeInfo(minfoIndex, lineNumber, bcIndex, inlinedAtIndex));
     }
 
-    private int createSourceCodeInfo(CompilationContext ctxt, MethodData methodData, Node node) {
+    private int createSourceCodeInfo(CompilationContext ctxt, MethodData methodData,  NullableType jlsRef, ProgramModule from, Node node) {
         int sourceCodeIndex;
         ExecutableElement element = node.getElement();
         if (node.getCallSite() == null) {
-            sourceCodeIndex = createSourceCodeInfo(ctxt, methodData, element, node.getSourceLine(), node.getBytecodeIndex(), -1);
+            sourceCodeIndex = createSourceCodeInfo(ctxt, methodData, jlsRef, from, element, node.getSourceLine(), node.getBytecodeIndex(), -1);
         } else {
-            int callerIndex = createSourceCodeInfo(ctxt, methodData, node.getCallSite());
-            sourceCodeIndex = createSourceCodeInfo(ctxt, methodData, element, node.getSourceLine(), node.getBytecodeIndex(), callerIndex);
+            int callerIndex = createSourceCodeInfo(ctxt, methodData, jlsRef, from, node.getCallSite());
+            sourceCodeIndex = createSourceCodeInfo(ctxt, methodData, jlsRef, from, element, node.getSourceLine(), node.getBytecodeIndex(), callerIndex);
         }
         return sourceCodeIndex;
     }
@@ -133,6 +131,8 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         MethodData methodData = new MethodData(stackMapRecords.size());
         Iterator<StackMapRecord> recordIterator = stackMapRecords.iterator();
         final int[] recordIndex = { 0 };
+        ReferenceType jlsRef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getObjectType().getReference();
+        ProgramModule module = ctxt.getOrAddProgramModule(ctxt.getDefaultTypeDefinition());
 
         ctxt.runParallelTask(context -> {
             StackMapRecord record;
@@ -150,26 +150,12 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
                 long spId = record.getStatepoindId();
                 int instructionOffset = record.getOffset();
                 Node node = callSiteInfo.getNodeForStatepointId((int)spId);
-                int scIndex = createSourceCodeInfo(ctxt, methodData, node);
+                int scIndex = createSourceCodeInfo(ctxt, methodData, jlsRef, module, node);
                 methodData.add(index, new InstructionMap(instructionOffset, scIndex, getRootMethodOfInlineSequence(node)));
             }
         });
 
         return methodData;
-    }
-
-    private Literal castHeapSymbolTo(CompilationContext ctxt, ProgramObjectLiteral literal, WordType toType) {
-        LiteralFactory lf = ctxt.getLiteralFactory();
-        Literal result;
-        if (literal != null) {
-            DataDeclaration decl = ctxt.getOrAddProgramModule(ctxt.getDefaultTypeDefinition()).declareData(literal.getProgramObject());
-            decl.setAddrspace(1);
-            ProgramObjectLiteral refToString = ctxt.getLiteralFactory().literalOf(decl);
-            result = ctxt.getLiteralFactory().bitcastLiteral(refToString, toType);
-        } else {
-            result = lf.zeroInitializerLiteralOfType(toType);
-        }
-        return result;
     }
 
     private Data defineData(CompilationContext ctxt, String variableName, Literal value) {
@@ -188,9 +174,9 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
 
         Literal[] minfoLiterals = Arrays.stream(minfoList).parallel().map(minfo -> {
             HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
-            Literal fnLiteral = castHeapSymbolTo(ctxt, minfo.getFileNameSymbolLiteral(), jlsRef);
-            Literal mnLiteral = castHeapSymbolTo(ctxt, minfo.getMethodNameSymbolLiteral(), jlsRef);
-            Literal mdLiteral = castHeapSymbolTo(ctxt, minfo.getMethodDescSymbolLiteral(), jlsRef);
+            Literal fnLiteral = minfo.getFileNameSymbolLiteral();
+            Literal mnLiteral = minfo.getMethodNameSymbolLiteral();
+            Literal mdLiteral = minfo.getMethodDescSymbolLiteral();
             Literal typeIdLiteral = lf.literalOf(minfo.getTypeId());
             Literal modifiersLiteral = lf.literalOf(minfo.getModifiers());
 

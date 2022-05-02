@@ -44,12 +44,6 @@ public final class ClassOf extends AbstractValue implements UnaryValue {
     }
 
     @Override
-    public boolean isConstant() {
-        // TODO: Delete this once the class array is an array of objects instead of references.
-        return false;
-    }
-
-    @Override
     public boolean isNullable() {
         return false;
     }
