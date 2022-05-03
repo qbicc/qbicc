@@ -784,8 +784,9 @@ public final class VmImpl implements Vm {
                 boolean hidden = (flags & 2) != 0;
                 VmClassImpl defined = classLoader.defineClass(name, b, null, hidden);
                 if (nestMate) {
-                    lookup.addNestMember(defined);
-                    defined.setNestHost(lookup);
+                    VmClassImpl host = lookup.getNestHost();
+                    host.addNestMember(defined);
+                    defined.setNestHost(host);
                 }
                 defined.getMemory().storeRef(defined.indexOf(classDataField), data, SingleRelease);
                 return defined;
