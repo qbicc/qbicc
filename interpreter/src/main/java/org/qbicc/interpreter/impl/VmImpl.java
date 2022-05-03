@@ -1557,6 +1557,10 @@ public final class VmImpl implements Vm {
         return vmString;
     }
 
+    public void forEachInternedString(Consumer<VmString> thunk) {
+        interned.forEach((s, vs) -> thunk.accept(vs));
+    }
+
     public static VmImpl create(CompilationContext ctxt, Consumer<VmObject> manualInitializer) {
         return new VmImpl(Assert.checkNotNullParam("ctxt", ctxt), manualInitializer);
     }

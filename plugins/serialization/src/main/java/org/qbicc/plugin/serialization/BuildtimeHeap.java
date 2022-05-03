@@ -150,6 +150,10 @@ public class BuildtimeHeap {
         return decl;
     }
 
+    public boolean containsObject(VmObject value) {
+        return vmObjects.containsKey(value);
+    }
+
     public synchronized Literal referToSerializedVmObject(VmObject value, NullableType desiredType, ProgramModule from) {
         if (isRootClass(value)) {
             LiteralFactory lf  = ctxt.getLiteralFactory();
