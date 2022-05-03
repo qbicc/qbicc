@@ -1,5 +1,7 @@
 package org.qbicc.interpreter.impl;
 
+import static org.qbicc.graph.atomic.AccessModes.*;
+
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
@@ -18,9 +20,13 @@ import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.memory.MemoryFactory;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
+import org.qbicc.pointer.IntegerAsPointer;
+import org.qbicc.pointer.Pointer;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.PhysicalObjectType;
+import org.qbicc.type.PointerType;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 
@@ -121,6 +127,57 @@ class VmObjectImpl implements VmObject, Referenceable {
             throw new IllegalArgumentException("Field " + field + " is not present on " + this);
         }
         return member.getOffset();
+    }
+
+    public void setRefField(LoadedTypeDefinition owner, String name, VmObject value) {
+        getMemory().storeRef(indexOf(owner.findField(name)), value, SinglePlain);
+    }
+
+    public void setPointerField(LoadedTypeDefinition owner, String name, Pointer value) {
+        getMemory().storePointer(indexOf(owner.findField(name)), value, SinglePlain);
+    }
+
+    public void setPointerField(LoadedTypeDefinition owner, String name, long value) {
+        FieldElement field = owner.findField(name);
+        getMemory().storePointer(indexOf(field), new IntegerAsPointer((PointerType) field.getType(), value), SinglePlain);
+    }
+
+    public void setTypeField(LoadedTypeDefinition owner, String name, ValueType value) {
+        getMemory().storeType(indexOf(owner.findField(name)), value, SinglePlain);
+    }
+
+    public void setBooleanField(LoadedTypeDefinition owner, String name, boolean value) {
+        // todo: switch on type.getMinBits()
+        setByteField(owner, name, value ? 1 : 0);
+    }
+
+    public void setByteField(LoadedTypeDefinition owner, String name, int value) {
+        getMemory().store8(indexOf(owner.findField(name)), value, SinglePlain);
+    }
+
+    public void setShortField(LoadedTypeDefinition owner, String name, int value) {
+        getMemory().store16(indexOf(owner.findField(name)), value, SinglePlain);
+    }
+
+    public void setIntField(LoadedTypeDefinition owner, String name, int value) {
+        getMemory().store32(indexOf(owner.findField(name)), value, SinglePlain);
+    }
+
+    public void setFloatField(LoadedTypeDefinition owner, String name, float value) {
+        setIntField(owner, name, Float.floatToRawIntBits(value));
+    }
+
+    public void setLongField(LoadedTypeDefinition owner, String name, long value) {
+        FieldElement field = owner.findField(name);
+        if (field.getType() instanceof PointerType pt) {
+            setPointerField(owner, name, new IntegerAsPointer(pt, value));
+        } else {
+            getMemory().store64(indexOf(field), value, SinglePlain);
+        }
+    }
+
+    public void setDoubleField(LoadedTypeDefinition owner, String name, double value) {
+        setLongField(owner, name, Double.doubleToRawLongBits(value));
     }
 
     @Override
