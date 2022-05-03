@@ -728,14 +728,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 signature = ClassSignature.parse(ctxt, getUtf8ConstantAsBuffer(sigIdx));
             } else if (attributeNameEquals(i, "SourceFile")) {
                 // todo
-            } else if (attributeNameEquals(i, "BootstrapMethods")) {
-                ByteBuffer data = getRawAttributeContent(i);
-                int ac = data.getShort() & 0xffff;
-                BootstrapMethod[] bootstrapMethods = new BootstrapMethod[ac];
-                for (int j = 0; j < ac; j ++) {
-                    bootstrapMethods[j] = BootstrapMethod.parse(this, ctxt, data);
-                }
-                builder.setBootstrapMethods(List.of(bootstrapMethods));
             } else if (attributeNameEquals(i, "NestHost")) {
                 ByteBuffer data = getRawAttributeContent(i);
                 int ci = data.getShort() & 0xffff;

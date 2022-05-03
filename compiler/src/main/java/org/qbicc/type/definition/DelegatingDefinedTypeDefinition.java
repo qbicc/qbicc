@@ -5,7 +5,6 @@ import java.util.List;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
-import org.qbicc.type.definition.classfile.BootstrapMethod;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.Signature;
 
@@ -108,10 +107,6 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
     public TypeAnnotationList getInvisibleTypeAnnotations() {
         return getDelegate().getInvisibleTypeAnnotations();
     }
-
-    public List<BootstrapMethod> getBootstrapMethods() { return getDelegate().getBootstrapMethods(); }
-
-    public BootstrapMethod getBootstrapMethod(final int index) { return getDelegate().getBootstrapMethod(index); }
 
     public int getHiddenClassIndex() {
         return getDelegate().getHiddenClassIndex();

@@ -9,7 +9,6 @@ import org.qbicc.context.Locatable;
 import org.qbicc.context.Location;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
-import org.qbicc.type.definition.classfile.BootstrapMethod;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -201,10 +200,6 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
 
     TypeAnnotationList getInvisibleTypeAnnotations();
 
-    List<BootstrapMethod> getBootstrapMethods();
-
-    BootstrapMethod getBootstrapMethod(int index);
-
     int getHiddenClassIndex();
 
     interface Builder extends Locatable {
@@ -255,8 +250,6 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
         void setVisibleTypeAnnotations(TypeAnnotationList annotationList);
 
         void setInvisibleTypeAnnotations(TypeAnnotationList annotationList);
-
-        void setBootstrapMethods(List<BootstrapMethod> bootstrapMethods);
 
         void setSuperClass(DefinedTypeDefinition superClass);
 
@@ -369,10 +362,6 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
 
             default void setInvisibleTypeAnnotations(TypeAnnotationList annotationList) {
                 getDelegate().setInvisibleTypeAnnotations(annotationList);
-            }
-
-            default void setBootstrapMethods(List<BootstrapMethod> bootstrapMethods) {
-                getDelegate().setBootstrapMethods(bootstrapMethods);
             }
 
             default void setSuperClass(DefinedTypeDefinition superClass) {
