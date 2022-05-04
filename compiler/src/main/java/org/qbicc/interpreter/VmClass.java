@@ -25,8 +25,6 @@ public interface VmClass extends VmObject {
 
     VmArrayClass getArrayClass();
 
-    VmObject getProtectionDomain();
-
     /**
      * Get a {@link java.lang.invoke.MethodHandles.Lookup} instance for this class with the given flags. The
      * flags are not checked.

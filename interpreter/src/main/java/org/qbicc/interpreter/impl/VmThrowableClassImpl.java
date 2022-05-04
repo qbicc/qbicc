@@ -3,7 +3,6 @@ package org.qbicc.interpreter.impl;
 import java.util.List;
 
 import org.qbicc.context.ClassContext;
-import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.interpreter.VmThrowableClass;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -15,8 +14,8 @@ import org.qbicc.type.descriptor.MethodDescriptor;
  *
  */
 class VmThrowableClassImpl extends VmClassImpl implements VmThrowableClass {
-    public VmThrowableClassImpl(final VmImpl vm, final LoadedTypeDefinition def, final VmObject protectionDomain) {
-        super(vm, def, protectionDomain);
+    public VmThrowableClassImpl(final VmImpl vm, final LoadedTypeDefinition def) {
+        super(vm, def);
     }
 
     @Override

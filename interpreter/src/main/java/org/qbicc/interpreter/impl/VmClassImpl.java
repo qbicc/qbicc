@@ -70,7 +70,6 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
      */
     private final LoadedTypeDefinition typeDefinition;
     private final VmClassLoaderImpl classLoader;
-    private final VmObject protectionDomain;
 
     // combination vtable, itable, constructor table, and static method table
     private final Map<ExecutableElement, VmInvokable> methodTable = new ConcurrentHashMap<>();
@@ -103,8 +102,8 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     private volatile VmThrowableImpl initException;
     private final Object initLock = new Object();
 
-    VmClassImpl(VmImpl vmImpl, LoadedTypeDefinition typeDefinition, VmObject protectionDomain) {
-        this(vmImpl, vmImpl.classClass, typeDefinition, protectionDomain);
+    VmClassImpl(VmImpl vmImpl, LoadedTypeDefinition typeDefinition) {
+        this(vmImpl, vmImpl.classClass, typeDefinition);
     }
 
     /**
@@ -113,13 +112,11 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
      * @param vmImpl the VM (must not be {@code null})
      * @param classClass the `Class.class` instance (must not be {@code null})
      * @param typeDefinition the type definition of the class being defined (must not be {@code null})
-     * @param protectionDomain the protection domain
      */
-    VmClassImpl(VmImpl vmImpl, VmClassClassImpl classClass, LoadedTypeDefinition typeDefinition, VmObject protectionDomain) {
+    VmClassImpl(VmImpl vmImpl, VmClassClassImpl classClass, LoadedTypeDefinition typeDefinition) {
         super(classClass);
         vm = vmImpl;
         this.typeDefinition = typeDefinition;
-        this.protectionDomain = protectionDomain;
         ClassContext classContext = typeDefinition.getContext();
         classLoader = (VmClassLoaderImpl) classContext.getClassLoader();
         CompilationContext ctxt = classContext.getCompilationContext();
@@ -136,7 +133,6 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         state = State.INITIALIZED;
         this.typeDefinition = typeDefinition;
         typeDefinition.setVmClass(this);
-        protectionDomain = null;
         classLoader = null;
         layoutInfo = null;
         staticLayoutInfo = null;
@@ -150,13 +146,12 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         this.vm = vm;
         typeDefinition = classContext.findDefinedType("java/lang/Class").load();
         typeDefinition.setVmClass(this);
-        protectionDomain = null;
         classLoader = null;
         CompilationContext ctxt = classContext.getCompilationContext();
         layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(typeDefinition);
         staticLayoutInfo = Layout.get(ctxt).getStaticLayoutInfo(typeDefinition);
         staticMemory = staticLayoutInfo == null ? MemoryFactory.getEmpty() : vm.allocate(staticLayoutInfo.getCompoundType(), 1);
-        superClass = new VmClassImpl(vm, (VmClassClassImpl) this, classContext.findDefinedType("java/lang/Object").load(), null);
+        superClass = new VmClassImpl(vm, (VmClassClassImpl) this, classContext.findDefinedType("java/lang/Object").load());
         initializeConstantStaticFields();
     }
 
@@ -390,10 +385,6 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     VmImpl getVm() {
         return vm;
-    }
-
-    public VmObject getProtectionDomain() {
-        return protectionDomain;
     }
 
     @Override

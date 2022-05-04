@@ -62,4 +62,11 @@ public interface ClassContext extends DescriptorTypeResolver {
      * @return the resource list (not {@code null})
      */
     List<byte[]> getResources(String resourceName);
+
+    /**
+     * Determine whether this is the bootstrap class context.
+     *
+     * @return {@code true} if this is the bootstrap class context, or {@code false} otherwise.
+     */
+    boolean isBootstrap();
 }

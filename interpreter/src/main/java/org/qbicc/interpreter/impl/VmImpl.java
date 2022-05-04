@@ -177,7 +177,7 @@ public final class VmImpl implements Vm {
         ClassContext bcc = ctxt.getBootstrapClassContext();
         classClass = new VmClassClassImpl(this);
         objectClass = classClass.getSuperClass();
-        classLoaderClass = new VmClassLoaderClassImpl(this, bcc.findDefinedType("java/lang/ClassLoader").load(), null);
+        classLoaderClass = new VmClassLoaderClassImpl(this, bcc.findDefinedType("java/lang/ClassLoader").load());
         LoadedTypeDefinition stringDef = bcc.findDefinedType("java/lang/String").load();
         stringClass = new VmStringClassImpl(this, stringDef);
         FieldElement coderField = stringDef.findField("coder");
@@ -187,18 +187,18 @@ public final class VmImpl implements Vm {
         stringCoderOffset = stringLayout.getMember(coderField).getOffset();
         stringValueOffset = stringLayout.getMember(valueField).getOffset();
         toStringMethod = objectClass.getTypeDefinition().resolveMethodElementExact("toString", MethodDescriptor.synthesize(bcc, stringDef.getDescriptor(), List.of()));
-        threadClass = new VmThreadClassImpl(this, bcc.findDefinedType("java/lang/Thread").load(), null);
-        throwableClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/Throwable").load(), null);
+        threadClass = new VmThreadClassImpl(this, bcc.findDefinedType("java/lang/Thread").load());
+        throwableClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/Throwable").load());
 
-        byteClass = new VmPrimitiveClassImpl(this, classClass, Primitive.BYTE, coreClasses.getByteTypeDefinition(), coreClasses.getByteArrayTypeDefinition(),  BaseTypeDescriptor.B);
-        shortClass = new VmPrimitiveClassImpl(this, classClass, Primitive.SHORT, coreClasses.getShortTypeDefinition(), coreClasses.getShortArrayTypeDefinition(),  BaseTypeDescriptor.S);
-        intClass = new VmPrimitiveClassImpl(this, classClass, Primitive.INT, coreClasses.getIntTypeDefinition(), coreClasses.getIntArrayTypeDefinition(), BaseTypeDescriptor.I);
-        longClass = new VmPrimitiveClassImpl(this, classClass, Primitive.LONG, coreClasses.getLongTypeDefinition(), coreClasses.getLongArrayTypeDefinition(),  BaseTypeDescriptor.J);
-        floatClass = new VmPrimitiveClassImpl(this, classClass, Primitive.FLOAT, coreClasses.getFloatTypeDefinition(), coreClasses.getFloatArrayTypeDefinition(), BaseTypeDescriptor.F);
-        doubleClass = new VmPrimitiveClassImpl(this, classClass, Primitive.DOUBLE, coreClasses.getDoubleTypeDefinition(), coreClasses.getDoubleArrayTypeDefinition(), BaseTypeDescriptor.D);
-        charClass = new VmPrimitiveClassImpl(this, classClass, Primitive.CHAR, coreClasses.getCharTypeDefinition(), coreClasses.getCharArrayTypeDefinition(), BaseTypeDescriptor.C);
-        booleanClass = new VmPrimitiveClassImpl(this, classClass, Primitive.BOOLEAN, coreClasses.getBooleanTypeDefinition(), coreClasses.getBooleanArrayTypeDefinition(), BaseTypeDescriptor.Z);
-        voidClass = new VmPrimitiveClassImpl(this, classClass, Primitive.VOID, coreClasses.getVoidTypeDefinition(), null, BaseTypeDescriptor.V);
+        byteClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getByteTypeDefinition(), coreClasses.getByteArrayTypeDefinition());
+        shortClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getShortTypeDefinition(), coreClasses.getShortArrayTypeDefinition());
+        intClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getIntTypeDefinition(), coreClasses.getIntArrayTypeDefinition());
+        longClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getLongTypeDefinition(), coreClasses.getLongArrayTypeDefinition());
+        floatClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getFloatTypeDefinition(), coreClasses.getFloatArrayTypeDefinition());
+        doubleClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getDoubleTypeDefinition(), coreClasses.getDoubleArrayTypeDefinition());
+        charClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getCharTypeDefinition(), coreClasses.getCharArrayTypeDefinition());
+        booleanClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getBooleanTypeDefinition(), coreClasses.getBooleanArrayTypeDefinition());
+        voidClass = new VmPrimitiveClassImpl(this, classClass, coreClasses.getVoidTypeDefinition(), null);
 
         FieldElement arrayLengthField = coreClasses.getArrayLengthField();
         LoadedTypeDefinition arrayBaseClassDef = arrayLengthField.getEnclosingType().load();
@@ -290,32 +290,32 @@ public final class VmImpl implements Vm {
         booleanArrayClass.setComponentClass(booleanClass);
 
         // throwables
-        errorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/Error").load(), null);
+        errorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/Error").load());
         errorClass.postConstruct(this);
 
         // exceptions
-        interruptedException = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/InterruptedException").load(), null);
+        interruptedException = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/InterruptedException").load());
         interruptedException.postConstruct(this);
-        illegalMonitorStateException = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/IllegalMonitorStateException").load(), null);
+        illegalMonitorStateException = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/IllegalMonitorStateException").load());
         illegalMonitorStateException.postConstruct(this);
 
         // errors
-        linkageErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/LinkageError").load(), null);
+        linkageErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/LinkageError").load());
         linkageErrorClass.postConstruct(this);
 
         // linkage errors
-        incompatibleClassChangeErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/IncompatibleClassChangeError").load(), null);
+        incompatibleClassChangeErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/IncompatibleClassChangeError").load());
         incompatibleClassChangeErrorClass.postConstruct(this);
-        noClassDefFoundErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/NoClassDefFoundError").load(), null);
+        noClassDefFoundErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/NoClassDefFoundError").load());
         noClassDefFoundErrorClass.postConstruct(this);
 
         // incompatible class change errors
-        noSuchMethodErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/NoSuchMethodError").load(), null);
+        noSuchMethodErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/NoSuchMethodError").load());
         noSuchMethodErrorClass.postConstruct(this);
-        noSuchFieldErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/NoSuchFieldError").load(), null);
+        noSuchFieldErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/NoSuchFieldError").load());
         noSuchFieldErrorClass.postConstruct(this);
 
-        stackTraceElementClass = new VmClassImpl(this, bcc.findDefinedType("java/lang/StackTraceElement").load(), null);
+        stackTraceElementClass = new VmClassImpl(this, bcc.findDefinedType("java/lang/StackTraceElement").load());
         stackTraceElementClass.postConstruct(this);
 
         // set up the bootstrap class loader *last*
@@ -782,7 +782,7 @@ public final class VmImpl implements Vm {
                 }
                 boolean nestMate = (flags & 1) != 0;
                 boolean hidden = (flags & 2) != 0;
-                VmClassImpl defined = classLoader.defineClass(name, b, null, hidden);
+                VmClassImpl defined = classLoader.defineClass(name, b, hidden);
                 if (nestMate) {
                     lookup.addNestMember(defined);
                     defined.setNestHost(lookup);

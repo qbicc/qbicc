@@ -8,7 +8,7 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 final class VmStringClassImpl extends VmClassImpl {
 
     VmStringClassImpl(VmImpl vmImpl, LoadedTypeDefinition typeDefinition) {
-        super(vmImpl, typeDefinition, null);
+        super(vmImpl, typeDefinition);
     }
 
     @Override
