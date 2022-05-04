@@ -777,8 +777,9 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                     setNestHost(this);
                     return this;
                 } else {
-                    nestHost = (VmClassImpl) nestHostDef.load().getVmClass();
+                    nestHost = ((VmClassImpl) nestHostDef.load().getVmClass()).getNestHost();
                     setNestHost(nestHost);
+                    nestHost.addNestMember(this);
                 }
             }
         }
