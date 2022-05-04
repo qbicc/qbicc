@@ -3,6 +3,7 @@ package org.qbicc.interpreter.impl;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,10 +29,14 @@ import org.qbicc.interpreter.VmReferenceArrayClass;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.interpreter.memory.MemoryFactory;
+import org.qbicc.object.Data;
+import org.qbicc.object.Linkage;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
+import org.qbicc.pointer.IntegerAsPointer;
 import org.qbicc.pointer.Pointer;
+import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -40,6 +45,7 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
+import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -154,6 +160,114 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         initializeConstantStaticFields();
     }
 
+    Pointer computeBitMap() {
+        CompilationContext ctxt = vm.getCompilationContext();
+        TypeSystem ts = ctxt.getTypeSystem();
+        PointerType bitMapType = ts.getUnsignedInteger32Type().getPointer().asWide();
+        LayoutInfo layoutInfo = this.layoutInfo;
+        if (layoutInfo == null) {
+            // no layout; primitive type or other special case
+            return new IntegerAsPointer(bitMapType, 0);
+        }
+        CompoundType ct = layoutInfo.getCompoundType();
+        try {
+            return new IntegerAsPointer(bitMapType, computeSmallBitMap(ts, ct, 0L, 0));
+        } catch (BigBitMapException e) {
+            // do the more complex job for big bitmaps
+            int refSize = ts.getReferenceSize();
+            long size = ct.getSize();
+            int ec = (int) ((size + refSize - 1) / refSize);
+            int[] bitMap = new int[ec];
+            computeBigBitMap(ts, ct, bitMap, 0);
+            // define the data
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            List<Literal> values = new ArrayList<>(bitMap.length);
+            for (int val : bitMap) {
+                values.add(lf.literalOf(val));
+            }
+            ArrayType arrayType = ts.getArrayType(bitMapType.getPointeeType(), bitMap.length);
+            Data data = ctxt.getImplicitSection(typeDefinition).addData(null, "bitMap", lf.literalOf(arrayType, values));
+            data.setLinkage(Linkage.PRIVATE);
+            return data.getPointer();
+        }
+    }
+
+    @SuppressWarnings("serial")
+    static final class BigBitMapException extends RuntimeException {
+        private static final StackTraceElement[] EMPTY_STACK = new StackTraceElement[0];
+
+        BigBitMapException() {
+            setStackTrace(EMPTY_STACK);
+        }
+    }
+
+    long computeSmallBitMap(TypeSystem ts, ArrayType at, long bitMap, int base) {
+        // treat array[0] as a flexible array; set 1x the bits for it
+        long ec = Math.max(at.getElementCount(), 1);
+        long es = at.getElementSize();
+        ValueType elementType = at.getElementType();
+        for (long i = 0; i < ec; i ++) {
+            bitMap |= computeSmallBitMap(ts, elementType, bitMap, (int) (base + i * es));
+        }
+        return bitMap;
+    }
+
+    void computeBigBitMap(TypeSystem ts, ArrayType at, int[] bitMap, int base) {
+        // treat array[0] as a flexible array; set 1x the bits for it
+        long ec = Math.max(at.getElementCount(), 1);
+        long es = at.getElementSize();
+        ValueType elementType = at.getElementType();
+        for (long i = 0; i < ec; i ++) {
+            computeBigBitMap(ts, elementType, bitMap, (int) (base + i * es));
+        }
+    }
+
+    long computeSmallBitMap(TypeSystem ts, CompoundType ct, long bitMap, int base) {
+        for (CompoundType.Member member : ct.getMembers()) {
+            bitMap |= computeSmallBitMap(ts, member.getType(), bitMap, base + member.getOffset());
+        }
+        return bitMap;
+    }
+
+    void computeBigBitMap(TypeSystem ts, CompoundType ct, int[] bitMap, int base) {
+        for (CompoundType.Member member : ct.getMembers()) {
+            computeBigBitMap(ts, member.getType(), bitMap, base + member.getOffset());
+        }
+    }
+
+    long computeSmallBitMap(TypeSystem ts, ValueType itemType, long bitMap, int offset) {
+        if (itemType instanceof CompoundType nct) {
+            bitMap |= computeSmallBitMap(ts, nct, bitMap, offset);
+        } else if (itemType instanceof ArrayType at) {
+            bitMap |= computeSmallBitMap(ts, at, bitMap, offset);
+        } else if (itemType instanceof ReferenceType) {
+            int refSize = ts.getReferenceSize();
+            int refShift = Integer.numberOfTrailingZeros(refSize);
+            int idx = offset >> refShift;
+            if (idx >= 64) {
+                throw new BigBitMapException();
+            }
+            bitMap |= 1L << idx;
+        }
+        return bitMap;
+    }
+
+    void computeBigBitMap(TypeSystem ts, ValueType itemType, int[] bitMap, int offset) {
+        if (itemType instanceof CompoundType nct) {
+            computeBigBitMap(ts, nct, bitMap, offset);
+        } else if (itemType instanceof ArrayType at) {
+            computeBigBitMap(ts, at, bitMap, offset);
+        } else if (itemType instanceof ReferenceType) {
+            int refSize = ts.getReferenceSize();
+            int refShift = Integer.numberOfTrailingZeros(refSize);
+            int idx = offset >> refShift;
+            if (idx >= 64) {
+                throw new BigBitMapException();
+            }
+            bitMap[idx >> 5] |= 1 << idx;
+        }
+    }
+
     void initializeConstantStaticFields() {
         int cnt = typeDefinition.getFieldCount();
         for (int i = 0; i < cnt; i ++) {
@@ -232,8 +346,9 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     void postConstruct(final String name, VmImpl vm) {
         // todo: Base JDK equivalent core classes with appropriate manual initializer
         CoreClasses coreClasses = CoreClasses.get(vm.getCompilationContext());
+        LoadedTypeDefinition classDef = getVmClass().getTypeDefinition();
         try {
-            memory.storeRef(getVmClass().getLayoutInfo().getMember(getVmClass().getTypeDefinition().findField("name")).getOffset(), vm.intern(name), SinglePlain);
+            memory.storeRef(getVmClass().getLayoutInfo().getMember(classDef.findField("name")).getOffset(), vm.intern(name), SinglePlain);
 
             // typeId and dimensions
             FieldElement instanceTypeIdField = coreClasses.getClassTypeIdField();
@@ -250,6 +365,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 memory.store32(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceSizeField()).getOffset(), layoutInfo.getCompoundType().getSize(), SinglePlain);
                 memory.store8(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceAlignField()).getOffset(), layoutInfo.getCompoundType().getAlign(), SinglePlain);
             }
+            setPointerField(classDef, "referenceBitMap", computeBitMap());
         } catch (Exception e) {
             // for breakpoints
             throw e;

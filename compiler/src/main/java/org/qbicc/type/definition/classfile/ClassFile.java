@@ -139,6 +139,10 @@ public interface ClassFile extends FieldResolver,
      * For methods which are only invokable at build time.  Members with this annotation are not invokable during runtime.
      */
     int I_ACC_BUILD_TIME_ONLY = 1 << 30;
+    /**
+     * For classes. Indicates that the GC bitmap is a pointer to the full bitmap, rather than a {@code long} value.
+     */
+    int I_ACC_EXTENDED_BITMAP = 1 << 31;
 
     int OP_NOP = 0x00;
     int OP_ACONST_NULL = 0x01;
