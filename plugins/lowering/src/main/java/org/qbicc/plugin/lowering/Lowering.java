@@ -78,6 +78,10 @@ public class Lowering {
         if (appearing != null) {
             return appearing;
         }
+        // Sleazy hack.  The static fields of the InitialHeap class will be declared during serialization.
+        if (typeDef.internalPackageAndNameEquals("org/qbicc/runtime/main", "InitialHeap")) {
+            return global;
+        }
         // we added it, so we must add the definition as well
         LiteralFactory lf = ctxt.getLiteralFactory();
         ModuleSection section = ctxt.getOrAddProgramModule(typeDef).getOrAddSection(sectionName);
