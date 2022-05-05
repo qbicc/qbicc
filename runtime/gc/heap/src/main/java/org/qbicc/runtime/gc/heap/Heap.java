@@ -240,13 +240,25 @@ public final class Heap {
             ;
     }
 
-    // TODO: hoist error reporting to some kind of entry-point prologue
+    // Compatibility (temporary until class libs release)
     @constructor(priority = 0)
     @export
-    static void initHeap(c_int argc, char_ptr_ptr argv) {
+    @Deprecated
+    static void ctor(c_int argc, char_ptr_ptr argv) {
+        initHeap(argc.intValue(), argv);
+    }
+
+    @export
+    public static boolean initHeap(int argc, char_ptr_ptr argv) {
         if (Build.isHost()) {
             throw new IllegalStateException();
         }
+        // ↓ temporary ↓
+        if (initOk) {
+            // if ctor was used, don't initialize twice
+            return true;
+        }
+        // ↑ temporary ↑
         long pageMask;
         // Initializer function - JDK AND HEAP NOT YET AVAILABLE
         if (Build.Target.isPosix()) {
@@ -254,28 +266,28 @@ public final class Heap {
             if (pageSize == -1) {
                 errorMsgTemplate = utf8z("Failed to determine page size: %s\n").cast();
                 initErrno = errno;
-                return;
+                return false;
             }
             if (Integer.bitCount(pageSize) != 1) {
                 // not a power of 2? but not likely enough to be worth spending memory on an error message
-                return;
+                return false;
             }
             Heap.pageSize = pageSize;
             pageMask = pageSize - 1;
         } else {
             errorMsgTemplate = utf8z("Platform not supported\n").cast();
-            return;
+            return false;
         }
         // cycle through the arguments to find heap size options
         long maxHeap = -1;
         long minHeap = -1;
-        for (int i = 1; i < argc.intValue(); i ++) {
+        for (int i = 1; i < argc; i ++) {
             const_char_ptr arg = argv.asArray()[i].cast();
             if (strncmp(arg, utf8z("-Xmx"), word(4)) == zero()) {
                 maxHeap = parseMemSize(arg.plus(4));
                 if (maxHeap == -1) {
                     // failed
-                    return;
+                    return false;
                 }
                 if (maxHeap < pageSize) {
                     maxHeap = pageSize;
@@ -284,7 +296,7 @@ public final class Heap {
                 minHeap = parseMemSize(arg.plus(4));
                 if (minHeap == -1) {
                     // failed
-                    return;
+                    return false;
                 }
                 if (minHeap < pageSize) {
                     minHeap = pageSize;
@@ -342,7 +354,7 @@ public final class Heap {
             errorMsgTemplate = utf8z("Failed to map initial heap: %s\n").cast();
             initErrno = errno;
             // failed
-            return;
+            return false;
         }
         // align the heap
         long misalignment = heap.longValue() & (heapAlignment - 1);
@@ -362,7 +374,7 @@ public final class Heap {
             errorMsgTemplate = utf8z("Failed to commit minimum heap space: %s\n").cast();
             initErrno = errno;
             // failed
-            return;
+            return false;
         }
         Heap.heap = heap;
         Heap.allocated = 0;
@@ -371,7 +383,7 @@ public final class Heap {
         Heap.initOk = true;
         VarHandle.releaseFence();
         // The empty heap is configured!
-        return;
+        return true;
     }
 
     @export(withScope = ExportScope.LOCAL)
