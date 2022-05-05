@@ -9,13 +9,11 @@ import org.qbicc.interpreter.VmString;
 import org.qbicc.object.Data;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.ModuleSection;
-import org.qbicc.type.ArrayType;
-import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Comparator;
 import java.util.function.Consumer;
 
 public class StringInternTableEmitter implements Consumer<CompilationContext> {
@@ -29,7 +27,10 @@ public class StringInternTableEmitter implements Consumer<CompilationContext> {
             }
         });
 
-        // Construct and serialize the array of interned Strings
+        // Sort used so String$_native.intern() can use Arrays.binarySearch for runtime lookup
+        used.sort(Comparator.comparing(VmString::getContent));
+
+        // Construct and serialize the VmReferenceArray of interned VmStrings
         VmClass jls = ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getVmClass();
         VmReferenceArray internedStrings = ctxt.getVm().newArrayOf(jls, used.toArray(new VmObject[used.size()]));
         bth.serializeVmObject(internedStrings);
