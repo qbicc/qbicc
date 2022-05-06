@@ -90,7 +90,15 @@ public final class MethodData {
         int[] sourceCodeIndexList = (int[]) backtrace;
         for (int i = 0; i < depth; i++) {
             //printFrame(sourceCodeIndexList[i]);
-            fillStackTraceElement(steArray[i], sourceCodeIndexList[i]);
+            int sc = sourceCodeIndexList[i];
+            int mi = getMethodInfoIndex(sc);
+            Class<?> clazz = getClass(mi);
+            Module module = clazz.getModule();
+            String modName = module == null ? null : module.getName();
+            String modVer = /* todo: access directly via module */ null;
+            ClassLoader classLoader = clazz.getClassLoader();
+            String classLoaderName = classLoader.getName();
+            steArray[i] = new StackTraceElement(classLoaderName, modName, modVer, clazz.getName(), getMethodName(mi), getFileName(mi), getLineNumber(sc));
         }
     }
 }
