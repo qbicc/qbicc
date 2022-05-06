@@ -287,7 +287,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         // Perform the transformation done by ObjectLiteralSerializingVisitor.visit(StringLiteral) because this BBB runs during LOWER
         VmString vString = ctxt.getVm().intern(target.getEnclosingType().getInternalName().replace("/", ".")+"."+target.getName());
         BuildtimeHeap bth = BuildtimeHeap.get(ctxt);
-        bth.serializeVmObject(vString);
+        bth.serializeVmObject(vString, true);
         Literal arg = bth.referToSerializedVmObject(vString,
             ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getObjectType().getReference(),
             ctxt.getOrAddProgramModule(originalElement));

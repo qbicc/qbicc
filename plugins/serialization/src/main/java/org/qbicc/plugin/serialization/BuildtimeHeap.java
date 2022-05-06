@@ -77,7 +77,17 @@ public class BuildtimeHeap {
      */
     private final ModuleSection classSection;
     /**
-     * The rest of the objects in the intial heap
+     * Objects associated with build-time interned Strings.
+     * These objects can be ignored by GC because (a) they are non-collectable and
+     * (b) are guaranteed to not contain pointers to objects outside of this section.
+     * This section includes:
+     *   (a) The root array of all build-time interned Strings
+     *   (b) The java.lang.String instances for all build-time interned Strings
+     *   (c) The backing byte[] for all build-time interned Strings
+     */
+    private final ModuleSection stringSection;
+    /**
+     * The rest of the objects in the initial heap
      */
     private final ModuleSection objectSection;
     /**
@@ -97,6 +107,7 @@ public class BuildtimeHeap {
         this.coreClasses = CoreClasses.get(ctxt);
 
         this.classSection = ctxt.getImplicitSection(ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$ClassSection").load());
+        this.stringSection = ctxt.getImplicitSection(ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$InternedStringSection").load());
         this.objectSection = ctxt.getImplicitSection(ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$ObjectSection").load());
     }
 
@@ -175,7 +186,15 @@ public class BuildtimeHeap {
         }
     }
 
-    public synchronized void serializeVmObject(VmObject value) {
+    public synchronized void serializeVmObject(VmObject value, boolean toInternedStringSection) {
+        if (toInternedStringSection) {
+            serializeVmObject(value, stringSection);
+        } else {
+            serializeVmObject(value, objectSection);
+        }
+    }
+
+    private void serializeVmObject(VmObject value, ModuleSection into) {
         if (vmObjects.containsKey(value)) {
             return;
         }
@@ -196,11 +215,15 @@ public class BuildtimeHeap {
                 rootClasses[typeId] = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(value.getObjectType()); // indicate serialization has started
                 serializeVmObject(concreteType, objLayout, value, classSection, typeId, null); // now serialize and update rootClass[typeId]
             } else {
+                if (into == objectSection && ctxt.getVm().isInternedString(value)) {
+                    // Detect when the first reference to an interned String is from some arbitrary heap object and override section
+                    into = stringSection;
+                }
                 String name = nextLiteralName();
-                DataDeclaration decl = objectSection.getProgramModule().declareData(null, name, objLayout.getCompoundType());
+                DataDeclaration decl = into.getProgramModule().declareData(null, name, objLayout.getCompoundType());
                 decl.setAddrspace(1);
                 vmObjects.put(value, decl); // record declaration
-                serializeVmObject(concreteType, objLayout, value, objectSection, -1, decl.getName()); // now serialize and define a Data
+                serializeVmObject(concreteType, objLayout, value, into, -1, decl.getName()); // now serialize and define a Data
             }
         } else if (ot instanceof ReferenceArrayObjectType) {
             // Could be part of a cyclic object graph; must record the symbol for this array before we serialize its elements
@@ -209,13 +232,13 @@ public class BuildtimeHeap {
             Memory memory = value.getMemory();
             int length = memory.load32(info.getMember(coreClasses.getArrayLengthField()).getOffset(), SinglePlain);
             CompoundType literalCT = arrayLiteralType(contentsField, length);
-            DataDeclaration decl = objectSection.getProgramModule().declareData(null, nextLiteralName(), literalCT);
+            DataDeclaration decl = into.getProgramModule().declareData(null, nextLiteralName(), literalCT);
             decl.setAddrspace(1);
             vmObjects.put(value, decl); // record declaration
-            serializeRefArray((ReferenceArrayObjectType) ot, literalCT, length, objectSection, decl, (VmArray)value); // now serialize
+            serializeRefArray((ReferenceArrayObjectType) ot, literalCT, length, into, decl, (VmArray)value); // now serialize
         } else {
             // Can't be part of cyclic structure; don't need to record declaration first
-            vmObjects.put(value, serializePrimArray((PrimitiveArrayObjectType) ot, (VmArray)value, objectSection));
+            vmObjects.put(value, serializePrimArray((PrimitiveArrayObjectType) ot, (VmArray)value, into));
         }
     }
 
@@ -342,7 +365,7 @@ public class BuildtimeHeap {
                 if (contents == null) {
                     memberMap.put(om, lf.zeroInitializerLiteralOfType(om.getType()));
                 } else {
-                    serializeVmObject(contents);
+                    serializeVmObject(contents, into == classSection ? objectSection : into);
                     memberMap.put(om, referToSerializedVmObject(contents, rt, into.getProgramModule()));
                 }
             } else if (im.getType() instanceof PointerType pt) {
@@ -387,7 +410,7 @@ public class BuildtimeHeap {
             if (e == null) {
                 elements.add(lf.zeroInitializerLiteralOfType(at.getElementType()));
             } else {
-                serializeVmObject(e);
+                serializeVmObject(e, into);
                 elements.add(referToSerializedVmObject(e, jlo.getClassType().getReference(), into.getProgramModule()));
             }
         }

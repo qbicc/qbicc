@@ -1558,6 +1558,14 @@ public final class VmImpl implements Vm {
         return vmString;
     }
 
+    public boolean isInternedString(VmObject val) {
+        if (val instanceof VmStringImpl vs) {
+            return interned.containsKey(vs.getContent());
+        } else {
+            return false;
+        }
+    }
+
     public void forEachInternedString(Consumer<VmString> thunk) {
         interned.forEach((s, vs) -> thunk.accept(vs));
     }

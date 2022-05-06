@@ -50,11 +50,11 @@ public final class MethodDataStringsSerializer extends DelegatingBasicBlockBuild
 
         // the ProgramObjects being created here will be looked up by MethodDateEmitter later.
         if (fileName != null) {
-            heap.serializeVmObject(vm.intern(fileName));
+            heap.serializeVmObject(vm.intern(fileName), true);
         }
-        heap.serializeVmObject(vm.intern(className));
-        heap.serializeVmObject(vm.intern(methodName));
-        heap.serializeVmObject(vm.intern(methodDesc));
+        heap.serializeVmObject(vm.intern(className), true);
+        heap.serializeVmObject(vm.intern(methodName), true);
+        heap.serializeVmObject(vm.intern(methodDesc), true);
     }
 
     public Value call(ValueHandle target, List<Value> arguments) {
