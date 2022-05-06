@@ -58,7 +58,6 @@ import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
 public class BuildtimeHeap {
     private static final AttachmentKey<BuildtimeHeap> KEY = new AttachmentKey<>();
-    private static final String prefix = "qbicc_initial_heap_obj_";
     private static final Logger slog = Logger.getLogger("org.qbicc.plugin.serialization.stats");
 
     private final CompilationContext ctxt;
@@ -219,7 +218,7 @@ public class BuildtimeHeap {
                     // Detect when the first reference to an interned String is from some arbitrary heap object and override section
                     into = stringSection;
                 }
-                String name = nextLiteralName();
+                String name = nextLiteralName(into);
                 DataDeclaration decl = into.getProgramModule().declareData(null, name, objLayout.getCompoundType());
                 decl.setAddrspace(1);
                 vmObjects.put(value, decl); // record declaration
@@ -232,7 +231,7 @@ public class BuildtimeHeap {
             Memory memory = value.getMemory();
             int length = memory.load32(info.getMember(coreClasses.getArrayLengthField()).getOffset(), SinglePlain);
             CompoundType literalCT = arrayLiteralType(contentsField, length);
-            DataDeclaration decl = into.getProgramModule().declareData(null, nextLiteralName(), literalCT);
+            DataDeclaration decl = into.getProgramModule().declareData(null, nextLiteralName(into), literalCT);
             decl.setAddrspace(1);
             vmObjects.put(value, decl); // record declaration
             serializeRefArray((ReferenceArrayObjectType) ot, literalCT, length, into, decl, (VmArray)value); // now serialize
@@ -246,8 +245,12 @@ public class BuildtimeHeap {
         return value instanceof VmClass vmClass && !(vmClass instanceof VmReferenceArrayClass) && vmClass.getTypeDefinition().getTypeId() != -1;
     }
 
-    private String nextLiteralName() {
-        return prefix + (this.literalCounter++);
+    private String nextLiteralName(ModuleSection into) {
+        if (into == objectSection) {
+            return "qbicc_initial_heap_obj_" + (this.literalCounter++);
+        } else {
+            return "qbicc_initial_heap_iss_" + (this.literalCounter++);
+        }
     }
 
     private Data defineData(ModuleSection into, String name, Literal value) {
@@ -490,7 +493,7 @@ public class BuildtimeHeap {
         // add the actual array contents
         memberMap.put(literalCT.getMember(literalCT.getMemberCount() - 1), arrayContentsLiteral);
 
-        Data arrayData = defineData(into, nextLiteralName(), ctxt.getLiteralFactory().literalOf(literalCT, memberMap));
+        Data arrayData = defineData(into, nextLiteralName(into), ctxt.getLiteralFactory().literalOf(literalCT, memberMap));
         DataDeclaration decl = arrayData.getDeclaration();
         decl.setAddrspace(1);
         return decl;
