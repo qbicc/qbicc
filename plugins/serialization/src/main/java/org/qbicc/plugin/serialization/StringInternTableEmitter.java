@@ -33,7 +33,7 @@ public class StringInternTableEmitter implements Consumer<CompilationContext> {
         // Construct and serialize the VmReferenceArray of interned VmStrings
         VmClass jls = ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getVmClass();
         VmReferenceArray internedStrings = ctxt.getVm().newArrayOf(jls, used.toArray(new VmObject[used.size()]));
-        bth.serializeVmObject(internedStrings);
+        bth.serializeVmObject(internedStrings, true);
 
         // Initialize InitialHeap.internedStrings to refer to it
         LoadedTypeDefinition ih = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap").load();

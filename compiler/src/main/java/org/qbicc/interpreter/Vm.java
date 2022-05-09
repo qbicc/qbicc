@@ -238,6 +238,11 @@ public interface Vm {
     VmString intern(String string);
 
     /**
+     * Is the given VmObject and interned VmString?
+     */
+    boolean isInternedString(VmObject val);
+
+    /**
      * Iterate over all interned VmStrings
      * @param thunk the function to apply to each VmString
      */

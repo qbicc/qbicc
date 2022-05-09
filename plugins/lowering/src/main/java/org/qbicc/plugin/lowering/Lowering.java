@@ -129,7 +129,7 @@ public class Lowering {
         }
         if (initialValue instanceof ObjectLiteral ol) {
             BuildtimeHeap bth = BuildtimeHeap.get(ctxt);
-            bth.serializeVmObject(ol.getValue());
+            bth.serializeVmObject(ol.getValue(), false);
             initialValue = bth.referToSerializedVmObject(ol.getValue(), ol.getType(), section.getProgramModule());
         }
         final Data data = section.addData(field, globalName, initialValue);

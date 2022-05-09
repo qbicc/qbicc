@@ -32,11 +32,11 @@ public class ClassObjectSerializer implements Consumer<CompilationContext> {
         // Serialize all the root Class instances
         ReachabilityInfo.get(ctxt).visitReachableTypes(ltd -> {
             VmClass vmClass = ltd.getVmClass();
-            bth.serializeVmObject(vmClass);
+            bth.serializeVmObject(vmClass, false);
         });
         Primitive.forEach(type -> {
             VmClass vmClass = ctxt.getVm().getPrimitiveClass(type);
-            bth.serializeVmObject(vmClass);
+            bth.serializeVmObject(vmClass, false);
         });
 
         bth.emitRootClassArray();
