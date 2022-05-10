@@ -135,6 +135,15 @@ final class ClassContextImpl implements ClassContext {
             assert ref.get() == LOADING;
             return;
         }
+        if (ref.get() == NOT_FOUND) {
+            // dynamically generated class, try to replace the previous absence with definition
+            synchronized (ref) {
+                if (ref.compareAndSet(NOT_FOUND, definition)) {
+                    return;
+                }
+            }
+        }
+
         throw new DefineFailedException("Duplicated class named " + name);
     }
 
