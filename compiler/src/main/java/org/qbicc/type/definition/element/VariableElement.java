@@ -1,10 +1,6 @@
 package org.qbicc.type.definition.element;
 
 import org.qbicc.type.ObjectType;
-import java.lang.invoke.ConstantBootstraps;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
-
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.context.ClassContext;
@@ -18,8 +14,6 @@ import io.smallrye.common.constraint.Assert;
  * An element representing a variable of some kind.
  */
 public abstract class VariableElement extends AnnotatedElement implements NamedElement {
-    private static final VarHandle interpOffsetHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "interpOffset", VarHandle.class, VariableElement.class, int.class);
-
     private final String name;
     private final TypeDescriptor typeDescriptor;
     private final TypeSignature typeSignature;
@@ -28,10 +22,6 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
     private final TypeParameterContext typeParameterContext;
     private volatile ValueType type;
     private volatile long offset = -1;
-
-    // Interpreter caches
-
-    private volatile int interpOffset;
 
     VariableElement(BuilderImpl builder) {
         super(builder);
@@ -102,18 +92,6 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         return getTypeDescriptor().isClass2();
     }
 
-    public int getInterpreterOffset() {
-        return interpOffset;
-    }
-
-    public void setInterpreterOffset(int value) {
-        interpOffset = value;
-    }
-
-    public boolean compareAndSetInterpreterOffset(int expect, int update) {
-        return interpOffsetHandle.compareAndSet(this, expect, update);
-    }
-
     public long getOffset() {
         long offset = this.offset;
         if (offset == -1) {
@@ -123,6 +101,9 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
     }
 
     public void setOffset(long offset) {
+        if (this.offset != -1 && this.offset != offset) {
+            throw new IllegalStateException("Value of offset was changed to "+offset+" from a value of "+this.offset+" for "+this);
+        }
         this.offset = offset;
     }
 
