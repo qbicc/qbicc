@@ -2,6 +2,9 @@ package org.qbicc.type;
 
 import io.smallrye.common.constraint.Assert;
 
+import java.lang.invoke.ConstantBootstraps;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -17,18 +20,25 @@ import java.util.function.Supplier;
  */
 public final class CompoundType extends ValueType {
 
+    private static final VarHandle sizeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "size", VarHandle.class, CompoundType.class, long.class);
+    private static final VarHandle alignHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "align", VarHandle.class, CompoundType.class, int.class);
+
     private final Tag tag;
     private final String name;
-    private final long size;
-    private final int align;
+    @SuppressWarnings("FieldMayBeFinal") // sizeHandle
+    private volatile long size;
+    @SuppressWarnings("FieldMayBeFinal") // alignHandle
+    private volatile int align;
     private final boolean complete;
     private volatile Supplier<List<Member>> membersResolver;
     private volatile List<Member> members;
     private volatile List<Member> paddedMembers;
     private volatile Map<String, Member> membersByName;
+    // late-computed hash code
+    private int hashCode;
 
     CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, final Supplier<List<Member>> membersResolver, final long size, final int overallAlign) {
-        super(typeSystem, (int) size * 19 + Integer.numberOfTrailingZeros(overallAlign));
+        super(typeSystem, 0);
         // name/tag do not contribute to hash or equality
         this.tag = tag;
         this.name = name;
@@ -36,6 +46,17 @@ public final class CompoundType extends ValueType {
         this.size = size;
         assert Integer.bitCount(overallAlign) == 1;
         this.align = overallAlign;
+        this.membersResolver = membersResolver;
+        this.complete = true;
+    }
+
+    CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, final Supplier<List<Member>> membersResolver) {
+        super(typeSystem, 0);
+        // name/tag do not contribute to hash or equality
+        this.tag = tag;
+        this.name = name;
+        this.size = -1;
+        this.align = -1;
         this.membersResolver = membersResolver;
         this.complete = true;
     }
@@ -239,10 +260,38 @@ public final class CompoundType extends ValueType {
     }
 
     public long getSize() {
+        long size = this.size;
+        if (size == -1) {
+            // computed dynamically from members
+            List<Member> members = getMembers();
+            size = 0;
+            for (Member member : members) {
+                size = Math.max(size, member.getOffset() + member.getType().getSize());
+            }
+            long witness = (long) sizeHandle.compareAndExchange(this, -1L, size);
+            if (witness != -1 && witness != size) {
+                // size changed to something unexpected! should be impossible though...
+                throw new IllegalStateException();
+            }
+        }
         return size;
     }
 
     public int getAlign() {
+        int align = this.align;
+        if (align == -1) {
+            // computed dynamically from members
+            List<Member> members = getMembers();
+            align = 1;
+            for (Member member : members) {
+                align = Math.max(align, member.getType().getAlign());
+            }
+            long witness = (long) alignHandle.compareAndExchange(this, -1, align);
+            if (witness != -1 && witness != align) {
+                // align changed to something unexpected! should be impossible though...
+                throw new IllegalStateException();
+            }
+        }
         return align;
     }
 
@@ -252,6 +301,19 @@ public final class CompoundType extends ValueType {
 
     public boolean equals(final CompoundType other) {
         return this == other || super.equals(other) && Objects.equals(name, other.name) && size == other.size && align == other.align && getMembers().equals(other.getMembers());
+    }
+
+    @Override
+    public int hashCode() {
+        int hashCode = this.hashCode;
+        if (hashCode == 0) {
+            hashCode = (int) (((getSize() * 19) + getAlign()) * 19 + getMembers().hashCode());
+            if (hashCode == 0) {
+                hashCode |= 1 << 31;
+            }
+            this.hashCode = hashCode;
+        }
+        return hashCode;
     }
 
     public StringBuilder toString(final StringBuilder b) {

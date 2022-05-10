@@ -314,6 +314,11 @@ public final class TypeSystem {
         return new CompoundType(this, tag, name, memberResolver, size, align);
     }
 
+    public CompoundType getCompoundType(final CompoundType.Tag tag, String name, Supplier<List<CompoundType.Member>> memberResolver) {
+        Assert.checkNotNullParam("tag", tag);
+        return new CompoundType(this, tag, name, memberResolver);
+    }
+
     public CompoundType getIncompleteCompoundType(final CompoundType.Tag tag, final String name) {
         Assert.checkNotNullParam("tag", tag);
         Assert.checkNotNullParam("name", name);
