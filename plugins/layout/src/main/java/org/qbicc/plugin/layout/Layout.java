@@ -181,7 +181,7 @@ public final class Layout {
             if (member.getAlign() > minAlignment) {
                 minAlignment = member.getAlign();
             }
-            fieldToMember.put(field, computeMember(allocated, field));
+            fieldToMember.put(field, member);
             field.setOffset(member.getOffset());
         }
         int size = allocated.length();
