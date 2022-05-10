@@ -81,7 +81,7 @@ public abstract class Pointer {
             for (int i = 0; i < fieldCount; i ++) {
                 FieldElement field = def.getField(i);
                 if (! field.isStatic()) {
-                    int fieldOffset = field.getInterpreterOffset();
+                    long fieldOffset = field.getOffset();
                     if (offset >= fieldOffset && offset < field.getType().getSize()) {
                         return new InstanceFieldPointer(this, field).offsetInBytes(fieldOffset - offset, false);
                     }

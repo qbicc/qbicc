@@ -123,9 +123,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         }
         LoadedTypeDefinition loaded = defined.load();
         VmClassImpl vmClass = createVmClass(vm, loaded, hidden);
-        if (hidden) {
-            loaded.setVmClass(vmClass);
-        }
+        loaded.setVmClass(vmClass);
         if (! hidden && this.defined.putIfAbsent(internalName, vmClass) != null) {
             VmThrowable throwable = vm.noClassDefFoundErrorClass.newInstance("Class already defined");
             VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();

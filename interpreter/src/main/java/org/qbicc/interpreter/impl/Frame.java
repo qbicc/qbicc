@@ -2549,7 +2549,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public long visit(Frame frame, LocalVariable node) {
-            return node.getVariableElement().getInterpreterOffset();
+            return node.getVariableElement().getOffset();
         }
 
         @Override

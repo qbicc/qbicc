@@ -101,7 +101,7 @@ final class VmInvokableImpl implements VmInvokable {
                 int mask = align - 1;
                 sizeHolder[0] = (sizeHolder[0] + mask) & ~mask;
             }
-            varElem.setInterpreterOffset(sizeHolder[0]);
+            varElem.setOffset(sizeHolder[0]);
             sizeHolder[0] += size;
         }
         if (! (node instanceof Terminator || node instanceof Unschedulable)) {
