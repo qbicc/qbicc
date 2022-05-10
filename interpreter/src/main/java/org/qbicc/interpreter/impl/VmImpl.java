@@ -750,7 +750,7 @@ public final class VmImpl implements Vm {
             VmClassImpl classloaderClass = bootstrapClassLoader.loadClass("java/lang/ClassLoader");
             classloaderClass.registerInvokable("defineClass1", (thread, target, args) -> {
                 VmClassLoaderImpl classLoader = (VmClassLoaderImpl) args.get(0);
-                VmString name = (VmString) args.get(1);
+                VmString name = fixClassname((VmString) args.get(1));
                 VmByteArrayImpl b = (VmByteArrayImpl) args.get(2);
                 int off = (Integer) args.get(3);
                 int len = (Integer) args.get(4);
@@ -768,7 +768,7 @@ public final class VmImpl implements Vm {
             classloaderClass.registerInvokable("defineClass0", (thread, target, args) -> {
                 VmClassLoaderImpl classLoader = (VmClassLoaderImpl) args.get(0);
                 VmClassImpl lookup = (VmClassImpl) args.get(1);
-                VmString name = (VmString) args.get(2);
+                VmString name = fixClassname((VmString) args.get(2));
                 VmByteArrayImpl b = (VmByteArrayImpl) args.get(3);
                 int off = ((Integer) args.get(4)).intValue();
                 int len = ((Integer) args.get(5)).intValue();
@@ -883,6 +883,15 @@ public final class VmImpl implements Vm {
             initialize(bootstrapClassLoader.loadClass("java/lang/ref/Reference"));
             initialize(bootstrapClassLoader.loadClass("java/util/concurrent/ForkJoinPool"));
         }
+    }
+
+    // Convert '.' to '/' matching the functionality of fixClassname in the JDK's check_classname.c
+    private VmString fixClassname(VmString name) {
+        String n = name.getContent();
+        if (n.indexOf('.') == -1) {
+            return name;
+        }
+        return intern(n.replace('.', '/'));
     }
 
     // Helper method to go through the various possible combinations of objects, longs, and null
