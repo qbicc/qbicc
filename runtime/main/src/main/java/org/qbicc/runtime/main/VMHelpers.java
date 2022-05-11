@@ -191,14 +191,6 @@ public final class VMHelpers {
         throw new NotReachableException(target);
     }
 
-
-    // Run time class loading
-
-    public static Class<?> classForName(String name, boolean initialize, ClassLoader loader) throws ClassNotFoundException {
-        // TODO: keep a map of run time loadable classes per class loader
-        throw new ClassNotFoundException("Run time class loading not yet supported");
-    }
-
     /**
      * Wrapper for threadWrapperNative intrinsic.
      * The export annotation allows this function to be passed as the void*(void*) type required by pthread_create
