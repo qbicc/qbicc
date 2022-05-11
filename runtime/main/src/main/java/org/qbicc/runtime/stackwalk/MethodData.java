@@ -97,8 +97,9 @@ public final class MethodData {
             String modName = module == null ? null : module.getName();
             String modVer = /* todo: access directly via module */ null;
             ClassLoader classLoader = clazz.getClassLoader();
-            String classLoaderName = classLoader.getName();
+            String classLoaderName = classLoader == null ? null : classLoader.getName();
             steArray[i] = new StackTraceElement(classLoaderName, modName, modVer, clazz.getName(), getMethodName(mi), getFileName(mi), getLineNumber(sc));
+            ((StackTraceElementAccess)(Object)steArray[i]).declaringClassObject = clazz;
         }
     }
 }
