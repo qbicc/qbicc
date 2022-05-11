@@ -27,6 +27,11 @@ public class DispatchTableBuilder implements Consumer<CompilationContext>  {
         DispatchTables.VTableInfo vhInfo = tables.getVTableInfo(vh);
         info.visitReachableSubclassesPreOrder(vh, c -> tables.adjustVTableForSigPloySubclass(c, vhInfo));
 
+        // Now adjust the vtables of MethodHandle subclasses to account for our implementation trick of "overriding" SigPoly methods
+        LoadedTypeDefinition mh = classContext.findDefinedType("java/lang/invoke/MethodHandle").load();
+        DispatchTables.VTableInfo mhInfo = tables.getVTableInfo(mh);
+        info.visitReachableSubclassesPreOrder(vh, c -> tables.adjustVTableForSigPloySubclass(c, mhInfo));
+
         // Synthesize GlobalVariable for vtables[] and itable_dict[]
         tables.buildVTablesGlobal(jlo);
         tables.buildITablesGlobal(jlo);
