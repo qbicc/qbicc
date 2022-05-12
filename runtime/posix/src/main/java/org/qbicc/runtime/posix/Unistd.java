@@ -65,7 +65,9 @@ public final class Unistd {
 
     public static native off_t lseek(c_int fd, off_t offset, c_int whence);
 
-    public static native c_int fcntl(c_int fd, c_int cmd);
+    public static c_int fcntl(c_int fd, c_int cmd) {
+        return fcntl(fd, cmd, word(0));
+    }
 
     public static native c_int fcntl(c_int fd, c_int cmd, object... arg);
 
