@@ -8,6 +8,8 @@ import org.qbicc.runtime.NoReturn;
 import org.qbicc.runtime.NoSideEffects;
 import org.qbicc.runtime.NotReachableException;
 
+import java.util.Arrays;
+
 import static org.qbicc.runtime.CNative.*;
 import static org.qbicc.runtime.posix.PThread.*;
 import static org.qbicc.runtime.stdc.Stdint.*;
@@ -191,14 +193,6 @@ public final class VMHelpers {
         throw new NotReachableException(target);
     }
 
-
-    // Run time class loading
-
-    public static Class<?> classForName(String name, boolean initialize, ClassLoader loader) throws ClassNotFoundException {
-        // TODO: keep a map of run time loadable classes per class loader
-        throw new ClassNotFoundException("Run time class loading not yet supported");
-    }
-
     /**
      * Wrapper for threadWrapperNative intrinsic.
      * The export annotation allows this function to be passed as the void*(void*) type required by pthread_create
@@ -251,5 +245,20 @@ public final class VMHelpers {
     //       call CompilerIntrinsics.threadWrapperNative directly and this redirection method can be removed.
     public static void_ptr threadWrapperNative(void_ptr threadParam) {
         return CompilerIntrinsics.threadWrapperNative(threadParam);
+    }
+
+    /**
+     * Return the Class instance corresponding to the given name and loader.
+     * @param name The internal name of the class
+     * @param loader The defining loader of the class (null for bootloader)
+     * @return The requested Class instance or <code>null</code> if it is not found
+     */
+    public static Class<?> findLoadedClass(String name, ClassLoader loader) {
+        if (loader == null) {
+            int idx = Arrays.binarySearch(InitialHeap.bootstrapClassNames, name);
+            return idx >= 0 ? InitialHeap.bootstrapClasses[idx] : null;
+        }
+        // TODO: Extend lookup structures to support additional classloaders
+        return null;
     }
 }

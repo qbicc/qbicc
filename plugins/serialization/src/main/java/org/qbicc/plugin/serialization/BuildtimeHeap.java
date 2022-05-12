@@ -2,6 +2,7 @@ package org.qbicc.plugin.serialization;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -151,6 +152,38 @@ public class BuildtimeHeap {
         Data d = classSection.addData(null, rootClassesDecl.getName(), ctxt.getLiteralFactory().literalOf((ArrayType) rootClassesDecl.getValueType(), List.of(rootClasses)));
         d.setLinkage(Linkage.EXTERNAL);
         d.setAddrspace(1);
+    }
+
+    void emitRootClassDictionaries(ArrayList<VmClass> rootClasses) {
+        LoadedTypeDefinition ih = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap").load();
+        ModuleSection section = ctxt.getImplicitSection(ih);
+        LoadedTypeDefinition jls_td = ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load();
+        LoadedTypeDefinition jlc_td = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
+        VmClass jls = jls_td.getVmClass();
+        VmClass jlc = jlc_td.getVmClass();
+        int nameIdx= jlc.indexOf(jlc_td.findField("name"));
+
+        rootClasses.sort(Comparator.comparing(x -> x.getTypeDefinition().getInternalName()));
+
+        // Construct and serialize the sorted VmReferenceArray of Strings that are class names
+        VmObject[] names = new VmObject[rootClasses.size()];
+        for (int i=0; i<rootClasses.size(); i++) {
+            names[i] = rootClasses.get(i).getMemory().loadRef(nameIdx, SinglePlain);
+        }
+        VmReferenceArray nameArray = ctxt.getVm().newArrayOf(jls, names);
+        serializeVmObject(nameArray, false);
+        String name1 = ih.getInternalName().replace('/', '.') + "." + ih.findField("bootstrapClassNames").getName();
+        Data d1 = section.addData(null, name1,  referToSerializedVmObject(nameArray, nameArray.getObjectType().getReference(), section.getProgramModule()));
+        d1.setLinkage(Linkage.EXTERNAL);
+        d1.setDsoLocal();
+
+        // Construct and serialize the sorted VmReferenceArray of Class instances
+        VmReferenceArray classArray = ctxt.getVm().newArrayOf(jlc, rootClasses.toArray(new VmObject[rootClasses.size()]));
+        serializeVmObject(classArray, false);
+        String name2 = ih.getInternalName().replace('/', '.') + "." + ih.findField("bootstrapClasses").getName();
+        Data d2 = section.addData(null, name2,  referToSerializedVmObject(classArray, classArray.getObjectType().getReference(), section.getProgramModule()));
+        d2.setLinkage(Linkage.EXTERNAL);
+        d2.setDsoLocal();
     }
 
     public ProgramObject getAndRegisterGlobalClassArray(ExecutableElement originalElement) {

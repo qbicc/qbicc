@@ -465,34 +465,6 @@ public final class VmImpl implements Vm {
             VmClassImpl vmHelpersClass = bootstrapClassLoader.loadClass("org/qbicc/runtime/main/VMHelpers");
 
             vmHelpersClass.registerInvokable("getClassFromObject", 1, (thread, target, args) -> ((VmObjectImpl) args.get(0)).getVmClass());
-            vmHelpersClass.registerInvokable("classForName", (thread, target, args) -> {
-                VmClassLoaderImpl classLoader = (VmClassLoaderImpl) args.get(2);
-                if (classLoader == null) {
-                    classLoader = bootstrapClassLoader;
-                }
-                String name = ((VmStringImpl) args.get(0)).getContent();
-                int dims = 0;
-                while (name.startsWith("[[")) {
-                    name = name.substring(1);
-                    dims ++;
-                }
-                if (name.startsWith("[L")) {
-                    if (! name.endsWith(";")) {
-                        throw new Thrown(noClassDefFoundErrorClass.newInstance("Bad array descriptor"));
-                    }
-                    // load the array class
-                    name = name.substring(2, name.length() - 1);
-                    dims ++;
-                }
-                VmClassImpl clazz = classLoader.loadClass(name.replace('.', '/'));
-                for (int i = 0; i < dims; i ++) {
-                    clazz = clazz.getArrayClass();
-                }
-                if (((Boolean) args.get(1)).booleanValue()) {
-                    clazz.initialize((VmThreadImpl) thread);
-                }
-                return clazz;
-            });
 
             // ObjectModel
             VmClassImpl compIntr = bootstrapClassLoader.loadClass("org/qbicc/runtime/main/CompilerIntrinsics");
@@ -746,6 +718,35 @@ public final class VmImpl implements Vm {
                 VmClass objClazz = obj.getVmClass();
                 return Boolean.valueOf(objClazz.getInstanceObjectType().isSubtypeOf(clazz.getInstanceObjectType()));
             });
+            classClass.registerInvokable("forName0", (thread, target, args) -> {
+                VmClassLoaderImpl classLoader = (VmClassLoaderImpl) args.get(2);
+                if (classLoader == null) {
+                    classLoader = bootstrapClassLoader;
+                }
+                String name = ((VmStringImpl) args.get(0)).getContent();
+                int dims = 0;
+                while (name.startsWith("[[")) {
+                    name = name.substring(1);
+                    dims ++;
+                }
+                if (name.startsWith("[L")) {
+                    if (! name.endsWith(";")) {
+                        throw new Thrown(noClassDefFoundErrorClass.newInstance("Bad array descriptor"));
+                    }
+                    // load the array class
+                    name = name.substring(2, name.length() - 1);
+                    dims ++;
+                }
+                VmClassImpl clazz = classLoader.loadClass(name.replace('.', '/'));
+                for (int i = 0; i < dims; i ++) {
+                    clazz = clazz.getArrayClass();
+                }
+                if (((Boolean) args.get(1)).booleanValue()) {
+                    clazz.initialize((VmThreadImpl) thread);
+                }
+                return clazz;
+            });
+
 
             VmClassImpl classloaderClass = bootstrapClassLoader.loadClass("java/lang/ClassLoader");
             classloaderClass.registerInvokable("defineClass1", (thread, target, args) -> {
