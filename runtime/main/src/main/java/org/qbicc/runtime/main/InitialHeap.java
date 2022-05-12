@@ -7,6 +7,11 @@ public class InitialHeap {
     // to be used at runtime by String.intern() for efficient lookup.
     public static String[] internedStrings;
 
+    // Tables to allow runtime mapping of a <ClassLoader, String> pair to a build-time loaded Class object.
+    // Used to implement Class.forName0, ClassLoader.findBootstrapClass, and ClassLoader.findLoadedClass0
+    static String[] bootstrapClassNames;  // sorted in natural order for Arrays.binarySearch
+    static Class<?>[] bootstrapClasses;   // bootstrapClasses[i].name == bootstrapClassNames[i]
+
     static class ClassSection {}
     static class InternedStringSection {}
     static class ObjectSection {}
