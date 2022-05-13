@@ -26,7 +26,7 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
     public ValueType resolveTypeFromClassName(final String packageName, final String internalName) {
         DefinedTypeDefinition definedType = classContext.findDefinedType(packageName.isEmpty() ? internalName : packageName + '/' + internalName);
         if (definedType == null) {
-            return null;
+            return classContext.getTypeSystem().getUnresolvedType();
         } else {
             return definedType.load().getObjectType();
         }
