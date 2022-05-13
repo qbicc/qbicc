@@ -68,7 +68,7 @@ public abstract class Type {
         return typeSystem.getVoidType();
     }
 
-    public final int hashCode() {
+    public int hashCode() {
         return hashCode;
     }
 
