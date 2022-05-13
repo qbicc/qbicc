@@ -604,6 +604,7 @@ public class DotNodeVisitor implements NodeVisitor.Delegating<DotContext, String
 
     public String visit(final DotContext param, final Invoke.ReturnValue node) {
         param.processDependency(node.getInvoke());
+        delegate.visit(param, node);
         return param.getName(node.getInvoke());
     }
 
@@ -721,7 +722,7 @@ public class DotNodeVisitor implements NodeVisitor.Delegating<DotContext, String
         param.addDependency(name);
         param.addEdge(node, node.getValue(), EdgeType.VALUE_DEPENDENCY);
         param.processDependency(node.getDependency());
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final DotContext param, final Add node) {
@@ -751,7 +752,8 @@ public class DotNodeVisitor implements NodeVisitor.Delegating<DotContext, String
     }
 
     public String visit(final DotContext param, final BitCastLiteral node) {
-        return literal(param, "bit cast →" + node.getType().toString());
+        literal(param, "bit cast →" + node.getType().toString());
+        return delegate.visit(param, node);
     }
 
     public String visit(final DotContext param, final BitReverse node) {
@@ -771,7 +773,8 @@ public class DotNodeVisitor implements NodeVisitor.Delegating<DotContext, String
     }
 
     public String visit(final DotContext param, final BooleanLiteral node) {
-        return literal(param, String.valueOf(node.booleanValue()));
+        literal(param, String.valueOf(node.booleanValue()));
+        return delegate.visit(param, node);
     }
 
     public String visit(final DotContext param, final ByteArrayLiteral node) {
@@ -899,7 +902,8 @@ public class DotNodeVisitor implements NodeVisitor.Delegating<DotContext, String
     }
 
     public String visit(final DotContext param, final FloatLiteral node) {
-        return literal(param, String.valueOf(node.doubleValue()));
+        literal(param, String.valueOf(node.doubleValue()));
+        return delegate.visit(param, node);
     }
 
     private String node(DotContext param, String label, ReadModifyWriteValue node) {
@@ -1000,7 +1004,8 @@ public class DotNodeVisitor implements NodeVisitor.Delegating<DotContext, String
     }
 
     public String visit(final DotContext param, final IntegerLiteral node) {
-        return literal(param, String.valueOf(node.longValue()));
+        literal(param, String.valueOf(node.longValue()));
+        return delegate.visit(param, node);
     }
 
     public String visit(final DotContext param, final IsEq node) {
@@ -1045,7 +1050,8 @@ public class DotNodeVisitor implements NodeVisitor.Delegating<DotContext, String
     }
 
     public String visit(final DotContext param, final MethodHandleLiteral node) {
-        return literal(param, node.toString());
+        literal(param, node.toString());
+        return delegate.visit(param, node);
     }
 
     public String visit(final DotContext param, final Max node) {
@@ -1112,7 +1118,8 @@ public class DotNodeVisitor implements NodeVisitor.Delegating<DotContext, String
     }
 
     public String visit(final DotContext param, final ConstantLiteral node) {
-        return literal(param, "constant");
+        literal(param, "constant");
+        return delegate.visit(param, node);
     }
 
     public String visit(final DotContext param, final Neg node) {
@@ -1148,15 +1155,18 @@ public class DotNodeVisitor implements NodeVisitor.Delegating<DotContext, String
     }
 
     public String visit(final DotContext param, final NullLiteral node) {
-        return literal(param, "null");
+        literal(param, "null");
+        return delegate.visit(param, node);
     }
 
     public String visit(final DotContext param, final ZeroInitializerLiteral node) {
-        return literal(param, "zero");
+        literal(param, "zero");
+        return delegate.visit(param, node);
     }
 
     public String visit(final DotContext param, final ObjectLiteral node) {
-        return literal(param, "object");
+        literal(param, "object");
+        return delegate.visit(param, node);
     }
 
     public String visit(final DotContext param, final Or node) {
@@ -1172,7 +1182,8 @@ public class DotNodeVisitor implements NodeVisitor.Delegating<DotContext, String
             b.append(index);
         }
         b.append(']');
-        return literal(param, b.toString());
+        literal(param, b.toString());
+        return delegate.visit(param, node);
     }
 
     public String visit(final DotContext param, final PhiValue node) {
@@ -1187,7 +1198,8 @@ public class DotNodeVisitor implements NodeVisitor.Delegating<DotContext, String
     }
 
     public String visit(final DotContext param, final PointerLiteral node) {
-        return literal(param, "pointer");
+        literal(param, "pointer");
+        return delegate.visit(param, node);
     }
 
     public String visit(final DotContext param, final PopCount node) {
@@ -1248,11 +1260,13 @@ public class DotNodeVisitor implements NodeVisitor.Delegating<DotContext, String
     }
 
     public String visit(final DotContext param, final StringLiteral node) {
-        return literal(param, '"' + node.getValue() + '"');
+        literal(param, '"' + node.getValue() + '"');
+        return delegate.visit(param, node);
     }
 
     public String visit(final DotContext param, final ProgramObjectLiteral node) {
-        return literal(param, "@" + node.getName());
+        literal(param, "@" + node.getName());
+        return delegate.visit(param, node);
     }
 
     public String visit(final DotContext param, final Sub node) {
@@ -1266,15 +1280,18 @@ public class DotNodeVisitor implements NodeVisitor.Delegating<DotContext, String
     }
 
     public String visit(final DotContext param, final TypeLiteral node) {
-        return literal(param, node.getType().getUpperBound().toString());
+        literal(param, node.getType().getUpperBound().toString());
+        return delegate.visit(param, node);
     }
 
     public String visit(final DotContext param, final UndefinedLiteral node) {
-        return literal(param, "undef");
+        literal(param, "undef");
+        return delegate.visit(param, node);
     }
 
     public String visit(DotContext param, ValueConvertLiteral node) {
-        return literal(param, "convert →" + node.getType().toString());
+        literal(param, "convert →" + node.getType().toString());
+        return delegate.visit(param, node);
     }
 
     public String visit(final DotContext param, final Xor node) {
