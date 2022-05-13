@@ -19,12 +19,12 @@ public final class Unwind {
     public static native _Unwind_Reason_Code _Unwind_RaiseException(struct__Unwind_Exception_ptr exception_object);
     public static native void _Unwind_Resume(struct__Unwind_Exception_ptr exception_object);
     public static native void _Unwind_DeleteException(struct__Unwind_Exception_ptr exception_object);
-    public static native uint64_t _Unwind_GetGR(struct__Unwind_Context_ptr context, c_int index);
-    public static native void _Unwind_SetGR(struct__Unwind_Context_ptr context, c_int index, uint64_t new_value);
-    public static native uint64_t _Unwind_GetIP(struct__Unwind_Context_ptr context);
-    public static native void _Unwind_SetIP(struct__Unwind_Context_ptr context, uint64_t new_value);
-    public static native uint64_t _Unwind_GetRegionStart(struct__Unwind_Context_ptr context);
-    public static native uint64_t _Unwind_GetLanguageSpecificData(struct__Unwind_Context_ptr context);
+    public static native unsigned_long _Unwind_GetGR(struct__Unwind_Context_ptr context, c_int index);
+    public static native void _Unwind_SetGR(struct__Unwind_Context_ptr context, c_int index, unsigned_long new_value);
+    public static native unsigned_long _Unwind_GetIP(struct__Unwind_Context_ptr context);
+    public static native void _Unwind_SetIP(struct__Unwind_Context_ptr context, unsigned_long new_value);
+    public static native unsigned_long _Unwind_GetRegionStart(struct__Unwind_Context_ptr context);
+    public static native unsigned_long _Unwind_GetLanguageSpecificData(struct__Unwind_Context_ptr context);
     public static native _Unwind_Reason_Code _Unwind_ForcedUnwind(struct__Unwind_Exception_ptr exception_object, function_ptr<_Unwind_Stop_Fn> stop, void_ptr stop_parameter);
 
     public static final class _Unwind_Reason_Code extends word {}
@@ -127,11 +127,11 @@ public final class Unwind {
     @export
     public static _Unwind_Reason_Code personality(c_int version, _Unwind_Action action, uint64_t exceptionClass,
                                     struct__Unwind_Exception_ptr exceptionObject, struct__Unwind_Context_ptr context) {
-        uint64_t ip = _Unwind_GetIP(context);
+        unsigned_long ip = _Unwind_GetIP(context);
         // ip points to instruction after the call, therefore subtract 1 to bring it in the call instruction range.
         ip = word(ip.longValue() - 1);
-        uint64_t methodStart = _Unwind_GetRegionStart(context);
-        uint64_t lsda = _Unwind_GetLanguageSpecificData(context);
+        unsigned_long methodStart = _Unwind_GetRegionStart(context);
+        unsigned_long lsda = _Unwind_GetLanguageSpecificData(context);
 
         long offset = ip.longValue() - methodStart.longValue();
         uint8_t_ptr lsdaPtr = lsda.cast(uint8_t_ptr.class);
