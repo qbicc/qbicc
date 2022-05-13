@@ -25,6 +25,7 @@ public final class TypeSystem {
     private final int typeIdSize;
     private final int typeIdAlign;
     private final int maxAlign;
+    private final boolean signedChar;
     private final ByteOrder endianness;
     private final VariadicType variadicType = new VariadicType(this);
     private final PoisonType poisonType = new PoisonType(this);
@@ -52,6 +53,7 @@ public final class TypeSystem {
         int byteBits = builder.getByteBits();
         this.byteBits = byteBits;
         maxAlign = builder.getMaxAlignment();
+        signedChar = builder.isSignedChar();
         pointerSize = builder.getPointerSize();
         pointerAlign = builder.getPointerAlignment();
         funcAlign = builder.getPointerAlignment();
@@ -199,6 +201,16 @@ public final class TypeSystem {
      */
     public int getTypeIdAlignment() {
         return typeIdAlign;
+    }
+
+    /**
+     * Get the type of {@code char} on this system.
+     * Most of the time it will be 8 bits, but it may be signed or unsigned depending on the platform.
+     *
+     * @return the type of {@code char} (not {@code null})
+     */
+    public IntegerType getNativeCharType() {
+        return signedChar ? getSignedInteger8Type() : getUnsignedInteger8Type();
     }
 
     public ByteOrder getEndianness() {
@@ -494,6 +506,7 @@ public final class TypeSystem {
             int pointerSize = 8;
             int pointerAlignment = 8;
             int functionAlignment = 1;
+            boolean signedChar = true;
             int boolSize = 1;
             int boolAlignment = 1;
             int int8Size = 1;
@@ -733,6 +746,14 @@ public final class TypeSystem {
             public TypeSystem build() {
                 return new TypeSystem(this);
             }
+
+            public boolean isSignedChar() {
+                return signedChar;
+            }
+
+            public void setSignedChar(boolean signedChar) {
+                this.signedChar = signedChar;
+            }
         };
     }
 
@@ -835,6 +856,10 @@ public final class TypeSystem {
         ByteOrder getEndianness();
 
         void setEndianness(ByteOrder endianness);
+
+        boolean isSignedChar();
+
+        void setSignedChar(boolean signedChar);
 
         TypeSystem build();
     }

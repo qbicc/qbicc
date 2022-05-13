@@ -296,6 +296,7 @@ public class Main implements Callable<DiagnosticContext> {
                             tsBuilder.setBoolSize((int) probeResult.getTypeInfo(_Bool).getSize());
                             tsBuilder.setBoolAlignment((int) probeResult.getTypeInfo(_Bool).getAlign());
                             tsBuilder.setByteBits(probeResult.getConstantInfo("CHAR_BIT").getValueAsInt());
+                            tsBuilder.setSignedChar(probeResult.getTypeInfo(char_t).isSigned());
                             tsBuilder.setInt8Size((int) probeResult.getTypeInfo(int8_t).getSize());
                             tsBuilder.setInt8Alignment((int) probeResult.getTypeInfo(int8_t).getAlign());
                             tsBuilder.setInt16Size((int) probeResult.getTypeInfo(int16_t).getSize());
