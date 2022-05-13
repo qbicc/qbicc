@@ -177,22 +177,10 @@ public final class CoreIntrinsics {
 
         MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
 
-        //    private static native boolean isBigEndian();
+        StaticIntrinsic isBigEndian = (builder, target, arguments) ->
+            ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getEndianness() == ByteOrder.BIG_ENDIAN);
 
-        CProbe probe = CProbe.builder().build();
-        try {
-            CProbe.Result result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), ctxt);
-            if (result == null) {
-                ctxt.error("Failed to probe target endianness (no exception)");
-            } else {
-                StaticIntrinsic isBigEndian = (builder, target, arguments) ->
-                    ctxt.getLiteralFactory().literalOf(result.getByteOrder() == ByteOrder.BIG_ENDIAN);
-
-                intrinsics.registerIntrinsic(jlsu16Desc, "isBigEndian", emptyToBool, isBigEndian);
-            }
-        } catch (IOException e) {
-            ctxt.error(e, "Failed to probe target endianness");
-        }
+        intrinsics.registerIntrinsic(jlsu16Desc, "isBigEndian", emptyToBool, isBigEndian);
     }
 
     public static void registerJavaLangSystemIntrinsics(CompilationContext ctxt) {
