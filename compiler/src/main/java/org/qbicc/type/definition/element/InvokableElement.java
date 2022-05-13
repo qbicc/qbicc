@@ -138,6 +138,9 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
                         inProgress = true;
                         try {
                             this.methodBody = previousMethodBody = factory.createMethodBody(methodBodyFactoryIndex, this);
+                        } catch (IllegalStateException e) {
+                            getEnclosingType().getContext().getCompilationContext().warning("Failed to create body for "+this+": "+e.getMessage());
+                            return false;
                         } finally {
                             inProgress = false;
                         }
