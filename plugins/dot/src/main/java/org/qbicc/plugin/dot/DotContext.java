@@ -119,8 +119,8 @@ public class DotContext {
     }
 
     void addEdge(Node from, Node to, DotAttributes attributes) {
-        String fromName = getNodeName(from);
-        String toName = getNodeName(to);
+        String fromName = visit(from);
+        String toName = visit(to);
         appendTo(fromName);
         appendTo(" -> ");
         appendTo(toName);
@@ -130,8 +130,8 @@ public class DotContext {
     }
 
     void addEdge(Node from, Value to, DotAttributes attributes, String label) {
-        String fromName = getNodeName(from);
-        String toName = getNodeName(to);
+        String fromName = visit(from);
+        String toName = visit(to);
         appendTo(fromName);
         appendTo(" -> ");
         appendTo(toName);
@@ -167,7 +167,7 @@ public class DotContext {
             throw new TooBigException();
         }
         try {
-            getNodeName(node);
+            visit(node);
         } finally {
             depth--;
         }
@@ -199,13 +199,13 @@ public class DotContext {
             nl();
             appendTo("label = \"" + bbName + "\";");
             nl();
-            getNodeName(block.getTerminator());
+            visit(block.getTerminator());
         }
         connectBasicBlocks();
         processPhiQueue();
     }
 
-    private String getNodeName(Node node) {
+    public String visit(Node node) {
         String nodeName = visited.get(node);
         if (Objects.isNull(nodeName)) {
             nodeName = register(node);
@@ -281,7 +281,7 @@ public class DotContext {
         appendTo('"');
     }
 
-    private String register(final Node node) {
+    public String register(final Node node) {
         String name = nextName(); 
         addVisited(node, name);
         return name;

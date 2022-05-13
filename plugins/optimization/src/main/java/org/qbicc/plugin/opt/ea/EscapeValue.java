@@ -3,6 +3,8 @@ package org.qbicc.plugin.opt.ea;
 import java.util.Objects;
 
 enum EscapeValue {
+    // Keep the order of elements as they are.
+    // The ordering among the lattice elements is: GlobalEscape < ArgEscape < NoEscape < Unknown
     GLOBAL_ESCAPE, ARG_ESCAPE, NO_ESCAPE, UNKNOWN;
 
     boolean isArgEscape() {
@@ -19,6 +21,14 @@ enum EscapeValue {
 
     boolean isNoEscape() {
         return this == NO_ESCAPE;
+    }
+
+    private boolean isMoreThan(EscapeValue other) {
+        return this.compareTo(other) > 0;
+    }
+
+    boolean isMoreThanArgEscape() {
+        return isMoreThan(ARG_ESCAPE);
     }
 
     static EscapeValue of(EscapeValue escapeValue) {

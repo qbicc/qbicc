@@ -56,7 +56,7 @@ public class EscapeAnalysisInterMethodAnalysis implements Consumer<CompilationCo
             }
 
             // 4.1 Update Connection Graph at Method Entry
-            callerCG.updateAtMethodEntry();
+            // Skipped because arguments are initialized as argument escape during intra method analysis phase
 
             for (Call callee : state.getCallees(caller)) {
                 final ExecutableElement calleeElement = ((Executable) callee.getValueHandle()).getExecutable();
@@ -126,7 +126,7 @@ public class EscapeAnalysisInterMethodAnalysis implements Consumer<CompilationCo
             // Get connection graphs for these implementors and union them.
             // The implementors might be calling other methods (e.g. generic interface bridges),
             // so make sure they're connection graphs have been updated before going and making a union.
-            return unionConnectionGraph(implementors, new ConnectionGraph(executable.toString()));
+            return unionConnectionGraph(implementors, new ConnectionGraph(executable));
         }
 
         private ConnectionGraph findAbstractConnectionGraph(ExecutableElement executable) {
@@ -149,7 +149,7 @@ public class EscapeAnalysisInterMethodAnalysis implements Consumer<CompilationCo
             // Get connection graphs for these implementors and union them.
             // The implementors might be calling other methods (e.g. generic interface bridges),
             // so make sure they're connection graphs have been updated before going and making a union.
-            return unionConnectionGraph(subclasses, new ConnectionGraph(executable.toString()));
+            return unionConnectionGraph(subclasses, new ConnectionGraph(executable));
         }
 
         private ConnectionGraph unionConnectionGraph(Set<ExecutableElement> methods, ConnectionGraph initValue) {

@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.PhaseAttachmentKey;
 import org.qbicc.graph.Call;
@@ -38,11 +37,11 @@ final class EscapeAnalysisState {
         return callees != null ? callees : Collections.emptyList();
     }
 
-    void trackMethod(ExecutableElement element, ConnectionGraph connectionGraph) {
+    void addMethod(ExecutableElement element, ConnectionGraph connectionGraph) {
         connectionGraphs.put(element, connectionGraph);
     }
 
-    void trackCall(ExecutableElement from, Call to) {
+    void addCall(ExecutableElement from, Call to) {
         callGraph.computeIfAbsent(from, k -> new ArrayList<>()).add(to);
     }
 
