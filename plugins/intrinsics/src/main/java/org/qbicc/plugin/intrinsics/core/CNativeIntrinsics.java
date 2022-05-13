@@ -341,7 +341,7 @@ final class CNativeIntrinsics {
             }
             byte[] bytes = (content.endsWith("\0") ? content : (content + "\0")).getBytes(StandardCharsets.UTF_8);
             assert bytes[bytes.length - 1] == 0;
-            Literal literal = lf.literalOf(ts.getArrayType(ts.getUnsignedInteger8Type(), bytes.length), bytes);
+            Literal literal = lf.literalOf(ts.getArrayType(ts.getNativeCharType(), bytes.length), bytes);
             Data data = utf8zCache.computeIfAbsent(literal, bal -> {
                 ExecutableElement currentElement = builder.getCurrentElement();
                 ModuleSection section = ctxt.getImplicitSection(currentElement);
