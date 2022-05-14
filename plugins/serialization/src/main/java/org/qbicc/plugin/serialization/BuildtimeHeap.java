@@ -367,6 +367,10 @@ public class BuildtimeHeap {
 
             CompoundType.Member im = memLayout.getMember(f);
             CompoundType.Member om = objLayout.getMember(f);
+            if (im == null || om == null) {
+                ctxt.warning("Field " + f +" not serialized due to incomplete layout");
+                continue;
+            }
             Literal replacement = f.getReplacementValue(ctxt);
             if (replacement != null) {
                 if (replacement instanceof BooleanLiteral bl) {
@@ -419,7 +423,8 @@ public class BuildtimeHeap {
                     memberMap.put(om, lf.literalOf(pointer));
                 }
             } else {
-                throw new UnsupportedOperationException("Serialization of unsupported member type: " + im.getType());
+                ctxt.warning("Serializing " + f + " as zero literal. Unsupported type");
+                memberMap.put(om, lf.zeroInitializerLiteralOfType(im.getType()));
             }
         }
     }

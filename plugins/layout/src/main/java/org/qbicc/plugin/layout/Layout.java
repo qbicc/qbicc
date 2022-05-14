@@ -119,6 +119,9 @@ public final class Layout {
             if (field.isStatic()) {
                 continue;
             }
+            if (!field.getType().isComplete()) {
+                continue; // skip fields whose type is unresolved
+            }
             if (field.getType().getSize() == 0) {
                 Assert.assertTrue(trailingArray == null); // At most one trailing array per type!
                 trailingArray = field; // defer until all other fields are allocated
