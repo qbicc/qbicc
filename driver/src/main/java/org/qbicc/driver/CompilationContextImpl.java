@@ -531,7 +531,7 @@ final class CompilationContextImpl implements CompilationContext {
                 case '<' -> b.append("_4");
                 case '>' -> b.append("_5");
                 default -> {
-                    if ('A' <= ch && ch <= 'Z' || 'a' <= ch && ch <= 'z' || '0' <= ch && ch <= '9') {
+                    if ('A' <= ch && ch <= 'Z' || 'a' <= ch && ch <= 'z' || '0' <= ch && ch <= '9' || ch == '$') {
                         b.append(ch);
                     } else {
                         appendHex(b.append("_0"), ch);
