@@ -54,6 +54,7 @@ import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.pointer.MemoryPointer;
 import org.qbicc.pointer.Pointer;
+import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
@@ -531,6 +532,22 @@ public final class VmImpl implements Vm {
                     throw new Thrown(errorClass.newInstance("Internal error"));
                 }
                 return Long.valueOf(member.getOffset());
+            });
+
+            unsafeClass.registerInvokable("staticFieldBase0", (thread, target, args) -> null);
+            unsafeClass.registerInvokable("staticFieldOffset0", (thread, target, args) -> {
+                VmObjectImpl fieldObj = (VmObjectImpl) args.get(0);
+                VmClassImpl fieldClazz = bootstrapClassLoader.loadClass("java/lang/reflect/Field");
+                LoadedTypeDefinition fieldDef = fieldClazz.getTypeDefinition();
+                VmClassImpl clazz = (VmClassImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("clazz")), SinglePlain);
+                VmStringImpl name = (VmStringImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("name")), SinglePlain);
+                LoadedTypeDefinition clazzDef = clazz.getTypeDefinition();
+                FieldElement field = clazzDef.findField(name.getContent());
+                if (field == null || !field.isStatic()) {
+                    throw new Thrown(errorClass.newInstance("Invalid argument to objectFieldOffset0"));
+                }
+                field.setModifierFlags(ClassFile.I_ACC_PINNED);
+                return StaticFieldPointer.of(field);
             });
 
             unsafeClass.registerInvokable("allocateInstance", (thread, target, args) -> {
