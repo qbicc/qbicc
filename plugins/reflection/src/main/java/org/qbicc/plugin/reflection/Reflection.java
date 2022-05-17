@@ -603,7 +603,7 @@ public final class Reflection {
             paramTypesVal,
             vm.getClassForDescriptor(classLoader, method.getDescriptor().getReturnType()),
             // TODO: checked exceptions
-            vm.newArrayOf(classClass.getArrayClass(), 0),
+            vm.newArrayOf(classClass, 0),
             Integer.valueOf(method.getModifiers() & 0x1fff),
             Integer.valueOf(method.getIndex()),
             vm.intern(method.getSignature().toString()),
