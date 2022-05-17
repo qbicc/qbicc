@@ -30,11 +30,9 @@ public final class BoundTypeArgument extends TypeArgument {
 
     public StringBuilder toString(final StringBuilder b) {
         if (variance == Variance.CONTRAVARIANT) {
-            b.append("super ");
+            b.append("-");
         } else if (variance == Variance.COVARIANT) {
-            b.append("extends ");
-        } else {
-            b.append("exactly ");
+            b.append("+");
         }
         type.toString(b);
         return b;
