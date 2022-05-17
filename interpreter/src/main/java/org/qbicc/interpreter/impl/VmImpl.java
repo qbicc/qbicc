@@ -77,6 +77,7 @@ import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.generic.Signature;
 import org.qbicc.type.methodhandle.ConstructorMethodHandleConstant;
 import org.qbicc.type.methodhandle.FieldMethodHandleConstant;
 import org.qbicc.type.methodhandle.MethodHandleConstant;
@@ -746,7 +747,11 @@ public final class VmImpl implements Vm {
                 }
                 return clazz;
             });
-
+            classClass.registerInvokable("getGenericSignature0", (thread, target, args) -> {
+                LoadedTypeDefinition ltd = ((VmClass) target).getTypeDefinition();
+                Signature sig = ltd.getSignature();
+                return intern(sig.toString());
+            });
 
             VmClassImpl classloaderClass = bootstrapClassLoader.loadClass("java/lang/ClassLoader");
             classloaderClass.registerInvokable("defineClass1", (thread, target, args) -> {
