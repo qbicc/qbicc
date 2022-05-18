@@ -54,6 +54,7 @@ import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.pointer.MemoryPointer;
 import org.qbicc.pointer.Pointer;
+import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
@@ -77,6 +78,7 @@ import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.generic.Signature;
 import org.qbicc.type.methodhandle.ConstructorMethodHandleConstant;
 import org.qbicc.type.methodhandle.FieldMethodHandleConstant;
 import org.qbicc.type.methodhandle.MethodHandleConstant;
@@ -532,6 +534,22 @@ public final class VmImpl implements Vm {
                 return Long.valueOf(member.getOffset());
             });
 
+            unsafeClass.registerInvokable("staticFieldBase0", (thread, target, args) -> null);
+            unsafeClass.registerInvokable("staticFieldOffset0", (thread, target, args) -> {
+                VmObjectImpl fieldObj = (VmObjectImpl) args.get(0);
+                VmClassImpl fieldClazz = bootstrapClassLoader.loadClass("java/lang/reflect/Field");
+                LoadedTypeDefinition fieldDef = fieldClazz.getTypeDefinition();
+                VmClassImpl clazz = (VmClassImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("clazz")), SinglePlain);
+                VmStringImpl name = (VmStringImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("name")), SinglePlain);
+                LoadedTypeDefinition clazzDef = clazz.getTypeDefinition();
+                FieldElement field = clazzDef.findField(name.getContent());
+                if (field == null || !field.isStatic()) {
+                    throw new Thrown(errorClass.newInstance("Invalid argument to objectFieldOffset0"));
+                }
+                field.setModifierFlags(ClassFile.I_ACC_PINNED);
+                return StaticFieldPointer.of(field);
+            });
+
             unsafeClass.registerInvokable("allocateInstance", (thread, target, args) -> {
                 VmClassImpl clazz = (VmClassImpl) args.get(0);
                 if (clazz.getTypeDefinition().isAbstract()) {
@@ -750,7 +768,11 @@ public final class VmImpl implements Vm {
                 }
                 return clazz;
             });
-
+            classClass.registerInvokable("getGenericSignature0", (thread, target, args) -> {
+                LoadedTypeDefinition ltd = ((VmClass) target).getTypeDefinition();
+                Signature sig = ltd.getSignature();
+                return intern(sig.toString());
+            });
 
             VmClassImpl classloaderClass = bootstrapClassLoader.loadClass("java/lang/ClassLoader");
             classloaderClass.registerInvokable("defineClass1", (thread, target, args) -> {
