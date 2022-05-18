@@ -42,7 +42,7 @@
         <version.maven.resolver>1.8.0</version.maven.resolver>
         <version.maven.wagon>3.5.1</version.maven.wagon>
         <version.plexus.interpolation>1.26</version.plexus.interpolation>
-        <version.plexus.utils>3.4.1</version.plexus.utils>
+        <version.plexus.utils>3.4.2</version.plexus.utils>
         <version.plexus.sec-dispatcher>1.4</version.plexus.sec-dispatcher>
         <version.plexus.cipher>1.7</version.plexus.cipher>
 
