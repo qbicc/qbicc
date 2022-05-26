@@ -23,6 +23,7 @@
         <module>llvm</module>
         <module>probe</module>
         <module>tool</module>
+        <module>vfs</module>
         <module>vio</module>
     </modules>
 </project>
