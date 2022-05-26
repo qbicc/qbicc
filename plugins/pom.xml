@@ -45,6 +45,7 @@
         <module>try-catch</module>
         <module>verification</module>
         <module>vio</module>
+        <module>vfs</module>
         <module>unwind</module>
         <module>serialization</module>
     </modules>

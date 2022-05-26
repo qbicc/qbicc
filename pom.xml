@@ -485,6 +485,12 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-plugin-vfs</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-plugin-vio</artifactId>
                 <version>${project.version}</version>
             </dependency>
