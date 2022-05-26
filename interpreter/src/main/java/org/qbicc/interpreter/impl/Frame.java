@@ -1417,7 +1417,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl thread, ZeroInitializerLiteral node) {
-        throw unsupportedType();
+        return VmImpl.require().allocate(node.getType(), 1);
     }
 
     ///////////////////////////
