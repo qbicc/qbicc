@@ -6,27 +6,27 @@
 
     <parent>
         <groupId>org.qbicc</groupId>
-        <artifactId>qbicc-plugin-parent</artifactId>
+        <artifactId>qbicc-machine-parent</artifactId>
         <version>0.32.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qbicc-plugin-vio</artifactId>
+    <artifactId>qbicc-machine-vfs</artifactId>
 
-    <name>Qbicc Plugin: Virtual I/O</name>
-    <description>Support for virtual I/O on the host</description>
+    <name>Qbicc Machine: Virtual File System</name>
+    <description>Qbicc module implementing a virtual file system</description>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-compiler</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-driver</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-machine-vio</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.smallrye.common</groupId>
+            <artifactId>smallrye-common-constraint</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections</artifactId>
         </dependency>
     </dependencies>
 </project>

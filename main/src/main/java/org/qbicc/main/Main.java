@@ -141,6 +141,7 @@ import org.qbicc.plugin.verification.ClassInitializingBasicBlockBuilder;
 import org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder;
 import org.qbicc.plugin.verification.LowerVerificationBasicBlockBuilder;
 import org.qbicc.plugin.verification.MemberResolvingBasicBlockBuilder;
+import org.qbicc.plugin.vfs.VFS;
 import org.qbicc.plugin.vio.VIO;
 import org.qbicc.tool.llvm.LlvmToolChain;
 import org.qbicc.type.TypeSystem;
@@ -402,6 +403,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     vm.doAttached(initThread, vm::initialize);
                                 });
                                 builder.addPreHook(Phase.ADD, VIO::get);
+                                builder.addPreHook(Phase.ADD, VFS::get);
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
                                 if (nogc) {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
