@@ -30,4 +30,19 @@ public class EscapeValueTest {
         assertEquals(GLOBAL_ESCAPE, EscapeValue.merge(GLOBAL_ESCAPE, GLOBAL_ESCAPE));
     }
 
+    @Test
+    public void testIsMoreThanArgEscape() {
+        assertTrue(UNKNOWN.isMoreThanArgEscape());
+        assertTrue(NO_ESCAPE.isMoreThanArgEscape());
+        assertFalse(ARG_ESCAPE.isMoreThanArgEscape());
+        assertFalse(GLOBAL_ESCAPE.isMoreThanArgEscape());
+    }
+
+    @Test
+    public void testIsMoreThanGlobalEscape() {
+        assertTrue(UNKNOWN.notGlobalEscape());
+        assertTrue(NO_ESCAPE.notGlobalEscape());
+        assertTrue(ARG_ESCAPE.notGlobalEscape());
+        assertFalse(GLOBAL_ESCAPE.notGlobalEscape());
+    }
 }

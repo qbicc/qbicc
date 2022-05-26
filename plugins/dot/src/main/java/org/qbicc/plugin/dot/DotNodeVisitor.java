@@ -604,7 +604,7 @@ public class DotNodeVisitor implements NodeVisitor.Delegating<DotContext, String
 
     public String visit(final DotContext param, final Invoke.ReturnValue node) {
         param.processDependency(node.getInvoke());
-        delegate.visit(param, node);
+        delegate.visit(param, node.getInvoke());
         return param.getName(node.getInvoke());
     }
 
