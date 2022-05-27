@@ -1069,7 +1069,7 @@ public final class VmImpl implements Vm {
     private VmArray vmProperties(final VmThread thread, final VmObject target, final List<Object> args) {
         // TODO: assemble `-D` options from command line
         return fromStringList(List.of(
-            "java.home",    "virtual java.home"
+            "java.home",    "/qbicc/java.home"
         ));
     }
 
