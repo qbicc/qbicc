@@ -4,11 +4,10 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.attribute.FileAttribute;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -85,10 +84,6 @@ public abstract class VirtualFileSystem implements Closeable {
         getRootNode(vp).openFile(fd, this, getRootNode(vp), vp.relativize(), 0, flags, mode);
     }
 
-    public void createLink(VirtualPath vp, VirtualPath target, final Set<? extends FileAttribute<?>> attrs) throws IOException {
-        throw new IOException("Unimplemented");
-    }
-
     public VirtualPath readLink(final VirtualPath vp) throws IOException {
         return getRootNode(vp).readLink(this, vp, 0);
     }
@@ -120,6 +115,14 @@ public abstract class VirtualFileSystem implements Closeable {
 
     public int getBooleanAttributes(final VirtualPath vp, final boolean followLinks) throws IOException {
         return getRootNode(vp).getBooleanAttributes(vp.relativize(), 0, followLinks);
+    }
+
+    public Collection<String> getDirectoryEntries(final VirtualPath vp, final boolean followLinks) throws IOException {
+        return getRootNode(vp).getEntryNames(vp.relativize(), 0, followLinks);
+    }
+
+    public void link(final VirtualPath toPath, final VirtualPath fromPath, boolean followLinks) throws IOException {
+        getRootNode(fromPath).linkFrom(this, fromPath.relativize(), 0, followLinks, toPath);
     }
 
     @Override

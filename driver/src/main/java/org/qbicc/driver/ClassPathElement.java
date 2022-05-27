@@ -12,6 +12,8 @@ import java.nio.file.Path;
 import java.util.jar.JarFile;
 
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.machine.vfs.VirtualFileSystem;
+import org.qbicc.machine.vfs.VirtualPath;
 import org.qbicc.type.definition.ByteBufferInputStream;
 
 /**
@@ -37,6 +39,15 @@ public abstract class ClassPathElement implements Closeable {
      * @throws IOException if reading the resource failed
      */
     public abstract Resource getResource(String name) throws IOException;
+
+    /**
+     * Mount this class path element onto the virtual file system at the given point.
+     * The individual files will be mounted in, replacing any files that exist at the same locations.
+     *
+     * @param vfs the virtual file system (must not be {@code null})
+     * @param mountPoint the mount point (must not be {@code null})
+     */
+    public abstract void mount(VirtualFileSystem vfs, VirtualPath mountPoint) throws IOException;
 
     /**
      * Get a class path element for the given directory path.
