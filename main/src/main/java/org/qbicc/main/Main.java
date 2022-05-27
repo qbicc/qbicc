@@ -403,7 +403,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     vm.doAttached(initThread, vm::initialize);
                                 });
                                 builder.addPreHook(Phase.ADD, VIO::get);
-                                builder.addPreHook(Phase.ADD, VFS::get);
+                                builder.addPreHook(Phase.ADD, VFS::initialize);
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
                                 if (nogc) {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
