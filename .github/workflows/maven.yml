@@ -29,10 +29,10 @@ jobs:
           sudo apt-get install -y libunwind-dev
 
       - name: Install OpenJDK 17
-        uses: joschi/setup-jdk@v2
+        uses: actions/setup-java@v3
         with:
           java-version: '17'
-          architecture: 'x64'
+          distribution: 'temurin'
 
       - name: Clone qbicc
         uses: actions/checkout@v2
@@ -68,10 +68,10 @@ jobs:
           directory: ${{ runner.temp }}/llvm-install
 
       - name: Install OpenJDK 17
-        uses: joschi/setup-jdk@v2
+        uses: actions/setup-java@v3
         with:
           java-version: '17'
-          architecture: 'x64'
+          distribution: 'temurin'
 
       - name: Clone qbicc
         uses: actions/checkout@v2
