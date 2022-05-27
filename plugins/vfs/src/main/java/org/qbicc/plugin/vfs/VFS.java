@@ -38,7 +38,7 @@ public final class VFS {
         vioSystem = VIO.get(ctxt).getVIOSystem();
         OS os = ctxt.getPlatform().getOs();
         fileSystem = os == OS.WIN32 ? new WindowsVirtualFileSystem(vioSystem) : new PosixVirtualFileSystem(vioSystem, os != OS.DARWIN);
-        qbiccPath = fileSystem.getPath("/Qbicc").toAbsolutePath();
+        qbiccPath = fileSystem.getPath("/qbicc").toAbsolutePath();
         try {
             //noinspection OctalInteger
             fileSystem.mkdirs(qbiccPath, 0755);
