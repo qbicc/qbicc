@@ -39,24 +39,34 @@ public final class VFS {
         OS os = ctxt.getPlatform().getOs();
         fileSystem = os == OS.WIN32 ? new WindowsVirtualFileSystem(vioSystem) : new PosixVirtualFileSystem(vioSystem, os != OS.DARWIN);
         qbiccPath = fileSystem.getPath("/qbicc").toAbsolutePath();
+    }
+
+    @SuppressWarnings("OctalInteger")
+    public static VFS initialize(CompilationContext ctxt) {
+        VFS attachment = ctxt.getAttachment(KEY);
+        if (attachment != null) {
+            throw new IllegalStateException();
+        }
+        attachment = new VFS(ctxt);
+        VFS appearing = ctxt.putAttachmentIfAbsent(KEY, attachment);
+        if (appearing != null) {
+            throw new IllegalStateException();
+        }
+        // one-time setup
+        attachment.registerInvokables();
         try {
-            //noinspection OctalInteger
-            fileSystem.mkdirs(qbiccPath, 0755);
+            // set up initial filesystem
+            attachment.fileSystem.mkdirs(attachment.qbiccPath, 0755);
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
+        return attachment;
     }
 
     public static VFS get(CompilationContext ctxt) {
         VFS attachment = ctxt.getAttachment(KEY);
         if (attachment == null) {
-            attachment = new VFS(ctxt);
-            VFS appearing = ctxt.putAttachmentIfAbsent(KEY, attachment);
-            if (appearing != null) {
-                attachment = appearing;
-            } else {
-                attachment.registerInvokables();
-            }
+            throw new IllegalStateException();
         }
         return attachment;
     }

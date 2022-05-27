@@ -3,8 +3,11 @@ package org.qbicc.driver;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
+import java.util.ListIterator;
 
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.machine.vfs.VirtualFileSystem;
+import org.qbicc.machine.vfs.VirtualPath;
 
 /**
  * An item on the class path which can be made up of one or more layered resource roots and zero or more layered source file
@@ -19,6 +22,15 @@ public record ClassPathItem(String name, List<ClassPathElement> classRoots, List
         Assert.checkNotNullParam("name", name);
         Assert.checkNotNullParam("classRoots", classRoots);
         Assert.checkNotNullParam("sourceRoots", sourceRoots);
+    }
+
+    public void mount(VirtualFileSystem vfs, VirtualPath mountPoint) throws IOException {
+        // iterate backwards so early items take precedence
+        ListIterator<ClassPathElement> iterator = classRoots.listIterator(classRoots.size());
+        while (iterator.hasPrevious()) {
+            //noinspection resource
+            iterator.previous().mount(vfs, mountPoint);
+        }
     }
 
     /**

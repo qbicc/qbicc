@@ -32,6 +32,11 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-machine-vfs</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-metrics</artifactId>
         </dependency>
 

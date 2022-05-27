@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -49,6 +50,9 @@ import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.tool.CToolChain;
+import org.qbicc.machine.vfs.AbsoluteVirtualPath;
+import org.qbicc.machine.vfs.VFSUtils;
+import org.qbicc.machine.vfs.VirtualFileSystem;
 import org.qbicc.plugin.constants.ConstantBasicBlockBuilder;
 import org.qbicc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import org.qbicc.plugin.core.CoreAnnotationTypeBuilder;
@@ -403,7 +407,8 @@ public class Main implements Callable<DiagnosticContext> {
                                     vm.doAttached(initThread, vm::initialize);
                                 });
                                 builder.addPreHook(Phase.ADD, VIO::get);
-                                builder.addPreHook(Phase.ADD, VFS::get);
+                                builder.addPreHook(Phase.ADD, VFS::initialize);
+                                builder.addPreHook(Phase.ADD, Main::mountInitialFileSystem);
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
                                 if (nogc) {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
@@ -600,6 +605,50 @@ public class Main implements Callable<DiagnosticContext> {
                 return list;
             } else {
                 start = idx + 1;
+            }
+        }
+    }
+
+    private static void mountInitialFileSystem(CompilationContext ctxt) {
+        // install all boot classpath items into the VFS
+        VFS vfs = VFS.get(ctxt);
+        Driver driver = Driver.get(ctxt);
+        AbsoluteVirtualPath modulesPath = vfs.getQbiccPath().resolve("modules");
+        Collection<String> bootModuleNames = driver.getBootModuleNames();
+        VirtualFileSystem fileSystem = vfs.getFileSystem();
+        for (String bootModuleName : bootModuleNames) {
+            ClassPathItem bootItem = driver.getBootModuleClassPathItem(bootModuleName);
+            try {
+                bootItem.mount(fileSystem, modulesPath.resolve(bootModuleName));
+            } catch (IOException e) {
+                ctxt.error(e, "Failed to mount %s", bootItem);
+            }
+        }
+        // now look for all META-INF/java.home files and link them into the main system
+        AbsoluteVirtualPath javaHome = vfs.getQbiccPath().resolve("java.home");
+        for (String bootModuleName : bootModuleNames) {
+            AbsoluteVirtualPath moduleJavaHome = modulesPath.resolve(bootModuleName).resolve("META-INF").resolve("java.home");
+            try {
+                int attrs = fileSystem.getBooleanAttributes(moduleJavaHome, false);
+                if ((attrs & VFSUtils.BA_EXISTS) != 0) {
+                    // do it
+                    linkIn(fileSystem, javaHome, moduleJavaHome);
+                }
+            } catch (IOException e) {
+                ctxt.error(e, "Failed to remount %s", moduleJavaHome);
+            }
+        }
+    }
+
+    private static void linkIn(final VirtualFileSystem fileSystem, final AbsoluteVirtualPath toDir, final AbsoluteVirtualPath fromDir) throws IOException {
+        Collection<String> names = fileSystem.getDirectoryEntries(fromDir, false);
+        for (String name : names) {
+            AbsoluteVirtualPath fromPath = fromDir.resolve(name);
+            AbsoluteVirtualPath toPath = toDir.resolve(name);
+            if ((fileSystem.getBooleanAttributes(fromPath, false) & VFSUtils.BA_DIRECTORY) != 0) {
+                linkIn(fileSystem, toPath, fromPath);
+            } else {
+                fileSystem.link(toPath, fromPath, false);
             }
         }
     }

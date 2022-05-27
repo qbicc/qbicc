@@ -16,6 +16,7 @@ import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.ZipEntry;
@@ -428,6 +429,44 @@ final class DirectoryNode extends SingleParentNode {
         throw nde(rvp, idx);
     }
 
+    Collection<String> getEntryNames(final RelativeVirtualPath rvp, final int idx, final boolean followLinks) throws IOException {
+        int nc = rvp.getNameCount();
+        if (idx == nc) {
+            return entries.castToMap().keySet();
+        }
+        String name = rvp.getNameString(idx);
+        Node node = get(name);
+        if (node == null) {
+            throw nsfe(rvp, idx);
+        }
+        if (node instanceof DirectoryNode dn) {
+            return dn.getEntryNames(rvp, idx + 1, followLinks);
+        }
+        throw nde(rvp, idx);
+    }
+
+    void linkFrom(final VirtualFileSystem vfs, final RelativeVirtualPath rvp, final int idx, final boolean followLinks, final VirtualPath fromPath) throws IOException {
+        int nc = rvp.getNameCount();
+        if (idx == nc) {
+            // create the link in our directory with the same name as the link target
+            vfs.getRootNode(fromPath).link(fromPath.relativize(), 0, followLinks, this);
+            return;
+        }
+        String name = rvp.getNameString(idx);
+        Node node = get(name);
+        if (idx == nc - 1) {
+            // link to node
+            vfs.getRootNode(fromPath).link(fromPath.relativize(), 0, followLinks, node);
+        } else {
+            // recurse
+            if (node instanceof DirectoryNode dn) {
+                dn.linkFrom(vfs, rvp, idx + 1, followLinks, fromPath);
+            } else {
+                throw nde(rvp, idx);
+            }
+        }
+    }
+
     private void remove() throws IOException {
         ImmutableSortedMap<String, Node> entries = this.entries;
         if (entries == REMOVED || entries.isEmpty() && entriesHandle.compareAndSet(entries, REMOVED)) {
@@ -436,30 +475,44 @@ final class DirectoryNode extends SingleParentNode {
         throw new DirectoryNotEmptyException(null);
     }
 
-    Node link(String name, Node value) throws IOException {
-        Assert.checkNotNullParam("name", name);
+    void link(final RelativeVirtualPath rvp, final int idx, final boolean followLinks, Node value) throws IOException {
         Assert.checkNotNullParam("value", value);
-        if (name.equals(VFSUtils.DOT) || name.equals(VFSUtils.DOT_DOT)) {
-            throw new IOException();
+        int nc = rvp.getNameCount();
+        if (idx == nc) {
+            throw new IllegalStateException("Unexpected directory");
         }
-        if (value instanceof DirectoryNode dn && dn.getParent() != this) {
-            throw new IOException("Node cannot be linked here");
+        String name = rvp.getNameString(idx);
+        if (idx == nc - 1) {
+            // create the link here
+            value.addLink();
+            try {
+                synchronized (this) {
+                    ImmutableSortedMap<String, Node> entries = this.entries;
+                    if (entries == REMOVED) {
+                        throw nsfe(rvp, idx - 1);
+                    }
+                    Node node = get(entries, name);
+                    if (node != null) {
+                        throw fae(rvp, idx);
+                    }
+                    this.entries = entries.newWithKeyValue(name, value);
+                    return;
+                }
+            } catch (Throwable t) {
+                try {
+                    value.removeLink();
+                } catch (Throwable t2) {
+                    t.addSuppressed(t2);
+                }
+                throw t;
+            }
         }
-        ImmutableSortedMap<String, Node> oldVal, newVal;
-        Node node;
-        do {
-            oldVal = this.entries;
-            if (oldVal == REMOVED) {
-                throw new NoSuchFileException(name);
-            }
-            node = oldVal.get(name);
-            if (node instanceof DirectoryNode dn) {
-                // only allow removal if empty
-                dn.remove();
-            }
-            newVal = oldVal.newWithKeyValue(name, value);
-        } while (! entriesHandle.compareAndSet(this, oldVal, newVal));
-        return node;
+        Node node = get(name);
+        if (node instanceof DirectoryNode dn) {
+            dn.link(rvp, idx + 1, followLinks, value);
+            return;
+        }
+        throw nde(rvp, idx);
     }
 
     Node linkIfAbsent(String name, Node value) throws IOException {

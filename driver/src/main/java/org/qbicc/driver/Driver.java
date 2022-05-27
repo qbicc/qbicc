@@ -4,11 +4,13 @@ import java.io.Closeable;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -49,6 +51,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
  */
 public class Driver implements Closeable {
     private static final Logger log = Logger.getLogger("org.qbicc.driver");
+    private static final AttachmentKey<Driver> KEY = new AttachmentKey<>();
 
     static final String MODULE_INFO = "module-info.class";
 
@@ -167,6 +170,27 @@ public class Driver implements Closeable {
 
         threadsPerCpu = builder.threadsPerCpu;
         stackSize = builder.stackSize;
+        compilationContext.putAttachment(KEY, this);
+    }
+
+    public static Driver get(CompilationContext ctxt) {
+        Driver driver = ctxt.getAttachment(KEY);
+        if (driver == null) {
+            throw new IllegalStateException();
+        }
+        return driver;
+    }
+
+    public ClassPathItem getBootModuleClassPathItem(String name) {
+        BootModule module = bootModules.get(name);
+        if (module == null) {
+            throw new NoSuchElementException();
+        }
+        return module.item();
+    }
+
+    public Collection<String> getBootModuleNames() {
+        return List.copyOf(bootModules.keySet());
     }
 
     private NativeMethodConfigurator constructNativeMethodConfigurator(final Builder builder) {
