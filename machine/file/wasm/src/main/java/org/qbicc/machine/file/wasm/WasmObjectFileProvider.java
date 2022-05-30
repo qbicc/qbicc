@@ -15,7 +15,7 @@ public final class WasmObjectFileProvider implements ObjectFileProvider {
     public WasmObjectFileProvider() {}
 
     public ObjectFile openObjectFile(final Path path) throws IOException {
-        return new WasmObjectFile();
+        return new WasmObjectFile(path);
     }
 
     public ObjectType getObjectType() {

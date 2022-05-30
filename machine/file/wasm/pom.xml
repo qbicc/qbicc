@@ -24,6 +24,11 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-machine-file-object</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.kaitai</groupId>
+            <artifactId>kaitai-struct-runtime</artifactId>
+            <version>${version.io.kaitai}</version>
+        </dependency>
     </dependencies>
 
 </project>
