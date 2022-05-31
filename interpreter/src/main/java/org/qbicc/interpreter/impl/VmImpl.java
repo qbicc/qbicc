@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -1069,7 +1070,8 @@ public final class VmImpl implements Vm {
     private VmArray vmProperties(final VmThread thread, final VmObject target, final List<Object> args) {
         // TODO: assemble `-D` options from command line
         return fromStringList(List.of(
-            "java.home",    "/qbicc/java.home"
+            "java.home",    "/qbicc/java.home",
+            "user.timezone", ZoneId.systemDefault().getId()
         ));
     }
 
