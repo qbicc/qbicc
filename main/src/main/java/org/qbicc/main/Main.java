@@ -651,6 +651,8 @@ public class Main implements Callable<DiagnosticContext> {
         for (String name : names) {
             AbsoluteVirtualPath fromPath = fromDir.resolve(name);
             AbsoluteVirtualPath toPath = toDir.resolve(name);
+            //noinspection OctalInteger
+            fileSystem.mkdirs(toPath.getParent(), 0755);
             if ((fileSystem.getBooleanAttributes(fromPath, false) & VFSUtils.BA_DIRECTORY) != 0) {
                 linkIn(fileSystem, toPath, fromPath);
             } else {
