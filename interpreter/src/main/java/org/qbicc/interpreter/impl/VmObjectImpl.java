@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.interpreter.Memory;
@@ -53,6 +54,10 @@ class VmObjectImpl implements VmObject, Referenceable {
      */
     @SuppressWarnings("unused") // condHandle
     volatile Condition cond;
+    /**
+     * A general object attachment used by VM-side implementations.
+     */
+    volatile Object attachment;
 
     /**
      * Construct a new instance.
@@ -200,6 +205,19 @@ class VmObjectImpl implements VmObject, Referenceable {
         } else {
             cond.await(millis + 1, TimeUnit.MILLISECONDS);
         }
+    }
+
+    public <T> T getOrAddAttachment(Class<T> clazz, Supplier<T> supplier) {
+        Object attachment = this.attachment;
+        if (attachment == null) {
+            synchronized (this) {
+                attachment = this.attachment;
+                if (attachment == null) {
+                    this.attachment = attachment = supplier.get();
+                }
+            }
+        }
+        return clazz.cast(attachment);
     }
 
     public VmClassImpl getVmClass() {
