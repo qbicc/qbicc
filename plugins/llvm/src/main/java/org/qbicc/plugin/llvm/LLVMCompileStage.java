@@ -2,9 +2,11 @@ package org.qbicc.plugin.llvm;
 
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 
 public class LLVMCompileStage implements Consumer<CompilationContext> {
     private final boolean isPie;
@@ -20,18 +22,20 @@ public class LLVMCompileStage implements Consumer<CompilationContext> {
             return;
         }
 
-        Iterator<Path> iterator = llvmState.getModulePaths().iterator();
+        Iterator<Map.Entry<LoadedTypeDefinition, Path>> iterator = llvmState.getModulePaths().entrySet().iterator();
         context.runParallelTask(ctxt -> {
             LLVMCompiler compiler = new LLVMCompiler(context, isPie);
             for (;;) {
-                Path modulePath;
+                Map.Entry<LoadedTypeDefinition, Path> entry;
                 synchronized (iterator) {
                     if (! iterator.hasNext()) {
                         return;
                     }
-                    modulePath = iterator.next();
+                    entry = iterator.next();
                 }
-                compiler.compileModule(ctxt, modulePath);
+                LoadedTypeDefinition typeDefinition = entry.getKey();
+                Path modulePath = entry.getValue();
+                compiler.compileModule(ctxt, typeDefinition, modulePath);
             }
         });
     }
