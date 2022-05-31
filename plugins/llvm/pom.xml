@@ -38,6 +38,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-machine-file-wasm</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-machine-llvm</artifactId>
         </dependency>
         <dependency>

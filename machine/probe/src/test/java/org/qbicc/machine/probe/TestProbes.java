@@ -2,40 +2,63 @@ package org.qbicc.machine.probe;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Stream;
 
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.qbicc.machine.arch.ObjectType;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.tool.CToolChain;
 import org.qbicc.machine.tool.ToolProvider;
 import org.qbicc.machine.tool.ToolUtil;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 
 /**
  *
  */
 public class TestProbes {
 
-    static CToolChain compiler;
-    static ObjectFileProvider objectFileProvider;
+    static class ArgProvider implements ArgumentsProvider {
 
-    @BeforeAll
-    public static void setUpCompiler() {
-        final Iterable<CToolChain> tools = ToolProvider.findAllTools(CToolChain.class, Platform.HOST_PLATFORM, s -> true,
-            TestProbes.class.getClassLoader(), List.of(ToolUtil.findExecutable("cc"), ToolUtil.findExecutable("gcc")));
-        final Iterator<CToolChain> iterator = tools.iterator();
-        assertTrue(iterator.hasNext());
-        compiler = iterator.next();
-        final ObjectType objectType = Platform.HOST_PLATFORM.getObjectType();
-        System.out.println("Local object file type: " + objectType);
-        objectFileProvider = ObjectFileProvider.findProvider(objectType, TestProbes.class.getClassLoader()).orElseThrow();
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) throws Exception {
+            return Stream.of(
+                setupCompiler(Platform.HOST_PLATFORM, List.of(ToolUtil.findExecutable("cc"), ToolUtil.findExecutable("gcc"))),
+                setupCompiler(Platform.parse("wasm-wasi"), List.of(ToolUtil.findExecutable("clang")))
+            );
+        }
+
+        public static Arguments setupCompiler(Platform platform, List<Path> executables) {
+            CToolChain compiler;
+            ObjectFileProvider objectFileProvider;
+
+
+            final Iterable<CToolChain> tools = ToolProvider.findAllTools(CToolChain.class, platform, s -> true,
+                TestProbes.class.getClassLoader(), executables);
+            final Iterator<CToolChain> iterator = tools.iterator();
+            assertTrue(iterator.hasNext());
+            compiler = iterator.next();
+            final ObjectType objectType = platform.getObjectType();
+            System.out.println("Local object file type: " + objectType);
+            objectFileProvider = ObjectFileProvider.findProvider(objectType, TestProbes.class.getClassLoader()).orElseThrow();
+
+            return Arguments.of(compiler, objectFileProvider);
+        }
     }
 
-    @Test
-    public void testStructProbe() throws Exception {
+
+    @ParameterizedTest
+    @ArgumentsSource(ArgProvider.class)
+    public void testStructProbe(CToolChain compiler, ObjectFileProvider objectFileProvider) throws Exception {
+        Assumptions.assumeTrue(objectFileProvider.getObjectType() != ObjectType.WASM, "Currently not supported for Wasm target");
+
         final CProbe.Type struct_iovec = CProbe.Type.builder()
             .setName("iovec")
             .setQualifier(Qualifier.STRUCT)
@@ -68,8 +91,9 @@ public class TestProbes {
         assertTrue(iov_len_offset != iov_base_offset);
     }
 
-    @Test
-    public void testIntProbes() throws Exception {
+    @ParameterizedTest
+    @ArgumentsSource(ArgProvider.class)
+    public void testIntProbes(CToolChain compiler, ObjectFileProvider objectFileProvider) throws Exception {
         final CProbe.Type int16_t = CProbe.Type.builder().setName("int16_t").build();
         final CProbe probe = CProbe.builder().include("<stdint.h>").probeType(int16_t).build();
         final CProbe.Result probeResult = probe.run(compiler, objectFileProvider, null);
@@ -88,8 +112,9 @@ public class TestProbes {
         assertFalse(result.isFloating());
     }
 
-    @Test
-    public void testSymbolProbe() throws Exception {
+    @ParameterizedTest
+    @ArgumentsSource(ArgProvider.class)
+    public void testSymbolProbe(CToolChain compiler, ObjectFileProvider objectFileProvider) throws Exception {
         final CProbe probe = CProbe.builder().include("<stdint.h>").probeConstant("INT8_MAX").build();
         final CProbe.Result result = probe.run(compiler, objectFileProvider, null);
         assertNotNull(result);

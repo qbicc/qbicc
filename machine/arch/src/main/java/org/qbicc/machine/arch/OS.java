@@ -14,6 +14,7 @@ public final class OS extends PlatformComponent {
     public static final OS LINUX = new OS("linux", ABI.GNU, ObjectType.ELF);
     public static final OS WIN32 = new OS("win32", "\\", ";", "\r\n", ABI.WIN32, ObjectType.COFF, "windows", "windows32");
     public static final OS DARWIN = new OS("darwin", ABI.UNKNOWN, ObjectType.MACH_O, "mac os x");
+    public static final OS WASI = new OS("wasi", ABI.UNKNOWN, ObjectType.WASM, "wasm");
 
     private final ABI defaultAbi;
     private final ObjectType defaultObjectType;
