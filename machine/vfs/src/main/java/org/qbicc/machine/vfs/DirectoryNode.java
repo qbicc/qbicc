@@ -139,7 +139,7 @@ final class DirectoryNode extends SingleParentNode {
             if (create && excl) {
                 throw new FileAlreadyExistsException(name);
             }
-            node.checkMode(name, mode);
+            node.checkMode(name, flags & O_ACCESS_MODE_MASK);
         }
         return node.openExisting(fd, vfs, this, flags);
     }
