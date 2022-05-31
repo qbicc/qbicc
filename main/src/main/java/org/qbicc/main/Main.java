@@ -626,6 +626,12 @@ public class Main implements Callable<DiagnosticContext> {
         }
         // now look for all META-INF/java.home files and link them into the main system
         AbsoluteVirtualPath javaHome = vfs.getQbiccPath().resolve("java.home");
+        try {
+            //noinspection OctalInteger
+            fileSystem.mkdirs(javaHome, 0755);
+        } catch (IOException e) {
+            ctxt.error(e, "Failed to create %s", javaHome);
+        }
         for (String bootModuleName : bootModuleNames) {
             AbsoluteVirtualPath moduleJavaHome = modulesPath.resolve(bootModuleName).resolve("META-INF").resolve("java.home");
             try {
