@@ -199,6 +199,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-machine-tool-llvm</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-machine-tool-emscripten</artifactId>
+        </dependency>
 
         <!-- External dependencies -->
 
