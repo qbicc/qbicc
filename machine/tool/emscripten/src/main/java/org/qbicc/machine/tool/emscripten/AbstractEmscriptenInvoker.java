@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.jboss.logging.Logger;
 import org.qbicc.machine.tool.CompilationFailureException;
 import org.qbicc.machine.tool.MessagingToolInvoker;
 import org.qbicc.machine.tool.ToolMessageHandler;
@@ -20,6 +21,8 @@ import io.smallrye.common.constraint.Assert;
 
 abstract class AbstractEmscriptenInvoker implements MessagingToolInvoker {
     static final Path TMP = Paths.get(System.getProperty("java.io.tmpdir"));
+
+    private static final Logger LOGGER = Logger.getLogger("org.qbicc.machine.tool.emscripten");
 
     private final EmscriptenToolChainImpl tool;
     private ToolMessageHandler messageHandler = ToolMessageHandler.DISCARDING;
@@ -97,7 +100,7 @@ abstract class AbstractEmscriptenInvoker implements MessagingToolInvoker {
         pb.command(cmd);
         pb.environment().put("LC_ALL", "C");
         pb.environment().put("LANG", "C");
-        System.out.println(cmd);
+        LOGGER.info(String.join(" ", cmd));
         getSource().transferTo(OutputDestination.of(pb, errorHandler, OutputDestination.discarding(), p -> {
             int ev = p.exitValue();
             if (ev != 0) {

@@ -17,7 +17,7 @@ final class EmscriptenToolChainImpl implements EmscriptenToolChain {
     }
 
     public String getImplementationName() {
-        return "LLVM";
+        return "Emscripten (LLVM)";
     }
 
     Path getExecutablePath() {
