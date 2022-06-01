@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
+import java.util.zip.CRC32;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
@@ -884,6 +885,40 @@ public final class VmImpl implements Vm {
             VmClassImpl build = bootstrapClassLoader.loadClass("org/qbicc/runtime/Build");
             build.registerInvokable("isHost", (thread, target, args) -> Boolean.TRUE);
             build.registerInvokable("isTarget", (thread, target, args) -> Boolean.FALSE);
+
+            // CRC32
+            VmClassImpl crc32 = bootstrapClassLoader.loadClass("java/util/zip/CRC32");
+            crc32.registerInvokable("reset", (thread, target, args) -> {
+                VmObjectImpl t = (VmObjectImpl) target;
+                CRC32 crc = t.getOrAddAttachment(CRC32.class, CRC32::new);
+                crc.reset();
+                t.setIntField(crc32.getTypeDefinition(), "crc", 0);
+                return null;
+            });
+            crc32.registerInvokable("update", 3, (thread, target, args) -> {
+                VmObjectImpl t = (VmObjectImpl) target;
+                VmByteArrayImpl a = (VmByteArrayImpl) args.get(0);
+                int off = ((Integer) args.get(1)).intValue();
+                int len = ((Integer) args.get(2)).intValue();
+                CRC32 crc = t.getOrAddAttachment(CRC32.class, CRC32::new);
+                crc.update(a.getArray(), off, len);
+                t.setIntField(crc32.getTypeDefinition(), "crc", (int) crc.getValue());
+                return null;
+            });
+            crc32.registerInvokable("update", MethodDescriptor.synthesize(
+                bootstrapClassLoader.getClassContext(),
+                    BaseTypeDescriptor.V,
+                    List.of(BaseTypeDescriptor.I)
+                ),
+                (thread, target, args) -> {
+                    VmObjectImpl t = (VmObjectImpl) target;
+                    int val = ((Integer) args.get(0)).intValue() & 0xff;
+                    CRC32 crc = t.getOrAddAttachment(CRC32.class, CRC32::new);
+                    crc.update(val);
+                    t.setIntField(crc32.getTypeDefinition(), "crc", (int) crc.getValue());
+                    return null;
+                }
+            );
 
             /////////////////
             // TODO: temporary workaround for var/method handle initialization
