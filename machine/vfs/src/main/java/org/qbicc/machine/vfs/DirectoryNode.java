@@ -139,7 +139,7 @@ final class DirectoryNode extends SingleParentNode {
             if (create && excl) {
                 throw new FileAlreadyExistsException(name);
             }
-            node.checkMode(name, mode);
+            node.checkMode(name, flags & O_ACCESS_MODE_MASK);
         }
         return node.openExisting(fd, vfs, this, flags);
     }
@@ -424,7 +424,7 @@ final class DirectoryNode extends SingleParentNode {
             }
         }
         if (node instanceof DirectoryNode dn) {
-            return dn.getBooleanAttributes(rvp, idx, followLinks);
+            return dn.getBooleanAttributes(rvp, idx + 1, followLinks);
         }
         throw nde(rvp, idx);
     }
@@ -508,6 +508,9 @@ final class DirectoryNode extends SingleParentNode {
             }
         }
         Node node = get(name);
+        if (node == null) {
+            throw nsfe(rvp, idx);
+        }
         if (node instanceof DirectoryNode dn) {
             dn.link(rvp, idx + 1, followLinks, value);
             return;
