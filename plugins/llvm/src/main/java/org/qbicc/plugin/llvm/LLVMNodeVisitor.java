@@ -109,6 +109,7 @@ import org.qbicc.machine.llvm.Module;
 import org.qbicc.machine.llvm.ParameterAttributes;
 import org.qbicc.machine.llvm.Values;
 import org.qbicc.machine.llvm.debuginfo.DILocalVariable;
+import org.qbicc.machine.llvm.debuginfo.DIOpcode;
 import org.qbicc.machine.llvm.debuginfo.MetadataNode;
 import org.qbicc.machine.llvm.impl.LLVM;
 import org.qbicc.machine.llvm.op.AtomicRmw;
@@ -223,7 +224,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         return null;
     }
 
-    private static final LLValue llvm_dbg_addr = Values.global("llvm.dbg.addr");
     private static final LLValue llvm_dbg_value = Values.global("llvm.dbg.value");
     private static final LLValue emptyExpr = diExpression().asValue();
 
@@ -237,10 +237,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         ValueType actualType = pointerType.getPointeeType();
         LocalVariableElement variable = node.getVariable();
         MetadataNode metadataNode = getLocalVariableMetadataNode(node, actualType, variable);
-        Call call = builder.call(void_, llvm_dbg_addr);
+        Call call = builder.call(void_, llvm_dbg_value);
         call.arg(metadata(mappedPointerType), mappedAddress)
             .arg(metadata, metadataNode.asRef())
-            .arg(metadata, emptyExpr);
+            .arg(metadata, LLVM.diExpression().arg(DIOpcode.Deref).asValue());
         return call;
     }
 

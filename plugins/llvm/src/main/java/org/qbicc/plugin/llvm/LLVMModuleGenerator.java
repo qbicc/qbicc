@@ -93,7 +93,7 @@ final class LLVMModuleGenerator {
         }
 
         // declare debug function here
-        org.qbicc.machine.llvm.Function decl = module.declare("llvm.dbg.addr");
+        org.qbicc.machine.llvm.Function decl = module.declare("llvm.dbg.value");
         decl.returns(Types.void_);
         decl.param(Types.metadata).param(Types.metadata).param(Types.metadata);
 
