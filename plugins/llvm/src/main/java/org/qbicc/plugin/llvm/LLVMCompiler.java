@@ -15,6 +15,7 @@ import org.qbicc.tool.llvm.OptInvoker;
 import org.qbicc.tool.llvm.OptPass;
 import org.qbicc.tool.llvm.OutputFormat;
 import org.qbicc.tool.llvm.RelocationModel;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -30,7 +31,7 @@ public class LLVMCompiler {
         ccInvoker = createCCompilerInvoker(context);
     }
 
-    public void compileModule(final CompilationContext context, Path modulePath) {
+    public void compileModule(final CompilationContext context, LoadedTypeDefinition typeDefinition, Path modulePath) {
         CToolChain cToolChain = context.getAttachment(Driver.C_TOOL_CHAIN_KEY);
 
         String moduleName = modulePath.getFileName().toString();
@@ -79,7 +80,7 @@ public class LLVMCompiler {
                 context.error("Compiler invocation has failed for %s: %s", modulePath, e.toString());
                 return;
             }
-            Linker.get(context).addObjectFilePath(objectPath);
+            Linker.get(context).addObjectFilePath(typeDefinition, objectPath);
         } else {
             context.warning("Ignoring unknown module file name \"%s\"", modulePath);
         }

@@ -1,13 +1,15 @@
 package org.qbicc.plugin.linker;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 
 /**
  * The image linker API.
@@ -15,28 +17,28 @@ import org.qbicc.context.CompilationContext;
 public final class Linker {
     private static final AttachmentKey<Linker> KEY = new AttachmentKey<>();
 
-    private final List<Path> objectPaths = new ArrayList<>();
+    private final Map<LoadedTypeDefinition, Path> objectPathsByType = new ConcurrentHashMap<>();
     private final Set<String> libraries = ConcurrentHashMap.newKeySet();
+    private final CompilationContext ctxt;
 
-    private Linker() {}
-
-    public static Linker get(CompilationContext ctxt) {
-        return ctxt.computeAttachmentIfAbsent(KEY, Linker::new);
+    private Linker(CompilationContext ctxt) {
+        this.ctxt = ctxt;
     }
 
-    public void addObjectFilePath(Path objectFilePath) {
+    public static Linker get(CompilationContext ctxt) {
+        return ctxt.computeAttachmentIfAbsent(KEY, () -> new Linker(ctxt));
+    }
+
+    public void addObjectFilePath(LoadedTypeDefinition typeDefinition, Path objectFilePath) {
         if (objectFilePath != null) {
-            List<Path> objectPaths = this.objectPaths;
-            synchronized (objectPaths) {
-                this.objectPaths.add(objectFilePath);
+            if (objectPathsByType.putIfAbsent(typeDefinition, objectFilePath) != null) {
+                ctxt.error("Multiple object files for type %s", typeDefinition);
             }
         }
     }
 
-    public List<Path> getObjectFilePaths() {
-        synchronized (objectPaths) {
-            return List.copyOf(objectPaths);
-        }
+    public Map<LoadedTypeDefinition, Path> getObjectFilePathsByType() {
+        return new HashMap<>(objectPathsByType);
     }
 
     public void addLibrary(String library) {

@@ -377,7 +377,7 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
             Linker linker = Linker.get(context);
             List<StackMapRecord> recordList = new ArrayList<>();
             ObjectFileProvider objFileProvider = context.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY);
-            Iterator<Path> objFileIterator = linker.getObjectFilePaths().iterator();
+            Iterator<Path> objFileIterator = linker.getObjectFilePathsByType().values().iterator();
             final int[] index = { 0 };
 
             context.runParallelTask(ctxt -> {

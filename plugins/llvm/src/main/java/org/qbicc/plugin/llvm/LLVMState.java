@@ -1,11 +1,12 @@
 package org.qbicc.plugin.llvm;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.AttachmentKey;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 
 /**
  *
@@ -13,24 +14,15 @@ import org.qbicc.context.AttachmentKey;
 final class LLVMState {
     static final AttachmentKey<LLVMState> KEY = new AttachmentKey<>();
 
-    private final List<Path> modulePaths = Collections.synchronizedList(new ArrayList<>());
-    private Path defaultModulePath;
+    private final Map<LoadedTypeDefinition, Path> pathsByType = new ConcurrentHashMap<>();
 
     LLVMState() {}
 
-    void addModulePath(Path path) {
-        modulePaths.add(path);
+    void addModulePath(LoadedTypeDefinition typeDefinition, Path path) {
+        pathsByType.putIfAbsent(typeDefinition, path);
     }
 
-    void setDefaultModulePath(Path path) { defaultModulePath = path; }
-
-    List<Path> getModulePaths() {
-        synchronized (modulePaths) {
-            return List.copyOf(modulePaths);
-        }
-    }
-
-    Path getDefaultModulePath() {
-        return defaultModulePath;
+    Map<LoadedTypeDefinition, Path> getModulePaths() {
+        return new HashMap<>(pathsByType);
     }
 }

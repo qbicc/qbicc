@@ -37,7 +37,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                 }
                 Path outputFile = generator.processProgramModule(programModule);
                 LLVMState llvmState = ctxt.computeAttachmentIfAbsent(LLVMState.KEY, LLVMState::new);
-                llvmState.addModulePath(outputFile);
+                llvmState.addModulePath(programModule.getTypeDefinition().load(), outputFile);
             }
         });
     }
