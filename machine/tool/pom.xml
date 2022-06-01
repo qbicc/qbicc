@@ -20,6 +20,7 @@
     <modules>
         <module>api</module>
         <module>clang</module>
+        <module>emscripten</module>
         <module>gnu</module>
         <module>llvm</module>
     </modules>
