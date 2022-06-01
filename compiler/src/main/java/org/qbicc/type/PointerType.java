@@ -89,6 +89,22 @@ public final class PointerType extends NullableType {
         return (int) (getSize()) * typeSystem.getByteBits();
     }
 
+    public SignedIntegerType getSameSizedSignedInteger() {
+        return switch (size) {
+            case 32 -> typeSystem.getSignedInteger32Type();
+            case 64 -> typeSystem.getSignedInteger64Type();
+            default -> throw new IllegalStateException();
+        };
+    }
+
+    public UnsignedIntegerType getSameSizedUnsignedInteger() {
+        return switch (size) {
+            case 32 -> typeSystem.getUnsignedInteger32Type();
+            case 64 -> typeSystem.getUnsignedInteger64Type();
+            default -> throw new IllegalStateException();
+        };
+    }
+
     public boolean isRestrict() {
         return restrict;
     }
