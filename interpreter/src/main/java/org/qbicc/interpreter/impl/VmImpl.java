@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
@@ -918,6 +919,12 @@ public final class VmImpl implements Vm {
                     t.setIntField(crc32.getTypeDefinition(), "crc", (int) crc.getValue());
                     return null;
                 }
+            );
+
+            // RNG
+            VmClassImpl seedGenerator = bootstrapClassLoader.loadClass("sun/security/provider/SeedGenerator");
+            seedGenerator.registerInvokable("getSystemEntropy", (thread, target, args) ->
+                thread.getVM().newByteArray(new SecureRandom().generateSeed(20))
             );
 
             /////////////////
