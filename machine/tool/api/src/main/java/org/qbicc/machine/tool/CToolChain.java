@@ -42,7 +42,7 @@ public interface CToolChain extends Tool {
                 names.add(cpuName + "-" + osName + "-gnu-gcc");
             }
             // generic compiler names
-            names.addAll(List.of("cc", "gcc", "clang"));
+            names.addAll(List.of("cc", "gcc", "clang", "emcc"));
         }
         for (String name : names) {
             Path path = ToolUtil.findExecutable(name);
@@ -55,7 +55,7 @@ public interface CToolChain extends Tool {
         List<CToolChain> working = new ArrayList<>();
         for (CToolChain toolChain : iterable) {
             CCompilerInvoker compilerInvoker = toolChain.newCompilerInvoker();
-            compilerInvoker.setSource(InputSource.from("int main() { return 0; }"));
+            compilerInvoker.setSource(InputSource.from("#include <pthread.h>\nint main() { return 0; }"));
             Path tempFile;
             try {
                 tempFile = Files.createTempFile(null, ".out");

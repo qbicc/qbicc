@@ -60,7 +60,14 @@ public final class WasmObjectFile implements ObjectFile {
                 ArrayList<Webassembly.DataSegmentType> entries = ((Webassembly.DataSection) struct).entries();
                 for (int i = 0; i < entries.size(); i++) {
                     Webassembly.DataSegmentType data = entries.get(i);
-                    sizes.put(indexSymbol.get(i), data.data().get(0));
+                    // data is byte-sized, but the parser uses Integers
+                    ArrayList<Integer> bytes = data.data();
+                    int acc = 0;
+                    for (int j = 0; j < bytes.size(); j++) {
+                        int v = bytes.get(j);
+                        acc |= v << ( j * 8 );
+                    }
+                    sizes.put(indexSymbol.get(i), acc);
                 }
             }
         }

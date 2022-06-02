@@ -275,6 +275,11 @@
                 <artifactId>qbicc-machine-tool-llvm</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-machine-tool-emscripten</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <!-- test utility -->
 
