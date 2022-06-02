@@ -286,6 +286,10 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         return requireSingleMethod(me -> me.nameEquals(name));
     }
 
+    default MethodElement requireSingleMethod(String name, int argCnt) {
+        return requireSingleMethod(me -> me.nameEquals(name) && me.getParameters().size() == argCnt);
+    }
+
     default MethodElement resolveMethodElementExact(String name, MethodDescriptor descriptor) {
         int idx = findMethodIndex(name, descriptor);
         return idx == -1 ? null : expandSigPolyMethod(getMethod(idx), descriptor);
