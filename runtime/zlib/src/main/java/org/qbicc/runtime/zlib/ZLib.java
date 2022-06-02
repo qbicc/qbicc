@@ -8,6 +8,7 @@ import org.qbicc.runtime.CNative;
  *
  */
 @include("<zlib.h>")
+@lib("z")
 public final class ZLib {
     public static final class uLong extends word {}
     public static final class uInt extends word {}
