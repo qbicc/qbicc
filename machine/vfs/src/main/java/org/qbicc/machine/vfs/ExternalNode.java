@@ -9,6 +9,8 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.BasicFileAttributeView;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -59,6 +61,23 @@ final class ExternalNode extends SingleParentNode {
         } catch (IOException e) {
             throw new AccessDeniedException(path.toString(), null, e.toString());
         }
+    }
+
+    @Override
+    VirtualFileStatBuffer statExisting() throws IOException {
+        BasicFileAttributeView view = Files.getFileAttributeView(path, BasicFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
+        BasicFileAttributes attr = view.readAttributes();
+        int ba = VFSUtils.BA_EXISTS;
+        if (attr.isRegularFile()) ba |= VFSUtils.BA_REGULAR;
+        if (attr.isDirectory()) ba |= VFSUtils.BA_DIRECTORY;
+        return new VirtualFileStatBuffer(
+            attr.lastModifiedTime().toMillis(),
+            attr.lastAccessTime().toMillis(),
+            attr.creationTime().toMillis(),
+            ba,
+            attr.size(),
+            getNodeId()
+        );
     }
 
     @Override

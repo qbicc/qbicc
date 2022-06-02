@@ -39,6 +39,8 @@ public final class HostIO {
 
     public static native void checkAccess(final String pathName) throws IOException;
 
+    public static native HostBasicFileAttributes stat(String pathName, boolean followLinks) throws IOException;
+
     // General I/O ops
 
     /**

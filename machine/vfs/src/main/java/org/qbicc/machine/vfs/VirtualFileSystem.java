@@ -84,6 +84,10 @@ public abstract class VirtualFileSystem implements Closeable {
         getRootNode(vp).openFile(fd, this, getRootNode(vp), vp.relativize(), 0, flags, mode);
     }
 
+    public VirtualFileStatBuffer stat(final VirtualPath vp, boolean followLinks) throws IOException {
+        return getRootNode(vp).stat(this, vp.relativize(), 0, followLinks);
+    }
+
     public VirtualPath readLink(final VirtualPath vp) throws IOException {
         return getRootNode(vp).readLink(this, vp, 0);
     }

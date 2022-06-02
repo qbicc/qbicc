@@ -8,6 +8,8 @@ import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmArray;
+import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
@@ -15,12 +17,17 @@ import org.qbicc.interpreter.VmThrowableClass;
 import org.qbicc.machine.arch.OS;
 import org.qbicc.machine.vfs.AbsoluteVirtualPath;
 import org.qbicc.machine.vfs.PosixVirtualFileSystem;
+import org.qbicc.machine.vfs.VFSUtils;
+import org.qbicc.machine.vfs.VirtualFileStatBuffer;
 import org.qbicc.machine.vfs.VirtualFileSystem;
 import org.qbicc.machine.vfs.VirtualPath;
 import org.qbicc.machine.vfs.WindowsVirtualFileSystem;
 import org.qbicc.machine.vio.VIOSystem;
 import org.qbicc.plugin.vio.VIO;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 public final class VFS {
     private static final AttachmentKey<VFS> KEY = new AttachmentKey<>();
@@ -85,6 +92,14 @@ public final class VFS {
         vm.registerInvokable(hostIoDef.requireSingleMethod("mkdir"), this::doHostMkdir);
         vm.registerInvokable(hostIoDef.requireSingleMethod("unlink"), this::doHostUnlink);
         vm.registerInvokable(hostIoDef.requireSingleMethod("getBooleanAttributes"), this::doHostGetBooleanAttributes);
+        vm.registerInvokable(hostIoDef.requireSingleMethod("stat"), this::doHostStat);
+
+        // UnixFileSystemProvider (NIO)
+
+        LoadedTypeDefinition ufspDef = classContext.findDefinedType("sun/nio/fs/UnixFileSystemProvider").load();
+
+        vm.registerInvokable(ufspDef.requireSingleMethod("isRegularFile"), this::doUfspIsRegularFile);
+        vm.registerInvokable(ufspDef.requireSingleMethod("isDirectory"), this::doUfspIsDirectory);
     }
 
     private Object doHostOpen(final VmThread vmThread, final VmObject ignored, final List<Object> args) {
@@ -144,6 +159,62 @@ public final class VFS {
         }
         return Integer.valueOf(val);
     }
+
+    private Object doHostStat(final VmThread vmThread, final VmObject ignored, final List<Object> args) {
+        String pathName = ((VmString)args.get(0)).getContent();
+        boolean followLinks = ((Boolean) args.get(1)).booleanValue();
+        VirtualFileStatBuffer buf;
+        try {
+            buf = fileSystem.stat(fileSystem.getPath(pathName), followLinks);
+        } catch (IOException e) {
+            throw wrapIOE(e);
+        }
+        Vm vm = vmThread.getVM();
+        VmArray vmArray = vm.newLongArray(new long[] {
+            buf.getModTime(),
+            buf.getAccessTime(),
+            buf.getCreateTime(),
+            buf.getBooleanAttributes(),
+            buf.getSize(),
+            buf.getFileId()
+        });
+        LoadedTypeDefinition hbfaDef = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/host/HostBasicFileAttributes").load();
+        VmClass hbfaClass = hbfaDef.getVmClass();
+        return vm.newInstance(hbfaClass, hbfaDef.requireSingleConstructor(ce -> true), List.of(vmArray));
+    }
+
+    private Object doUfspIsRegularFile(final VmThread vmThread, final VmObject provider, final List<Object> args) {
+        String pathStr = toString(vmThread, (VmObject) args.get(0));
+        boolean result;
+        try {
+            result = (fileSystem.getBooleanAttributes(fileSystem.getPath(pathStr), true) & VFSUtils.BA_REGULAR) != 0;
+        } catch (IOException e) {
+            return Boolean.FALSE;
+        }
+        return Boolean.valueOf(result);
+    }
+
+    private Object doUfspIsDirectory(final VmThread vmThread, final VmObject provider, final List<Object> args) {
+        String pathStr = toString(vmThread, (VmObject) args.get(0));
+        boolean result;
+        try {
+            result = (fileSystem.getBooleanAttributes(fileSystem.getPath(pathStr), true) & VFSUtils.BA_DIRECTORY) != 0;
+        } catch (IOException e) {
+            return Boolean.FALSE;
+        }
+        return Boolean.valueOf(result);
+    }
+
+    private String toString(final VmThread vmThread, final VmObject pathObj) {
+        Vm vm = vmThread.getVM();
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+        ClassTypeDescriptor stringDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
+        MethodDescriptor toStringDesc = MethodDescriptor.synthesize(classContext, stringDesc, List.of());
+        MethodElement toStringMethod = pathObj.getVmClass().getTypeDefinition().resolveMethodElementVirtual("toString", toStringDesc);
+        VmString str = (VmString) vm.invokeExact(toStringMethod, pathObj, List.of());
+        return str.getContent();
+    }
+
 
     public static List<VirtualPath> getClassPathEntries(final CompilationContext ctxt) {
         return ctxt.getAttachment(CLASS_PATH_KEY);

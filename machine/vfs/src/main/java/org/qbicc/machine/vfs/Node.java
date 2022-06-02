@@ -49,6 +49,8 @@ abstract class Node implements Closeable {
         }
     }
 
+    abstract VirtualFileStatBuffer statExisting() throws IOException;
+
     abstract int openExisting(int fd, VirtualFileSystem vfs, DirectoryNode parent, int flags) throws IOException;
 
     VirtualPath readLink(VirtualFileSystem fileSystem, VirtualPath vp, int vpi) throws IOException {

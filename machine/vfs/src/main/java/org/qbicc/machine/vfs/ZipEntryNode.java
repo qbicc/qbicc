@@ -18,6 +18,19 @@ final class ZipEntryNode extends Node {
     }
 
     @Override
+    VirtualFileStatBuffer statExisting() {
+        int attr = VFSUtils.BA_EXISTS;
+        return new VirtualFileStatBuffer(
+            ze.getLastModifiedTime().toMillis(),
+            ze.getLastAccessTime().toMillis(),
+            ze.getCreationTime().toMillis(),
+            attr | (ze.isDirectory() ? VFSUtils.BA_DIRECTORY : VFSUtils.BA_REGULAR),
+            ze.getSize(),
+            getNodeId()
+        );
+    }
+
+    @Override
     int openExisting(int fd, VirtualFileSystem vfs, DirectoryNode parent, int flags) throws IOException {
         if ((flags & VFSUtils.O_ACCESS_MODE_MASK) != VFSUtils.O_RDONLY) {
             throw notWritable();
