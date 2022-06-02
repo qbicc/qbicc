@@ -11,14 +11,12 @@ import java.util.Set;
 public final class ReferenceType extends NullableType {
     private final PhysicalObjectType upperBound;
     private final Set<InterfaceObjectType> interfaceBounds;
-    private final int size;
     private final int align;
 
-    ReferenceType(final TypeSystem typeSystem, final PhysicalObjectType upperBound, final Set<InterfaceObjectType> interfaceBounds, final int size, final int align) {
-        super(typeSystem, (Objects.hash(upperBound, interfaceBounds) * 19 + size) * 19 + ReferenceType.class.hashCode());
+    ReferenceType(final TypeSystem typeSystem, final PhysicalObjectType upperBound, final Set<InterfaceObjectType> interfaceBounds, final int align) {
+        super(typeSystem, (Objects.hash(upperBound, interfaceBounds) * 19 + typeSystem.getReferenceSize()) * 19 + ReferenceType.class.hashCode());
         this.upperBound = upperBound;
         this.interfaceBounds = interfaceBounds;
-        this.size = size;
         this.align = align;
     }
 
@@ -27,7 +25,23 @@ public final class ReferenceType extends NullableType {
     }
 
     public long getSize() {
-        return size;
+        return typeSystem.getReferenceSize();
+    }
+
+    public SignedIntegerType getSameSizedSignedInteger() {
+        return switch ((int) getSize()) {
+            case 32 -> typeSystem.getSignedInteger32Type();
+            case 64 -> typeSystem.getSignedInteger64Type();
+            default -> throw new IllegalStateException();
+        };
+    }
+
+    public UnsignedIntegerType getSameSizedUnsignedInteger() {
+        return switch ((int) getSize()) {
+            case 32 -> typeSystem.getUnsignedInteger32Type();
+            case 64 -> typeSystem.getUnsignedInteger64Type();
+            default -> throw new IllegalStateException();
+        };
     }
 
     /**
@@ -61,7 +75,7 @@ public final class ReferenceType extends NullableType {
     }
 
     public boolean equals(final ReferenceType other) {
-        return this == other || super.equals(other) && size == other.size && align == other.align && upperBound.equals(other.upperBound) && interfaceBounds.equals(other.interfaceBounds);
+        return this == other || super.equals(other) && align == other.align && upperBound.equals(other.upperBound) && interfaceBounds.equals(other.interfaceBounds);
     }
 
     public boolean isImplicitlyConvertibleFrom(Type other) {
@@ -113,7 +127,7 @@ public final class ReferenceType extends NullableType {
         if (otherType.isSupertypeOf(upperBound)) {
             return this;
         } else if (otherType.isSubtypeOf(upperBound)) {
-            return new ReferenceType(typeSystem, otherType, filtered(interfaceBounds, otherType), size, align);
+            return new ReferenceType(typeSystem, otherType, filtered(interfaceBounds, otherType), align);
         } else {
             // no valid narrowing
             return null;
@@ -133,7 +147,7 @@ public final class ReferenceType extends NullableType {
             // already implicitly narrowed to this type
             return this;
         } else {
-            return new ReferenceType(typeSystem, upperBound, filteredWith(interfaceBounds, otherType), size, align);
+            return new ReferenceType(typeSystem, upperBound, filteredWith(interfaceBounds, otherType), align);
         }
     }
 
@@ -244,7 +258,7 @@ public final class ReferenceType extends NullableType {
             // they were equal
             return this;
         }
-        return new ReferenceType(typeSystem, upperBound, union, size, align);
+        return new ReferenceType(typeSystem, upperBound, union, align);
     }
 
     private Set<InterfaceObjectType> union(Set<InterfaceObjectType> ours, Set<InterfaceObjectType> others, PhysicalObjectType upperBound) {
