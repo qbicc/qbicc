@@ -11,6 +11,7 @@ import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.VmThrowableClass;
@@ -38,10 +39,13 @@ public final class VFS {
     private final AbsoluteVirtualPath qbiccPath;
     private final VIOSystem vioSystem;
     private final VmThrowableClass ioException;
+    private final VmThrowableClass unsupportedOperationException;
 
     private VFS(CompilationContext ctxt) {
         this.ctxt = ctxt;
-        ioException = (VmThrowableClass) ctxt.getBootstrapClassContext().findDefinedType("java/io/IOException").load().getVmClass();
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+        ioException = (VmThrowableClass) classContext.findDefinedType("java/io/IOException").load().getVmClass();
+        unsupportedOperationException = (VmThrowableClass) classContext.findDefinedType("java/lang/UnsupportedOperationException").load().getVmClass();
         vioSystem = VIO.get(ctxt).getVIOSystem();
         OS os = ctxt.getPlatform().getOs();
         fileSystem = os == OS.WIN32 ? new WindowsVirtualFileSystem(vioSystem) : new PosixVirtualFileSystem(vioSystem, os != OS.DARWIN);
@@ -93,6 +97,7 @@ public final class VFS {
         vm.registerInvokable(hostIoDef.requireSingleMethod("unlink"), this::doHostUnlink);
         vm.registerInvokable(hostIoDef.requireSingleMethod("getBooleanAttributes"), this::doHostGetBooleanAttributes);
         vm.registerInvokable(hostIoDef.requireSingleMethod("stat"), this::doHostStat);
+        vm.registerInvokable(hostIoDef.requireSingleMethod("readDirectoryEntry"), this::doHostReadDirectoryEntry);
 
         // UnixFileSystemProvider (NIO)
 
@@ -100,6 +105,9 @@ public final class VFS {
 
         vm.registerInvokable(ufspDef.requireSingleMethod("isRegularFile"), this::doUfspIsRegularFile);
         vm.registerInvokable(ufspDef.requireSingleMethod("isDirectory"), this::doUfspIsDirectory);
+        vm.registerInvokable(ufspDef.requireSingleMethod("newDirectoryStream"), this::doUfspNewDirectoryStream);
+        vm.registerInvokable(ufspDef.requireSingleMethod("exists"), this::doUfspExists);
+        vm.registerInvokable(ufspDef.requireSingleMethod("readAttributes"), this::doUfspReadAttributes);
     }
 
     private Object doHostOpen(final VmThread vmThread, final VmObject ignored, final List<Object> args) {
@@ -170,17 +178,19 @@ public final class VFS {
             throw wrapIOE(e);
         }
         Vm vm = vmThread.getVM();
-        VmArray vmArray = vm.newLongArray(new long[] {
-            buf.getModTime(),
-            buf.getAccessTime(),
-            buf.getCreateTime(),
-            buf.getBooleanAttributes(),
-            buf.getSize(),
-            buf.getFileId()
-        });
-        LoadedTypeDefinition hbfaDef = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/host/HostBasicFileAttributes").load();
-        VmClass hbfaClass = hbfaDef.getVmClass();
-        return vm.newInstance(hbfaClass, hbfaDef.requireSingleConstructor(ce -> true), List.of(vmArray));
+        return createBasicFileAttributes(vm, buf);
+    }
+
+    private Object doHostReadDirectoryEntry(final VmThread vmThread, final VmObject ignored, final List<Object> args) {
+        //    public static native String readDirectoryEntry(int fd) throws IOException;
+        int fd = ((Integer) args.get(0)).intValue();
+        String entry;
+        try {
+            entry = fileSystem.getVioSystem().readDirectoryEntry(fd);
+        } catch (IOException e) {
+            throw wrapIOE(e);
+        }
+        return entry == null ? null : vmThread.getVM().intern(entry);
     }
 
     private Object doUfspIsRegularFile(final VmThread vmThread, final VmObject provider, final List<Object> args) {
@@ -203,6 +213,72 @@ public final class VFS {
             return Boolean.FALSE;
         }
         return Boolean.valueOf(result);
+    }
+
+    private Object doUfspNewDirectoryStream(final VmThread vmThread, final VmObject ufsp, final List<Object> args) {
+        String pathStr = toString(vmThread, (VmObject) args.get(0));
+        VmObject filter = (VmObject) args.get(1);
+        LoadedTypeDefinition hdsDef = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/host/HostDirectoryStream").load();
+        return vmThread.getVM().newInstance(hdsDef.getVmClass(), hdsDef.requireSingleConstructor(
+            ce -> ce.getParameters().get(0).getTypeDescriptor() instanceof ClassTypeDescriptor ctd
+            && ctd.packageAndClassNameEquals("java/lang", "String")
+        ), List.of(
+            vmThread.getVM().intern(pathStr),
+            filter
+        ));
+    }
+
+    private Object doUfspExists(final VmThread vmThread, final VmObject ufsp, final List<Object> args) {
+        String pathName = toString(vmThread, (VmObject) args.get(0));
+        try {
+            return Boolean.valueOf((fileSystem.getBooleanAttributes(fileSystem.getPath(pathName), true) & VFSUtils.BA_EXISTS) != 0);
+        } catch (IOException e) {
+            return Boolean.FALSE;
+        }
+    }
+
+    private Object doUfspReadAttributes(final VmThread vmThread, final VmObject ufsp, final List<Object> args) {
+        Vm vm = vmThread.getVM();
+        String pathName = toString(vmThread, (VmObject) args.get(0));
+        VmClass type = (VmClass) args.get(1);
+        if (! type.getTypeDefinition().internalNameEquals("java/nio/file/attribute/BasicFileAttributes")) {
+            // not supported during build
+            throw new Thrown(unsupportedOperationException.newInstance("Only basic file attributes supported at build time"));
+        }
+        boolean followLinks = isFollowLinks(((VmReferenceArray) args.get(2)).getArray());
+        VirtualFileStatBuffer buf;
+        try {
+            buf = fileSystem.stat(fileSystem.getPath(pathName), followLinks);
+        } catch (IOException e) {
+            throw wrapIOE(e);
+        }
+        return createBasicFileAttributes(vm, buf);
+    }
+
+    private boolean isFollowLinks(final VmObject[] options) {
+        boolean followLinks = true;
+        for (VmObject option : options) {
+            if (option != null) {
+                // there's only one option
+                followLinks = false;
+                break;
+            }
+        }
+        return followLinks;
+    }
+
+    private VmObject createBasicFileAttributes(final Vm vm, final VirtualFileStatBuffer buf) {
+        VmArray vmArray = vm.newLongArray(new long[] {
+            buf.getModTime(),
+            buf.getAccessTime(),
+            buf.getCreateTime(),
+            buf.getBooleanAttributes(),
+            buf.getSize(),
+            buf.getFileId()
+        });
+        LoadedTypeDefinition hbfaDef = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/host/HostBasicFileAttributes").load();
+        VmClass hbfaClass = hbfaDef.getVmClass();
+        return vm.newInstance(hbfaClass, hbfaDef.requireSingleConstructor(ce -> true), List.of(vmArray));
     }
 
     private String toString(final VmThread vmThread, final VmObject pathObj) {

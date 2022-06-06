@@ -2,7 +2,6 @@ package org.qbicc.machine.vfs;
 
 import static org.qbicc.machine.vfs.VFSUtils.*;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
@@ -96,7 +95,7 @@ final class DirectoryNode extends SingleParentNode {
             String name = rvp.getNameString(idx);
             Node node = get(name);
             if (node == null) {
-                throw new FileNotFoundException(rvp.subpath(0, idx + 1).toString());
+                throw nsfe(rvp, idx);
             } else if (node instanceof DirectoryNode childDn) {
                 return childDn.openFile(-1, vfs, this, rvp, idx + 1, flags, mode);
             } else {
@@ -187,7 +186,7 @@ final class DirectoryNode extends SingleParentNode {
         if ((flags & VFSUtils.O_ACCESS_MODE_MASK) != VFSUtils.O_RDONLY) {
             throw new AccessDeniedException("Cannot write to a directory");
         }
-        if ((flags & (VFSUtils.O_APPEND | VFSUtils.O_TRUNC | VFSUtils.O_EXCL | VFSUtils.O_CREAT)) != 0 || (flags & VFSUtils.O_DIRECTORY) == 0) {
+        if ((flags & (VFSUtils.O_APPEND | VFSUtils.O_TRUNC | VFSUtils.O_EXCL | VFSUtils.O_CREAT)) != 0) {
             throw new IOException("Invalid flags");
         }
         ImmutableSortedMap<String, Node> entries = this.entries;

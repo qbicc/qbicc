@@ -288,12 +288,23 @@ public final class VIOSystem {
         return (int) call(fd, ReadableIoHandler.class, buffer, ReadableIoHandler::read);
     }
 
+    public int pread(final int fd, final ByteBuffer buffer, final long position) throws IOException {
+        return (int) call(fd, SeekableReadableIoHandler.class, buffer,
+            (ExceptionToLongBiFunction<SeekableReadableIoHandler, ByteBuffer, IOException>) (seekableReadableIoHandler, byteBuffer) ->
+                seekableReadableIoHandler.pread(byteBuffer, position)
+        );
+    }
+
     public int readSingle(final int fd) throws IOException {
         return (int) call(fd, ReadableIoHandler.class, ReadableIoHandler::readSingle);
     }
 
     public long available(final int fd) throws IOException {
         return call(fd, ReadableIoHandler.class, ReadableIoHandler::available);
+    }
+
+    public String readDirectoryEntry(final int fd) throws IOException {
+        return call(fd, DirectoryIoHandler.class, DirectoryIoHandler::readEntry);
     }
 
     // write ops

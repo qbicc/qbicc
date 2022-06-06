@@ -77,6 +77,7 @@ public final class VIO {
         vm.registerInvokable(hostIoDef.requireSingleMethod("dup"), this::doHostDup);
         vm.registerInvokable(hostIoDef.requireSingleMethod("dup2"), this::doHostDup2);
         vm.registerInvokable(hostIoDef.requireSingleMethod("read"), this::doHostRead);
+        vm.registerInvokable(hostIoDef.requireSingleMethod("pread"), this::doHostPRead);
         vm.registerInvokable(hostIoDef.requireSingleMethod("readSingle"), this::doHostReadSingle);
         vm.registerInvokable(hostIoDef.requireSingleMethod("available"), this::doHostAvailable);
         vm.registerInvokable(hostIoDef.requireSingleMethod("write"), this::doHostWrite);
@@ -146,6 +147,21 @@ public final class VIO {
         int res;
         try {
             res = system.read(fd, ByteBuffer.wrap(array, off, len));
+        } catch (IOException e) {
+            throw wrapIOE(e);
+        }
+        return Integer.valueOf(res);
+    }
+
+    private Object doHostPRead(final VmThread vmThread, final VmObject ignored, final List<Object> args) {
+        int fd = ((Integer) args.get(0)).intValue();
+        byte[] array = (byte[]) ((VmArray) args.get(1)).getArray();
+        int off = ((Integer) args.get(2)).intValue();
+        int len = ((Integer) args.get(3)).intValue();
+        long position = ((Long) args.get(4)).longValue();
+        int res;
+        try {
+            res = system.pread(fd, ByteBuffer.wrap(array, off, len), position);
         } catch (IOException e) {
             throw wrapIOE(e);
         }
