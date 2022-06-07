@@ -2,6 +2,7 @@ package org.qbicc.machine.vfs;
 
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
+import java.nio.file.attribute.FileTime;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -11,6 +12,7 @@ import java.util.zip.ZipFile;
 final class ZipEntryNode extends Node {
     private final ZipFile zf;
     private final ZipEntry ze;
+    private final long defaultTime = System.currentTimeMillis();
 
     ZipEntryNode(ZipFile zf, ZipEntry ze) {
         this.zf = zf;
@@ -20,10 +22,25 @@ final class ZipEntryNode extends Node {
     @Override
     VirtualFileStatBuffer statExisting() {
         int attr = VFSUtils.BA_EXISTS;
+        FileTime ctime = ze.getCreationTime();
+        FileTime mtime = ze.getLastModifiedTime();
+        if (ctime == null) {
+            if (mtime == null) {
+                ctime = mtime = FileTime.fromMillis(defaultTime);
+            } else {
+                ctime = mtime;
+            }
+        } else if (mtime == null) {
+            mtime = ctime;
+        }
+        FileTime atime = ze.getLastAccessTime();
+        if (atime == null) {
+            atime = mtime;
+        }
         return new VirtualFileStatBuffer(
-            ze.getLastModifiedTime().toMillis(),
-            ze.getLastAccessTime().toMillis(),
-            ze.getCreationTime().toMillis(),
+            mtime.toMillis(),
+            atime.toMillis(),
+            ctime.toMillis(),
             attr | (ze.isDirectory() ? VFSUtils.BA_DIRECTORY : VFSUtils.BA_REGULAR),
             ze.getSize(),
             getNodeId()
