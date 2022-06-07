@@ -41,7 +41,7 @@ jobs:
 
       - name: Install qbicc
         run: |
-          mvn --batch-mode install
+          mvn --batch-mode install -Dqbicc.test.clean-target=true
         working-directory: ./myqbicc
 
       - name: Prepare failure archive (if maven failed)
@@ -82,7 +82,7 @@ jobs:
         env:
             LIBRARY_PATHS: $(brew --prefix gcc)/lib/gcc/11
         run: |
-          mvn --batch-mode install
+          mvn --batch-mode install -Dqbicc.test.clean-target=true
         working-directory: ./myqbicc
 
       - name: Prepare failure archive (if maven failed)

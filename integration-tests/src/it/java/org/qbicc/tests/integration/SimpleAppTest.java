@@ -11,6 +11,7 @@ import org.jboss.logmanager.formatters.PatternFormatter;
 import org.jboss.logmanager.handlers.ConsoleHandler;
 import org.junit.jupiter.api.BeforeAll;
 import org.qbicc.context.DiagnosticContext;
+import org.qbicc.tests.integration.utils.FileUtils;
 import org.qbicc.tests.integration.utils.TestConstants;
 import org.qbicc.tests.integration.utils.Javac;
 import org.qbicc.tests.integration.utils.NativeExecutable;
@@ -44,27 +45,33 @@ public class SimpleAppTest {
         Path appPath = Path.of(TestConstants.BASE_DIR).resolve("examples").resolve(appName);
         Path targetPath = Path.of(".").resolve("target");
         Path baseOutputPath = targetPath.resolve("it").resolve(appName);
-        Path outputPath = baseOutputPath.resolve("classes");
-        Path nativeOutputPath = baseOutputPath.resolve("native");
-        Path source = appPath.resolve("hello/world/Main.java");
-        String mainClass = "hello.world.Main";
-        Path outputExecutable = nativeOutputPath.resolve("a.out");
+        try {
+            Path outputPath = baseOutputPath.resolve("classes");
+            Path nativeOutputPath = baseOutputPath.resolve("native");
+            Path source = appPath.resolve("hello/world/Main.java");
+            String mainClass = "hello.world.Main";
+            Path outputExecutable = nativeOutputPath.resolve("a.out");
 
-        // Build via javac
-        boolean compilationResult = Javac.compile(outputPath, source, LOGGER);
+            // Build via javac
+            boolean compilationResult = Javac.compile(outputPath, source, LOGGER);
 
-        assertTrue(compilationResult, "Compilation should succeed.");
+            assertTrue(compilationResult, "Compilation should succeed.");
 
-        DiagnosticContext diagnosticContext = Qbicc.build(outputPath, nativeOutputPath, mainClass, LOGGER);
+            DiagnosticContext diagnosticContext = Qbicc.build(outputPath, nativeOutputPath, mainClass, LOGGER);
 
-        assertEquals(0, diagnosticContext.errors(), "Native image creation should generate no errors.");
+            assertEquals(0, diagnosticContext.errors(), "Native image creation should generate no errors.");
 
-        StringBuilder stdOut = new StringBuilder();
-        StringBuilder stdErr = new StringBuilder();
-        NativeExecutable.run(appName, outputExecutable, stdOut, stdErr, LOGGER);
+            StringBuilder stdOut = new StringBuilder();
+            StringBuilder stdErr = new StringBuilder();
+            NativeExecutable.run(appName, outputExecutable, stdOut, stdErr, LOGGER);
 
-        assertTrue(stdErr.toString().isBlank(), "Native image execution should produce no error. " + stdErr);
-        assertEquals("hello world", stdOut.toString().trim());
+            assertTrue(stdErr.toString().isBlank(), "Native image execution should produce no error. " + stdErr);
+            assertEquals("hello world", stdOut.toString().trim());
+        } finally {
+            if (FileUtils.cleanTarget) {
+                FileUtils.deleteRecursively(baseOutputPath);
+            }
+        }
     }
 
     @Test
@@ -73,27 +80,33 @@ public class SimpleAppTest {
         Path appPath = Path.of(".").resolve("src/it-in/apps").resolve(appName);
         Path targetPath = Path.of(".").resolve("target");
         Path baseOutputPath = targetPath.resolve("it").resolve(appName);
-        Path outputPath = baseOutputPath.resolve("classes");
-        Path nativeOutputPath = baseOutputPath.resolve("native");
-        Path source = appPath.resolve("mypackage/Main.java");
-        String mainClass = "mypackage.Main";
-        Path outputExecutable = nativeOutputPath.resolve("a.out");
+        try {
+            Path outputPath = baseOutputPath.resolve("classes");
+            Path nativeOutputPath = baseOutputPath.resolve("native");
+            Path source = appPath.resolve("mypackage/Main.java");
+            String mainClass = "mypackage.Main";
+            Path outputExecutable = nativeOutputPath.resolve("a.out");
 
-        // Build via javac
-        boolean compilationResult = Javac.compile(outputPath, source, LOGGER);
+            // Build via javac
+            boolean compilationResult = Javac.compile(outputPath, source, LOGGER);
 
-        assertTrue(compilationResult, "Compilation should succeed.");
+            assertTrue(compilationResult, "Compilation should succeed.");
 
-        DiagnosticContext diagnosticContext = Qbicc.build(outputPath, nativeOutputPath, mainClass, LOGGER);
+            DiagnosticContext diagnosticContext = Qbicc.build(outputPath, nativeOutputPath, mainClass, LOGGER);
 
-        assertEquals(0, diagnosticContext.errors(), "Native image creation should generate no errors.");
+            assertEquals(0, diagnosticContext.errors(), "Native image creation should generate no errors.");
 
-        StringBuilder stdOut = new StringBuilder();
-        StringBuilder stdErr = new StringBuilder();
-        NativeExecutable.run(appName, outputExecutable, stdOut, stdErr, LOGGER);
+            StringBuilder stdOut = new StringBuilder();
+            StringBuilder stdErr = new StringBuilder();
+            NativeExecutable.run(appName, outputExecutable, stdOut, stdErr, LOGGER);
 
-        assertTrue(stdErr.toString().isBlank(), "Native image execution should produce no error. " + stdErr);
-        assertEquals("1 1", stdOut.toString().trim());
+            assertTrue(stdErr.toString().isBlank(), "Native image execution should produce no error. " + stdErr);
+            assertEquals("1 1", stdOut.toString().trim());
+        } finally {
+            if (FileUtils.cleanTarget) {
+                FileUtils.deleteRecursively(baseOutputPath);
+            }
+        }
     }
 
 }
