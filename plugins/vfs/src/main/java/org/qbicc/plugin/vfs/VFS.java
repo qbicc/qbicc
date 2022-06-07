@@ -1,6 +1,7 @@
 package org.qbicc.plugin.vfs;
 
 import java.io.IOException;
+import java.nio.file.NoSuchFileException;
 import java.util.List;
 
 import org.qbicc.context.AttachmentKey;
@@ -309,6 +310,11 @@ public final class VFS {
     }
 
     private Thrown wrapIOE(final IOException e) {
-        return new Thrown(ioException.newInstance(e.getMessage()));
+        if (e instanceof NoSuchFileException) {
+            ClassContext classContext = ctxt.getBootstrapClassContext();
+            return new Thrown(((VmThrowableClass) classContext.findDefinedType("java/nio/file/NoSuchFileException").load().getVmClass()).newInstance(e.getMessage()));
+        } else {
+            return new Thrown(ioException.newInstance(e.getMessage()));
+        }
     }
 }
