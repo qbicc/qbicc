@@ -93,7 +93,7 @@ public final class VmImpl implements Vm {
     private final CompilationContext ctxt;
     private final Map<GlobalVariableElement, Memory> globals = new ConcurrentHashMap<>();
     private final Map<String, VmStringImpl> interned = new ConcurrentHashMap<>();
-    private final VmClassLoaderImpl bootstrapClassLoader;
+    final VmClassLoaderImpl bootstrapClassLoader;
     private final AtomicBoolean initialized = new AtomicBoolean();
     private final Consumer<VmObject> manualInitializers;
 
@@ -149,6 +149,10 @@ public final class VmImpl implements Vm {
     // exceptions
     final VmThrowableClassImpl interruptedException;
     final VmThrowableClassImpl illegalMonitorStateException;
+
+    final VmThrowableClassImpl runtimeException;
+
+    final VmThrowableClassImpl nullPointerException;
 
     // error classes
     final VmThrowableClassImpl errorClass;
@@ -307,6 +311,11 @@ public final class VmImpl implements Vm {
         illegalMonitorStateException = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/IllegalMonitorStateException").load());
         illegalMonitorStateException.postConstruct(this);
 
+        runtimeException = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/RuntimeException").load());
+        runtimeException.postConstruct(this);
+        nullPointerException = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/NullPointerException").load());
+        nullPointerException.postConstruct(this);
+
         // errors
         linkageErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/LinkageError").load());
         linkageErrorClass.postConstruct(this);
@@ -341,6 +350,8 @@ public final class VmImpl implements Vm {
 
         bootstrapClassLoader.registerClass("java/lang/InterruptedException", interruptedException);
         bootstrapClassLoader.registerClass("java/lang/IllegalMonitorStateException", illegalMonitorStateException);
+        bootstrapClassLoader.registerClass("java/lang/RuntimeException", runtimeException);
+        bootstrapClassLoader.registerClass("java/lang/NullPointerException", nullPointerException);
         bootstrapClassLoader.registerClass("java/lang/Error", errorClass);
         bootstrapClassLoader.registerClass("java/lang/LinkageError", linkageErrorClass);
         bootstrapClassLoader.registerClass("java/lang/IncompatibleClassChangeError", incompatibleClassChangeErrorClass);
@@ -836,6 +847,31 @@ public final class VmImpl implements Vm {
                 return classLoader.findLoadedClass(name.getContent());
             });
 
+            // Module
+            VmClassImpl moduleClass = bootstrapClassLoader.loadClass("java/lang/Module");
+            FieldElement moduleLoaderField = moduleClass.getTypeDefinition().findField("loader", true);
+            moduleClass.registerInvokable("defineModule0", (thread, target, args) -> {
+                VmObjectImpl module = (VmObjectImpl) args.get(0);
+                boolean isOpen = ((Boolean) args.get(1)).booleanValue();
+                VmStringImpl versionObj = (VmStringImpl) args.get(2);
+                VmStringImpl locationObj = (VmStringImpl) args.get(3);
+                VmRefArrayImpl packageNames = (VmRefArrayImpl) args.get(4);
+                VmClassLoaderImpl loader = (VmClassLoaderImpl) module.getMemory().loadRef(moduleClass.indexOf(moduleLoaderField), SinglePlain);
+                if (loader == null) {
+                    loader = bootstrapClassLoader;
+                }
+                for (VmObject vmObject : packageNames.getArray()) {
+                    VmStringImpl packageNameObj = (VmStringImpl) vmObject;
+                    String packageName = packageNameObj.getContent();
+                    loader.setModulePackage(packageName, module);
+                }
+                return null;
+            });
+            moduleClass.registerInvokable("addReads0", (thread, target, args) -> null);
+            moduleClass.registerInvokable("addExports0", (thread, target, args) -> null);
+            moduleClass.registerInvokable("addExportsToAll0", (thread, target, args) -> null);
+            moduleClass.registerInvokable("addExportsToAllUnnamed0", (thread, target, args) -> null);
+
             // Array
             VmClassImpl arrayClass = bootstrapClassLoader.loadClass("java/lang/reflect/Array");
             arrayClass.registerInvokable("newArray", (thread, target, args) -> {
@@ -947,17 +983,25 @@ public final class VmImpl implements Vm {
             LoadedTypeDefinition systemType = systemClass.getTypeDefinition();
             // phase 1
             invokeExact(systemType.getMethod(systemType.findSingleMethodIndex(me -> me.nameEquals("initPhase1"))), null, List.of());
-            // phase 2
-            // TODO: Not working yet; gets part way through and crashes.
-            // invokeExact(systemType.getMethod(systemType.findSingleMethodIndex(me -> me.nameEquals("initPhase2"))), null, List.of(false, false));
-            // phase 3
-            // TODO: Haven't tried yet...still working on phase2
-            // invokeExact(systemType.getMethod(systemType.findSingleMethodIndex(me -> me.nameEquals("initPhase3"))), null, List.of());
-
-            // Initialize early to avoid deadlocks
-            initialize(bootstrapClassLoader.loadClass("java/lang/ref/Reference"));
-            initialize(bootstrapClassLoader.loadClass("java/util/concurrent/ForkJoinPool"));
         }
+    }
+
+    public void initialize2() {
+        VmThreadImpl vmThread = (VmThreadImpl) Vm.requireCurrentThread();
+        VmClassLoaderImpl bootstrapClassLoader = this.bootstrapClassLoader;
+
+        VmClassImpl systemClass = bootstrapClassLoader.loadClass("java/lang/System");
+        LoadedTypeDefinition systemType = systemClass.getTypeDefinition();
+
+        // phase 2
+        invokeExact(systemType.getMethod(systemType.findSingleMethodIndex(me -> me.nameEquals("initPhase2"))), null, List.of(Boolean.FALSE, Boolean.FALSE));
+        // phase 3
+        // TODO: Haven't tried yet...still working on phase2
+        // invokeExact(systemType.getMethod(systemType.findSingleMethodIndex(me -> me.nameEquals("initPhase3"))), null, List.of());
+
+        // Initialize early to avoid deadlocks
+        initialize(bootstrapClassLoader.loadClass("java/lang/ref/Reference"));
+        initialize(bootstrapClassLoader.loadClass("java/util/concurrent/ForkJoinPool"));
     }
 
     // Convert '.' to '/' matching the functionality of fixClassname in the JDK's check_classname.c

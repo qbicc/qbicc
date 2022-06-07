@@ -188,6 +188,16 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         }
     }
 
+    String getPackageInternalName() {
+        String internalName = getTypeDefinition().getInternalName();
+        int idx = internalName.lastIndexOf('/');
+        if (idx == -1) {
+            return "";
+        } else {
+            return internalName.substring(0, idx);
+        }
+    }
+
     @SuppressWarnings("serial")
     static final class BigBitMapException extends RuntimeException {
         private static final StackTraceElement[] EMPTY_STACK = new StackTraceElement[0];
@@ -762,6 +772,11 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         // this is a `final` field
         CoreClasses coreClasses = CoreClasses.get(vm.getCompilationContext());
         getMemory().storeRef(indexOf(coreClasses.getClassNestHostField()), host, SingleRelease);
+    }
+
+    void setModule(final VmObjectImpl module) {
+        CoreClasses coreClasses = CoreClasses.get(vm.getCompilationContext());
+        getMemory().storeRef(indexOf(coreClasses.getClassModuleField()), module, SingleRelease);
     }
 
     VmClassImpl getNestHost() {

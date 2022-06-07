@@ -1363,7 +1363,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         long elementSize = node.getType().getElementSize();
         for (int i = 0; i < nodeValues.size(); i++) {
             Literal value = nodeValues.get(i);
-            store(memory, (int) (elementSize * i), elementType, value, SingleUnshared);
+            store(thread, memory, (int) (elementSize * i), elementType, value, SingleUnshared);
         }
         return memory;
     }
@@ -1892,6 +1892,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
         Memory memory = getMemory(valueHandle);
+        if (memory == null) {
+            throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
+        }
         long offset = getOffset(valueHandle);
         ValueType type = valueHandle.getValueType();
         ReadAccessMode mode = node.getAccessMode();
@@ -2073,25 +2076,29 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         if (valueHandle instanceof StaticField sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
-        store(valueHandle, value, mode);
+        store(thread, valueHandle, value, mode);
         return null;
     }
 
     /**
      * Store a value into the interpreter memory.
      *
+     * @param thread the thread (must not be {@code null})
      * @param valueHandle the store target (must not be {@code null})
      * @param value the value to store
      * @param mode the atomicity mode (must not be {@code null})
      */
-    void store(final ValueHandle valueHandle, final Value value, final WriteAccessMode mode) {
+    void store(VmThreadImpl thread, final ValueHandle valueHandle, final Value value, final WriteAccessMode mode) {
         Memory memory = getMemory(valueHandle);
         long offset = getOffset(valueHandle);
         ValueType type = valueHandle.getValueType();
-        store(memory, offset, type, value, mode);
+        store(thread, memory, offset, type, value, mode);
     }
 
-    void store(final Memory memory, final long offset, final ValueType type, final Value value, final WriteAccessMode mode) {
+    void store(VmThreadImpl thread, final Memory memory, final long offset, final ValueType type, final Value value, final WriteAccessMode mode) {
+        if (memory == null) {
+            throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
+        }
         if (isInt8(type)) {
             memory.store8(offset, unboxInt(value), mode);
         } else if (isInt16(type)) {
@@ -2121,7 +2128,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (type instanceof PointerType) {
             memory.storePointer(offset, unboxPointer(value), mode);
         } else if (type instanceof CompoundType ct) {
-            memory.storeMemory(offset, (Memory) require(value), 0, ct.getSize());
+            Memory source = (Memory) require(value);
+            if (source == null) {
+                throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
+            }
+            memory.storeMemory(offset, source, 0, ct.getSize());
         } else {
             throw unsupportedType();
         }
@@ -2458,7 +2469,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public Memory visit(Frame frame, PointerHandle node) {
-            return frame.unboxPointer(node.getPointerValue()).offsetByElements(frame.unboxLong(node.getOffsetValue())).getRootMemoryIfExists();
+            Pointer pointer = frame.unboxPointer(node.getPointerValue());
+            return pointer == null ? null : pointer.offsetByElements(frame.unboxLong(node.getOffsetValue())).getRootMemoryIfExists();
         }
     };
 
@@ -2568,7 +2580,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public long visit(Frame frame, PointerHandle node) {
-            return frame.unboxPointer(node.getPointerValue()).offsetByElements(frame.unboxLong(node.getOffsetValue())).getRootByteOffset();
+            Pointer pointer = frame.unboxPointer(node.getPointerValue());
+            return pointer == null ? 0 : pointer.offsetByElements(frame.unboxLong(node.getOffsetValue())).getRootByteOffset();
         }
 
         @Override
