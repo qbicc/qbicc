@@ -1,6 +1,7 @@
 package org.qbicc.machine.vio;
 
 import java.io.Closeable;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -14,6 +15,7 @@ import java.nio.file.attribute.FileAttribute;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 import io.smallrye.common.function.ExceptionBiConsumer;
 import io.smallrye.common.function.ExceptionBiFunction;
@@ -91,11 +93,11 @@ public final class VIOSystem {
     }
 
     public int openInputStream(ExceptionSupplier<InputStream, IOException> factory) throws IOException {
-        return open(() -> new InputStreamHandler(factory.get()));
+        return open(() -> makeInputStreamHandler(factory));
     }
 
     public void openInputStream(int fd, ExceptionSupplier<InputStream, IOException> factory) throws IOException {
-        replace(fd, () -> new InputStreamHandler(factory.get()));
+        replace(fd, () -> makeInputStreamHandler(factory));
     }
 
     public int openOutputStream(ExceptionSupplier<OutputStream, IOException> factory) throws IOException {
@@ -120,6 +122,15 @@ public final class VIOSystem {
 
     public void openPipeSink(int fd, ExceptionSupplier<Pipe.SinkChannel, IOException> factory) throws IOException {
         replace(fd, () -> new PipeSinkHandler(factory.get()));
+    }
+
+    private static IoHandler makeInputStreamHandler(ExceptionSupplier<InputStream, IOException> factory) throws IOException {
+        InputStream is = factory.get();
+        if (is instanceof FileInputStream fis) {
+            return new FileChannelHandler(fis.getChannel(), false, () -> {});
+        } else {
+            return new InputStreamHandler(is);
+        }
     }
 
     /**
@@ -214,11 +225,11 @@ public final class VIOSystem {
      * @throws IOException if the open fails
      */
     public int openZipFileEntryForInput(ZipFile zf, ZipEntry ze) throws IOException {
-        return open(() -> new InputStreamHandler(zf.getInputStream(ze)));
+        return open(() -> new ZipEntryInputStreamHandler(ze, zf.getInputStream(ze)));
     }
 
     public void openZipFileEntryForInput(int fd, ZipFile zf, ZipEntry ze) throws IOException {
-        replace(fd, () -> new InputStreamHandler(zf.getInputStream(ze)));
+        replace(fd, () -> new ZipEntryInputStreamHandler(ze, zf.getInputStream(ze)));
     }
 
     /**

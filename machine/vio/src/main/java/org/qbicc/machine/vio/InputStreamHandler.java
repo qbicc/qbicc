@@ -7,8 +7,9 @@ import java.nio.ByteBuffer;
 /**
  *
  */
-final class InputStreamHandler implements IoHandler, ReadableIoHandler {
+class InputStreamHandler implements IoHandler, ReadableIoHandler, SeekableIoHandler {
     private final InputStream is;
+    private long pos;
 
     InputStreamHandler(final InputStream is) {
         this.is = is;
@@ -21,7 +22,11 @@ final class InputStreamHandler implements IoHandler, ReadableIoHandler {
 
     @Override
     public int read(ByteBuffer buf) throws IOException {
-        return Utils.readInto(is, buf);
+        int cnt = Utils.readInto(is, buf);
+        if (cnt > 0) {
+            pos += cnt;
+        }
+        return cnt;
     }
 
     @Override
@@ -32,5 +37,23 @@ final class InputStreamHandler implements IoHandler, ReadableIoHandler {
     @Override
     public long available() throws IOException {
         return is.available();
+    }
+
+    @Override
+    public long seekRelative(long offs) throws IOException {
+        if (offs == 0) {
+            return pos;
+        } else if (offs > 0) {
+            is.skipNBytes(offs);
+            pos += offs;
+            return pos;
+        } else {
+            throw new IOException("Cannot seek backwards");
+        }
+    }
+
+    @Override
+    public long seekAbsolute(long offs) throws IOException {
+        return seekRelative(offs - pos);
     }
 }
