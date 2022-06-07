@@ -39,6 +39,8 @@ public final class HostIO {
 
     public static native void checkAccess(final String pathName) throws IOException;
 
+    public static native HostBasicFileAttributes stat(String pathName, boolean followLinks) throws IOException;
+
     // General I/O ops
 
     /**
@@ -60,7 +62,11 @@ public final class HostIO {
 
     public static native int read(int fd, byte[] dest, int off, int len) throws IOException;
 
+    public static native int pread(int fd, byte[] dest, int off, int len, long position) throws IOException;
+
     public static native int readSingle(int fd) throws IOException;
+
+    public static native String readDirectoryEntry(int fd) throws IOException;
 
     public static native long available(int fd) throws IOException;
 

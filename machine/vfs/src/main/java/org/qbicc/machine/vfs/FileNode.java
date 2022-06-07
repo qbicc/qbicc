@@ -3,9 +3,12 @@ package org.qbicc.machine.vfs;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.BasicFileAttributeView;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.EnumSet;
@@ -25,6 +28,22 @@ final class FileNode extends Node implements Closeable {
         vfs.addCloseable(this);
         //noinspection OctalInteger
         this.mode = mode & 0777;
+    }
+
+    VirtualFileStatBuffer statExisting() throws IOException {
+        BasicFileAttributeView view = Files.getFileAttributeView(tempFilePath, BasicFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
+        BasicFileAttributes attr = view.readAttributes();
+        int ba = VFSUtils.BA_EXISTS;
+        if (attr.isRegularFile()) ba |= VFSUtils.BA_REGULAR;
+        if (attr.isDirectory()) ba |= VFSUtils.BA_DIRECTORY;
+        return new VirtualFileStatBuffer(
+            attr.lastModifiedTime().toMillis(),
+            attr.lastAccessTime().toMillis(),
+            attr.creationTime().toMillis(),
+            ba,
+            attr.size(),
+            getNodeId()
+        );
     }
 
     @Override

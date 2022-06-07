@@ -2,7 +2,6 @@ package org.qbicc.machine.vfs;
 
 import static org.qbicc.machine.vfs.VFSUtils.*;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
@@ -53,11 +52,15 @@ final class DirectoryNode extends SingleParentNode {
 
     private volatile int mode;
 
+    private volatile long createTime;
+    private volatile long modTime;
+
     private DirectoryNode(ImmutableSortedMap<String, Node> initialEntries, DirectoryNode parent, int mode) {
         Assert.checkNotNullParam("parent", parent);
         entries = initialEntries;
         this.parent = parent;
         this.mode = mode;
+        createTime = modTime = System.currentTimeMillis();
     }
 
     DirectoryNode(VirtualFileSystem fileSystem) {
@@ -66,6 +69,7 @@ final class DirectoryNode extends SingleParentNode {
         this.parent = this;
         //noinspection OctalInteger
         mode = 0755;
+        createTime = modTime = System.currentTimeMillis();
     }
 
     public Node get(String name) {
@@ -91,7 +95,7 @@ final class DirectoryNode extends SingleParentNode {
             String name = rvp.getNameString(idx);
             Node node = get(name);
             if (node == null) {
-                throw new FileNotFoundException(rvp.subpath(0, idx + 1).toString());
+                throw nsfe(rvp, idx);
             } else if (node instanceof DirectoryNode childDn) {
                 return childDn.openFile(-1, vfs, this, rvp, idx + 1, flags, mode);
             } else {
@@ -133,6 +137,7 @@ final class DirectoryNode extends SingleParentNode {
                 throw new AccessDeniedException(name);
             }
             node = new FileNode(vfs, mode);
+            modTime = System.currentTimeMillis();
             this.entries = entries.newWithKeyValue(name, node);
         } else {
             // node != null
@@ -144,12 +149,44 @@ final class DirectoryNode extends SingleParentNode {
         return node.openExisting(fd, vfs, this, flags);
     }
 
+    VirtualFileStatBuffer stat(VirtualFileSystem vfs, RelativeVirtualPath rvp, int idx, boolean followLinks) throws IOException {
+        int nc = rvp.getNameCount();
+        if (idx == nc) {
+            return statExisting();
+        }
+        String name = rvp.getNameString(idx);
+        Node node = get(name);
+        if (node == null) {
+            throw nsfe(rvp, idx);
+        }
+        if (idx == nc - 1) {
+            return node.statExisting();
+        } else if (node instanceof DirectoryNode dn) {
+            return dn.stat(vfs, rvp, idx + 1, followLinks);
+        } else {
+            throw nde(rvp, idx);
+        }
+    }
+
+    @Override
+    VirtualFileStatBuffer statExisting() {
+        long modTime = this.modTime;
+        return new VirtualFileStatBuffer(
+            modTime,
+            modTime,
+            createTime,
+            BA_EXISTS | BA_DIRECTORY,
+            entries.size(),
+            getNodeId()
+        );
+    }
+
     @Override
     int openExisting(int fd, VirtualFileSystem vfs, DirectoryNode parent, int flags) throws IOException {
         if ((flags & VFSUtils.O_ACCESS_MODE_MASK) != VFSUtils.O_RDONLY) {
             throw new AccessDeniedException("Cannot write to a directory");
         }
-        if ((flags & (VFSUtils.O_APPEND | VFSUtils.O_TRUNC | VFSUtils.O_EXCL | VFSUtils.O_CREAT)) != 0 || (flags & VFSUtils.O_DIRECTORY) == 0) {
+        if ((flags & (VFSUtils.O_APPEND | VFSUtils.O_TRUNC | VFSUtils.O_EXCL | VFSUtils.O_CREAT)) != 0) {
             throw new IOException("Invalid flags");
         }
         ImmutableSortedMap<String, Node> entries = this.entries;

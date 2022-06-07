@@ -613,10 +613,17 @@ public class Main implements Callable<DiagnosticContext> {
     private static void mountInitialFileSystem(CompilationContext ctxt) {
         // install all boot classpath items into the VFS
         VFS vfs = VFS.get(ctxt);
-        Driver driver = Driver.get(ctxt);
-        AbsoluteVirtualPath modulesPath = vfs.getQbiccPath().resolve("modules");
-        Collection<String> bootModuleNames = driver.getBootModuleNames();
         VirtualFileSystem fileSystem = vfs.getFileSystem();
+        Driver driver = Driver.get(ctxt);
+        AbsoluteVirtualPath javaHome = vfs.getQbiccPath().resolve("java.home");
+        try {
+            //noinspection OctalInteger
+            fileSystem.mkdirs(javaHome, 0755);
+        } catch (IOException e) {
+            ctxt.error(e, "Failed to create %s", javaHome);
+        }
+        AbsoluteVirtualPath modulesPath = javaHome.resolve("modules");
+        Collection<String> bootModuleNames = driver.getBootModuleNames();
         for (String bootModuleName : bootModuleNames) {
             ClassPathItem bootItem = driver.getBootModuleClassPathItem(bootModuleName);
             try {
@@ -626,13 +633,6 @@ public class Main implements Callable<DiagnosticContext> {
             }
         }
         // now look for all META-INF/java.home files and link them into the main system
-        AbsoluteVirtualPath javaHome = vfs.getQbiccPath().resolve("java.home");
-        try {
-            //noinspection OctalInteger
-            fileSystem.mkdirs(javaHome, 0755);
-        } catch (IOException e) {
-            ctxt.error(e, "Failed to create %s", javaHome);
-        }
         for (String bootModuleName : bootModuleNames) {
             AbsoluteVirtualPath moduleJavaHome = modulesPath.resolve(bootModuleName).resolve("META-INF").resolve("java.home");
             try {
