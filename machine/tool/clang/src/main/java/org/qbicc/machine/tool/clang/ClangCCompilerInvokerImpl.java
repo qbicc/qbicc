@@ -99,7 +99,7 @@ final class ClangCCompilerInvokerImpl extends AbstractClangInvoker implements Cl
                 cmd.add("-D" + key + "=" + val);
             }
         }
-        Collections.addAll(cmd, "-c", "-x", sourceLanguage == SourceLanguage.ASM ? "assembler" : "c", "-o", getOutputPath().toString(), "-");
+        Collections.addAll(cmd, "-c", /*"-x", sourceLanguage == SourceLanguage.ASM ? "assembler" : "c",*/ "-o", getOutputPath().toString(), "-");
     }
 }
 

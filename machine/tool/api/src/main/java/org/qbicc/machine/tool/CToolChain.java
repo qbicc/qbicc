@@ -42,7 +42,7 @@ public interface CToolChain extends Tool {
                 names.add(cpuName + "-" + osName + "-gnu-gcc");
             }
             // generic compiler names
-            names.addAll(List.of("cc", "gcc", "clang", "emcc"));
+            names.addAll(List.of("clang", "emcc"));
         }
         for (String name : names) {
             Path path = ToolUtil.findExecutable(name);
