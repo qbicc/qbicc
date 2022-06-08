@@ -13,6 +13,8 @@ import org.qbicc.machine.llvm.LLValue;
 import org.qbicc.machine.llvm.Visibility;
 import io.smallrye.common.constraint.Assert;
 
+import static org.qbicc.machine.arch.AddressSpaceConstants.DEFAULT;
+
 abstract class AbstractFunction extends AbstractMetable implements Function {
     final String name;
     final List<AbstractValue> attributes = new ArrayList<>();
@@ -166,7 +168,7 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
     }
 
     protected final void appendAddressSpace(final Appendable target) throws IOException {
-        if (addressSpace != 0) {
+        if (addressSpace != DEFAULT) {
             target.append(" addrspace(").append(Integer.toString(addressSpace)).append(')');
         }
     }

@@ -25,7 +25,6 @@ import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.GlobalXtor;
 import org.qbicc.object.ModuleSection;
 import org.qbicc.object.ProgramModule;
-import org.qbicc.object.ProgramObject;
 import org.qbicc.object.SectionObject;
 import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.type.ArrayType;
@@ -50,6 +49,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
+
+import static org.qbicc.machine.arch.AddressSpaceConstants.DEFAULT;
 
 final class LLVMModuleGenerator {
     private final CompilationContext context;
@@ -127,7 +128,7 @@ final class LLVMModuleGenerator {
                     obj.threadLocal(map(tlm));
                 }
                 obj.asGlobal(item.getName());
-                if (item.getAddrspace() != 0) {
+                if (item.getAddrspace() != DEFAULT) {
                     obj.addressSpace(item.getAddrspace());
                 }
             }
@@ -195,7 +196,7 @@ final class LLVMModuleGenerator {
                     if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                         obj.section(sectionName);
                     }
-                    if (item.getAddrspace() != 0) {
+                    if (item.getAddrspace() != DEFAULT) {
                         obj.addressSpace(data.getAddrspace());
                     }
                     MemberElement element = data.getOriginalElement();

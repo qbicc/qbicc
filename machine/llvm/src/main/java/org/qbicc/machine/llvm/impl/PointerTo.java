@@ -1,5 +1,7 @@
 package org.qbicc.machine.llvm.impl;
 
+import static org.qbicc.machine.arch.AddressSpaceConstants.DEFAULT;
+
 import java.io.IOException;
 import java.util.Objects;
 
@@ -14,7 +16,7 @@ final class PointerTo extends AbstractValue {
 
     public Appendable appendTo(final Appendable target) throws IOException {
         type.appendTo(target);
-        if (addrSpace != 0) {
+        if (addrSpace != DEFAULT) {
             target.append(' ').append("addrspace").append('(');
             target.append(Integer.toString(addrSpace));
             target.append(')');

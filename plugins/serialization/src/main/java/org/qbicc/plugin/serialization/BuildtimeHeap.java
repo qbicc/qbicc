@@ -56,6 +56,7 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+import static org.qbicc.machine.arch.AddressSpaceConstants.COLLECTED;
 
 public class BuildtimeHeap {
     private static final AttachmentKey<BuildtimeHeap> KEY = new AttachmentKey<>();
@@ -151,7 +152,7 @@ public class BuildtimeHeap {
     void emitRootClassArray() {
         Data d = classSection.addData(null, rootClassesDecl.getName(), ctxt.getLiteralFactory().literalOf((ArrayType) rootClassesDecl.getValueType(), List.of(rootClasses)));
         d.setLinkage(Linkage.EXTERNAL);
-        d.setAddrspace(1);
+        d.setAddrspace(COLLECTED);
     }
 
     void emitRootClassDictionaries(ArrayList<VmClass> rootClasses) {
@@ -189,7 +190,7 @@ public class BuildtimeHeap {
     public ProgramObject getAndRegisterGlobalClassArray(ExecutableElement originalElement) {
         ProgramModule programModule = ctxt.getOrAddProgramModule(originalElement.getEnclosingType());
         DataDeclaration decl = programModule.declareData(rootClassesDecl);
-        decl.setAddrspace(1);
+        decl.setAddrspace(COLLECTED);
         return decl;
     }
 
@@ -201,7 +202,7 @@ public class BuildtimeHeap {
         if (isRootClass(value)) {
             LiteralFactory lf  = ctxt.getLiteralFactory();
             DataDeclaration d = from.declareData(rootClassesDecl);
-            d.setAddrspace(1);
+            d.setAddrspace(COLLECTED);
             int typeId = ((VmClass)value).getTypeDefinition().getTypeId();
             Literal base = lf.bitcastLiteral(lf.literalOf(ProgramObjectPointer.of(rootClassesDecl)), ((ArrayType)rootClassesDecl.getValueType()).getElementType().getPointer().asCollected());
             Literal elem = lf.elementOfLiteral(base, lf.literalOf(typeId));
@@ -213,7 +214,7 @@ public class BuildtimeHeap {
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(desiredType);
             }
             DataDeclaration decl = from.declareData(objDecl);
-            decl.setAddrspace(1);
+            decl.setAddrspace(COLLECTED);
             return ctxt.getLiteralFactory().bitcastLiteral(ctxt.getLiteralFactory().literalOf(decl), desiredType);
         }
     }
@@ -253,7 +254,7 @@ public class BuildtimeHeap {
                 }
                 String name = nextLiteralName(into);
                 DataDeclaration decl = into.getProgramModule().declareData(null, name, objLayout.getCompoundType());
-                decl.setAddrspace(1);
+                decl.setAddrspace(COLLECTED);
                 vmObjects.put(value, decl); // record declaration
                 serializeVmObject(concreteType, objLayout, value, into, -1, decl.getName()); // now serialize and define a Data
             }
@@ -265,7 +266,7 @@ public class BuildtimeHeap {
             int length = memory.load32(info.getMember(coreClasses.getArrayLengthField()).getOffset(), SinglePlain);
             CompoundType literalCT = arrayLiteralType(contentsField, length);
             DataDeclaration decl = into.getProgramModule().declareData(null, nextLiteralName(into), literalCT);
-            decl.setAddrspace(1);
+            decl.setAddrspace(COLLECTED);
             vmObjects.put(value, decl); // record declaration
             serializeRefArray((ReferenceArrayObjectType) ot, literalCT, length, into, decl, (VmArray)value); // now serialize
         } else {
@@ -289,7 +290,7 @@ public class BuildtimeHeap {
     private Data defineData(ModuleSection into, String name, Literal value) {
         Data d = into.addData(null, name, value);
         d.setLinkage(Linkage.EXTERNAL);
-        d.setAddrspace(1);
+        d.setAddrspace(COLLECTED);
         return d;
     }
 
@@ -533,7 +534,7 @@ public class BuildtimeHeap {
 
         Data arrayData = defineData(into, nextLiteralName(into), ctxt.getLiteralFactory().literalOf(literalCT, memberMap));
         DataDeclaration decl = arrayData.getDeclaration();
-        decl.setAddrspace(1);
+        decl.setAddrspace(COLLECTED);
         return decl;
     }
 }

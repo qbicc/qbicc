@@ -13,6 +13,8 @@ import org.qbicc.machine.llvm.Types;
 import org.qbicc.machine.llvm.op.Call;
 import io.smallrye.common.constraint.Assert;
 
+import static org.qbicc.machine.arch.AddressSpaceConstants.DEFAULT;
+
 final class CallImpl extends AbstractYieldingInstruction implements Call {
     final AbstractValue type;
     final AbstractValue function;
@@ -101,7 +103,7 @@ final class CallImpl extends AbstractYieldingInstruction implements Call {
             target.append(cconv.toString()).append(' ');
         }
         returns.appendTo(target);
-        if (addressSpace != 0) {
+        if (addressSpace != DEFAULT) {
             target.append("addrspace").append('(').append(Integer.toString(addressSpace)).append(')').append(' ');
         }
         type.appendTo(target).append(' ');

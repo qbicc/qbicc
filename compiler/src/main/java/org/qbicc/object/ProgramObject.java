@@ -6,9 +6,13 @@ import java.lang.invoke.VarHandle;
 import java.util.function.Function;
 
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.machine.arch.AddressSpaceConstants;
 import org.qbicc.pointer.ProgramObjectPointer;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
+
+import static org.qbicc.machine.arch.AddressSpaceConstants.COLLECTED;
+import static org.qbicc.machine.arch.AddressSpaceConstants.DEFAULT;
 
 /**
  * An object which will be emitted to the final program.
@@ -129,7 +133,7 @@ public abstract class ProgramObject {
      * @return the address space for this object
      */
     public int getAddrspace() {
-        return getSymbolType().isCollected() ? 1 : 0;
+        return getSymbolType().isCollected() ? COLLECTED : DEFAULT;
     }
 
     /**
@@ -137,15 +141,16 @@ public abstract class ProgramObject {
      * <p><b>Note:</b> calling this method will commit the object to an address space. Once committed,
      * the address space cannot be changed.
      *
-     * @param addrSpace the address space for this object (must be 0 or 1)
+     * @param addrSpace the address space for this object (must be {@link AddressSpaceConstants#DEFAULT}
+     *                  or {@link AddressSpaceConstants#COLLECTED})
      */
     public void setAddrspace(int addrSpace) {
-        Assert.checkMinimumParameter("addrSpace", 0, addrSpace);
-        Assert.checkMaximumParameter("addrSpace", 1, addrSpace);
+        Assert.checkMinimumParameter("addrSpace", DEFAULT, addrSpace);
+        Assert.checkMaximumParameter("addrSpace", COLLECTED, addrSpace);
         PointerType type = this.type;
         if (type == null) {
             type = valueType.getPointer();
-            if (addrSpace == 1) {
+            if (addrSpace == COLLECTED) {
                 type = type.asCollected();
             }
             PointerType witness = (PointerType) typeHandle.compareAndExchange(this, null, type);
@@ -153,7 +158,7 @@ public abstract class ProgramObject {
                 type = witness;
             }
         }
-        if (type.isCollected() != (addrSpace == 1)) {
+        if (type.isCollected() != (addrSpace == COLLECTED)) {
             throw new IllegalStateException("The address space has already been established for this object");
         }
     }

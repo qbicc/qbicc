@@ -12,6 +12,8 @@ import org.qbicc.machine.llvm.ThreadLocalStorageModel;
 import org.qbicc.machine.llvm.Visibility;
 import io.smallrye.common.constraint.Assert;
 
+import static org.qbicc.machine.arch.AddressSpaceConstants.DEFAULT;
+
 /**
  *
  */
@@ -135,7 +137,7 @@ final class GlobalImpl extends AbstractYieldingInstruction implements Global {
             target.append(' ');
         }
         final int addressSpace = this.addressSpace;
-        if (addressSpace != 0) {
+        if (addressSpace != DEFAULT) {
             target.append("addrspace(");
             target.append(Integer.toString(addressSpace));
             target.append(") ");

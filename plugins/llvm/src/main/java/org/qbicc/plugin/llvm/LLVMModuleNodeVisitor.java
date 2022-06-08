@@ -2,6 +2,8 @@ package org.qbicc.plugin.llvm;
 
 import static org.qbicc.machine.llvm.Types.*;
 import static org.qbicc.machine.llvm.Values.*;
+import static org.qbicc.machine.arch.AddressSpaceConstants.COLLECTED;
+import static org.qbicc.machine.arch.AddressSpaceConstants.DEFAULT;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -119,12 +121,12 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue>, Pointe
         } else if (type instanceof PointerType) {
             Type pointeeType = ((PointerType) type).getPointeeType();
             boolean isCollected = ((PointerType) type).isCollected();
-            res = ptrTo(pointeeType instanceof VoidType ? i8 : map(pointeeType), isCollected ? 1 : 0);
+            res = ptrTo(pointeeType instanceof VoidType ? i8 : map(pointeeType), isCollected ? COLLECTED : DEFAULT);
         } else if (type instanceof ReferenceType) {
             // References can be used as different types in the IL without manually casting them, so we need to
             // represent all reference types as being the same LLVM type. We will cast to and from the actual type we
             // use the reference as when needed.
-            res = ptrTo(i8, 1);
+            res = ptrTo(i8, COLLECTED);
         } else if (type instanceof WordType) {
             // all other words are integers
             // LLVM doesn't really care about signedness
