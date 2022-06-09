@@ -36,6 +36,10 @@ public final class PointerType extends NullableType {
         return pointeeType;
     }
 
+    public <T extends ValueType> T getPointeeType(Class<T> expected) {
+        return expected.cast(getPointeeType());
+    }
+
     public int getAlign() {
         return typeSystem.getPointerAlignment();
     }

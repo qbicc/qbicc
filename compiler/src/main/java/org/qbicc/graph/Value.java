@@ -9,6 +9,10 @@ public interface Value extends Node {
 
     ValueType getType();
 
+    default <T extends ValueType> T getType(Class<T> expected) {
+        return expected.cast(getType());
+    }
+
     <T, R> R accept(ValueVisitor<T, R> visitor, T param);
 
     // static

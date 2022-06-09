@@ -29,6 +29,10 @@ public class ProgramObjectLiteral extends Literal {
         return programObject.getValueType();
     }
 
+    public <T extends ValueType> T getValueType(Class<T> expected) {
+        return expected.cast(getValueType());
+    }
+
     public String getName() {
         return programObject.getName();
     }
