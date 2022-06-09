@@ -1,26 +1,23 @@
 package org.qbicc.pointer;
 
-import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 
 /**
  * An exact pointer to an instance method.
  */
 public final class InstanceMethodPointer extends RootPointer {
-    private final MethodElement instanceMethod;
+    private final InstanceMethodElement instanceMethod;
 
-    InstanceMethodPointer(MethodElement instanceMethod) {
+    InstanceMethodPointer(InstanceMethodElement instanceMethod) {
         super(instanceMethod.getType().getPointer());
-        if (instanceMethod.isStatic()) {
-            throw new IllegalArgumentException("Method is static");
-        }
         this.instanceMethod = instanceMethod;
     }
 
-    public static InstanceMethodPointer of(final MethodElement methodElement) {
+    public static InstanceMethodPointer of(final InstanceMethodElement methodElement) {
         return methodElement.getOrCreateInstanceMethodPointer(InstanceMethodPointer::new);
     }
 
-    public MethodElement getInstanceMethod() {
+    public InstanceMethodElement getInstanceMethod() {
         return instanceMethod;
     }
 

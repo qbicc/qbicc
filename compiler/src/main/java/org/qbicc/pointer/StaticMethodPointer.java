@@ -1,26 +1,23 @@
 package org.qbicc.pointer;
 
-import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.StaticMethodElement;
 
 /**
  * A pointer to a static method.
  */
 public final class StaticMethodPointer extends RootPointer {
-    private final MethodElement staticMethod;
+    private final StaticMethodElement staticMethod;
 
-    StaticMethodPointer(MethodElement staticMethod) {
+    StaticMethodPointer(StaticMethodElement staticMethod) {
         super(staticMethod.getType().getPointer());
-        if (! staticMethod.isStatic()) {
-            throw new IllegalArgumentException("Method is not static");
-        }
         this.staticMethod = staticMethod;
     }
 
-    public static StaticMethodPointer of(final MethodElement methodElement) {
+    public static StaticMethodPointer of(final StaticMethodElement methodElement) {
         return methodElement.getOrCreateStaticMethodPointer(StaticMethodPointer::new);
     }
 
-    public MethodElement getStaticMethod() {
+    public StaticMethodElement getStaticMethod() {
         return staticMethod;
     }
 

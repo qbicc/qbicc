@@ -22,7 +22,7 @@ import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
-import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.StaticMethodElement;
 
 /**
  *
@@ -50,7 +50,7 @@ public final class MemberPointerCopier implements NodeVisitor.Delegating<Node.Co
 
     private Pointer lowerPointer(Node.Copier copier, Pointer pointer) {
         if (pointer instanceof StaticMethodPointer smp) {
-            MethodElement method = smp.getStaticMethod();
+            StaticMethodElement method = smp.getStaticMethod();
             Function function = ctxt.getExactFunction(method);
             ProgramModule programModule = ctxt.getOrAddProgramModule(copier.getBlockBuilder().getCurrentElement().getEnclosingType());
             DataDeclaration decl = programModule.declareData(function);

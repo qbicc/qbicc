@@ -42,7 +42,9 @@ import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.StaticMethodElement;
 
 /**
  * A block builder stage which traverses the final set of reachable Nodes
@@ -150,7 +152,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
 
         @Override
         public Void visit(ReachabilityContext reachabilityContext, InstanceMethodPointer pointer) {
-            MethodElement target = pointer.getInstanceMethod();
+            InstanceMethodElement target = pointer.getInstanceMethod();
             reachabilityContext.analysis.processReachableExactInvocation(target, reachabilityContext.currentElement);
             return null;
         }
@@ -170,7 +172,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
 
         @Override
         public Void visit(ReachabilityContext param, StaticMethodPointer pointer) {
-            MethodElement target = pointer.getStaticMethod();
+            StaticMethodElement target = pointer.getStaticMethod();
             param.analysis.processReachableExactInvocation(target, param.currentElement);
             return null;
         }
