@@ -20,6 +20,10 @@ public final class NotNull extends AbstractUnaryValue {
         return visitor.visit(param, this);
     }
 
+    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
+
     public Value unconstrained() {
         return getInput().unconstrained();
     }

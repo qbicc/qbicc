@@ -14,6 +14,10 @@ public final class Min extends AbstractBinaryValue implements CommutativeBinaryV
         return visitor.visit(param, this);
     }
 
+    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
+
     @Override
     public boolean isDefLe(Value other) {
         return other.equals(getLeftInput()) || other.equals(getRightInput()) || super.isDefLe(other);

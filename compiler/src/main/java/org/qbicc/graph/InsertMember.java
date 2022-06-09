@@ -88,6 +88,11 @@ public final class InsertMember extends AbstractValue implements Unschedulable {
     }
 
     @Override
+    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
+
+    @Override
     public Value extractMember(LiteralFactory lf, CompoundType.Member member) {
         return member.equals(this.member) ? insertedValue : compoundValue.extractMember(lf, member);
     }

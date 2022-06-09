@@ -1,6 +1,7 @@
 package org.qbicc.graph.literal;
 
 import org.qbicc.graph.ValueVisitor;
+import org.qbicc.graph.ValueVisitorLong;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
@@ -43,6 +44,10 @@ public final class PointerLiteral extends Literal {
 
     @Override
     public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
+        return visitor.visit(param, this);
+    }
+
+    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
         return visitor.visit(param, this);
     }
 
