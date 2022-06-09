@@ -3,7 +3,6 @@ package org.qbicc.plugin.methodinfo;
 import java.util.Objects;
 
 import org.qbicc.graph.literal.Literal;
-import org.qbicc.graph.literal.ProgramObjectLiteral;
 
 final class MethodInfo {
     private Literal fileNameSymbolLiteral;

@@ -53,7 +53,9 @@ public interface LiteralFactory {
 
     MethodHandleLiteral literalOfMethodHandle(MethodHandleConstant methodHandleConstant, ReferenceType type);
 
-    ProgramObjectLiteral literalOf(ProgramObject programObject);
+    default PointerLiteral literalOf(ProgramObject programObject) {
+        return literalOf(programObject.getPointer());
+    }
 
     UndefinedLiteral undefinedLiteralOfType(ValueType type);
 
@@ -92,7 +94,6 @@ public interface LiteralFactory {
             private final ConcurrentMap<NullableType, NullLiteral> nullLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ValueType, UndefinedLiteral> undefLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ValueType, ConstantLiteral> constantLiterals = new ConcurrentHashMap<>();
-            private final ConcurrentMap<ProgramObject, ProgramObjectLiteral> programObjectLiterals = new ConcurrentHashMap<>();
 
             public BlockLiteral literalOf(final BlockLabel blockLabel) {
                 return new BlockLiteral(typeSystem.getBlockType(), blockLabel);
@@ -160,11 +161,6 @@ public interface LiteralFactory {
 
             public MethodHandleLiteral literalOfMethodHandle(MethodHandleConstant methodHandleConstant, ReferenceType type) {
                 return new MethodHandleLiteral(methodHandleConstant, type);
-            }
-
-            public ProgramObjectLiteral literalOf(ProgramObject programObject) {
-                Assert.checkNotNullParam("programObject", programObject);
-                return programObjectLiterals.computeIfAbsent(programObject.getDeclaration(), ProgramObjectLiteral::new);
             }
 
             public TypeLiteral literalOfType(final ValueType type) {
