@@ -83,6 +83,11 @@ public final class ExtractElement extends AbstractValue {
         return visitor.visit(param, this);
     }
 
+    @Override
+    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
+
     public boolean isConstant() {
         return arrayValue.isConstant() && index.isConstant();
     }

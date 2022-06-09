@@ -15,6 +15,10 @@ public final class Or extends AbstractBinaryValue implements CommutativeBinaryVa
         return visitor.visit(param, this);
     }
 
+    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
+
     @Override
     public Value getValueIfFalse(Value input) {
         assert getType() instanceof BooleanType;

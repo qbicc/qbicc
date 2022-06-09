@@ -45,6 +45,10 @@ public final class ParameterValue extends AbstractValue implements Unschedulable
         return visitor.visit(param, this);
     }
 
+    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
+
     int calcHashCode() {
         return Objects.hash(ParameterValue.class, type, label, getElement()) * 19 + index;
     }

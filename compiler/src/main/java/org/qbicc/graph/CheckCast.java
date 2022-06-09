@@ -110,6 +110,10 @@ public final class CheckCast extends AbstractValue implements CastValue, Ordered
         return visitor.visit(param, this);
     }
 
+    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
+
     int calcHashCode() {
         return Objects.hash(CheckCast.class, dependency, input, toType, toDimensions, kind, type);
     }

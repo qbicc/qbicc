@@ -86,4 +86,9 @@ public final class ExtractInstanceField extends AbstractValue {
     public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
+
+    @Override
+    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
 }

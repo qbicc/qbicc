@@ -3,6 +3,7 @@ package org.qbicc.graph.literal;
 import java.util.Objects;
 
 import org.qbicc.graph.ValueVisitor;
+import org.qbicc.graph.ValueVisitorLong;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.ReferenceType;
@@ -34,6 +35,10 @@ public final class ObjectLiteral extends WordLiteral {
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
+
+    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
         return visitor.visit(param, this);
     }
 

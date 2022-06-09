@@ -126,6 +126,10 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         return visitor.visit(param, this);
     }
 
+    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
+
     public BlockLabel getPinnedBlockLabel() {
         return blockLabel;
     }

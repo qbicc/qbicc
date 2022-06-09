@@ -15,6 +15,8 @@ public interface Value extends Node {
 
     <T, R> R accept(ValueVisitor<T, R> visitor, T param);
 
+    <T> long accept(ValueVisitorLong<T> visitor, T param);
+
     // static
 
     Value[] NO_VALUES = new Value[0];
