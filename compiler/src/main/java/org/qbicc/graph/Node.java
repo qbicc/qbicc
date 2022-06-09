@@ -623,6 +623,10 @@ public interface Node {
                 return node;
             }
 
+            public Value visit(final Copier param, final InterfaceMethodLookup node) {
+                return param.getBlockBuilder().interfaceMethodLookup(node.getLookupMethod(), node.getInstanceTypeId());
+            }
+
             public Value visit(final Copier param, final IsEq node) {
                 return param.getBlockBuilder().isEq(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
@@ -821,6 +825,10 @@ public interface Node {
 
             public Value visit(Copier param, ValueConvertLiteral node) {
                 return node;
+            }
+
+            public Value visit(Copier param, VirtualMethodLookup node) {
+                return param.getBlockBuilder().virtualMethodLookup(node.getLookupMethod(), node.getInstanceTypeId());
             }
 
             public Value visit(final Copier param, final UndefinedLiteral node) {

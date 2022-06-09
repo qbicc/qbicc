@@ -35,6 +35,7 @@ import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
@@ -234,6 +235,40 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             return value;
         }
         throw Assert.unreachableCode();
+    }
+
+    @Override
+    public Value interfaceMethodLookup(TypeDescriptor owner, String name, MethodDescriptor descriptor, Value instanceTypeId) {
+        DefinedTypeDefinition definedType = resolveDescriptor(owner);
+        if (definedType != null) {
+            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
+            InstanceMethodElement element = (InstanceMethodElement) definedType.load().resolveMethodElementInterface(name, descriptor);
+            if (element == null) {
+                throw new BlockEarlyTermination(nsme(name));
+            } else {
+                return interfaceMethodLookup(element, instanceTypeId);
+            }
+        } else {
+            ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
+            throw new BlockEarlyTermination(nsme(name));
+        }
+    }
+
+    @Override
+    public Value virtualMethodLookup(TypeDescriptor owner, String name, MethodDescriptor descriptor, Value instanceTypeId) {
+        DefinedTypeDefinition definedType = resolveDescriptor(owner);
+        if (definedType != null) {
+            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
+            InstanceMethodElement element = (InstanceMethodElement) definedType.load().resolveMethodElementVirtual(name, descriptor);
+            if (element == null) {
+                throw new BlockEarlyTermination(nsme(name));
+            } else {
+                return virtualMethodLookup(element, instanceTypeId);
+            }
+        } else {
+            ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
+            throw new BlockEarlyTermination(nsme(name));
+        }
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {

@@ -200,6 +200,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T param, InterfaceMethodLookup node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T t, Invoke.ReturnValue node) {
         return visitUnknown(t, node);
     }
@@ -337,6 +341,10 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T t, ValueConvertLiteral node) {
+        return visitUnknown(t, node);
+    }
+
+    default R visit(T t, VirtualMethodLookup node) {
         return visitUnknown(t, node);
     }
 
@@ -503,6 +511,10 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(t, node);
         }
 
+        default R visit(T t, InterfaceMethodLookup node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
         default R visit(T t, Invoke.ReturnValue node) {
             return getDelegateValueVisitor().visit(t, node);
         }
@@ -664,6 +676,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T t, ValueConvertLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default R visit(T t, VirtualMethodLookup node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

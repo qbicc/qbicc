@@ -43,6 +43,7 @@ import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
@@ -441,6 +442,22 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     public PointerValue currentThread() {
         ReferenceType refType = element.getEnclosingType().getContext().getCompilationContext().getBootstrapClassContext().findDefinedType("java/lang/Thread").load().getObjectType().getReference();
         return new CurrentThread(element, line, bci, refType);
+    }
+
+    public Value interfaceMethodLookup(TypeDescriptor owner, String name, MethodDescriptor descriptor, Value instanceTypeId) {
+        throw new IllegalStateException("Unresolved instance method");
+    }
+
+    public Value interfaceMethodLookup(InstanceMethodElement lookupMethod, Value instanceTypeId) {
+        return new InterfaceMethodLookup(callSite, element, line, bci, lookupMethod, instanceTypeId);
+    }
+
+    public Value virtualMethodLookup(TypeDescriptor owner, String name, MethodDescriptor descriptor, Value instanceTypeId) {
+        throw new IllegalStateException("Unresolved instance method");
+    }
+
+    public Value virtualMethodLookup(InstanceMethodElement lookupMethod, Value instanceTypeId) {
+        return new VirtualMethodLookup(callSite, element, line, bci, lookupMethod, instanceTypeId);
     }
 
     public Value vaArg(Value vaList, ValueType type) {

@@ -15,6 +15,7 @@ import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 
 /**
  * A block builder that forbids lowering of high-level (first phase) nodes in order to keep the back end(s) as simple
@@ -71,6 +72,18 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
     public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {
         invalidNode("multiNewArray");
         return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(arrayType.getReference());
+    }
+
+    @Override
+    public Value interfaceMethodLookup(InstanceMethodElement lookupMethod, Value instanceTypeId) {
+        invalidNode("interfaceMethodLookup");
+        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(lookupMethod.getType().getPointer());
+    }
+
+    @Override
+    public Value virtualMethodLookup(InstanceMethodElement lookupMethod, Value instanceTypeId) {
+        invalidNode("virtualMethodLookup");
+        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(lookupMethod.getType().getPointer());
     }
 
     private void invalidNode(String name) {

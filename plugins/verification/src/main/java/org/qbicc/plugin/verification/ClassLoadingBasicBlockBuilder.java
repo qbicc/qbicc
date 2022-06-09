@@ -104,6 +104,24 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.checkcast(value, orig);
     }
 
+    @Override
+    public Value interfaceMethodLookup(TypeDescriptor owner, String name, MethodDescriptor descriptor, Value instanceTypeId) {
+        if (loadClass(owner)) {
+            return super.interfaceMethodLookup(owner, name, descriptor, instanceTypeId);
+        }
+        // no need to continue
+        throw new BlockEarlyTermination(noClassDefFound(owner));
+    }
+
+    @Override
+    public Value virtualMethodLookup(TypeDescriptor owner, String name, MethodDescriptor descriptor, Value instanceTypeId) {
+        if (loadClass(owner)) {
+            return super.virtualMethodLookup(owner, name, descriptor, instanceTypeId);
+        }
+        // no need to continue
+        throw new BlockEarlyTermination(noClassDefFound(owner));
+    }
+
     public Value instanceOf(final Value input, final TypeDescriptor desc) {
         TypeDescriptor baseDescriptor = desc;
         while (baseDescriptor instanceof ArrayTypeDescriptor) {

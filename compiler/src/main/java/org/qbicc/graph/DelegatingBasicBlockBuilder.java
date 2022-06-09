@@ -27,6 +27,7 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -134,6 +135,22 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public PointerValue currentThread() {
         return getDelegate().currentThread();
+    }
+
+    public Value interfaceMethodLookup(TypeDescriptor owner, String name, MethodDescriptor descriptor, Value instanceTypeId) {
+        return getDelegate().interfaceMethodLookup(owner, name, descriptor, instanceTypeId);
+    }
+
+    public Value interfaceMethodLookup(InstanceMethodElement lookupMethod, Value instanceTypeId) {
+        return getDelegate().interfaceMethodLookup(lookupMethod, instanceTypeId);
+    }
+
+    public Value virtualMethodLookup(TypeDescriptor owner, String name, MethodDescriptor descriptor, Value instanceTypeId) {
+        return getDelegate().virtualMethodLookup(owner, name, descriptor, instanceTypeId);
+    }
+
+    public Value virtualMethodLookup(InstanceMethodElement lookupMethod, Value instanceTypeId) {
+        return getDelegate().virtualMethodLookup(lookupMethod, instanceTypeId);
     }
 
     public PointerValue memberOf(final PointerValue structHandle, final CompoundType.Member member) {

@@ -42,6 +42,7 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -402,6 +403,14 @@ public interface BasicBlockBuilder extends Locatable {
     Value selectMember(PointerValue handle);
 
     // pointer values
+
+    Value interfaceMethodLookup(TypeDescriptor owner, String name, MethodDescriptor descriptor, Value instanceTypeId);
+
+    Value interfaceMethodLookup(InstanceMethodElement lookupMethod, Value instanceTypeId);
+
+    Value virtualMethodLookup(TypeDescriptor owner, String name, MethodDescriptor descriptor, Value instanceTypeId);
+
+    Value virtualMethodLookup(InstanceMethodElement lookupMethod, Value instanceTypeId);
 
     /**
      * A handle to the current thread.  The handle's value type is always assignable to a reference to {@code java.lang.Thread}.
