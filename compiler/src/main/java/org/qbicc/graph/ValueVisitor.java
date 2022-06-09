@@ -416,6 +416,10 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
+        default R visit(T param, BitCastLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
         default R visit(T param, BitReverse node) {
             return getDelegateValueVisitor().visit(param, node);
         }
