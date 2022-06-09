@@ -54,6 +54,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
@@ -267,8 +268,8 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         int cnt = typeDefinition.getFieldCount();
         for (int i = 0; i < cnt; i ++) {
             FieldElement field = typeDefinition.getField(i);
-            if (field.isStatic()) try {
-                Literal initValue = field.getInitialValue();
+            if (field instanceof StaticFieldElement sfe) try {
+                Literal initValue = sfe.getInitialValue();
                 if (initValue == null || initValue instanceof ZeroInitializerLiteral) {
                     // Nothing to do;  memory starts zeroed.
                     continue;

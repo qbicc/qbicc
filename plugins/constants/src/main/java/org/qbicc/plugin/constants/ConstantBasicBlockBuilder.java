@@ -31,8 +31,8 @@ import org.qbicc.type.NullableType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
@@ -56,8 +56,8 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value load(ValueHandle handle, ReadAccessMode accessMode) {
-        if (handle instanceof StaticField) {
-            final FieldElement fieldElement = ((StaticField) handle).getVariableElement();
+        if (handle instanceof StaticField sf) {
+            final StaticFieldElement fieldElement = sf.getVariableElement();
             Value constantValue = Constants.get(ctxt).getConstantValue(fieldElement);
             if (constantValue != null) {
                 return constantValue;

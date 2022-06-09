@@ -8,6 +8,7 @@ import org.qbicc.object.ProgramModule;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 
 /**
  *
@@ -27,7 +28,7 @@ public class StaticFieldLoweringBasicBlockBuilder extends DelegatingBasicBlockBu
         if (! field.isStatic()) {
             throw new IllegalArgumentException();
         }
-        GlobalVariableElement global = Lowering.get(ctxt).getGlobalForStaticField(field);
+        GlobalVariableElement global = Lowering.get(ctxt).getGlobalForStaticField((StaticFieldElement) field);
         DefinedTypeDefinition fieldHolder = field.getEnclosingType();
         if (! fieldHolder.equals(ourHolder)) {
             // we have to declare it in our translation unit

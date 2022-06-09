@@ -40,10 +40,10 @@ import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
-import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.definition.element.StaticMethodElement;
 
 /**
@@ -165,7 +165,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
 
         @Override
         public Void visit(ReachabilityContext param, StaticFieldPointer pointer) {
-            FieldElement f = pointer.getStaticField();
+            StaticFieldElement f = pointer.getStaticField();
             param.analysis.processReachableStaticFieldAccess(f, param.currentElement);
             return null;
         }
@@ -260,7 +260,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         @Override
         public Void visit(ReachabilityContext param, StaticField node) {
             if (visitUnknown(param, (Node)node)) {
-                FieldElement f = node.getVariableElement();
+                StaticFieldElement f = node.getVariableElement();
                 param.analysis.processReachableStaticFieldAccess(f, param.currentElement);
             }
             return null;

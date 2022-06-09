@@ -26,7 +26,7 @@ import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
-import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 
 /**
  * This class supports reachability analysis by providing the capability of
@@ -49,7 +49,7 @@ class BuildtimeHeapAnalyzer {
      * to identify instantiated types.
      * @param f static field which is the starting point for this trace
      */
-    void traceHeap(CompilationContext ctxt, ReachabilityAnalysis analysis, FieldElement f, ExecutableElement currentElement) {
+    void traceHeap(CompilationContext ctxt, ReachabilityAnalysis analysis, StaticFieldElement f, ExecutableElement currentElement) {
         if (f.isStatic() && f.getType() instanceof ReferenceType && !f.isThreadLocal() && f.getRunTimeInitializer() == null) {
             Value v = f.getEnclosingType().load().getInitialValue(f);
             if (v instanceof ObjectLiteral) {

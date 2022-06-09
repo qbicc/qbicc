@@ -26,6 +26,7 @@ import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.definition.element.ParameterElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -208,7 +209,7 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
     }
 
     public Value getInitialValue(FieldElement field) {
-        return vmClass == null ? field.getInitialValue() : vmClass.getValueForStaticField(field);
+        return vmClass == null ? ((StaticFieldElement)field).getInitialValue() : vmClass.getValueForStaticField(field);
     }
 
     public int getMethodCount() {

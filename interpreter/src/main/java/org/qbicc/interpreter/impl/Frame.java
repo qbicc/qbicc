@@ -183,7 +183,9 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 
 final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVisitor<VmThreadImpl, Object>, TerminatorVisitor<VmThreadImpl, BasicBlock> {
@@ -2369,7 +2371,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public Memory visit(Frame frame, StaticFieldPointer pointer) {
-            FieldElement variableElement = pointer.getStaticField();
+            StaticFieldElement variableElement = pointer.getStaticField();
             if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
                 throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run time field"));
             }
@@ -2398,7 +2400,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public Memory visit(Frame frame, InstanceFieldOf node) {
-            FieldElement variableElement = node.getVariableElement();
+            InstanceFieldElement variableElement = node.getVariableElement();
             if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
                 throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run time field"));
             }
@@ -2417,7 +2419,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public Memory visit(Frame frame, StaticField node) {
-            FieldElement variableElement = node.getVariableElement();
+            StaticFieldElement variableElement = node.getVariableElement();
             if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
                 throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run time field"));
             }
@@ -2538,7 +2540,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         public long visit(Frame frame, InstanceFieldOf node) {
             CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
             Layout layout = Layout.get(ctxt);
-            FieldElement field = node.getVariableElement();
+            InstanceFieldElement field = node.getVariableElement();
             LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(field.getEnclosingType());
             try {
                 return node.getValueHandle().accept(this, frame) + layoutInfo.getMember(field).getOffset();

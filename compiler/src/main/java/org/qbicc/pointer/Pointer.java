@@ -10,6 +10,7 @@ import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 
 /**
  * The base type of a VM pointer value.
@@ -84,10 +85,10 @@ public abstract class Pointer {
             int fieldCount = def.getFieldCount();
             for (int i = 0; i < fieldCount; i ++) {
                 FieldElement field = def.getField(i);
-                if (! field.isStatic()) {
-                    long fieldOffset = field.getOffset();
-                    if (offset >= fieldOffset && offset < field.getType().getSize()) {
-                        return new InstanceFieldPointer(this, field).offsetInBytes(fieldOffset - offset, false);
+                if (field instanceof InstanceFieldElement ife) {
+                    long fieldOffset = ife.getOffset();
+                    if (offset >= fieldOffset && offset < ife.getType().getSize()) {
+                        return new InstanceFieldPointer(this, ife).offsetInBytes(fieldOffset - offset, false);
                     }
                 }
             }

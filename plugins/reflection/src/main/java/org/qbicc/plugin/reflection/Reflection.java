@@ -55,6 +55,7 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.definition.element.ParameterElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.definition.element.StaticMethodElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -1340,7 +1341,7 @@ public final class Reflection {
             // todo: breakpoint
             idx = 0;
         }
-        FieldElement field = clazz.getTypeDefinition().getField(idx);
+        StaticFieldElement field = (StaticFieldElement) clazz.getTypeDefinition().getField(idx);
         return StaticFieldPointer.of(field);
     }
 

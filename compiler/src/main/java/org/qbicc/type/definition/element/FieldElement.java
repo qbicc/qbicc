@@ -1,14 +1,10 @@
 package org.qbicc.type.definition.element;
 
-import java.lang.invoke.ConstantBootstraps;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.util.function.Function;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.Literal;
-import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
@@ -23,20 +19,14 @@ import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 
 /**
- *
+ * A field element.
  */
-public final class FieldElement extends VariableElement implements MemberElement {
+public abstract class FieldElement extends VariableElement implements MemberElement {
     public static final FieldElement[] NO_FIELDS = new FieldElement[0];
-    private static final VarHandle pointerHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "pointer", VarHandle.class, FieldElement.class, StaticFieldPointer.class);
-    private final Literal initialValue;
-    private final InitializerElement runTimeInitializer;
     private final Function<FieldElement, ValueType> typeResolver;
-    private volatile StaticFieldPointer pointer;
 
     FieldElement(BuilderImpl builder) {
         super(builder);
-        this.initialValue = builder.initialValue;
-        this.runTimeInitializer = builder.runTimeInitializer;
         this.typeResolver = builder.typeResolver;
     }
 
@@ -59,11 +49,7 @@ public final class FieldElement extends VariableElement implements MemberElement
     }
 
     public boolean isReallyFinal() {
-        return runTimeInitializer == null && (getModifiers() & (ClassFile.ACC_FINAL | ClassFile.I_ACC_NOT_REALLY_FINAL)) == ClassFile.ACC_FINAL;
-    }
-
-    public Literal getInitialValue() {
-        return initialValue;
+        return (getModifiers() & (ClassFile.ACC_FINAL | ClassFile.I_ACC_NOT_REALLY_FINAL)) == ClassFile.ACC_FINAL;
     }
 
     public Literal getReplacementValue(CompilationContext ctxt) {
@@ -94,10 +80,6 @@ public final class FieldElement extends VariableElement implements MemberElement
         return null;
     }
 
-    public InitializerElement getRunTimeInitializer() {
-        return runTimeInitializer;
-    }
-
     @Override
     ValueType resolveTypeDescriptor(ClassContext classContext, TypeParameterContext paramCtxt) {
         if (typeResolver != null) {
@@ -112,38 +94,6 @@ public final class FieldElement extends VariableElement implements MemberElement
 
     public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
-    }
-
-    /**
-     * Get the pointer to this (static) field.  Convenience method which delegates to {@link StaticFieldPointer#of}.
-     *
-     * @return the pointer
-     * @throws IllegalArgumentException if this field is not static
-     */
-    public StaticFieldPointer getPointer() {
-        return StaticFieldPointer.of(this);
-    }
-
-    /**
-     * Establish the pointer for this field; intended only for use by {@link StaticFieldPointer#of}.
-     *
-     * @param factory the factory
-     * @return the pointer
-     * @see StaticFieldPointer#of
-     */
-    public StaticFieldPointer getOrCreatePointer(Function<FieldElement, StaticFieldPointer> factory) {
-        StaticFieldPointer pointer = this.pointer;
-        if (pointer == null) {
-            if (! isStatic()) {
-                throw new IllegalArgumentException("Static pointer for instance field");
-            }
-            pointer = factory.apply(this);
-            StaticFieldPointer appearing = (StaticFieldPointer) pointerHandle.compareAndExchange(this, null, pointer);
-            if (appearing != null) {
-                pointer = appearing;
-            }
-        }
-        return pointer;
     }
 
     public boolean isThreadLocal() {
@@ -190,8 +140,8 @@ public final class FieldElement extends VariableElement implements MemberElement
             super(name, typeDescriptor, index);
         }
 
-        private Literal initialValue;
-        private InitializerElement runTimeInitializer;
+        Literal initialValue;
+        InitializerElement runTimeInitializer;
         private Function<FieldElement, ValueType> typeResolver;
 
         public void setInitialValue(final Literal initialValue) {
@@ -209,10 +159,11 @@ public final class FieldElement extends VariableElement implements MemberElement
         public FieldElement build() {
             if ((modifiers & ClassFile.ACC_STATIC) != 0) {
                 setTypeParameterContext(TypeParameterContext.EMPTY);
+                return new StaticFieldElement(this);
             } else {
                 setTypeParameterContext(enclosingType);
+                return new InstanceFieldElement(this);
             }
-            return new FieldElement(this);
         }
     }
 }

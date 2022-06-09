@@ -1,26 +1,23 @@
 package org.qbicc.pointer;
 
-import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 
 /**
  * A pointer to a static field.
  */
 public final class StaticFieldPointer extends RootPointer {
-    private final FieldElement staticField;
+    private final StaticFieldElement staticField;
 
-    StaticFieldPointer(FieldElement staticField) {
+    StaticFieldPointer(StaticFieldElement staticField) {
         super(staticField.getType().getPointer());
-        if (! staticField.isStatic()) {
-            throw new IllegalArgumentException("Pointer to non-static field");
-        }
         this.staticField = staticField;
     }
 
-    public static StaticFieldPointer of(final FieldElement fieldElement) {
+    public static StaticFieldPointer of(final StaticFieldElement fieldElement) {
         return fieldElement.getOrCreatePointer(StaticFieldPointer::new);
     }
 
-    public FieldElement getStaticField() {
+    public StaticFieldElement getStaticField() {
         return staticField;
     }
 
