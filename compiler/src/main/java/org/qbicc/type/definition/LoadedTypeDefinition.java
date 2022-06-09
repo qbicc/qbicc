@@ -29,31 +29,20 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
 
     ValueType getType();
 
+    default <T extends ValueType> T getType(Class<T> expected) {
+        return expected.cast(getType());
+    }
+
     default ObjectType getObjectType() {
-        if (getType() instanceof ObjectType ot) {
-            return ot;
-        } else {
-            // breakpoint
-            throw new ClassCastException("Wrong type");
-        }
+        return getType(ObjectType.class);
     }
 
     default ClassObjectType getClassType() {
-        if (getObjectType() instanceof ClassObjectType cot) {
-            return cot;
-        } else {
-            // breakpoint
-            throw new ClassCastException("Wrong type");
-        }
+        return getType(ClassObjectType.class);
     }
 
     default InterfaceObjectType getInterfaceType() {
-        if (getObjectType() instanceof InterfaceObjectType iot) {
-            return iot;
-        } else {
-            // breakpoint
-            throw new ClassCastException("Wrong type");
-        }
+        return getType(InterfaceObjectType.class);
     }
 
     LoadedTypeDefinition getSuperClass();

@@ -105,6 +105,10 @@ public abstract class ProgramObject {
         return valueType;
     }
 
+    public <T extends ValueType> T getValueType(Class<T> expected) {
+        return expected.cast(getValueType());
+    }
+
     public Linkage getLinkage() {
         return linkage;
     }

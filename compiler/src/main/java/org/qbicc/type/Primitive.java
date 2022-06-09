@@ -44,6 +44,10 @@ public enum Primitive {
         return this.type;
     }
 
+    public <T extends ValueType> T getType(Class<T> expected) {
+        return expected.cast(getType());
+    }
+
     public void setType(ValueType type) {
         this.type = type;
     }

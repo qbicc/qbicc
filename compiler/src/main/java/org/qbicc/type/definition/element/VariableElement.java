@@ -76,6 +76,10 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         return type;
     }
 
+    public <T extends ValueType> T getType(Class<T> expected) {
+        return expected.cast(getType());
+    }
+
     ValueType resolveTypeDescriptor(ClassContext classContext, TypeParameterContext paramCtxt) {
         return classContext.resolveTypeFromDescriptor(
                         getTypeDescriptor(),

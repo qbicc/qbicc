@@ -29,6 +29,10 @@ public abstract class Pointer {
         return type.getPointeeType();
     }
 
+    public <T extends ValueType> T getPointeeType(Class<T> expected) {
+        return expected.cast(getPointeeType());
+    }
+
     /**
      * Attempt to get a new, correctly-typed pointer which is offset from this one by the given number of bytes.
      * If the byte offset does not correspond to a valid sub-member, an exception is thrown.

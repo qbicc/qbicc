@@ -29,8 +29,16 @@ public final class PointerLiteral extends Literal {
         return getType().getPointeeType();
     }
 
+    public <T extends ValueType> T getValueType(Class<T> expected) {
+        return getType().getPointeeType(expected);
+    }
+
     public Pointer getPointer() {
         return pointer;
+    }
+
+    public <P extends Pointer> P getPointer(Class<P> expected) {
+        return expected.cast(getPointer());
     }
 
     @Override

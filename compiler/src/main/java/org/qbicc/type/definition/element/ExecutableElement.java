@@ -47,6 +47,10 @@ public interface ExecutableElement extends MemberElement {
 
     InvokableType getType();
 
+    default <T extends InvokableType> T getType(Class<T> expected) {
+        return expected.cast(getType());
+    }
+
     MethodDescriptor getDescriptor();
 
     MethodSignature getSignature();

@@ -357,6 +357,10 @@ public final class CompoundType extends ValueType {
             return type;
         }
 
+        public <T extends ValueType> T getType(Class<T> expected) {
+            return expected.cast(getType());
+        }
+
         public int getOffset() {
             return offset;
         }
