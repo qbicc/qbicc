@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.tool.process.InputSource;
 import io.smallrye.common.constraint.Assert;
 
@@ -79,9 +78,6 @@ final class EmscriptenCCompilerInvokerImpl extends AbstractEmscriptenInvoker imp
     }
 
     void addArguments(final List<String> cmd) {
-        // ignore target, it is implied
-        Platform platform = getTool().getPlatform();
-        cmd.add("--target="+platform.getCpu().toString() + "-" + platform.getOs().toString() + "-" + platform.getAbi().toString());
         if (sourceLanguage == SourceLanguage.C) {
             Collections.addAll(cmd, "-std=gnu11", "-f" + "input-charset=UTF-8");
             cmd.add("-pthread");
@@ -99,7 +95,22 @@ final class EmscriptenCCompilerInvokerImpl extends AbstractEmscriptenInvoker imp
                 cmd.add("-D" + key + "=" + val);
             }
         }
-        Collections.addAll(cmd, "-c", "-x", sourceLanguage == SourceLanguage.ASM ? "assembler" : "c", "-o", getOutputPath().toString(), "-");
+        Collections.addAll(cmd,
+            "-s", "USE_ZLIB",
+            "-Wno-override-module",
+            "-mbulk-memory",
+            "-s", "ALLOW_MEMORY_GROWTH=1",
+            "-s", "EXIT_RUNTIME=1",
+
+        "-c", "-x", sourceLanguageArg(), "-o", getOutputPath().toString(), "-");
+    }
+
+    private String sourceLanguageArg() {
+        return switch (sourceLanguage) {
+            case ASM -> "assembler";
+            case LLVM_IR -> "ir";
+            default -> "c";
+        };
     }
 }
 

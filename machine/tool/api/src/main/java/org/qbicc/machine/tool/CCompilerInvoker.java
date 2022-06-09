@@ -120,6 +120,7 @@ public interface CCompilerInvoker extends MessagingToolInvoker {
     enum SourceLanguage {
         C,
         ASM,
+        LLVM_IR,
         ;
     }
 }
