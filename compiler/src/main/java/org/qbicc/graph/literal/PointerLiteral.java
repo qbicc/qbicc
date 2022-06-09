@@ -37,6 +37,10 @@ public final class PointerLiteral extends Literal {
         return pointer;
     }
 
+    public <P extends Pointer> P getPointer(Class<P> expected) {
+        return expected.cast(getPointer());
+    }
+
     @Override
     public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
