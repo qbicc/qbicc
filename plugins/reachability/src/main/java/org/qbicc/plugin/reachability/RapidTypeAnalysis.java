@@ -12,10 +12,10 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
-import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 
 /**
  * An implementation of Rapid Type Analysis (RTA).
@@ -121,7 +121,7 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         }
     }
 
-    public synchronized void processReachableStaticFieldAccess(final FieldElement field, ExecutableElement currentElement) {
+    public synchronized void processReachableStaticFieldAccess(final StaticFieldElement field, ExecutableElement currentElement) {
         if (!info.isAccessedStaticField(field)) {
             processReachableType(field.getEnclosingType().load(), null);
             info.addAccessedStaticField(field);

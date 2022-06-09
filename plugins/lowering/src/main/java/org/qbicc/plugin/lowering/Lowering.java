@@ -13,10 +13,8 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
-import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.object.Data;
-import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.ModuleSection;
 import org.qbicc.plugin.constants.Constants;
@@ -33,6 +31,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeSignature;
 
@@ -50,7 +49,7 @@ public class Lowering {
         return ctxt.computeAttachmentIfAbsent(KEY, Lowering::new);
     }
 
-    public GlobalVariableElement getGlobalForStaticField(FieldElement field) {
+    public GlobalVariableElement getGlobalForStaticField(StaticFieldElement field) {
         GlobalVariableElement global = staticFields.get(field);
         if (global != null) {
             return global;

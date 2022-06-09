@@ -3,7 +3,7 @@ package org.qbicc.graph;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
-import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 
 /**
  * A field handle for an instance field.
@@ -12,7 +12,7 @@ public final class InstanceFieldOf extends Field {
     private final ValueHandle instance;
     private final PhysicalObjectType instanceType;
 
-    InstanceFieldOf(ExecutableElement element, int line, int bci, FieldElement fieldElement, ValueType valueType, ValueHandle instance) {
+    InstanceFieldOf(ExecutableElement element, int line, int bci, InstanceFieldElement fieldElement, ValueType valueType, ValueHandle instance) {
         super(element, line, bci, fieldElement, valueType.getPointer().withQualifiersFrom(instance.getPointerType()));
         instanceType = (PhysicalObjectType) instance.getValueType();
         this.instance = instance;
@@ -26,6 +26,11 @@ public final class InstanceFieldOf extends Field {
     @Override
     public ValueHandle getValueHandle() {
         return instance;
+    }
+
+    @Override
+    public InstanceFieldElement getVariableElement() {
+        return (InstanceFieldElement) super.getVariableElement();
     }
 
     public PhysicalObjectType getInstanceType() {
@@ -42,7 +47,7 @@ public final class InstanceFieldOf extends Field {
     }
 
     public boolean equals(final Object other) {
-        return other instanceof InstanceFieldOf && equals((InstanceFieldOf) other);
+        return other instanceof InstanceFieldOf ifo && equals(ifo);
     }
 
     public boolean equals(final InstanceFieldOf other) {

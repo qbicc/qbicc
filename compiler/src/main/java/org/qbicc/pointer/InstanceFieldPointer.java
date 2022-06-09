@@ -1,16 +1,16 @@
 package org.qbicc.pointer;
 
 import org.qbicc.interpreter.Memory;
-import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 
 /**
  *
  */
 public final class InstanceFieldPointer extends Pointer {
     private final Pointer objectPointer;
-    private final FieldElement fieldElement;
+    private final InstanceFieldElement fieldElement;
 
-    public InstanceFieldPointer(Pointer objectPointer, FieldElement fieldElement) {
+    public InstanceFieldPointer(Pointer objectPointer, InstanceFieldElement fieldElement) {
         super(fieldElement.getType().getPointer());
         this.objectPointer = objectPointer;
         this.fieldElement = fieldElement;
@@ -20,7 +20,7 @@ public final class InstanceFieldPointer extends Pointer {
         return objectPointer;
     }
 
-    public FieldElement getFieldElement() {
+    public InstanceFieldElement getInstanceField() {
         return fieldElement;
     }
 

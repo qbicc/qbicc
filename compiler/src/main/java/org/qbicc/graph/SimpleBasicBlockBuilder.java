@@ -41,8 +41,10 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -444,7 +446,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
-        return new InstanceFieldOf(element, line, bci, field, field.getType(), instance);
+        return new InstanceFieldOf(element, line, bci, (InstanceFieldElement) field, field.getType(), instance);
     }
 
     public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
@@ -452,7 +454,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public ValueHandle staticField(FieldElement field) {
-        return new StaticField(element, line, bci, field, field.getType());
+        return new StaticField(element, line, bci, (StaticFieldElement) field, field.getType());
     }
 
     public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {

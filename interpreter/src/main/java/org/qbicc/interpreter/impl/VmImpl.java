@@ -76,6 +76,7 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -546,11 +547,11 @@ public final class VmImpl implements Vm {
                 VmStringImpl name = (VmStringImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("name")), SinglePlain);
                 LoadedTypeDefinition clazzDef = clazz.getTypeDefinition();
                 FieldElement field = clazzDef.findField(name.getContent());
-                if (field == null || !field.isStatic()) {
+                if (! (field instanceof StaticFieldElement sfe)) {
                     throw new Thrown(errorClass.newInstance("Invalid argument to objectFieldOffset0"));
                 }
-                field.setModifierFlags(ClassFile.I_ACC_PINNED);
-                return StaticFieldPointer.of(field);
+                sfe.setModifierFlags(ClassFile.I_ACC_PINNED);
+                return StaticFieldPointer.of(sfe);
             });
 
             unsafeClass.registerInvokable("allocateInstance", (thread, target, args) -> {

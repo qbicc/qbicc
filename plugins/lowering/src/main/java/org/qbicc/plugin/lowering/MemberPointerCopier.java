@@ -20,9 +20,10 @@ import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.ProgramObjectPointer;
 import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
-import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
-import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
+import org.qbicc.type.definition.element.StaticMethodElement;
 
 /**
  *
@@ -50,13 +51,13 @@ public final class MemberPointerCopier implements NodeVisitor.Delegating<Node.Co
 
     private Pointer lowerPointer(Node.Copier copier, Pointer pointer) {
         if (pointer instanceof StaticMethodPointer smp) {
-            MethodElement method = smp.getStaticMethod();
+            StaticMethodElement method = smp.getStaticMethod();
             Function function = ctxt.getExactFunction(method);
             ProgramModule programModule = ctxt.getOrAddProgramModule(copier.getBlockBuilder().getCurrentElement().getEnclosingType());
             DataDeclaration decl = programModule.declareData(function);
             return ProgramObjectPointer.of(decl);
         } else if (pointer instanceof StaticFieldPointer sfp) {
-            FieldElement field = sfp.getStaticField();
+            StaticFieldElement field = sfp.getStaticField();
             GlobalVariableElement global = Lowering.get(ctxt).getGlobalForStaticField(field);
             ProgramModule programModule = ctxt.getOrAddProgramModule(copier.getBlockBuilder().getCurrentElement().getEnclosingType());
             DataDeclaration decl = programModule.declareData(field, global.getName(), global.getType());
@@ -68,7 +69,7 @@ public final class MemberPointerCopier implements NodeVisitor.Delegating<Node.Co
         } else if (pointer instanceof OffsetPointer op) {
             return lowerPointer(copier, op.getBasePointer()).offsetByElements(op.getOffset());
         } else if (pointer instanceof InstanceFieldPointer ifp) {
-            FieldElement field = ifp.getFieldElement();
+            InstanceFieldElement field = ifp.getInstanceField();
             return new MemberPointer(lowerPointer(copier, ifp.getObjectPointer()), Layout.get(ctxt).getInstanceLayoutInfo(field.getEnclosingType()).getMember(field));
         } else if (pointer instanceof MemoryPointer) {
             throw new UnsupportedOperationException("Lowering arbitrary memory is not supported");

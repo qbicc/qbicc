@@ -55,6 +55,8 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.definition.element.ParameterElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
+import org.qbicc.type.definition.element.StaticMethodElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -1063,7 +1065,7 @@ public final class Reflection {
                 return MethodBody.of(entryBlock, schedule, null, paramValues);
             }
         }, 0);
-        MethodElement dispatcher = builder.build();
+        StaticMethodElement dispatcher = (StaticMethodElement) builder.build();
         ctxt.enqueue(dispatcher);
         return StaticMethodPointer.of(dispatcher);
     }
@@ -1131,16 +1133,16 @@ public final class Reflection {
                 return MethodBody.of(entryBlock, schedule, null, paramValues);
             }
         }, 0);
-        MethodElement dispatcher = builder.build();
+        StaticMethodElement dispatcher = (StaticMethodElement) builder.build();
         ctxt.enqueue(dispatcher);
         return StaticMethodPointer.of(dispatcher);
     }
 
     private Pointer generateInvokerDispatcher(final MethodElement element, final MethodHandleKind kind) {
-        if (element.isStatic()) {
+        if (element instanceof StaticMethodElement sme) {
             ctxt.enqueue(element);
             // just dispatch directly to the method itself - nice!
-            return element.getStaticMethodPointer();
+            return StaticMethodPointer.of(sme);
         }
         // generate a static dispatch helper method
         DefinedTypeDefinition enclosingType = element.getEnclosingType();
@@ -1217,7 +1219,7 @@ public final class Reflection {
                 return MethodBody.of(entryBlock, schedule, null, paramValues);
             }
         }, 0);
-        MethodElement dispatcher = builder.build();
+        StaticMethodElement dispatcher = (StaticMethodElement) builder.build();
         ctxt.enqueue(dispatcher);
         return StaticMethodPointer.of(dispatcher);
     }
@@ -1279,7 +1281,7 @@ public final class Reflection {
                 return MethodBody.of(entryBlock, schedule, null, paramValues);
             }
         }, 0);
-        MethodElement dispatcher = builder.build();
+        StaticMethodElement dispatcher = (StaticMethodElement) builder.build();
         ctxt.enqueue(dispatcher);
         return StaticMethodPointer.of(dispatcher);
     }
@@ -1339,7 +1341,7 @@ public final class Reflection {
             // todo: breakpoint
             idx = 0;
         }
-        FieldElement field = clazz.getTypeDefinition().getField(idx);
+        StaticFieldElement field = (StaticFieldElement) clazz.getTypeDefinition().getField(idx);
         return StaticFieldPointer.of(field);
     }
 

@@ -53,7 +53,7 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
-import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.StaticMethodElement;
 
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
@@ -414,7 +414,7 @@ public class BuildtimeHeap {
                     memberMap.put(om, lf.nullLiteralOfType(pt));
                 } else if (pointer instanceof StaticMethodPointer smp) {
                     // lower method pointers to their corresponding objects
-                    MethodElement method = smp.getStaticMethod();
+                    StaticMethodElement method = smp.getStaticMethod();
                     ctxt.enqueue(method);
                     Function function = ctxt.getExactFunction(method);
                     FunctionDeclaration decl = into.getProgramModule().declareFunction(function);

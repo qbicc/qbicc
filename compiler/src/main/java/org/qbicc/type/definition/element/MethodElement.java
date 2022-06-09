@@ -1,13 +1,5 @@
 package org.qbicc.type.definition.element;
 
-import java.lang.invoke.ConstantBootstraps;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
-import java.util.function.Function;
-
-import org.qbicc.pointer.InstanceMethodPointer;
-import org.qbicc.pointer.RootPointer;
-import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.MethodType;
 import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -15,28 +7,26 @@ import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
-import org.qbicc.type.util.ResolutionUtil;
 
 /**
- *
+ * A method element.
  */
-public final class MethodElement extends InvokableElement implements NamedElement {
+public abstract class MethodElement extends InvokableElement implements NamedElement {
     public static final MethodElement[] NO_METHODS = new MethodElement[0];
 
     /**
      * Special marker method used in method searches.
      */
-    public static final MethodElement NOT_FOUND = new MethodElement();
+    @SuppressWarnings("StaticInitializerReferencesSubClass")
+    public static final MethodElement NOT_FOUND = new StaticMethodElement();
     /**
      * Special marker method used in method searches.
      */
-    public static final MethodElement END_OF_SEARCH = new MethodElement();
-
-    private static final VarHandle pointerHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "pointer", VarHandle.class, MethodElement.class, RootPointer.class);
+    @SuppressWarnings("StaticInitializerReferencesSubClass")
+    public static final MethodElement END_OF_SEARCH = new StaticMethodElement();
 
     private final String name;
     private final AnnotationValue defaultValue;
-    private volatile RootPointer pointer;
 
     MethodElement() {
         super();
@@ -56,11 +46,7 @@ public final class MethodElement extends InvokableElement implements NamedElemen
     }
 
     @Override
-    MethodType computeType() {
-        return isStatic() ?
-            ResolutionUtil.resolveStaticMethodType(getEnclosingType(), this, getDescriptor(), getSignature()) :
-            ResolutionUtil.resolveInstanceMethodType(getEnclosingType(), this, getDescriptor(), getSignature());
-    }
+    abstract MethodType computeType();
 
     public String toString() {
         TypeDescriptor desc = getEnclosingType().getDescriptor();
@@ -127,70 +113,6 @@ public final class MethodElement extends InvokableElement implements NamedElemen
             && getEnclosingType().load().getObjectType().isSubtypeOf(other.getEnclosingType().load().getObjectType());
     }
 
-    /**
-     * Get the pointer to this (static) method.  Convenience method which delegates to {@link StaticMethodPointer#of}.
-     *
-     * @return the pointer
-     * @throws IllegalArgumentException if this method is not static
-     */
-    public StaticMethodPointer getStaticMethodPointer() {
-        return StaticMethodPointer.of(this);
-    }
-
-    /**
-     * Get the pointer to this (instance) method.  Convenience method which delegates to {@link InstanceMethodPointer#of}.
-     *
-     * @return the pointer
-     * @throws IllegalArgumentException if this method is static
-     */
-    public InstanceMethodPointer getInstanceMethodPointer() {
-        return InstanceMethodPointer.of(this);
-    }
-
-    /**
-     * Establish the pointer for this method; intended only for use by {@link StaticMethodPointer#of}.
-     *
-     * @param factory the factory
-     * @return the pointer
-     * @see StaticMethodPointer#of
-     */
-    public StaticMethodPointer getOrCreateStaticMethodPointer(Function<MethodElement, StaticMethodPointer> factory) {
-        StaticMethodPointer pointer = (StaticMethodPointer) this.pointer;
-        if (pointer == null) {
-            if (! isStatic()) {
-                throw new IllegalArgumentException("Static pointer for instance method");
-            }
-            pointer = factory.apply(this);
-            StaticMethodPointer appearing = (StaticMethodPointer) pointerHandle.compareAndExchange(this, null, pointer);
-            if (appearing != null) {
-                pointer = appearing;
-            }
-        }
-        return pointer;
-    }
-
-    /**
-     * Establish the pointer for this method; intended only for use by {@link InstanceMethodPointer#of}.
-     *
-     * @param factory the factory
-     * @return the pointer
-     * @see InstanceMethodPointer#of
-     */
-    public InstanceMethodPointer getOrCreateInstanceMethodPointer(Function<MethodElement, InstanceMethodPointer> factory) {
-        InstanceMethodPointer pointer = (InstanceMethodPointer) this.pointer;
-        if (pointer == null) {
-            if (isStatic()) {
-                throw new IllegalArgumentException("Instance pointer for static method");
-            }
-            pointer = factory.apply(this);
-            InstanceMethodPointer appearing = (InstanceMethodPointer) pointerHandle.compareAndExchange(this, null, pointer);
-            if (appearing != null) {
-                pointer = appearing;
-            }
-        }
-        return pointer;
-    }
-
     public interface Builder extends InvokableElement.Builder, NamedElement.Builder {
 
         void setDefaultValue(AnnotationValue annotationValue);
@@ -231,7 +153,7 @@ public final class MethodElement extends InvokableElement implements NamedElemen
         }
 
         public MethodElement build() {
-            return new MethodElement(this);
+            return (modifiers & ClassFile.ACC_STATIC) != 0 ? new StaticMethodElement(this) : new InstanceMethodElement(this);
         }
     }
 }
