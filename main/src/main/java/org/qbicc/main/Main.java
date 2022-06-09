@@ -2,6 +2,7 @@ package org.qbicc.main;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,6 +21,7 @@ import java.util.ServiceLoader;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
+import java.util.jar.JarInputStream;
 
 import io.smallrye.common.constraint.Assert;
 import org.apache.maven.settings.Settings;
@@ -67,8 +69,8 @@ import org.qbicc.plugin.dispatch.DispatchTableBuilder;
 import org.qbicc.plugin.dispatch.DispatchTableEmitter;
 import org.qbicc.plugin.dot.DotGenerator;
 import org.qbicc.plugin.gc.common.GcCommon;
-import org.qbicc.plugin.gc.nogc.NoGcBasicBlockBuilder;
 import org.qbicc.plugin.gc.common.MultiNewArrayExpansionBasicBlockBuilder;
+import org.qbicc.plugin.gc.nogc.NoGcBasicBlockBuilder;
 import org.qbicc.plugin.gc.nogc.NoGcSetupHook;
 import org.qbicc.plugin.gc.nogc.NoGcTypeSystemConfigurator;
 import org.qbicc.plugin.instanceofcheckcast.InstanceOfCheckCastBasicBlockBuilder;
@@ -76,19 +78,19 @@ import org.qbicc.plugin.instanceofcheckcast.SupersDisplayBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayEmitter;
 import org.qbicc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
 import org.qbicc.plugin.intrinsics.core.CoreIntrinsics;
-import org.qbicc.plugin.llvm.LLVMDefaultModuleCompileStage;
-import org.qbicc.plugin.llvm.LLVMIntrinsics;
-import org.qbicc.plugin.lowering.BooleanAccessCopier;
-import org.qbicc.plugin.lowering.InitCheckLoweringBasicBlockBuilder;
-import org.qbicc.plugin.lowering.LocalVariableFindingBasicBlockBuilder;
-import org.qbicc.plugin.lowering.LocalVariableLoweringBasicBlockBuilder;
 import org.qbicc.plugin.layout.ObjectAccessLoweringBuilder;
 import org.qbicc.plugin.linker.LinkStage;
 import org.qbicc.plugin.llvm.LLVMCompatibleBasicBlockBuilder;
 import org.qbicc.plugin.llvm.LLVMCompileStage;
+import org.qbicc.plugin.llvm.LLVMDefaultModuleCompileStage;
 import org.qbicc.plugin.llvm.LLVMGenerator;
+import org.qbicc.plugin.llvm.LLVMIntrinsics;
+import org.qbicc.plugin.lowering.BooleanAccessCopier;
 import org.qbicc.plugin.lowering.FunctionLoweringElementHandler;
+import org.qbicc.plugin.lowering.InitCheckLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
+import org.qbicc.plugin.lowering.LocalVariableFindingBasicBlockBuilder;
+import org.qbicc.plugin.lowering.LocalVariableLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.MemberPointerCopier;
 import org.qbicc.plugin.lowering.StaticFieldLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.ThrowExceptionHelper;
@@ -111,24 +113,24 @@ import org.qbicc.plugin.native_.PointerBasicBlockBuilder;
 import org.qbicc.plugin.native_.PointerTypeResolver;
 import org.qbicc.plugin.native_.StructMemberAccessBasicBlockBuilder;
 import org.qbicc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
-import org.qbicc.plugin.opt.GotoRemovingVisitor;
 import org.qbicc.plugin.opt.FinalFieldLoadOptimizer;
+import org.qbicc.plugin.opt.GotoRemovingVisitor;
 import org.qbicc.plugin.opt.InliningBasicBlockBuilder;
 import org.qbicc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
 import org.qbicc.plugin.opt.PhiOptimizerVisitor;
 import org.qbicc.plugin.opt.SimpleOptBasicBlockBuilder;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisDotGenerator;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisDotVisitor;
+import org.qbicc.plugin.opt.ea.EscapeAnalysisInterMethodAnalysis;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisIntraMethodAnalysis;
+import org.qbicc.plugin.opt.ea.EscapeAnalysisOptimizeVisitor;
 import org.qbicc.plugin.patcher.AccessorBasicBlockBuilder;
 import org.qbicc.plugin.patcher.AccessorTypeBuilder;
 import org.qbicc.plugin.patcher.Patcher;
 import org.qbicc.plugin.patcher.PatcherResolverBasicBlockBuilder;
 import org.qbicc.plugin.patcher.PatcherTypeResolver;
-import org.qbicc.plugin.opt.ea.EscapeAnalysisInterMethodAnalysis;
-import org.qbicc.plugin.opt.ea.EscapeAnalysisOptimizeVisitor;
-import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
+import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reflection.Reflection;
 import org.qbicc.plugin.reflection.ReflectionIntrinsics;
 import org.qbicc.plugin.reflection.VarHandleResolvingBasicBlockBuilder;
@@ -152,6 +154,8 @@ import org.qbicc.type.TypeSystem;
 import picocli.CommandLine;
 import picocli.CommandLine.ParameterException;
 import picocli.CommandLine.ParseResult;
+
+;
 
 /**
  * The main entry point, which can be constructed using a builder or directly invoked.
@@ -181,7 +185,7 @@ public class Main implements Callable<DiagnosticContext> {
         outputName = builder.outputName;
         diagnosticsHandler = builder.diagnosticsHandler;
         // todo: this becomes optional
-        mainClass = Assert.checkNotNullParam("builder.mainClass", builder.mainClass);
+        mainClass = Assert.checkNotEmptyParam("builder.mainClass", builder.mainClass);
         gc = builder.gc;
         isPie = builder.isPie;
         graphGenConfig = builder.graphGenConfig;
@@ -669,11 +673,16 @@ public class Main implements Callable<DiagnosticContext> {
         if (result != CmdResult.CMD_RESULT_OK) {
             return;
         }
+        if (optionsProcessor.mainClass.isEmpty() && optionsProcessor.inputJar == null) {
+            System.err.println("Must either provide a <mainClass> or use --jar <executableJar>");
+            return;
+        }
         Builder mainBuilder = builder();
         mainBuilder.setClassLibVersion(optionsProcessor.rtVersion)
             .appendBootPaths(optionsProcessor.appendedBootPathEntries)
             .prependBootPaths(optionsProcessor.prependedBootPathEntries)
             .addAppPaths(optionsProcessor.appPathEntries)
+            .processJarArgument(optionsProcessor.inputJar)
             .setOutputPath(optionsProcessor.outputPath)
             .setOutputName(optionsProcessor.outputName)
             .setMainClass(optionsProcessor.mainClass)
@@ -775,6 +784,9 @@ public class Main implements Callable<DiagnosticContext> {
         }
         private final List<ClassPathEntry> appPathEntries = new ArrayList<>();
 
+        @CommandLine.Option(names = "--jar", description = "Compile an executable jar")
+        private Path inputJar;
+
         @CommandLine.Option(names = "--output-path", description = "Specify directory where build files are placed")
         private Path outputPath;
         @CommandLine.Option(names = { "--output-name", "-o" }, defaultValue = "a.out", description = "Specify the name of the output executable file or library")
@@ -814,7 +826,7 @@ public class Main implements Callable<DiagnosticContext> {
         @CommandLine.Option(names = "--small-type-ids", negatable = true, defaultValue = "false", description = "Use narrow (16-bit) type ID values if true, wide (32-bit) type ID values if false")
         private boolean smallTypeIds;
 
-        @CommandLine.Parameters(index="0", arity="1", description = "Application main class")
+        @CommandLine.Parameters(index="0", arity="1", defaultValue = "", description = "Application main class")
         private String mainClass;
 
         @CommandLine.ArgGroup(exclusive = false, multiplicity = "0..1", heading = "Options for controlling generation of graphs for methods%n")
@@ -1014,9 +1026,35 @@ public class Main implements Callable<DiagnosticContext> {
             return this;
         }
 
+        public Builder processJarArgument(Path inputJar) {
+            if (inputJar == null) {
+                return this;
+            }
+
+            try {
+                JarInputStream jarStream = new JarInputStream(new FileInputStream(inputJar.toAbsolutePath().toString()));
+                bootPathsAppend.add(ClassPathEntry.of(inputJar)); // TODO: append to the appPath, not the bootPath
+                mainClass = jarStream.getManifest().getMainAttributes().getValue("Main-Class");
+                String classPath = jarStream.getManifest().getMainAttributes().getValue("Class-Path");
+                if (classPath != null && !classPath.equals("")) {
+                    Path parentDir = inputJar.toAbsolutePath().getParent();
+                    for (String e : classPath.split(" ")) {
+                        if (!e.isEmpty()) {
+                            ClassPathEntry cpe = ClassPathEntry.of(parentDir.resolve(e));
+                            bootPathsAppend.add(cpe); // TODO: append to the appPath, not the bootPath
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                System.err.println("Error processing argument \"-jar "+inputJar+"\": "+e.getMessage());
+            }
+            return this;
+        }
+
         public Builder setMainClass(String mainClass) {
-            Assert.checkNotNullParam("mainClass", mainClass);
-            this.mainClass = mainClass;
+            if (!mainClass.equals("")) {
+                this.mainClass = mainClass;
+            }
             return this;
         }
 
