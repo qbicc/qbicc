@@ -9,7 +9,7 @@ import org.qbicc.type.ValueType;
 /**
  * A literal referring to some program object.
  */
-public final class PointerLiteral extends Literal {
+public final class PointerLiteral extends WordLiteral {
     private final Pointer pointer;
 
     PointerLiteral(Pointer pointer) {
