@@ -7,6 +7,9 @@ import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -112,6 +115,7 @@ import org.qbicc.plugin.native_.NativeXtorLoweringHook;
 import org.qbicc.plugin.native_.PointerBasicBlockBuilder;
 import org.qbicc.plugin.native_.PointerTypeResolver;
 import org.qbicc.plugin.native_.StructMemberAccessBasicBlockBuilder;
+import org.qbicc.plugin.nativeimage.FeatureProcessor;
 import org.qbicc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
 import org.qbicc.plugin.opt.FinalFieldLoadOptimizer;
 import org.qbicc.plugin.opt.GotoRemovingVisitor;
@@ -163,6 +167,7 @@ import picocli.CommandLine.ParseResult;
 public class Main implements Callable<DiagnosticContext> {
     private final List<ClassPathEntry> bootPaths;
     private final List<ClassPathEntry> appPaths;
+    private final ClassLoader hostAppClassLoader;
     private final Path outputPath;
     private final String outputName;
     private final Consumer<Iterable<Diagnostic>> diagnosticsHandler;
@@ -179,6 +184,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final Platform platform;
     private final boolean smallTypeIds;
     private final List<Path> librarySearchPaths;
+    private final List<String> buildFeatures;
 
     Main(Builder builder) {
         outputPath = builder.outputPath;
@@ -216,6 +222,20 @@ public class Main implements Callable<DiagnosticContext> {
         this.bootPaths = bootPaths;
         appPaths = List.copyOf(builder.appPaths);
         librarySearchPaths = builder.librarySearchPaths;
+        buildFeatures = builder.buildFeatures;
+
+        // TODO: This should really be built using appPath, but we put everything on the bootPath right now.
+        List<URL> urls = new ArrayList<>();
+        for (ClassPathEntry cpe : bootPaths) {
+            if (cpe instanceof ClassPathEntry.FilePath fp) {
+                try {
+                    urls.add(fp.getPath().toUri().toURL());
+                } catch (MalformedURLException e) {
+                    // Ignore; if it matters will show up CNFE when the ClassLoader is used
+                }
+            }
+        }
+        hostAppClassLoader = URLClassLoader.newInstance(urls.toArray(new URL[0]));
     }
 
     public DiagnosticContext call() {
@@ -419,6 +439,9 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
                                 }
                                 builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachable);
+                                builder.addPreHook(Phase.ADD, compilationContext -> {
+                                    FeatureProcessor.processBuildFeature(compilationContext, buildFeatures, hostAppClassLoader); // TODO: This should be appPaths
+                                });
                                 builder.addElementHandler(Phase.ADD, new ElementBodyCreator());
                                 builder.addElementHandler(Phase.ADD, new BuildTimeOnlyElementHandler());
                                 builder.addElementHandler(Phase.ADD, new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig)));
@@ -683,6 +706,7 @@ public class Main implements Callable<DiagnosticContext> {
             .prependBootPaths(optionsProcessor.prependedBootPathEntries)
             .addAppPaths(optionsProcessor.appPathEntries)
             .processJarArgument(optionsProcessor.inputJar)
+            .addBuildFeatures(optionsProcessor.buildFeatures)
             .setOutputPath(optionsProcessor.outputPath)
             .setOutputName(optionsProcessor.outputName)
             .setMainClass(optionsProcessor.mainClass)
@@ -783,6 +807,10 @@ public class Main implements Callable<DiagnosticContext> {
             appPathEntries.addAll(filePath);
         }
         private final List<ClassPathEntry> appPathEntries = new ArrayList<>();
+
+        @CommandLine.Option(names ="--build-feature", description = "GraalVM native-image Feature")
+        void addBuildFeature(List<String> features) { buildFeatures.addAll(features); }
+        private final List<String> buildFeatures = new ArrayList<>();
 
         @CommandLine.Option(names = "--jar", description = "Compile an executable jar")
         private Path inputJar;
@@ -957,6 +985,7 @@ public class Main implements Callable<DiagnosticContext> {
         private GraphGenConfig graphGenConfig;
         private boolean smallTypeIds = false;
         private List<Path> librarySearchPaths = List.of();
+        private List<String> buildFeatures = new ArrayList<>();
 
         Builder() {}
 
@@ -999,6 +1028,11 @@ public class Main implements Callable<DiagnosticContext> {
         public Builder addAppPaths(List<ClassPathEntry> entry) {
             Assert.checkNotNullParam("entry", entry);
             appPaths.addAll(entry);
+            return this;
+        }
+
+        public Builder addBuildFeatures(List<String> features) {
+            buildFeatures.addAll(features);
             return this;
         }
 

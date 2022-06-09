@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.qbicc</groupId>
+        <artifactId>qbicc-plugin-parent</artifactId>
+        <version>0.35.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>qbicc-plugin-graalvm-nativeimage-emulation</artifactId>
+
+    <name>Qbicc Plugin: GraalVM NativeImage Emulation</name>
+    <description>Emulates build-time Feature support of GraalVM's native-image tool</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-driver</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-core-classes</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-reachability</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.nativeimage</groupId>
+            <artifactId>svm</artifactId>
+            <version>21.3.0</version>
+        </dependency>
+    </dependencies>
+
+</project>

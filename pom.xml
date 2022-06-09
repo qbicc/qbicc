@@ -401,6 +401,12 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-plugin-graalvm-nativeimage-emulation</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-plugin-linker</artifactId>
                 <version>${project.version}</version>
             </dependency>
