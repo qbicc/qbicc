@@ -1,14 +1,17 @@
-package org.qbicc.machine.file.wasm.kaitai;// This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
+// This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
+
+package org.qbicc.machine.file.wasm.kaitai;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import io.kaitai.struct.ByteBufferKaitaiStream;
-import io.kaitai.struct.KaitaiStruct;
 import io.kaitai.struct.KaitaiStream;
-import java.io.IOException;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.nio.charset.Charset;
+import io.kaitai.struct.KaitaiStruct;
 
 
 /**
@@ -229,16 +232,12 @@ public class Webassembly extends KaitaiStruct {
             _read();
         }
         private void _read() {
-            this.index = new VlqBase128Le(this._io);
-            this.offset = new ArrayList<Integer>();
-            {
-                int _it;
-                int i = 0;
-                do {
-                    _it = this._io.readU1();
-                    this.offset.add(_it);
-                    i++;
-                } while (!(_it == 11));
+            this.type = new VlqBase128Le(this._io);
+            this.offsetExprOpcode = this._io.readU1();
+            this.offsetExprArg = new VlqBase128Le(this._io);
+            this.terminator = this._io.readBytes(1);
+            if (!(Arrays.equals(terminator(), new byte[] { 11 }))) {
+                throw new KaitaiStream.ValidationNotEqualError(new byte[] { 11 }, terminator(), _io(), "/types/data_segment_type/seq/3");
             }
             this.size = new VlqBase128Le(this._io);
             data = new ArrayList<Integer>(((Number) (size().value())).intValue());
@@ -246,14 +245,18 @@ public class Webassembly extends KaitaiStruct {
                 this.data.add(this._io.readU1());
             }
         }
-        private VlqBase128Le index;
-        private ArrayList<Integer> offset;
+        private VlqBase128Le type;
+        private int offsetExprOpcode;
+        private VlqBase128Le offsetExprArg;
+        private byte[] terminator;
         private VlqBase128Le size;
         private ArrayList<Integer> data;
         private Webassembly _root;
         private DataSection _parent;
-        public VlqBase128Le index() { return index; }
-        public ArrayList<Integer> offset() { return offset; }
+        public VlqBase128Le type() { return type; }
+        public int offsetExprOpcode() { return offsetExprOpcode; }
+        public VlqBase128Le offsetExprArg() { return offsetExprArg; }
+        public byte[] terminator() { return terminator; }
         public VlqBase128Le size() { return size; }
         public ArrayList<Integer> data() { return data; }
         public Webassembly _root() { return _root; }
@@ -482,9 +485,15 @@ public class Webassembly extends KaitaiStruct {
         private void _read() {
             this.nameLen = new VlqBase128Le(this._io);
             this.nameData = new String(this._io.readBytes(nameLen().value()), Charset.forName("UTF-8"));
-            this.index = new VlqBase128Le(this._io);
-            this.offset = new VlqBase128Le(this._io);
-            this.size = new VlqBase128Le(this._io);
+            if ((_parent().flags().value() & Symflag.UNDEFINED.id()) == 0) {
+                this.index = new VlqBase128Le(this._io);
+            }
+            if ((_parent().flags().value() & Symflag.UNDEFINED.id()) == 0) {
+                this.offset = new VlqBase128Le(this._io);
+            }
+            if ((_parent().flags().value() & Symflag.UNDEFINED.id()) == 0) {
+                this.size = new VlqBase128Le(this._io);
+            }
         }
         private VlqBase128Le nameLen;
         private String nameData;
@@ -526,15 +535,25 @@ public class Webassembly extends KaitaiStruct {
             if (kind() == Symtab.DATA) {
                 this.data = new SyminfoData(this._io, this, _root);
             }
+            if ( ((kind() == Symtab.FUNCTION) || (kind() == Symtab.GLOBAL) || (kind() == Symtab.EVENT) || (kind() == Symtab.TABLE)) ) {
+                this.ext = new SyminfoExt(this._io, this, _root);
+            }
+            if (kind() == Symtab.SECTION) {
+                this.section = new SyminfoSection(this._io, this, _root);
+            }
         }
         private Symtab kind;
         private VlqBase128Le flags;
         private SyminfoData data;
+        private SyminfoExt ext;
+        private SyminfoSection section;
         private Webassembly _root;
         private SymbolTableType _parent;
         public Symtab kind() { return kind; }
         public VlqBase128Le flags() { return flags; }
         public SyminfoData data() { return data; }
+        public SyminfoExt ext() { return ext; }
+        public SyminfoSection section() { return section; }
         public Webassembly _root() { return _root; }
         public SymbolTableType _parent() { return _parent; }
     }
@@ -1199,19 +1218,19 @@ public class Webassembly extends KaitaiStruct {
             _read();
         }
         private void _read() {
-            this.count = this._io.readU1();
-            if (count() > 0) {
-                entries = new ArrayList<ImportEntry>(((Number) (count())).intValue());
-                for (int i = 0; i < count(); i++) {
+            this.count = new VlqBase128Le(this._io);
+            if (count().value() > 0) {
+                entries = new ArrayList<ImportEntry>(((Number) (count().value())).intValue());
+                for (int i = 0; i < count().value(); i++) {
                     this.entries.add(new ImportEntry(this._io, this, _root));
                 }
             }
         }
-        private int count;
+        private VlqBase128Le count;
         private ArrayList<ImportEntry> entries;
         private Webassembly _root;
         private Section _parent;
-        public int count() { return count; }
+        public VlqBase128Le count() { return count; }
         public ArrayList<ImportEntry> entries() { return entries; }
         public Webassembly _root() { return _root; }
         public Section _parent() { return _parent; }
@@ -1256,6 +1275,45 @@ public class Webassembly extends KaitaiStruct {
         public ArrayList<Integer> init() { return init; }
         public Webassembly _root() { return _root; }
         public GlobalSection _parent() { return _parent; }
+    }
+    public static class SyminfoExt extends KaitaiStruct {
+        public static SyminfoExt fromFile(String fileName) throws IOException {
+            return new SyminfoExt(new ByteBufferKaitaiStream(fileName));
+        }
+
+        public SyminfoExt(KaitaiStream _io) {
+            this(_io, null, null);
+        }
+
+        public SyminfoExt(KaitaiStream _io, SyminfoType _parent) {
+            this(_io, _parent, null);
+        }
+
+        public SyminfoExt(KaitaiStream _io, SyminfoType _parent, Webassembly _root) {
+            super(_io);
+            this._parent = _parent;
+            this._root = _root;
+            _read();
+        }
+        private void _read() {
+            this.index = new VlqBase128Le(this._io);
+            if ((_parent().flags().value() & Symflag.UNDEFINED.id()) == 0) {
+                this.nameLen = new VlqBase128Le(this._io);
+            }
+            if ((_parent().flags().value() & Symflag.UNDEFINED.id()) == 0) {
+                this.nameData = new String(this._io.readBytes(nameLen().value()), Charset.forName("UTF-8"));
+            }
+        }
+        private VlqBase128Le index;
+        private VlqBase128Le nameLen;
+        private String nameData;
+        private Webassembly _root;
+        private SyminfoType _parent;
+        public VlqBase128Le index() { return index; }
+        public VlqBase128Le nameLen() { return nameLen; }
+        public String nameData() { return nameData; }
+        public Webassembly _root() { return _root; }
+        public SyminfoType _parent() { return _parent; }
     }
     public static class StartSection extends KaitaiStruct {
         public static StartSection fromFile(String fileName) throws IOException {
@@ -1317,6 +1375,35 @@ public class Webassembly extends KaitaiStruct {
         public ResizableLimitsType limits() { return limits; }
         public Webassembly _root() { return _root; }
         public KaitaiStruct _parent() { return _parent; }
+    }
+    public static class SyminfoSection extends KaitaiStruct {
+        public static SyminfoSection fromFile(String fileName) throws IOException {
+            return new SyminfoSection(new ByteBufferKaitaiStream(fileName));
+        }
+
+        public SyminfoSection(KaitaiStream _io) {
+            this(_io, null, null);
+        }
+
+        public SyminfoSection(KaitaiStream _io, SyminfoType _parent) {
+            this(_io, _parent, null);
+        }
+
+        public SyminfoSection(KaitaiStream _io, SyminfoType _parent, Webassembly _root) {
+            super(_io);
+            this._parent = _parent;
+            this._root = _root;
+            _read();
+        }
+        private void _read() {
+            this.section = new VlqBase128Le(this._io);
+        }
+        private VlqBase128Le section;
+        private Webassembly _root;
+        private SyminfoType _parent;
+        public VlqBase128Le section() { return section; }
+        public Webassembly _root() { return _root; }
+        public SyminfoType _parent() { return _parent; }
     }
     public static class FunctionSection extends KaitaiStruct {
         public static FunctionSection fromFile(String fileName) throws IOException {
