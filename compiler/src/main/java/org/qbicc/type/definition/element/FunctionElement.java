@@ -1,11 +1,16 @@
 package org.qbicc.type.definition.element;
 
+import java.lang.invoke.ConstantBootstraps;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.List;
+import java.util.function.Function;
 
+import io.smallrye.common.constraint.Assert;
+import org.qbicc.pointer.FunctionPointer;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
-import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.util.ResolutionUtil;
 
@@ -13,6 +18,9 @@ import org.qbicc.type.util.ResolutionUtil;
  * An element that represents some function.
  */
 public final class FunctionElement extends InvokableElement implements NamedElement {
+    private static final VarHandle pointerHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "pointer", VarHandle.class, FunctionElement.class, FunctionPointer.class);
+    @SuppressWarnings("unused") // pointerHandle
+    private volatile FunctionPointer pointer;
     private final String name;
 
     FunctionElement(final BuilderImpl builder) {
@@ -34,6 +42,25 @@ public final class FunctionElement extends InvokableElement implements NamedElem
     @Override
     FunctionType computeType() {
         return ResolutionUtil.resolveFunctionType(getEnclosingType(), this, getDescriptor(), getSignature());
+    }
+
+    /**
+     * Establish the pointer for this function; intended only for use by {@link FunctionPointer#of}.
+     *
+     * @param factory the factory
+     * @return the pointer
+     * @see FunctionPointer#of
+     */
+    public FunctionPointer getOrCreatePointer(Function<FunctionElement, FunctionPointer> factory) {
+        FunctionPointer pointer = this.pointer;
+        if (pointer == null) {
+            pointer = factory.apply(this);
+            FunctionPointer appearing = (FunctionPointer) pointerHandle.compareAndExchange(this, null, pointer);
+            if (appearing != null) {
+                pointer = appearing;
+            }
+        }
+        return pointer;
     }
 
     @Override

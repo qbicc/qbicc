@@ -146,6 +146,7 @@ import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThrowable;
+import org.qbicc.pointer.GlobalPointer;
 import org.qbicc.pointer.IntegerAsPointer;
 import org.qbicc.pointer.MemoryPointer;
 import org.qbicc.pointer.Pointer;
@@ -2357,6 +2358,12 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public Memory visitAny(Frame frame, RootPointer rootPointer) {
             throw invalidHandleTypeForOp();
+        }
+
+        @Override
+        public Memory visit(Frame frame, GlobalPointer pointer) {
+            VmImpl vm = (VmImpl) Vm.current();
+            return vm.getGlobal(pointer.getGlobalVariable());
         }
 
         @Override

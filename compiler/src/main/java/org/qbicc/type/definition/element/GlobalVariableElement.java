@@ -1,7 +1,13 @@
 package org.qbicc.type.definition.element;
 
+import java.lang.invoke.ConstantBootstraps;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.util.function.Function;
+
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.pointer.GlobalPointer;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 
@@ -9,6 +15,9 @@ import org.qbicc.type.generic.TypeParameterContext;
  * A global variable.
  */
 public final class GlobalVariableElement extends VariableElement {
+    private static final VarHandle pointerHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "pointer", VarHandle.class, GlobalVariableElement.class, GlobalPointer.class);
+    @SuppressWarnings("unused") // pointerHandle
+    private volatile GlobalPointer pointer;
     private final String section;
 
     GlobalVariableElement(final BuilderImpl builder) {
@@ -22,6 +31,34 @@ public final class GlobalVariableElement extends VariableElement {
 
     public String getSection() {
         return section;
+    }
+
+    /**
+     * Get the pointer to this global variable.  Convenience method which delegates to {@link GlobalPointer#of}.
+     *
+     * @return the pointer
+     */
+    public GlobalPointer getPointer() {
+        return GlobalPointer.of(this);
+    }
+
+    /**
+     * Establish the pointer for this global variable; intended only for use by {@link GlobalPointer#of}.
+     *
+     * @param factory the factory
+     * @return the pointer
+     * @see GlobalPointer#of
+     */
+    public GlobalPointer getOrCreatePointer(Function<GlobalVariableElement, GlobalPointer> factory) {
+        GlobalPointer pointer = this.pointer;
+        if (pointer == null) {
+            pointer = factory.apply(this);
+            GlobalPointer appearing = (GlobalPointer) pointerHandle.compareAndExchange(this, null, pointer);
+            if (appearing != null) {
+                pointer = appearing;
+            }
+        }
+        return pointer;
     }
 
     public static Builder builder(String name, TypeDescriptor descriptor) {

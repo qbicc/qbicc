@@ -57,6 +57,22 @@ public abstract class RootPointer extends Pointer {
             return null;
         }
 
+        default R visit(T t, ConstructorPointer pointer) {
+            return visitAny(t, pointer);
+        }
+
+        default R visit(T t, FunctionPointer pointer) {
+            return visitAny(t, pointer);
+        }
+
+        default R visit(T t, GlobalPointer pointer) {
+            return visitAny(t, pointer);
+        }
+
+        default R visit(T t, InitializerPointer pointer) {
+            return visitAny(t, pointer);
+        }
+
         default R visit(T t, InstanceMethodPointer pointer) {
             return visitAny(t, pointer);
         }

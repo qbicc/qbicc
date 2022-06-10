@@ -5,7 +5,7 @@ import org.qbicc.type.definition.element.InstanceMethodElement;
 /**
  * An exact pointer to an instance method.
  */
-public final class InstanceMethodPointer extends RootPointer {
+public final class InstanceMethodPointer extends RootPointer implements ExecutableElementPointer {
     private final InstanceMethodElement instanceMethod;
 
     InstanceMethodPointer(InstanceMethodElement instanceMethod) {
@@ -17,7 +17,12 @@ public final class InstanceMethodPointer extends RootPointer {
         return methodElement.getOrCreateInstanceMethodPointer(InstanceMethodPointer::new);
     }
 
+    @Deprecated
     public InstanceMethodElement getInstanceMethod() {
+        return getExecutableElement();
+    }
+
+    public InstanceMethodElement getExecutableElement() {
         return instanceMethod;
     }
 

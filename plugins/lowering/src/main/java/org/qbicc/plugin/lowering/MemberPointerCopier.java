@@ -9,9 +9,12 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
+import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.pointer.ElementPointer;
+import org.qbicc.pointer.ExecutableElementPointer;
+import org.qbicc.pointer.GlobalPointer;
 import org.qbicc.pointer.InstanceFieldPointer;
 import org.qbicc.pointer.MemberPointer;
 import org.qbicc.pointer.MemoryPointer;
@@ -19,11 +22,10 @@ import org.qbicc.pointer.OffsetPointer;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.ProgramObjectPointer;
 import org.qbicc.pointer.StaticFieldPointer;
-import org.qbicc.pointer.StaticMethodPointer;
+import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
-import org.qbicc.type.definition.element.StaticMethodElement;
 
 /**
  *
@@ -50,17 +52,22 @@ public final class MemberPointerCopier implements NodeVisitor.Delegating<Node.Co
     }
 
     private Pointer lowerPointer(Node.Copier copier, Pointer pointer) {
-        if (pointer instanceof StaticMethodPointer smp) {
-            StaticMethodElement method = smp.getStaticMethod();
-            Function function = ctxt.getExactFunction(method);
+        if (pointer instanceof ExecutableElementPointer eep) {
+            ExecutableElement ee = eep.getExecutableElement();
+            Function function = ctxt.getExactFunction(ee);
             ProgramModule programModule = ctxt.getOrAddProgramModule(copier.getBlockBuilder().getCurrentElement().getEnclosingType());
-            DataDeclaration decl = programModule.declareData(function);
+            FunctionDeclaration decl = programModule.declareFunction(function);
             return ProgramObjectPointer.of(decl);
         } else if (pointer instanceof StaticFieldPointer sfp) {
             StaticFieldElement field = sfp.getStaticField();
             GlobalVariableElement global = Lowering.get(ctxt).getGlobalForStaticField(field);
             ProgramModule programModule = ctxt.getOrAddProgramModule(copier.getBlockBuilder().getCurrentElement().getEnclosingType());
             DataDeclaration decl = programModule.declareData(field, global.getName(), global.getType());
+            return ProgramObjectPointer.of(decl);
+        } else if (pointer instanceof GlobalPointer gp) {
+            GlobalVariableElement global = gp.getGlobalVariable();
+            ProgramModule programModule = ctxt.getOrAddProgramModule(copier.getBlockBuilder().getCurrentElement().getEnclosingType());
+            DataDeclaration decl = programModule.declareData(null, global.getName(), global.getType());
             return ProgramObjectPointer.of(decl);
         } else if (pointer instanceof ElementPointer ep) {
             return new ElementPointer(lowerPointer(copier, ep.getArrayPointer()), ep.getIndex());
