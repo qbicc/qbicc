@@ -190,6 +190,11 @@ public final class Build {
             return defined(__GNUC__) && defined(__aarch64__);
         }
 
+        @Fold
+        public static boolean isWasm() {
+            return defined(__wasm__);
+        }
+
         // Toolchain
 
         @Fold
@@ -259,6 +264,7 @@ public final class Build {
         private static final object linux = constant();
         private static final object __arm__ = constant();
         private static final object __aarch64__ = constant();
+        private static final object __wasm__ = constant();
         private static final object _M_ARM = constant();
         @include("<features.h>")
         private static final c_int __GNU_LIBRARY__ = constant();
@@ -306,6 +312,11 @@ public final class Build {
             }
         }
 
+        public static final class IsWasm implements BooleanSupplier {
+            public boolean getAsBoolean() {
+                return isWasm();
+            }
+        }
         //
 
         public static final class IsGcc implements BooleanSupplier {
