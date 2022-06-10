@@ -54,9 +54,6 @@ public final class StaticMethodElement extends MethodElement {
     public StaticMethodPointer getOrCreateStaticMethodPointer(Function<StaticMethodElement, StaticMethodPointer> factory) {
         StaticMethodPointer pointer = this.pointer;
         if (pointer == null) {
-            if (! isStatic()) {
-                throw new IllegalArgumentException("Static pointer for instance method");
-            }
             pointer = factory.apply(this);
             StaticMethodPointer appearing = (StaticMethodPointer) pointerHandle.compareAndExchange(this, null, pointer);
             if (appearing != null) {
