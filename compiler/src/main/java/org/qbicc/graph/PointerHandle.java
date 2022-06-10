@@ -3,8 +3,9 @@ package org.qbicc.graph;
 import java.util.Objects;
 
 import org.qbicc.graph.atomic.AccessMode;
-import org.qbicc.graph.literal.ProgramObjectLiteral;
+import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.object.Function;
+import org.qbicc.pointer.ProgramObjectPointer;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -44,22 +45,20 @@ public final class PointerHandle extends AbstractValueHandle {
 
     @Override
     public boolean isNoReturn() {
-        if (pointerValue instanceof ProgramObjectLiteral pol) {
-            if (pol.getProgramObject() instanceof Function fn) {
-                return fn.isNoReturn();
-            }
-        }
-        return super.isNoReturn();
+        return pointerValue instanceof PointerLiteral pl
+            && pl.getPointer() instanceof ProgramObjectPointer pop
+            && pop.getProgramObject() instanceof Function fn
+            && fn.isNoReturn()
+            || super.isNoReturn();
     }
 
     @Override
     public boolean isNoSideEffect() {
-        if (pointerValue instanceof ProgramObjectLiteral pol) {
-            if (pol.getProgramObject() instanceof Function fn) {
-                return fn.isNoSideEffects();
-            }
-        }
-        return super.isNoSideEffect();
+        return pointerValue instanceof PointerLiteral pl
+            && pl.getPointer() instanceof ProgramObjectPointer pop
+            && pop.getProgramObject() instanceof Function fn
+            && fn.isNoSideEffects()
+            || super.isNoSideEffect();
     }
 
     @Override

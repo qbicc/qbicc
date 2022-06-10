@@ -24,7 +24,6 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
-import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.graph.literal.ValueConvertLiteral;
@@ -308,10 +307,6 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue>, Pointe
     public LLValue visit(final Void param, final PointerLiteral node) {
         // see below for pointer visitor implementations
         return node.getPointer().accept(this, node);
-    }
-
-    public LLValue visit(final Void param, final ProgramObjectLiteral node) {
-        return Values.global(node.getName());
     }
 
     public LLValue visit(final Void param, final ZeroInitializerLiteral node) {

@@ -15,7 +15,7 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.ProgramObjectLiteral;
+import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.object.Data;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
@@ -257,13 +257,13 @@ public class DispatchTables {
                 MethodElement stub = methodFinder.getMethod(vtable[i].isAbstract() ? "raiseAbstractMethodError" : "raiseUnsatisfiedLinkError");
                 Function stubImpl = ctxt.getExactFunction(stub);
                 FunctionDeclaration decl = programModule.declareFunction(stub, stubImpl.getName(), stubImpl.getValueType());
-                ProgramObjectLiteral literal = ctxt.getLiteralFactory().literalOf(decl);
+                PointerLiteral literal = ctxt.getLiteralFactory().literalOf(decl.getPointer());
                 valueMap.put(info.getType().getMember(i), ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getFunctionTypeForElement(vtable[i]).getPointer()));
             } else if (!reachabilityInfo.isInvokableInstanceMethod(vtable[i])) {
                 MethodElement stub = methodFinder.getMethod("raiseUnreachableCodeError");
                 Function stubImpl = ctxt.getExactFunction(stub);
                 FunctionDeclaration decl = programModule.declareFunction(stub, stubImpl.getName(), stubImpl.getValueType());
-                ProgramObjectLiteral literal = ctxt.getLiteralFactory().literalOf(decl);
+                PointerLiteral literal = ctxt.getLiteralFactory().literalOf(decl.getPointer());
                 valueMap.put(info.getType().getMember(i), ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getFunctionTypeForElement(vtable[i]).getPointer()));
             } else {
                 Function impl = ctxt.getExactFunctionIfExists(vtable[i]);
@@ -293,7 +293,7 @@ public class DispatchTables {
             LoadedTypeDefinition cls = e.getKey();
             if (!cls.isAbstract() || cls.isFinal()) {
                 DataDeclaration decl = section.getProgramModule().declareData(null, e.getValue().getName(), e.getValue().getType());
-                ProgramObjectLiteral symbol = ctxt.getLiteralFactory().literalOf(decl);
+                PointerLiteral symbol = ctxt.getLiteralFactory().literalOf(decl.getPointer());
                 int typeId = cls.getTypeId();
                 Assert.assertTrue(vtableLiterals[typeId].equals(zeroLiteral));
                 vtableLiterals[typeId] = ctxt.getLiteralFactory().bitcastLiteral(symbol, (WordType) vtablesGlobalType.getElementType());
@@ -341,22 +341,22 @@ public class DispatchTables {
                 if (methImpl == null) {
                     MethodElement icceStub = methodFinder.getMethod("raiseIncompatibleClassChangeError");
                     Function icceImpl = ctxt.getExactFunction(icceStub);
-                    ProgramObjectLiteral iceeLiteral = lf.literalOf(programModule.declareFunction(icceImpl));
+                    PointerLiteral iceeLiteral = lf.literalOf(programModule.declareFunction(icceImpl).getPointer());
                     valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(iceeLiteral, implType.getPointer()));
                 } else if (methImpl.isAbstract()) {
                     MethodElement ameStub = methodFinder.getMethod("raiseAbstractMethodError");
                     Function ameImpl = ctxt.getExactFunction(ameStub);
-                    ProgramObjectLiteral ameLiteral = lf.literalOf(programModule.declareFunction(ameImpl));
+                    PointerLiteral ameLiteral = lf.literalOf(programModule.declareFunction(ameImpl).getPointer());
                     valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(ameLiteral, implType.getPointer()));
                 } else if (methImpl.isNative()) {
                     MethodElement uleStub = methodFinder.getMethod("raiseUnsatisfiedLinkError");
                     Function uleImpl = ctxt.getExactFunction(uleStub);
-                    ProgramObjectLiteral uleLiteral = lf.literalOf(programModule.declareFunction(uleImpl));
+                    PointerLiteral uleLiteral = lf.literalOf(programModule.declareFunction(uleImpl).getPointer());
                     valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(uleLiteral, implType.getPointer()));
                 } else if (!reachabilityInfo.isInvokableInstanceMethod(methImpl)) {
                     MethodElement uceStub = methodFinder.getMethod("raiseUnreachableCodeError");
                     Function uceImpl = ctxt.getExactFunction(uceStub);
-                    ProgramObjectLiteral uceLiteral = lf.literalOf(programModule.declareFunction(uceImpl));
+                    PointerLiteral uceLiteral = lf.literalOf(programModule.declareFunction(uceImpl).getPointer());
                     valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(uceLiteral, implType.getPointer()));
                 } else {
                     Function impl = ctxt.getExactFunctionIfExists(methImpl);
@@ -403,7 +403,7 @@ public class DispatchTables {
             String dictName = "qbicc_itable_dictionary_for_"+cls.getInternalName().replace('/', '.');
             ArrayType type = ctxt.getTypeSystem().getArrayType(itableDictType, 0);
             DataDeclaration decl = section.getProgramModule().declareData(null, dictName, type);
-            ProgramObjectLiteral symLit = lf.literalOf(decl);
+            PointerLiteral symLit = lf.literalOf(decl.getPointer());
             itableLiterals[typeId] = symLit;
         }
 

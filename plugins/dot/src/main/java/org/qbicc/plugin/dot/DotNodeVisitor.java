@@ -126,7 +126,6 @@ import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
-import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
@@ -1261,11 +1260,6 @@ public class DotNodeVisitor implements NodeVisitor.Delegating<DotContext, String
 
     public String visit(final DotContext param, final StringLiteral node) {
         literal(param, '"' + node.getValue() + '"');
-        return delegate.visit(param, node);
-    }
-
-    public String visit(final DotContext param, final ProgramObjectLiteral node) {
-        literal(param, "@" + node.getName());
         return delegate.visit(param, node);
     }
 

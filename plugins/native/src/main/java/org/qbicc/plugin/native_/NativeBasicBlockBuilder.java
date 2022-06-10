@@ -13,7 +13,8 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.ProgramObjectLiteral;
+import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.pointer.ProgramObjectPointer;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.ValueType;
@@ -225,11 +226,12 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
     }
 
-    private ProgramObjectLiteral getAndDeclareSymbolLiteral(final NativeDataInfo fieldInfo) {
-        ProgramObjectLiteral sym = fieldInfo.symbolLiteral;
+    private PointerLiteral getAndDeclareSymbolLiteral(final NativeDataInfo fieldInfo) {
+        PointerLiteral sym = fieldInfo.symbolLiteral;
         DefinedTypeDefinition ourType = getRootElement().getEnclosingType();
         // declare it
-        return ctxt.getLiteralFactory().literalOf(ctxt.getOrAddProgramModule(ourType).declareData(sym.getProgramObject()));
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        return lf.literalOf(ctxt.getOrAddProgramModule(ourType).declareData(sym.getPointer(ProgramObjectPointer.class).getProgramObject()).getPointer());
     }
 
 }

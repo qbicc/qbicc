@@ -26,7 +26,6 @@ import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
