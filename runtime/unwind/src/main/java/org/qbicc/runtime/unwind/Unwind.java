@@ -60,7 +60,9 @@ public final class Unwind {
         } else if (Build.Target.isAmd64()) {
             SP = word(7); // rsp
         } else if (Build.Target.isI386()) {
-            SP = word(4); // esp
+            SP = word(4); // esp {
+        } else if (Build.Target.isWasm()){
+            SP = word(4);
         } else {
             throw new IllegalStateException("Unsupported architecture");
         }
