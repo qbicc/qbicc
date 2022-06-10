@@ -3,6 +3,7 @@ package org.qbicc.plugin.nativeimage;
 import org.graalvm.nativeimage.impl.ConfigurationCondition;
 import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.plugin.reachability.RuntimeReflectionRoots;
 
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Executable;
@@ -91,14 +92,18 @@ public class QbiccRuntimeReflectionSupport implements RuntimeReflectionSupport {
     }
 
     public void register(ConfigurationCondition condition, boolean unsafeAllocated, Class<?> clazz) {
-        ctxt.warning("Ignoring RuntimeReflectionSupport.register(class) %s", clazz.toString());
+        RuntimeReflectionRoots.get(ctxt).registerClass(clazz);
     }
 
     public void register(ConfigurationCondition condition, boolean queriedOnly, Executable... methods) {
-        ctxt.warning("Ignoring RuntimeReflectionSupport.register(methods) %d", methods.length);
+        if (methods.length > 0) {
+            ctxt.warning("Ignoring RuntimeReflectionSupport.register(methods) %d", methods.length);
+        }
     }
 
     public void register(ConfigurationCondition condition, boolean finalIsWritable, Field... fields) {
-        ctxt.warning("Ignoring RuntimeReflectionSupport.register(fields) %d", fields.length);
+        if (fields.length > 0) {
+            ctxt.warning("Ignoring RuntimeReflectionSupport.register(fields) %d", fields.length);
+        }
     }
 }

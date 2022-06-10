@@ -135,6 +135,7 @@ import org.qbicc.plugin.patcher.PatcherResolverBasicBlockBuilder;
 import org.qbicc.plugin.patcher.PatcherTypeResolver;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
+import org.qbicc.plugin.reachability.RuntimeReflectionRoots;
 import org.qbicc.plugin.reflection.Reflection;
 import org.qbicc.plugin.reflection.ReflectionIntrinsics;
 import org.qbicc.plugin.reflection.VarHandleResolvingBasicBlockBuilder;
@@ -440,8 +441,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachable);
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
-                                    FeatureProcessor.processBuildFeature(compilationContext, buildFeatures, hostAppClassLoader); // TODO: This should be appPaths
+                                    FeatureProcessor.processBuildFeature(compilationContext, buildFeatures, hostAppClassLoader);
                                 });
+                                builder.addPreHook(Phase.ADD, RuntimeReflectionRoots::makeReflectiveRootsReachable);
                                 builder.addElementHandler(Phase.ADD, new ElementBodyCreator());
                                 builder.addElementHandler(Phase.ADD, new BuildTimeOnlyElementHandler());
                                 builder.addElementHandler(Phase.ADD, new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig)));
@@ -479,6 +481,7 @@ public class Main implements Callable<DiagnosticContext> {
 
                                 builder.addPreHook(Phase.ANALYZE, new VMHelpersSetupHook());
                                 builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::forceCoreClassesReachable);
+                                builder.addPreHook(Phase.ANALYZE, RuntimeReflectionRoots::makeReflectiveRootsReachable);
                                 builder.addElementHandler(Phase.ANALYZE, new ElementBodyCopier());
                                 if (optEscapeAnalysis) {
                                     builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new EscapeAnalysisIntraMethodAnalysis()));
