@@ -5,7 +5,7 @@ import org.qbicc.type.definition.element.StaticMethodElement;
 /**
  * A pointer to a static method.
  */
-public final class StaticMethodPointer extends RootPointer {
+public final class StaticMethodPointer extends RootPointer implements ExecutableElementPointer {
     private final StaticMethodElement staticMethod;
 
     StaticMethodPointer(StaticMethodElement staticMethod) {
@@ -17,7 +17,13 @@ public final class StaticMethodPointer extends RootPointer {
         return methodElement.getOrCreateStaticMethodPointer(StaticMethodPointer::new);
     }
 
+    @Deprecated
     public StaticMethodElement getStaticMethod() {
+        return getExecutableElement();
+    }
+
+    @Override
+    public StaticMethodElement getExecutableElement() {
         return staticMethod;
     }
 

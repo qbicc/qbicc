@@ -1,7 +1,13 @@
 package org.qbicc.type.definition.element;
 
+import java.lang.invoke.ConstantBootstraps;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.List;
+import java.util.function.Function;
 
+import org.qbicc.pointer.InitializerPointer;
+import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.context.ClassContext;
@@ -15,6 +21,8 @@ import io.smallrye.common.constraint.Assert;
  *
  */
 public final class InitializerElement extends BasicElement implements ExecutableElement {
+    private static final VarHandle pointerHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "pointer", VarHandle.class, InitializerElement.class, InitializerPointer.class);
+
     final MethodBodyFactory methodBodyFactory;
     final int methodBodyFactoryIndex;
     volatile MethodBody previousMethodBody;
@@ -23,6 +31,8 @@ public final class InitializerElement extends BasicElement implements Executable
     final int maximumLineNumber;
     boolean inProgress;
     volatile int lowerIndex;
+    @SuppressWarnings("unused") // pointerHandle
+    private volatile InitializerPointer pointer;
 
     InitializerElement(BuilderImpl builder) {
         super(builder);
@@ -124,6 +134,25 @@ public final class InitializerElement extends BasicElement implements Executable
      */
     public void setLowerIndex(int lowerIndex) {
         this.lowerIndex = lowerIndex;
+    }
+
+    /**
+     * Establish the pointer for this initializer; intended only for use by {@link InitializerPointer#of}.
+     *
+     * @param factory the factory
+     * @return the pointer
+     * @see InitializerPointer#of
+     */
+    public InitializerPointer getOrCreatePointer(Function<InitializerElement, InitializerPointer> factory) {
+        InitializerPointer pointer = this.pointer;
+        if (pointer == null) {
+            pointer = factory.apply(this);
+            InitializerPointer appearing = (InitializerPointer) pointerHandle.compareAndExchange(this, null, pointer);
+            if (appearing != null) {
+                pointer = appearing;
+            }
+        }
+        return pointer;
     }
 
     public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
