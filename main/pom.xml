@@ -113,6 +113,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-graalvm-nativeimage-emulation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-linker</artifactId>
         </dependency>
         <dependency>
@@ -387,5 +391,6 @@
             <groupId>org.sonatype.plexus</groupId>
             <artifactId>plexus-sec-dispatcher</artifactId>
         </dependency>
+
     </dependencies>
 </project>
