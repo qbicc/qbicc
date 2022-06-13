@@ -38,7 +38,7 @@
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
 
         <!-- Aether things -->
-        <version.maven>3.8.5</version.maven>
+        <version.maven>3.8.6</version.maven>
         <version.maven.resolver>1.8.0</version.maven.resolver>
         <version.maven.wagon>3.5.1</version.maven.wagon>
         <version.plexus.interpolation>1.26</version.plexus.interpolation>
