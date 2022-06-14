@@ -149,7 +149,7 @@ final class CNativeIntrinsics {
         StaticIntrinsic refToPtr = (builder, target, arguments) -> {
             Value value = arguments.get(0);
             if (value.getType() instanceof ReferenceType rt) {
-                return builder.valueConvert(value, rt.getUpperBound().getPointer().asCollected());
+                return builder.valueConvert(value, rt.getUpperBound().getPointer());
             } else {
                 ctxt.error(builder.getLocation(), "Cannot convert non-reference to pointer");
                 return ctxt.getLiteralFactory().nullLiteralOfType(ctxt.getTypeSystem().getVoidType().getPointer());

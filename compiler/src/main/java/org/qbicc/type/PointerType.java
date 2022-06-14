@@ -10,7 +10,6 @@ public final class PointerType extends NullableType {
     private final boolean collected;
     private final PointerType asRestrict;
     private final PointerType withConstPointee;
-    private final PointerType asCollected;
     private final int size;
     private final PointerType asWide;
 
@@ -22,7 +21,6 @@ public final class PointerType extends NullableType {
         this.collected = collected;
         this.asRestrict = restrict ? this : new PointerType(typeSystem, pointeeType, true, constPointee, collected, size);
         this.withConstPointee = constPointee ? this : new PointerType(typeSystem, pointeeType, restrict, true, collected, size);
-        this.asCollected = collected ? this : new PointerType(typeSystem, pointeeType, restrict, constPointee, true, size);
         this.asWide = size == 8 ? this : new PointerType(typeSystem, pointeeType, restrict, constPointee, collected, 8);
         this.size = size;
     }
@@ -52,10 +50,6 @@ public final class PointerType extends NullableType {
         return withConstPointee;
     }
 
-    public PointerType asCollected() {
-        return asCollected;
-    }
-
     public PointerType withQualifiersFrom(PointerType otherPointerType) {
         PointerType pointerType = this;
 
@@ -65,10 +59,6 @@ public final class PointerType extends NullableType {
 
         if (otherPointerType.isConstPointee()) {
             pointerType = pointerType.withConstPointee();
-        }
-
-        if (otherPointerType.isCollected()) {
-            pointerType = pointerType.asCollected();
         }
 
         return pointerType;
@@ -150,10 +140,6 @@ public final class PointerType extends NullableType {
 
         if (constPointee) {
             pointerType = pointerType.withConstPointee();
-        }
-
-        if (collected) {
-            pointerType = pointerType.asCollected();
         }
 
         return pointerType;

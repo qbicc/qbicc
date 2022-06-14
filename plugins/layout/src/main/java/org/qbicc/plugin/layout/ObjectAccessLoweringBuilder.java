@@ -37,7 +37,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
         if (pointerType.getPointeeType() instanceof PhysicalObjectType pot) {
             Layout layout = Layout.get(ctxt);
             LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
-            return fb.pointerHandle(fb.valueConvert(pointer, info.getCompoundType().getPointer().asCollected()));
+            return fb.pointerHandle(fb.valueConvert(pointer, info.getCompoundType().getPointer()));
         }
         return getDelegate().pointerHandle(pointer, offsetValue);
     }
@@ -49,7 +49,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
                 BasicBlockBuilder fb = getFirstBuilder();
                 Layout layout = Layout.get(ctxt);
                 LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
-                PointerType newType = info.getCompoundType().getPointer().asCollected();
+                PointerType newType = info.getCompoundType().getPointer();
                 if (value.getType() instanceof PointerType) {
                     return fb.bitCast(value, newType);
                 } else {
@@ -66,7 +66,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
             BasicBlockBuilder fb = getFirstBuilder();
             Layout layout = Layout.get(ctxt);
             LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
-            PointerType newType = info.getCompoundType().getPointer().asCollected();
+            PointerType newType = info.getCompoundType().getPointer();
             return fb.stackAllocate(newType, count, align);
         }
         return super.stackAllocate(type, count, align);
@@ -97,7 +97,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
         } else {
             info = layout.getInstanceLayoutInfo(upperBound.getDefinition());
         }
-        return fb.pointerHandle(fb.valueConvert(reference, info.getCompoundType().getPointer().asCollected()));
+        return fb.pointerHandle(fb.valueConvert(reference, info.getCompoundType().getPointer()));
     }
 
     @Override

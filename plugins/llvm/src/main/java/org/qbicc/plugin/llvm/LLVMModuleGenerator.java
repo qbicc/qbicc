@@ -127,9 +127,6 @@ final class LLVMModuleGenerator {
                     obj.threadLocal(map(tlm));
                 }
                 obj.asGlobal(item.getName());
-                if (item.getAddrspace() != 0) {
-                    obj.addressSpace(item.getAddrspace());
-                }
             }
         }
         for (ModuleSection section : programModule.sections()) {
@@ -194,9 +191,6 @@ final class LLVMModuleGenerator {
                     }
                     if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                         obj.section(sectionName);
-                    }
-                    if (item.getAddrspace() != 0) {
-                        obj.addressSpace(data.getAddrspace());
                     }
                     MemberElement element = data.getOriginalElement();
                     if (element != null) {
