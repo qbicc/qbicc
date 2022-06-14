@@ -113,6 +113,7 @@ public class ReachabilityInfo {
         LOGGER.debugf("  Dispatchable instance methods: %s", info.dispatchableMethods.size());
         LOGGER.debugf("  Invokable instance methods:    %s", info.invokableInstanceMethods.size());
         LOGGER.debugf("  Accessed static fields:        %s", info.accessedStaticField.size());
+        RuntimeReflectionRoots.get(ctxt).reportStats();
         info.analysis.reportStats();
     }
 
