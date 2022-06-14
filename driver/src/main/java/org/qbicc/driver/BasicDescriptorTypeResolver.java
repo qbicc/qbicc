@@ -8,6 +8,7 @@ import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
 import org.qbicc.type.definition.ResolutionFailedException;
+import org.qbicc.type.definition.VerifyFailedException;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -28,7 +29,11 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
         if (definedType == null) {
             return classContext.getTypeSystem().getUnresolvedType();
         } else {
-            return definedType.load().getObjectType();
+            try {
+                return definedType.load().getObjectType();
+            } catch (VerifyFailedException e) {
+                return classContext.getTypeSystem().getUnresolvedType();
+            }
         }
     }
 
