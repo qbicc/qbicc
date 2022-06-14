@@ -236,6 +236,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         int cnt = getInterfaceCount();
         LoadedTypeDefinition[] interfaces = cnt == 0 ? NO_LOADED_TYPES : new LoadedTypeDefinition[cnt];
         for (int i = 0; i < cnt; i ++) {
+            DefinedTypeDefinition definedInterfaceType = context.findDefinedType(getInterfaceInternalName(i));
+            if (definedInterfaceType == null) {
+                throw new VerifyFailedException("Failed to load implemented interface " + getInterfaceInternalName(i));
+            }
             interfaces[i] = context.findDefinedType(getInterfaceInternalName(i)).load();
         }
         DefinedTypeDefinition nestHost = nestHostClassName == null ? null : context.findDefinedType(nestHostClassName);
