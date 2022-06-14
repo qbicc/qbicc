@@ -16,7 +16,7 @@ import org.eclipse.collections.impl.map.mutable.primitive.ObjectIntHashMap;
 public final class ConstantPool {
 
     private final MutableObjectIntMap<String> utf8;
-    private final ArrayList<Object> objConstants;
+    private String[] objConstants;
     private int[] intConstants;
     private int cnt;
 
@@ -26,15 +26,19 @@ public final class ConstantPool {
 
     public ConstantPool(int initialCapacity) {
         utf8 = new ObjectIntHashMap<>(initialCapacity);
-        objConstants = new ArrayList<>(initialCapacity);
+        objConstants = new String[initialCapacity];
+        intConstants = new int[initialCapacity];
     }
 
     public int getOrAddUtf8Constant(final String value) {
         int idx = utf8.getIfAbsent(value, -1);
         if (idx == -1) {
             idx = cnt++;
+            if (idx >= objConstants.length) {
+                objConstants = Arrays.copyOf(objConstants, Math.max(idx+1, objConstants.length >>> 1));
+            }
             utf8.put(value, idx);
-            objConstants.add(idx, value);
+            objConstants[idx] = value;
         }
         return idx;
     }
@@ -46,8 +50,8 @@ public final class ConstantPool {
                 return i;
             }
         }
-        if (cnt == intConstants.length) {
-            intConstants = Arrays.copyOf(intConstants, intConstants.length + (intConstants.length >>> 1));
+        if (cnt >= intConstants.length) {
+            intConstants = Arrays.copyOf(intConstants, Math.max(cnt+1, intConstants.length >>> 1));
         }
         intConstants[cnt] = value;
         return cnt ++;
@@ -61,7 +65,7 @@ public final class ConstantPool {
             }
         }
         if (cnt >= intConstants.length - 1) {
-            intConstants = Arrays.copyOf(intConstants, intConstants.length + (intConstants.length >>> 1));
+            intConstants = Arrays.copyOf(intConstants, Math.max(cnt+2, intConstants.length >>> 1));
         }
         int idx = cnt;
         intConstants[cnt++] = (int) (value >>> 32L);
@@ -70,7 +74,7 @@ public final class ConstantPool {
     }
 
     public String getUtf8Constant(int index) {
-        return (String) objConstants.get(index);
+        return objConstants[index];
     }
 
     public int getIntConstant(int index) {
