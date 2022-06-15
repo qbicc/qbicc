@@ -11,7 +11,7 @@ import static org.qbicc.runtime.stdc.Stddef.*;
 public final class SysUio {
     public static class struct_iovec extends object {
         public void_ptr iov_base;
-        public size_t length;
+        public size_t iov_len;
     }
 
     public static final class struct_iovec_ptr extends ptr<struct_iovec> {}

@@ -97,13 +97,13 @@ public class QbiccRuntimeReflectionSupport implements RuntimeReflectionSupport {
 
     public void register(ConfigurationCondition condition, boolean queriedOnly, Executable... methods) {
         if (methods.length > 0) {
-            ctxt.warning("Ignoring RuntimeReflectionSupport.register(methods) %d", methods.length);
+            RuntimeReflectionRoots.get(ctxt).registerMethods(methods);
         }
     }
 
     public void register(ConfigurationCondition condition, boolean finalIsWritable, Field... fields) {
         if (fields.length > 0) {
-            ctxt.warning("Ignoring RuntimeReflectionSupport.register(fields) %d", fields.length);
+            RuntimeReflectionRoots.get(ctxt).registerFields(fields);
         }
     }
 }

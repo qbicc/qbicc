@@ -2,6 +2,7 @@ package org.qbicc.plugin.nativeimage;
 
 import org.graalvm.nativeimage.hosted.Feature;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.plugin.reachability.RuntimeReflectionRoots;
 
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
@@ -19,22 +20,24 @@ public class QbiccBeforeAnalysisAccess implements Feature.BeforeAnalysisAccess {
 
     @Override
     public void registerAsUsed(Class<?> type) {
-        ctxt.warning("Ignoring registerAsUsed on %s", type.toString());
+        RuntimeReflectionRoots.get(ctxt).registerClass(type);
     }
 
     @Override
     public void registerAsInHeap(Class<?> type) {
-        ctxt.warning("Ignoring registerAsInHeap on %s", type.toString());
+        // qbicc can ignore this.
+        // We fully interpret the <clinits> to construct the buildtime heap,
+        // so we can know exactly all concrete types that are in it simply by tracing it.
     }
 
     @Override
     public void registerAsAccessed(Field field) {
-        ctxt.warning("Ignoring registerAsAccessed on %s", field.toString());
+        RuntimeReflectionRoots.get(ctxt).registerFields(field);
     }
 
     @Override
     public void registerAsUnsafeAccessed(Field field) {
-        ctxt.warning("Ignoring registerAsUnsafeAccessed on %s", field.toString());
+        RuntimeReflectionRoots.get(ctxt).registerFields(field);
     }
 
     @Override

@@ -12,6 +12,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.VerifyFailedException;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -160,6 +161,16 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return throw_(ncdfe);
     }
 
+    private BasicBlock verifyError(TypeDescriptor desc) {
+        ctxt.warning(getLocation(), "Reference to %s always produces VerifyError", desc);
+        Info info = Info.get(ctxt);
+        ClassTypeDescriptor veClass = info.veClass;
+        // todo: add class name to exception string
+        Value ve = new_(veClass);
+        call(constructorOf(ve, veClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+        return throw_(ve);
+    }
+
     private boolean loadClass(TypeDescriptor desc) {
         return ! (desc instanceof ClassTypeDescriptor) || loadClass((ClassTypeDescriptor) desc);
     }
@@ -178,7 +189,11 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (definedType == null) {
             return false;
         }
-        definedType.load();
+        try {
+            definedType.load();
+        } catch (VerifyFailedException e) {
+            throw new BlockEarlyTermination(verifyError(desc));
+        }
         return true;
     }
 
@@ -188,10 +203,13 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     static final class Info {
         final ClassTypeDescriptor ncdfeClass;
+        final ClassTypeDescriptor veClass;
 
         private Info(final CompilationContext ctxt) {
             DefinedTypeDefinition type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/NoClassDefFoundError");
             ncdfeClass = (ClassTypeDescriptor) type.getDescriptor();
+            type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/VerifyError");
+            veClass = (ClassTypeDescriptor) type.getDescriptor();
         }
 
         static Info get(CompilationContext ctxt) {

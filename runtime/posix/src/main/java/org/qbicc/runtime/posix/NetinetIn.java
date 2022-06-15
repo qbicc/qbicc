@@ -37,9 +37,9 @@ public final class NetinetIn {
     }
 
     @extern
-    public static final @c_const struct_in6_addr in6addr_any = constant(); //todo: revisit overloading of constant() here
+    public static @c_const struct_in6_addr in6addr_any;
     @extern
-    public static final @c_const struct_in6_addr in6addr_loopback = constant(); //todo: revisit overloading of constant() here
+    public static @c_const struct_in6_addr in6addr_loopback;
 
     public static final class struct_ipv6_mreq extends object {
         public struct_in6_addr ipv6mr_multiaddr;
