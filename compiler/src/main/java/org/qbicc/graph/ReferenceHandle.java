@@ -18,7 +18,7 @@ public final class ReferenceHandle extends AbstractValueHandle {
     ReferenceHandle(Node callSite, ExecutableElement element, int line, int bci, Value referenceValue) {
         super(callSite, element, line, bci);
         this.referenceValue = referenceValue;
-        pointerType = ((ReferenceType) referenceValue.getType()).getUpperBound().getPointer().asCollected();
+        pointerType = ((ReferenceType) referenceValue.getType()).getUpperBound().getPointer();
     }
 
     @Override
