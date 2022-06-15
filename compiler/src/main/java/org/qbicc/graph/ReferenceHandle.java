@@ -21,7 +21,7 @@ public final class ReferenceHandle extends AbstractValueHandle {
         if (referenceValue.getType().isComplete()) {
             pointerType = ((ReferenceType) referenceValue.getType()).getUpperBound().getPointer();
         } else {
-            pointerType = referenceValue.getType().getPointer();
+            pointerType = referenceValue.getType().getTypeSystem().getVoidType().getPointer();
         }
     }
 

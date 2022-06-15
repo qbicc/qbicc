@@ -164,11 +164,11 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private BasicBlock verifyError(TypeDescriptor desc) {
         ctxt.warning(getLocation(), "Reference to %s always produces VerifyError", desc);
         Info info = Info.get(ctxt);
-        ClassTypeDescriptor ncdfeClass = info.ncdfeClass;
+        ClassTypeDescriptor veClass = info.veClass;
         // todo: add class name to exception string
-        Value ncdfe = new_(ncdfeClass);
-        call(constructorOf(ncdfe, ncdfeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
-        return throw_(ncdfe);
+        Value ve = new_(veClass);
+        call(constructorOf(ve, veClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+        return throw_(ve);
     }
 
     private boolean loadClass(TypeDescriptor desc) {
