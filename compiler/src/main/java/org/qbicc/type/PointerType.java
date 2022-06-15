@@ -7,21 +7,19 @@ public final class PointerType extends NullableType {
     private final ValueType pointeeType;
     private final boolean restrict;
     private final boolean constPointee;
-    private final boolean collected;
     private final PointerType asRestrict;
     private final PointerType withConstPointee;
     private final int size;
     private final PointerType asWide;
 
-    PointerType(final TypeSystem typeSystem, final ValueType pointeeType, final boolean restrict, final boolean constPointee, final boolean collected, int size) {
+    PointerType(final TypeSystem typeSystem, final ValueType pointeeType, final boolean restrict, final boolean constPointee, int size) {
         super(typeSystem, pointeeType.hashCode() * 19 + Boolean.hashCode(restrict));
         this.pointeeType = pointeeType;
         this.restrict = restrict;
         this.constPointee = constPointee;
-        this.collected = collected;
-        this.asRestrict = restrict ? this : new PointerType(typeSystem, pointeeType, true, constPointee, collected, size);
-        this.withConstPointee = constPointee ? this : new PointerType(typeSystem, pointeeType, restrict, true, collected, size);
-        this.asWide = size == 8 ? this : new PointerType(typeSystem, pointeeType, restrict, constPointee, collected, 8);
+        this.asRestrict = restrict ? this : new PointerType(typeSystem, pointeeType, true, constPointee, size);
+        this.withConstPointee = constPointee ? this : new PointerType(typeSystem, pointeeType, restrict, true, size);
+        this.asWide = size == 8 ? this : new PointerType(typeSystem, pointeeType, restrict, constPointee, 8);
         this.size = size;
     }
 
@@ -107,16 +105,12 @@ public final class PointerType extends NullableType {
         return constPointee;
     }
 
-    public boolean isCollected() {
-        return collected;
-    }
-
     public boolean equals(final ValueType other) {
         return other instanceof PointerType && equals((PointerType) other);
     }
 
     public boolean equals(final PointerType other) {
-        return other == this || super.equals(other) && restrict == other.restrict && collected == other.collected && pointeeType.equals(other.pointeeType);
+        return other == this || super.equals(other) && restrict == other.restrict && pointeeType.equals(other.pointeeType);
     }
 
     @Override
@@ -129,10 +123,6 @@ public final class PointerType extends NullableType {
         PointerType pointerType = pointeeType.getPointer();
         boolean restrict = this.restrict || other.restrict;
         boolean constPointee = this.constPointee || other.constPointee;
-
-        if (collected != other.collected) {
-            throw new IllegalArgumentException("Cannot join non-collected and collected pointer types");
-        }
 
         if (restrict) {
             pointerType = pointerType.asRestrict();
@@ -147,9 +137,6 @@ public final class PointerType extends NullableType {
 
     public StringBuilder toString(final StringBuilder b) {
         super.toString(b);
-        if (collected) {
-            b.append("collected ");
-        }
         if (restrict) {
             b.append("restrict ");
         }

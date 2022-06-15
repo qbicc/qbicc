@@ -1,5 +1,6 @@
 package org.qbicc.plugin.llvm;
 
+import static org.qbicc.machine.llvm.Types.array;
 import static org.qbicc.machine.llvm.Types.*;
 import static org.qbicc.machine.llvm.Values.*;
 
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.Value;
@@ -60,7 +62,6 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.VariadicType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
-import io.smallrye.common.constraint.Assert;
 
 final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue>, Pointer.Visitor<PointerLiteral, LLValue> {
     final AtomicInteger anonCnt = new AtomicInteger();
@@ -117,8 +118,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue>, Pointe
             res = i8;
         } else if (type instanceof PointerType) {
             Type pointeeType = ((PointerType) type).getPointeeType();
-            boolean isCollected = ((PointerType) type).isCollected();
-            res = ptrTo(pointeeType instanceof VoidType ? i8 : map(pointeeType), isCollected ? 1 : 0);
+            res = ptrTo(pointeeType instanceof VoidType ? i8 : map(pointeeType), 0);
         } else if (type instanceof ReferenceType) {
             // References can be used as different types in the IL without manually casting them, so we need to
             // represent all reference types as being the same LLVM type. We will cast to and from the actual type we
@@ -245,17 +245,9 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue>, Pointe
         } else if (inputType instanceof PointerType && outputType instanceof IntegerType) {
             return Values.ptrtointConstant(input, fromType, toType);
         } else if (inputType instanceof ReferenceType && outputType instanceof PointerType) {
-            if (((PointerType) outputType).isCollected()) {
-                return Values.bitcastConstant(input, fromType, toType);
-            } else {
-                return Values.addrspacecastConstant(input, fromType, toType);
-            }
+            return Values.addrspacecastConstant(input, fromType, toType);
         } else if (inputType instanceof PointerType && outputType instanceof ReferenceType) {
-            if (((PointerType) inputType).isCollected()) {
-                return Values.bitcastConstant(input, fromType, toType);
-            } else {
-                return Values.addrspacecastConstant(input, fromType, toType);
-            }
+            return Values.addrspacecastConstant(input, fromType, toType);
         }
         // todo: add signed/unsigned int <-> fp
         return visitUnknown(param, node);
