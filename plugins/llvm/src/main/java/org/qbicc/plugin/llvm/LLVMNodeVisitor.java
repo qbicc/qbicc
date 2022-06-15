@@ -374,16 +374,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         return type instanceof ReferenceType;
     }
 
-    boolean isCollected(Type type) {
-        if (type instanceof PointerType) {
-            return ((PointerType) type).isCollected();
-        } else if (type instanceof ReferenceType) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     public LLValue visit(final Void param, final Add node) {
         ValueType type = node.getType();
         LLValue inputType = map(type);
@@ -788,8 +778,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             return llvmInput;
         }
 
-        if (isPointerLike(javaInputType) && isPointerLike(javaOutputType) && isCollected(javaInputType) != isCollected(javaOutputType)) {
-            if (isCollected(javaInputType)) {
+        if (isPointerLike(javaInputType) && isPointerLike(javaOutputType) && isReference(javaInputType) != isReference(javaOutputType)) {
+            if (isReference(javaInputType)) {
                 return createRefToPtrCast(inputType, llvmInput, outputType);
             } else {
                 return createPtrToRefCast(inputType, llvmInput, outputType);
@@ -811,8 +801,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
         if (isPointerLike(javaInputType)) {
             if (isPointerLike(javaOutputType)) {
-                if (isCollected(javaInputType) != isCollected(javaOutputType)) {
-                    if (isCollected(javaInputType)) {
+                if (isReference(javaInputType) != isReference(javaOutputType)) {
+                    if (isReference(javaInputType)) {
                         return createRefToPtrCast(inputType, llvmInput, outputType);
                     } else {
                         return createPtrToRefCast(inputType, llvmInput, outputType);
@@ -821,7 +811,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
                     return builder.bitcast(inputType, llvmInput, outputType).asLocal();
                 }
             } else if (javaOutputType instanceof IntegerType) {
-                if (isCollected(javaInputType)) {
+                if (isReference(javaInputType)) {
                     return builder.ptrtoint(
                         pseudoIntrinsics.getRawPtrType(),
                         createRefToPtrCast(inputType, llvmInput, pseudoIntrinsics.getRawPtrType()),
@@ -839,7 +829,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             }
         } else if (javaInputType instanceof IntegerType) {
             if (isPointerLike(javaOutputType)) {
-                if (isCollected(javaOutputType)) {
+                if (isReference(javaOutputType)) {
                     return createPtrToRefCast(
                         pseudoIntrinsics.getRawPtrType(),
                         builder.inttoptr(inputType, llvmInput, pseudoIntrinsics.getRawPtrType()).asLocal(),
