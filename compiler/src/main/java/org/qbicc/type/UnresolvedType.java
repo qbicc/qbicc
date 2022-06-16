@@ -8,16 +8,12 @@ public final class UnresolvedType extends ValueType {
         super(typeSystem, UnresolvedType.class.hashCode());
     }
 
-    public boolean isComplete() {
-        return false;
-    }
-
     public long getSize() {
-        return 0;
+        return typeSystem.getReferenceSize();
     }
 
     public int getAlign() {
-        return 0;
+        return typeSystem.getReferenceAlignment();
     }
 
     @Override

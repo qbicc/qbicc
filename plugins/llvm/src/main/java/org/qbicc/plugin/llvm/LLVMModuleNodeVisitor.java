@@ -58,6 +58,7 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.Type;
+import org.qbicc.type.UnresolvedType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VariadicType;
 import org.qbicc.type.VoidType;
@@ -119,7 +120,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue>, Pointe
         } else if (type instanceof PointerType) {
             Type pointeeType = ((PointerType) type).getPointeeType();
             res = ptrTo(pointeeType instanceof VoidType ? i8 : map(pointeeType), 0);
-        } else if (type instanceof ReferenceType) {
+        } else if (type instanceof ReferenceType || type instanceof UnresolvedType) {
             // References can be used as different types in the IL without manually casting them, so we need to
             // represent all reference types as being the same LLVM type. We will cast to and from the actual type we
             // use the reference as when needed.

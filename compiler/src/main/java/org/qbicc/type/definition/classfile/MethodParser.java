@@ -58,6 +58,7 @@ import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
+import org.qbicc.type.UnresolvedType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
@@ -303,16 +304,24 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 // get the exception reference type
                 int exTypeIdx = info.getExTableEntryTypeIdx(index);
                 boolean catchAll = exTypeIdx == 0;
+                boolean ncdfe = false;
                 ReferenceType exType;
                 if (exTypeIdx == 0) {
                     exType = null;
                 } else {
-                    ObjectType objType = (ObjectType) getClassFile().getTypeConstant(exTypeIdx, TypeParameterContext.of(gf.getCurrentElement()));
-                    if (objType.equals(throwable.load().getObjectType())) {
+                    ValueType exTypeConstant =  getClassFile().getTypeConstant(exTypeIdx, TypeParameterContext.of(gf.getCurrentElement()));
+                    if (exTypeConstant instanceof ObjectType objType) {
+                        if (objType.equals(throwable.load().getObjectType())) {
+                            catchAll = true;
+                            exType = null;
+                        } else {
+                            exType = objType.getReference();
+                        }
+                    } else {
+                        Assert.assertTrue(exTypeConstant instanceof UnresolvedType);
+                        ncdfe = true;
                         catchAll = true;
                         exType = null;
-                    } else {
-                        exType = objType.getReference();
                     }
                 }
                 // start up our block
@@ -322,40 +331,48 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 // only catch subclasses of Throwable as enforced by the verifier
                 BasicBlock innerFrom;
                 Value outboundExValue;
-                if (catchAll) {
-                    outboundExValue = phi;
-                    innerFrom = gf.goto_(block);
-                    // make sure the phi is correctly registered even though we don't really use a stack here
-                    push1(outboundExValue);
-                    saveExitValues(innerFrom);
-                    pop1();
-                } else {
-                    Value[] ourLocals = saveLocals();
-                    outboundExValue = gf.bitCast(phi, exType);
-                    innerFrom = gf.if_(gf.instanceOf(phi, exType.getUpperBound(), 0), block, delegate.getHandler());
-                    // enter the delegate handler if the exception type didn't match
-                    // make sure the phi is correctly registered even though we don't really use a stack here
-                    push1(outboundExValue);
-                    saveExitValues(innerFrom);
-                    pop1();
-                    delegate.enterHandler(innerFrom, null, phi);
-                    clearStack();
-                    restoreLocals(ourLocals);
-                }
-                // enter our handler if the exception type did match
                 int previousbci = currentbci;
-                buffer.position(pc);
-                if (single) {
-                    gf.begin(block);
-                    // the handler expects the thrown exception on the stack
-                    push1(outboundExValue);
-                    // only entered from one place, so there's no need to create another layer of phis
-                    processNewBlock();
+                if (ncdfe) {
+                    DefinedTypeDefinition type = ctxt.findDefinedType("java/lang/NoClassDefFoundError");
+                    // todo: add class name to exception string
+                    Value toThrow = gf.new_((ClassTypeDescriptor) type.getDescriptor());
+                    gf.call(gf.constructorOf(toThrow, (ClassTypeDescriptor) type.getDescriptor(), MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+                    gf.throw_(toThrow);
                 } else {
-                    // the handler expects the thrown exception on the stack
-                    push1(outboundExValue);
-                    // entered from multiple possible places, so formally process the target block
-                    processBlock(innerFrom);
+                    if (catchAll) {
+                        outboundExValue = phi;
+                        innerFrom = gf.goto_(block);
+                        // make sure the phi is correctly registered even though we don't really use a stack here
+                        push1(outboundExValue);
+                        saveExitValues(innerFrom);
+                        pop1();
+                    } else {
+                        Value[] ourLocals = saveLocals();
+                        outboundExValue = gf.bitCast(phi, exType);
+                        innerFrom = gf.if_(gf.instanceOf(phi, exType.getUpperBound(), 0), block, delegate.getHandler());
+                        // enter the delegate handler if the exception type didn't match
+                        // make sure the phi is correctly registered even though we don't really use a stack here
+                        push1(outboundExValue);
+                        saveExitValues(innerFrom);
+                        pop1();
+                        delegate.enterHandler(innerFrom, null, phi);
+                        clearStack();
+                        restoreLocals(ourLocals);
+                    }
+                    // enter our handler if the exception type did match
+                    buffer.position(pc);
+                    if (single) {
+                        gf.begin(block);
+                        // the handler expects the thrown exception on the stack
+                        push1(outboundExValue);
+                        // only entered from one place, so there's no need to create another layer of phis
+                        processNewBlock();
+                    } else {
+                        // the handler expects the thrown exception on the stack
+                        push1(outboundExValue);
+                        // entered from multiple possible places, so formally process the target block
+                        processBlock(innerFrom);
+                    }
                 }
                 // restore everything like nothing happened...
                 buffer.position(oldPos);

@@ -120,7 +120,7 @@ public final class Layout {
                 continue;
             }
             if (!field.getType().isComplete()) {
-                continue; // skip fields whose type is unresolved
+                continue; // skip fields whose type is incomplete
             }
             if (field.getType().getSize() == 0) {
                 Assert.assertTrue(trailingArray == null); // At most one trailing array per type!
