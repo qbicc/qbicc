@@ -431,7 +431,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, Reflection::get);
                                 builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);
                                 builder.addPreHook(Phase.ADD, GcCommon::registerIntrinsics);
-                                builder.addPreHook(Phase.ADD, new VMHelpersSetupHook());
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
                                     Vm vm = compilationContext.getVm();
                                     VmThread initThread = vm.newThread("initialization", vm.getMainThreadGroup(), false,  Thread.currentThread().getPriority());
@@ -440,6 +439,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, VIO::get);
                                 builder.addPreHook(Phase.ADD, VFS::initialize);
                                 builder.addPreHook(Phase.ADD, Main::mountInitialFileSystem);
+                                builder.addPreHook(Phase.ADD, new VMHelpersSetupHook());
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
                                 if (nogc) {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
