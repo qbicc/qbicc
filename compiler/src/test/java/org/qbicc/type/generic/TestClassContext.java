@@ -67,6 +67,10 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
+        public ClassContext constructAppClassLoaderClassContext(VmClassLoader appClassLoaderObject) {
+            return null;
+        }
+
         public ClassContext getBootstrapClassContext() {
             return null;
         }

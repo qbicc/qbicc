@@ -37,7 +37,6 @@ import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ModuleSection;
 import org.qbicc.object.Section;
 import org.qbicc.object.Segment;
-import org.qbicc.plugin.metrics.Metrics;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
@@ -77,6 +76,7 @@ final class CompilationContextImpl implements CompilationContext {
     final Set<ExecutableElement> entryPoints = ConcurrentHashMap.newKeySet();
     final Set<ExecutableElement> autoQueuedElements = ConcurrentHashMap.newKeySet();
     final ClassContext bootstrapClassContext;
+    final Function<VmClassLoader, ClassContext> appClassContextFactory;
     private final ConcurrentMap<DefinedTypeDefinition, ProgramModule> programModules = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Section> sections = new ConcurrentHashMap<>();
     private final ConcurrentMap<ExecutableElement, org.qbicc.object.Function> exactFunctions = new ConcurrentHashMap<>();
@@ -95,7 +95,7 @@ final class CompilationContextImpl implements CompilationContext {
     private final Consumer<ClassContext> classContextListener;
     private final Section implicitSection = addSection(IMPLICIT_SECTION_NAME, 0, Segment.DATA);
 
-    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory, BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder, BiFunction<ClassContext, String, byte[]> bootstrapResourceFinder, BiFunction<ClassContext, String, List<byte[]>> bootstrapResourcesFinder, Function<CompilationContext, Vm> vmFactory, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories, List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories, NativeMethodConfigurator nativeMethodConfigurator, Consumer<ClassContext> classContextListener) {
+    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory, BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder, BiFunction<ClassContext, String, byte[]> bootstrapResourceFinder, BiFunction<ClassContext, String, List<byte[]>> bootstrapResourcesFinder, BiFunction<ClassContext, String, DefinedTypeDefinition> appFinder, BiFunction<ClassContext, String, byte[]> appResourceFinder, BiFunction<ClassContext, String, List<byte[]>> appResourcesFinder, Function<CompilationContext, Vm> vmFactory, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories, List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories, NativeMethodConfigurator nativeMethodConfigurator, Consumer<ClassContext> classContextListener) {
         this.baseDiagnosticContext = baseDiagnosticContext;
         this.platform = platform;
         this.typeSystem = typeSystem;
@@ -104,6 +104,7 @@ final class CompilationContextImpl implements CompilationContext {
         this.resolverFactories = resolverFactories;
         this.classContextListener = classContextListener;
         bootstrapClassContext = new ClassContextImpl(this, null, bootstrapFinder, bootstrapResourceFinder, bootstrapResourcesFinder);
+        appClassContextFactory = cl -> new ClassContextImpl(this, cl, appFinder, appResourceFinder, bootstrapResourcesFinder);
         this.typeBuilderFactories = typeBuilderFactories;
         this.nativeMethodConfigurator = nativeMethodConfigurator;
         handleNewClassContext(bootstrapClassContext);
@@ -270,6 +271,10 @@ final class CompilationContextImpl implements CompilationContext {
 
     public ClassContext constructClassContext(final VmClassLoader classLoaderObject) {
         return classLoaderContexts.computeIfAbsent(classLoaderObject, classLoader -> handleNewClassContext(new ClassContextImpl(this, classLoader, vm::loadClass, vm::loadResource, vm::loadResources)));
+    }
+
+    public ClassContext constructAppClassLoaderClassContext(VmClassLoader appClassLoaderObject) {
+        return appClassContextFactory.apply(appClassLoaderObject);
     }
 
     private ClassContext handleNewClassContext(ClassContext classContext) {

@@ -88,6 +88,7 @@ public class Driver implements Closeable {
     final List<Consumer<CompilationContext>> postGenerateHooks;
     final Map<String, BootModule> bootModules;
     final List<ClassPathItem> bootClassPath;
+    final List<ClassPathItem> appClassPath;
     final Path outputDir;
     final float threadsPerCpu;
     final long stackSize;
@@ -127,6 +128,7 @@ public class Driver implements Closeable {
             initialContext.error("Bootstrap failed: no java.base module found");
         }
         this.bootModules = bootModules;
+        this.appClassPath = List.copyOf(builder.appClassPath);
 
         // ADD phase
         addTaskWrapperFactories = List.copyOf(builder.taskWrapperFactories.getOrDefault(Phase.ADD, List.of()));
@@ -164,7 +166,7 @@ public class Driver implements Closeable {
 
         java.util.function.Function<CompilationContext, Vm> vmFactory = Assert.checkNotNullParam("builder.vmFactory", builder.vmFactory);
         NativeMethodConfigurator nativeMethodConfigurator = constructNativeMethodConfigurator(builder);
-        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, this::defaultFinder, this::defaultResourceFinder, this::defaultResourcesFinder, vmFactory, outputDir, resolverFactories, typeBuilderFactories, nativeMethodConfigurator, classContextListener);
+        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, this::defaultFinder, this::defaultResourceFinder, this::defaultResourcesFinder, this::appFinder, this::appResourceFinder, this::appResourcesFinder, vmFactory, outputDir, resolverFactories, typeBuilderFactories, nativeMethodConfigurator, classContextListener);
         // start with ADD
         compilationContext.setBlockFactory(addBuilderFactory);
 
@@ -255,9 +257,37 @@ public class Driver implements Closeable {
     }
 
     private DefinedTypeDefinition defaultFinder(ClassContext classContext, String name) {
+        return findClassDefinition(classContext, name, bootClassPath);
+    }
+
+    private byte[] defaultResourceFinder(ClassContext classContext, String name) {
+        return findResource(classContext, name, bootClassPath);
+    }
+
+    private List<byte[]> defaultResourcesFinder(final ClassContext classContext, final String name) {
+        return findResources(classContext, name, bootClassPath);
+    }
+
+    private DefinedTypeDefinition appFinder(ClassContext classContext, String name) {
+        DefinedTypeDefinition found = findClassDefinition(classContext, name, appClassPath);
+        if (found == null) {
+            return getCompilationContext().getBootstrapClassContext().findDefinedType(name);
+        }
+        return found;
+    }
+
+    private byte[] appResourceFinder(ClassContext classContext, String name) {
+        return findResource(classContext, name, appClassPath);
+    }
+
+    private List<byte[]> appResourcesFinder(final ClassContext classContext, final String name) {
+        return findResources(classContext, name, appClassPath);
+    }
+
+    private DefinedTypeDefinition findClassDefinition(final ClassContext classContext, final String name, final List<ClassPathItem> classPath) {
         String fileName = name + ".class";
         ByteBuffer buffer;
-        for (ClassPathItem item : bootClassPath) {
+        for (ClassPathItem item : classPath) {
             try (ClassPathElement.Resource resource = item.findResource(fileName)) {
                 if (resource == ClassPathElement.NON_EXISTENT) {
                     continue;
@@ -278,9 +308,9 @@ public class Driver implements Closeable {
         return null;
     }
 
-    private byte[] defaultResourceFinder(ClassContext classContext, String name) {
+    private byte[] findResource(final ClassContext classContext, final String name, final List<ClassPathItem> classPath) {
         ByteBuffer buffer;
-        for (ClassPathItem item : bootClassPath) {
+        for (ClassPathItem item : classPath) {
             try (ClassPathElement.Resource resource = item.findResource(name)) {
                 if (resource == ClassPathElement.NON_EXISTENT) {
                     continue;
@@ -298,10 +328,10 @@ public class Driver implements Closeable {
         return null;
     }
 
-    private List<byte[]> defaultResourcesFinder(final ClassContext classContext, final String name) {
+    private List<byte[]> findResources(final ClassContext classContext, final String name, final List<ClassPathItem> classPath) {
         ByteBuffer buffer;
         ArrayList<byte[]> list = new ArrayList<>();
-        for (ClassPathItem item : bootClassPath) {
+        for (ClassPathItem item : classPath) {
             try (ClassPathElement.Resource resource = item.findResource(name)) {
                 if (resource == ClassPathElement.NON_EXISTENT) {
                     continue;
