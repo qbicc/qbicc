@@ -269,9 +269,10 @@ public class Driver implements Closeable {
     }
 
     private DefinedTypeDefinition appFinder(ClassContext classContext, String name) {
-        DefinedTypeDefinition found = findClassDefinition(classContext, name, appClassPath);
+        DefinedTypeDefinition found;
+        found = getCompilationContext().getBootstrapClassContext().findDefinedType(name);
         if (found == null) {
-            return getCompilationContext().getBootstrapClassContext().findDefinedType(name);
+            found = findClassDefinition(classContext, name, appClassPath);
         }
         return found;
     }
