@@ -1816,7 +1816,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         }
                         // todo: promote the method handle directly to a ValueHandle?
                         Value result = gf.call(gf.exactMethodOf(lf.literalOf(methodHandle), descOfMethodHandle, "invokeExact",
-                            desc), List.of(demote(args, desc)));
+                            desc), List.of(args));
                         TypeDescriptor returnType = desc.getReturnType();
                         if (! returnType.isVoid()) {
                             push(promote(result, returnType), returnType.isClass2());
