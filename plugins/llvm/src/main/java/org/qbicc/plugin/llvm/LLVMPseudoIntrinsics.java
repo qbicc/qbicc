@@ -1,5 +1,7 @@
 package org.qbicc.plugin.llvm;
 
+import java.util.List;
+
 import org.qbicc.machine.llvm.FunctionAttributes;
 import org.qbicc.machine.llvm.FunctionDefinition;
 import org.qbicc.machine.llvm.LLBasicBlock;
@@ -9,10 +11,10 @@ import org.qbicc.machine.llvm.Linkage;
 import org.qbicc.machine.llvm.Module;
 import org.qbicc.machine.llvm.Types;
 
-import java.util.List;
-
 public class LLVMPseudoIntrinsics {
+
     private final Module module;
+    private LLVMReferencePointerFactory refFactory;
 
     private final LLValue rawPtrType;
     private final LLValue collectedPtrType;
@@ -23,11 +25,12 @@ public class LLVMPseudoIntrinsics {
     private LLValue castRefToPtr;
     private LLValue castRefToPtrType;
 
-    public LLVMPseudoIntrinsics(Module module) {
+    public LLVMPseudoIntrinsics(Module module, LLVMReferencePointerFactory refFactory) {
         this.module = module;
+        this.refFactory = refFactory;
 
-        rawPtrType = Types.ptrTo(Types.i8);
-        collectedPtrType = Types.ptrTo(Types.i8, 1);
+        this.rawPtrType = refFactory.makeRawPointer();
+        this.collectedPtrType = refFactory.makeReferencePointer();
     }
 
     private FunctionDefinition createCastPtrToRef() {
@@ -40,10 +43,7 @@ public class LLVMPseudoIntrinsics {
         func.attribute(FunctionAttributes.alwaysinline).attribute(FunctionAttributes.gcLeafFunction);
         LLValue val = func.param(rawPtrType).name("ptr").asValue();
 
-        builder.ret(
-            collectedPtrType,
-            builder.addrspacecast(rawPtrType, val, collectedPtrType).asLocal("ref")
-        );
+        refFactory.buildCastPtrToRef(builder, val);
 
         return func;
     }
@@ -58,10 +58,7 @@ public class LLVMPseudoIntrinsics {
         func.attribute(FunctionAttributes.alwaysinline).attribute(FunctionAttributes.gcLeafFunction);
         LLValue val = func.param(collectedPtrType).name("ref").asValue();
 
-        builder.ret(
-            rawPtrType,
-            builder.addrspacecast(collectedPtrType, val, rawPtrType).asLocal("ptr")
-        );
+        refFactory.buildCastRefToPtr(builder, val);
 
         return func;
     }
