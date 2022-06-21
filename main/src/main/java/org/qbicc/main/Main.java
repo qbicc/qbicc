@@ -228,9 +228,8 @@ public class Main implements Callable<DiagnosticContext> {
         buildFeatures = builder.buildFeatures;
         classPathResolver = builder.classPathResolver == null ? this::resolveClassPath : builder.classPathResolver;
 
-        // TODO: This should really be built using appPath, but we put everything on the bootPath right now.
         List<URL> urls = new ArrayList<>();
-        for (ClassPathEntry cpe : bootPaths) {
+        for (ClassPathEntry cpe : appPaths) {
             if (cpe instanceof ClassPathEntry.FilePath fp) {
                 try {
                     urls.add(fp.getPath().toUri().toURL());
