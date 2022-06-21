@@ -35,7 +35,7 @@ Add the following XML to the `plugins` element of your Maven build to automatica
 <plugin>
     <groupId>org.qbicc</groupId>
     <artifactId>qbicc-maven-plugin</artifactId>
-    <version>0.35.0</version>
+    <version>${qbicc.version}</version>
     <executions>
         <execution>
             <id>qbicc-compile</id>
@@ -50,6 +50,8 @@ Add the following XML to the `plugins` element of your Maven build to automatica
     </executions>
 </plugin>
 -----
+
+Be sure to configure the `qbicc.version` property in your POM to correspond to the current version of qbicc.
 
 == Running with `jbang`
 
