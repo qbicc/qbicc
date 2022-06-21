@@ -2,13 +2,8 @@ package org.qbicc.main;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.maven.settings.Mirror;
@@ -24,29 +19,16 @@ import org.apache.maven.settings.building.SettingsProblem;
 import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
-import org.eclipse.aether.artifact.Artifact;
-import org.eclipse.aether.artifact.DefaultArtifact;
 import org.eclipse.aether.artifact.DefaultArtifactType;
-import org.eclipse.aether.collection.CollectRequest;
 import org.eclipse.aether.collection.DependencyGraphTransformer;
-import org.eclipse.aether.graph.Dependency;
-import org.eclipse.aether.graph.DependencyFilter;
-import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.repository.Authentication;
 import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.Proxy;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.repository.RepositoryPolicy;
-import org.eclipse.aether.resolution.ArtifactRequest;
-import org.eclipse.aether.resolution.ArtifactResolutionException;
-import org.eclipse.aether.resolution.ArtifactResult;
-import org.eclipse.aether.resolution.DependencyRequest;
-import org.eclipse.aether.resolution.DependencyResolutionException;
-import org.eclipse.aether.resolution.DependencyResult;
 import org.eclipse.aether.spi.locator.ServiceLocator;
 import org.eclipse.aether.util.artifact.DefaultArtifactTypeRegistry;
 import org.eclipse.aether.util.artifact.JavaScopes;
-import org.eclipse.aether.util.filter.AndDependencyFilter;
 import org.eclipse.aether.util.graph.manager.ClassicDependencyManager;
 import org.eclipse.aether.util.graph.selector.AndDependencySelector;
 import org.eclipse.aether.util.graph.selector.OptionalDependencySelector;
@@ -66,7 +48,6 @@ import org.eclipse.aether.util.repository.SimpleArtifactDescriptorPolicy;
 import org.qbicc.context.Diagnostic;
 import org.qbicc.context.DiagnosticContext;
 import org.qbicc.context.Location;
-import org.qbicc.driver.ClassPathElement;
 import org.qbicc.driver.ClassPathItem;
 
 /**
@@ -209,171 +190,7 @@ final class QbiccMavenResolver {
     }
 
     List<ClassPathItem> requestArtifacts(RepositorySystemSession session, Settings settings, List<ClassPathEntry> classPathList, DiagnosticContext ctxt) throws IOException {
-        List<RemoteRepository> remoteRepositoryList = createRemoteRepositoryList(settings);
-        CollectRequest collectRequest = new CollectRequest((Dependency)null, null, system.newResolutionRepositories(session, remoteRepositoryList));
-        Map<String, Map<String, ClassPathEntry>> gaToCpe = new HashMap<>();
-        for (ClassPathEntry classPathEntry : classPathList) {
-            if (classPathEntry instanceof ClassPathEntry.ClassLibraries cl) {
-                DefaultArtifact artifact = new DefaultArtifact("org.qbicc.rt", "qbicc-rt", "", "pom", cl.getVersion());
-                Dependency dependency = new Dependency(artifact, "runtime", Boolean.FALSE);
-                collectRequest.addDependency(dependency);
-                gaToCpe.computeIfAbsent(artifact.getGroupId(), QbiccMavenResolver::newMap).put(artifact.getArtifactId(), classPathEntry);
-            } else if (classPathEntry instanceof ClassPathEntry.MavenArtifact ma) {
-                Artifact artifact = ma.getArtifact();
-                Dependency dependency = new Dependency(artifact, "runtime", Boolean.FALSE);
-                collectRequest.addDependency(dependency);
-                gaToCpe.computeIfAbsent(artifact.getGroupId(), QbiccMavenResolver::newMap).put(artifact.getArtifactId(), classPathEntry);
-            } else if (classPathEntry instanceof ClassPathEntry.FilePath) {
-                // TODO: open JAR file or directory path to see if it is a Maven artifact, and treat it as an override
-                // otherwise, do not add it to the requests list
-            }
-        }
-        DependencyRequest depReq = new DependencyRequest(collectRequest, null);
-        DependencyResult dependencyResult;
-        try {
-            dependencyResult = system.resolveDependencies(session, depReq);
-        } catch (DependencyResolutionException e) {
-            Diagnostic parent = ctxt.error("Failed to resolve dependencies: %s", e);
-            DependencyResult result = e.getResult();
-            List<ArtifactResult> artifactResults = result.getArtifactResults();
-            for (ArtifactResult artifactResult : artifactResults) {
-                List<Exception> exceptions = artifactResult.getExceptions();
-                for (Exception exception : exceptions) {
-                    ctxt.error(parent, "Resolve of %s failed: %s", artifactResult.getRequest().getArtifact(), exception);
-                }
-            }
-            for (Exception collectException : result.getCollectExceptions()) {
-                ctxt.error(parent, "Collect exception: %s", collectException);
-            }
-            return List.of();
-        }
-        List<ArtifactResult> artifactResults = dependencyResult.getArtifactResults();
-        Map<ClassPathEntry, List<ArtifactResult>> resultMapping = new HashMap<>();
-        for (ArtifactResult result : artifactResults) {
-            DependencyNode node = result.getRequest().getDependencyNode();
-            ClassPathEntry entry = findDependency(node, gaToCpe);
-            if (entry != null) {
-                resultMapping.computeIfAbsent(entry, QbiccMavenResolver::newList).add(result);
-                populateChildren(entry, node, gaToCpe);
-            }
-            Artifact resultArtifact = result.getArtifact();
-            if (result.isMissing()) {
-                ctxt.error("Required artifact is missing: %s", resultArtifact);
-            } else if (! result.isResolved()) {
-                ctxt.error("Required artifact is not missing but wasn't resolved: %s", resultArtifact);
-            }
-        }
-        // second pass - produce the class path items
-        List<ClassPathItem> resultList = new ArrayList<>();
-        Set<ArtifactResult> unmappedResults = new LinkedHashSet<>(artifactResults);
-        try {
-            for (ClassPathEntry classPathEntry : classPathList) {
-                if (classPathEntry instanceof ClassPathEntry.MavenArtifact || classPathEntry instanceof ClassPathEntry.ClassLibraries) {
-                    // we requested it from Maven
-                    for (ArtifactResult artifactResult : resultMapping.getOrDefault(classPathEntry, List.of())) {
-                        unmappedResults.remove(artifactResult);
-                        appendArtifactResult(session, resultList, artifactResult);
-                    }
-                } else if (classPathEntry instanceof ClassPathEntry.FilePath fp) {
-                    Path path = fp.getPath();
-                    if (Files.isDirectory(path)) {
-                        resultList.add(new ClassPathItem(path.toString(), List.of(ClassPathElement.forDirectory(path)), List.of()));
-                    } else if (Files.isRegularFile(path)) {
-                        ClassPathElement element = ClassPathElement.forJarFile(path);
-                        try {
-                            resultList.add(new ClassPathItem(path.toString(), List.of(element), List.of()));
-                        } catch (Throwable t) {
-                            element.close();
-                            throw t;
-                        }
-                    } else if (! Files.exists(path)) {
-                        ctxt.warning("Class path entry \"%s\" does not exist", path);
-                    }
-                }
-            }
-            // now append the remaining ones
-            for (ArtifactResult unmappedResult : unmappedResults) {
-                // todo - log?
-                appendArtifactResult(session, resultList, unmappedResult);
-            }
-        } catch (Throwable t) {
-            for (ClassPathItem item : resultList) {
-                item.close();
-            }
-            throw t;
-        }
-        return List.copyOf(resultList);
-    }
-
-    private static <K, V> Map<K, V> newMap(final Object ignored) {
-        return new HashMap<>();
-    }
-
-    private void appendArtifactResult(final RepositorySystemSession session, final List<ClassPathItem> resultList, final ArtifactResult artifactResult) throws IOException {
-        if (artifactResult.isResolved() && !artifactResult.isMissing()) {
-            Artifact resultArtifact = artifactResult.getArtifact();
-            if (! artifactResult.getArtifact().getExtension().equals("jar")) {
-                // aggregator POM perhaps; skip
-                return;
-            }
-            File jarFile = resultArtifact.getFile();
-            File sourceFile = null;
-            ArtifactRequest sourceRequest = new ArtifactRequest(new DefaultArtifact(resultArtifact.getGroupId(), resultArtifact.getArtifactId(), "source", "jar", resultArtifact.getVersion()), null, null);
-            try {
-                ArtifactResult sourceResult = system.resolveArtifact(session, sourceRequest);
-                if (sourceResult != null && sourceResult.isResolved() && !sourceResult.isMissing()) {
-                    sourceFile = sourceResult.getArtifact().getFile();
-                }
-            } catch (ArtifactResolutionException ignored) {}
-            ClassPathElement element = ClassPathElement.forJarFile(jarFile);
-            List<ClassPathElement> jarPath = List.of(element);
-            try {
-                ClassPathElement sourceElement = sourceFile == null ? null : ClassPathElement.forJarFile(sourceFile);
-                List<ClassPathElement> sourcePath = sourceFile == null ? List.of() : List.of(sourceElement);
-                try {
-                    resultList.add(new ClassPathItem(resultArtifact.toString(), jarPath, sourcePath));
-                } catch (Throwable t) {
-                    if (sourceElement != null) {
-                        sourceElement.close();
-                    }
-                    throw t;
-                }
-            } catch (Throwable t) {
-                element.close();
-                throw t;
-            }
-        }
-    }
-
-    private void populateChildren(final ClassPathEntry parent, final DependencyNode dependencyNode, final Map<String, Map<String, ClassPathEntry>> gaToCpe) {
-        for (DependencyNode child : dependencyNode.getChildren()) {
-            Artifact artifact = child.getArtifact();
-            gaToCpe.computeIfAbsent(artifact.getGroupId(), QbiccMavenResolver::newMap).putIfAbsent(artifact.getArtifactId(), parent);
-            populateChildren(parent, child, gaToCpe);
-        }
-    }
-
-    private ClassPathEntry findDependency(final DependencyNode dependencyNode, final Map<String, Map<String, ClassPathEntry>> gaToCpe) {
-        if (dependencyNode == null) {
-            return null;
-        }
-        Dependency dependency = dependencyNode.getDependency();
-        Artifact artifact = dependency.getArtifact();
-        ClassPathEntry classPathEntry = gaToCpe.getOrDefault(artifact.getGroupId(), Map.of()).get(artifact.getArtifactId());
-        if (classPathEntry != null) {
-            return classPathEntry;
-        }
-        for (DependencyNode child : dependencyNode.getChildren()) {
-            ClassPathEntry found = findDependency(child, gaToCpe);
-            if (found != null) {
-                return found;
-            }
-        }
-        return null;
-    }
-
-    private static <E> List<E> newList(final Object ignored) {
-        return new ArrayList<>();
+        return new DefaultArtifactRequestor().requestArtifactsFromRepositories(system, session, createRemoteRepositoryList(settings), classPathList, ctxt);
     }
 
     static Proxy convertProxy(org.apache.maven.settings.Proxy proxy) {

@@ -26,7 +26,34 @@ cd qbicc-class-library
 mvn install
 -----
 
-== Running
+== Running with Maven
+
+Add the following XML to the `plugins` element of your Maven build to automatically produce a `qbicc`-built native image:
+
+[source,xml]
+-----
+<plugin>
+    <groupId>org.qbicc</groupId>
+    <artifactId>qbicc-maven-plugin</artifactId>
+    <version>${qbicc.version}</version>
+    <executions>
+        <execution>
+            <id>qbicc-compile</id>
+            <goals>
+                <goal>compile</goal>
+            </goals>
+            <configuration>
+                <!-- replace this with your main class name -->
+                <mainClass>hello.world.Main</mainClass>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+-----
+
+Be sure to configure the `qbicc.version` property in your POM to correspond to the current version of qbicc.
+
+== Running with `jbang`
 
 To run the driver, first build the project and then use https://jbang.dev[`jbang`] to run it:
 
@@ -38,7 +65,7 @@ jbang --quiet org.qbicc:qbicc-main:0.35.0 --app-path-file /path/to/main.jar --ou
 For a step-by-step example, see `examples/helloworld/hello/world/Main.java`
 
 
-== Running with a locally build Class Library
+== Running with a locally built Class Library
 
 After building the class library, you can get qbicc to use it simply by adding the
 command line argument `--rt-version=17.alpha.0.NNN-SNAPSHOT` (where NNN matches your
