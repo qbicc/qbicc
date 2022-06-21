@@ -150,7 +150,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                     if (resolved.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {
                         decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
                     }
-                    decl.setLinkage(Linkage.COMMON);
+                    decl.setLinkage(Linkage.EXTERNAL);
                     // and register as an external data object
                     addExtern(nativeInfo, resolved, decl);
                 } else if (isExport) {
@@ -164,7 +164,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                     if (resolved.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {
                         data.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
                     }
-                    data.setLinkage(Linkage.COMMON);
+                    data.setLinkage(Linkage.EXTERNAL);
                     // and register it
                     addExport(nativeInfo, resolved, data);
                 }

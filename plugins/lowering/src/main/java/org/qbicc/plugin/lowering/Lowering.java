@@ -85,10 +85,8 @@ public class Lowering {
         LiteralFactory lf = ctxt.getLiteralFactory();
         ModuleSection section = ctxt.getOrAddProgramModule(typeDef).getOrAddSection(sectionName);
         Value initialValue;
-        boolean hasValue;
         if (field.getRunTimeInitializer() != null) {
             initialValue = lf.zeroInitializerLiteralOfType(globalType);
-            hasValue = false;
         } else {
             initialValue = field.getReplacementValue(ctxt);
             if (initialValue == null) {
@@ -98,12 +96,7 @@ public class Lowering {
                 initialValue = Constants.get(ctxt).getConstantValue(field);
                 if (initialValue == null) {
                     initialValue = lf.zeroInitializerLiteralOfType(globalType);
-                    hasValue = false;
-                } else {
-                    hasValue = true;
                 }
-            } else {
-                hasValue = true;
             }
         }
         if (initialValue instanceof OffsetOfField oof) {
@@ -132,7 +125,7 @@ public class Lowering {
             initialValue = bth.referToSerializedVmObject(ol.getValue(), ol.getType(), section.getProgramModule());
         }
         final Data data = section.addData(field, globalName, initialValue);
-        data.setLinkage(hasValue ? Linkage.EXTERNAL : Linkage.COMMON);
+        data.setLinkage(Linkage.EXTERNAL);
         data.setDsoLocal();
         return global;
     }
