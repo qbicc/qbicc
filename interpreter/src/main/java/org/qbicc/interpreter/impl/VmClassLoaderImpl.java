@@ -34,17 +34,26 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
     final ConcurrentHashMap<MethodDescriptor, VmObject> methodTypeCache = new ConcurrentHashMap<>();
     final ConcurrentHashMap<MethodHandleConstant, VmObject> methodHandleCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, AtomicInteger> hiddenClassSeqMap = new ConcurrentHashMap<>();
+    private final boolean appCL;
 
     VmClassLoaderImpl(VmClassLoaderClassImpl clazz, VmImpl vm) {
         // bootstrap CL
         super(clazz);
         classContext = vm.getCompilationContext().getBootstrapClassContext();
+        appCL = false;
     }
 
     VmClassLoaderImpl(VmClassLoaderClassImpl clazz, CompilationContext ctxt) {
         // non-bootstrap CL
         super(clazz);
-        classContext = ctxt.constructClassContext(this);
+        // maybe app CL?
+        if (clazz.getTypeDefinition().internalNameEquals("jdk/internal/loader/ClassLoaders$AppClassLoader")) {
+            classContext = ctxt.constructAppClassLoaderClassContext(this);
+            appCL = true;
+        } else {
+            classContext = ctxt.constructClassContext(this);
+            appCL = false;
+        }
     }
 
     @Override
@@ -208,7 +217,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         ClassTypeDescriptor stringDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         MethodDescriptor loadClassDesc = MethodDescriptor.synthesize(classContext, classDesc, List.of(stringDesc));
-        if (classContext == classContext.getCompilationContext().getBootstrapClassContext()) {
+        if (classContext == classContext.getCompilationContext().getBootstrapClassContext() || appCL) {
             // skip JVM call
             DefinedTypeDefinition definedType = classContext.findDefinedType(intName.getContent());
             if (definedType == null) {

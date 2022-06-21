@@ -51,6 +51,8 @@ public interface CompilationContext extends DiagnosticContext {
 
     ClassContext constructClassContext(VmClassLoader classLoaderObject);
 
+    ClassContext constructAppClassLoaderClassContext(VmClassLoader appClassLoaderObject);
+
     void enqueue(ExecutableElement element);
 
     /**
