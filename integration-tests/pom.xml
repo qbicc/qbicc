@@ -24,9 +24,22 @@
     </properties>
     <dependencies>
         <dependency>
-            <groupId>org.qbicc</groupId>
-            <artifactId>qbicc-main</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-runtime-api</artifactId>
             <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-machine-tool-api</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jboss.logmanager</groupId>
+            <artifactId>jboss-logmanager</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -54,6 +67,22 @@
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
             <plugin>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-maven-plugin</artifactId>
+                <version>${project.version}</version>
+                <executions>
+                    <execution>
+                        <id>qbicc-compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>org.qbicc.tests.TestRunner</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <groups>${includeTags}</groups>
@@ -73,6 +102,12 @@
                             <goal>integration-test</goal>
                             <goal>verify</goal>
                         </goals>
+                        <configuration>
+                            <systemProperties>
+                                <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                            </systemProperties>
+                            <redirectTestOutputToFile>false</redirectTestOutputToFile>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

@@ -1,3 +1,5 @@
+package org.qbicc.tests.snippets;
+
 import static org.qbicc.runtime.CNative.*;
 
 class Foo {};
@@ -77,7 +79,7 @@ public class ClassLiteralTests {
         } else {
             putchar('F');
         }
-        if (cls.getName().equals("Foo")) {
+        if (cls.getName().equals("org.qbicc.tests.snippets.Foo")) {
             putchar('P');
         } else {
             putchar('F');
@@ -97,7 +99,7 @@ public class ClassLiteralTests {
         } else {
             putchar('F');
         }
-        if (cls.getName().equals("[LFoo;")) {
+        if (cls.getName().equals("[Lorg.qbicc.tests.snippets.Foo;")) {
             putchar('P');
         } else {
             putchar('F');
@@ -117,7 +119,7 @@ public class ClassLiteralTests {
         } else {
             putchar('F');
         }
-        if (cls.getName().equals("[[LFoo;")) {
+        if (cls.getName().equals("[[Lorg.qbicc.tests.snippets.Foo;")) {
             putchar('P');
         } else {
             putchar('F');

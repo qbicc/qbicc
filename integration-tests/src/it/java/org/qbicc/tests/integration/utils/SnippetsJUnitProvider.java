@@ -40,11 +40,11 @@ public class SnippetsJUnitProvider implements ArgumentsProvider {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes fileAttributes) {
                     final String fileName = file.getFileName().toString();
-                    if (fileName.endsWith(".java")) {
+                    if (fileName.endsWith(".pattern")) {
                         try {
                             final Pattern pattern = Pattern.compile(
                                     Files.readString(
-                                            Path.of(file.getParent().toString(), fileName.replace(".java", ".pattern")))
+                                            Path.of(file.getParent().toString(), fileName))
                             );
                             LOGGER.debug("FILE NAME: " + fileName + " FILE LOCATION:" + file.getParent() + " PATTERN: " + pattern.pattern());
                             snippets.add(Arguments.of(file, pattern));

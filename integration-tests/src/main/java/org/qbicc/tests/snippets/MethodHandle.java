@@ -1,3 +1,5 @@
+package org.qbicc.tests.snippets;
+
 import java.util.function.IntFunction;
 
 public class MethodHandle {

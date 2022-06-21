@@ -11,7 +11,7 @@ public class NativeExecutable {
     public static void run(String name, Path outputExecutable, StringBuilder stdOut, StringBuilder stdErr, Logger logger) throws IOException {
         OutputDestination stdOutDest = OutputDestination.of(stdOut);
         OutputDestination stdErrDest = OutputDestination.of(stdErr);
-        ProcessBuilder processBuilder = new ProcessBuilder(outputExecutable.toString());
+        ProcessBuilder processBuilder = new ProcessBuilder(outputExecutable.toString(), name);
         OutputDestination process = OutputDestination.of(processBuilder, stdErrDest, stdOutDest);
         InputSource.empty().transferTo(process);
 
