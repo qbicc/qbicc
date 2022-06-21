@@ -8,9 +8,6 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.AbstractMojo;
@@ -90,24 +87,8 @@ public class QbiccCompileMojo extends AbstractMojo {
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         // capture logs
-        Logger qbiccLogger = Logger.getLogger("org.qbicc");
-        qbiccLogger.setLevel(Level.INFO);
-        Handler[] oldHandlers = qbiccLogger.getHandlers();
-        try {
-            for (Handler oldHandler : oldHandlers) {
-                qbiccLogger.removeHandler(oldHandler);
-            }
-            qbiccLogger.addHandler(new MojoHandler(getLog()));
-            executeWithLogging();
-        } finally {
-            // restore logging setup
-            for (Handler handler : qbiccLogger.getHandlers()) {
-                qbiccLogger.removeHandler(handler);
-            }
-            for (Handler oldHandler : oldHandlers) {
-                qbiccLogger.addHandler(oldHandler);
-            }
-        }
+        MojoLogger.pluginLog = getLog();
+        executeWithLogging();
     }
 
     private void executeWithLogging() throws MojoExecutionException, MojoFailureException {

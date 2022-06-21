@@ -15,14 +15,20 @@ final class MojoHandler extends Handler {
 
     MojoHandler(final Log log) {
         this.log = log;
-        setFormatter(new PatternFormatter("(%c) %X{phase}: %m%n"));
+        setFormatter(new PatternFormatter("(%c) %X{phase}: %m"));
     }
 
     @Override
     public void publish(LogRecord logRecord) {
         Level level = logRecord.getLevel();
-        if (level.intValue() > Level.SEVERE.intValue()) {
+        if (level.intValue() >= Level.SEVERE.intValue()) {
             log.error(getFormatter().format(logRecord));
+        } else if (level.intValue() >= Level.WARNING.intValue()) {
+            log.warn(getFormatter().format(logRecord));
+        } else if (level.intValue() >= Level.INFO.intValue()) {
+            log.info(getFormatter().format(logRecord));
+        } else {
+            log.debug(getFormatter().format(logRecord));
         }
     }
 
