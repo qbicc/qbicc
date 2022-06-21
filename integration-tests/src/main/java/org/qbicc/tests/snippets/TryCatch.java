@@ -1,3 +1,5 @@
+package org.qbicc.tests.snippets;
+
 import static org.qbicc.runtime.CNative.*;
 
 public class TryCatch {

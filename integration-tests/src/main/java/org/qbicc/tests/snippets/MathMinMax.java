@@ -1,4 +1,4 @@
-// https://github.com/qbicc/qbicc/pull/219
+package org.qbicc.tests.snippets;// https://github.com/qbicc/qbicc/pull/219
 import static org.qbicc.runtime.CNative.*;
 
 public class MathMinMax {
