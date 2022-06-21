@@ -1,6 +1,7 @@
 package org.qbicc.maven.plugin;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -15,14 +16,21 @@ import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.RepositorySystemSession;
+import org.eclipse.aether.repository.RemoteRepository;
 import org.qbicc.context.Diagnostic;
+import org.qbicc.context.DiagnosticContext;
+import org.qbicc.driver.ClassPathItem;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.main.ClassPathEntry;
+import org.qbicc.main.DefaultArtifactRequestor;
 import org.qbicc.main.Main;
 
 /**
@@ -70,6 +78,15 @@ public class QbiccCompileMojo extends AbstractMojo {
     @Parameter
     private String platform;
 
+    @Component
+    private RepositorySystem repoSystem;
+
+    @Parameter(defaultValue = "${repositorySystemSession}", readonly = true)
+    private RepositorySystemSession repositorySystemSession;
+
+    @Parameter(defaultValue = "${project.remotePluginRepositories}", readonly = true)
+    private List<RemoteRepository> remoteRepositories;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         // capture logs
@@ -113,6 +130,7 @@ public class QbiccCompileMojo extends AbstractMojo {
         builder.setOptGotos(optGotos);
         builder.setOptInlining(optInlining);
         builder.setOptPhis(optPhis);
+        builder.setClassPathResolver(this::resolveClassPath);
         List<File> librarySearchPaths = this.librarySearchPaths;
         if (librarySearchPaths != null && ! librarySearchPaths.isEmpty()) {
             List<Path> pathList = new ArrayList<>(librarySearchPaths.size());
@@ -165,6 +183,12 @@ public class QbiccCompileMojo extends AbstractMojo {
             }
             throw new MojoFailureException(null, shortMessage, b.toString());
         }
+    }
+
+    private void resolveClassPath(final DiagnosticContext ctxt, final Consumer<ClassPathItem> consumer, final List<ClassPathEntry> classPathEntries) throws IOException {
+        final DefaultArtifactRequestor requestor = new DefaultArtifactRequestor();
+        final List<ClassPathItem> result = requestor.requestArtifactsFromRepositories(repoSystem, repositorySystemSession, remoteRepositories, classPathEntries, ctxt);
+        result.forEach(consumer);
     }
 
     private static <E> List<E> newList(final Object ignored) {

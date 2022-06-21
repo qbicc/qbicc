@@ -186,6 +186,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean smallTypeIds;
     private final List<Path> librarySearchPaths;
     private final List<String> buildFeatures;
+    private final ClassPathResolver classPathResolver;
 
     Main(Builder builder) {
         outputPath = builder.outputPath;
@@ -224,6 +225,7 @@ public class Main implements Callable<DiagnosticContext> {
         appPaths = List.copyOf(builder.appPaths);
         librarySearchPaths = builder.librarySearchPaths;
         buildFeatures = builder.buildFeatures;
+        classPathResolver = builder.classPathResolver == null ? this::resolveClassPath : builder.classPathResolver;
 
         // TODO: This should really be built using appPath, but we put everything on the bootPath right now.
         List<URL> urls = new ArrayList<>();
@@ -260,13 +262,13 @@ public class Main implements Callable<DiagnosticContext> {
             builder.setOutputDirectory(outputPath);
             // process the class paths
             try {
-                resolveClassPath(initialContext, builder::addBootClassPathItem, bootPaths);
+                classPathResolver.resolveClassPath(initialContext, builder::addBootClassPathItem, bootPaths);
             } catch (IOException e) {
                 // todo: close class path items?
                 return;
             }
             try {
-                resolveClassPath(initialContext, builder::addAppClassPathItem, appPaths);
+                classPathResolver.resolveClassPath(initialContext, builder::addAppClassPathItem, appPaths);
             } catch (IOException e) {
                 return;
             }
@@ -994,6 +996,7 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean smallTypeIds = false;
         private List<Path> librarySearchPaths = List.of();
         private List<String> buildFeatures = new ArrayList<>();
+        private ClassPathResolver classPathResolver;
 
         Builder() {}
 
@@ -1163,6 +1166,11 @@ public class Main implements Callable<DiagnosticContext> {
                     this.librarySearchPaths = List.of(finalPaths);
                 }
             }
+            return this;
+        }
+
+        public Builder setClassPathResolver(ClassPathResolver classPathResolver) {
+            this.classPathResolver = classPathResolver;
             return this;
         }
 
