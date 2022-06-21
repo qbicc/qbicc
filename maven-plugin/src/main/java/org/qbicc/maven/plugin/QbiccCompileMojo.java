@@ -120,6 +120,7 @@ public class QbiccCompileMojo extends AbstractMojo {
             }
             builder.addLibrarySearchPaths(pathList);
         }
+        builder.addLibrarySearchPaths(splitPathString(System.getenv("LIBRARY_PATH")));
         if (classLibraryVersion != null) {
             builder.setClassLibVersion(classLibraryVersion);
         }
@@ -174,5 +175,31 @@ public class QbiccCompileMojo extends AbstractMojo {
 
     private static <E> List<E> newList(final Object ignored) {
         return new ArrayList<>();
+    }
+
+    private static List<Path> splitPathString(String str) {
+        if (str == null || str.isEmpty()) {
+            return List.of();
+        }
+        char psc = File.pathSeparatorChar;
+        int start = 0;
+        int idx = str.indexOf(psc);
+        ArrayList<Path> list = new ArrayList<>();
+        for (;;) {
+            String subStr;
+            if (idx == -1) {
+                subStr = str.substring(start);
+            } else {
+                subStr = str.substring(start, idx);
+            }
+            if (! subStr.isEmpty()) {
+                list.add(Path.of(subStr));
+            }
+            if (idx == -1) {
+                return list;
+            } else {
+                start = idx + 1;
+            }
+        }
     }
 }

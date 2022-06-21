@@ -12,23 +12,26 @@ on:
     branches: [ main ]
     types: [ opened, synchronize, reopened ]
 jobs:
-  build-linux:
-    name: "Linux x86_64"
-    runs-on: ubuntu-latest
-    env:
-      CC: gcc
+  build-matrix:
+    name: "Matrix build"
+    strategy:
+      matrix:
+        llvm-version: ["12", "13"]
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Install LLVM
-        uses: KyleMayes/install-llvm-action@v1.5.0
+        uses: KyleMayes/install-llvm-action@v1.5.3
         with:
-          version: "12.0.0"
+          version: ${{ matrix.llvm-version }}
           directory: ${{ runner.temp }}/llvm-install
 
-      - name: Install libunwind
+      - name: Install libunwind (Linux only)
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get install -y libunwind-dev
 
-      - name: Install OpenJDK 17
+      - name: Install OpenJDK
         uses: actions/setup-java@v3
         with:
           java-version: '17'
@@ -39,48 +42,19 @@ jobs:
         with:
           path: myqbicc
 
-      - name: Install qbicc
+      - name: Install qbicc (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        env:
+            CC: clang
         run: |
           mvn --batch-mode install -Dqbicc.test.clean-target=true
         working-directory: ./myqbicc
 
-      - name: Prepare failure archive (if maven failed)
-        if: failure()
-        shell: bash
-        run: find . -type d -name '*-reports' -o -name "*-logs" | tar -czf test-reports.tgz -T -
-
-      - name: Upload failure Archive (if maven failed)
-        uses: actions/upload-artifact@v2
-        if: failure()
-        with:
-          name: test-reports
-          path: 'linux/test-reports.tgz'
-  build-macos:
-    name: "Mac OS x86_64"
-    runs-on: macos-latest
-    env:
-      CC: gcc
-    steps:
-      - name: Install LLVM
-        uses: KyleMayes/install-llvm-action@v1.5.0
-        with:
-          version: "12.0.0"
-          directory: ${{ runner.temp }}/llvm-install
-
-      - name: Install OpenJDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Clone qbicc
-        uses: actions/checkout@v2
-        with:
-          path: myqbicc
-
-      - name: Install qbicc
+      - name: Install qbicc (Mac OS)
+        if: matrix.os == 'macos-latest'
         env:
             LIBRARY_PATHS: $(brew --prefix gcc)/lib/gcc/11
+            CC: gcc
         run: |
           mvn --batch-mode install -Dqbicc.test.clean-target=true
         working-directory: ./myqbicc
@@ -95,4 +69,4 @@ jobs:
         if: failure()
         with:
           name: test-reports
-          path: 'macos/test-reports.tgz'
+          path: 'test-reports.tgz'

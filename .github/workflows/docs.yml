@@ -13,7 +13,7 @@ on:
     types: [ opened, synchronize, reopened ]
 jobs:
   build-linux:
-    name: "Linux x86_64"
+    name: "Docs no-op action"
     runs-on: ubuntu-latest
     steps:
       - name: No-Op
