@@ -2,8 +2,11 @@ package org.qbicc.plugin.reachability;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.interpreter.VmClassLoader;
+import org.qbicc.plugin.apploader.AppClassLoader;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.VerifyFailedException;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -55,18 +58,16 @@ public class RuntimeReflectionRoots {
     }
 
     public void registerClass(Class<?> clazz) {
-        DefinedTypeDefinition dtd = ctxt.getBootstrapClassContext().findDefinedType(clazz.getName().replace(".", "/"));
-        if (dtd != null) {
-            accessedClasses.add(dtd.load());
+        LoadedTypeDefinition ltd = classToType(clazz);
+        if (ltd != null) {
+            accessedClasses.add(ltd);
         }
     }
 
     public void registerMethods(Executable... methods) {
         for (Executable e: methods) {
-            Class<?> declaringClass = e.getDeclaringClass();
-            DefinedTypeDefinition dtd = ctxt.getBootstrapClassContext().findDefinedType(declaringClass.getName().replace(".", "/"));
-            if (dtd != null) {
-                LoadedTypeDefinition ltd = dtd.load();
+            LoadedTypeDefinition ltd = classToType(e.getDeclaringClass());
+            if (ltd != null) {
                 if (e instanceof Constructor c) {
                     int ci = ltd.findSingleConstructorIndex(ce -> {
                         if (ce.getParameters().size() != c.getParameterCount()) {
@@ -111,10 +112,8 @@ public class RuntimeReflectionRoots {
 
     public void registerFields(Field... fields) {
         for (Field f: fields) {
-            Class<?> declaringClass = f.getDeclaringClass();
-            DefinedTypeDefinition dtd = ctxt.getBootstrapClassContext().findDefinedType(declaringClass.getName().replace(".", "/"));
-            if (dtd != null) {
-                LoadedTypeDefinition ltd = dtd.load();
+            LoadedTypeDefinition ltd = classToType(f.getDeclaringClass());
+            if (ltd != null) {
                 FieldElement fe = ltd.findField(f.getName());
                 if (fe != null) {
                     accessedFields.add(fe);
@@ -146,6 +145,17 @@ public class RuntimeReflectionRoots {
             if (f.isStatic()) {
                 info.getAnalysis().processReachableStaticFieldAccess((StaticFieldElement) f, null);
             }
+        }
+    }
+
+    private LoadedTypeDefinition classToType(Class<?> clazz) {
+        VmClassLoader appCl = AppClassLoader.get(ctxt).getAppClassLoader();
+        try {
+            DefinedTypeDefinition dtd = appCl.getClassContext().findDefinedType(clazz.getName().replace(".", "/"));
+            return dtd == null ? null: dtd.load();
+        } catch (VerifyFailedException e) {
+            ctxt.warning("Unable to load type %s due to VerifyFailedException %s", clazz.getName(), e.getMessage());
+            return null;
         }
     }
 }

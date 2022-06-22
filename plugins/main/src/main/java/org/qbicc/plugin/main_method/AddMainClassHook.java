@@ -3,12 +3,10 @@ package org.qbicc.plugin.main_method;
 import java.util.List;
 import java.util.function.Consumer;
 
-import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.atomic.AccessModes;
-import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
+import org.qbicc.plugin.apploader.AppClassLoader;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -25,7 +23,6 @@ import org.qbicc.type.descriptor.TypeDescriptor;
 public class AddMainClassHook implements Consumer<CompilationContext> {
 
     private static final String MAIN_CLASS = "jdk/internal/org/qbicc/runtime/Main";
-    private static final String CLASS_LOADERS = "jdk/internal/loader/ClassLoaders";
 
     public AddMainClassHook() {
     }
@@ -35,17 +32,7 @@ public class AddMainClassHook implements Consumer<CompilationContext> {
         String mainClassName = mainMethod.getMainClass();
         if (mainClassName != null) {
             String mainClassIntName = mainClassName.replace('.', '/');
-            // todo: move app class loader init to a separate plugin to support compiling to library
-            ClassContext bootstrapClassContext = ctxt.getBootstrapClassContext();
-            LoadedTypeDefinition classLoadersDef = bootstrapClassContext.findDefinedType(CLASS_LOADERS).load();
-            VmClass classLoaders = classLoadersDef.getVmClass();
-            try {
-                Vm.requireCurrent().initialize(classLoaders);
-            } catch (Throwable t) {
-                ctxt.error("Failed to initialize %s: %s", CLASS_LOADERS, t);
-                return;
-            }
-            VmClassLoader appClassLoader = (VmClassLoader) classLoaders.getStaticMemory().loadRef(classLoaders.indexOfStatic(classLoadersDef.findField("APP_LOADER")), AccessModes.SinglePlain);
+            VmClassLoader appClassLoader = AppClassLoader.get(ctxt).getAppClassLoader();
             VmClass mainClass;
             try {
                 mainClass = appClassLoader.loadClass(mainClassIntName);
@@ -86,7 +73,7 @@ public class AddMainClassHook implements Consumer<CompilationContext> {
             MethodElement mainMethodElement = mainClassDef.getMethod(idx);
             UserMainIntrinsic.register(ctxt, mainMethodElement);
             // now, load and resolve the class with the real entry point on it, causing it to be registered
-            DefinedTypeDefinition runtimeMain = bootstrapClassContext.findDefinedType(MAIN_CLASS);
+            DefinedTypeDefinition runtimeMain = ctxt.getBootstrapClassContext().findDefinedType(MAIN_CLASS);
             if (runtimeMain == null) {
                 ctxt.error("Unable to find runtime main class \"%s\"", MAIN_CLASS);
             } else {

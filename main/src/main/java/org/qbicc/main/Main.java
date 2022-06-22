@@ -58,6 +58,7 @@ import org.qbicc.machine.tool.CToolChain;
 import org.qbicc.machine.vfs.AbsoluteVirtualPath;
 import org.qbicc.machine.vfs.VFSUtils;
 import org.qbicc.machine.vfs.VirtualFileSystem;
+import org.qbicc.plugin.apploader.InitAppClassLoaderHook;
 import org.qbicc.plugin.constants.ConstantBasicBlockBuilder;
 import org.qbicc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import org.qbicc.plugin.core.CoreAnnotationTypeBuilder;
@@ -442,6 +443,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, VFS::initialize);
                                 builder.addPreHook(Phase.ADD, Main::mountInitialFileSystem);
                                 builder.addPreHook(Phase.ADD, new VMHelpersSetupHook());
+                                builder.addPreHook(Phase.ADD, new InitAppClassLoaderHook());
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
                                 if (nogc) {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
