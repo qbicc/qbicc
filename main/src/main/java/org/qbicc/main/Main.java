@@ -621,7 +621,7 @@ public class Main implements Callable<DiagnosticContext> {
         result.forEach(classPathItemConsumer);
     }
 
-    private static List<Path> splitPathString(String str) {
+    static List<Path> splitPathString(String str) {
         if (str == null || str.isEmpty()) {
             return List.of();
         }
@@ -644,6 +644,7 @@ public class Main implements Callable<DiagnosticContext> {
             } else {
                 start = idx + 1;
             }
+            idx = str.indexOf(psc, start);
         }
     }
 

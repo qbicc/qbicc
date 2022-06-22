@@ -1,7 +1,10 @@
 package org.qbicc.main;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Iterator;
+import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -27,5 +30,18 @@ public class TestMain {
             d.appendTo(System.out);
         }
         Assertions.assertEquals(0, dc.errors());
+    }
+
+    @Test
+    public void testSplitPathString() {
+        final List<Path> paths = Main.splitPathString(String.join(File.pathSeparator, "one", "two", "three"));
+        final Iterator<Path> iterator = paths.iterator();
+        Assertions.assertTrue(iterator.hasNext());
+        Assertions.assertEquals("one", iterator.next().toString());
+        Assertions.assertTrue(iterator.hasNext());
+        Assertions.assertEquals("two", iterator.next().toString());
+        Assertions.assertTrue(iterator.hasNext());
+        Assertions.assertEquals("three", iterator.next().toString());
+        Assertions.assertFalse(iterator.hasNext());
     }
 }

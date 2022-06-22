@@ -207,6 +207,7 @@ public class QbiccCompileMojo extends AbstractMojo {
             } else {
                 start = idx + 1;
             }
+            idx = str.indexOf(psc, start);
         }
     }
 }
