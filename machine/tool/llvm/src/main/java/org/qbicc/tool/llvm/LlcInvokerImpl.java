@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import io.smallrye.common.constraint.Assert;
+import io.smallrye.common.version.VersionScheme;
 import org.qbicc.machine.arch.Platform;
 
 /**
@@ -52,9 +53,9 @@ final class LlcInvokerImpl extends AbstractLlvmInvoker implements LlcInvoker {
         cmd.add("--relocation-model=" + relocationModel.value);
         cmd.add("-" + optLevel.name());
         cmd.add("--filetype=" + outputFormat.toOptionString());
-        if (platform.getCpu().getCpuWordSize() == 8) {
-            cmd.add("--dwarf64");
-        }
         cmd.add("--dwarf-version=4");
+        if (VersionScheme.BASIC.compare(getTool().getVersion(), "14") >= 0) {
+            cmd.add("--strict-dwarf");
+        }
     }
 }
