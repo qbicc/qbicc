@@ -61,9 +61,5 @@
             <artifactId>qbicc-machine-file-wasm</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
-        </dependency>
     </dependencies>
 </project>
