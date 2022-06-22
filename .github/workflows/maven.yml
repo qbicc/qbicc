@@ -26,6 +26,11 @@ jobs:
           version: ${{ matrix.llvm-version }}
           directory: ${{ runner.temp }}/llvm-install
 
+      - name: Install `libgcc` (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get install -y libgcc-11-dev
+
       - name: Install libunwind (Linux only)
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -45,6 +50,7 @@ jobs:
       - name: Install qbicc (Linux)
         if: matrix.os == 'ubuntu-latest'
         env:
+            LIBRARY_PATHS: /usr/lib/gcc/x86_64-linux-gnu/11
             CC: clang
         run: |
           mvn --batch-mode install -Dqbicc.test.clean-target=true
