@@ -63,6 +63,9 @@ public class QbiccCompileMojo extends AbstractMojo {
     @Parameter(defaultValue = "true")
     private boolean optPhis;
 
+    @Parameter(defaultValue = "false", property = "skipNative")
+    private boolean skip;
+
     @Parameter
     private List<File> librarySearchPaths;
 
@@ -86,6 +89,10 @@ public class QbiccCompileMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+        if (skip) {
+            getLog().info("(Native compilation skipped)");
+            return;
+        }
         // capture logs
         MojoLogger.pluginLog = getLog();
         executeWithLogging();
