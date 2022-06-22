@@ -52,7 +52,7 @@ jobs:
       - name: Install qbicc (Linux)
         if: matrix.os == 'ubuntu-latest'
         env:
-            LIBRARY_PATH: /usr/lib/gcc/x86_64-linux-gnu/11
+            LIBRARY_PATH: /usr/lib/gcc/x86_64-linux-gnu/11:/usr/lib/x86_64-linux-gnu
             CC: clang
         run: |
           mvn --batch-mode install -Dqbicc.test.clean-target=true
