@@ -60,21 +60,21 @@ public final class ReflectionIntrinsics {
     public static void register(CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         Patcher patcher = Patcher.get(ctxt);
-        ClassContext classContext = ctxt.getBootstrapClassContext();
+        ClassContext bootstrapClassContext = ctxt.getBootstrapClassContext();
 
         String methodHandleInt = "java/lang/invoke/MethodHandle";
         String varHandleInt = "java/lang/invoke/VarHandle";
-        ClassTypeDescriptor methodHandleDesc = ClassTypeDescriptor.synthesize(classContext, methodHandleInt);
-        ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
-        ClassTypeDescriptor internalErrorDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/InternalError");
-        ClassTypeDescriptor throwableDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Throwable");
+        ClassTypeDescriptor methodHandleDesc = ClassTypeDescriptor.synthesize(bootstrapClassContext, methodHandleInt);
+        ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(bootstrapClassContext, "java/lang/Object");
+        ClassTypeDescriptor internalErrorDesc = ClassTypeDescriptor.synthesize(bootstrapClassContext, "java/lang/InternalError");
+        ClassTypeDescriptor throwableDesc = ClassTypeDescriptor.synthesize(bootstrapClassContext, "java/lang/Throwable");
 
-        ArrayTypeDescriptor objArrayDesc = ArrayTypeDescriptor.of(classContext, objDesc);
+        ArrayTypeDescriptor objArrayDesc = ArrayTypeDescriptor.of(bootstrapClassContext, objDesc);
 
-        MethodDescriptor objArrayToObj = MethodDescriptor.synthesize(classContext, objDesc, List.of(objArrayDesc));
-        MethodDescriptor objArrayToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(objArrayDesc));
-        MethodDescriptor objArrayToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objArrayDesc));
-        MethodDescriptor throwableToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(throwableDesc));
+        MethodDescriptor objArrayToObj = MethodDescriptor.synthesize(bootstrapClassContext, objDesc, List.of(objArrayDesc));
+        MethodDescriptor objArrayToVoid = MethodDescriptor.synthesize(bootstrapClassContext, BaseTypeDescriptor.V, List.of(objArrayDesc));
+        MethodDescriptor objArrayToBool = MethodDescriptor.synthesize(bootstrapClassContext, BaseTypeDescriptor.Z, List.of(objArrayDesc));
+        MethodDescriptor throwableToVoid = MethodDescriptor.synthesize(bootstrapClassContext, BaseTypeDescriptor.V, List.of(throwableDesc));
 
 
         // mh.invoke(...) → mh.asType(actualType).invokeExact(...)
@@ -87,6 +87,7 @@ public final class ReflectionIntrinsics {
                 BasicBlockBuilder fb = builder.getFirstBuilder();
                 Vm vm = Vm.requireCurrent();
                 try {
+                    ClassContext classContext = target.getElement().getEnclosingType().getContext();
                     VmObject realType = vm.createMethodType(classContext, callSiteDescriptor);
                     Value realHandle;
                     LoadedTypeDefinition mhDef = target.getExecutable().getEnclosingType().load();
@@ -118,6 +119,7 @@ public final class ReflectionIntrinsics {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             Vm vm = Vm.requireCurrent();
             try {
+                ClassContext classContext = target.getElement().getEnclosingType().getContext();
                 VmObject realType = vm.createMethodType(classContext, callSiteDescriptor);
                 Value realHandle;
                 LoadedTypeDefinition mhDef = target.getExecutable().getEnclosingType().load();
@@ -137,7 +139,7 @@ public final class ReflectionIntrinsics {
                 throw new BlockEarlyTermination(fb.throw_(ie));
             }
         };
-        patcher.replaceMethodBody(classContext, methodHandleInt, "invoke", objArrayToObj, new InstanceIntrinsicMethodBodyFactory(invokeMethodBody), 0);
+        patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "invoke", objArrayToObj, new InstanceIntrinsicMethodBodyFactory(invokeMethodBody), 0);
 
         // mh.invokeExact(...) → mh.checkType(type); mh.invokeBasic(...)
 
@@ -148,6 +150,7 @@ public final class ReflectionIntrinsics {
                 BasicBlockBuilder fb = builder.getFirstBuilder();
                 Vm vm = Vm.requireCurrent();
                 try {
+                    ClassContext classContext = target.getElement().getEnclosingType().getContext();
                     VmObject realType = vm.createMethodType(classContext, callSiteDescriptor);
                     LoadedTypeDefinition mhDef = target.getExecutable().getEnclosingType().load();
                     int checkTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("checkType"));
@@ -177,6 +180,7 @@ public final class ReflectionIntrinsics {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             Vm vm = Vm.requireCurrent();
             try {
+                ClassContext classContext = target.getElement().getEnclosingType().getContext();
                 VmObject realType = vm.createMethodType(classContext, callSiteDescriptor);
                 LoadedTypeDefinition mhDef = target.getExecutable().getEnclosingType().load();
                 int checkTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("checkType"));
@@ -195,7 +199,7 @@ public final class ReflectionIntrinsics {
                 throw new BlockEarlyTermination(fb.throw_(ie));
             }
         };
-        patcher.replaceMethodBody(classContext, methodHandleInt, "invokeExact", objArrayToObj, new InstanceIntrinsicMethodBodyFactory(invokeExactMethodBody), 0);
+        patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "invokeExact", objArrayToObj, new InstanceIntrinsicMethodBodyFactory(invokeExactMethodBody), 0);
 
         // mh.invokeBasic(...) → (*mh.form.vmentry)(...)
 
@@ -258,7 +262,7 @@ public final class ReflectionIntrinsics {
             Value castMethodPtr = fb.bitCast(methodPtr, dispatcherType.getPointer());
             throw new BlockEarlyTermination(fb.tailCall(fb.pointerHandle(castMethodPtr), newArgs));
         };
-        patcher.replaceMethodBody(classContext, methodHandleInt, "invokeBasic", objArrayToObj, new InstanceIntrinsicMethodBodyFactory(invokeBasicMethodBody), 0);
+        patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "invokeBasic", objArrayToObj, new InstanceIntrinsicMethodBodyFactory(invokeBasicMethodBody), 0);
 
         // MH.linkToStatic(..., memberName) → (static *memberName.vmentry)(...)
 
@@ -305,7 +309,7 @@ public final class ReflectionIntrinsics {
             Value castMethodPtr = fb.bitCast(methodPtr, methodType.trimLastParameter().getPointer());
             throw new BlockEarlyTermination(fb.tailCall(fb.pointerHandle(castMethodPtr), arguments.subList(0, lastArg)));
         };
-        patcher.replaceMethodBody(classContext, methodHandleInt, "linkToStatic", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToStaticMethodBody), 0);
+        patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "linkToStatic", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToStaticMethodBody), 0);
 
         // MH.linkToInterface(..., memberName) → (static *memberName.vmentry)(...)
 
@@ -352,7 +356,7 @@ public final class ReflectionIntrinsics {
             Value castMethodPtr = fb.bitCast(methodPtr, methodType.trimLastParameter().getPointer());
             throw new BlockEarlyTermination(fb.tailCall(fb.pointerHandle(castMethodPtr), arguments.subList(0, lastArg)));
         };
-        patcher.replaceMethodBody(classContext, methodHandleInt, "linkToInterface", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToInterfaceMethodBody), 0);
+        patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "linkToInterface", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToInterfaceMethodBody), 0);
 
         StaticIntrinsic linkToSpecialIntrinsic = (builder, target, arguments) -> {
             LiteralFactory lf = ctxt.getLiteralFactory();
@@ -397,7 +401,7 @@ public final class ReflectionIntrinsics {
             Value castMethodPtr = fb.bitCast(methodPtr, methodType.trimLastParameter().getPointer());
             throw new BlockEarlyTermination(fb.tailCall(fb.pointerHandle(castMethodPtr), arguments.subList(0, lastArg)));
         };
-        patcher.replaceMethodBody(classContext, methodHandleInt, "linkToSpecial", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToSpecialMethodBody), 0);
+        patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "linkToSpecial", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToSpecialMethodBody), 0);
 
         StaticIntrinsic linkToVirtualIntrinsic = (builder, target, arguments) -> {
             LiteralFactory lf = ctxt.getLiteralFactory();
@@ -442,11 +446,11 @@ public final class ReflectionIntrinsics {
             Value castMethodPtr = fb.bitCast(methodPtr, methodType.trimLastParameter().getPointer());
             throw new BlockEarlyTermination(fb.tailCall(fb.pointerHandle(castMethodPtr), arguments.subList(0, lastArg)));
         };
-        patcher.replaceMethodBody(classContext, methodHandleInt, "linkToVirtual", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToVirtualMethodBody), 0);
+        patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "linkToVirtual", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToVirtualMethodBody), 0);
 
         // VarHandle
 
-        LoadedTypeDefinition wmteDef = classContext.findDefinedType("java/lang/invoke/WrongMethodTypeException").load();
+        LoadedTypeDefinition wmteDef = bootstrapClassContext.findDefinedType("java/lang/invoke/WrongMethodTypeException").load();
         ConstructorElement wmteCtor = wmteDef.requireSingleConstructor(ce -> ce.getParameters().isEmpty());
 
         final class VarHandleBodyIntrinsic implements InstanceIntrinsic {
@@ -462,6 +466,7 @@ public final class ReflectionIntrinsics {
                     throw new BlockEarlyTermination(builder.throw_(ex));
                 } else {
                     // not erased; delegate to erased version
+                    ClassContext classContext = target.getExecutable().getEnclosingType().getContext();
                     MethodDescriptor erased = Reflection.erase(classContext, descriptor);
                     TypeDescriptor returnTypeDesc = descriptor.getReturnType();
                     if (Reflection.isErased(returnTypeDesc)) {
@@ -478,37 +483,37 @@ public final class ReflectionIntrinsics {
 
         InstanceIntrinsicMethodBodyFactory varHandleBodyFactory = new InstanceIntrinsicMethodBodyFactory(new VarHandleBodyIntrinsic());
 
-        patcher.replaceMethodBody(classContext, varHandleInt, "get", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "set", objArrayToVoid, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getVolatile", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "setVolatile", objArrayToVoid, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getAcquire", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "setRelease", objArrayToVoid, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getOpaque", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "setOpaque", objArrayToVoid, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "compareAndSet", objArrayToBool, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "compareAndExchange", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "compareAndExchangeAcquire", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "compareAndExchangeRelease", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "weakCompareAndSetPlain", objArrayToBool, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "weakCompareAndSet", objArrayToBool, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "weakCompareAndSetAcquire", objArrayToBool, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "weakCompareAndSetRelease", objArrayToBool, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getAndSet", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getAndSetAcquire", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getAndSetRelease", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getAndAdd", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getAndAddAcquire", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getAndAddRelease", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseOr", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseOrRelease", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseOrAcquire", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseAnd", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseAndRelease", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseAndAcquire", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseXor", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseXorRelease", objArrayToObj, varHandleBodyFactory, 0);
-        patcher.replaceMethodBody(classContext, varHandleInt, "getAndBitwiseXorAcquire", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "get", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "set", objArrayToVoid, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getVolatile", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "setVolatile", objArrayToVoid, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAcquire", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "setRelease", objArrayToVoid, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getOpaque", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "setOpaque", objArrayToVoid, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "compareAndSet", objArrayToBool, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "compareAndExchange", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "compareAndExchangeAcquire", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "compareAndExchangeRelease", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "weakCompareAndSetPlain", objArrayToBool, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "weakCompareAndSet", objArrayToBool, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "weakCompareAndSetAcquire", objArrayToBool, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "weakCompareAndSetRelease", objArrayToBool, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndSet", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndSetAcquire", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndSetRelease", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndAdd", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndAddAcquire", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndAddRelease", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndBitwiseOr", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndBitwiseOrRelease", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndBitwiseOrAcquire", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndBitwiseAnd", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndBitwiseAndRelease", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndBitwiseAndAcquire", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndBitwiseXor", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndBitwiseXorRelease", objArrayToObj, varHandleBodyFactory, 0);
+        patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndBitwiseXorAcquire", objArrayToObj, varHandleBodyFactory, 0);
     }
 
     /**
