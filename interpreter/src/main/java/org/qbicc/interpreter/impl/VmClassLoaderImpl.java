@@ -23,6 +23,7 @@ import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.VerifyFailedException;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -130,7 +131,15 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         if (defined.hasNoModifiersOf(ClassFile.I_ACC_NO_RESOLVE)) {
             classContext.defineClass(internalName, defined);
         }
-        LoadedTypeDefinition loaded = defined.load();
+        LoadedTypeDefinition loaded;
+        try {
+            loaded = defined.load();
+        } catch (VerifyFailedException e) {
+            VmThrowable throwable = vm.verifyErrorClass.newInstance(e.getMessage());
+            VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
+            thread.setThrown(throwable);
+            throw new Thrown(throwable);
+        }
         VmClassImpl vmClass = createVmClass(vm, loaded, hidden);
         loaded.setVmClass(vmClass);
         if (! hidden && this.defined.putIfAbsent(internalName, vmClass) != null) {
