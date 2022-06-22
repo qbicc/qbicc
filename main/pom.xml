@@ -42,6 +42,15 @@
                     </archive>
                 </configuration>
             </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemProperties>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <qbicc.test.outputPath>${project.build.directory}/test-output</qbicc.test.outputPath>
+                    </systemProperties>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
@@ -392,5 +401,12 @@
             <artifactId>plexus-sec-dispatcher</artifactId>
         </dependency>
 
+        <!-- Test -->
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
