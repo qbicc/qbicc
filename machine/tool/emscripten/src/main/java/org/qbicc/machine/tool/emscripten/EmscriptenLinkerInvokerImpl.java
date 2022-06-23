@@ -78,18 +78,26 @@ final class EmscriptenLinkerInvokerImpl extends AbstractEmscriptenInvoker implem
         } else {
             cmd.add("-no-pie");
         }
-        cmd.add("-pthread");
+        //  cmd.add("-pthread");
 
         for (Path libraryPath : libraryPaths) {
             cmd.add("-L" + libraryPath.toString());
         }
         for (String library : libraries) {
+            if (
+            library.equals("gcc_s") ||
+            library.equals("unwind")) continue;
             cmd.add("-l" + library);
         }
         for (Path objectFile : objectFiles) {
             cmd.add(objectFile.toString());
         }
-        cmd.add("-o");
-        cmd.add(outputPath.toString());
+
+        cmd.addAll(List.of(
+            "-fwasm-exceptions",
+            "-s", "ALLOW_MEMORY_GROWTH=1",
+            "-fbulk-memory",
+            "-o",
+            outputPath.toString()));
     }
 }
