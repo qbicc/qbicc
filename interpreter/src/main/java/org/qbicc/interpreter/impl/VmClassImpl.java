@@ -345,6 +345,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         LoadedTypeDefinition classDef = getVmClass().getTypeDefinition();
         try {
             memory.storeRef(getVmClass().getLayoutInfo().getMember(classDef.findField("name")).getOffset(), vm.intern(name), SinglePlain);
+            memory.storeRef(getVmClass().getLayoutInfo().getMember(classDef.findField("classLoader")).getOffset(), classLoader, SinglePlain);
 
             // typeId and dimensions
             FieldElement instanceTypeIdField = coreClasses.getClassTypeIdField();
