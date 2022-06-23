@@ -167,8 +167,6 @@ import picocli.CommandLine;
 import picocli.CommandLine.ParameterException;
 import picocli.CommandLine.ParseResult;
 
-;
-
 /**
  * The main entry point, which can be constructed using a builder or directly invoked.
  */
@@ -195,6 +193,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final List<Path> librarySearchPaths;
     private final List<String> buildFeatures;
     private final ClassPathResolver classPathResolver;
+    private final Backend backend;
 
     Main(Builder builder) {
         outputPath = builder.outputPath;
@@ -214,6 +213,7 @@ public class Main implements Callable<DiagnosticContext> {
         platform = builder.platform;
         isWasm = platform.getCpu() == Cpu.WASM32;
         smallTypeIds = builder.smallTypeIds;
+        backend = builder.backend;
         ArrayList<ClassPathEntry> bootPaths = new ArrayList<>(builder.bootPathsPrepend.size() + 6 + builder.bootPathsAppend.size());
         bootPaths.addAll(builder.bootPathsPrepend);
         // add core things
@@ -265,6 +265,7 @@ public class Main implements Callable<DiagnosticContext> {
         final Driver.Builder builder = Driver.builder();
         builder.setInitialContext(initialContext);
         boolean nogc = gc.equals("none");
+        boolean llvm = backend.equals(Backend.llvm);
         int errors = initialContext.errors();
         if (errors == 0) {
             builder.setOutputDirectory(outputPath);
@@ -390,7 +391,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 initialContext.error(error, "Failed to load plugin");
                             }
                             errors = initialContext.errors();
-                            if (errors == 0) {
+                            if (errors == 0 && llvm) {
                                 Iterator<LlvmToolChain> llvmTools = LlvmToolChain.findAllLlvmToolChains(target, t -> true, Main.class.getClassLoader()).iterator();
                                 LlvmToolChain llvmToolChain = null;
                                 while (llvmTools.hasNext()) {
@@ -434,7 +435,9 @@ public class Main implements Callable<DiagnosticContext> {
                                     Vm vm = ctxt.getVm();
                                     vm.doAttached(vm.newThread(Thread.currentThread().getName(), vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> wrapper.accept(ctxt));
                                 });
-                                builder.addPreHook(Phase.ADD, LLVMIntrinsics::register);
+                                if (llvm) {
+                                    builder.addPreHook(Phase.ADD, LLVMIntrinsics::register);
+                                }
                                 builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
                                 builder.addPreHook(Phase.ADD, CoreClasses::get);
                                 builder.addPreHook(Phase.ADD, ReflectionIntrinsics::register);
@@ -567,7 +570,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InitCheckLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectAccessLoweringBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectMonitorBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LLVMCompatibleBasicBlockBuilder::new);
+                                if (llvm) {
+                                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LLVMCompatibleBasicBlockBuilder::new);
+                                }
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 if (optMemoryTracking) {
                                     builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
@@ -588,20 +593,27 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.GENERATE, new StringInternTableEmitter());
                                 builder.addPreHook(Phase.GENERATE, new SupersDisplayEmitter());
                                 builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
-                                builder.addPreHook(Phase.GENERATE, new LLVMGenerator(isPie ? 2 : 0, isPie ? 2 : 0, referencePointerFactory));
+
+                                if (llvm) {
+                                    builder.addPreHook(Phase.GENERATE, new LLVMGenerator(isPie ? 2 : 0, isPie ? 2 : 0, referencePointerFactory));
+                                }
 
                                 builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
                                 if (compileOutput) {
-                                    builder.addPostHook(Phase.GENERATE, new LLVMCompileStage(isPie, llvmCompilerFactory));
+                                    if (llvm) {
+                                        builder.addPostHook(Phase.GENERATE, new LLVMCompileStage(isPie, llvmCompilerFactory));
+                                    }
                                 }
-                                builder.addPostHook(Phase.GENERATE, new MethodDataEmitter());
-                                builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(isPie, compileOutput, referencePointerFactory, llvmCompilerFactory));
+                                if (llvm) {
+                                    builder.addPostHook(Phase.GENERATE, new MethodDataEmitter());
+                                    builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(isPie, compileOutput, referencePointerFactory, llvmCompilerFactory));
+                                }
                                 if (compileOutput) {
                                     Consumer<CompilationContext> linkStage =
                                         isWasm ? new EmscriptenLinkStage(outputName, isPie, librarySearchPaths) : new LinkStage(outputName, isPie, librarySearchPaths);
                                     builder.addPostHook(Phase.GENERATE, linkStage);
-                                }
 
+                                }
                                 CompilationContext ctxt;
                                 try (Driver driver = builder.build()) {
                                     ctxt = driver.getCompilationContext();
@@ -757,6 +769,7 @@ public class Main implements Callable<DiagnosticContext> {
             .setOptPhis(optionsProcessor.optArgs.optPhis)
             .setOptEscapeAnalysis(optionsProcessor.optArgs.optEscapeAnalysis)
             .setSmallTypeIds(optionsProcessor.smallTypeIds)
+            .setBackend(optionsProcessor.backend)
             .setGraphGenConfig(optionsProcessor.graphGenConfig)
             .addLibrarySearchPaths(splitPathString(System.getenv("LIBRARY_PATH")))
             .addLibrarySearchPaths(optionsProcessor.libSearchPaths);
@@ -881,6 +894,9 @@ public class Main implements Callable<DiagnosticContext> {
 
         @CommandLine.Option(names = "--small-type-ids", negatable = true, defaultValue = "false", description = "Use narrow (16-bit) type ID values if true, wide (32-bit) type ID values if false")
         private boolean smallTypeIds;
+
+        @CommandLine.Option(names = "--backend", defaultValue = "llvm", description = "The backend type to use. Valid values: ${COMPLETION-CANDIDATES}")
+        private Backend backend;
 
         @CommandLine.Parameters(index="0", arity="1", defaultValue = "", description = "Application main class")
         private String mainClass;
@@ -1012,6 +1028,7 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean optEscapeAnalysis = false;
         private GraphGenConfig graphGenConfig;
         private boolean smallTypeIds = false;
+        private Backend backend = Backend.llvm;
         private List<Path> librarySearchPaths = List.of();
         private List<String> buildFeatures = new ArrayList<>();
         private ClassPathResolver classPathResolver;
@@ -1164,6 +1181,11 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Builder setOptEscapeAnalysis(boolean optEscapeAnalysis) {
             this.optEscapeAnalysis = optEscapeAnalysis;
+            return this;
+        }
+
+        public Builder setBackend(Backend backend) {
+            this.backend = Assert.checkNotNullParam("backend", backend);
             return this;
         }
 
