@@ -2,6 +2,7 @@ package org.qbicc.machine.tool.emscripten;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import io.smallrye.common.constraint.Assert;
@@ -78,26 +79,37 @@ final class EmscriptenLinkerInvokerImpl extends AbstractEmscriptenInvoker implem
         } else {
             cmd.add("-no-pie");
         }
-        //  cmd.add("-pthread");
+        // cmd.add("-pthread");
 
         for (Path libraryPath : libraryPaths) {
             cmd.add("-L" + libraryPath.toString());
         }
         for (String library : libraries) {
-            if (
-            library.equals("gcc_s") ||
-            library.equals("unwind")) continue;
             cmd.add("-l" + library);
         }
         for (Path objectFile : objectFiles) {
             cmd.add(objectFile.toString());
         }
 
-        cmd.addAll(List.of(
-            "-fwasm-exceptions",
-            "-s", "ALLOW_MEMORY_GROWTH=1",
+        enableExceptions(cmd);
+        appendLinkingOptions(cmd);
+
+        Collections.addAll(cmd,
+            "-g",
             "-fbulk-memory",
             "-o",
-            outputPath.toString()));
+            outputPath.toString());
+    }
+
+    private void enableExceptions(final List<String> cmd) {
+        Collections.addAll(cmd, "-fexceptions");
+    }
+
+    private void appendLinkingOptions(final List<String> cmd) {
+        Collections.addAll(cmd,
+            "-sALLOW_MEMORY_GROWTH=1",
+            "-sEXIT_RUNTIME=1",
+            "-sERROR_ON_UNDEFINED_SYMBOLS=0",
+            "-sLLD_REPORT_UNDEFINED");
     }
 }
