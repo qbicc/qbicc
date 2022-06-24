@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.qbicc</groupId>
         <artifactId>qbicc-parent</artifactId>
-        <version>0.36.0-SNAPSHOT</version>
+        <version>0.37.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>qbicc-main</artifactId>
@@ -80,6 +80,10 @@
             <artifactId>qbicc-machine-file-wasm</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-apploader</artifactId>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-constants</artifactId>
@@ -410,12 +414,6 @@
         </dependency>
 
         <!-- These dependencies ensure that the runtime modules are built first, but are not used by the test code -->
-
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-runtime-linux</artifactId>
-            <scope>test</scope>
-        </dependency>
 
         <dependency>
             <groupId>${project.groupId}</groupId>

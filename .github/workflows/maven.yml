@@ -15,16 +15,23 @@ jobs:
   build-matrix:
     name: "Matrix build"
     strategy:
+      fail-fast: false
       matrix:
-        llvm-version: ["12", "13"]
+        llvm-version: ["12", "13", "14"]
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    continue-on-error: true
     steps:
       - name: Install LLVM
         uses: KyleMayes/install-llvm-action@v1.5.3
         with:
           version: ${{ matrix.llvm-version }}
           directory: ${{ runner.temp }}/llvm-install
+
+      - name: Install `libgcc` (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get install -y libgcc-11-dev
 
       - name: Install libunwind (Linux only)
         if: matrix.os == 'ubuntu-latest'
@@ -45,6 +52,7 @@ jobs:
       - name: Install qbicc (Linux)
         if: matrix.os == 'ubuntu-latest'
         env:
+            LIBRARY_PATH: /usr/lib/gcc/x86_64-linux-gnu/11:/usr/lib/x86_64-linux-gnu
             CC: clang
         run: |
           mvn --batch-mode install -Dqbicc.test.clean-target=true
@@ -53,7 +61,7 @@ jobs:
       - name: Install qbicc (Mac OS)
         if: matrix.os == 'macos-latest'
         env:
-            LIBRARY_PATHS: $(brew --prefix gcc)/lib/gcc/11
+            LIBRARY_PATH: $(brew --prefix gcc)/lib/gcc/11
             CC: gcc
         run: |
           mvn --batch-mode install -Dqbicc.test.clean-target=true

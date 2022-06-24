@@ -36,6 +36,7 @@ import org.eclipse.aether.internal.impl.DefaultChecksumPolicyProvider;
 import org.eclipse.aether.internal.impl.DefaultDeployer;
 import org.eclipse.aether.internal.impl.DefaultFileProcessor;
 import org.eclipse.aether.internal.impl.DefaultInstaller;
+import org.eclipse.aether.internal.impl.DefaultLocalPathComposer;
 import org.eclipse.aether.internal.impl.DefaultLocalRepositoryProvider;
 import org.eclipse.aether.internal.impl.DefaultMetadataResolver;
 import org.eclipse.aether.internal.impl.DefaultOfflineController;
@@ -49,6 +50,7 @@ import org.eclipse.aether.internal.impl.DefaultTransporterProvider;
 import org.eclipse.aether.internal.impl.DefaultUpdateCheckManager;
 import org.eclipse.aether.internal.impl.DefaultUpdatePolicyAnalyzer;
 import org.eclipse.aether.internal.impl.EnhancedLocalRepositoryManagerFactory;
+import org.eclipse.aether.internal.impl.LocalPathComposer;
 import org.eclipse.aether.internal.impl.Maven2RepositoryLayoutFactory;
 import org.eclipse.aether.internal.impl.SimpleLocalRepositoryManagerFactory;
 import org.eclipse.aether.internal.impl.TrackingFileManager;
@@ -85,6 +87,7 @@ final class QbiccServiceLocator implements ServiceLocator {
         Map.entry(Deployer.class, List.of(DefaultDeployer::new)),
         Map.entry(FileProcessor.class, List.of(DefaultFileProcessor::new)),
         Map.entry(Installer.class, List.of(DefaultInstaller::new)),
+        Map.entry(LocalPathComposer.class, List.of(DefaultLocalPathComposer::new)),
         Map.entry(LocalRepositoryManagerFactory.class, List.of(SimpleLocalRepositoryManagerFactory::new, EnhancedLocalRepositoryManagerFactory::new)),
         Map.entry(LocalRepositoryProvider.class, List.of(DefaultLocalRepositoryProvider::new)),
         Map.entry(MetadataGeneratorFactory.class, List.of(SnapshotMetadataGeneratorFactory::new, VersionsMetadataGeneratorFactory::new)),

@@ -10,11 +10,13 @@ public class LLVMDefaultModuleCompileStage implements Consumer<CompilationContex
     private final boolean isPie;
     private final boolean compileOutput;
     private final LLVMReferencePointerFactory refFactory;
+    private LLVMCompiler.Factory llvmCompilerFactory;
 
-    public LLVMDefaultModuleCompileStage(boolean isPie, boolean compileOutput, LLVMReferencePointerFactory refFactory) {
+    public LLVMDefaultModuleCompileStage(boolean isPie, boolean compileOutput, LLVMReferencePointerFactory refFactory, LLVMCompiler.Factory llvmCompilerFactory) {
         this.isPie = isPie;
         this.compileOutput = compileOutput;
         this.refFactory = refFactory;
+        this.llvmCompilerFactory = llvmCompilerFactory;
     }
 
     @Override
@@ -23,7 +25,7 @@ public class LLVMDefaultModuleCompileStage implements Consumer<CompilationContex
         DefinedTypeDefinition defaultTypeDefinition = context.getDefaultTypeDefinition();
         Path modulePath = generator.processProgramModule(context.getOrAddProgramModule(defaultTypeDefinition));
         if (compileOutput) {
-            LLVMCompiler compiler = new LLVMCompiler(context, isPie);
+            LLVMCompiler compiler = llvmCompilerFactory.of(context, isPie);
             compiler.compileModule(context, defaultTypeDefinition.load(), modulePath);
         }
     }

@@ -51,6 +51,7 @@ import org.qbicc.driver.plugin.DriverPlugin;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.impl.VmImpl;
+import org.qbicc.machine.arch.Cpu;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.probe.CProbe;
@@ -58,6 +59,7 @@ import org.qbicc.machine.tool.CToolChain;
 import org.qbicc.machine.vfs.AbsoluteVirtualPath;
 import org.qbicc.machine.vfs.VFSUtils;
 import org.qbicc.machine.vfs.VirtualFileSystem;
+import org.qbicc.plugin.apploader.InitAppClassLoaderHook;
 import org.qbicc.plugin.constants.ConstantBasicBlockBuilder;
 import org.qbicc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import org.qbicc.plugin.core.CoreAnnotationTypeBuilder;
@@ -82,10 +84,14 @@ import org.qbicc.plugin.instanceofcheckcast.SupersDisplayEmitter;
 import org.qbicc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
 import org.qbicc.plugin.intrinsics.core.CoreIntrinsics;
 import org.qbicc.plugin.layout.ObjectAccessLoweringBuilder;
+import org.qbicc.plugin.linker.EmscriptenLinkStage;
 import org.qbicc.plugin.linker.LinkStage;
 import org.qbicc.plugin.llvm.LLVMCompatibleBasicBlockBuilder;
 import org.qbicc.plugin.llvm.LLVMCompileStage;
+import org.qbicc.plugin.llvm.LLVMCompiler;
+import org.qbicc.plugin.llvm.LLVMCompilerImpl;
 import org.qbicc.plugin.llvm.LLVMDefaultModuleCompileStage;
+import org.qbicc.plugin.llvm.LLVMEmscriptenCompiler;
 import org.qbicc.plugin.llvm.LLVMGenerator;
 import org.qbicc.plugin.llvm.LLVMIntrinsics;
 import org.qbicc.plugin.llvm.LLVMReferencePointerFactory;
@@ -184,6 +190,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean optInlining;
     private final boolean optEscapeAnalysis;
     private final Platform platform;
+    private final boolean isWasm;
     private final boolean smallTypeIds;
     private final List<Path> librarySearchPaths;
     private final List<String> buildFeatures;
@@ -205,6 +212,7 @@ public class Main implements Callable<DiagnosticContext> {
         optGotos = builder.optGotos;
         optEscapeAnalysis = builder.optEscapeAnalysis;
         platform = builder.platform;
+        isWasm = platform.getCpu() == Cpu.WASM32;
         smallTypeIds = builder.smallTypeIds;
         ArrayList<ClassPathEntry> bootPaths = new ArrayList<>(builder.bootPathsPrepend.size() + 6 + builder.bootPathsAppend.size());
         bootPaths.addAll(builder.bootPathsPrepend);
@@ -442,6 +450,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, VFS::initialize);
                                 builder.addPreHook(Phase.ADD, Main::mountInitialFileSystem);
                                 builder.addPreHook(Phase.ADD, new VMHelpersSetupHook());
+                                builder.addPreHook(Phase.ADD, new InitAppClassLoaderHook());
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
                                 if (nogc) {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
@@ -570,19 +579,27 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.LOWER, NativeXtorLoweringHook::process);
                                 builder.addPostHook(Phase.LOWER, BuildtimeHeap::reportStats);
 
+                                LLVMReferencePointerFactory referencePointerFactory =
+                                    isWasm ? LLVMReferencePointerFactory.SIMPLE : LLVMReferencePointerFactory.COLLECTED;
+
+                                LLVMCompiler.Factory llvmCompilerFactory =
+                                    isWasm? LLVMEmscriptenCompiler::new : LLVMCompilerImpl::new;
+
                                 builder.addPreHook(Phase.GENERATE, new StringInternTableEmitter());
                                 builder.addPreHook(Phase.GENERATE, new SupersDisplayEmitter());
                                 builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
-                                builder.addPreHook(Phase.GENERATE, new LLVMGenerator(isPie ? 2 : 0, isPie ? 2 : 0, LLVMReferencePointerFactory.COLLECTED));
+                                builder.addPreHook(Phase.GENERATE, new LLVMGenerator(isPie ? 2 : 0, isPie ? 2 : 0, referencePointerFactory));
 
                                 builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
                                 if (compileOutput) {
-                                    builder.addPostHook(Phase.GENERATE, new LLVMCompileStage(isPie));
+                                    builder.addPostHook(Phase.GENERATE, new LLVMCompileStage(isPie, llvmCompilerFactory));
                                 }
                                 builder.addPostHook(Phase.GENERATE, new MethodDataEmitter());
-                                builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(isPie, compileOutput, LLVMReferencePointerFactory.COLLECTED));
+                                builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(isPie, compileOutput, referencePointerFactory, llvmCompilerFactory));
                                 if (compileOutput) {
-                                    builder.addPostHook(Phase.GENERATE, new LinkStage(outputName, isPie, librarySearchPaths));
+                                    Consumer<CompilationContext> linkStage =
+                                        isWasm ? new EmscriptenLinkStage(outputName, isPie, librarySearchPaths) : new LinkStage(outputName, isPie, librarySearchPaths);
+                                    builder.addPostHook(Phase.GENERATE, linkStage);
                                 }
 
                                 CompilationContext ctxt;
@@ -621,7 +638,7 @@ public class Main implements Callable<DiagnosticContext> {
         result.forEach(classPathItemConsumer);
     }
 
-    private static List<Path> splitPathString(String str) {
+    static List<Path> splitPathString(String str) {
         if (str == null || str.isEmpty()) {
             return List.of();
         }
@@ -644,6 +661,7 @@ public class Main implements Callable<DiagnosticContext> {
             } else {
                 start = idx + 1;
             }
+            idx = str.indexOf(psc, start);
         }
     }
 
