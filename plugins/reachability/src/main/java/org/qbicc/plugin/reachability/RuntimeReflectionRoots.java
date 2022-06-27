@@ -31,9 +31,9 @@ public class RuntimeReflectionRoots {
     private static final AttachmentKey<RuntimeReflectionRoots> KEY = new AttachmentKey<>();
 
     private final CompilationContext ctxt;
-    private final Set<LoadedTypeDefinition> accessedClasses = ConcurrentHashMap.newKeySet();
-    private final Set<ExecutableElement> accessedMethods = ConcurrentHashMap.newKeySet();
-    private final Set<FieldElement> accessedFields = ConcurrentHashMap.newKeySet();
+    final Set<LoadedTypeDefinition> accessedClasses = ConcurrentHashMap.newKeySet();
+    final Set<ExecutableElement> accessedMethods = ConcurrentHashMap.newKeySet();
+    final Set<FieldElement> accessedFields = ConcurrentHashMap.newKeySet();
 
     private RuntimeReflectionRoots(final CompilationContext ctxt) {
         this.ctxt = ctxt;
