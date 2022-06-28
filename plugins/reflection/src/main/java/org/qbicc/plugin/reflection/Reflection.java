@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.AttachmentKey;
@@ -355,11 +356,36 @@ public final class Reflection {
         return instance;
     }
 
+    public void ensureRoot(ExecutableElement e) {
+        VmClass c = e.getEnclosingType().load().getVmClass();
+        if (e instanceof MethodElement) {
+            getClassDeclaredMethods(c, true);
+            getClassDeclaredMethods(c, false);
+        } else if (e instanceof ConstructorElement) {
+            getClassDeclaredConstructors(c, true);
+            getClassDeclaredConstructors(c, false);
+        }
+    }
+
+    public void ensureRoot(FieldElement f) {
+        VmClass c = f.getEnclosingType().load().getVmClass();
+        getClassDeclaredFields(c, true);
+        getClassDeclaredFields(c, false);
+    }
+
     /**
      * Transfer the VMReferenceArrays built during the ADD phase to the ReflectionData
      * instances that will be serialized as part of the initial runtime heap.
      */
-    public void transferToReflectionData()  {
+    public void transferToReflectionData(Set<LoadedTypeDefinition> accessedClasses, Set<ExecutableElement> accessedMethods, Set<FieldElement> accessedFields)  {
+        // (1) Force build-time initialization of all accessed members
+        accessedMethods.forEach(m -> ensureRoot(m));
+        accessedFields.forEach(f -> ensureRoot(f));
+
+        // TODO: Here is where we force method handle and field accessor creation at build time.
+
+
+        // (2) Now transfer all of the objects we've created to the build-time heap by storing them in the VmClass instances.
         LoadedTypeDefinition rdDef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class$ReflectionData").load();
         LayoutInfo rdLayout = Layout.get(ctxt).getInstanceLayoutInfo(rdDef);
         long rdIndex = classClass.indexOf(classClass.getTypeDefinition().findField("qbiccReflectionData"));

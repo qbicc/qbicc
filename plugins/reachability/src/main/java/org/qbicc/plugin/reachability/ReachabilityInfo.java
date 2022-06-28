@@ -154,7 +154,7 @@ public class ReachabilityInfo {
         info.analysis.processInstantiatedClass(thr, false,null);
     }
 
-    public static void processAutoQueuedElement(ExecutableElement elem) {
+    public static void processReachableElement(ExecutableElement elem) {
         if (elem instanceof MethodElement me) {
             ReachabilityInfo info = get(elem.getEnclosingType().getContext().getCompilationContext());
             if (me.isStatic()) {
@@ -328,8 +328,8 @@ public class ReachabilityInfo {
                 MethodElement m = type.getMethod(i);
                 for (Annotation annotation : m.getInvisibleAnnotations()) {
                     if (annotation.getDescriptor().packageAndClassNameEquals("org/qbicc/runtime", "ReflectivelyAccessed")) {
-                        if (RuntimeReflectionRoots.get(ctxt).accessedMethods.add(m)) {
-                            processAutoQueuedElement(m);
+                        if (RuntimeReflectionRoots.get(ctxt).registerMethod(m)) {
+                            processReachableElement(m);
                         }
                     }
                 }
@@ -338,8 +338,8 @@ public class ReachabilityInfo {
                 ConstructorElement m = type.getConstructor(i);
                 for (Annotation annotation : m.getInvisibleAnnotations()) {
                     if (annotation.getDescriptor().packageAndClassNameEquals("org/qbicc/runtime", "ReflectivelyAccessed")) {
-                        if (RuntimeReflectionRoots.get(ctxt).accessedMethods.add(m)) {
-                            processAutoQueuedElement(m);
+                        if (RuntimeReflectionRoots.get(ctxt).registerConstructor(m)) {
+                            processReachableElement(m);
                         }
                     }
                 }
@@ -348,7 +348,7 @@ public class ReachabilityInfo {
                 FieldElement f = type.getField(i);
                 for (Annotation annotation : f.getInvisibleAnnotations()) {
                     if (annotation.getDescriptor().packageAndClassNameEquals("org/qbicc/runtime", "ReflectivelyAccessed")) {
-                        if (RuntimeReflectionRoots.get(ctxt).accessedFields.add(f)) {
+                        if (RuntimeReflectionRoots.get(ctxt).registerField(f)) {
                             // No additional action needed
                         }
                     }
