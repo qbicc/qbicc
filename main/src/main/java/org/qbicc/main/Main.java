@@ -496,6 +496,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
+                                builder.addPostHook(Phase.ADD, ctxt -> {
+                                    Reflection.get(ctxt).transferToReflectionData();
+                                });
                                 builder.addPostHook(Phase.ADD, ReachabilityInfo::reportStats);
                                 builder.addPostHook(Phase.ADD, ReachabilityInfo::clear);
 
