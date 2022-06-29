@@ -1,21 +1,15 @@
 package org.qbicc.tool.llvm;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import org.qbicc.machine.tool.CompilationFailureException;
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.machine.tool.ToolMessageHandler;
 import org.qbicc.machine.tool.process.InputSource;
 import org.qbicc.machine.tool.process.OutputDestination;
-import io.smallrye.common.constraint.Assert;
 
 /**
  *

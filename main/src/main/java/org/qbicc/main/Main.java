@@ -95,6 +95,7 @@ import org.qbicc.plugin.llvm.LLVMEmscriptenCompiler;
 import org.qbicc.plugin.llvm.LLVMGenerator;
 import org.qbicc.plugin.llvm.LLVMIntrinsics;
 import org.qbicc.plugin.llvm.LLVMReferencePointerFactory;
+import org.qbicc.plugin.llvm.LLVMStripStackMapStage;
 import org.qbicc.plugin.lowering.BooleanAccessCopier;
 import org.qbicc.plugin.lowering.FunctionLoweringElementHandler;
 import org.qbicc.plugin.lowering.InitCheckLoweringBasicBlockBuilder;
@@ -607,6 +608,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (llvm) {
                                     builder.addPostHook(Phase.GENERATE, new MethodDataEmitter());
                                     builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(isPie, compileOutput, referencePointerFactory, llvmCompilerFactory));
+                                    if (! isWasm) {
+                                        builder.addPostHook(Phase.GENERATE, new LLVMStripStackMapStage());
+                                    }
                                 }
                                 if (compileOutput) {
                                     Consumer<CompilationContext> linkStage =
