@@ -1,6 +1,8 @@
 package org.qbicc.plugin.linker;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,8 +39,14 @@ public final class Linker {
         }
     }
 
-    public Map<LoadedTypeDefinition, Path> getObjectFilePathsByType() {
-        return new HashMap<>(objectPathsByType);
+    public List<Path> getObjectFilePathsInLinkOrder() {
+        List<LoadedTypeDefinition> types = new ArrayList<>(objectPathsByType.keySet());
+        types.sort(Comparator.comparingInt(LoadedTypeDefinition::getTypeId));
+        List<Path> sortedPaths = new ArrayList<>(types.size());
+        for (LoadedTypeDefinition type : types) {
+            sortedPaths.add(objectPathsByType.get(type));
+        }
+        return sortedPaths;
     }
 
     public void addLibrary(String library) {
