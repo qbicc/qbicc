@@ -44,22 +44,36 @@ public final class MethodData {
     public static native long getInstructionAddress(int index);
     public static native int getInstructionListSize();
 
+    static final boolean sortedByIP = false;
+
     static int findInstructionIndex(long ip) {
-        // do a binary search in instruction table
-        int upper = MethodData.getInstructionListSize();
-        int lower = 0;
-        while (upper >= lower) {
-            int mid = ( upper + lower ) >>> 1;
-            long addr = MethodData.getInstructionAddress(mid);
-            if (ip == addr) {
-                return mid;
-            } else if (ip > addr) {
-                lower = mid+1;
-            } else {
-                upper = mid-1;
+        if (sortedByIP) {
+            // do a binary search in instruction table
+            int upper = MethodData.getInstructionListSize();
+            int lower = 0;
+            while (upper >= lower) {
+                int mid = (upper + lower) >>> 1;
+                long addr = MethodData.getInstructionAddress(mid);
+                if (ip == addr) {
+                    return mid;
+                } else if (ip > addr) {
+                    lower = mid + 1;
+                } else {
+                    upper = mid - 1;
+                }
             }
+            return -1;
+        } else {
+            // ugh.  Not sorted. scan the whole table linearly.  This is a disaster...
+            int upper = MethodData.getInstructionListSize();
+            for (int i=0; i<upper; i++) {
+                long addr = MethodData.getInstructionAddress(i);
+                if (ip == addr) {
+                    return i;
+                }
+            }
+            return -1;
         }
-        return -1;
     }
 
     private static native void fillStackTraceElement(StackTraceElement element, int scIndex);
