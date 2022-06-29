@@ -37,14 +37,7 @@ public class EmscriptenLinkStage implements Consumer<CompilationContext> {
         }
         LinkerInvoker linkerInvoker = cToolChain.newLinkerInvoker();
         Linker linker = Linker.get(context);
-        Map<LoadedTypeDefinition, Path> objectFilePathsByType = linker.getObjectFilePathsByType();
-        List<LoadedTypeDefinition> types = new ArrayList<>(objectFilePathsByType.keySet());
-        types.sort(Comparator.comparingInt(LoadedTypeDefinition::getTypeId));
-        List<Path> sortedPaths = new ArrayList<>(types.size());
-        for (LoadedTypeDefinition type : types) {
-            sortedPaths.add(objectFilePathsByType.get(type));
-        }
-        linkerInvoker.addObjectFiles(sortedPaths);
+        linkerInvoker.addObjectFiles(linker.getObjectFilePathsInLinkOrder());
         linkerInvoker.addLibraries(linker.getLibraries());
         linkerInvoker.addLibraryPaths(librarySearchPaths);
         linkerInvoker.setOutputPath(context.getOutputDirectory().resolve(outputName));

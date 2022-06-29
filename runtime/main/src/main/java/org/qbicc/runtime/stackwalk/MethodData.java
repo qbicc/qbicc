@@ -62,6 +62,22 @@ public final class MethodData {
         return -1;
     }
 
+    // Debug method to validate linker order was as expected.
+    static void validateMethodData() {
+        int upper = MethodData.getInstructionListSize();
+        long prev = 0;
+        printString("Starting validation");
+        printString(Integer.toString(upper));
+        for (int i=0; i<upper; i++) {
+            long addr = MethodData.getInstructionAddress(i);
+            if (addr < prev) {
+                printString("VIOLATION");
+            }
+            prev = addr;
+        }
+        printString("Ending validation");
+    }
+
     private static native void fillStackTraceElement(StackTraceElement element, int scIndex);
 
     @CNative.extern
