@@ -62,7 +62,8 @@ public abstract class Pointer {
         long pointeeSize = pointeeType.getSize();
         if (offset < 0 || offset > pointeeSize) {
             if (! array) {
-                throw new IllegalArgumentException("Pointer offset is out of bounds");
+                // invalid pointer/unknown memory location (out of bounds)
+                return null;
             }
             long index = offset / pointeeSize;
             long extra = offset % pointeeSize;
@@ -88,7 +89,8 @@ public abstract class Pointer {
                     return new MemberPointer(this, member).offsetInBytes(offset - memberOffset, false);
                 }
             }
-            throw new IllegalArgumentException("Pointer offset does not correspond to a structure member");
+            // invalid pointer/unknown memory location
+            return null;
         }
         // field?
         if (pointeeType instanceof PhysicalObjectType pot) {
@@ -103,9 +105,11 @@ public abstract class Pointer {
                     }
                 }
             }
-            throw new IllegalArgumentException("Pointer offset does not correspond to a field in the target instance");
+            // invalid pointer/unknown memory location (not within target object)
+            return null;
         }
-        throw new IllegalArgumentException("Cannot determine type of pointer offset");
+        // invalid pointer/unknown memory location (unknown type)
+        return null;
     }
 
     public Pointer offsetByElements(long count) {
