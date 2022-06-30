@@ -7,7 +7,7 @@ public class ArmCpu extends Cpu {
     private final ArmCpuArch arch;
 
     ArmCpu(final ArmCpuArch arch) {
-        super(4, "arm");
+        super(4, Register_ARM.class, "arm");
         this.arch = arch;
     }
 
