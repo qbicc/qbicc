@@ -270,6 +270,16 @@ public final class CNative {
      */
     public static native <T extends object> T auto();
 
+    public static native <T extends object> T auto(T initial);
+    public static native byte auto(byte initial);
+    public static native char auto(char initial);
+    public static native double auto(double initial);
+    public static native float auto(float initial);
+    public static native int auto(int initial);
+    public static native long auto(long initial);
+    public static native short auto(short initial);
+    public static native boolean auto(boolean initial);
+
     /**
      * Make a word type instance directly out of the given value. If the word type is integral and signed,
      * the given value is sign-extended. If the word type is integral and unsigned, or is not integral, then
