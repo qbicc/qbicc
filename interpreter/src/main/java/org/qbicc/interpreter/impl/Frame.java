@@ -340,9 +340,13 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl param, AddressOf node) {
-        // Todo: this is temporary until https://github.com/qbicc/qbicc/issues/54 can be resolved.
-        // Sometimes, addr_of gets scheduled before the build-or-run-time-check executes.
-        return null;
+        ValueHandle valueHandle = node.getValueHandle();
+        Memory memory = getMemory(valueHandle);
+        if (memory == null) {
+            return null;
+        }
+        MemoryPointer memoryPointer = new MemoryPointer(node.getType(PointerType.class), memory);
+        return memoryPointer.offsetInBytes(getOffset(valueHandle), false);
     }
 
     @Override

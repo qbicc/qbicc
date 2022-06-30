@@ -1,5 +1,6 @@
 package org.qbicc.pointer;
 
+import java.util.Iterator;
 import java.util.List;
 
 import org.qbicc.interpreter.Memory;
@@ -71,9 +72,19 @@ public abstract class Pointer {
         if (pointeeType instanceof CompoundType ct) {
             // find the most-fitting member
             List<CompoundType.Member> members = ct.getMembers();
-            for (CompoundType.Member member : members) {
+            Iterator<CompoundType.Member> iterator = members.iterator();
+            while (iterator.hasNext()) {
+                CompoundType.Member member = iterator.next();
                 int memberOffset = member.getOffset();
-                if (memberOffset <= offset) {
+                if (memberOffset > offset) {
+                    // not it
+                    continue;
+                }
+                if (! iterator.hasNext() && member.getType() instanceof ArrayType at && at.getElementCount() == 0) {
+                    // flexible array member; it claims all following memory
+                    return new MemberPointer(this, member).offsetInBytes(offset - memberOffset, true);
+                }
+                if ((offset < memberOffset + member.getType().getSize())) {
                     return new MemberPointer(this, member).offsetInBytes(offset - memberOffset, false);
                 }
             }
