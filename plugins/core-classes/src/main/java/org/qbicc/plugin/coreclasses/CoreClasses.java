@@ -49,6 +49,7 @@ public final class CoreClasses {
     };
     private static final String OBJECT_INT_NAME = "java/lang/Object";
     private static final String CLASS_INT_NAME = "java/lang/Class";
+    private static final String CLASS_LOADER_INT_NAME = "java/lang/ClassLoader";
     private static final String THREAD_INT_NAME = "java/lang/Thread";
     private static final String THROWABLE_INT_NAME = "java/lang/Throwable";
 
@@ -63,6 +64,8 @@ public final class CoreClasses {
     private final FieldElement classInstanceAlignField;
     private final FieldElement classNestHostField;
     private final FieldElement classNestMembersField;
+    private final FieldElement classModuleField;
+    private final FieldElement classLoaderUnnamedModuleField;
 
     private final FieldElement thrownField;
 
@@ -119,6 +122,9 @@ public final class CoreClasses {
         classInstanceAlignField = jlc.findField("instanceAlign", true);
         classNestHostField = jlc.findField("nestHost", true);
         classNestMembersField = jlc.findField("nestMembers", true);
+        classModuleField = jlc.findField("module", true);
+
+        classLoaderUnnamedModuleField = classContext.findDefinedType(CLASS_LOADER_INT_NAME).load().findField("unnamedModule", true);
 
         thrownField = jlt.findField("thrown", true);
 
@@ -525,6 +531,14 @@ public final class CoreClasses {
 
     public FieldElement getClassNestMembersField() {
         return classNestMembersField;
+    }
+
+    public FieldElement getClassModuleField() {
+        return classModuleField;
+    }
+
+    public FieldElement getClassLoaderUnnamedModuleField() {
+        return classLoaderUnnamedModuleField;
     }
 
     public LoadedTypeDefinition getClassTypeDefinition() {

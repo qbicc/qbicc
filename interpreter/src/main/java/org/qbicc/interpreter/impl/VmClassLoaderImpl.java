@@ -1,9 +1,13 @@
 package org.qbicc.interpreter.impl;
 
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,6 +23,7 @@ import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThrowable;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -36,6 +41,10 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
     final ConcurrentHashMap<MethodHandleConstant, VmObject> methodHandleCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, AtomicInteger> hiddenClassSeqMap = new ConcurrentHashMap<>();
     private final boolean appCL;
+    // protected by lock ↓
+    private final HashMap<String, VmObjectImpl> modulesByPackage = new HashMap<>();
+    private final HashMap<String, List<VmClassImpl>> classesWithoutModuleByPackage = new HashMap<>();
+    // protected by lock ↑
 
     VmClassLoaderImpl(VmClassLoaderClassImpl clazz, VmImpl vm) {
         // bootstrap CL
@@ -65,6 +74,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
     // internal for VM bootstrap
     void registerClass(String name, VmClassImpl clazz) {
         defined.put(name, clazz);
+        initializeModule(clazz);
     }
 
     @Override
@@ -192,6 +202,27 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         return vmClass;
     }
 
+    void setModulePackage(String packageName, VmObjectImpl module) {
+        packageName = packageName.replace('.', '/');
+        synchronized (this) {
+            VmObjectImpl existing = modulesByPackage.putIfAbsent(packageName, module);
+            if (existing == module) {
+                // OK idempotency
+                return;
+            }
+            if (existing != null) {
+                throw new IllegalStateException("Package defined to more than one module: " + packageName);
+            }
+            // also update any classes defined to this package
+            List<VmClassImpl> list = classesWithoutModuleByPackage.remove(packageName);
+            if (list != null) {
+                for (VmClassImpl vmClass : list) {
+                    vmClass.setModule(module);
+                }
+            }
+        }
+    }
+
     private VmClassImpl createVmClass(final VmImpl vm, final LoadedTypeDefinition loaded, boolean hidden) {
         ObjectType type = loaded.getObjectType();
         ClassObjectType classLoaderType = vm.classLoaderClass.getTypeDefinition().getClassType();
@@ -209,7 +240,33 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
             vmClass = new VmClassImpl(vm, loaded);
         }
         vmClass.postConstruct(vm);
+        initializeModule(vmClass);
         return vmClass;
+    }
+
+    void initializeModule(final VmClassImpl vmClass) {
+        String packageName = vmClass.getPackageInternalName();
+        // calculate the module for this class
+        synchronized (this) {
+            VmObjectImpl module = modulesByPackage.get(packageName);
+            if (module == null) {
+                module = getUnnamedModule();
+            }
+            if (module != null) {
+                vmClass.setModule(module);
+            } else {
+                classesWithoutModuleByPackage.computeIfAbsent(packageName, VmClassLoaderImpl::newList).add(vmClass);
+            }
+        }
+    }
+
+    private static <E> List<E> newList(final Object ignored) {
+        return new ArrayList<>();
+    }
+
+    private VmObjectImpl getUnnamedModule() {
+        CoreClasses coreClasses = CoreClasses.get(getVmClass().getVm().getCompilationContext());
+        return (VmObjectImpl) getMemory().loadRef(indexOf(coreClasses.getClassLoaderUnnamedModuleField()), SinglePlain);
     }
 
     private Thrown duplicateClass(final VmImpl vm) {

@@ -37,6 +37,11 @@ public interface Vm {
     void initialize();
 
     /**
+     * Perform second-stage VM initialization in the currently attached thread.
+     */
+    void initialize2();
+
+    /**
      * Create a new thread.
      *
      * @param threadName the thread name
