@@ -29,26 +29,31 @@ public interface LlvmToolChain extends Tool {
 
     OptInvoker newOptInvoker();
 
+    LlvmObjCopyInvoker newLlvmObjCopyInvoker();
+
     static Iterable<LlvmToolChain> findAllLlvmToolChains(Platform platform, Predicate<? super LlvmToolChain> filter, ClassLoader classLoader) {
         Path llcPath = ToolUtil.findExecutable("llc");
         if (llcPath != null) {
             Path optPath = ToolUtil.findExecutable("opt");
             if (optPath != null) {
-                // check versions
-                ProcessBuilder pb = new ProcessBuilder(List.of(llcPath.toString(), "--version"));
-                StringBuilder stdOut = new StringBuilder();
-                try {
-                    InputSource.empty().transferTo(OutputDestination.of(pb, OutputDestination.discarding(), OutputDestination.of(stdOut)));
-                } catch (IOException e) {
-                    Llvm.log.warn("Failed to execute LLVM tool chain version command", e);
-                    return List.of();
+                Path objCopyPath = ToolUtil.findExecutable("llvm-objcopy");
+                if (objCopyPath != null) {
+                    // check versions
+                    ProcessBuilder pb = new ProcessBuilder(List.of(llcPath.toString(), "--version"));
+                    StringBuilder stdOut = new StringBuilder();
+                    try {
+                        InputSource.empty().transferTo(OutputDestination.of(pb, OutputDestination.discarding(), OutputDestination.of(stdOut)));
+                    } catch (IOException e) {
+                        Llvm.log.warn("Failed to execute LLVM tool chain version command", e);
+                        return List.of();
+                    }
+                    Matcher matcher = Llvm.LLVM_VERSION_PATTERN.matcher(stdOut);
+                    if (matcher.find()) {
+                        String version = matcher.group(1);
+                        return List.of(new LlvmToolChainImpl(llcPath, optPath, objCopyPath, platform, version));
+                    }
+                    Llvm.log.warn("Failed to identify LLVM version string; skipping");
                 }
-                Matcher matcher = Llvm.LLVM_VERSION_PATTERN.matcher(stdOut);
-                if (matcher.find()) {
-                    String version = matcher.group(1);
-                    return List.of(new LlvmToolChainImpl(llcPath, optPath, platform, version));
-                }
-                Llvm.log.warn("Failed to identify LLVM version string; skipping");
             }
         }
         return List.of();
