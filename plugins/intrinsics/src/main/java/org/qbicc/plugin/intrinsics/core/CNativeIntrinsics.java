@@ -315,8 +315,16 @@ final class CNativeIntrinsics {
 
         intrinsics.registerIntrinsic(cNativeDesc, "zero", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), zero);
 
-        // todo: implement an "uninitialized" constant similar to zero
         intrinsics.registerIntrinsic(cNativeDesc, "auto", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), zero);
+        intrinsics.registerIntrinsic(cNativeDesc, "auto", MethodDescriptor.synthesize(classContext, nObjDesc, List.of(nObjDesc)), identityStatic);
+        intrinsics.registerIntrinsic(cNativeDesc, "auto", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.B, List.of(BaseTypeDescriptor.B)), identityStatic);
+        intrinsics.registerIntrinsic(cNativeDesc, "auto", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.C, List.of(BaseTypeDescriptor.C)), identityStatic);
+        intrinsics.registerIntrinsic(cNativeDesc, "auto", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.D, List.of(BaseTypeDescriptor.D)), identityStatic);
+        intrinsics.registerIntrinsic(cNativeDesc, "auto", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.F, List.of(BaseTypeDescriptor.F)), identityStatic);
+        intrinsics.registerIntrinsic(cNativeDesc, "auto", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.I)), identityStatic);
+        intrinsics.registerIntrinsic(cNativeDesc, "auto", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.J)), identityStatic);
+        intrinsics.registerIntrinsic(cNativeDesc, "auto", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.S, List.of(BaseTypeDescriptor.S)), identityStatic);
+        intrinsics.registerIntrinsic(cNativeDesc, "auto", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(BaseTypeDescriptor.Z)), identityStatic);
 
         StaticIntrinsic constant = (builder, target, arguments) ->
             ctxt.getLiteralFactory().constantLiteralOfType(ctxt.getTypeSystem().getPoisonType());
