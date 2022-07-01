@@ -346,7 +346,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return null;
         }
         MemoryPointer memoryPointer = new MemoryPointer(node.getType(PointerType.class), memory);
-        return memoryPointer.offsetInBytes(getOffset(valueHandle), false);
+        return memoryPointer.offsetInBytes(getOffset(valueHandle), true);
     }
 
     @Override
@@ -2474,7 +2474,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public Memory visit(Frame frame, PointerHandle node) {
             Pointer pointer = frame.unboxPointer(node.getPointerValue());
-            return pointer == null ? null : pointer.offsetByElements(frame.unboxLong(node.getOffsetValue())).getRootMemoryIfExists();
+            return pointer == null ? null : pointer.getRootMemoryIfExists();
         }
     };
 
@@ -2585,7 +2585,16 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public long visit(Frame frame, PointerHandle node) {
             Pointer pointer = frame.unboxPointer(node.getPointerValue());
-            return pointer == null ? 0 : pointer.offsetByElements(frame.unboxLong(node.getOffsetValue())).getRootByteOffset();
+            if (pointer == null) {
+                return 0;
+            }
+            long offset = frame.unboxLong(node.getOffsetValue());
+            // get the number of *bytes* to offset by, because the pointer's type might differ from the handle type
+            PointerType pointerType = node.getPointerType();
+            ValueType pointeeType = pointerType.getPointeeType();
+            long byteOffset = offset * pointeeType.getSize();
+            Pointer targetPointer = pointer.offsetInBytes(byteOffset, true);
+            return targetPointer == null ? 0 : targetPointer.getRootByteOffset();
         }
 
         @Override
