@@ -1,6 +1,12 @@
 package org.qbicc.plugin.dot;
 
-interface DotAttributes {
+public interface DotAttributes {
     String color();
     String style();
+
+    /**
+     * <a href="https://graphviz.org/docs/attr-types/portPos">Port position</a>.
+     * Modifier indicating where on a node an edge should be aimed.
+     */
+    String portPos();
 }

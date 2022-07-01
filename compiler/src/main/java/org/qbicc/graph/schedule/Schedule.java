@@ -59,8 +59,10 @@ public interface Schedule {
         final int maxOneBasedIndex = indexHolder[0];
         BlockInfo[] allBlocks = new BlockInfo[maxOneBasedIndex - 1];
         // a. Map blocks into the array
-        for (BlockInfo value : blockInfos.values()) {
-            allBlocks[value.index - 1] = value;
+        for (Map.Entry<BasicBlock, BlockInfo> entry : blockInfos.entrySet()) {
+            final BlockInfo blockInfo = entry.getValue();
+            allBlocks[blockInfo.index - 1] = blockInfo;
+            entry.getKey().setIndex(blockInfo.index);
         }
         // 2. Now execute algorithm to get dominators mapping
         new DominatorFinder(allBlocks).main();

@@ -1,107 +1,86 @@
 package org.qbicc.plugin.opt.ea;
 
+import java.util.Collection;
+import java.util.Objects;
+
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.InstanceFieldOf;
-import org.qbicc.graph.Invoke;
 import org.qbicc.graph.New;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.StaticField;
-import org.qbicc.plugin.dot.DotContext;
+import org.qbicc.graph.Store;
+import org.qbicc.graph.ValueHandle;
+import org.qbicc.plugin.dot.Disassembler;
+import org.qbicc.plugin.dot.DotAttributes;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-
-public final class EscapeAnalysisDotVisitor implements NodeVisitor.Delegating<DotContext, String, String, String, String> {
-    private final NodeVisitor<DotContext, String, String, String, String> delegate;
+public final class EscapeAnalysisDotVisitor implements NodeVisitor.Delegating<Disassembler, Void, Void, Void, Void> {
+    private final NodeVisitor<Disassembler, Void, Void, Void, Void> delegate;
     private final EscapeAnalysisState escapeAnalysisState;
-    private final Map<Invoke.ReturnValue, Node> invokeReturnValueQueue = new HashMap<>();
 
-    public EscapeAnalysisDotVisitor(CompilationContext ctxt, NodeVisitor<DotContext, String, String, String, String> delegate) {
+    public EscapeAnalysisDotVisitor(CompilationContext ctxt, NodeVisitor<Disassembler, Void, Void, Void, Void> delegate) {
         this.delegate = delegate;
         this.escapeAnalysisState = EscapeAnalysisState.get(ctxt);
     }
 
     @Override
-    public NodeVisitor<DotContext, String, String, String, String> getDelegateNodeVisitor() {
+    public NodeVisitor<Disassembler, Void, Void, Void, Void> getDelegateNodeVisitor() {
         return delegate;
     }
 
     @Override
-    public String visit(DotContext param, New node) {
-        return decorate(param, node);
+    public Void visit(Disassembler param, New node) {
+        decorate(param, node);
+        return delegate.visit(param, node);
     }
 
     @Override
-    public String visit(DotContext param, StaticField node) {
-        return decorate(param, node);
-    }
-
-    @Override
-    public String visit(DotContext param, ParameterValue node) {
-        return decorate(param, node);
-    }
-
-    @Override
-    public String visit(DotContext param, InstanceFieldOf node) {
-        return decorate(param, node);
-    }
-
-    @Override
-    public String visit(DotContext param, PhiValue node) {
-        return decorate(param, node);
-    }
-
-    @Override
-    public String visit(DotContext param, Invoke node) {
-        final Node pointsToFrom = invokeReturnValueQueue.get(node.getReturnValue());
-        if (Objects.nonNull(pointsToFrom)) {
-            // Invoke return value not shown, but instead link to parent Invoke node
-            addEdge(param, pointsToFrom, node, EdgeType.POINTS_TO, "P");
+    public Void visit(Disassembler param, Store node) {
+        final ValueHandle valueHandle = node.getValueHandle();
+        if (valueHandle instanceof StaticField || valueHandle instanceof InstanceFieldOf) {
+            decorate(param, valueHandle);
         }
 
-        return param.getName(node);
+        return delegate.visit(param, node);
     }
 
-    private String decorate(DotContext param, Node node) {
+    @Override
+    public Void visit(Disassembler param, ParameterValue node) {
+        decorate(param, node);
+        return delegate.visit(param, node);
+    }
+
+    @Override
+    public Void visit(Disassembler param, PhiValue node) {
+        decorate(param, node);
+        return delegate.visit(param, node);
+    }
+
+    private void decorate(Disassembler param, Node node) {
         final ConnectionGraph connectionGraph = getConnectionGraph(param);
-        final String name = param.getName(node);
-        param.appendTo(name);
-        param.attr("style", "filled");
-        param.attr("fillcolor", nodeType(connectionGraph.getEscapeValue(node)).fillColor);
-        param.nl();
+        param.setLineColor(nodeType(connectionGraph.getEscapeValue(node)).fillColor);
         addFieldEdges(param, node, connectionGraph);
         addPointsToEdge(param, node, connectionGraph);
-        return name;
     }
 
-    private void addPointsToEdge(DotContext param, Node node, ConnectionGraph connectionGraph) {
+    private void addPointsToEdge(Disassembler param, Node node, ConnectionGraph connectionGraph) {
         final Node pointsTo = connectionGraph.getPointsToEdge(node);
         if (Objects.nonNull(pointsTo)) {
-            if (pointsTo instanceof Invoke.ReturnValue ret) {
-                // Delay adding edges linked to the Invoke terminator until it gets visited.
-                // This is done to keep the structure of subgraphs intact.
-                invokeReturnValueQueue.put(ret, node);
-                return;
-            }
-
-            addEdge(param, node, pointsTo, EdgeType.POINTS_TO, "P");
+            param.addCellEdge(node, pointsTo, "P", EdgeType.POINTS_TO);
         }
     }
 
-    private void addFieldEdges(DotContext param, Node node, ConnectionGraph connectionGraph) {
+    private void addFieldEdges(Disassembler param, Node node, ConnectionGraph connectionGraph) {
         final Collection<InstanceFieldOf> fields = connectionGraph.getFieldEdges(node);
         for (InstanceFieldOf field : fields) {
-            addEdge(param, node, field, EdgeType.FIELD, "F");
+            param.addCellEdge(node, field, "F", EdgeType.FIELD);
         }
     }
 
-    private ConnectionGraph getConnectionGraph(DotContext dtxt) {
-        return escapeAnalysisState.getConnectionGraph(dtxt.getElement());
+    private ConnectionGraph getConnectionGraph(Disassembler disassembler) {
+        return escapeAnalysisState.getConnectionGraph(disassembler.getElement());
     }
 
     private NodeType nodeType(EscapeValue value) {
@@ -111,23 +90,6 @@ public final class EscapeAnalysisDotVisitor implements NodeVisitor.Delegating<Do
             case NO_ESCAPE -> NodeType.NO_ESCAPE;
             case UNKNOWN -> NodeType.UNKNOWN;
         };
-    }
-
-    private void addEdge(DotContext param, Node from, Node to, EdgeType edge, String label) {
-        String fromName = param.visit(from);
-        String toName = param.visit(to);
-        addEdge(param, fromName, toName, edge, label);
-    }
-
-    private void addEdge(DotContext param, String fromName, String toName, EdgeType edge, String label) {
-        param.appendTo(fromName);
-        param.appendTo(" -> ");
-        param.appendTo(toName);
-        param.attr("label", label);
-        param.attr("style", edge.style);
-        param.attr("color", edge.color);
-        param.attr("fontcolor", edge.color);
-        param.nl();
     }
 
     private enum NodeType {
@@ -143,18 +105,31 @@ public final class EscapeAnalysisDotVisitor implements NodeVisitor.Delegating<Do
         }
     }
 
-    private enum EdgeType {
+    private enum EdgeType implements DotAttributes {
         POINTS_TO("gray", "solid"),
         FIELD("gray", "dashed");
 
         final String color;
         final String style;
-        final char label;
 
         EdgeType(String color, String style) {
             this.color = color;
             this.style = style;
-            this.label = this.toString().charAt(0);
+        }
+
+        @Override
+        public String color() {
+            return color;
+        }
+
+        @Override
+        public String style() {
+            return style;
+        }
+
+        @Override
+        public String portPos() {
+            return this == FIELD ? "w" : "e";
         }
     }
 }
