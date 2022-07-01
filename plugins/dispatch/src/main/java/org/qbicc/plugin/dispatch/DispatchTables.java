@@ -26,6 +26,7 @@ import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.plugin.correctness.RuntimeInitManager;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
+import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
@@ -89,13 +90,14 @@ public class DispatchTables {
     void buildFilteredVTable(LoadedTypeDefinition cls) {
         tlog.debugf("Building VTable for %s", cls.getDescriptor());
         ReachabilityInfo reachabilityInfo = ReachabilityInfo.get(ctxt);
+        ReachabilityRoots roots = ReachabilityRoots.get(ctxt);
 
         ArrayList<MethodElement> vtableVector = new ArrayList<>();
         for (MethodElement m: cls.getInstanceMethods()) {
             if (!m.isPrivate() && reachabilityInfo.isDispatchableMethod(m)) {
                 if (reachabilityInfo.isInvokableInstanceMethod(m)) {
                     tlog.debugf("\tadding dispatchable and invokable method %s%s", m.getName(), m.getDescriptor().toString());
-                    ctxt.registerAutoQueuedElement(m);
+                    roots.registerDispatchTableEntry(m);
                 } else {
                     tlog.debugf("\tadding dispatchable but not invokable method %s%s", m.getName(), m.getDescriptor().toString());
                 }
@@ -107,7 +109,7 @@ public class DispatchTables {
             if (reachabilityInfo.isDispatchableMethod(m)) {
                 if (reachabilityInfo.isInvokableInstanceMethod(m)) {
                     tlog.debugf("\tadding dispatchable and invokable SigPoly method %s%s", m.getName(), m.getDescriptor().toString());
-                    ctxt.registerAutoQueuedElement(m);
+                    roots.registerDispatchTableEntry(m);
                 } else {
                     tlog.debugf("\tadding dispatchable but not invokable SigPoly method %s%s", m.getName(), m.getDescriptor().toString());
                 }
@@ -122,6 +124,7 @@ public class DispatchTables {
     void adjustVTableForSigPloySubclass(LoadedTypeDefinition cls, VTableInfo sigPolyClass) {
         tlog.debugf("Recompute SigPoly VTable for %s", cls.getDescriptor());
         ReachabilityInfo reachabilityInfo = ReachabilityInfo.get(ctxt);
+        ReachabilityRoots roots = ReachabilityRoots.get(ctxt);
 
         MethodElement[] baseVTable = sigPolyClass.getVtable();
         ArrayList<MethodElement> vtableVector = new ArrayList<>();
@@ -132,7 +135,7 @@ public class DispatchTables {
         for (MethodElement m: cls.getInstanceMethods()) {
             if (!m.isPrivate() && reachabilityInfo.isDispatchableMethod(m)) {
                 if (reachabilityInfo.isInvokableInstanceMethod(m)) {
-                    ctxt.registerAutoQueuedElement(m);
+                    roots.registerDispatchTableEntry(m);
                 }
                 boolean override = false;
                 for (int i=0; i<baseVTable.length; i++) {

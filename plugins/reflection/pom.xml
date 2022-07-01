@@ -33,6 +33,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-patcher</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-reachability</artifactId>
+        </dependency>
     </dependencies>
 
 

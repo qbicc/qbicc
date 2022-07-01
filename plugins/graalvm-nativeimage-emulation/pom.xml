@@ -20,14 +20,17 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-compiler</artifactId>
         </dependency>
+
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-plugin-core-classes</artifactId>
+            <artifactId>qbicc-plugin-apploader</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-reachability</artifactId>
         </dependency>
+
+        <!-- Use the same svm version as the Quarkus extension we are attempting to interpret -->
         <dependency>
             <groupId>org.graalvm.nativeimage</groupId>
             <artifactId>svm</artifactId>

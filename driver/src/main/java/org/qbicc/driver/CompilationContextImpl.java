@@ -74,7 +74,6 @@ final class CompilationContextImpl implements CompilationContext {
     final Set<ExecutableElement> queued = ConcurrentHashMap.newKeySet();
     final Queue<ExecutableElement> queue = new ArrayDeque<>();
     final Set<ExecutableElement> entryPoints = ConcurrentHashMap.newKeySet();
-    final Set<ExecutableElement> autoQueuedElements = ConcurrentHashMap.newKeySet();
     final ClassContext bootstrapClassContext;
     final Function<VmClassLoader, ClassContext> appClassContextFactory;
     private final ConcurrentMap<DefinedTypeDefinition, ProgramModule> programModules = new ConcurrentHashMap<>();
@@ -330,11 +329,6 @@ final class CompilationContextImpl implements CompilationContext {
     public void registerEntryPoint(final ExecutableElement method) {
         enqueue(method);
         entryPoints.add(method);
-    }
-
-    public void registerAutoQueuedElement(ExecutableElement element) {
-        enqueue(element);
-        autoQueuedElements.add(element);
     }
 
     public Path getOutputDirectory() {
@@ -627,10 +621,6 @@ final class CompilationContextImpl implements CompilationContext {
 
     public Iterable<ExecutableElement> getEntryPoints() {
         return entryPoints;
-    }
-
-    public Iterable<ExecutableElement> getAutoQueuedElements() {
-        return autoQueuedElements;
     }
 
     BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> getBlockFactory() {

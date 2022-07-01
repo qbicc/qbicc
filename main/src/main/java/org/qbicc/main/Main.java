@@ -141,9 +141,10 @@ import org.qbicc.plugin.patcher.AccessorTypeBuilder;
 import org.qbicc.plugin.patcher.Patcher;
 import org.qbicc.plugin.patcher.PatcherResolverBasicBlockBuilder;
 import org.qbicc.plugin.patcher.PatcherTypeResolver;
+import org.qbicc.plugin.reachability.ReachabilityAnnotationTypeBuilder;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
-import org.qbicc.plugin.reachability.RuntimeReflectionRoots;
+import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.plugin.reflection.Reflection;
 import org.qbicc.plugin.reflection.ReflectionIntrinsics;
 import org.qbicc.plugin.reflection.VarHandleResolvingBasicBlockBuilder;
@@ -418,6 +419,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addTypeBuilderFactory(NativeTypeBuilder::new);
                                 builder.addTypeBuilderFactory(ThreadLocalTypeBuilder::new);
                                 builder.addTypeBuilderFactory(CoreAnnotationTypeBuilder::new);
+                                builder.addTypeBuilderFactory(ReachabilityAnnotationTypeBuilder::new);
                                 builder.addTypeBuilderFactory(Patcher::getTypeBuilder);
                                 builder.addTypeBuilderFactory(AccessorTypeBuilder::new);
 
@@ -468,12 +470,12 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
                                     FeatureProcessor.processBuildFeature(compilationContext, buildFeatures, hostAppClassLoader);
                                 });
-                                builder.addPreHook(Phase.ADD, RuntimeReflectionRoots::makeReflectiveRootsReachable);
+                                builder.addPreHook(Phase.ADD, ReachabilityRoots::processReachabilityRoots);
                                 builder.addElementHandler(Phase.ADD, new ElementBodyCreator());
                                 builder.addElementHandler(Phase.ADD, new BuildTimeOnlyElementHandler());
                                 builder.addElementHandler(Phase.ADD, new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig)));
                                 builder.addElementHandler(Phase.ADD, new ElementInitializer());
-                                builder.addElementHandler(Phase.ADD, elem -> ReachabilityInfo.processReachableElement(elem));
+                                builder.addElementHandler(Phase.ADD, elem -> ReachabilityInfo.processReachableElement(elem)); // TODO: We need this to compensate for elements "appearing out of thin air" during the add phase.  Ideally we should be able to eliminate this.
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MultiNewArrayExpansionBasicBlockBuilder::new);
@@ -502,20 +504,18 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
                                 builder.addPostHook(Phase.ADD, ctxt -> {
-                                    Reflection reflection = Reflection.get(ctxt);
-                                    RuntimeReflectionRoots roots = RuntimeReflectionRoots.get(ctxt);
                                     Vm vm = ctxt.getVm();
-                                    VmThread initThread = vm.newThread("reflectionRoots", vm.getMainThreadGroup(), false,  Thread.currentThread().getPriority());
-                                    vm.doAttached(initThread, () -> {
-                                        reflection.transferToReflectionData(roots.getAccessedClasses(), roots.getAccessedMethods(), roots.getAccessedFields());
+                                    vm.doAttached(vm.newThread("FieldAccessor Generation", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> {
+                                        Reflection.get(ctxt).generateFieldAccessors();
                                     });
                                 });
+                                builder.addPostHook(Phase.ADD, ctxt -> Reflection.get(ctxt).transferToReflectionData());
                                 builder.addPostHook(Phase.ADD, ReachabilityInfo::reportStats);
                                 builder.addPostHook(Phase.ADD, ReachabilityInfo::clear);
 
                                 builder.addPreHook(Phase.ANALYZE, new VMHelpersSetupHook());
                                 builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::forceCoreClassesReachable);
-                                builder.addPreHook(Phase.ANALYZE, RuntimeReflectionRoots::makeReflectiveRootsReachable);
+                                builder.addPreHook(Phase.ANALYZE, ReachabilityRoots::processReachabilityRoots);
                                 builder.addElementHandler(Phase.ANALYZE, new ElementBodyCopier());
                                 if (optEscapeAnalysis) {
                                     builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new EscapeAnalysisIntraMethodAnalysis()));
@@ -525,7 +525,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 } else {
                                     builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new DotGenerator(Phase.ANALYZE, graphGenConfig)));
                                 }
-                                builder.addElementHandler(Phase.ANALYZE, elem -> ReachabilityInfo.processReachableElement(elem));
                                 if (optGotos) {
                                     builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
                                 }
@@ -556,6 +555,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
 
+                                builder.addPreHook(Phase.LOWER, ReachabilityRoots::enqueueReachabilityRoots);
                                 builder.addPreHook(Phase.LOWER, new ClassObjectSerializer());
                                 if (optEscapeAnalysis) {
                                     builder.addCopyFactory(Phase.LOWER, EscapeAnalysisOptimizeVisitor::new);
