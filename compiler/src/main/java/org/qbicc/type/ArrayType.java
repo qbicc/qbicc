@@ -23,6 +23,10 @@ public final class ArrayType extends ValueType {
         return elementType;
     }
 
+    public <T extends ValueType> T getElementType(Class<T> expected) {
+        return expected.cast(getElementType());
+    }
+
     public long getElementCount() {
         return elementCount;
     }

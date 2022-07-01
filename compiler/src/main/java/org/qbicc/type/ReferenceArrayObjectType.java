@@ -1,5 +1,7 @@
 package org.qbicc.type;
 
+import org.qbicc.type.definition.DefinedTypeDefinition;
+
 /**
  * An object type whose elements are references to some ObjectType.
  * For any given program, there is a large, but finite, set of possible
@@ -20,6 +22,15 @@ public final class ReferenceArrayObjectType extends ArrayObjectType {
     ReferenceArrayObjectType(final TypeSystem typeSystem, final ClassObjectType objectClass, final ObjectType elementType) {
         super(typeSystem, elementType.hashCode(), objectClass);
         this.elementType = elementType;
+    }
+
+    @Override
+    public DefinedTypeDefinition getDefinition() {
+        DefinedTypeDefinition definition = typeSystem.getReferenceArrayTypeDefinition();
+        if (definition == null) {
+            return super.getDefinition();
+        }
+        return definition;
     }
 
     public long getSize() throws IllegalStateException {

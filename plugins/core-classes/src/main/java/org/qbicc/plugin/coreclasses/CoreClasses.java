@@ -7,6 +7,7 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.plugin.patcher.Patcher;
+import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.ObjectType;
@@ -188,6 +189,7 @@ public final class CoreClasses {
         refArrayElementTypeIdField = refArrayType.getField(1);
         refArrayContentField = refArrayType.getField(2);
 
+        ts.initializeReferenceArrayClass(refArrayType);
     }
 
     private DefinedTypeDefinition definePrimitiveType(final BaseTypeDescriptor desc) {
@@ -228,7 +230,12 @@ public final class CoreClasses {
         }
         typeBuilder.addField((index, enclosing, builder) -> makeContentField(index, enclosing, realMemberType, builder), idx, "content", BaseTypeDescriptor.V);
         typeBuilder.setInitializer(EMPTY_INIT, 0);
-        return typeBuilder.build();
+        DefinedTypeDefinition definition = typeBuilder.build();
+        if (realMemberType instanceof WordType wt) {
+            // initialize the primitive type def
+            wt.getPrimitiveArrayObjectType().initializeDefinition(definition);
+        }
+        return definition;
     }
 
     private static FieldElement makeDimensionsField(final int index, final DefinedTypeDefinition enclosing, FieldElement.Builder fieldBuilder) {
