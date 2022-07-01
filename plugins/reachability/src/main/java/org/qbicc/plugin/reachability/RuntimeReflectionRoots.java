@@ -19,9 +19,11 @@ import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * Tracks runtime-reflection operations and ensures that the necessary
@@ -83,7 +85,7 @@ public class RuntimeReflectionRoots {
                         return true;
                     });
                     if (ci != -1) {
-                        accessedMethods.add(ltd.getConstructor(ci));
+                        registerConstructor(ltd.getConstructor(ci));
                     }
                 } else {
                     Method m = (Method) e;
@@ -103,11 +105,19 @@ public class RuntimeReflectionRoots {
                         return true;
                     });
                     if (mi != -1) {
-                        accessedMethods.add(ltd.getMethod(mi));
+                        registerMethod(ltd.getMethod(mi));
                     }
                 }
             }
         }
+    }
+
+    public boolean registerMethod(MethodElement e) {
+        return accessedMethods.add(e);
+    }
+
+    public boolean registerConstructor(ConstructorElement e) {
+        return accessedMethods.add(e);
     }
 
     public void registerFields(Field... fields) {
@@ -116,10 +126,14 @@ public class RuntimeReflectionRoots {
             if (ltd != null) {
                 FieldElement fe = ltd.findField(f.getName());
                 if (fe != null) {
-                    accessedFields.add(fe);
+                    registerField(fe);
                 }
             }
         }
+    }
+
+    public boolean registerField(FieldElement f) {
+        return accessedFields.add(f);
     }
 
     public static void makeReflectiveRootsReachable(CompilationContext ctxt) {
@@ -130,22 +144,25 @@ public class RuntimeReflectionRoots {
             info.getAnalysis().processReachableType(ltd, null);
         }
         for (ExecutableElement e : rrr.accessedMethods) {
-            if (e instanceof MethodElement me) {
-                if (me.isStatic()) {
-                    info.getAnalysis().processReachableExactInvocation(me,null);
-                } else {
-                    info.getAnalysis().processReachableDispatchedInvocation(me, null);
-                }
-            } else if (e instanceof ConstructorElement ce) {
-                info.getAnalysis().processInstantiatedClass(ce.getEnclosingType().load(), false, null);
-                info.getAnalysis().processReachableExactInvocation(ce, null);
-            }
+            ReachabilityInfo.processReachableElement(e);
         }
         for (FieldElement f : rrr.accessedFields) {
             if (f.isStatic()) {
                 info.getAnalysis().processReachableStaticFieldAccess((StaticFieldElement) f, null);
             }
         }
+    }
+
+    public Set<LoadedTypeDefinition> getAccessedClasses() {
+        return new HashSet<>(accessedClasses);
+    }
+
+    public Set<FieldElement> getAccessedFields() {
+        return new HashSet<>(accessedFields);
+    }
+
+    public Set<ExecutableElement> getAccessedMethods() {
+        return new HashSet<>(accessedMethods);
     }
 
     private LoadedTypeDefinition classToType(Class<?> clazz) {

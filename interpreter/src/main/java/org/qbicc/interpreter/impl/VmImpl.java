@@ -104,6 +104,7 @@ public final class VmImpl implements Vm {
     // core classes
     final VmClassImpl objectClass;
     final VmClassClassImpl classClass;
+    final VmClassImpl reflectionDataClass;
     final VmStringClassImpl stringClass;
     final int stringCoderOffset;
     final int stringValueOffset;
@@ -189,6 +190,7 @@ public final class VmImpl implements Vm {
         ClassContext bcc = ctxt.getBootstrapClassContext();
         classClass = new VmClassClassImpl(this);
         objectClass = classClass.getSuperClass();
+        reflectionDataClass = new VmClassImpl(this, bcc.findDefinedType("java/lang/Class$ReflectionData").load());
         classLoaderClass = new VmClassLoaderClassImpl(this, bcc.findDefinedType("java/lang/ClassLoader").load());
         LoadedTypeDefinition stringDef = bcc.findDefinedType("java/lang/String").load();
         stringClass = new VmStringClassImpl(this, stringDef);
@@ -259,6 +261,7 @@ public final class VmImpl implements Vm {
         refArrayContentOffset = layout.getInstanceLayoutInfo(coreClasses.getReferenceArrayTypeDefinition()).getMember(coreClasses.getRefArrayContentField()).getOffset();
 
         classClass.postConstruct(this);
+        reflectionDataClass.postConstruct(this);
         objectClass.postConstruct(this);
         classLoaderClass.postConstruct(this);
         stringClass.postConstruct(this);

@@ -473,7 +473,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addElementHandler(Phase.ADD, new BuildTimeOnlyElementHandler());
                                 builder.addElementHandler(Phase.ADD, new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig)));
                                 builder.addElementHandler(Phase.ADD, new ElementInitializer());
-                                builder.addElementHandler(Phase.ADD, elem -> ReachabilityInfo.processAutoQueuedElement(elem));
+                                builder.addElementHandler(Phase.ADD, elem -> ReachabilityInfo.processReachableElement(elem));
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MultiNewArrayExpansionBasicBlockBuilder::new);
@@ -501,6 +501,15 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
+                                builder.addPostHook(Phase.ADD, ctxt -> {
+                                    Reflection reflection = Reflection.get(ctxt);
+                                    RuntimeReflectionRoots roots = RuntimeReflectionRoots.get(ctxt);
+                                    Vm vm = ctxt.getVm();
+                                    VmThread initThread = vm.newThread("reflectionRoots", vm.getMainThreadGroup(), false,  Thread.currentThread().getPriority());
+                                    vm.doAttached(initThread, () -> {
+                                        reflection.transferToReflectionData(roots.getAccessedClasses(), roots.getAccessedMethods(), roots.getAccessedFields());
+                                    });
+                                });
                                 builder.addPostHook(Phase.ADD, ReachabilityInfo::reportStats);
                                 builder.addPostHook(Phase.ADD, ReachabilityInfo::clear);
 
@@ -516,7 +525,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 } else {
                                     builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new DotGenerator(Phase.ANALYZE, graphGenConfig)));
                                 }
-                                builder.addElementHandler(Phase.ANALYZE, elem -> ReachabilityInfo.processAutoQueuedElement(elem));
+                                builder.addElementHandler(Phase.ANALYZE, elem -> ReachabilityInfo.processReachableElement(elem));
                                 if (optGotos) {
                                     builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
                                 }

@@ -10,6 +10,7 @@ import org.jboss.logging.Logger;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.plugin.coreclasses.CoreClasses;
+import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -76,10 +77,12 @@ public class ReachabilityInfo {
     private final Set<FieldElement> accessedStaticField = ConcurrentHashMap.newKeySet();
 
     private final ReachabilityAnalysis analysis;
+    private final CompilationContext ctxt;
 
     private ReachabilityInfo(final CompilationContext ctxt) {
         // TODO: Currently hardwired to RTA; eventually will support multiple analysis algorithms
         this.analysis = new RapidTypeAnalysis(this, ctxt);
+        this.ctxt = ctxt;
     }
 
     public static ReachabilityInfo get(CompilationContext ctxt) {
@@ -151,7 +154,7 @@ public class ReachabilityInfo {
         info.analysis.processInstantiatedClass(thr, false,null);
     }
 
-    public static void processAutoQueuedElement(ExecutableElement elem) {
+    public static void processReachableElement(ExecutableElement elem) {
         if (elem instanceof MethodElement me) {
             ReachabilityInfo info = get(elem.getEnclosingType().getContext().getCompilationContext());
             if (me.isStatic()) {
@@ -315,6 +318,38 @@ public class ReachabilityInfo {
                             ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: dispatchable method: %s from %s", im, i);
                             analysis.processReachableDispatchedInvocation(im, null);
                             continue methodLoop;
+                        }
+                    }
+                }
+            }
+
+            // When a class becomes reachable, we scan it looking for elements with the ReflectivelyAccessed annotation
+            for (int i=0; i< type.getMethodCount(); i++) {
+                MethodElement m = type.getMethod(i);
+                for (Annotation annotation : m.getInvisibleAnnotations()) {
+                    if (annotation.getDescriptor().packageAndClassNameEquals("org/qbicc/runtime", "ReflectivelyAccessed")) {
+                        if (RuntimeReflectionRoots.get(ctxt).registerMethod(m)) {
+                            processReachableElement(m);
+                        }
+                    }
+                }
+            }
+            for (int i=0; i< type.getConstructorCount(); i++) {
+                ConstructorElement m = type.getConstructor(i);
+                for (Annotation annotation : m.getInvisibleAnnotations()) {
+                    if (annotation.getDescriptor().packageAndClassNameEquals("org/qbicc/runtime", "ReflectivelyAccessed")) {
+                        if (RuntimeReflectionRoots.get(ctxt).registerConstructor(m)) {
+                            processReachableElement(m);
+                        }
+                    }
+                }
+            }
+            for (int i=0; i< type.getFieldCount(); i++) {
+                FieldElement f = type.getField(i);
+                for (Annotation annotation : f.getInvisibleAnnotations()) {
+                    if (annotation.getDescriptor().packageAndClassNameEquals("org/qbicc/runtime", "ReflectivelyAccessed")) {
+                        if (RuntimeReflectionRoots.get(ctxt).registerField(f)) {
+                            // No additional action needed
                         }
                     }
                 }

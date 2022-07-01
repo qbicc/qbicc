@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.AttachmentKey;
@@ -353,6 +354,71 @@ public final class Reflection {
             }
         }
         return instance;
+    }
+
+    /**
+     * Transfer the VMReferenceArrays built during the ADD phase to the ReflectionData
+     * instances that will be serialized as part of the initial runtime heap.
+     */
+    public void transferToReflectionData(Set<LoadedTypeDefinition> accessedClasses, Set<ExecutableElement> accessedMethods, Set<FieldElement> accessedFields)  {
+        if (!accessedMethods.isEmpty()) {
+            // Force build time creation of Method, Constructor and backing MethodHandle objects
+            accessedMethods.forEach(e -> {
+                VmClass c = e.getEnclosingType().load().getVmClass();
+                if (e instanceof MethodElement) {
+                    getClassDeclaredMethods(c, true);
+                    getClassDeclaredMethods(c, false);
+                    // TODO: Here is where we force method handle creation at build time.
+                } else if (e instanceof ConstructorElement) {
+                    getClassDeclaredConstructors(c, true);
+                    getClassDeclaredConstructors(c, false);
+                    // TODO: Here is where we force method handle creation at build time.
+                }
+            });
+        }
+
+        if (!accessedFields.isEmpty()) {
+            // Force build time creation of Field and backing FieldAccessor objects
+            MethodElement afa = fieldClass.getTypeDefinition().requireSingleMethod("acquireFieldAccessor", 1);
+            accessedFields.forEach(f -> {
+                VmClass c = f.getEnclosingType().load().getVmClass();
+                getClassDeclaredFields(c, true);
+                getClassDeclaredFields(c, false);
+                VmObject field = getField(f);
+                vm.invokeExact(afa, field, List.of(Boolean.TRUE));
+                vm.invokeExact(afa, field, List.of(Boolean.FALSE));
+            });
+        }
+
+        // Now transfer the reflected objects to the build-time heap by storing them in the VmClass's ReflectionData instances.
+        LoadedTypeDefinition rdDef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class$ReflectionData").load();
+        LayoutInfo rdLayout = Layout.get(ctxt).getInstanceLayoutInfo(rdDef);
+        long rdIndex = classClass.indexOf(classClass.getTypeDefinition().findField("qbiccReflectionData"));
+
+        long dfi = rdLayout.getMember(rdDef.findField("declaredFields")).getOffset();
+        declaredFields.forEach((c, a) -> {
+            c.getMemory().loadRef(rdIndex, SinglePlain).getMemory().storeRef(dfi, a, SinglePlain);
+        });
+        long dpfi = rdLayout.getMember(rdDef.findField("declaredPublicFields")).getOffset();
+        declaredPublicFields.forEach((c, a) -> {
+            c.getMemory().loadRef(rdIndex, SinglePlain).getMemory().storeRef(dpfi, a, SinglePlain);
+        });
+        long dmi = rdLayout.getMember(rdDef.findField("declaredMethods")).getOffset();
+        declaredMethods.forEach((c, a) -> {
+            c.getMemory().loadRef(rdIndex, SinglePlain).getMemory().storeRef(dmi, a, SinglePlain);
+        });
+        long dpmi = rdLayout.getMember(rdDef.findField("declaredPublicMethods")).getOffset();
+        declaredPublicMethods.forEach((c, a) -> {
+            c.getMemory().loadRef(rdIndex, SinglePlain).getMemory().storeRef(dpmi, a, SinglePlain);
+        });
+        long dci = rdLayout.getMember(rdDef.findField("declaredConstructors")).getOffset();
+        declaredConstructors.forEach((c, a) -> {
+            c.getMemory().loadRef(rdIndex, SinglePlain).getMemory().storeRef(dci, a, SinglePlain);
+        });
+        long dpci = rdLayout.getMember(rdDef.findField("publicConstructors")).getOffset();
+        declaredPublicConstructors.forEach((c, a) -> {
+            c.getMemory().loadRef(rdIndex, SinglePlain).getMemory().storeRef(dpci, a, SinglePlain);
+        });
     }
 
     static MethodDescriptor erase(final ClassContext classContext, final MethodDescriptor descriptor) {
