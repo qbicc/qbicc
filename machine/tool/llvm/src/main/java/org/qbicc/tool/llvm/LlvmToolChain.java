@@ -53,7 +53,11 @@ public interface LlvmToolChain extends Tool {
                         return List.of(new LlvmToolChainImpl(llcPath, optPath, objCopyPath, platform, version));
                     }
                     Llvm.log.warn("Failed to identify LLVM version string; skipping");
+                } else {
+                    Llvm.log.warn("LLVM tool chain is missing a working `llvm-objcopy` executable");
                 }
+            } else {
+                Llvm.log.warn("LLVM tool chain is missing a working `opt` executable");
             }
         }
         return List.of();
