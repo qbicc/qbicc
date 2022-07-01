@@ -24,7 +24,6 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.object.Function;
 import org.qbicc.object.ProgramModule;
-import org.qbicc.object.ProgramObject;
 import org.qbicc.object.ModuleSection;
 import org.qbicc.object.SectionObject;
 import org.qbicc.type.definition.DefinedTypeDefinition;
