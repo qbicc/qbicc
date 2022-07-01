@@ -60,7 +60,7 @@ public abstract class Pointer {
         }
         // not an array, so check the bounds within the pointee size
         long pointeeSize = pointeeType.getSize();
-        if (offset < 0 || offset > pointeeSize) {
+        if (pointeeSize > 0 && (offset < 0 || offset >= pointeeSize)) {
             if (! array) {
                 // invalid pointer/unknown memory location (out of bounds)
                 return null;
@@ -100,8 +100,16 @@ public abstract class Pointer {
                 FieldElement field = def.getField(i);
                 if (field instanceof InstanceFieldElement ife) {
                     long fieldOffset = ife.getOffset();
-                    if (offset >= fieldOffset && offset < ife.getType().getSize()) {
-                        return new InstanceFieldPointer(this, ife).offsetInBytes(fieldOffset - offset, false);
+                    if (fieldOffset > offset) {
+                        // not it
+                        continue;
+                    }
+                    if (i == fieldCount - 1 && field.getType() instanceof ArrayType at && at.getElementCount() == 0) {
+                        // flexible array member; it claims all following memory
+                        return new InstanceFieldPointer(this, ife).offsetInBytes(offset - fieldOffset, true);
+                    }
+                    if (offset < ife.getType().getSize()) {
+                        return new InstanceFieldPointer(this, ife).offsetInBytes(offset - fieldOffset, false);
                     }
                 }
             }

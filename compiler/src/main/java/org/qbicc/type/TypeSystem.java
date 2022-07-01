@@ -16,6 +16,8 @@ import io.smallrye.common.constraint.Assert;
  * The type system of the target machine and VM configuration.
  */
 public final class TypeSystem {
+    private static final VarHandle referenceArrayDefinitionHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "referenceArrayDefinition", VarHandle.class, TypeSystem.class, DefinedTypeDefinition.class);
+
     private final int byteBits;
     private final int pointerSize;
     private final int pointerAlign;
@@ -48,6 +50,7 @@ public final class TypeSystem {
     private final TypeCache<InstanceMethodType> instanceMethodTypeCache = new TypeCache<>();
 
     private volatile ClassObjectType objectClass;
+    private volatile DefinedTypeDefinition referenceArrayDefinition;
 
     TypeSystem(final Builder builder) {
         int byteBits = builder.getByteBits();
@@ -215,6 +218,16 @@ public final class TypeSystem {
 
     public ByteOrder getEndianness() {
         return endianness;
+    }
+
+    public void initializeReferenceArrayClass(DefinedTypeDefinition arrayClassDefinition) {
+        if (! referenceArrayDefinitionHandle.compareAndSet(this, null, arrayClassDefinition)) {
+            throw new IllegalStateException("Reference array class definition initialized twice");
+        }
+    }
+
+    DefinedTypeDefinition getReferenceArrayTypeDefinition() {
+        return referenceArrayDefinition;
     }
 
     public CompoundType.Member getCompoundTypeMember(String name, ValueType type, int offset, int align) {
