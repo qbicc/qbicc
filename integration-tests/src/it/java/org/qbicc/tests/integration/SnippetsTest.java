@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.qbicc.machine.tool.ToolExecutionFailureException;
-import org.qbicc.tests.integration.utils.NativeExecutable;
+import org.qbicc.tests.integration.utils.ExecutableRunner;
 import org.qbicc.tests.integration.utils.SnippetsJUnitProvider;
 
 /**
@@ -24,7 +24,7 @@ public class SnippetsTest {
 
     @ParameterizedTest
     @ArgumentsSource(SnippetsJUnitProvider.class)
-    void runSnippet(final Path snippet, final Pattern outputPattern) throws IOException {
+    void runSnippet(final Path snippet, final Pattern outputPattern, final ExecutableRunner executableRunner) throws IOException {
         final String snippetName = snippet.getFileName().toString().replace(".pattern", "");
 
         Path targetPath = Path.of(".").resolve("target");
@@ -34,7 +34,7 @@ public class SnippetsTest {
         StringBuilder stdOut = new StringBuilder();
         StringBuilder stdErr = new StringBuilder();
         try {
-            NativeExecutable.run("snippet-" + snippetName, outputExecutable, stdOut, stdErr, LOGGER);
+            executableRunner.run("snippet-" + snippetName, outputExecutable, stdOut, stdErr, LOGGER);
         } catch(ToolExecutionFailureException e) {
             // ensure snippet name gets included in the output message
             throw new ToolExecutionFailureException("Failed running: `"+ snippetName +"`", e);

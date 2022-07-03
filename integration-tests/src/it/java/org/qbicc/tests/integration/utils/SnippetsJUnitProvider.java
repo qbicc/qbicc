@@ -4,6 +4,7 @@ import org.jboss.logging.Logger;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.qbicc.machine.arch.Platform;
 
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -33,6 +34,9 @@ public class SnippetsJUnitProvider implements ArgumentsProvider {
     private final List<Arguments> snippets = new ArrayList<>();
 
     public SnippetsJUnitProvider() {
+        String platformString = System.getProperty("qbicc.test.platform", "");
+        Platform platform = platformString.isBlank() ? Platform.HOST_PLATFORM : Platform.parse(platformString);
+        ExecutableRunner executableRunner = ExecutableRunner.forPlatform(platform);
         final Path rootPath = FileSystems.getDefault()
             .getPath(BASE_DIR, "integration-tests", "src", "it-in", "snippets");
         try {
@@ -47,7 +51,7 @@ public class SnippetsJUnitProvider implements ArgumentsProvider {
                                             Path.of(file.getParent().toString(), fileName))
                             );
                             LOGGER.debug("FILE NAME: " + fileName + " FILE LOCATION:" + file.getParent() + " PATTERN: " + pattern.pattern());
-                            snippets.add(Arguments.of(file, pattern));
+                            snippets.add(Arguments.of(file, pattern, executableRunner));
                         } catch (IOException | PatternSyntaxException e) {
                             fail("There was an error loading .pattern sister file for " + file + ". Aborting.", e);
                         }

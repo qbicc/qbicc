@@ -21,6 +21,7 @@
         <excludeTags>none</excludeTags>
         <skip.integration.tests>false</skip.integration.tests>
         <qbicc.test.clean-target>false</qbicc.test.clean-target>
+        <qbicc.test.platform></qbicc.test.platform> <!-- empty means HOST platform -->
     </properties>
     <dependencies>
         <dependency>
@@ -79,6 +80,7 @@
                         <configuration>
                             <mainClass>org.qbicc.tests.TestRunner</mainClass>
                             <skip>${skipTests}</skip>
+                            <platform>${qbicc.test.platform}</platform>
                         </configuration>
                     </execution>
                 </executions>
@@ -91,6 +93,7 @@
                     <systemProperties>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                         <qbicc.test.clean-target>${qbicc.test.clean-target}</qbicc.test.clean-target>
+                        <qbicc.test.platform>${qbicc.test.platform}</qbicc.test.platform>
                     </systemProperties>
                     <redirectTestOutputToFile>false</redirectTestOutputToFile>
                 </configuration>
