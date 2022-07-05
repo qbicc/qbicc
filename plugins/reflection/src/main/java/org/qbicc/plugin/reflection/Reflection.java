@@ -756,7 +756,7 @@ public final class Reflection {
         VmClassLoader classLoader = declaringClass.getClassLoader();
         MethodDescriptor desc = constructor.getDescriptor();
         List<TypeDescriptor> paramTypes = desc.getParameterTypes();
-        VmReferenceArray paramTypesVal = vm.newArrayOf(constructorClass.getArrayClass(), paramTypes.size());
+        VmReferenceArray paramTypesVal = vm.newArrayOf(classClass, paramTypes.size());
         VmObject[] paramTypesValArray = paramTypesVal.getArray();
         for (int j = 0; j < paramTypes.size(); j ++) {
             paramTypesValArray[j] = vm.getClassForDescriptor(classLoader, paramTypes.get(j));
@@ -765,7 +765,7 @@ public final class Reflection {
             declaringClass,
             paramTypesVal,
             // TODO: checked exceptions
-            vm.newArrayOf(classClass.getArrayClass(), 0),
+            vm.newArrayOf(classClass, 0),
             Integer.valueOf(constructor.getModifiers() & 0x1fff),
             Integer.valueOf(constructor.getIndex()),
             vm.intern(constructor.getSignature().toString()),
