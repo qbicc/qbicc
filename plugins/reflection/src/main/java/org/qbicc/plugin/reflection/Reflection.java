@@ -369,7 +369,11 @@ public final class Reflection {
         VmClass c = ce.getEnclosingType().load().getVmClass();
         getClassDeclaredConstructors(c, true);
         getClassDeclaredConstructors(c, false);
-        // TODO: Here is where we force method handle creation at build time.
+        /* TODO: Do something sort of like this to force a working ConstructorAccessor to be generated.
+        VmObject ctor = getConstructor(ce);
+        MethodElement aca = constructorClass.getTypeDefinition().requireSingleMethod("acquireConstructorAccessor", 0);
+        vm.invokeExact(aca, ctor, List.of());
+        */
     }
 
     /**
@@ -381,7 +385,11 @@ public final class Reflection {
         VmClass c = me.getEnclosingType().load().getVmClass();
         getClassDeclaredMethods(c, true);
         getClassDeclaredMethods(c, false);
-        // TODO: Here is where we force method handle creation at build time.
+        /* TODO: Do something sort of like this to force a working MethodAccessor to be generated.
+        VmObject method = getMethod(me);
+        MethodElement ama = methodClass.getTypeDefinition().requireSingleMethod("acquireMethodAccessor", 0);
+        vm.invokeExact(ama, method, List.of());
+         */
     }
 
     /**

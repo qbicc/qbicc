@@ -147,6 +147,7 @@ import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.plugin.reflection.Reflection;
 import org.qbicc.plugin.reflection.ReflectionIntrinsics;
+import org.qbicc.plugin.reflection.ReflectiveMethodAccessorGenerator;
 import org.qbicc.plugin.reflection.VarHandleResolvingBasicBlockBuilder;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.plugin.serialization.ClassObjectSerializer;
@@ -476,6 +477,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addElementHandler(Phase.ADD, new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig)));
                                 builder.addElementHandler(Phase.ADD, new ElementInitializer());
                                 builder.addElementHandler(Phase.ADD, elem -> ReachabilityInfo.processReachableElement(elem)); // TODO: We need this to compensate for elements "appearing out of thin air" during the add phase.  Ideally we should be able to eliminate this.
+                                builder.addElementHandler(Phase.ADD, new ReflectiveMethodAccessorGenerator());
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MultiNewArrayExpansionBasicBlockBuilder::new);
