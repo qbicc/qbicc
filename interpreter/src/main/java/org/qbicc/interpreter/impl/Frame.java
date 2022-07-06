@@ -758,7 +758,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (inputType.equals(outputType)) {
             return require(node.getInput());
         } else if (isRef(inputType) && isPointer(outputType)) {
-            return new ReferenceAsPointer((VmObject) require(node.getInput()));
+            Object obj = require(node.getInput());
+            return obj == null ? null : new ReferenceAsPointer((VmObject) obj);
         } else if (isPointer(inputType) && isInt64(outputType)) {
             Object val = require(node.getInput());
             if (val instanceof IntegerAsPointer iap) {
