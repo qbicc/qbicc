@@ -56,7 +56,7 @@ public final class OffsetPointer extends Pointer {
 
     @Override
     public StringBuilder toString(StringBuilder b) {
-        return b.append("+").append(offset);
+        return basePointer.toString(b.append('(')).append(')').append('+').append(offset);
     }
 
     public <T, R> R accept(final Visitor<T, R> visitor, final T t) {
