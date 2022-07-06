@@ -22,7 +22,6 @@ import org.qbicc.type.descriptor.TypeDescriptor;
 public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Builder.Delegating {
     private final DefinedTypeDefinition.Builder delegate;
 
-    private final ClassTypeDescriptor autoQueued;
     private final ClassTypeDescriptor noSideEffects;
     private final ClassTypeDescriptor hidden;
     private final ClassTypeDescriptor jdkHidden;
@@ -36,7 +35,6 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
     public CoreAnnotationTypeBuilder(final ClassContext classCtxt, DefinedTypeDefinition.Builder delegate) {
         this.delegate = delegate;
 
-        autoQueued = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/AutoQueued");
         noSideEffects = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoSideEffects");
         hidden = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/Hidden");
         jdkHidden = ClassTypeDescriptor.synthesize(classCtxt, "jdk/internal/vm/annotation/Hidden");
@@ -60,9 +58,7 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
             public MethodElement resolveMethod(int index, DefinedTypeDefinition enclosing, MethodElement.Builder builder) {
                 MethodElement methodElement = resolver.resolveMethod(index, enclosing, builder);
                 for (Annotation annotation : methodElement.getInvisibleAnnotations()) {
-                    if (annotation.getDescriptor().equals(autoQueued)) {
-                        enclosing.getContext().getCompilationContext().registerAutoQueuedElement(methodElement);
-                    } else if (annotation.getDescriptor().equals(noSideEffects)) {
+                    if (annotation.getDescriptor().equals(noSideEffects)) {
                         methodElement.setModifierFlags(ClassFile.I_ACC_NO_SIDE_EFFECTS);
                     } else if (annotation.getDescriptor().equals(hidden)) {
                         methodElement.setModifierFlags(ClassFile.I_ACC_HIDDEN);
@@ -120,9 +116,7 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
             public ConstructorElement resolveConstructor(int index, DefinedTypeDefinition enclosing, ConstructorElement.Builder builder) {
                 ConstructorElement constructorElement = resolver.resolveConstructor(index, enclosing, builder);
                 for (Annotation annotation : constructorElement.getInvisibleAnnotations()) {
-                    if (annotation.getDescriptor().equals(autoQueued)) {
-                        enclosing.getContext().getCompilationContext().registerAutoQueuedElement(constructorElement);
-                    } else if (annotation.getDescriptor().equals(noSideEffects)) {
+                    if (annotation.getDescriptor().equals(noSideEffects)) {
                         constructorElement.setModifierFlags(ClassFile.I_ACC_NO_SIDE_EFFECTS);
                     } else if (annotation.getDescriptor().equals(hidden)) {
                         constructorElement.setModifierFlags(ClassFile.I_ACC_HIDDEN);

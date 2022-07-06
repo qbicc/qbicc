@@ -18,7 +18,7 @@ public class FeatureProcessor {
         }
 
         // Fake up enough of the GraalVM Support classes to let us execute the
-        // beforeAnalysis method of the Feature and ex
+        // beforeAnalysis method of the Feature and perform the corresponding qbicc actions.
         Feature.BeforeAnalysisAccess qbiccProxy = new QbiccBeforeAnalysisAccess(ctxt);
         QbiccImageSingletonsSupport qiss = new QbiccImageSingletonsSupport();
         qiss.add(RuntimeReflectionSupport.class, new QbiccRuntimeReflectionSupport(ctxt));

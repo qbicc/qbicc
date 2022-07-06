@@ -78,7 +78,6 @@
         <dependency>
             <groupId>io.smallrye.common</groupId>
             <artifactId>smallrye-common-function</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jboss.logging</groupId>

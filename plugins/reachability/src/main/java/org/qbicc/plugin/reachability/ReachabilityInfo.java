@@ -10,7 +10,6 @@ import org.jboss.logging.Logger;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.plugin.coreclasses.CoreClasses;
-import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -116,7 +115,7 @@ public class ReachabilityInfo {
         LOGGER.debugf("  Dispatchable instance methods: %s", info.dispatchableMethods.size());
         LOGGER.debugf("  Invokable instance methods:    %s", info.invokableInstanceMethods.size());
         LOGGER.debugf("  Accessed static fields:        %s", info.accessedStaticField.size());
-        RuntimeReflectionRoots.get(ctxt).reportStats();
+        ReachabilityRoots.get(ctxt).reportStats();
         info.analysis.reportStats();
     }
 
@@ -155,17 +154,21 @@ public class ReachabilityInfo {
     }
 
     public static void processReachableElement(ExecutableElement elem) {
+        ReachabilityInfo info = get(elem.getEnclosingType().getContext().getCompilationContext());
+        info.processRootReachableElement(elem);
+    }
+
+    public void processRootReachableElement(ExecutableElement elem) {
         if (elem instanceof MethodElement me) {
-            ReachabilityInfo info = get(elem.getEnclosingType().getContext().getCompilationContext());
             if (me.isStatic()) {
-                info.analysis.processReachableExactInvocation(me, null);
+                analysis.processReachableType(me.getEnclosingType().load(), null);
+                analysis.processReachableExactInvocation(me, null);
             } else {
-                info.analysis.processReachableDispatchedInvocation(me, null);
+                analysis.processReachableDispatchedInvocation(me, null);
             }
         } else if (elem instanceof ConstructorElement ce) {
-            ReachabilityInfo info = get(elem.getEnclosingType().getContext().getCompilationContext());
-            info.analysis.processInstantiatedClass(ce.getEnclosingType().load(), false, null);
-            info.analysis.processReachableExactInvocation(ce, null);
+            analysis.processInstantiatedClass(ce.getEnclosingType().load(), false, null);
+            analysis.processReachableExactInvocation(ce, null);
         }
     }
 
@@ -318,38 +321,6 @@ public class ReachabilityInfo {
                             ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: dispatchable method: %s from %s", im, i);
                             analysis.processReachableDispatchedInvocation(im, null);
                             continue methodLoop;
-                        }
-                    }
-                }
-            }
-
-            // When a class becomes reachable, we scan it looking for elements with the ReflectivelyAccessed annotation
-            for (int i=0; i< type.getMethodCount(); i++) {
-                MethodElement m = type.getMethod(i);
-                for (Annotation annotation : m.getInvisibleAnnotations()) {
-                    if (annotation.getDescriptor().packageAndClassNameEquals("org/qbicc/runtime", "ReflectivelyAccessed")) {
-                        if (RuntimeReflectionRoots.get(ctxt).registerMethod(m)) {
-                            processReachableElement(m);
-                        }
-                    }
-                }
-            }
-            for (int i=0; i< type.getConstructorCount(); i++) {
-                ConstructorElement m = type.getConstructor(i);
-                for (Annotation annotation : m.getInvisibleAnnotations()) {
-                    if (annotation.getDescriptor().packageAndClassNameEquals("org/qbicc/runtime", "ReflectivelyAccessed")) {
-                        if (RuntimeReflectionRoots.get(ctxt).registerConstructor(m)) {
-                            processReachableElement(m);
-                        }
-                    }
-                }
-            }
-            for (int i=0; i< type.getFieldCount(); i++) {
-                FieldElement f = type.getField(i);
-                for (Annotation annotation : f.getInvisibleAnnotations()) {
-                    if (annotation.getDescriptor().packageAndClassNameEquals("org/qbicc/runtime", "ReflectivelyAccessed")) {
-                        if (RuntimeReflectionRoots.get(ctxt).registerField(f)) {
-                            // No additional action needed
                         }
                     }
                 }

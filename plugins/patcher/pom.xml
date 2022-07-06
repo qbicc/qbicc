@@ -21,10 +21,6 @@
             <artifactId>qbicc-compiler</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-driver</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.qbicc</groupId>
             <artifactId>qbicc-plugin-core</artifactId>
         </dependency>

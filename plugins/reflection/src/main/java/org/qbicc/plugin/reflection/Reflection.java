@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.AttachmentKey;
@@ -35,6 +34,7 @@ import org.qbicc.interpreter.VmThrowableClass;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.patcher.Patcher;
+import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
@@ -356,41 +356,75 @@ public final class Reflection {
         return instance;
     }
 
+    public void makeAvailableForRuntimeReflection(LoadedTypeDefinition ltd) {
+        ReachabilityRoots.get(ctxt).registerReflectiveClass(ltd);
+    }
+
+    /**
+     * This method must be called during the ADD phase by an attached thread
+     * after the Vm is fully booted
+     * @param ce The ConstructorElement to make available for runtime reflective invocation
+     */
+    public void makeAvailableForRuntimeReflection(ConstructorElement ce) {
+        VmClass c = ce.getEnclosingType().load().getVmClass();
+        getClassDeclaredConstructors(c, true);
+        getClassDeclaredConstructors(c, false);
+        /* TODO: Do something sort of like this to force a working ConstructorAccessor to be generated.
+        VmObject ctor = getConstructor(ce);
+        MethodElement aca = constructorClass.getTypeDefinition().requireSingleMethod("acquireConstructorAccessor", 0);
+        vm.invokeExact(aca, ctor, List.of());
+        */
+    }
+
+    /**
+     * This method must be called during the ADD phase by an attached thread
+     * after the Vm is fully booted.
+     * @param me The MethodElement to make available for runtime reflective invocation
+     */
+    public void makeAvailableForRuntimeReflection(MethodElement me) {
+        VmClass c = me.getEnclosingType().load().getVmClass();
+        getClassDeclaredMethods(c, true);
+        getClassDeclaredMethods(c, false);
+        /* TODO: Do something sort of like this to force a working MethodAccessor to be generated.
+        VmObject method = getMethod(me);
+        MethodElement ama = methodClass.getTypeDefinition().requireSingleMethod("acquireMethodAccessor", 0);
+        vm.invokeExact(ama, method, List.of());
+         */
+    }
+
+    /**
+     * This method must be called during the ADD phase by an attached thread
+     * after the Vm is fully booted.
+     *
+     * @param fe The FieldElement to make available for runtime reflective invocation
+     */
+    public void makeAvailableForRuntimeReflection(FieldElement fe) {
+        VmClass c = fe.getEnclosingType().load().getVmClass();
+        getClassDeclaredFields(c, true);
+        getClassDeclaredFields(c, false);
+        VmObject field = getField(fe);
+        MethodElement afa = fieldClass.getTypeDefinition().requireSingleMethod("acquireFieldAccessor", 1);
+        vm.invokeExact(afa, field, List.of(Boolean.TRUE));
+        vm.invokeExact(afa, field, List.of(Boolean.FALSE));
+    }
+
+    /**
+     * Ensure field accessors are generated for all reflectively accessed fields.
+     * We can do this in an ADD postHook because it will not generate any newly reachable methods.
+     */
+    public void generateFieldAccessors() {
+        ReachabilityRoots roots = ReachabilityRoots.get(ctxt);
+        for (FieldElement f: roots.getReflectiveFields()) {
+            makeAvailableForRuntimeReflection(f);
+        }
+    }
+
     /**
      * Transfer the VMReferenceArrays built during the ADD phase to the ReflectionData
      * instances that will be serialized as part of the initial runtime heap.
      */
-    public void transferToReflectionData(Set<LoadedTypeDefinition> accessedClasses, Set<ExecutableElement> accessedMethods, Set<FieldElement> accessedFields)  {
-        if (!accessedMethods.isEmpty()) {
-            // Force build time creation of Method, Constructor and backing MethodHandle objects
-            accessedMethods.forEach(e -> {
-                VmClass c = e.getEnclosingType().load().getVmClass();
-                if (e instanceof MethodElement) {
-                    getClassDeclaredMethods(c, true);
-                    getClassDeclaredMethods(c, false);
-                    // TODO: Here is where we force method handle creation at build time.
-                } else if (e instanceof ConstructorElement) {
-                    getClassDeclaredConstructors(c, true);
-                    getClassDeclaredConstructors(c, false);
-                    // TODO: Here is where we force method handle creation at build time.
-                }
-            });
-        }
-
-        if (!accessedFields.isEmpty()) {
-            // Force build time creation of Field and backing FieldAccessor objects
-            MethodElement afa = fieldClass.getTypeDefinition().requireSingleMethod("acquireFieldAccessor", 1);
-            accessedFields.forEach(f -> {
-                VmClass c = f.getEnclosingType().load().getVmClass();
-                getClassDeclaredFields(c, true);
-                getClassDeclaredFields(c, false);
-                VmObject field = getField(f);
-                vm.invokeExact(afa, field, List.of(Boolean.TRUE));
-                vm.invokeExact(afa, field, List.of(Boolean.FALSE));
-            });
-        }
-
-        // Now transfer the reflected objects to the build-time heap by storing them in the VmClass's ReflectionData instances.
+    public void transferToReflectionData()  {
+        // Transfer the reflected objects to the build-time heap by storing them in the VmClass's ReflectionData instances.
         LoadedTypeDefinition rdDef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class$ReflectionData").load();
         LayoutInfo rdLayout = Layout.get(ctxt).getInstanceLayoutInfo(rdDef);
         long rdIndex = classClass.indexOf(classClass.getTypeDefinition().findField("qbiccReflectionData"));
@@ -730,7 +764,7 @@ public final class Reflection {
         VmClassLoader classLoader = declaringClass.getClassLoader();
         MethodDescriptor desc = constructor.getDescriptor();
         List<TypeDescriptor> paramTypes = desc.getParameterTypes();
-        VmReferenceArray paramTypesVal = vm.newArrayOf(constructorClass.getArrayClass(), paramTypes.size());
+        VmReferenceArray paramTypesVal = vm.newArrayOf(classClass, paramTypes.size());
         VmObject[] paramTypesValArray = paramTypesVal.getArray();
         for (int j = 0; j < paramTypes.size(); j ++) {
             paramTypesValArray[j] = vm.getClassForDescriptor(classLoader, paramTypes.get(j));
@@ -739,7 +773,7 @@ public final class Reflection {
             declaringClass,
             paramTypesVal,
             // TODO: checked exceptions
-            vm.newArrayOf(classClass.getArrayClass(), 0),
+            vm.newArrayOf(classClass, 0),
             Integer.valueOf(constructor.getModifiers() & 0x1fff),
             Integer.valueOf(constructor.getIndex()),
             vm.intern(constructor.getSignature().toString()),

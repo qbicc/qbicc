@@ -447,9 +447,6 @@ public class Driver implements Closeable {
         for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
             compilationContext.enqueue(entryPoint);
         }
-        for (ExecutableElement element : compilationContext.getAutoQueuedElements()) {
-            compilationContext.enqueue(element);
-        }
 
         compilationContext.processQueue(element -> {
             MDC.put("phase", "ADD");
@@ -521,9 +518,6 @@ public class Driver implements Closeable {
         for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
             compilationContext.enqueue(entryPoint);
         }
-        for (ExecutableElement element : compilationContext.getAutoQueuedElements()) {
-            compilationContext.enqueue(element);
-        }
 
         compilationContext.processQueue(element -> {
             MDC.put("phase", "ANALYZE");
@@ -589,9 +583,6 @@ public class Driver implements Closeable {
 
         for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
             compilationContext.enqueue(entryPoint);
-        }
-        for (ExecutableElement element : compilationContext.getAutoQueuedElements()) {
-            compilationContext.enqueue(element);
         }
 
         compilationContext.processQueue(element -> {
