@@ -1,6 +1,7 @@
 package org.qbicc.plugin.reachability;
 
 import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.interpreter.VmObject;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -18,7 +19,7 @@ interface ReachabilityAnalysis {
 
     void processBuildtimeInstantiatedObjectType(LoadedTypeDefinition ltd, ExecutableElement currentElement);
 
-    void processReachableObjectLiteral(ObjectLiteral objectLiteral, ExecutableElement currentElement);
+    void processReachableObject(VmObject objectLiteral, ExecutableElement currentElement);
 
     void processReachableRuntimeInitializer(final InitializerElement target, ExecutableElement currentElement);
 
