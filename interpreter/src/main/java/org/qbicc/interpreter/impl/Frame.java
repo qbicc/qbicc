@@ -2474,7 +2474,17 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public Memory visit(Frame frame, PointerHandle node) {
             Pointer pointer = frame.unboxPointer(node.getPointerValue());
-            return pointer == null ? null : pointer.getRootMemoryIfExists();
+            if (pointer == null) {
+                // it's possible that it's a null pointer being added to another pointer, as the JDK sometimes does
+                Pointer pv = frame.unboxPointer(node.getOffsetValue());
+                if (pv instanceof IntegerAsPointer) {
+                    // invalid pointer
+                    return null;
+                } else {
+                    return pv.getRootMemoryIfExists();
+                }
+            }
+            return pointer.getRootMemoryIfExists();
         }
     };
 
@@ -2586,7 +2596,15 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         public long visit(Frame frame, PointerHandle node) {
             Pointer pointer = frame.unboxPointer(node.getPointerValue());
             if (pointer == null) {
-                return 0;
+                // it's possible that it's a null pointer being added to another pointer, as the JDK sometimes does
+                pointer = frame.unboxPointer(node.getOffsetValue());
+                if (pointer instanceof IntegerAsPointer iap) {
+                    // invalid pointer *probably*
+                    return iap.getValue();
+                } else {
+                    // either invalid (pv is {@code null}) or valid but the offset is zero
+                    return 0;
+                }
             }
             long offset = frame.unboxLong(node.getOffsetValue());
             // get the number of *bytes* to offset by, because the pointer's type might differ from the handle type
