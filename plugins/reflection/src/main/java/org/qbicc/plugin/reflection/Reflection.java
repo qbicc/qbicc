@@ -171,6 +171,9 @@ public final class Reflection {
     final FieldElement methodHandleLambdaFormField;
     // LambdaForm
     final FieldElement lambdaFormMemberNameField;
+    // MethodHandleAccessorFactory
+    final MethodElement newMethodAccessorMethod;
+    final MethodElement newConstructorAccessorMethod;
 
     // box type fields
     private final FieldElement byteValueField;
@@ -306,6 +309,11 @@ public final class Reflection {
         rmnIndexField = rmnDef.findField("index");
         rmnClazzField = rmnDef.findField("clazz");
 
+        // MethodHandleAccessorFactory
+        LoadedTypeDefinition mhAccFactDef = classContext.findDefinedType("jdk/internal/reflect/MethodHandleAccessorFactory").load();
+        newMethodAccessorMethod = mhAccFactDef.requireSingleMethod("newMethodAccessor");
+        newConstructorAccessorMethod = mhAccFactDef.requireSingleMethod("newConstructorAccessor");
+
         // Exceptions & errors
         LoadedTypeDefinition leDef = classContext.findDefinedType("java/lang/LinkageError").load();
         linkageErrorClass = (VmThrowableClass) leDef.getVmClass();
@@ -369,11 +377,12 @@ public final class Reflection {
         VmClass c = ce.getEnclosingType().load().getVmClass();
         getClassDeclaredConstructors(c, true);
         getClassDeclaredConstructors(c, false);
-        /* TODO: Do something sort of like this to force a working ConstructorAccessor to be generated.
+
+        // Create a DirectConstructorHandleAccessor and store it in the Constructor.
         VmObject ctor = getConstructor(ce);
-        MethodElement aca = constructorClass.getTypeDefinition().requireSingleMethod("acquireConstructorAccessor", 0);
-        vm.invokeExact(aca, ctor, List.of());
-        */
+        VmObject accessor = (VmObject)vm.invokeExact(newConstructorAccessorMethod, null, List.of(ctor));
+        MethodElement sca = constructorClass.getTypeDefinition().requireSingleMethod("setConstructorAccessor", 1);
+        vm.invokeExact(sca, ctor, List.of(accessor));
     }
 
     /**
@@ -385,11 +394,12 @@ public final class Reflection {
         VmClass c = me.getEnclosingType().load().getVmClass();
         getClassDeclaredMethods(c, true);
         getClassDeclaredMethods(c, false);
-        /* TODO: Do something sort of like this to force a working MethodAccessor to be generated.
+
+        // Create a DirectMethodHandleAccessor and store it in the Method.
         VmObject method = getMethod(me);
-        MethodElement ama = methodClass.getTypeDefinition().requireSingleMethod("acquireMethodAccessor", 0);
-        vm.invokeExact(ama, method, List.of());
-         */
+        VmObject accessor = (VmObject)vm.invokeExact(newMethodAccessorMethod, null, List.of(method, Boolean.FALSE));
+        MethodElement sma = methodClass.getTypeDefinition().requireSingleMethod("setMethodAccessor", 1);
+        vm.invokeExact(sma, method, List.of(accessor));
     }
 
     /**
