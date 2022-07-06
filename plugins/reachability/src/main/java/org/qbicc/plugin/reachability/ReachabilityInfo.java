@@ -9,6 +9,7 @@ import java.util.function.Consumer;
 import org.jboss.logging.Logger;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.interpreter.VmObject;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
@@ -280,6 +281,9 @@ public class ReachabilityInfo {
                     }
                 }
             }
+
+            // The Class object of a reachable type is a heap root.
+            analysis.processReachableObject(type.getVmClass(), null);
         }
     }
 
@@ -325,6 +329,9 @@ public class ReachabilityInfo {
                     }
                 }
             }
+
+            // The Class object of a reachable type is a heap root.
+            analysis.processReachableObject(type.getVmClass(), null);
         }
     }
 

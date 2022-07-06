@@ -139,7 +139,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
 
         @Override
         public Void visit(ReachabilityContext param, ObjectLiteral value) {
-            param.analysis.processReachableObjectLiteral(value, param.currentElement);
+            param.analysis.processReachableObject(value.getValue(), param.currentElement);
             return null;
         }
 
@@ -159,7 +159,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
 
         @Override
         public Void visit(ReachabilityContext param, ReferenceAsPointer pointer) {
-            param.analysis.processReachableObjectLiteral(param.ctxt.getLiteralFactory().literalOf(pointer.getReference()), param.currentElement);
+            param.analysis.processReachableObject(pointer.getReference(), param.currentElement);
             return null;
         }
 

@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.interpreter.VmObject;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
@@ -75,8 +76,8 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         processInstantiatedClass(ltd, true, currentElement);
     }
 
-    public synchronized void processReachableObjectLiteral(ObjectLiteral objectLiteral, ExecutableElement currentElement) {
-        heapAnalyzer.traceHeap(ctxt, this, objectLiteral.getValue(), currentElement);
+    public synchronized void processReachableObject(VmObject object, ExecutableElement currentElement) {
+        heapAnalyzer.traceHeap(ctxt, this, object, currentElement);
     }
 
     public synchronized void processReachableRuntimeInitializer(final InitializerElement target, ExecutableElement currentElement) {
