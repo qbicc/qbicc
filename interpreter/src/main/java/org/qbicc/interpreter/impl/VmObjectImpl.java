@@ -84,7 +84,7 @@ class VmObjectImpl implements VmObject, Referenceable {
      */
     VmObjectImpl(VmImpl vm, @SuppressWarnings("unused") Class<?> unused, LayoutInfo instanceLayoutInfo) {
         this.clazz = (VmClassImpl) this;
-        memory = vm.allocate((int) instanceLayoutInfo.getCompoundType().getSize());
+        memory = vm.allocate(instanceLayoutInfo.getCompoundType(), 1);
     }
 
     /**

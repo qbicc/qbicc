@@ -535,6 +535,11 @@ public final class CompoundType extends ValueType {
             return this;
         }
 
+        public Member getLastAddedMember() {
+            // not ideal but `addNextMember` returns `Builder`
+            return members.get(members.size() - 1);
+        }
+
         private int nextMemberOffset(int offset, int align) {
             return (offset + (align - 1)) & -align;
         }
