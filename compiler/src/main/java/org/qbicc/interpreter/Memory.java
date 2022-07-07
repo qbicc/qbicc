@@ -1,9 +1,17 @@
 package org.qbicc.interpreter;
 
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.pointer.Pointer;
+import org.qbicc.type.ArrayType;
+import org.qbicc.type.CompoundType;
+import org.qbicc.type.PointerType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
+import org.qbicc.type.WordType;
 
 /**
  * A base for a relatively-indexed piece of memory.
@@ -56,10 +64,6 @@ public interface Memory {
     void storeType(long index, ValueType value, WriteAccessMode mode);
 
     void storePointer(long index, Pointer value, WriteAccessMode mode);
-
-    void storeMemory(long destIndex, Memory src, long srcIndex, long size);
-
-    void storeMemory(long destIndex, byte[] src, int srcIndex, int size);
 
     int compareAndExchange8(long index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
@@ -706,4 +710,52 @@ public interface Memory {
     Memory cloneZeroed();
 
     long getSize();
+
+    // typed copy
+
+    default void typedCopyTo(long srcOffs, Memory dest, long destOffs, ValueType type) {
+        if (type instanceof CompoundType ct) {
+            typedCopyTo(srcOffs, dest, destOffs, ct);
+        } else if (type instanceof ArrayType at) {
+            typedCopyTo(srcOffs, dest, destOffs, at);
+        } else if (type instanceof ReferenceType) {
+            dest.storeRef(destOffs, loadRef(srcOffs, SinglePlain), SinglePlain);
+        } else if (type instanceof TypeType) {
+            dest.storeType(destOffs, loadType(srcOffs, SinglePlain), SinglePlain);
+        } else if (type instanceof PointerType) {
+            dest.storePointer(destOffs, loadPointer(srcOffs, SinglePlain), SinglePlain);
+        } else if (type instanceof WordType wt) {
+            int minBits = wt.getMinBits();
+            if (minBits <= 8) {
+                dest.store8(destOffs, load8(srcOffs, SinglePlain), SinglePlain);
+            } else if (minBits == 16) {
+                dest.store16(destOffs, load16(srcOffs, SinglePlain), SinglePlain);
+            } else if (minBits == 32) {
+                dest.store32(destOffs, load32(srcOffs, SinglePlain), SinglePlain);
+            } else if (minBits == 64) {
+                dest.store64(destOffs, load64(srcOffs, SinglePlain), SinglePlain);
+            } else {
+                throw new InvalidMemoryAccessException();
+            }
+        } else {
+            throw new InvalidMemoryAccessException();
+        }
+    }
+
+    default void typedCopyTo(long srcOffs, Memory dest, long destOffs, CompoundType type) {
+        for (CompoundType.Member member : type.getMembers()) {
+            int offset = member.getOffset();
+            typedCopyTo(srcOffs + offset, dest, destOffs + offset, member.getType());
+        }
+    }
+
+    default void typedCopyTo(long srcOffs, Memory dest, long destOffs, ArrayType type) {
+        ValueType elementType = type.getElementType();
+        long elementCount = type.getElementCount();
+        long elementTypeSize = elementType.getSize();
+        for (long i = 0; i < elementCount; i++) {
+            long offset = i * elementTypeSize;
+            typedCopyTo(srcOffs + offset, dest, destOffs + offset, elementType);
+        }
+    }
 }

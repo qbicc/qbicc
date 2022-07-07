@@ -54,16 +54,6 @@ public final class ShortArrayMemory extends AbstractMemory {
     }
 
     @Override
-    public void storeMemory(long destIndex, Memory src, long srcIndex, long size) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void storeMemory(long destIndex, byte[] src, int srcIndex, int size) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public int compareAndExchange16(long index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             int val = array[Math.toIntExact(index >>> 1)] & 0xffff;

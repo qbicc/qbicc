@@ -134,13 +134,7 @@ public final class CompositeMemory extends AbstractMemory {
         memories[which].storePointer(index - offsets[which], value, mode);
     }
 
-    @Override
-    public void storeMemory(long destIndex, Memory src, long srcIndex, long size) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void storeMemory(long destIndex, byte[] src, int srcIndex, int size) {
+    private void storeMemory(long destIndex, Memory src, long srcIndex, long size) {
         throw new UnsupportedOperationException();
     }
 

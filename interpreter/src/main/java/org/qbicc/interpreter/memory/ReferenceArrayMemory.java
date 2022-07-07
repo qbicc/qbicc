@@ -65,16 +65,6 @@ public final class ReferenceArrayMemory extends AbstractMemory {
     }
 
     @Override
-    public void storeMemory(long destIndex, Memory src, long srcIndex, long size) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void storeMemory(long destIndex, byte[] src, int srcIndex, int size) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public VmObject compareAndExchangeRef(long index, VmObject expect, VmObject update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             VmObject val = array[Math.toIntExact(index >>> shift)];
