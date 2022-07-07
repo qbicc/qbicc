@@ -25,6 +25,10 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
         super(original);
     }
 
+    LittleEndianMemoryImpl(final LittleEndianMemoryImpl original, final int newSize) {
+        super(original, newSize);
+    }
+
     @Override
     public int load16(long index, ReadAccessMode mode) {
         if (GlobalPlain.includes(mode)) {
@@ -384,9 +388,7 @@ final class LittleEndianMemoryImpl extends MemoryImpl {
         if (newSize == 0) {
             return EMPTY;
         }
-        LittleEndianMemoryImpl newMemory = new LittleEndianMemoryImpl(Math.toIntExact(newSize));
-        newMemory.storeMemory(0, this, 0, Math.min(data.length, newMemory.data.length));
-        return newMemory;
+        return new LittleEndianMemoryImpl(this, Math.toIntExact(newSize));
     }
 
     public MemoryImpl clone() {

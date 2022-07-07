@@ -41,6 +41,13 @@ abstract class MemoryImpl implements Memory {
         things = original.things.clone();
     }
 
+    MemoryImpl(MemoryImpl original, int newSize) {
+        int thingSize = (newSize + 1) >> 1;
+        newSize = thingSize << 1;
+        data = Arrays.copyOf(original.data, newSize);
+        things = Arrays.copyOf(original.things, thingSize);
+    }
+
     static void checkAlign(long offs, int align) {
         int mask = align - 1;
         if ((offs & mask) != 0) {
