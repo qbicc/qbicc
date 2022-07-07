@@ -3,8 +3,6 @@ package org.qbicc.interpreter.impl;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
-import java.nio.ByteOrder;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 import org.qbicc.interpreter.Memory;
@@ -35,11 +33,7 @@ final class VmStringImpl extends VmObjectImpl implements VmString {
         if (latin1) {
             bytes = content.getBytes(StandardCharsets.ISO_8859_1);
         } else {
-            if (vm.getCompilationContext().getTypeSystem().getEndianness() == ByteOrder.BIG_ENDIAN) {
-                bytes = content.getBytes(StandardCharsets.UTF_16BE);
-            } else {
-                bytes = content.getBytes(StandardCharsets.UTF_16LE);
-            }
+            bytes = content.getBytes(StandardCharsets.UTF_16LE);
         }
         VmArray byteArray = vm.newByteArray(bytes);
         Memory memory = getMemory();
@@ -66,8 +60,22 @@ final class VmStringImpl extends VmObjectImpl implements VmString {
         Memory memory = getMemory();
         int coder = memory.load8(vm.stringCoderOffset, SingleAcquire);
         VmByteArrayImpl array = (VmByteArrayImpl) memory.loadRef(vm.stringValueOffset, SingleAcquire);
-        Charset charset = coder == 0 ? StandardCharsets.ISO_8859_1 : StandardCharsets.UTF_16BE;
-        String newContent = new String(array.getArray(), charset);
+        // use an intermediate `char` array to avoid invalid conversion problems
+        byte[] byteArray = array.getArray();
+        int shifted = byteArray.length >> coder;
+        char[] charArray = new char[shifted];
+        if (coder == 0) {
+            for (int i = 0; i < byteArray.length; i++) {
+                charArray[i] = (char) (byteArray[i] & 0xff);
+            }
+        } else {
+            int byteIdx;
+            for (int i = 0; i < shifted; i ++) {
+                byteIdx = i << 1;
+                charArray[i] = (char) (byteArray[byteIdx] & 0xff | (byteArray[byteIdx + 1] & 0xff) << 8);
+            }
+        }
+        String newContent = new String(charArray);
         for (;;) {
             if (contentHandle.compareAndSet(this, null, newContent)) {
                 return newContent;
