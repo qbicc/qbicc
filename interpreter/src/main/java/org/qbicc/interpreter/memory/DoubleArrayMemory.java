@@ -13,15 +13,11 @@ import java.util.Arrays;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.interpreter.Memory;
-import org.qbicc.interpreter.VmObject;
-import org.qbicc.interpreter.impl.InvalidMemoryAccessException;
-import org.qbicc.pointer.Pointer;
-import org.qbicc.type.ValueType;
 
 /**
  * A memory region which is backed by a {@code double} array which can be directly accessed.
  */
-public final class DoubleArrayMemory implements Memory {
+public final class DoubleArrayMemory extends AbstractMemory {
     private static final VarHandle h64 = ConstantBootstraps.arrayVarHandle(MethodHandles.lookup(), "ignored", VarHandle.class, double[].class);
 
     private final double[] array;
@@ -32,21 +28,6 @@ public final class DoubleArrayMemory implements Memory {
 
     public double[] getArray() {
         return array;
-    }
-
-    @Override
-    public int load8(long index, ReadAccessMode mode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public int load16(long index, ReadAccessMode mode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public int load32(long index, ReadAccessMode mode) {
-        throw new InvalidMemoryAccessException();
     }
 
     @Override
@@ -63,36 +44,6 @@ public final class DoubleArrayMemory implements Memory {
     }
 
     @Override
-    public VmObject loadRef(long index, ReadAccessMode mode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public ValueType loadType(long index, ReadAccessMode mode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public Pointer loadPointer(long index, ReadAccessMode mode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public void store8(long index, int value, WriteAccessMode mode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public void store16(long index, int value, WriteAccessMode mode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public void store32(long index, int value, WriteAccessMode mode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
     public void store64(long index, long value, WriteAccessMode mode) {
         if (GlobalPlain.includes(mode)) {
             array[Math.toIntExact(index >>> 3)] = Double.longBitsToDouble(value);
@@ -106,21 +57,6 @@ public final class DoubleArrayMemory implements Memory {
     }
 
     @Override
-    public void storeRef(long index, VmObject value, WriteAccessMode mode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public void storeType(long index, ValueType value, WriteAccessMode mode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public void storePointer(long index, Pointer value, WriteAccessMode mode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
     public void storeMemory(long destIndex, Memory src, long srcIndex, long size) {
         throw new UnsupportedOperationException();
     }
@@ -128,21 +64,6 @@ public final class DoubleArrayMemory implements Memory {
     @Override
     public void storeMemory(long destIndex, byte[] src, int srcIndex, int size) {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int compareAndExchange8(long index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public int compareAndExchange16(long index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public int compareAndExchange32(long index, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        throw new InvalidMemoryAccessException();
     }
 
     @Override
@@ -160,21 +81,6 @@ public final class DoubleArrayMemory implements Memory {
         } else {
             return Double.doubleToRawLongBits((double) h64.compareAndExchange(array, Math.toIntExact(index >>> 3), Double.longBitsToDouble(expect), Double.longBitsToDouble(update)));
         }
-    }
-
-    @Override
-    public VmObject compareAndExchangeRef(long index, VmObject expect, VmObject update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public ValueType compareAndExchangeType(long index, ValueType expect, ValueType update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public Pointer compareAndExchangePointer(long index, Pointer expect, Pointer update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        throw new InvalidMemoryAccessException();
     }
 
     @Override

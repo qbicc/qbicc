@@ -12,7 +12,7 @@ import org.qbicc.type.ValueType;
 /**
  * A memory that is backed by multiple other concatenated memories of possibly varying sizes.
  */
-public final class CompositeMemory implements Memory {
+public final class CompositeMemory extends AbstractMemory {
     private final Memory[] memories;
     private final long[] offsets;
     private final long size;

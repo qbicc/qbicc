@@ -11,15 +11,11 @@ import java.util.Arrays;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.interpreter.Memory;
-import org.qbicc.interpreter.VmObject;
-import org.qbicc.interpreter.impl.InvalidMemoryAccessException;
-import org.qbicc.pointer.Pointer;
-import org.qbicc.type.ValueType;
 
 /**
  * A memory region which is backed by a {@code byte} array which can be directly accessed.
  */
-public abstract class ByteArrayMemory implements Memory {
+public abstract class ByteArrayMemory extends AbstractMemory {
     private static final VarHandle h8 = ConstantBootstraps.arrayVarHandle(MethodHandles.lookup(), "ignored", VarHandle.class, byte[].class);
 
     final byte[] array;
@@ -89,21 +85,6 @@ public abstract class ByteArrayMemory implements Memory {
     }
 
     @Override
-    public VmObject loadRef(long index, ReadAccessMode mode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public ValueType loadType(long index, ReadAccessMode mode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public Pointer loadPointer(long index, ReadAccessMode mode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
     public void store8(long index, int value, WriteAccessMode mode) {
         if (GlobalPlain.includes(mode)) {
             array[(int) index] = (byte) value;
@@ -153,21 +134,6 @@ public abstract class ByteArrayMemory implements Memory {
         } else {
             h64().setVolatile(array, Math.toIntExact(index), value);
         }
-    }
-
-    @Override
-    public void storeRef(long index, VmObject value, WriteAccessMode mode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public void storeType(long index, ValueType value, WriteAccessMode mode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public void storePointer(long index, Pointer value, WriteAccessMode mode) {
-        throw new InvalidMemoryAccessException();
     }
 
     @Override
@@ -246,21 +212,6 @@ public abstract class ByteArrayMemory implements Memory {
         } else {
             return (long) h64().compareAndExchange(array, Math.toIntExact(index), expect, update);
         }
-    }
-
-    @Override
-    public VmObject compareAndExchangeRef(long index, VmObject expect, VmObject update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public ValueType compareAndExchangeType(long index, ValueType expect, ValueType update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        throw new InvalidMemoryAccessException();
-    }
-
-    @Override
-    public Pointer compareAndExchangePointer(long index, Pointer expect, Pointer update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        throw new InvalidMemoryAccessException();
     }
 
     @Override

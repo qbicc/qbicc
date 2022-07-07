@@ -10,7 +10,7 @@ import org.qbicc.type.ValueType;
 /**
  * A memory which is backed by an array of a uniform delegate memory.
  */
-public final class VectorMemory implements Memory {
+public final class VectorMemory extends AbstractMemory {
     private final long divisor;
     private final Memory[] memories;
 
