@@ -140,6 +140,7 @@ import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
+import org.qbicc.interpreter.InvalidMemoryAccessException;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;

@@ -4,7 +4,7 @@ import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmObject;
-import org.qbicc.interpreter.impl.InvalidMemoryAccessException;
+import org.qbicc.interpreter.InvalidMemoryAccessException;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.type.ValueType;
 
