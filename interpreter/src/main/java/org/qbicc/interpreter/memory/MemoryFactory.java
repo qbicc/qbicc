@@ -1,10 +1,19 @@
 package org.qbicc.interpreter.memory;
 
 import java.nio.ByteOrder;
+import java.util.List;
 
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.type.ArrayType;
+import org.qbicc.type.BooleanType;
+import org.qbicc.type.CompoundType;
+import org.qbicc.type.FloatType;
+import org.qbicc.type.IntegerType;
 import org.qbicc.type.ReferenceType;
+import org.qbicc.type.SignedIntegerType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.VoidType;
 
 /**
  * Factory methods for producing memory instances.
@@ -131,5 +140,73 @@ public final class MemoryFactory {
      */
     public static ReferenceArrayMemory wrap(VmObject[] array, ReferenceType refType) {
         return new ReferenceArrayMemory(array, refType);
+    }
+
+    /**
+     * Allocate a strongly typed memory with the given type and count.
+     *
+     * @param type the type (must not be {@code null})
+     * @param count the number of sequential elements to allocate
+     * @return the memory
+     */
+    public static Memory allocate(ValueType type, long count) {
+        ByteOrder byteOrder = type.getTypeSystem().getEndianness();
+        if (type instanceof VoidType || count == 0) {
+            return getEmpty();
+        }
+        if (type instanceof ArrayType at) {
+            long ec = count * at.getElementCount();
+            if (ec > (1 << 30)) {
+                // todo: we could vector some memories together...
+                throw new IllegalArgumentException("too big");
+            }
+            ValueType et = at.getElementType();
+            if (ec == 1) {
+                return allocate(et, 1);
+            } else {
+                return allocate(et, ec);
+            }
+        }
+        int intCount = Math.toIntExact(count);
+        // vectored
+        if (type instanceof CompoundType ct) {
+            // todo: dynamically produce more efficient memory impls
+            int cnt = ct.getMemberCount();
+            if (cnt == 1 && ct.getMember(0).getOffset() == 0) {
+                return allocate(ct.getMember(0).getType(), 1);
+            }
+            List<CompoundType.Member> padded = ct.getPaddedMembers();
+            int pc = padded.size();
+            Memory[] memories = new Memory[pc];
+            for (int i = 0; i < pc; i ++) {
+                memories[i] = allocate(padded.get(i).getType(), 1);
+            }
+            Memory result = compose(memories);
+            // create a vector of memories if there is more than one
+            if (count > 1) {
+                result = replicate(result, intCount);
+            }
+            return result;
+        } else if (type instanceof IntegerType it) {
+            // todo: more compact impls
+            return switch (it.getMinBits()) {
+                case 8 -> wrap(new byte[intCount], byteOrder);
+                case 16 -> it instanceof SignedIntegerType ? wrap(new short[intCount]) : wrap(new char[intCount]);
+                case 32 -> wrap(new int[intCount]);
+                case 64 -> wrap(new long[intCount]);
+                default -> throw new IllegalArgumentException();
+            };
+        } else if (type instanceof FloatType ft) {
+            return switch (ft.getMinBits()) {
+                case 32 -> wrap(new float[intCount]);
+                case 64 -> wrap(new double[intCount]);
+                default -> throw new IllegalArgumentException();
+            };
+        } else if (type instanceof BooleanType) {
+            return wrap(new boolean[intCount]);
+        } else {
+            // todo: pointers, types
+            throw new IllegalArgumentException();
+        }
     }
 }
