@@ -47,6 +47,15 @@ public final class ArrayType extends ValueType {
         return other instanceof ArrayType && equals((ArrayType) other);
     }
 
+    @Override
+    public ValueType getTypeAtOffset(long offset) {
+        if (0 <= offset && offset < getSize()) {
+            return elementType.getTypeAtOffset(offset % elementSize);
+        } else {
+            return getTypeSystem().getVoidType();
+        }
+    }
+
     public boolean equals(final ArrayType other) {
         return this == other || super.equals(other) && elementCount == other.elementCount && elementType.equals(other.elementType);
     }

@@ -67,6 +67,11 @@ public abstract class ObjectType extends ValueType {
         return newReferenceArrayObjectType;
     }
 
+    @Override
+    public ValueType getTypeAtOffset(long offset) {
+        return getTypeSystem().getVoidType();
+    }
+
     abstract ReferenceType createReferenceType();
 
     public abstract boolean hasSuperClass();

@@ -24,6 +24,10 @@ public final class PoisonType extends ValueType {
         return other instanceof PoisonType && super.equals(other);
     }
 
+    public ValueType getTypeAtOffset(final long offset) {
+        return this;
+    }
+
     public StringBuilder toString(final StringBuilder b) {
         return b.append("poison");
     }

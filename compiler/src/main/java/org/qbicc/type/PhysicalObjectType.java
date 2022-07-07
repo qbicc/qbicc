@@ -29,6 +29,11 @@ public abstract class PhysicalObjectType extends ObjectType {
      */
     public abstract long getSize() throws IllegalStateException;
 
+    @Override
+    public ValueType getTypeAtOffset(final long offset) {
+        throw new IllegalStateException("Cannot probe type at offset of object type until layout is complete");
+    }
+
     public int getAlign() {
         return typeSystem.getPointerAlignment();
     }
