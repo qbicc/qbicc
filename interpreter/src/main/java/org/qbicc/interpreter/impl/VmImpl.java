@@ -57,7 +57,6 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.pointer.MemoryPointer;
-import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -1227,18 +1226,11 @@ public final class VmImpl implements Vm {
     }
 
     @Override
-    public MemoryImpl allocate(int size) {
-        return emptyMemory.copy(size);
-    }
-
-    @Override
     public Memory allocate(ValueType type, long count) {
-        // todo: typed memory
         if (count == 0) {
             return MemoryFactory.getEmpty();
         } else if (count == 1) {
-            // todo: typed memory
-            return allocate(Math.toIntExact(type.getSize()));
+            return MemoryFactory.allocate(ctxt, type, count);
         } else {
             return MemoryFactory.replicate(allocate(type, 1), Math.toIntExact(count));
         }

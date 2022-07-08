@@ -540,6 +540,10 @@ public final class CompoundType extends ValueType {
             return members.get(members.size() - 1);
         }
 
+        public int getMemberCountSoFar() {
+            return members.size();
+        }
+
         private int nextMemberOffset(int offset, int align) {
             return (offset + (align - 1)) & -align;
         }

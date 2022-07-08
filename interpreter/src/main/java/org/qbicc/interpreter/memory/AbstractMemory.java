@@ -111,4 +111,12 @@ public abstract class AbstractMemory implements Memory {
 
     @Override
     public abstract Memory clone();
+
+    protected AbstractMemory doClone() {
+        try {
+            return (AbstractMemory) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new IllegalStateException(e);
+        }
+    }
 }

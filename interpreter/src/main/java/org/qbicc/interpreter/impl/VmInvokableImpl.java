@@ -27,6 +27,7 @@ import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.TypeSystem;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.InitializerElement;
@@ -41,7 +42,7 @@ final class VmInvokableImpl implements VmInvokable {
 
     private final ExecutableElement element;
     private final Map<BasicBlock, List<Node>> scheduled;
-    private final CompoundType frameMemoryType;
+    private final ValueType frameMemoryType;
     private final Schedule schedule;
     @SuppressWarnings("unused") // VarHandle
     private volatile long count;
@@ -51,7 +52,11 @@ final class VmInvokableImpl implements VmInvokable {
         TypeSystem ts = element.getEnclosingType().getContext().getTypeSystem();
         final CompoundType.Builder builder = CompoundType.builder(ts);
         scheduled = buildScheduled(element, builder);
-        frameMemoryType = builder.build();
+        if (builder.getMemberCountSoFar() == 0) {
+            frameMemoryType = ts.getVoidType();
+        } else {
+            frameMemoryType = builder.build();
+        }
         schedule = element.getMethodBody().getSchedule();
     }
 
@@ -59,39 +64,38 @@ final class VmInvokableImpl implements VmInvokable {
         if (! element.tryCreateMethodBody()) {
             throw new IllegalStateException("No method body for " + element);
         }
-        TypeSystem ts = element.getEnclosingType().getContext().getTypeSystem();
         MethodBody body = element.getMethodBody();
         Map<BasicBlock, List<Node>> scheduled = new HashMap<>();
-        buildScheduled(body, new HashSet<>(), scheduled, body.getEntryBlock().getTerminator(), ts, localVarLocations);
+        buildScheduled(body, new HashSet<>(), scheduled, body.getEntryBlock().getTerminator(), localVarLocations);
         return scheduled;
     }
 
-    private static void buildScheduled(final MethodBody body, final Set<Node> visited, final Map<BasicBlock, List<Node>> scheduled, Node node, TypeSystem ts, CompoundType.Builder builder) {
+    private static void buildScheduled(final MethodBody body, final Set<Node> visited, final Map<BasicBlock, List<Node>> scheduled, Node node, CompoundType.Builder builder) {
         if (! visited.add(node)) {
             // already scheduled
             return;
         }
         if (node.hasValueHandleDependency()) {
-            buildScheduled(body, visited, scheduled, node.getValueHandle(), ts, builder);
+            buildScheduled(body, visited, scheduled, node.getValueHandle(), builder);
         }
         if (node instanceof OrderedNode) {
-            buildScheduled(body, visited, scheduled, ((OrderedNode) node).getDependency(), ts, builder);
+            buildScheduled(body, visited, scheduled, ((OrderedNode) node).getDependency(), builder);
         }
         int cnt = node.getValueDependencyCount();
         for (int i = 0; i < cnt; i ++) {
-            buildScheduled(body, visited, scheduled, node.getValueDependency(i), ts, builder);
+            buildScheduled(body, visited, scheduled, node.getValueDependency(i), builder);
         }
         if (node instanceof Terminator terminator) {
             // add outbound values
             Map<PhiValue, Value> outboundValues = terminator.getOutboundValues();
             for (PhiValue phiValue : outboundValues.keySet()) {
-                buildScheduled(body, visited, scheduled, terminator.getOutboundValue(phiValue), ts, builder);
+                buildScheduled(body, visited, scheduled, terminator.getOutboundValue(phiValue), builder);
             }
             // recurse to successors
             int sc = terminator.getSuccessorCount();
             for (int i = 0; i < sc; i ++) {
                 BasicBlock successor = terminator.getSuccessor(i);
-                buildScheduled(body, visited, scheduled, successor.getTerminator(), ts, builder);
+                buildScheduled(body, visited, scheduled, successor.getTerminator(), builder);
             }
         }
         if (node instanceof LocalVariable lvn) {

@@ -216,14 +216,6 @@ public interface Vm {
     VmObject getMainThreadGroup();
 
     /**
-     * Allocate memory of the given size.  If the memory size is 0, a shared instance may be returned.
-     *
-     * @param size the memory size (must be 0 or greater)
-     * @return the memory (not {@code null})
-     */
-    Memory allocate(int size);
-
-    /**
      * Allocate memory of the given dimensions. The memory may be strongly typed (i.e. storing values that do
      * not correspond to valid members of the given type may throw an exception).
      *
