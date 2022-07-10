@@ -32,37 +32,37 @@ public abstract class VarHandleMemory extends AbstractMemory {
     }
 
     protected VarHandle getHandle8(int offset) {
-        throw new InvalidMemoryAccessException();
+        throw invalidMemoryAccess();
     }
 
     protected VarHandle getHandle16(int offset) {
-        throw new InvalidMemoryAccessException();
+        throw invalidMemoryAccess();
     }
 
     protected VarHandle getHandle32(int offset) {
-        throw new InvalidMemoryAccessException();
+        throw invalidMemoryAccess();
     }
 
     protected VarHandle getHandle64(int offset) {
-        throw new InvalidMemoryAccessException();
+        throw invalidMemoryAccess();
     }
 
     protected VarHandle getHandleType(int offset) {
-        throw new InvalidMemoryAccessException();
+        throw invalidMemoryAccess();
     }
 
     protected VarHandle getHandleRef(int offset) {
-        throw new InvalidMemoryAccessException();
+        throw invalidMemoryAccess();
     }
 
     protected VarHandle getHandlePointer(int offset) {
-        throw new InvalidMemoryAccessException();
+        throw invalidMemoryAccess();
     }
 
     @Override
     public int load8(long offset, ReadAccessMode mode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -95,7 +95,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int load16(long offset, ReadAccessMode mode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -116,7 +116,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int load32(long offset, ReadAccessMode mode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -149,7 +149,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public long load64(long offset, ReadAccessMode mode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -191,7 +191,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public VmObject loadRef(long offset, ReadAccessMode mode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -212,7 +212,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public ValueType loadType(long offset, ReadAccessMode mode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -233,7 +233,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public Pointer loadPointer(long offset, ReadAccessMode mode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -254,7 +254,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public void store8(long offset, int value, WriteAccessMode mode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -287,7 +287,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public void store16(long offset, int value, WriteAccessMode mode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -320,7 +320,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public void store32(long offset, int value, WriteAccessMode mode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -353,7 +353,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public void store64(long offset, long value, WriteAccessMode mode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -390,7 +390,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public void storeRef(long offset, VmObject value, WriteAccessMode mode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -411,7 +411,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public void storeType(long offset, ValueType value, WriteAccessMode mode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -432,7 +432,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public void storePointer(long offset, Pointer value, WriteAccessMode mode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -453,7 +453,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int compareAndExchange8(long offset, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -494,7 +494,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int compareAndExchange16(long offset, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -535,7 +535,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int compareAndExchange32(long offset, int expect, int update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -576,7 +576,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public long compareAndExchange64(long offset, long expect, long update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -633,7 +633,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public VmObject compareAndExchangeRef(long offset, VmObject expect, VmObject update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -658,7 +658,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public ValueType compareAndExchangeType(long offset, ValueType expect, ValueType update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -683,7 +683,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public Pointer compareAndExchangePointer(long offset, Pointer expect, Pointer update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -742,7 +742,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int getAndSet8(long offset, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -779,7 +779,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int getAndSet16(long offset, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -816,7 +816,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int getAndSet32(long offset, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -853,7 +853,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public long getAndSet64(long offset, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -905,7 +905,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public VmObject getAndSetRef(long offset, VmObject value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -928,7 +928,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public ValueType getAndSetType(long offset, ValueType value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -951,7 +951,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public Pointer getAndSetPointer(long offset, Pointer value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -987,7 +987,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int getAndAdd8(long offset, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -1010,7 +1010,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int getAndAdd16(long offset, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -1047,7 +1047,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int getAndAdd32(long offset, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -1071,7 +1071,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public long getAndAdd64(long offset, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -1100,7 +1100,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int getAndBitwiseAnd8(long offset, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -1123,7 +1123,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int getAndBitwiseAnd16(long offset, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -1160,7 +1160,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int getAndBitwiseAnd32(long offset, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -1183,7 +1183,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public long getAndBitwiseAnd64(long offset, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -1211,7 +1211,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int getAndBitwiseOr8(long offset, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -1234,7 +1234,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int getAndBitwiseOr16(long offset, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -1271,7 +1271,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int getAndBitwiseOr32(long offset, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -1294,7 +1294,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public long getAndBitwiseOr64(long offset, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -1322,7 +1322,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int getAndBitwiseXor8(long offset, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -1345,7 +1345,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int getAndBitwiseXor16(long offset, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -1382,7 +1382,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public int getAndBitwiseXor32(long offset, int value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -1405,7 +1405,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
     @Override
     public long getAndBitwiseXor64(long offset, long value, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (offset > Integer.MAX_VALUE) {
-            throw new InvalidMemoryAccessException();
+            throw invalidMemoryAccess();
         }
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
@@ -1441,5 +1441,9 @@ public abstract class VarHandleMemory extends AbstractMemory {
 
     private static InvalidMemoryAccessException pointerAsInteger() {
         return new InvalidMemoryAccessException("Pointer as integer");
+    }
+
+    private static InvalidMemoryAccessException invalidMemoryAccess() {
+        return new InvalidMemoryAccessException();
     }
 }
