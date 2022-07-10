@@ -383,8 +383,7 @@ public final class MemoryFactory {
         if (delegate == null) {
             // shallow clone, cool!
             cmv.visitVarInsn(Opcodes.ALOAD, 0);
-            cmv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "clone", "()" + Object.class.descriptorString(), false);
-            cmv.visitTypeInsn(Opcodes.CHECKCAST, "org/qbicc/interpreter/Memory");
+            cmv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "org/qbicc/interpreter/memory/AbstractMemory", "doClone", "()" + AbstractMemory.class.descriptorString(), false);
             cmv.visitInsn(Opcodes.ARETURN);
         } else {
             // deep clone :( emit a copy constructor and call it
