@@ -96,6 +96,7 @@ import org.qbicc.plugin.llvm.LLVMGenerator;
 import org.qbicc.plugin.llvm.LLVMIntrinsics;
 import org.qbicc.plugin.llvm.LLVMReferencePointerFactory;
 import org.qbicc.plugin.llvm.LLVMStripStackMapStage;
+import org.qbicc.plugin.lowering.AbortingThrowLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.BooleanAccessCopier;
 import org.qbicc.plugin.lowering.FunctionLoweringElementHandler;
 import org.qbicc.plugin.lowering.InitCheckLoweringBasicBlockBuilder;
@@ -574,7 +575,11 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addCopyFactory(Phase.LOWER, MemberPointerCopier::new);
                                 builder.addCopyFactory(Phase.LOWER, ObjectLiteralSerializingVisitor::new);
 
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ThrowLoweringBasicBlockBuilder::new);
+                                if (isWasm) {
+                                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, AbortingThrowLoweringBasicBlockBuilder::new);
+                                } else {
+                                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ThrowLoweringBasicBlockBuilder::new);
+                                }
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, NoGcBasicBlockBuilder::new);
