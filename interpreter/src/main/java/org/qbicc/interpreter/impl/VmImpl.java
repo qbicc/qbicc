@@ -1230,7 +1230,8 @@ public final class VmImpl implements Vm {
         if (count == 0) {
             return MemoryFactory.getEmpty();
         } else if (count == 1) {
-            return MemoryFactory.allocate(ctxt, type, count);
+            // todo: select upgradeLongs based on a class attribute
+            return MemoryFactory.allocate(ctxt, type, count, true);
         } else {
             return MemoryFactory.replicate(allocate(type, 1), Math.toIntExact(count));
         }

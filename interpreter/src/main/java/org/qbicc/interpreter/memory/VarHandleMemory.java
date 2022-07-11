@@ -5,11 +5,11 @@ import static org.qbicc.graph.atomic.AccessModes.*;
 import java.lang.invoke.VarHandle;
 import java.util.Objects;
 
+import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.interpreter.InvalidMemoryAccessException;
 import org.qbicc.interpreter.Memory;
-import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.pointer.IntegerAsPointer;
 import org.qbicc.pointer.Pointer;
@@ -21,41 +21,26 @@ import org.qbicc.type.ValueType;
  * A memory implementation which uses {@link java.lang.invoke.VarHandle} to access its members.
  */
 public abstract class VarHandleMemory extends AbstractMemory {
+    private final CompilationContext ctxt;
+
     /**
      * Construct a new instance.
+     *
+     * @param ctxt the compilation context (must not be {@code null})
      */
-    protected VarHandleMemory() {
+    protected VarHandleMemory(CompilationContext ctxt) {
+        this.ctxt = ctxt;
+    }
+
+    protected CompilationContext getCompilationContext() {
+        return ctxt;
     }
 
     protected Memory getDelegateMemory(int offset) {
         return null;
     }
 
-    protected VarHandle getHandle8(int offset) {
-        throw invalidMemoryAccess();
-    }
-
-    protected VarHandle getHandle16(int offset) {
-        throw invalidMemoryAccess();
-    }
-
-    protected VarHandle getHandle32(int offset) {
-        throw invalidMemoryAccess();
-    }
-
-    protected VarHandle getHandle64(int offset) {
-        throw invalidMemoryAccess();
-    }
-
-    protected VarHandle getHandleType(int offset) {
-        throw invalidMemoryAccess();
-    }
-
-    protected VarHandle getHandleRef(int offset) {
-        throw invalidMemoryAccess();
-    }
-
-    protected VarHandle getHandlePointer(int offset) {
+    protected VarHandle getHandle(int offset) {
         throw invalidMemoryAccess();
     }
 
@@ -68,7 +53,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.load8(offset, mode);
         }
-        VarHandle handle = getHandle8((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == boolean.class) {
             if (GlobalPlain.includes(mode)) {
                 return (boolean) handle.get(this) ? 1 : 0;
@@ -79,7 +64,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (boolean) handle.getVolatile(this) ? 1 : 0;
             }
-        } else {
+        } else if (handle.varType() == byte.class) {
             if (GlobalPlain.includes(mode)) {
                 return (int) handle.get(this) & 0xff;
             } else if (SingleOpaque.includes(mode)) {
@@ -89,6 +74,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.getVolatile(this) & 0xff;
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -101,15 +88,19 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.load16(offset, mode);
         }
-        VarHandle handle = getHandle16((int) offset);
-        if (GlobalPlain.includes(mode)) {
-            return (int) handle.get(this) & 0xffff;
-        } else if (SingleOpaque.includes(mode)) {
-            return (int) handle.getOpaque(this) & 0xffff;
-        } else if (GlobalAcquire.includes(mode)) {
-            return (int) handle.getAcquire(this) & 0xffff;
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == short.class || handle.varType() == char.class) {
+            if (GlobalPlain.includes(mode)) {
+                return (int) handle.get(this) & 0xffff;
+            } else if (SingleOpaque.includes(mode)) {
+                return (int) handle.getOpaque(this) & 0xffff;
+            } else if (GlobalAcquire.includes(mode)) {
+                return (int) handle.getAcquire(this) & 0xffff;
+            } else {
+                return (int) handle.getVolatile(this) & 0xffff;
+            }
         } else {
-            return (int) handle.getVolatile(this) & 0xffff;
+            throw invalidMemoryAccess();
         }
     }
 
@@ -122,7 +113,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.load32(offset, mode);
         }
-        VarHandle handle = getHandle32((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == float.class) {
             if (GlobalPlain.includes(mode)) {
                 return Float.floatToRawIntBits((float) handle.get(this));
@@ -133,7 +124,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return Float.floatToRawIntBits((float) handle.getVolatile(this));
             }
-        } else {
+        } else if (handle.varType() == int.class) {
             if (GlobalPlain.includes(mode)) {
                 return (int) handle.get(this);
             } else if (SingleOpaque.includes(mode)) {
@@ -143,6 +134,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.getVolatile(this);
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -155,7 +148,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.load64(offset, mode);
         }
-        VarHandle handle = getHandle64((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == Pointer.class) {
             Pointer pointer = loadPointer(offset, mode);
             if (pointer == null) {
@@ -175,7 +168,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return Double.doubleToRawLongBits((double) handle.getVolatile(this));
             }
-        } else {
+        } else if (handle.varType() == long.class) {
             if (GlobalPlain.includes(mode)) {
                 return (long) handle.get(this);
             } else if (SingleOpaque.includes(mode)) {
@@ -185,6 +178,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (long) handle.getVolatile(this);
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -197,15 +192,19 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.loadRef(offset, mode);
         }
-        VarHandle handle = getHandleRef((int) offset);
-        if (GlobalPlain.includes(mode)) {
-            return (VmObject) handle.get(this);
-        } else if (SingleOpaque.includes(mode)) {
-            return (VmObject) handle.getOpaque(this);
-        } else if (GlobalAcquire.includes(mode)) {
-            return (VmObject) handle.getAcquire(this);
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == VmObject.class) {
+            if (GlobalPlain.includes(mode)) {
+                return (VmObject) handle.get(this);
+            } else if (SingleOpaque.includes(mode)) {
+                return (VmObject) handle.getOpaque(this);
+            } else if (GlobalAcquire.includes(mode)) {
+                return (VmObject) handle.getAcquire(this);
+            } else {
+                return (VmObject) handle.getVolatile(this);
+            }
         } else {
-            return (VmObject) handle.getVolatile(this);
+            throw invalidMemoryAccess();
         }
     }
 
@@ -218,15 +217,19 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.loadType(offset, mode);
         }
-        VarHandle handle = getHandleType((int) offset);
-        if (GlobalPlain.includes(mode)) {
-            return (ValueType) handle.get(this);
-        } else if (SingleOpaque.includes(mode)) {
-            return (ValueType) handle.getOpaque(this);
-        } else if (GlobalAcquire.includes(mode)) {
-            return (ValueType) handle.getAcquire(this);
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == ValueType.class) {
+            if (GlobalPlain.includes(mode)) {
+                return (ValueType) handle.get(this);
+            } else if (SingleOpaque.includes(mode)) {
+                return (ValueType) handle.getOpaque(this);
+            } else if (GlobalAcquire.includes(mode)) {
+                return (ValueType) handle.getAcquire(this);
+            } else {
+                return (ValueType) handle.getVolatile(this);
+            }
         } else {
-            return (ValueType) handle.getVolatile(this);
+            throw invalidMemoryAccess();
         }
     }
 
@@ -239,15 +242,22 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.loadPointer(offset, mode);
         }
-        VarHandle handle = getHandlePointer((int) offset);
-        if (GlobalPlain.includes(mode)) {
-            return (Pointer) handle.get(this);
-        } else if (SingleOpaque.includes(mode)) {
-            return (Pointer) handle.getOpaque(this);
-        } else if (GlobalAcquire.includes(mode)) {
-            return (Pointer) handle.getAcquire(this);
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == Pointer.class) {
+            if (GlobalPlain.includes(mode)) {
+                return (Pointer) handle.get(this);
+            } else if (SingleOpaque.includes(mode)) {
+                return (Pointer) handle.getOpaque(this);
+            } else if (GlobalAcquire.includes(mode)) {
+                return (Pointer) handle.getAcquire(this);
+            } else {
+                return (Pointer) handle.getVolatile(this);
+            }
+        } else if (handle.varType() == long.class) {
+            PointerType voidPointerType = ctxt.getTypeSystem().getVoidType().getPointer();
+            return new IntegerAsPointer(voidPointerType, load64(offset, mode));
         } else {
-            return (Pointer) handle.getVolatile(this);
+            throw invalidMemoryAccess();
         }
     }
 
@@ -260,7 +270,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             delegateMemory.store8(offset, value, mode);
         }
-        VarHandle handle = getHandle8((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == boolean.class) {
             if (GlobalPlain.includes(mode)) {
                 handle.set(this, (value & 1) != 0);
@@ -271,7 +281,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 handle.setVolatile(this, (value & 1) != 0);
             }
-        } else {
+        } else if (handle.varType() == byte.class) {
             if (GlobalPlain.includes(mode)) {
                 handle.set(this, (byte) value);
             } else if (SingleOpaque.includes(mode)) {
@@ -281,6 +291,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 handle.setVolatile(this, (byte) value);
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -293,7 +305,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             delegateMemory.store16(offset, value, mode);
         }
-        VarHandle handle = getHandle16((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == char.class) {
             if (GlobalPlain.includes(mode)) {
                 handle.set(this, (char) value);
@@ -304,7 +316,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 handle.setVolatile(this, (char) value);
             }
-        } else {
+        } else if (handle.varType() == short.class) {
             if (GlobalPlain.includes(mode)) {
                 handle.set(this, (short) value);
             } else if (SingleOpaque.includes(mode)) {
@@ -314,6 +326,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 handle.setVolatile(this, (short) value);
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -326,7 +340,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             delegateMemory.store32(offset, value, mode);
         }
-        VarHandle handle = getHandle32((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == float.class) {
             if (GlobalPlain.includes(mode)) {
                 handle.set(this, Float.intBitsToFloat(value));
@@ -337,7 +351,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 handle.setVolatile(this, Float.intBitsToFloat(value));
             }
-        } else {
+        } else if (handle.varType() == int.class) {
             if (GlobalPlain.includes(mode)) {
                 handle.set(this, value);
             } else if (SingleOpaque.includes(mode)) {
@@ -347,6 +361,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 handle.setVolatile(this, value);
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -359,9 +375,9 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             delegateMemory.store64(offset, value, mode);
         }
-        VarHandle handle = getHandle64((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == Pointer.class) {
-            TypeSystem ts = Vm.requireCurrent().getCompilationContext().getTypeSystem();
+            TypeSystem ts = ctxt.getTypeSystem();
             IntegerAsPointer ptr = new IntegerAsPointer(ts.getVoidType().getPointer(), value);
             storePointer(offset, ptr, mode);
         } else if (handle.varType() == double.class) {
@@ -374,7 +390,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 handle.setVolatile(this, Double.longBitsToDouble(value));
             }
-        } else {
+        } else if (handle.varType() == long.class) {
             if (GlobalPlain.includes(mode)) {
                 handle.set(this, value);
             } else if (SingleOpaque.includes(mode)) {
@@ -384,6 +400,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 handle.setVolatile(this, value);
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -396,15 +414,19 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             delegateMemory.storeRef(offset, value, mode);
         }
-        VarHandle handle = getHandleRef((int) offset);
-        if (GlobalPlain.includes(mode)) {
-            handle.set(this, value);
-        } else if (SingleOpaque.includes(mode)) {
-            handle.setOpaque(this, value);
-        } else if (GlobalRelease.includes(mode)) {
-            handle.setRelease(this, value);
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == VmObject.class) {
+            if (GlobalPlain.includes(mode)) {
+                handle.set(this, value);
+            } else if (SingleOpaque.includes(mode)) {
+                handle.setOpaque(this, value);
+            } else if (GlobalRelease.includes(mode)) {
+                handle.setRelease(this, value);
+            } else {
+                handle.setVolatile(this, value);
+            }
         } else {
-            handle.setVolatile(this, value);
+            throw invalidMemoryAccess();
         }
     }
 
@@ -417,15 +439,19 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             delegateMemory.storeType(offset, value, mode);
         }
-        VarHandle handle = getHandleType((int) offset);
-        if (GlobalPlain.includes(mode)) {
-            handle.set(this, value);
-        } else if (SingleOpaque.includes(mode)) {
-            handle.setOpaque(this, value);
-        } else if (GlobalRelease.includes(mode)) {
-            handle.setRelease(this, value);
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == ValueType.class) {
+            if (GlobalPlain.includes(mode)) {
+                handle.set(this, value);
+            } else if (SingleOpaque.includes(mode)) {
+                handle.setOpaque(this, value);
+            } else if (GlobalRelease.includes(mode)) {
+                handle.setRelease(this, value);
+            } else {
+                handle.setVolatile(this, value);
+            }
         } else {
-            handle.setVolatile(this, value);
+            throw invalidMemoryAccess();
         }
     }
 
@@ -438,15 +464,27 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             delegateMemory.storePointer(offset, value, mode);
         }
-        VarHandle handle = getHandlePointer((int) offset);
-        if (GlobalPlain.includes(mode)) {
-            handle.set(this, value);
-        } else if (SingleOpaque.includes(mode)) {
-            handle.setOpaque(this, value);
-        } else if (GlobalRelease.includes(mode)) {
-            handle.setRelease(this, value);
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == Pointer.class) {
+            if (GlobalPlain.includes(mode)) {
+                handle.set(this, value);
+            } else if (SingleOpaque.includes(mode)) {
+                handle.setOpaque(this, value);
+            } else if (GlobalRelease.includes(mode)) {
+                handle.setRelease(this, value);
+            } else {
+                handle.setVolatile(this, value);
+            }
+        } else if (handle.varType() == long.class) {
+            if (value == null) {
+                store64(offset, 0, mode);
+            } else if (value instanceof IntegerAsPointer iap) {
+                store64(offset, iap.getValue(), mode);
+            } else {
+                throw invalidMemoryAccess();
+            }
         } else {
-            handle.setVolatile(this, value);
+            throw invalidMemoryAccess();
         }
     }
 
@@ -459,7 +497,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.compareAndExchange8(offset, expect, update, readMode, writeMode);
         }
-        VarHandle handle = getHandle8((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == boolean.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (boolean) handle.get(this) ? 1 : 0;
@@ -474,7 +512,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (boolean) handle.compareAndExchange(this, (expect & 1) != 0, (update & 1) != 0) ? 1 : 0;
             }
-        } else {
+        } else if (handle.varType() == byte.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (int) handle.get(this);
                 if (val == (expect & 0xff)) {
@@ -488,6 +526,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.compareAndExchange(this, (byte) expect, (byte) update) & 0xff;
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -500,7 +540,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.compareAndExchange16(offset, expect, update, readMode, writeMode);
         }
-        VarHandle handle = getHandle16((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == char.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (int) handle.get(this);
@@ -515,7 +555,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.compareAndExchange(this, (char) expect, (char) update);
             }
-        } else {
+        } else if (handle.varType() == short.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (int) handle.get(this) & 0xffff;
                 if (val == (expect & 0xffff)) {
@@ -529,6 +569,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.compareAndExchange(this, (short) expect, (short) update) & 0xffff;
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -541,7 +583,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.compareAndExchange32(offset, expect, update, readMode, writeMode);
         }
-        VarHandle handle = getHandle32((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == float.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = Float.floatToRawIntBits((float) handle.get(this));
@@ -556,7 +598,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return Float.floatToRawIntBits((float) handle.compareAndExchange(this, Float.intBitsToFloat(expect), Float.intBitsToFloat(update)));
             }
-        } else {
+        } else if (handle.varType() == int.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (int) handle.get(this);
                 if (val == expect) {
@@ -570,6 +612,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.compareAndExchange(this, expect, update);
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -582,9 +626,9 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.compareAndExchange64(offset, expect, update, readMode, writeMode);
         }
-        VarHandle handle = getHandle64((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == Pointer.class) {
-            TypeSystem ts = Vm.requireCurrent().getCompilationContext().getTypeSystem();
+            TypeSystem ts = ctxt.getTypeSystem();
             PointerType voidPointerType = ts.getVoidType().getPointer();
             Pointer witness = loadPointer(offset, readMode);
             if (witness == null && expect == 0 || witness instanceof IntegerAsPointer iap && expect == iap.getValue()) {
@@ -613,7 +657,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return Double.doubleToRawLongBits((double) handle.compareAndExchange(this, Double.longBitsToDouble(expect), Double.longBitsToDouble(update)));
             }
-        } else {
+        } else if (handle.varType() == long.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 long val = (long) handle.get(this);
                 if (val == expect) {
@@ -627,6 +671,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (long) handle.compareAndExchange(this, expect, update);
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -639,19 +685,23 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.compareAndExchangeRef(offset, expect, update, readMode, writeMode);
         }
-        VarHandle handle = getHandleRef((int) offset);
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            VmObject val = (VmObject) handle.get(this);
-            if (val == expect) {
-                handle.set(this, update);
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == VmObject.class) {
+            if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                VmObject val = (VmObject) handle.get(this);
+                if (val == expect) {
+                    handle.set(this, update);
+                }
+                return val;
+            } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                return (VmObject) handle.compareAndExchangeAcquire(this, expect, update);
+            } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
+                return (VmObject) handle.compareAndExchangeRelease(this, expect, update);
+            } else {
+                return (VmObject) handle.compareAndExchange(this, expect, update);
             }
-            return val;
-        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            return (VmObject) handle.compareAndExchangeAcquire(this, expect, update);
-        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
-            return (VmObject) handle.compareAndExchangeRelease(this, expect, update);
         } else {
-            return (VmObject) handle.compareAndExchange(this, expect, update);
+            throw invalidMemoryAccess();
         }
     }
 
@@ -664,19 +714,23 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.compareAndExchangeType(offset, expect, update, readMode, writeMode);
         }
-        VarHandle handle = getHandleType((int) offset);
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            ValueType val = (ValueType) handle.get(this);
-            if (val == expect) {
-                handle.set(this, update);
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == ValueType.class) {
+            if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                ValueType val = (ValueType) handle.get(this);
+                if (val == expect) {
+                    handle.set(this, update);
+                }
+                return val;
+            } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                return (ValueType) handle.compareAndExchangeAcquire(this, expect, update);
+            } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
+                return (ValueType) handle.compareAndExchangeRelease(this, expect, update);
+            } else {
+                return (ValueType) handle.compareAndExchange(this, expect, update);
             }
-            return val;
-        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            return (ValueType) handle.compareAndExchangeAcquire(this, expect, update);
-        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
-            return (ValueType) handle.compareAndExchangeRelease(this, expect, update);
         } else {
-            return (ValueType) handle.compareAndExchange(this, expect, update);
+            throw invalidMemoryAccess();
         }
     }
 
@@ -689,7 +743,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.compareAndExchangePointer(offset, expect, update, readMode, writeMode);
         }
-        VarHandle handle = getHandlePointer((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == long.class) {
             long expectLong, updateLong;
             if (expect == null) {
@@ -710,9 +764,9 @@ public abstract class VarHandleMemory extends AbstractMemory {
             if (result == 0) {
                 return null;
             }
-            PointerType voidPointerType = Vm.requireCurrent().getCompilationContext().getTypeSystem().getVoidType().getPointer();
+            PointerType voidPointerType = ctxt.getTypeSystem().getVoidType().getPointer();
             return new IntegerAsPointer(voidPointerType, result);
-        } else {
+        } else if (handle.varType() == Pointer.class) {
             Pointer witness;
             for (;;) {
                 if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
@@ -736,6 +790,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
                 }
             }
             return witness;
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -748,7 +804,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndSet8(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle8((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == boolean.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (boolean) handle.get(this) ? 1 : 0;
@@ -761,7 +817,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (boolean) handle.getAndSet(this, (value & 1) != 0) ? 1 : 0;
             }
-        } else {
+        } else if (handle.varType() == byte.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (int) handle.get(this) & 0xff;
                 handle.set(this, (byte) value);
@@ -773,6 +829,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.getAndSet(this, (byte) value) & 0xff;
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -785,7 +843,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndSet16(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle16((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == char.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (int) handle.get(this);
@@ -798,7 +856,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.getAndSet(this, (char) value);
             }
-        } else {
+        } else if (handle.varType() == short.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (int) handle.get(this) & 0xffff;
                 handle.set(this, (short) value);
@@ -810,6 +868,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.getAndSet(this, (short) value) & 0xffff;
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -822,7 +882,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndSet32(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle32((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == float.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = Float.floatToRawIntBits((float) handle.get(this));
@@ -835,7 +895,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return Float.floatToRawIntBits((float) handle.getAndSet(this, Float.intBitsToFloat(value)));
             }
-        } else {
+        } else if (handle.varType() == int.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (int) handle.get(this);
                 handle.set(this, value);
@@ -847,6 +907,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.getAndSet(this, value);
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -859,13 +921,13 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndSet64(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle64((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == Pointer.class) {
             Pointer val;
             if (value == 0) {
                 val = getAndSetPointer(offset, null, readMode, writeMode);
             } else {
-                PointerType voidPointerType = Vm.requireCurrent().getCompilationContext().getTypeSystem().getVoidType().getPointer();
+                PointerType voidPointerType = ctxt.getTypeSystem().getVoidType().getPointer();
                 val = getAndSetPointer(offset, new IntegerAsPointer(voidPointerType, value), readMode, writeMode);
             }
             if (val == null) {
@@ -875,7 +937,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 throw pointerAsInteger();
             }
-        } else  if (handle.varType() == double.class) {
+        } else if (handle.varType() == double.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 long val = Double.doubleToRawLongBits((double) handle.get(this));
                 handle.set(this, Double.longBitsToDouble(value));
@@ -887,7 +949,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return Double.doubleToRawLongBits((double) handle.getAndSet(this, Double.longBitsToDouble(value)));
             }
-        } else {
+        } else if (handle.varType() == long.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 long val = (long) handle.get(this);
                 handle.set(this, value);
@@ -899,6 +961,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (long) handle.getAndSet(this, value);
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -911,17 +975,21 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndSetRef(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandleRef((int) offset);
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            VmObject val = (VmObject) handle.get(this);
-            handle.set(this, value);
-            return val;
-        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            return (VmObject) handle.getAndSetAcquire(this, value);
-        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
-            return (VmObject) handle.getAndSetRelease(this, value);
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == VmObject.class) {
+            if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                VmObject val = (VmObject) handle.get(this);
+                handle.set(this, value);
+                return val;
+            } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                return (VmObject) handle.getAndSetAcquire(this, value);
+            } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
+                return (VmObject) handle.getAndSetRelease(this, value);
+            } else {
+                return (VmObject) handle.getAndSet(this, value);
+            }
         } else {
-            return (VmObject) handle.getAndSet(this, value);
+            throw invalidMemoryAccess();
         }
     }
 
@@ -934,17 +1002,21 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndSetType(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandleType((int) offset);
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            ValueType val = (ValueType) handle.get(this);
-            handle.set(this, value);
-            return val;
-        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            return (ValueType) handle.getAndSetAcquire(this, value);
-        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
-            return (ValueType) handle.getAndSetRelease(this, value);
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == ValueType.class) {
+            if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                ValueType val = (ValueType) handle.get(this);
+                handle.set(this, value);
+                return val;
+            } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                return (ValueType) handle.getAndSetAcquire(this, value);
+            } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
+                return (ValueType) handle.getAndSetRelease(this, value);
+            } else {
+                return (ValueType) handle.getAndSet(this, value);
+            }
         } else {
-            return (ValueType) handle.getAndSet(this, value);
+            throw invalidMemoryAccess();
         }
     }
 
@@ -957,7 +1029,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndSetPointer(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandlePointer((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == long.class) {
             long val;
             if (value == null) {
@@ -967,9 +1039,9 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 throw pointerAsInteger();
             }
-            PointerType voidPointerType = Vm.requireCurrent().getCompilationContext().getTypeSystem().getVoidType().getPointer();
+            PointerType voidPointerType = ctxt.getTypeSystem().getVoidType().getPointer();
             return new IntegerAsPointer(voidPointerType, val);
-        } else {
+        } else if (handle.varType() == Pointer.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 Pointer val = (Pointer) handle.get(this);
                 handle.set(this, value);
@@ -981,6 +1053,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (Pointer) handle.getAndSet(this, value);
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -993,17 +1067,21 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndAdd8(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle8((int) offset);
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            int val = (int) handle.get(this) & 0xff;
-            handle.set(this, (byte) (val + value));
-            return val;
-        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            return (int) handle.getAndAddAcquire(this, (byte) value) & 0xff;
-        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
-            return (int) handle.getAndAddRelease(this, (byte) value) & 0xff;
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == byte.class) {
+            if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                int val = (int) handle.get(this) & 0xff;
+                handle.set(this, (byte) (val + value));
+                return val;
+            } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                return (int) handle.getAndAddAcquire(this, (byte) value) & 0xff;
+            } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
+                return (int) handle.getAndAddRelease(this, (byte) value) & 0xff;
+            } else {
+                return (int) handle.getAndAdd(this, (byte) value) & 0xff;
+            }
         } else {
-            return (int) handle.getAndAdd(this, (byte) value) & 0xff;
+            throw invalidMemoryAccess();
         }
     }
 
@@ -1016,7 +1094,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndAdd16(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle16((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == char.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (int) handle.get(this);
@@ -1029,7 +1107,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.getAndAdd(this, (char) value);
             }
-        } else {
+        } else if (handle.varType() == short.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (int) handle.get(this) & 0xffff;
                 handle.set(this, (short) (val + value));
@@ -1041,6 +1119,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.getAndAdd(this, (short) value) & 0xffff;
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -1053,18 +1133,24 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndAdd32(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle32((int) offset);
-        // TODO: float behavior?
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            int val = (int) handle.get(this);
-            handle.set(this, val + value);
-            return val;
-        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            return (int) handle.getAndAddAcquire(this, value);
-        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
-            return (int) handle.getAndAddRelease(this, value);
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == int.class) {
+            if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                int val = (int) handle.get(this);
+                handle.set(this, val + value);
+                return val;
+            } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                return (int) handle.getAndAddAcquire(this, value);
+            } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
+                return (int) handle.getAndAddRelease(this, value);
+            } else {
+                return (int) handle.getAndAdd(this, value);
+            }
+        } else if (handle.varType() == float.class) {
+            // TODO: float behavior?
+            throw new UnsupportedOperationException("float getAndAdd");
         } else {
-            return (int) handle.getAndAdd(this, value);
+            throw invalidMemoryAccess();
         }
     }
 
@@ -1077,12 +1163,11 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndAdd64(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle64((int) offset);
-        // TODO: double behavior?
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == Pointer.class) {
             // use default CAS-based implementation
             return super.getAndAdd64(offset, value, readMode, writeMode);
-        } else {
+        } else if (handle.varType() == long.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 long val = (long) handle.get(this);
                 handle.set(this, val + value);
@@ -1094,6 +1179,11 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (long) handle.getAndAdd(this, value);
             }
+        } else if (handle.varType() == double.class) {
+            // TODO: double behavior?
+            throw new UnsupportedOperationException("double getAndAdd");
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -1106,17 +1196,21 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndBitwiseAnd8(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle8((int) offset);
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            int val = (int) handle.get(this) & 0xff;
-            handle.set(this, (byte) (val & value));
-            return val;
-        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            return (int) handle.getAndBitwiseAndAcquire(this, (byte) value) & 0xff;
-        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
-            return (int) handle.getAndBitwiseAndRelease(this, (byte) value) & 0xff;
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == byte.class) {
+            if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                int val = (int) handle.get(this) & 0xff;
+                handle.set(this, (byte) (val & value));
+                return val;
+            } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                return (int) handle.getAndBitwiseAndAcquire(this, (byte) value) & 0xff;
+            } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
+                return (int) handle.getAndBitwiseAndRelease(this, (byte) value) & 0xff;
+            } else {
+                return (int) handle.getAndBitwiseAnd(this, (byte) value) & 0xff;
+            }
         } else {
-            return (int) handle.getAndBitwiseAnd(this, (byte) value) & 0xff;
+            throw invalidMemoryAccess();
         }
     }
 
@@ -1129,7 +1223,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndBitwiseAnd16(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle16((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == char.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (int) handle.get(this);
@@ -1142,7 +1236,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.getAndBitwiseAnd(this, (char) value);
             }
-        } else {
+        } else if (handle.varType() == short.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (int) handle.get(this) & 0xffff;
                 handle.set(this, (short) (val & value));
@@ -1154,6 +1248,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.getAndBitwiseAnd(this, (short) value) & 0xffff;
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -1166,17 +1262,21 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndBitwiseAnd32(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle32((int) offset);
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            int val = (int) handle.get(this);
-            handle.set(this, val & value);
-            return val;
-        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            return (int) handle.getAndBitwiseAndAcquire(this, value);
-        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
-            return (int) handle.getAndBitwiseAndRelease(this, value);
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == int.class) {
+            if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                int val = (int) handle.get(this);
+                handle.set(this, val & value);
+                return val;
+            } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                return (int) handle.getAndBitwiseAndAcquire(this, value);
+            } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
+                return (int) handle.getAndBitwiseAndRelease(this, value);
+            } else {
+                return (int) handle.getAndBitwiseAnd(this, value);
+            }
         } else {
-            return (int) handle.getAndBitwiseAnd(this, value);
+            throw invalidMemoryAccess();
         }
     }
 
@@ -1189,11 +1289,11 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndBitwiseAnd64(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle64((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == Pointer.class) {
             // use default CAS-based implementation
             return super.getAndBitwiseAnd64(offset, value, readMode, writeMode);
-        } else {
+        } else if (handle.varType() == long.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 long val = (long) handle.get(this);
                 handle.set(this, val & value);
@@ -1205,6 +1305,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (long) handle.getAndBitwiseAnd(this, value);
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -1217,17 +1319,21 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndBitwiseOr8(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle8((int) offset);
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            int val = (int) handle.get(this) & 0xff;
-            handle.set(this, (byte) (val & value));
-            return val;
-        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            return (int) handle.getAndBitwiseOrAcquire(this, (byte) value) & 0xff;
-        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
-            return (int) handle.getAndBitwiseOrRelease(this, (byte) value) & 0xff;
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == byte.class) {
+            if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                int val = (int) handle.get(this) & 0xff;
+                handle.set(this, (byte) (val & value));
+                return val;
+            } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                return (int) handle.getAndBitwiseOrAcquire(this, (byte) value) & 0xff;
+            } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
+                return (int) handle.getAndBitwiseOrRelease(this, (byte) value) & 0xff;
+            } else {
+                return (int) handle.getAndBitwiseOr(this, (byte) value) & 0xff;
+            }
         } else {
-            return (int) handle.getAndBitwiseOr(this, (byte) value) & 0xff;
+            throw invalidMemoryAccess();
         }
     }
 
@@ -1240,7 +1346,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndBitwiseOr16(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle16((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == char.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (int) handle.get(this);
@@ -1253,7 +1359,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.getAndBitwiseOr(this, (char) value);
             }
-        } else {
+        } else if (handle.varType() == short.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (int) handle.get(this) & 0xffff;
                 handle.set(this, (short) (val & value));
@@ -1265,6 +1371,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.getAndBitwiseOr(this, (short) value) & 0xffff;
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -1277,17 +1385,21 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndBitwiseOr32(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle32((int) offset);
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            int val = (int) handle.get(this);
-            handle.set(this, val & value);
-            return val;
-        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            return (int) handle.getAndBitwiseOrAcquire(this, value);
-        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
-            return (int) handle.getAndBitwiseOrRelease(this, value);
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == int.class) {
+            if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                int val = (int) handle.get(this);
+                handle.set(this, val & value);
+                return val;
+            } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                return (int) handle.getAndBitwiseOrAcquire(this, value);
+            } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
+                return (int) handle.getAndBitwiseOrRelease(this, value);
+            } else {
+                return (int) handle.getAndBitwiseOr(this, value);
+            }
         } else {
-            return (int) handle.getAndBitwiseOr(this, value);
+            throw invalidMemoryAccess();
         }
     }
 
@@ -1300,11 +1412,11 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndBitwiseOr64(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle64((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == Pointer.class) {
             // use default CAS-based implementation
             return super.getAndBitwiseOr64(offset, value, readMode, writeMode);
-        } else {
+        } else if (handle.varType() == long.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 long val = (long) handle.get(this);
                 handle.set(this, val & value);
@@ -1316,6 +1428,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (long) handle.getAndBitwiseOr(this, value);
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -1328,17 +1442,21 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndBitwiseXor8(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle8((int) offset);
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            int val = (int) handle.get(this) & 0xff;
-            handle.set(this, (byte) (val & value));
-            return val;
-        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            return (int) handle.getAndBitwiseXorAcquire(this, (byte) value) & 0xff;
-        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
-            return (int) handle.getAndBitwiseXorRelease(this, (byte) value) & 0xff;
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == byte.class) {
+            if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                int val = (int) handle.get(this) & 0xff;
+                handle.set(this, (byte) (val & value));
+                return val;
+            } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                return (int) handle.getAndBitwiseXorAcquire(this, (byte) value) & 0xff;
+            } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
+                return (int) handle.getAndBitwiseXorRelease(this, (byte) value) & 0xff;
+            } else {
+                return (int) handle.getAndBitwiseXor(this, (byte) value) & 0xff;
+            }
         } else {
-            return (int) handle.getAndBitwiseXor(this, (byte) value) & 0xff;
+            throw invalidMemoryAccess();
         }
     }
 
@@ -1351,7 +1469,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndBitwiseXor16(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle16((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == char.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (int) handle.get(this);
@@ -1364,7 +1482,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.getAndBitwiseXor(this, (char) value);
             }
-        } else {
+        } else if (handle.varType() == short.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 int val = (int) handle.get(this) & 0xffff;
                 handle.set(this, (short) (val & value));
@@ -1376,6 +1494,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (int) handle.getAndBitwiseXor(this, (short) value) & 0xffff;
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 
@@ -1388,17 +1508,21 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndBitwiseXor32(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle32((int) offset);
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            int val = (int) handle.get(this);
-            handle.set(this, val & value);
-            return val;
-        } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            return (int) handle.getAndBitwiseXorAcquire(this, value);
-        } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
-            return (int) handle.getAndBitwiseXorRelease(this, value);
+        VarHandle handle = getHandle((int) offset);
+        if (handle.varType() == int.class) {
+            if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                int val = (int) handle.get(this);
+                handle.set(this, val & value);
+                return val;
+            } else if (GlobalAcquire.includes(readMode) && GlobalPlain.includes(writeMode)) {
+                return (int) handle.getAndBitwiseXorAcquire(this, value);
+            } else if (GlobalPlain.includes(readMode) && GlobalRelease.includes(writeMode)) {
+                return (int) handle.getAndBitwiseXorRelease(this, value);
+            } else {
+                return (int) handle.getAndBitwiseXor(this, value);
+            }
         } else {
-            return (int) handle.getAndBitwiseXor(this, value);
+            throw invalidMemoryAccess();
         }
     }
 
@@ -1411,11 +1535,11 @@ public abstract class VarHandleMemory extends AbstractMemory {
         if (delegateMemory != null) {
             return delegateMemory.getAndBitwiseXor64(offset, value, readMode, writeMode);
         }
-        VarHandle handle = getHandle64((int) offset);
+        VarHandle handle = getHandle((int) offset);
         if (handle.varType() == Pointer.class) {
             // use default CAS-based implementation
             return super.getAndBitwiseXor64(offset, value, readMode, writeMode);
-        } else {
+        } else if (handle.varType() == long.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
                 long val = (long) handle.get(this);
                 handle.set(this, val & value);
@@ -1427,6 +1551,8 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 return (long) handle.getAndBitwiseXor(this, value);
             }
+        } else {
+            throw invalidMemoryAccess();
         }
     }
 

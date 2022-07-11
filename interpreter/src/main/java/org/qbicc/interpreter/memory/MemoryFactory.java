@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.api.factory.primitive.IntObjectMaps;
@@ -180,12 +180,12 @@ public final class MemoryFactory {
     static final class GenMemoryInfo {
         final String clazzName;
         final String clazzDesc;
-        final Supplier<Memory> supplier;
+        final Function<CompilationContext, Memory> producer;
 
-        GenMemoryInfo(String clazzName, Supplier<Memory> supplier) {
+        GenMemoryInfo(String clazzName, Function<CompilationContext, Memory> producer) {
             this.clazzName = clazzName;
             clazzDesc = "L" + clazzName + ";";
-            this.supplier = supplier;
+            this.producer = producer;
         }
     }
 
@@ -200,26 +200,25 @@ public final class MemoryFactory {
 
     private static final AtomicLong seq = new AtomicLong();
 
-    public static Supplier<Memory> getMemoryFactory(CompilationContext ctxt, CompoundType ct) {
+    public static Function<CompilationContext, Memory> getMemoryFactory(CompilationContext ctxt, CompoundType ct, boolean upgradeLongs) {
         Map<CompoundType, GenMemoryInfo> map = ctxt.computeAttachmentIfAbsent(MF_CACHE_KEY, ConcurrentHashMap::new);
         // avoid constructing the lambda instance if possible
         GenMemoryInfo genMemoryInfo = map.get(ct);
         if (genMemoryInfo != null) {
-            return genMemoryInfo.supplier;
+            return genMemoryInfo.producer;
         }
-        return map.computeIfAbsent(ct, ct1 -> makeFactory(ctxt, ct1)).supplier;
+        return map.computeIfAbsent(ct, ct1 -> makeFactory(ct1, upgradeLongs)).producer;
     }
 
-    private static final Supplier<?>[] NO_SUPPLIERS = new Supplier<?>[0];
+    private static final Function<?, ?>[] NO_FUNCTIONS = new Function<?, ?>[0];
 
-    private static GenMemoryInfo makeFactory(CompilationContext ctxt, final CompoundType ct) {
+    private static GenMemoryInfo makeFactory(final CompoundType ct, boolean upgradeLongs) {
         // produce class per compound type
         MethodHandles.Lookup lookup = MethodHandles.lookup();
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
 
-        String simpleName = "GenMemory" + seq.getAndIncrement();
+        String simpleName = "GenMemory";
         String clazzName = "org/qbicc/interpreter/memory/" + simpleName;
-        String clazzDesc = "L" + clazzName + ";";
 
         cw.visit(Opcodes.V17, Opcodes.ACC_SUPER, clazzName, null, "org/qbicc/interpreter/memory/VarHandleMemory", MEM_INTERFACES);
 
@@ -233,13 +232,7 @@ public final class MemoryFactory {
 
         // mapping of offset to condy for each simple field; the condy creates the VarHandle on demand
 
-        MutableIntObjectMap<ConstantDynamic> handle8 = null;
-        MutableIntObjectMap<ConstantDynamic> handle16 = null;
-        MutableIntObjectMap<ConstantDynamic> handle32 = null;
-        MutableIntObjectMap<ConstantDynamic> handle64 = null;
-        MutableIntObjectMap<ConstantDynamic> handleType = null;
-        MutableIntObjectMap<ConstantDynamic> handleRef = null;
-        MutableIntObjectMap<ConstantDynamic> handlePtr = null;
+        final MutableIntObjectMap<ConstantDynamic> handles = IntObjectMaps.mutable.empty();
 
         // primitive type class condys
         ConstantDynamic booleanClassConstant = new ConstantDynamic("TYPE", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "getStaticFinal", GET_STATIC_FINAL_DESC_STR, false), Type.getType(Boolean.class));
@@ -279,16 +272,11 @@ public final class MemoryFactory {
                 // simple fields
                 if (simpleFields == null) simpleFields = new LinkedHashMap<>();
                 Object fieldTypeArg;
-                MutableIntObjectMap<ConstantDynamic> handleMap;
                 fieldAccess = Opcodes.ACC_PRIVATE;
-                if (memberType instanceof IntegerType it) {
-                    handleMap = switch (it.getMinBits()) {
-                        case 8 -> handle8 == null ? handle8 = IntObjectMaps.mutable.empty() : handle8;
-                        case 16 -> handle16 == null ? handle16 = IntObjectMaps.mutable.empty() : handle16;
-                        case 32 -> handle32 == null ? handle32 = IntObjectMaps.mutable.empty() : handle32;
-                        case 64 -> handle64 == null ? handle64 = IntObjectMaps.mutable.empty() : handle64;
-                        default -> throw new IllegalStateException();
-                    };
+                if (memberType instanceof PointerType || upgradeLongs && memberType instanceof IntegerType it && it.getMinBits() == 64) {
+                    fieldClazz = Pointer.class;
+                    fieldTypeArg = Type.getType(fieldClazz);
+                } else if (memberType instanceof IntegerType it) {
                     fieldClazz = switch (it.getMinBits()) {
                         case 8 -> byte.class;
                         case 16 -> it instanceof UnsignedIntegerType ? char.class : short.class;
@@ -304,11 +292,6 @@ public final class MemoryFactory {
                         default -> throw new IllegalStateException();
                     };
                 } else if (memberType instanceof FloatType ft) {
-                    handleMap = switch (ft.getMinBits()) {
-                        case 32 -> handle32 == null ? handle32 = IntObjectMaps.mutable.empty() : handle32;
-                        case 64 -> handle64 == null ? handle64 = IntObjectMaps.mutable.empty() : handle64;
-                        default -> throw new IllegalStateException();
-                    };
                     fieldClazz = switch (ft.getMinBits()) {
                         case 32 -> float.class;
                         case 64 -> double.class;
@@ -320,19 +303,12 @@ public final class MemoryFactory {
                         default -> throw new IllegalStateException();
                     };
                 } else if (memberType instanceof BooleanType) {
-                    handleMap = handle8 == null ? handle8 = IntObjectMaps.mutable.empty() : handle8;
                     fieldClazz = boolean.class;
                     fieldTypeArg = booleanClassConstant;
                 } else if (memberType instanceof TypeType) {
-                    handleMap = handleType == null ? handleType = IntObjectMaps.mutable.empty() : handleType;
                     fieldClazz = ValueType.class;
                     fieldTypeArg = Type.getType(fieldClazz);
-                } else if (memberType instanceof PointerType) {
-                    handleMap = handlePtr == null ? handlePtr = IntObjectMaps.mutable.empty() : handlePtr;
-                    fieldClazz = Pointer.class;
-                    fieldTypeArg = Type.getType(fieldClazz);
                 } else if (memberType instanceof ReferenceType) {
-                    handleMap = handleRef == null ? handleRef = IntObjectMaps.mutable.empty() : handleRef;
                     fieldClazz = VmObject.class;
                     fieldTypeArg = Type.getType(fieldClazz);
                 } else {
@@ -355,7 +331,7 @@ public final class MemoryFactory {
                     Type.getObjectType(clazzName),
                     fieldTypeArg
                 );
-                handleMap.put(offset, constant);
+                handles.put(offset, constant);
                 simpleFields.put(fieldName, fieldClazz.descriptorString());
             }
 
@@ -363,19 +339,48 @@ public final class MemoryFactory {
             FieldVisitor fieldVisitor = cw.visitField(fieldAccess, fieldName, fieldClazz.descriptorString(), null, null);
             fieldVisitor.visitEnd();
         }
-        // emit all "handle" methods
-        emitHandleMethod(cw, "getHandle8", handle8);
-        emitHandleMethod(cw, "getHandle16", handle16);
-        emitHandleMethod(cw, "getHandle32", handle32);
-        emitHandleMethod(cw, "getHandle64", handle64);
-        emitHandleMethod(cw, "getHandleType", handleType);
-        emitHandleMethod(cw, "getHandleRef", handleRef);
-        emitHandleMethod(cw, "getHandlePointer", handlePtr);
+
+        // emit "getHandle" method
+        String descriptor = "(I)" + VarHandle.class.descriptorString();
+        MethodVisitor ghmv = ((ClassVisitor) cw).visitMethod(Opcodes.ACC_PROTECTED, "getHandle", descriptor, null, null);
+        ghmv.visitParameter("offset", 0);
+        ghmv.visitCode();// emit a switch statement to map offsets to condys
+        Label noMatch = new Label();
+        int cnt = handles.size();
+        int[] keys = new int[cnt];
+        Label[] labels = new Label[cnt];
+        ConstantDynamic[] constants = new ConstantDynamic[cnt];
+        int i = 0;
+        RichIterable<IntObjectPair<ConstantDynamic>> iter = handles.keyValuesView();
+        ArrayList<IntObjectPair<ConstantDynamic>> list = iter.into(new ArrayList<>());
+        list.sort(Comparator.comparingInt(IntObjectPair::getOne));
+        for (IntObjectPair<ConstantDynamic> pair : list) {
+            keys[i] = pair.getOne();
+            labels[i] = new Label();
+            constants[i] = pair.getTwo();
+            i++;
+        }
+        ghmv.visitVarInsn(Opcodes.ILOAD, 1); // offset
+        ghmv.visitLookupSwitchInsn(noMatch, keys, labels);
+        for (i = 0; i < cnt; i++) {
+            ghmv.visitLabel(labels[i]);
+            ghmv.visitLdcInsn(constants[i]);
+            ghmv.visitInsn(Opcodes.ARETURN);
+        }
+        ghmv.visitLabel(noMatch);
+        ghmv.visitVarInsn(Opcodes.ALOAD, 0); // this
+        ghmv.visitVarInsn(Opcodes.ILOAD, 1); // offset
+        ghmv.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/qbicc/interpreter/memory/VarHandleMemory", "getHandle", descriptor, false);
+        ghmv.visitInsn(Opcodes.ARETURN);
+        ghmv.visitMaxs(0, 0);
+        ghmv.visitEnd();
+
         // emit ctor
-        MethodVisitor ctor = cw.visitMethod(0, "<init>", "()V", null, null);
+        MethodVisitor ctor = cw.visitMethod(0, "<init>", "(" + CompilationContext.class.descriptorString() + ")V", null, null);
         ctor.visitCode();
         ctor.visitVarInsn(Opcodes.ALOAD, 0);
-        ctor.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/qbicc/interpreter/memory/VarHandleMemory", "<init>", "()V", false);
+        ctor.visitVarInsn(Opcodes.ALOAD, 1);
+        ctor.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/qbicc/interpreter/memory/VarHandleMemory", "<init>", "(" + CompilationContext.class.descriptorString() + ")V", false);
 
         // emit "clone" method
         MethodVisitor cmv = cw.visitMethod(Opcodes.ACC_PUBLIC, "clone", "()" + Memory.class.descriptorString(), null, null);
@@ -391,12 +396,13 @@ public final class MemoryFactory {
             ccmv.visitParameter("orig", 0);
             ccmv.visitCode();
             // call super
-            ccmv.visitVarInsn(Opcodes.ALOAD, 0);
-            ccmv.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/qbicc/interpreter/memory/VarHandleMemory", "<init>", "()V", false);
-            // cast the plain memory object
-            ccmv.visitVarInsn(Opcodes.ALOAD, 1);
-            ccmv.visitTypeInsn(Opcodes.CHECKCAST, clazzName);
-            ccmv.visitVarInsn(Opcodes.ASTORE, 1);
+            ccmv.visitVarInsn(Opcodes.ALOAD, 0); // this
+            ccmv.visitVarInsn(Opcodes.ALOAD, 1); // this orig
+            ccmv.visitTypeInsn(Opcodes.CHECKCAST, clazzName); // this orig'
+            ccmv.visitInsn(Opcodes.DUP); // this orig' orig'
+            ccmv.visitVarInsn(Opcodes.ASTORE, 1); // this orig'
+            ccmv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "org/qbicc/interpreter/memory/VarHandleMemory", "getCompilationContext", "()" + CompilationContext.class.descriptorString(), false); // orig' this cc
+            ccmv.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/qbicc/interpreter/memory/VarHandleMemory", "<init>", "(" + CompilationContext.class.descriptorString() + ")V", false); // orig'
             // shallow-copy all of the little fields
             if (simpleFields != null) for (Map.Entry<String, String> entry : simpleFields.entrySet()) {
                 String fieldName = entry.getKey();
@@ -428,11 +434,11 @@ public final class MemoryFactory {
         cmv.visitMaxs(0, 0);
         cmv.visitEnd();
 
-        Supplier<?>[] factoryArray = NO_SUPPLIERS;
+        Function<?, ?>[] factoryArray = NO_FUNCTIONS;
         // emit "getDelegateMemory" if needed
         if (delegate != null) {
             //java.lang.invoke.MethodHandles.classData
-            factoryArray = new Supplier<?>[delegate.size()];
+            factoryArray = new Function<?, ?>[delegate.size()];
             Handle classObjectBootstrap = new Handle(
                 Opcodes.H_INVOKESTATIC,
                 "java/lang/invoke/MethodHandles",
@@ -466,14 +472,16 @@ public final class MemoryFactory {
                 mv.visitLabel(outOfRange);
 
                 // also insert the init code for the field to the ctor
-                Supplier<Memory> factory = () -> MemoryFactory.allocate(ctxt, member.getType(), 1);
+                Function<CompilationContext, Memory> factory = ctxt1 -> MemoryFactory.allocate(ctxt1, member.getType(), 1, upgradeLongs);
                 factoryArray[fi] = factory;
                 ctor.visitVarInsn(Opcodes.ALOAD, 0); // this
                 ctor.visitLdcInsn(factoryArrayConstant); // this factoryArray
-                ctor.visitTypeInsn(Opcodes.CHECKCAST, "[Ljava/util/function/Supplier;");
+                ctor.visitTypeInsn(Opcodes.CHECKCAST, "[Ljava/util/function/Function;");
                 ctor.visitLdcInsn(Integer.valueOf(fi)); // this factoryArray index
                 ctor.visitInsn(Opcodes.AALOAD); // this factory
-                ctor.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/function/Supplier", "get", "()" + OBJECT_DESC_STR, true); // this memory
+                ctor.visitVarInsn(Opcodes.ALOAD, 0); // this factory this
+                ctor.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/qbicc/interpreter/memory/VarHandleMemory", "getCompilationContext", "()" + CompilationContext.class.descriptorString(), false); // this factory ctxt
+                ctor.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/function/Function", "apply", "(" + OBJECT_DESC_STR + ")" + OBJECT_DESC_STR, true); // this memory
                 ctor.visitTypeInsn(Opcodes.CHECKCAST, "org/qbicc/interpreter/Memory");
                 ctor.visitFieldInsn(Opcodes.PUTFIELD, clazzName, fieldName, Memory.class.descriptorString());
                 fi ++;
@@ -491,10 +499,10 @@ public final class MemoryFactory {
         cw.visitEnd();
 
         byte[] bytes = cw.toByteArray();
-        try {
-            Files.write(Paths.get("/tmp", simpleName + ".class"), bytes, StandardOpenOption.CREATE);
-        } catch (IOException ignored) {
-        }
+//        try {
+//            Files.write(Paths.get("/tmp", simpleName + seq.getAndIncrement() + ".class"), bytes, StandardOpenOption.CREATE);
+//        } catch (IOException ignored) {
+//        }
         Class<? extends Memory> clazz;
         MethodHandles.Lookup hiddenClassLookup;
         try {
@@ -505,58 +513,17 @@ public final class MemoryFactory {
         clazz = hiddenClassLookup.lookupClass().asSubclass(Memory.class);
         MethodHandle constructor;
         try {
-            constructor = hiddenClassLookup.findConstructor(clazz, MethodType.methodType(void.class));
+            constructor = hiddenClassLookup.findConstructor(clazz, MethodType.methodType(void.class, CompilationContext.class));
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new IllegalStateException("Unexpected failure finding constructor", e);
         }
-        return new GenMemoryInfo(clazzName, () -> {
+        return new GenMemoryInfo(clazzName, ctxt -> {
             try {
-                return (Memory) constructor.invoke();
+                return (Memory) constructor.invoke(ctxt);
             } catch (Throwable e) {
                 throw new IllegalStateException("Unexpected construction failure", e);
             }
         });
-    }
-
-    private static void emitHandleMethod(ClassVisitor cv, String name, MutableIntObjectMap<ConstantDynamic> handleMap) {
-        if (handleMap == null) {
-            // nothing to do
-            return;
-        }
-        String descriptor = "(I)" + VarHandle.class.descriptorString();
-        MethodVisitor mv = cv.visitMethod(Opcodes.ACC_PROTECTED, name, descriptor, null, null);
-        mv.visitParameter("offset", 0);
-        mv.visitCode();
-        // emit a switch statement to map offsets to condys
-        Label noMatch = new Label();
-        int cnt = handleMap.size();
-        int[] keys = new int[cnt];
-        Label[] labels = new Label[cnt];
-        ConstantDynamic[] constants = new ConstantDynamic[cnt];
-        int i = 0;
-        RichIterable<IntObjectPair<ConstantDynamic>> iter = handleMap.keyValuesView();
-        ArrayList<IntObjectPair<ConstantDynamic>> list = iter.into(new ArrayList<>());
-        list.sort(Comparator.comparingInt(IntObjectPair::getOne));
-        for (IntObjectPair<ConstantDynamic> pair : list) {
-            keys[i] = pair.getOne();
-            labels[i] = new Label();
-            constants[i] = pair.getTwo();
-            i ++;
-        }
-        mv.visitVarInsn(Opcodes.ILOAD, 1); // offset
-        mv.visitLookupSwitchInsn(noMatch, keys, labels);
-        for (i = 0; i < cnt; i ++) {
-            mv.visitLabel(labels[i]);
-            mv.visitLdcInsn(constants[i]);
-            mv.visitInsn(Opcodes.ARETURN);
-        }
-        mv.visitLabel(noMatch);
-        mv.visitVarInsn(Opcodes.ALOAD, 0); // this
-        mv.visitVarInsn(Opcodes.ILOAD, 1); // offset
-        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/qbicc/interpreter/memory/VarHandleMemory", name, descriptor, false);
-        mv.visitInsn(Opcodes.ARETURN);
-        mv.visitMaxs(0, 0);
-        mv.visitEnd();
     }
 
     /**
@@ -565,9 +532,11 @@ public final class MemoryFactory {
      * @param ctxt the compilation context (must not be {@code null})
      * @param type the type (must not be {@code null})
      * @param count the number of sequential elements to allocate
+     * @param upgradeLongs {@code true} to upgrade {@code long} members to {@code Pointer} members, or {@code false} to
+     *                     leave them as-is
      * @return the memory
      */
-    public static Memory allocate(CompilationContext ctxt, ValueType type, long count) {
+    public static Memory allocate(CompilationContext ctxt, ValueType type, long count, boolean upgradeLongs) {
         ByteOrder byteOrder = type.getTypeSystem().getEndianness();
         if (type instanceof VoidType || count == 0) {
             return getEmpty();
@@ -580,15 +549,15 @@ public final class MemoryFactory {
             }
             ValueType et = at.getElementType();
             if (ec == 1) {
-                return allocate(ctxt, et, 1);
+                return allocate(ctxt, et, 1, upgradeLongs);
             } else {
-                return allocate(ctxt, et, ec);
+                return allocate(ctxt, et, ec, upgradeLongs);
             }
         }
         int intCount = Math.toIntExact(count);
         // vectored
         if (type instanceof CompoundType ct) {
-            return getMemoryFactory(ctxt, ct).get();
+            return getMemoryFactory(ctxt, ct, upgradeLongs).apply(ctxt);
         } else if (type instanceof IntegerType it) {
             // todo: more compact impls
             return switch (it.getMinBits()) {

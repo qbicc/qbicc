@@ -2105,42 +2105,47 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         if (memory == null) {
             throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
         }
-        if (isInt8(type)) {
-            memory.store8(offset, unboxInt(value), mode);
-        } else if (isInt16(type)) {
-            memory.store16(offset, unboxInt(value), mode);
-        } else if (isInt32(type)) {
-            memory.store32(offset, unboxInt(value), mode);
-        } else if (isInt64(type)) {
-            Object rawValue = require(value);
-            if (rawValue instanceof Pointer p) {
-                memory.storePointer(offset, p, mode);
-            } else if (rawValue == null) {
-                // equivalent to store64(offset, 0, mode);
-                memory.storePointer(offset, null, mode);
+        try {
+            if (isInt8(type)) {
+                memory.store8(offset, unboxInt(value), mode);
+            } else if (isInt16(type)) {
+                memory.store16(offset, unboxInt(value), mode);
+            } else if (isInt32(type)) {
+                memory.store32(offset, unboxInt(value), mode);
+            } else if (isInt64(type)) {
+                Object rawValue = require(value);
+                if (rawValue instanceof Pointer p) {
+                    memory.storePointer(offset, p, mode);
+                } else if (rawValue == null) {
+                    // equivalent to store64(offset, 0, mode);
+                    memory.storePointer(offset, null, mode);
+                } else {
+                    memory.store64(offset, ((Long) rawValue).longValue(), mode);
+                }
+            } else if (isFloat32(type)) {
+                memory.store32(offset, Float.floatToRawIntBits(unboxFloat(value)), mode);
+            } else if (isFloat64(type)) {
+                memory.store64(offset, Double.doubleToRawLongBits(unboxDouble(value)), mode);
+            } else if (isBool(type)) {
+                memory.store8(offset, unboxBool(value) ? 1 : 0, mode);
+            } else if (isRef(type)) {
+                memory.storeRef(offset, (VmObject) require(value), mode);
+            } else if (isTypeId(type)) {
+                memory.storeType(offset, (ValueType) require(value), mode);
+            } else if (type instanceof PointerType) {
+                memory.storePointer(offset, unboxPointer(value), mode);
+            } else if (type instanceof CompoundType ct) {
+                Memory source = (Memory) require(value);
+                if (source == null) {
+                    throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
+                }
+                source.typedCopyTo(0, memory, 0, ct);
             } else {
-                memory.store64(offset, ((Long) rawValue).longValue(), mode);
+                throw unsupportedType();
             }
-        } else if (isFloat32(type)) {
-            memory.store32(offset, Float.floatToRawIntBits(unboxFloat(value)), mode);
-        } else if (isFloat64(type)) {
-            memory.store64(offset, Double.doubleToRawLongBits(unboxDouble(value)), mode);
-        } else if (isBool(type)) {
-            memory.store8(offset, unboxBool(value) ? 1 : 0, mode);
-        } else if (isRef(type)) {
-            memory.storeRef(offset, (VmObject) require(value), mode);
-        } else if (isTypeId(type)) {
-            memory.storeType(offset, (ValueType) require(value), mode);
-        } else if (type instanceof PointerType) {
-            memory.storePointer(offset, unboxPointer(value), mode);
-        } else if (type instanceof CompoundType ct) {
-            Memory source = (Memory) require(value);
-            if (source == null) {
-                throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
-            }
-            source.typedCopyTo(0, memory, 0, ct);
-        } else {
-            throw unsupportedType();
+        } catch (InvalidMemoryAccessException e) {
+            String message = e.getMessage();
+            throw new Thrown(thread.vm.nullPointerException.newInstance(message == null ? "Invalid memory access" : message));
         }
     }
 
