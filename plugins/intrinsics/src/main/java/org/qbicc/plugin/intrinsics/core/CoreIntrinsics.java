@@ -1,6 +1,7 @@
 package org.qbicc.plugin.intrinsics.core;
 
-import java.io.IOException;
+import static org.qbicc.graph.atomic.AccessModes.*;
+
 import java.nio.ByteOrder;
 import java.util.Collections;
 import java.util.List;
@@ -8,7 +9,6 @@ import java.util.List;
 import org.jboss.logging.Logger;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.driver.Driver;
 import org.qbicc.driver.Phase;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
@@ -34,7 +34,7 @@ import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
-import org.qbicc.machine.probe.CProbe;
+import org.qbicc.machine.arch.Cpu;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ProgramObject;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -72,8 +72,6 @@ import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 
-import static org.qbicc.graph.atomic.AccessModes.*;
-
 /**
  * Core JDK intrinsics.
  */
@@ -87,7 +85,11 @@ public final class CoreIntrinsics {
         registerJavaLangSystemIntrinsics(ctxt);
         registerJavaLangStackTraceElementInstrinsics(ctxt);
         registerJavaLangThreadIntrinsics(ctxt);
-        registerJavaLangThrowableIntrinsics(ctxt);
+        if (ctxt.getPlatform().getCpu() != Cpu.WASM32) {
+            registerEmptyJavaLangThrowableIntrinsics(ctxt);
+        } else {
+            registerJavaLangThrowableIntrinsics(ctxt);
+        }
         registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
         registerJavaLangRefIntrinsics(ctxt);
@@ -354,6 +356,29 @@ public final class CoreIntrinsics {
             builder.store(builder.instanceFieldOf(builder.referenceHandle(instance), depthField), frameCount, SingleUnshared);
             return instance;
         };
+
+        intrinsics.registerIntrinsic(Phase.ANALYZE, jltDesc, "fillInStackTrace", MethodDescriptor.synthesize(classContext, jltDesc, List.of(BaseTypeDescriptor.I)), fillInStackTrace);
+    }
+
+    public static void registerEmptyJavaLangThrowableIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+        RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
+
+        String jsfcClass = "org/qbicc/runtime/stackwalk/JavaStackFrameCache";
+        String jswClass = "org/qbicc/runtime/stackwalk/JavaStackWalker";
+
+        ClassTypeDescriptor jltDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Throwable");
+
+        MethodDescriptor intToVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.I));
+
+        MethodElement getFrameCountElement = methodFinder.getMethod(jswClass, "getFrameCount");
+        MethodElement walkStackElement = methodFinder.getMethod(jswClass, "walkStack");
+
+        MethodElement getSourceCodeIndexListElement = methodFinder.getMethod(jsfcClass, "getSourceCodeIndexList");
+        ConstructorElement jsfcConstructor = methodFinder.getConstructor(jsfcClass, intToVoidDesc);
+
+        InstanceIntrinsic fillInStackTrace = (builder, instance, target, arguments) -> instance;
 
         intrinsics.registerIntrinsic(Phase.ANALYZE, jltDesc, "fillInStackTrace", MethodDescriptor.synthesize(classContext, jltDesc, List.of(BaseTypeDescriptor.I)), fillInStackTrace);
     }
