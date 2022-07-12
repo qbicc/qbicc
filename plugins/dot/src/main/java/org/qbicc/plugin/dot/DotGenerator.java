@@ -42,7 +42,7 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
     private final Phase phase;
     private final String name;
     private final GraphGenFilter filter;
-    private final List<BiFunction<CompilationContext, NodeVisitor<DotContext, String, String, String, String>, NodeVisitor<DotContext, String, String, String, String>>> visitorFactories = new ArrayList<>();
+    private final List<BiFunction<CompilationContext, NodeVisitor<Disassembler, Void, Void, Void, Void>, NodeVisitor<Disassembler, Void, Void, Void, Void>>> visitorFactories = new ArrayList<>();
 
     public DotGenerator(Phase p, GraphGenConfig graphGenConfig) {
         this(p, p.toString(), graphGenConfig);
@@ -56,10 +56,9 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
         } else {
             filter = null;
         }
-        this.addVisitorFactory(DotNodeVisitor::new);
     }
 
-    public DotGenerator addVisitorFactory(BiFunction<CompilationContext, NodeVisitor<DotContext, String, String, String, String>, NodeVisitor<DotContext, String, String, String, String>> factory) {
+    public DotGenerator addVisitorFactory(BiFunction<CompilationContext, NodeVisitor<Disassembler, Void, Void, Void, Void>, NodeVisitor<Disassembler, Void, Void, Void, Void>> factory) {
         visitorFactories.add(factory);
         return this;
     }
@@ -137,17 +136,13 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
             return;
         }
         Path path = dir.resolve(name + ".dot");
+        final Disassembler disassembler = new Disassembler(entryBlock, element, ctxt, constructDecorators());
+        disassembler.run();
+
         try {
             try (BufferedWriter bw = Files.newBufferedWriter(path, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
-                bw.write("digraph {");
-                bw.newLine();
-                bw.write("graph [ rankdir = BT ];");
-                bw.newLine();
-                bw.write("edge [ splines = true ];");
-                bw.newLine();
-                bw.newLine();
-                new DotContext(bw, entryBlock, element, ctxt, constructDecorators()).process();
-                bw.write("}");
+                final DotFile dotfile = new DotFile(disassembler);
+                dotfile.writeTo(bw);
             } catch (IOException e) {
                 failedToWrite(ctxt, path, e);
             } catch (UncheckedIOException e) {
@@ -172,7 +167,7 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
         return ctxt.warning("Failed to write \"%s\": %s", path, cause);
     }
 
-    private BiFunction<CompilationContext, NodeVisitor<DotContext, String, String, String, String>, NodeVisitor<DotContext, String, String, String, String>> constructDecorators() {
+    private BiFunction<CompilationContext, NodeVisitor<Disassembler, Void, Void, Void, Void>, NodeVisitor<Disassembler, Void, Void, Void, Void>> constructDecorators() {
         if (visitorFactories.isEmpty()) {
             return (dtxt, v) -> v;
         }
