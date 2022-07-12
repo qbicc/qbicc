@@ -95,14 +95,23 @@ final class EmscriptenCCompilerInvokerImpl extends AbstractEmscriptenInvoker imp
                 cmd.add("-D" + key + "=" + val);
             }
         }
+
+        appendEmscriptenPorts(cmd);
+        enableExceptions(cmd);
+
         Collections.addAll(cmd,
-            "-s", "USE_ZLIB",
             "-Wno-override-module",
             "-mbulk-memory",
-            "-s", "ALLOW_MEMORY_GROWTH=1",
-            "-s", "EXIT_RUNTIME=1",
+            "-g",
+            "-c", "-x", sourceLanguageArg(), "-o", getOutputPath().toString(), "-");
+    }
 
-        "-c", "-x", sourceLanguageArg(), "-o", getOutputPath().toString(), "-");
+    private void appendEmscriptenPorts(List<String> cmd) {
+        Collections.addAll(cmd, "-sUSE_ZLIB");
+    }
+
+    private void enableExceptions(final List<String> cmd) {
+        Collections.addAll(cmd, "-fexceptions");
     }
 
     private String sourceLanguageArg() {

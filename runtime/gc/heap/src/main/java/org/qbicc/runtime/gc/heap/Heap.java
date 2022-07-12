@@ -3,6 +3,7 @@ package org.qbicc.runtime.gc.heap;
 import static org.qbicc.runtime.CNative.*;
 import static org.qbicc.runtime.posix.String.*;
 import static org.qbicc.runtime.posix.SysMman.*;
+import static org.qbicc.runtime.posix.SysMman.mprotect;
 import static org.qbicc.runtime.posix.Unistd.*;
 import static org.qbicc.runtime.stdc.Errno.*;
 import static org.qbicc.runtime.stdc.Stdint.*;
@@ -13,6 +14,7 @@ import static org.qbicc.runtime.stdc.String.*;
 import java.lang.invoke.VarHandle;
 
 import org.qbicc.runtime.Build;
+import org.qbicc.runtime.Inline;
 
 /**
  * Heap management utilities.
@@ -361,7 +363,7 @@ public final class Heap {
             munmap(heap.plus(maxHeap), word(misalignment));
         }
         // next attempt to commit the minimum heap size
-        c_int res = mprotect(heap, word(minHeap), wordOr(PROT_READ, PROT_WRITE));
+        c_int res = mprotect0(minHeap, heap);
         if (res == word(-1)) {
             errorMsgTemplate = utf8z("Failed to commit minimum heap space: %s\n").cast();
             initErrno = errno;
@@ -376,6 +378,15 @@ public final class Heap {
         VarHandle.releaseFence();
         // The empty heap is configured!
         return true;
+    }
+
+    @Inline
+    private static c_int mprotect0(long minHeap, void_ptr heap) {
+        if (Build.Target.isWasm()) {
+            return word(0);
+        } else {
+            return mprotect(heap, word(minHeap), wordOr(PROT_READ, PROT_WRITE));
+        }
     }
 
     @export(withScope = ExportScope.LOCAL)
