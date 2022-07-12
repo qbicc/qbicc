@@ -653,10 +653,17 @@ public final class VmImpl implements Vm {
             // String.hashCode is well-defined
             stringClass.registerInvokable("hashCode", (thread, target, args) -> Integer.valueOf(((VmStringImpl) target).getContent().hashCode()));
             stringClass.registerInvokable("equals", (thread, target, args) -> Boolean.valueOf(args.get(0) instanceof VmStringImpl other && ((VmStringImpl)target).contentEquals(other.getContent())));
-            stringClass.registerInvokable("coder", (thread, target, args) -> Byte.valueOf((byte) ((VmStringImpl) target).getMemory().load8(stringCoderOffset, SinglePlain)));
-            stringClass.registerInvokable("isLatin1", (thread, target, args) -> Boolean.valueOf(((VmStringImpl) target).getMemory().load8(stringCoderOffset, SinglePlain) == 0));
+            stringClass.registerInvokable("coder", (thread, target, args) -> Byte.valueOf((byte) target.getMemory().load8(stringCoderOffset, SinglePlain)));
+            stringClass.registerInvokable("isLatin1", (thread, target, args) -> Boolean.valueOf(target.getMemory().load8(stringCoderOffset, SinglePlain) == 0));
             stringClass.registerInvokable("length", (thread, target, args) -> Integer.valueOf(((VmStringImpl) target).getContent().length()));
-            stringClass.registerInvokable("charAt", (thread, target, args) -> Integer.valueOf(((VmStringImpl) target).getContent().charAt(((Integer) args.get(0)).intValue())));
+            stringClass.registerInvokable("charAt", (thread, target, args) -> {
+                try {
+                    return Integer.valueOf(((VmStringImpl) target).getContent().charAt(((Integer) args.get(0)).intValue()));
+                } catch (StringIndexOutOfBoundsException e) {
+                    VmThrowableClassImpl ioobe = (VmThrowableClassImpl) bootstrapClassLoader.loadClass("java/lang/StringIndexOutOfBoundsException");
+                    throw new Thrown(ioobe.newInstance(e.getMessage()));
+                }
+            });
 
             // Thread
             VmClassImpl threadNativeClass = bootstrapClassLoader.loadClass("java/lang/Thread");
