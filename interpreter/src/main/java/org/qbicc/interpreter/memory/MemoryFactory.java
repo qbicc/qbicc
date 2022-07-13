@@ -1,14 +1,10 @@
 package org.qbicc.interpreter.memory;
 
-import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
 import java.nio.ByteOrder;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -193,7 +189,7 @@ public final class MemoryFactory {
     private static final String OBJECT_DESC_STR = Object.class.descriptorString();
     private static final String STRING_DESC_STR = String.class.descriptorString();
     private static final String LOOKUP_DESC_STR = MethodHandles.Lookup.class.descriptorString();
-    private static final String GET_STATIC_FINAL_DESC_STR = "(" + LOOKUP_DESC_STR + STRING_DESC_STR + CLASS_DESC_STR + CLASS_DESC_STR + ")" + OBJECT_DESC_STR;
+    private static final String PRIMITIVE_CLASS_DESC = "(" + LOOKUP_DESC_STR + STRING_DESC_STR + CLASS_DESC_STR + ")" + CLASS_DESC_STR;
 
     private static final AttachmentKey<Map<CompoundType, GenMemoryInfo>> MF_CACHE_KEY = new AttachmentKey<>();
     private static final String[] MEM_INTERFACES = { "org/qbicc/interpreter/Memory", "java/lang/Cloneable" };
@@ -235,14 +231,14 @@ public final class MemoryFactory {
         final MutableIntObjectMap<ConstantDynamic> handles = IntObjectMaps.mutable.empty();
 
         // primitive type class condys
-        ConstantDynamic booleanClassConstant = new ConstantDynamic("TYPE", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "getStaticFinal", GET_STATIC_FINAL_DESC_STR, false), Type.getType(Boolean.class));
-        ConstantDynamic byteClassConstant = new ConstantDynamic("TYPE", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "getStaticFinal", GET_STATIC_FINAL_DESC_STR, false), Type.getType(Byte.class));
-        ConstantDynamic shortClassConstant = new ConstantDynamic("TYPE", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "getStaticFinal", GET_STATIC_FINAL_DESC_STR, false), Type.getType(Short.class));
-        ConstantDynamic intClassConstant = new ConstantDynamic("TYPE", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "getStaticFinal", GET_STATIC_FINAL_DESC_STR, false), Type.getType(Integer.class));
-        ConstantDynamic longClassConstant = new ConstantDynamic("TYPE", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "getStaticFinal", GET_STATIC_FINAL_DESC_STR, false), Type.getType(Long.class));
-        ConstantDynamic charClassConstant = new ConstantDynamic("TYPE", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "getStaticFinal", GET_STATIC_FINAL_DESC_STR, false), Type.getType(Character.class));
-        ConstantDynamic floatClassConstant = new ConstantDynamic("TYPE", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "getStaticFinal", GET_STATIC_FINAL_DESC_STR, false), Type.getType(Float.class));
-        ConstantDynamic doubleClassConstant = new ConstantDynamic("TYPE", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "getStaticFinal", GET_STATIC_FINAL_DESC_STR, false), Type.getType(Double.class));
+        ConstantDynamic booleanClassConstant = new ConstantDynamic("Z", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "primitiveClass", PRIMITIVE_CLASS_DESC, false));
+        ConstantDynamic byteClassConstant = new ConstantDynamic("B", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "primitiveClass", PRIMITIVE_CLASS_DESC, false));
+        ConstantDynamic shortClassConstant = new ConstantDynamic("S", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "primitiveClass", PRIMITIVE_CLASS_DESC, false));
+        ConstantDynamic intClassConstant = new ConstantDynamic("I", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "primitiveClass", PRIMITIVE_CLASS_DESC, false));
+        ConstantDynamic longClassConstant = new ConstantDynamic("J", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "primitiveClass", PRIMITIVE_CLASS_DESC, false));
+        ConstantDynamic charClassConstant = new ConstantDynamic("C", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "primitiveClass", PRIMITIVE_CLASS_DESC, false));
+        ConstantDynamic floatClassConstant = new ConstantDynamic("F", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "primitiveClass", PRIMITIVE_CLASS_DESC, false));
+        ConstantDynamic doubleClassConstant = new ConstantDynamic("D", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "primitiveClass", PRIMITIVE_CLASS_DESC, false));
 
         // mapping of member to delegate Memory instance for each complex field
 
