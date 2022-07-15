@@ -65,15 +65,27 @@ public class ReachabilityRoots {
     }
 
     public boolean registerReflectiveMethod(MethodElement e) {
-        return reflectiveMethods.add(e);
+        boolean added = reflectiveMethods.add(e);
+        if (added) {
+            ctxt.enqueue(e);
+        }
+        return added;
     }
 
     public boolean registerReflectiveConstructor(ConstructorElement e) {
-        return reflectiveMethods.add(e);
+        boolean added = reflectiveMethods.add(e);
+        if (added) {
+            ctxt.enqueue(e);
+        }
+        return added;
     }
 
     public boolean registerAutoQueuedElement(ExecutableElement e) {
-        return autoQueuedMethods.add(e);
+        boolean added = autoQueuedMethods.add(e);
+        if (added) {
+            ctxt.enqueue(e);
+        }
+        return added;
     }
 
     public boolean registerDispatchTableEntry(ExecutableElement e) {

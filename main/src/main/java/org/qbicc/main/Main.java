@@ -472,12 +472,11 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
                                     FeatureProcessor.processBuildFeature(compilationContext, buildFeatures, hostAppClassLoader);
                                 });
-                                builder.addPreHook(Phase.ADD, ReachabilityRoots::processReachabilityRoots);
                                 builder.addElementHandler(Phase.ADD, new ElementBodyCreator());
                                 builder.addElementHandler(Phase.ADD, new BuildTimeOnlyElementHandler());
                                 builder.addElementHandler(Phase.ADD, new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig)));
                                 builder.addElementHandler(Phase.ADD, new ElementInitializer());
-                                builder.addElementHandler(Phase.ADD, elem -> ReachabilityInfo.processReachableElement(elem)); // TODO: We need this to compensate for elements "appearing out of thin air" during the add phase.  Ideally we should be able to eliminate this.
+                                builder.addElementHandler(Phase.ADD, elem -> ReachabilityInfo.processReachableElement(elem)); // In the add phase, elements may be enqueued via multiple paths.  This makes sure Reachability Analysis sees them.
                                 builder.addElementHandler(Phase.ADD, new ReflectiveMethodAccessorGenerator());
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
                                 if (nogc) {
