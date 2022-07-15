@@ -1,5 +1,7 @@
 package org.qbicc.tool.llvm;
 
+import java.util.List;
+
 /**
  *
  */
@@ -17,4 +19,6 @@ public interface LlcInvoker extends LlvmInvoker {
     void setRelocationModel(RelocationModel relocationModel);
 
     RelocationModel getRelocationModel();
+
+    void setOptions(final List<String> cmd);
 }

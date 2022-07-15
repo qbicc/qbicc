@@ -19,15 +19,16 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 public class LLVMCompilerImpl implements LLVMCompiler {
     private final LlcInvoker llcInvoker;
     private final OptInvoker optInvoker;
     private final CCompilerInvoker ccInvoker;
 
-    public LLVMCompilerImpl(CompilationContext context, boolean isPie) {
-        llcInvoker = createLlcInvoker(context, isPie);
-        optInvoker = createOptInvoker(context);
+    public LLVMCompilerImpl(CompilationContext context, boolean isPie, List<String> optOptions, List<String> llcOptions) {
+        llcInvoker = createLlcInvoker(context, isPie, llcOptions);
+        optInvoker = createOptInvoker(context, optOptions);
         ccInvoker = createCCompilerInvoker(context);
     }
 
@@ -99,7 +100,7 @@ public class LLVMCompilerImpl implements LLVMCompiler {
         return ccInvoker;
     }
 
-    private static OptInvoker createOptInvoker(CompilationContext context) {
+    private static OptInvoker createOptInvoker(CompilationContext context, List<String> optOptions) {
         LlvmToolChain llvmToolChain = context.getAttachment(Driver.LLVM_TOOL_KEY);
         if (llvmToolChain == null) {
             context.error("No LLVM tool chain is available");
@@ -109,10 +110,12 @@ public class LLVMCompilerImpl implements LLVMCompiler {
         optInvoker.setMessageHandler(ToolMessageHandler.reporting(context));
         optInvoker.addOptimizationPass(OptPass.RewriteStatepointsForGc);
         optInvoker.addOptimizationPass(OptPass.AlwaysInline);
+        optInvoker.setOptions(optOptions);
+
         return optInvoker;
     }
 
-    private static LlcInvoker createLlcInvoker(CompilationContext context, boolean isPie) {
+    private static LlcInvoker createLlcInvoker(CompilationContext context, boolean isPie, List<String> llcOptions) {
         LlvmToolChain llvmToolChain = context.getAttachment(Driver.LLVM_TOOL_KEY);
         if (llvmToolChain == null) {
             context.error("No LLVM tool chain is available");
@@ -122,6 +125,7 @@ public class LLVMCompilerImpl implements LLVMCompiler {
         llcInvoker.setMessageHandler(ToolMessageHandler.reporting(context));
         llcInvoker.setOutputFormat(OutputFormat.ASM);
         llcInvoker.setRelocationModel(isPie ? RelocationModel.Pic : RelocationModel.Static);
+        llcInvoker.setOptions(llcOptions);
         return llcInvoker;
     }
 }
