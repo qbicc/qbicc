@@ -55,12 +55,6 @@ public class Reflection {
     }
 
     public static void main(String[] args) {
-        // TODO: Fix qbicc's reachability analysis.
-        //       This code block should not be needed!
-        Calculator dummy = new Calculator(50);
-        dummy.plus(3);
-        dummy.plus(3, 4, 5);
-        // end TODO
         try {
             reportResult(testCalculator(100));
         } catch (Exception e) {
