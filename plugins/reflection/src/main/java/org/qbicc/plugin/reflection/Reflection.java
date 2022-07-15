@@ -863,10 +863,13 @@ public final class Reflection {
         int flags = refMethod.getModifiers() & 0x1fff;
 
         flags |= IS_METHOD;
+        MethodHandleKind kind;
         if (refMethod.isStatic()) {
             flags |= KIND_INVOKE_STATIC << KIND_SHIFT;
+            kind = MethodHandleKind.INVOKE_STATIC;
         } else {
             flags |= KIND_INVOKE_SPECIAL << KIND_SHIFT;
+            kind = MethodHandleKind.INVOKE_SPECIAL;
         }
         if (refMethod.hasAllModifiersOf(ClassFile.I_ACC_CALLER_SENSITIVE)) {
             flags |= CALLER_SENSITIVE;
@@ -889,6 +892,8 @@ public final class Reflection {
         memberName.getMemory().storeRef(memberName.indexOf(memberNameMethodField), rmn, SinglePlain);
         // set the member name index
         memberName.getMemory().store32(memberName.indexOf(memberNameIndexField), refMethod.getIndex(), SinglePlain);
+        // set the exactDispatcher (corresponds to OpenJDK setting vmtarget)
+        generateDispatcher(memberName, refMethod, kind);
         // all done
         return;
     }
@@ -905,7 +910,7 @@ public final class Reflection {
         ConstructorElement refCtor = clazzVal.getTypeDefinition().getConstructor(index);
         int flags = refCtor.getModifiers() & 0x1fff;
 
-        flags |= IS_CONSTRUCTOR | KIND_INVOKE_SPECIAL << KIND_SHIFT;
+        flags |= IS_CONSTRUCTOR | KIND_NEW_INVOKE_SPECIAL << KIND_SHIFT;
 
         // Now initialize the corresponding MemberName fields
 
@@ -923,6 +928,8 @@ public final class Reflection {
         memberName.getMemory().storeRef(memberName.indexOf(memberNameMethodField), rmn, SinglePlain);
         // set the member name index
         memberName.getMemory().store32(memberName.indexOf(memberNameIndexField), refCtor.getIndex(), SinglePlain);
+        // set the exactDispatcher (corresponds to OpenJDK setting vmtarget)
+        generateDispatcher(memberName, refCtor, MethodHandleKind.NEW_INVOKE_SPECIAL);
         // all done
         return;
     }
@@ -945,17 +952,22 @@ public final class Reflection {
 
         // set up flags
         flags |= IS_FIELD;
+        MethodHandleKind kind;
         if (refField.isStatic()) {
             if (isSetter) {
                 flags |= KIND_PUT_STATIC << KIND_SHIFT;
+                kind = MethodHandleKind.PUT_STATIC;
             } else {
                 flags |= KIND_GET_STATIC << KIND_SHIFT;
+                kind = MethodHandleKind.GET_STATIC;
             }
         } else {
             if (isSetter) {
                 flags |= KIND_PUT_FIELD << KIND_SHIFT;
+                kind = MethodHandleKind.PUT_FIELD;
             } else {
                 flags |= KIND_GET_FIELD << KIND_SHIFT;
+                kind = MethodHandleKind.GET_FIELD;
             }
         }
         if (refField.isReallyFinal()) {
@@ -974,6 +986,8 @@ public final class Reflection {
         memberName.getMemory().storeRef(memberName.indexOf(memberNameTypeField), fieldClazzVal, SinglePlain);
         // set the member name index
         memberName.getMemory().store32(memberName.indexOf(memberNameIndexField), refField.getIndex(), SinglePlain);
+        // set the exactDispatcher (corresponds to OpenJDK setting vmtarget)
+        generateDispatcher(memberName, refField, kind);
         // all done
         return;
     }
