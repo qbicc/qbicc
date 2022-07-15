@@ -10,7 +10,7 @@ import org.qbicc.type.ValueType;
 /**
  * A memory which is backed by an array of a uniform delegate memory.
  */
-public final class VectorMemory implements Memory {
+public final class VectorMemory extends AbstractMemory {
     private final long divisor;
     private final Memory[] memories;
 
@@ -152,16 +152,6 @@ public final class VectorMemory implements Memory {
         int number = (int) (index / divisor);
         long offset = index % divisor;
         memories[number].storePointer(offset, value, mode);
-    }
-
-    @Override
-    public void storeMemory(long destIndex, Memory src, long srcIndex, long size) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void storeMemory(long destIndex, byte[] src, int srcIndex, int size) {
-        throw new UnsupportedOperationException();
     }
 
     @Override

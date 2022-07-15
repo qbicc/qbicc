@@ -24,6 +24,10 @@ public final class VoidType extends ValueType {
         return other instanceof VoidType && super.equals(other);
     }
 
+    public ValueType getTypeAtOffset(final long offset) {
+        return this;
+    }
+
     public StringBuilder toString(final StringBuilder b) {
         // don't print "incomplete" string
         return b.append("void");

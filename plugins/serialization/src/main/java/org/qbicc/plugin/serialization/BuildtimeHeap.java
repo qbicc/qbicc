@@ -32,6 +32,8 @@ import org.qbicc.object.ProgramObject;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
+import org.qbicc.pointer.IntegerAsPointer;
+import org.qbicc.pointer.MemoryPointer;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.ProgramObjectPointer;
 import org.qbicc.pointer.StaticMethodPointer;
@@ -378,7 +380,16 @@ public class BuildtimeHeap {
                 } else if (it.getSize() == 4) {
                     memberMap.put(om, lf.literalOf(it, memory.load32(im.getOffset(), SinglePlain)));
                 } else {
-                    memberMap.put(om, lf.literalOf(it, memory.load64(im.getOffset(), SinglePlain)));
+                    Pointer asPointerVal = memory.loadPointer(im.getOffset(), SinglePlain);
+                    if (asPointerVal instanceof IntegerAsPointer iap) {
+                        memberMap.put(om, lf.literalOf(it, iap.getValue()));
+                    } else if (asPointerVal == null) {
+                        memberMap.put(om, lf.literalOf(it, 0));
+                    } else if (asPointerVal instanceof MemoryPointer mp) {
+                        ctxt.error(f.getLocation(), "An object contains a memory pointer: %s", mp);
+                    } else {
+                        memberMap.put(om, lf.bitcastLiteral(lf.literalOf(asPointerVal), it));
+                    }
                 }
             } else if (im.getType() instanceof FloatType ft) {
                 if (ft.getSize() == 4) {
@@ -412,6 +423,8 @@ public class BuildtimeHeap {
                     Function function = ctxt.getExactFunction(method);
                     FunctionDeclaration decl = into.getProgramModule().declareFunction(function);
                     memberMap.put(om, lf.bitcastLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), smp.getType()));
+                } else if (pointer instanceof MemoryPointer mp) {
+                    ctxt.error(f.getLocation(), "An object contains a memory pointer: %s", mp);
                 } else {
                     memberMap.put(om, lf.literalOf(pointer));
                 }

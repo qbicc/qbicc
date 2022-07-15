@@ -25,6 +25,8 @@ import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
+import org.qbicc.type.CompoundType;
+import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -40,69 +42,67 @@ final class VmInvokableImpl implements VmInvokable {
 
     private final ExecutableElement element;
     private final Map<BasicBlock, List<Node>> scheduled;
+    private final ValueType frameMemoryType;
     private final Schedule schedule;
-    private final int memorySize;
+    @SuppressWarnings("unused") // VarHandle
     private volatile long count;
 
     VmInvokableImpl(ExecutableElement element) {
         this.element = element;
-        int[] sizeHolder = new int[1];
-        scheduled = buildScheduled(element, sizeHolder);
+        TypeSystem ts = element.getEnclosingType().getContext().getTypeSystem();
+        final CompoundType.Builder builder = CompoundType.builder(ts);
+        scheduled = buildScheduled(element, builder);
+        if (builder.getMemberCountSoFar() == 0) {
+            frameMemoryType = ts.getVoidType();
+        } else {
+            frameMemoryType = builder.build();
+        }
         schedule = element.getMethodBody().getSchedule();
-        memorySize = sizeHolder[0];
     }
 
-    private static Map<BasicBlock, List<Node>> buildScheduled(final ExecutableElement element, final int[] sizeHolder) {
+    private static Map<BasicBlock, List<Node>> buildScheduled(final ExecutableElement element, CompoundType.Builder localVarLocations) {
         if (! element.tryCreateMethodBody()) {
             throw new IllegalStateException("No method body for " + element);
         }
         MethodBody body = element.getMethodBody();
         Map<BasicBlock, List<Node>> scheduled = new HashMap<>();
-        buildScheduled(body, new HashSet<>(), scheduled, body.getEntryBlock().getTerminator(), sizeHolder);
+        buildScheduled(body, new HashSet<>(), scheduled, body.getEntryBlock().getTerminator(), localVarLocations);
         return scheduled;
     }
 
-    private static void buildScheduled(final MethodBody body, final Set<Node> visited, final Map<BasicBlock, List<Node>> scheduled, Node node, int[] sizeHolder) {
+    private static void buildScheduled(final MethodBody body, final Set<Node> visited, final Map<BasicBlock, List<Node>> scheduled, Node node, CompoundType.Builder builder) {
         if (! visited.add(node)) {
             // already scheduled
             return;
         }
         if (node.hasValueHandleDependency()) {
-            buildScheduled(body, visited, scheduled, node.getValueHandle(), sizeHolder);
+            buildScheduled(body, visited, scheduled, node.getValueHandle(), builder);
         }
         if (node instanceof OrderedNode) {
-            buildScheduled(body, visited, scheduled, ((OrderedNode) node).getDependency(), sizeHolder);
+            buildScheduled(body, visited, scheduled, ((OrderedNode) node).getDependency(), builder);
         }
         int cnt = node.getValueDependencyCount();
         for (int i = 0; i < cnt; i ++) {
-            buildScheduled(body, visited, scheduled, node.getValueDependency(i), sizeHolder);
+            buildScheduled(body, visited, scheduled, node.getValueDependency(i), builder);
         }
-        if (node instanceof Terminator) {
+        if (node instanceof Terminator terminator) {
             // add outbound values
-            Terminator terminator = (Terminator) node;
             Map<PhiValue, Value> outboundValues = terminator.getOutboundValues();
             for (PhiValue phiValue : outboundValues.keySet()) {
-                buildScheduled(body, visited, scheduled, terminator.getOutboundValue(phiValue), sizeHolder);
+                buildScheduled(body, visited, scheduled, terminator.getOutboundValue(phiValue), builder);
             }
             // recurse to successors
             int sc = terminator.getSuccessorCount();
             for (int i = 0; i < sc; i ++) {
                 BasicBlock successor = terminator.getSuccessor(i);
-                buildScheduled(body, visited, scheduled, successor.getTerminator(), sizeHolder);
+                buildScheduled(body, visited, scheduled, successor.getTerminator(), builder);
             }
         }
-        if (node instanceof LocalVariable) {
+        if (node instanceof LocalVariable lvn) {
             // reserve memory space
-            LocalVariableElement varElem = ((LocalVariable) node).getVariableElement();
-            ValueType varType = varElem.getType();
-            int size = (int) varType.getSize();
-            int align = varType.getAlign();
-            if (align > 1) {
-                int mask = align - 1;
-                sizeHolder[0] = (sizeHolder[0] + mask) & ~mask;
-            }
-            varElem.setOffset(sizeHolder[0]);
-            sizeHolder[0] += size;
+            LocalVariableElement varElem = lvn.getVariableElement();
+            builder.addNextMember(varElem.getName(), varElem.getType());
+            varElem.setOffset(builder.getLastAddedMember().getOffset());
         }
         if (! (node instanceof Terminator || node instanceof Unschedulable)) {
             // no need to explicitly add terminator since they're trivially findable and always last
@@ -138,7 +138,7 @@ final class VmInvokableImpl implements VmInvokable {
             ((VmClassImpl)element.getEnclosingType().load().getVmClass()).initialize(thread);
         }
         Frame caller = thread.currentFrame;
-        Memory memory = thread.getVM().allocate(memorySize);
+        Memory memory = thread.getVM().allocate(frameMemoryType, 1);
         Frame frame = new Frame(caller, element, memory);
         thread.currentFrame = frame;
         // bind inputs

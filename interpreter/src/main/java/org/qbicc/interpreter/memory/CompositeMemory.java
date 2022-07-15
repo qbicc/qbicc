@@ -12,7 +12,7 @@ import org.qbicc.type.ValueType;
 /**
  * A memory that is backed by multiple other concatenated memories of possibly varying sizes.
  */
-public final class CompositeMemory implements Memory {
+public final class CompositeMemory extends AbstractMemory {
     private final Memory[] memories;
     private final long[] offsets;
     private final long size;
@@ -134,13 +134,7 @@ public final class CompositeMemory implements Memory {
         memories[which].storePointer(index - offsets[which], value, mode);
     }
 
-    @Override
-    public void storeMemory(long destIndex, Memory src, long srcIndex, long size) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void storeMemory(long destIndex, byte[] src, int srcIndex, int size) {
+    private void storeMemory(long destIndex, Memory src, long srcIndex, long size) {
         throw new UnsupportedOperationException();
     }
 

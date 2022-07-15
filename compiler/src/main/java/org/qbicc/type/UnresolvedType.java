@@ -21,6 +21,10 @@ public final class UnresolvedType extends ValueType {
         return this == other;
     }
 
+    public ValueType getTypeAtOffset(final long offset) {
+        return this;
+    }
+
     public StringBuilder toFriendlyString(final StringBuilder b) {
         return b.append("unresolved");
     }

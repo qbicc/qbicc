@@ -25,6 +25,10 @@ final class BigEndianMemoryImpl extends MemoryImpl {
         super(original);
     }
 
+    BigEndianMemoryImpl(final BigEndianMemoryImpl original, int newSize) {
+        super(original, newSize);
+    }
+
     @Override
     public int load16(long index, ReadAccessMode mode) {
         if (GlobalPlain.includes(mode)) {
@@ -384,9 +388,7 @@ final class BigEndianMemoryImpl extends MemoryImpl {
         if (newSize == 0) {
             return EMPTY;
         }
-        BigEndianMemoryImpl newMemory = new BigEndianMemoryImpl(Math.toIntExact(newSize));
-        newMemory.storeMemory(0, this, 0, Math.min(data.length, newMemory.data.length));
-        return newMemory;
+        return new BigEndianMemoryImpl(this, Math.toIntExact(newSize));
     }
 
     public MemoryImpl clone() {

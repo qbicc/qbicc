@@ -241,6 +241,44 @@ public final class CompoundType extends ValueType {
         return getMembers().get(index);
     }
 
+    public Member getMemberByOffset(int offset) {
+        List<Member> list = getMembers();
+        int size = list.size();
+
+        // the usual binary search
+        int low = 0;
+        int high = size - 1;
+
+        Member member;
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            member = list.get(mid);
+            int cmp = Integer.compare(member.getOffset(), offset);
+
+            if (cmp < 0) {
+                low = mid + 1;
+            } else if (cmp > 0) {
+                high = mid - 1;
+            } else {
+                // found it exactly
+                return member;
+            }
+        }
+        if (low >= size) {
+            // it's past the end
+            return null;
+        } else {
+            // see if the offset is within the next-lower member
+            member = list.get(low);
+            if (offset < member.getOffset() + member.getType().getSize()) {
+                return member;
+            } else {
+                // it fell into padding
+                return null;
+            }
+        }
+    }
+
     public Member getMember(String name) {
         Assert.assertFalse(isAnonymous()); /* anonymous structs do not have member names */
         Member member = getMembersByName().get(name);
@@ -297,6 +335,18 @@ public final class CompoundType extends ValueType {
 
     public boolean equals(final ValueType other) {
         return other instanceof CompoundType ct && equals(ct);
+    }
+
+    @Override
+    public ValueType getTypeAtOffset(long offset) {
+        if (offset > getSize()) {
+            return getTypeSystem().getVoidType();
+        }
+        CompoundType.Member member = getMemberByOffset((int) offset);
+        if (member == null) {
+            return getTypeSystem().getVoidType();
+        }
+        return member.getType().getTypeAtOffset(offset - member.getOffset());
     }
 
     public boolean equals(final CompoundType other) {
@@ -483,6 +533,15 @@ public final class CompoundType extends ValueType {
             offset = thisOffset + (int)type.getSize();
             members.add(m);
             return this;
+        }
+
+        public Member getLastAddedMember() {
+            // not ideal but `addNextMember` returns `Builder`
+            return members.get(members.size() - 1);
+        }
+
+        public int getMemberCountSoFar() {
+            return members.size();
         }
 
         private int nextMemberOffset(int offset, int align) {

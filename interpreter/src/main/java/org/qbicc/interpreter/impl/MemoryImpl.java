@@ -41,6 +41,13 @@ abstract class MemoryImpl implements Memory {
         things = original.things.clone();
     }
 
+    MemoryImpl(MemoryImpl original, int newSize) {
+        int thingSize = (newSize + 1) >> 1;
+        newSize = thingSize << 1;
+        data = Arrays.copyOf(original.data, newSize);
+        things = Arrays.copyOf(original.things, thingSize);
+    }
+
     static void checkAlign(long offs, int align) {
         int mask = align - 1;
         if ((offs & mask) != 0) {
@@ -391,26 +398,6 @@ abstract class MemoryImpl implements Memory {
             return (int) h8.getAndBitwiseXorRelease(data, Math.toIntExact(index), (byte) value);
         } else {
             return (int) h8.getAndBitwiseXor(data, Math.toIntExact(index), (byte) value);
-        }
-    }
-
-    @Override
-    public void storeMemory(long destIndex, Memory src, long srcIndex, long size) {
-        if (size > 0) {
-            MemoryImpl srcImpl = (MemoryImpl) src;
-            System.arraycopy(srcImpl.data, Math.toIntExact(srcIndex), data, Math.toIntExact(destIndex), Math.toIntExact(size));
-            // misaligned copies of things will get weird results
-            System.arraycopy(srcImpl.things, Math.toIntExact((srcIndex + 1) >> 1), things, Math.toIntExact((destIndex + 1) >> 1), Math.toIntExact((size + 1) >> 1));
-        }
-    }
-
-    @Override
-    public void storeMemory(long destIndex, byte[] src, int srcIndex, int size) {
-        if (size > 0) {
-            // just data
-            System.arraycopy(src, srcIndex, data, Math.toIntExact(destIndex), size);
-            // clear corresponding things
-            Arrays.fill(things, Math.toIntExact(destIndex >> 1), Math.toIntExact((destIndex + size + 1) >> 1), null);
         }
     }
 

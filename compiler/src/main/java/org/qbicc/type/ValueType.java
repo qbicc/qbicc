@@ -56,6 +56,10 @@ public abstract class ValueType extends Type {
         return super.equals(other);
     }
 
+    public ValueType getTypeAtOffset(long offset) {
+        return getTypeSystem().getVoidType();
+    }
+
     /**
      * Find the "join" of two types.  The returned type will represent a type that value of either type can be
      * implicitly converted to (i.e. a common supertype), one way or another.  If no join is possible, the poison

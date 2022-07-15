@@ -1,4 +1,4 @@
-package org.qbicc.interpreter.impl;
+package org.qbicc.interpreter;
 
 import java.io.Serial;
 
