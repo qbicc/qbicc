@@ -956,7 +956,7 @@ public class Main implements Callable<DiagnosticContext> {
             List<String> phases;
         }
 
-        @CommandLine.Option(names = "--llvm-opt-option", split = ",", description = "Pass options of the LLVM opt command")
+        @CommandLine.Option(names = "--llvm-opt-option", split = ",", description = "Pass options to the LLVM opt command")
         private List<String> optOptions = new ArrayList<String>();
 
         @CommandLine.Option(names = "--llvm-llc-option", split = ",", description = "Pass options of the LLVM llc command")
