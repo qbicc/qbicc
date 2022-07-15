@@ -198,6 +198,8 @@ public class Main implements Callable<DiagnosticContext> {
     private final List<String> buildFeatures;
     private final ClassPathResolver classPathResolver;
     private final Backend backend;
+    private final List<String> optOptions;
+    private final List<String> llcOptions;
 
     Main(Builder builder) {
         outputPath = builder.outputPath;
@@ -220,6 +222,8 @@ public class Main implements Callable<DiagnosticContext> {
         backend = builder.backend;
         ArrayList<ClassPathEntry> bootPaths = new ArrayList<>(builder.bootPathsPrepend.size() + 6 + builder.bootPathsAppend.size());
         bootPaths.addAll(builder.bootPathsPrepend);
+        optOptions = builder.optOptions;
+        llcOptions = builder.llcOptions;
         // add core things
         bootPaths.add(getCoreComponent("qbicc-runtime-api"));
         bootPaths.add(getCoreComponent("qbicc-runtime-linux"));
@@ -623,12 +627,12 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
                                 if (compileOutput) {
                                     if (llvm) {
-                                        builder.addPostHook(Phase.GENERATE, new LLVMCompileStage(isPie, llvmCompilerFactory));
+                                        builder.addPostHook(Phase.GENERATE, new LLVMCompileStage(isPie, llvmCompilerFactory, optOptions, llcOptions));
                                     }
                                 }
                                 if (llvm) {
                                     builder.addPostHook(Phase.GENERATE, new MethodDataEmitter());
-                                    builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(isPie, compileOutput, referencePointerFactory, llvmCompilerFactory));
+                                    builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(isPie, compileOutput, referencePointerFactory, llvmCompilerFactory, optOptions, llcOptions));
                                     if (! isWasm) {
                                         builder.addPostHook(Phase.GENERATE, new LLVMStripStackMapStage());
                                     }
@@ -796,6 +800,8 @@ public class Main implements Callable<DiagnosticContext> {
             .setSmallTypeIds(optionsProcessor.smallTypeIds)
             .setBackend(optionsProcessor.backend)
             .setGraphGenConfig(optionsProcessor.graphGenConfig)
+            .setOptOptions(optionsProcessor.optOptions)
+            .setLlcOptions(optionsProcessor.llcOptions)
             .addLibrarySearchPaths(splitPathString(System.getenv("LIBRARY_PATH")))
             .addLibrarySearchPaths(optionsProcessor.libSearchPaths);
         Platform platform = optionsProcessor.platform;
@@ -950,6 +956,12 @@ public class Main implements Callable<DiagnosticContext> {
             List<String> phases;
         }
 
+        @CommandLine.Option(names = "--llvm-opt-option", split = ",", description = "Pass options to the LLVM opt command")
+        private List<String> optOptions = new ArrayList<String>();
+
+        @CommandLine.Option(names = "--llvm-llc-option", split = ",", description = "Pass options to the LLVM llc command")
+        private List<String> llcOptions = new ArrayList<String>();
+
         static class OptArgs {
             @CommandLine.Option(names = "--opt-memory-tracking", negatable = true, defaultValue = "false", description = "Enable/disable redundant store/load tracking and elimination")
             boolean optMemoryTracking;
@@ -1057,6 +1069,8 @@ public class Main implements Callable<DiagnosticContext> {
         private List<Path> librarySearchPaths = List.of();
         private List<String> buildFeatures = new ArrayList<>();
         private ClassPathResolver classPathResolver;
+        private List<String> optOptions = new ArrayList<>();
+        private List<String> llcOptions = new ArrayList<>();
 
         Builder() {}
 
@@ -1236,6 +1250,16 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Builder setClassPathResolver(ClassPathResolver classPathResolver) {
             this.classPathResolver = classPathResolver;
+            return this;
+        }
+
+        public Builder setOptOptions(List<String> cmd) {
+            optOptions.addAll(cmd);
+            return this;
+        }
+
+        public Builder setLlcOptions(List<String> cmd) {
+            llcOptions.addAll(cmd);
             return this;
         }
 

@@ -4,6 +4,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class LLVMDefaultModuleCompileStage implements Consumer<CompilationContext> {
@@ -11,12 +12,16 @@ public class LLVMDefaultModuleCompileStage implements Consumer<CompilationContex
     private final boolean compileOutput;
     private final LLVMReferencePointerFactory refFactory;
     private LLVMCompiler.Factory llvmCompilerFactory;
+    private List<String> optOptions;
+    private List<String> llcOptions;
 
-    public LLVMDefaultModuleCompileStage(boolean isPie, boolean compileOutput, LLVMReferencePointerFactory refFactory, LLVMCompiler.Factory llvmCompilerFactory) {
+    public LLVMDefaultModuleCompileStage(boolean isPie, boolean compileOutput, LLVMReferencePointerFactory refFactory, LLVMCompiler.Factory llvmCompilerFactory, List<String> optOptions, List<String> llcOptions) {
         this.isPie = isPie;
         this.compileOutput = compileOutput;
         this.refFactory = refFactory;
         this.llvmCompilerFactory = llvmCompilerFactory;
+        this.optOptions = optOptions;
+        this.llcOptions = llcOptions;
     }
 
     @Override
@@ -25,7 +30,7 @@ public class LLVMDefaultModuleCompileStage implements Consumer<CompilationContex
         DefinedTypeDefinition defaultTypeDefinition = context.getDefaultTypeDefinition();
         Path modulePath = generator.processProgramModule(context.getOrAddProgramModule(defaultTypeDefinition));
         if (compileOutput) {
-            LLVMCompiler compiler = llvmCompilerFactory.of(context, isPie);
+            LLVMCompiler compiler = llvmCompilerFactory.of(context, isPie, optOptions, llcOptions);
             compiler.compileModule(context, defaultTypeDefinition.load(), modulePath);
         }
     }

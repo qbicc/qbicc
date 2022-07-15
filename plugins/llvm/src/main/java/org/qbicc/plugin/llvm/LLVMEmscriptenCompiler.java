@@ -11,11 +11,12 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 public class LLVMEmscriptenCompiler implements LLVMCompiler {
     private final CCompilerInvoker ccInvoker;
 
-    public LLVMEmscriptenCompiler(CompilationContext context, boolean isPie) {
+    public LLVMEmscriptenCompiler(CompilationContext context, boolean isPie, List<String> optOptions, List<String> llcOptions) {
         ccInvoker = createCCompilerInvoker(context);
     }
 

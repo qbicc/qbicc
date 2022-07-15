@@ -14,6 +14,7 @@ final class LlcInvokerImpl extends AbstractLlvmInvoker implements LlcInvoker {
     private LlcOptLevel optLevel = LlcOptLevel.O2;
     private OutputFormat outputFormat = OutputFormat.OBJ;
     private RelocationModel relocationModel = RelocationModel.Static;
+    private List<String> options = List.of();
 
     LlcInvokerImpl(final LlvmToolChainImpl tool, final Path path) {
         super(tool, path);
@@ -57,5 +58,10 @@ final class LlcInvokerImpl extends AbstractLlvmInvoker implements LlcInvoker {
         if (VersionScheme.BASIC.compare(getTool().getVersion(), "14") >= 0) {
             cmd.add("--strict-dwarf");
         }
+        cmd.addAll(options);
+    }
+
+    public void setOptions(List<String> options) {
+        this.options = options;
     }
 }
