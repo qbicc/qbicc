@@ -959,7 +959,7 @@ public class Main implements Callable<DiagnosticContext> {
         @CommandLine.Option(names = "--llvm-opt-option", split = ",", description = "Pass options to the LLVM opt command")
         private List<String> optOptions = new ArrayList<String>();
 
-        @CommandLine.Option(names = "--llvm-llc-option", split = ",", description = "Pass options of the LLVM llc command")
+        @CommandLine.Option(names = "--llvm-llc-option", split = ",", description = "Pass options to the LLVM llc command")
         private List<String> llcOptions = new ArrayList<String>();
 
         static class OptArgs {
