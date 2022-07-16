@@ -1143,11 +1143,14 @@ public final class CoreIntrinsics {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
+        ClassTypeDescriptor jlc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor jls = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor jlo = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor classloader = ClassTypeDescriptor.synthesize(classContext, "java/lang/ClassLoader");
+        ClassTypeDescriptor reflect = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/reflect/Reflection");
 
         MethodDescriptor boolStringObj = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(jls, jlo));
+        MethodDescriptor intClass = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(jlc));
 
         // ClassLoader.trySetObjectField; to avoid problem with non-literal string to objectFieldOffset in a helper method
         InstanceIntrinsic trySetObjectField = (builder, input, target, arguments) -> {
@@ -1183,5 +1186,14 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(classloader, "trySetObjectField", boolStringObj, trySetObjectField);
+
+        // Implement as an intrinsic as the simplest way to cross package boundaries without exposing anything sensitive
+        FieldElement modField = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load().findField("modifiers");
+        StaticIntrinsic getClassAccessFlags = (builder, input, arguments) -> {
+            Value cls = arguments.get(0);
+            // return cls.modifiers & 0x1ff
+            return builder.and(builder.load(builder.instanceFieldOf(builder.referenceHandle(cls), modField)), ctxt.getLiteralFactory().literalOf(0x1fff));
+        };
+        intrinsics.registerIntrinsic(Phase.ANALYZE, reflect, "getClassAccessFlags", intClass, getClassAccessFlags);
     }
 }
