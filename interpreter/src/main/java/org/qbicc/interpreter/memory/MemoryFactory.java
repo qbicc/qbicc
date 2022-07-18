@@ -187,11 +187,72 @@ public final class MemoryFactory {
         }
     }
 
-    private static final String CLASS_DESC_STR = Class.class.descriptorString();
-    private static final String OBJECT_DESC_STR = Object.class.descriptorString();
-    private static final String STRING_DESC_STR = String.class.descriptorString();
-    private static final String LOOKUP_DESC_STR = MethodHandles.Lookup.class.descriptorString();
-    private static final String PRIMITIVE_CLASS_DESC = "(" + LOOKUP_DESC_STR + STRING_DESC_STR + CLASS_DESC_STR + ")" + CLASS_DESC_STR;
+    private static final String ABSTRACT_MEMORY_DESC = AbstractMemory.class.descriptorString();
+    private static final String CLASS_DESC = Class.class.descriptorString();
+    private static final String CTXT_DESC = CompilationContext.class.descriptorString();
+    private static final String LOOKUP_DESC = MethodHandles.Lookup.class.descriptorString();
+    private static final String MEMORY_DESC = Memory.class.descriptorString();
+    private static final String OBJECT_DESC = Object.class.descriptorString();
+    private static final String STRING_DESC = String.class.descriptorString();
+    private static final String SUPPLIER_DESC = Supplier.class.descriptorString();
+    private static final String VAR_HANDLE_DESC = VarHandle.class.descriptorString();
+
+    private static final String EMPTY_TO_ABSTRACT_MEMORY_DESC = "()" + ABSTRACT_MEMORY_DESC;
+    private static final String EMPTY_TO_CTXT_DESC = "()" + CTXT_DESC;
+    private static final String EMPTY_TO_MEMORY_DESC = "()" + MEMORY_DESC;
+    private static final String EMPTY_TO_OBJECT_DESC = "()" + OBJECT_DESC;
+    private static final String INT_TO_MEMORY_DESC = "(I)" + MEMORY_DESC;
+    private static final String INT_TO_VAR_HANDLE_DESC = "(I)" + VAR_HANDLE_DESC;
+    private static final String MEMORY_TO_VOID_DESC = "(" + MEMORY_DESC + ")V";
+
+    private static final Handle PRIMITIVE_CLASS_HANDLE = new Handle(
+        Opcodes.H_INVOKESTATIC,
+        "java/lang/invoke/ConstantBootstraps",
+        "primitiveClass",
+        "(" +
+            LOOKUP_DESC +
+            STRING_DESC +
+            CLASS_DESC +
+        ")" + CLASS_DESC,
+        false
+    );
+
+    private static final Handle CLASS_DATA_AT_HANDLE = new Handle(
+        Opcodes.H_INVOKESTATIC,
+        "java/lang/invoke/MethodHandles",
+        "classDataAt",
+        "(" +
+            LOOKUP_DESC +
+            STRING_DESC +
+            CLASS_DESC +
+            "I" +
+        ")" + OBJECT_DESC,
+        false
+    );
+
+    private static final Handle FIELD_VAR_HANDLE_HANDLE = new Handle(
+        Opcodes.H_INVOKESTATIC,
+        "java/lang/invoke/ConstantBootstraps",
+        "fieldVarHandle",
+        "(" +
+            LOOKUP_DESC +
+            STRING_DESC +
+            CLASS_DESC +
+            CLASS_DESC +
+            CLASS_DESC +
+        ")" + VAR_HANDLE_DESC,
+        false
+    );
+
+    // primitive type class condys
+    private static final ConstantDynamic DOUBLE_CLASS_CONSTANT = new ConstantDynamic("D", CLASS_DESC, PRIMITIVE_CLASS_HANDLE);
+    private static final ConstantDynamic FLOAT_CLASS_CONSTANT = new ConstantDynamic("F", CLASS_DESC, PRIMITIVE_CLASS_HANDLE);
+    private static final ConstantDynamic CHAR_CLASS_CONSTANT = new ConstantDynamic("C", CLASS_DESC, PRIMITIVE_CLASS_HANDLE);
+    private static final ConstantDynamic LONG_CLASS_CONSTANT = new ConstantDynamic("J", CLASS_DESC, PRIMITIVE_CLASS_HANDLE);
+    private static final ConstantDynamic INT_CLASS_CONSTANT = new ConstantDynamic("I", CLASS_DESC, PRIMITIVE_CLASS_HANDLE);
+    private static final ConstantDynamic SHORT_CLASS_CONSTANT = new ConstantDynamic("S", CLASS_DESC, PRIMITIVE_CLASS_HANDLE);
+    private static final ConstantDynamic BYTE_CLASS_CONSTANT = new ConstantDynamic("B", CLASS_DESC, PRIMITIVE_CLASS_HANDLE);
+    private static final ConstantDynamic BOOLEAN_CLASS_CONSTANT = new ConstantDynamic("Z", CLASS_DESC, PRIMITIVE_CLASS_HANDLE);
 
     private static final AttachmentKey<Map<CompoundType, GenMemoryInfo>> MF_CACHE_KEY = new AttachmentKey<>();
     private static final String[] MEM_INTERFACES = { "org/qbicc/interpreter/Memory", "java/lang/Cloneable" };
@@ -208,20 +269,7 @@ public final class MemoryFactory {
         return map.computeIfAbsent(ct, ct1 -> makeFactory(ct1, ctxt, upgradeLongs)).producer;
     }
 
-    private static final Handle CLASS_DATA_AT_HANDLE = new Handle(
-        Opcodes.H_INVOKESTATIC,
-        "java/lang/invoke/MethodHandles",
-        "classDataAt",
-        "(" +
-            MethodHandles.Lookup.class.descriptorString() +
-            String.class.descriptorString() +
-            Class.class.descriptorString() +
-            int.class.descriptorString() +
-        ")" + Object.class.descriptorString(),
-        false
-    );
-
-    private static final ConstantDynamic CTXT = new ConstantDynamic(ConstantDescs.DEFAULT_NAME, CompilationContext.class.descriptorString(), CLASS_DATA_AT_HANDLE, Integer.valueOf(0));
+    private static final ConstantDynamic CTXT = new ConstantDynamic(ConstantDescs.DEFAULT_NAME, CTXT_DESC, CLASS_DATA_AT_HANDLE, Integer.valueOf(0));
 
     private static GenMemoryInfo makeFactory(final CompoundType ct, CompilationContext ctxt, boolean upgradeLongs) {
         // produce class per compound type
@@ -244,16 +292,6 @@ public final class MemoryFactory {
         // mapping of offset to condy for each simple field; the condy creates the VarHandle on demand
 
         final MutableIntObjectMap<ConstantDynamic> handles = IntObjectMaps.mutable.empty();
-
-        // primitive type class condys
-        ConstantDynamic booleanClassConstant = new ConstantDynamic("Z", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "primitiveClass", PRIMITIVE_CLASS_DESC, false));
-        ConstantDynamic byteClassConstant = new ConstantDynamic("B", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "primitiveClass", PRIMITIVE_CLASS_DESC, false));
-        ConstantDynamic shortClassConstant = new ConstantDynamic("S", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "primitiveClass", PRIMITIVE_CLASS_DESC, false));
-        ConstantDynamic intClassConstant = new ConstantDynamic("I", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "primitiveClass", PRIMITIVE_CLASS_DESC, false));
-        ConstantDynamic longClassConstant = new ConstantDynamic("J", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "primitiveClass", PRIMITIVE_CLASS_DESC, false));
-        ConstantDynamic charClassConstant = new ConstantDynamic("C", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "primitiveClass", PRIMITIVE_CLASS_DESC, false));
-        ConstantDynamic floatClassConstant = new ConstantDynamic("F", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "primitiveClass", PRIMITIVE_CLASS_DESC, false));
-        ConstantDynamic doubleClassConstant = new ConstantDynamic("D", CLASS_DESC_STR, new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/ConstantBootstraps", "primitiveClass", PRIMITIVE_CLASS_DESC, false));
 
         // mapping of member to delegate Memory instance for each complex field
 
@@ -296,10 +334,10 @@ public final class MemoryFactory {
                         default -> throw new IllegalStateException();
                     };
                     fieldTypeArg = switch (it.getMinBits()) {
-                        case 8 -> byteClassConstant;
-                        case 16 -> it instanceof UnsignedIntegerType ? charClassConstant : shortClassConstant;
-                        case 32 -> intClassConstant;
-                        case 64 -> longClassConstant;
+                        case 8 -> BYTE_CLASS_CONSTANT;
+                        case 16 -> it instanceof UnsignedIntegerType ? CHAR_CLASS_CONSTANT : SHORT_CLASS_CONSTANT;
+                        case 32 -> INT_CLASS_CONSTANT;
+                        case 64 -> LONG_CLASS_CONSTANT;
                         default -> throw new IllegalStateException();
                     };
                 } else if (memberType instanceof FloatType ft) {
@@ -309,13 +347,13 @@ public final class MemoryFactory {
                         default -> throw new IllegalStateException();
                     };
                     fieldTypeArg = switch (ft.getMinBits()) {
-                        case 32 -> floatClassConstant;
-                        case 64 -> doubleClassConstant;
+                        case 32 -> FLOAT_CLASS_CONSTANT;
+                        case 64 -> DOUBLE_CLASS_CONSTANT;
                         default -> throw new IllegalStateException();
                     };
                 } else if (memberType instanceof BooleanType) {
                     fieldClazz = boolean.class;
-                    fieldTypeArg = booleanClassConstant;
+                    fieldTypeArg = BOOLEAN_CLASS_CONSTANT;
                 } else if (memberType instanceof TypeType) {
                     fieldClazz = ValueType.class;
                     fieldTypeArg = Type.getType(fieldClazz);
@@ -325,20 +363,7 @@ public final class MemoryFactory {
                 } else {
                     throw new IllegalStateException("Unknown type");
                 }
-                Handle bmh = new Handle(
-                    Opcodes.H_INVOKESTATIC,
-                    "java/lang/invoke/ConstantBootstraps",
-                    "fieldVarHandle",
-                    "("
-                        + LOOKUP_DESC_STR
-                        + STRING_DESC_STR
-                        + CLASS_DESC_STR
-                        + CLASS_DESC_STR
-                        + CLASS_DESC_STR
-                    + ")" + VarHandle.class.descriptorString(),
-                    false
-                );
-                ConstantDynamic constant = new ConstantDynamic(fieldName, VarHandle.class.descriptorString(), bmh,
+                ConstantDynamic constant = new ConstantDynamic(fieldName, VAR_HANDLE_DESC, FIELD_VAR_HANDLE_HANDLE,
                     Type.getObjectType(clazzName),
                     fieldTypeArg
                 );
@@ -352,8 +377,7 @@ public final class MemoryFactory {
         }
 
         // emit "getHandle" method
-        String descriptor = "(I)" + VarHandle.class.descriptorString();
-        MethodVisitor ghmv = ((ClassVisitor) cw).visitMethod(Opcodes.ACC_PROTECTED, "getHandle", descriptor, null, null);
+        MethodVisitor ghmv = ((ClassVisitor) cw).visitMethod(Opcodes.ACC_PROTECTED, "getHandle", INT_TO_VAR_HANDLE_DESC, null, null);
         ghmv.visitParameter("offset", 0);
         ghmv.visitCode();// emit a switch statement to map offsets to condys
         Label noMatch = new Label();
@@ -381,7 +405,7 @@ public final class MemoryFactory {
         ghmv.visitLabel(noMatch);
         ghmv.visitVarInsn(Opcodes.ALOAD, 0); // this
         ghmv.visitVarInsn(Opcodes.ILOAD, 1); // offset
-        ghmv.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/qbicc/interpreter/memory/VarHandleMemory", "getHandle", descriptor, false);
+        ghmv.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/qbicc/interpreter/memory/VarHandleMemory", "getHandle", INT_TO_VAR_HANDLE_DESC, false);
         ghmv.visitInsn(Opcodes.ARETURN);
         ghmv.visitMaxs(0, 0);
         ghmv.visitEnd();
@@ -393,16 +417,16 @@ public final class MemoryFactory {
         ctor.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/qbicc/interpreter/memory/VarHandleMemory", "<init>", "()V", false);
 
         // emit "clone" method
-        MethodVisitor cmv = cw.visitMethod(Opcodes.ACC_PUBLIC, "clone", "()" + Memory.class.descriptorString(), null, null);
+        MethodVisitor cmv = cw.visitMethod(Opcodes.ACC_PUBLIC, "clone", EMPTY_TO_MEMORY_DESC, null, null);
         cmv.visitCode();
         if (delegate == null) {
             // shallow clone, cool!
             cmv.visitVarInsn(Opcodes.ALOAD, 0);
-            cmv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "org/qbicc/interpreter/memory/AbstractMemory", "doClone", "()" + AbstractMemory.class.descriptorString(), false);
+            cmv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "org/qbicc/interpreter/memory/AbstractMemory", "doClone", EMPTY_TO_ABSTRACT_MEMORY_DESC, false);
             cmv.visitInsn(Opcodes.ARETURN);
         } else {
             // deep clone :( emit a copy constructor and call it
-            MethodVisitor ccmv = cw.visitMethod(Opcodes.ACC_PRIVATE, "<init>", "(" + Memory.class.descriptorString() + ")V", null, null);
+            MethodVisitor ccmv = cw.visitMethod(Opcodes.ACC_PRIVATE, "<init>", MEMORY_TO_VOID_DESC, null, null);
             ccmv.visitParameter("orig", 0);
             ccmv.visitCode();
             // call super
@@ -424,9 +448,9 @@ public final class MemoryFactory {
             for (String fieldName : delegate.values()) {
                 ccmv.visitVarInsn(Opcodes.ALOAD, 0);
                 ccmv.visitVarInsn(Opcodes.ALOAD, 1);
-                ccmv.visitFieldInsn(Opcodes.GETFIELD, clazzName, fieldName, Memory.class.descriptorString());
-                ccmv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "org/qbicc/interpreter/Memory", "clone", "()" + Memory.class.descriptorString(), true);
-                ccmv.visitFieldInsn(Opcodes.PUTFIELD, clazzName, fieldName, Memory.class.descriptorString());
+                ccmv.visitFieldInsn(Opcodes.GETFIELD, clazzName, fieldName, MEMORY_DESC);
+                ccmv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "org/qbicc/interpreter/Memory", "clone", EMPTY_TO_MEMORY_DESC, true);
+                ccmv.visitFieldInsn(Opcodes.PUTFIELD, clazzName, fieldName, MEMORY_DESC);
             }
 
             ccmv.visitInsn(Opcodes.RETURN);
@@ -436,7 +460,7 @@ public final class MemoryFactory {
             cmv.visitTypeInsn(Opcodes.NEW, clazzName);
             cmv.visitInsn(Opcodes.DUP);
             cmv.visitVarInsn(Opcodes.ALOAD, 0);
-            cmv.visitMethodInsn(Opcodes.INVOKESPECIAL, clazzName, "<init>", "(" + Memory.class.descriptorString() + ")V", false);
+            cmv.visitMethodInsn(Opcodes.INVOKESPECIAL, clazzName, "<init>", MEMORY_TO_VOID_DESC, false);
             cmv.visitInsn(Opcodes.ARETURN);
         }
         cmv.visitMaxs(0, 0);
@@ -451,7 +475,7 @@ public final class MemoryFactory {
 
             int fi = 1;
             //    protected Memory getDelegateMemory(int offset) {
-            MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PROTECTED, "getDelegateMemory", "(I)" + Memory.class.descriptorString(), null, null);
+            MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PROTECTED, "getDelegateMemory", INT_TO_MEMORY_DESC, null, null);
             mv.visitParameter("offset", 0);
             mv.visitCode();
             // now it's just there, on the stack
@@ -468,7 +492,7 @@ public final class MemoryFactory {
                 mv.visitVarInsn(Opcodes.ILOAD, 1);
                 mv.visitJumpInsn(Opcodes.IF_ICMPLE, outOfRange);
                 mv.visitVarInsn(Opcodes.ALOAD, 0);
-                mv.visitFieldInsn(Opcodes.GETFIELD, clazzName, fieldName, Memory.class.descriptorString());
+                mv.visitFieldInsn(Opcodes.GETFIELD, clazzName, fieldName, MEMORY_DESC);
                 mv.visitInsn(Opcodes.ARETURN);
                 mv.visitLabel(outOfRange);
 
@@ -476,10 +500,10 @@ public final class MemoryFactory {
                 Supplier<Memory> factory = () -> MemoryFactory.allocate(ctxt, member.getType(), 1, upgradeLongs);
                 attachment.add(factory);
                 ctor.visitVarInsn(Opcodes.ALOAD, 0); // this
-                ctor.visitLdcInsn(new ConstantDynamic(ConstantDescs.DEFAULT_NAME, Supplier.class.descriptorString(), CLASS_DATA_AT_HANDLE, Integer.valueOf(fi))); // this factory
-                ctor.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/function/Supplier", "get", "()" + OBJECT_DESC_STR, true); // this memory
+                ctor.visitLdcInsn(new ConstantDynamic(ConstantDescs.DEFAULT_NAME, SUPPLIER_DESC, CLASS_DATA_AT_HANDLE, Integer.valueOf(fi))); // this factory
+                ctor.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/function/Supplier", "get", EMPTY_TO_OBJECT_DESC, true); // this memory
                 ctor.visitTypeInsn(Opcodes.CHECKCAST, "org/qbicc/interpreter/Memory");
-                ctor.visitFieldInsn(Opcodes.PUTFIELD, clazzName, fieldName, Memory.class.descriptorString());
+                ctor.visitFieldInsn(Opcodes.PUTFIELD, clazzName, fieldName, MEMORY_DESC);
                 fi ++;
             }
             // all out of range
@@ -495,7 +519,7 @@ public final class MemoryFactory {
 
         // implement getCompilationContext() in terms of condy
 
-        MethodVisitor gccmv = cw.visitMethod(Opcodes.ACC_PROTECTED, "getCompilationContext", "()" + CompilationContext.class.descriptorString(), null, null);
+        MethodVisitor gccmv = cw.visitMethod(Opcodes.ACC_PROTECTED, "getCompilationContext", EMPTY_TO_CTXT_DESC, null, null);
         gccmv.visitCode();
         gccmv.visitLdcInsn(CTXT);
         gccmv.visitInsn(Opcodes.ARETURN);
