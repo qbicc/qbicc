@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 import org.eclipse.collections.api.RichIterable;
@@ -51,6 +50,8 @@ import org.qbicc.type.VoidType;
  * Factory methods for producing memory instances.
  */
 public final class MemoryFactory {
+
+    private static final String GEN_MEMORY_NAME = "org/qbicc/interpreter/memory/GenMemory";
 
     private MemoryFactory() {}
 
@@ -176,13 +177,9 @@ public final class MemoryFactory {
     }
 
     static final class GenMemoryInfo {
-        final String clazzName;
-        final String clazzDesc;
         final Supplier<Memory> producer;
 
-        GenMemoryInfo(String clazzName, Supplier<Memory> producer) {
-            this.clazzName = clazzName;
-            clazzDesc = "L" + clazzName + ";";
+        GenMemoryInfo(Supplier<Memory> producer) {
             this.producer = producer;
         }
     }
@@ -257,8 +254,6 @@ public final class MemoryFactory {
     private static final AttachmentKey<Map<CompoundType, GenMemoryInfo>> MF_CACHE_KEY = new AttachmentKey<>();
     private static final String[] MEM_INTERFACES = { "org/qbicc/interpreter/Memory", "java/lang/Cloneable" };
 
-    private static final AtomicLong seq = new AtomicLong();
-
     public static Supplier<Memory> getMemoryFactory(CompilationContext ctxt, CompoundType ct, boolean upgradeLongs) {
         Map<CompoundType, GenMemoryInfo> map = ctxt.computeAttachmentIfAbsent(MF_CACHE_KEY, ConcurrentHashMap::new);
         // avoid constructing the lambda instance if possible
@@ -276,10 +271,7 @@ public final class MemoryFactory {
         MethodHandles.Lookup lookup = MethodHandles.lookup();
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
 
-        String simpleName = "GenMemory";
-        String clazzName = "org/qbicc/interpreter/memory/" + simpleName;
-
-        cw.visit(Opcodes.V17, Opcodes.ACC_SUPER, clazzName, null, "org/qbicc/interpreter/memory/VarHandleMemory", MEM_INTERFACES);
+        cw.visit(Opcodes.V17, Opcodes.ACC_SUPER, GEN_MEMORY_NAME, null, "org/qbicc/interpreter/memory/VarHandleMemory", MEM_INTERFACES);
 
         // emit size method
         MethodVisitor smv = cw.visitMethod(Opcodes.ACC_PUBLIC, "getSize", "()J", null, null);
@@ -364,7 +356,7 @@ public final class MemoryFactory {
                     throw new IllegalStateException("Unknown type");
                 }
                 ConstantDynamic constant = new ConstantDynamic(fieldName, VAR_HANDLE_DESC, FIELD_VAR_HANDLE_HANDLE,
-                    Type.getObjectType(clazzName),
+                    Type.getObjectType(GEN_MEMORY_NAME),
                     fieldTypeArg
                 );
                 handles.put(offset, constant);
@@ -432,7 +424,7 @@ public final class MemoryFactory {
             // call super
             ccmv.visitVarInsn(Opcodes.ALOAD, 0); // this
             ccmv.visitVarInsn(Opcodes.ALOAD, 1); // this orig
-            ccmv.visitTypeInsn(Opcodes.CHECKCAST, clazzName); // this orig'
+            ccmv.visitTypeInsn(Opcodes.CHECKCAST, GEN_MEMORY_NAME); // this orig'
             ccmv.visitVarInsn(Opcodes.ASTORE, 1); // this
             ccmv.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/qbicc/interpreter/memory/VarHandleMemory", "<init>", "()V", false); // --
             // shallow-copy all of the little fields
@@ -441,26 +433,26 @@ public final class MemoryFactory {
                 String fieldDesc = entry.getValue();
                 ccmv.visitVarInsn(Opcodes.ALOAD, 0);
                 ccmv.visitVarInsn(Opcodes.ALOAD, 1);
-                ccmv.visitFieldInsn(Opcodes.GETFIELD, clazzName, fieldName, fieldDesc);
-                ccmv.visitFieldInsn(Opcodes.PUTFIELD, clazzName, fieldName, fieldDesc);
+                ccmv.visitFieldInsn(Opcodes.GETFIELD, GEN_MEMORY_NAME, fieldName, fieldDesc);
+                ccmv.visitFieldInsn(Opcodes.PUTFIELD, GEN_MEMORY_NAME, fieldName, fieldDesc);
             }
             // deep-copy all of the sub-memories
             for (String fieldName : delegate.values()) {
                 ccmv.visitVarInsn(Opcodes.ALOAD, 0);
                 ccmv.visitVarInsn(Opcodes.ALOAD, 1);
-                ccmv.visitFieldInsn(Opcodes.GETFIELD, clazzName, fieldName, MEMORY_DESC);
+                ccmv.visitFieldInsn(Opcodes.GETFIELD, GEN_MEMORY_NAME, fieldName, MEMORY_DESC);
                 ccmv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "org/qbicc/interpreter/Memory", "clone", EMPTY_TO_MEMORY_DESC, true);
-                ccmv.visitFieldInsn(Opcodes.PUTFIELD, clazzName, fieldName, MEMORY_DESC);
+                ccmv.visitFieldInsn(Opcodes.PUTFIELD, GEN_MEMORY_NAME, fieldName, MEMORY_DESC);
             }
 
             ccmv.visitInsn(Opcodes.RETURN);
             ccmv.visitMaxs(0, 0);
             ccmv.visitEnd();
 
-            cmv.visitTypeInsn(Opcodes.NEW, clazzName);
+            cmv.visitTypeInsn(Opcodes.NEW, GEN_MEMORY_NAME);
             cmv.visitInsn(Opcodes.DUP);
             cmv.visitVarInsn(Opcodes.ALOAD, 0);
-            cmv.visitMethodInsn(Opcodes.INVOKESPECIAL, clazzName, "<init>", MEMORY_TO_VOID_DESC, false);
+            cmv.visitMethodInsn(Opcodes.INVOKESPECIAL, GEN_MEMORY_NAME, "<init>", MEMORY_TO_VOID_DESC, false);
             cmv.visitInsn(Opcodes.ARETURN);
         }
         cmv.visitMaxs(0, 0);
@@ -492,7 +484,7 @@ public final class MemoryFactory {
                 mv.visitVarInsn(Opcodes.ILOAD, 1);
                 mv.visitJumpInsn(Opcodes.IF_ICMPLE, outOfRange);
                 mv.visitVarInsn(Opcodes.ALOAD, 0);
-                mv.visitFieldInsn(Opcodes.GETFIELD, clazzName, fieldName, MEMORY_DESC);
+                mv.visitFieldInsn(Opcodes.GETFIELD, GEN_MEMORY_NAME, fieldName, MEMORY_DESC);
                 mv.visitInsn(Opcodes.ARETURN);
                 mv.visitLabel(outOfRange);
 
@@ -503,7 +495,7 @@ public final class MemoryFactory {
                 ctor.visitLdcInsn(new ConstantDynamic(ConstantDescs.DEFAULT_NAME, SUPPLIER_DESC, CLASS_DATA_AT_HANDLE, Integer.valueOf(fi))); // this factory
                 ctor.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/function/Supplier", "get", EMPTY_TO_OBJECT_DESC, true); // this memory
                 ctor.visitTypeInsn(Opcodes.CHECKCAST, "org/qbicc/interpreter/Memory");
-                ctor.visitFieldInsn(Opcodes.PUTFIELD, clazzName, fieldName, MEMORY_DESC);
+                ctor.visitFieldInsn(Opcodes.PUTFIELD, GEN_MEMORY_NAME, fieldName, MEMORY_DESC);
                 fi ++;
             }
             // all out of range
@@ -529,10 +521,6 @@ public final class MemoryFactory {
         cw.visitEnd();
 
         byte[] bytes = cw.toByteArray();
-//        try {
-//            Files.write(Paths.get("/tmp", simpleName + seq.getAndIncrement() + ".class"), bytes, StandardOpenOption.CREATE);
-//        } catch (IOException ignored) {
-//        }
         Class<? extends Memory> clazz;
         MethodHandles.Lookup hiddenClassLookup;
         try {
@@ -547,7 +535,7 @@ public final class MemoryFactory {
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new IllegalStateException("Unexpected failure finding constructor", e);
         }
-        return new GenMemoryInfo(clazzName, () -> {
+        return new GenMemoryInfo(() -> {
             try {
                 return (Memory) constructor.invoke();
             } catch (Throwable e) {
