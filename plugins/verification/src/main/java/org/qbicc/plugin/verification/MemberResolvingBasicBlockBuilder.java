@@ -198,7 +198,9 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             }
             Value sizedValue;
             if (fromType instanceof IntegerType it) {
-                if (toType.getMinBits() < fromType.getMinBits()) {
+                if (toType instanceof PointerType) {
+                    return super.valueConvert(value, toType);
+                } else if (toType.getMinBits() < fromType.getMinBits()) {
                     sizedValue = super.truncate(value, it.asSized(toType.getMinBits()));
                 } else if (toType.getMinBits() > fromType.getMinBits()) {
                     sizedValue = super.extend(value, it.asSized(toType.getMinBits()));
