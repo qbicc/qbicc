@@ -1,5 +1,6 @@
 package org.qbicc.interpreter.memory;
 
+import java.lang.constant.ConstantDescs;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -9,9 +10,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.api.factory.primitive.IntObjectMaps;
@@ -176,9 +178,9 @@ public final class MemoryFactory {
     static final class GenMemoryInfo {
         final String clazzName;
         final String clazzDesc;
-        final Function<CompilationContext, Memory> producer;
+        final Supplier<Memory> producer;
 
-        GenMemoryInfo(String clazzName, Function<CompilationContext, Memory> producer) {
+        GenMemoryInfo(String clazzName, Supplier<Memory> producer) {
             this.clazzName = clazzName;
             clazzDesc = "L" + clazzName + ";";
             this.producer = producer;
@@ -196,19 +198,32 @@ public final class MemoryFactory {
 
     private static final AtomicLong seq = new AtomicLong();
 
-    public static Function<CompilationContext, Memory> getMemoryFactory(CompilationContext ctxt, CompoundType ct, boolean upgradeLongs) {
+    public static Supplier<Memory> getMemoryFactory(CompilationContext ctxt, CompoundType ct, boolean upgradeLongs) {
         Map<CompoundType, GenMemoryInfo> map = ctxt.computeAttachmentIfAbsent(MF_CACHE_KEY, ConcurrentHashMap::new);
         // avoid constructing the lambda instance if possible
         GenMemoryInfo genMemoryInfo = map.get(ct);
         if (genMemoryInfo != null) {
             return genMemoryInfo.producer;
         }
-        return map.computeIfAbsent(ct, ct1 -> makeFactory(ct1, upgradeLongs)).producer;
+        return map.computeIfAbsent(ct, ct1 -> makeFactory(ct1, ctxt, upgradeLongs)).producer;
     }
 
-    private static final Function<?, ?>[] NO_FUNCTIONS = new Function<?, ?>[0];
+    private static final Handle CLASS_DATA_AT_HANDLE = new Handle(
+        Opcodes.H_INVOKESTATIC,
+        "java/lang/invoke/MethodHandles",
+        "classDataAt",
+        "(" +
+            MethodHandles.Lookup.class.descriptorString() +
+            String.class.descriptorString() +
+            Class.class.descriptorString() +
+            int.class.descriptorString() +
+        ")" + Object.class.descriptorString(),
+        false
+    );
 
-    private static GenMemoryInfo makeFactory(final CompoundType ct, boolean upgradeLongs) {
+    private static final ConstantDynamic CTXT = new ConstantDynamic(ConstantDescs.DEFAULT_NAME, CompilationContext.class.descriptorString(), CLASS_DATA_AT_HANDLE, Integer.valueOf(0));
+
+    private static GenMemoryInfo makeFactory(final CompoundType ct, CompilationContext ctxt, boolean upgradeLongs) {
         // produce class per compound type
         MethodHandles.Lookup lookup = MethodHandles.lookup();
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
@@ -372,11 +387,10 @@ public final class MemoryFactory {
         ghmv.visitEnd();
 
         // emit ctor
-        MethodVisitor ctor = cw.visitMethod(0, "<init>", "(" + CompilationContext.class.descriptorString() + ")V", null, null);
+        MethodVisitor ctor = cw.visitMethod(0, "<init>", "()V", null, null);
         ctor.visitCode();
         ctor.visitVarInsn(Opcodes.ALOAD, 0);
-        ctor.visitVarInsn(Opcodes.ALOAD, 1);
-        ctor.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/qbicc/interpreter/memory/VarHandleMemory", "<init>", "(" + CompilationContext.class.descriptorString() + ")V", false);
+        ctor.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/qbicc/interpreter/memory/VarHandleMemory", "<init>", "()V", false);
 
         // emit "clone" method
         MethodVisitor cmv = cw.visitMethod(Opcodes.ACC_PUBLIC, "clone", "()" + Memory.class.descriptorString(), null, null);
@@ -395,10 +409,8 @@ public final class MemoryFactory {
             ccmv.visitVarInsn(Opcodes.ALOAD, 0); // this
             ccmv.visitVarInsn(Opcodes.ALOAD, 1); // this orig
             ccmv.visitTypeInsn(Opcodes.CHECKCAST, clazzName); // this orig'
-            ccmv.visitInsn(Opcodes.DUP); // this orig' orig'
-            ccmv.visitVarInsn(Opcodes.ASTORE, 1); // this orig'
-            ccmv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "org/qbicc/interpreter/memory/VarHandleMemory", "getCompilationContext", "()" + CompilationContext.class.descriptorString(), false); // orig' this cc
-            ccmv.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/qbicc/interpreter/memory/VarHandleMemory", "<init>", "(" + CompilationContext.class.descriptorString() + ")V", false); // orig'
+            ccmv.visitVarInsn(Opcodes.ASTORE, 1); // this
+            ccmv.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/qbicc/interpreter/memory/VarHandleMemory", "<init>", "()V", false); // --
             // shallow-copy all of the little fields
             if (simpleFields != null) for (Map.Entry<String, String> entry : simpleFields.entrySet()) {
                 String fieldName = entry.getKey();
@@ -430,21 +442,14 @@ public final class MemoryFactory {
         cmv.visitMaxs(0, 0);
         cmv.visitEnd();
 
-        Function<?, ?>[] factoryArray = NO_FUNCTIONS;
+        List<Object> attachment = List.of(ctxt);
         // emit "getDelegateMemory" if needed
         if (delegate != null) {
             //java.lang.invoke.MethodHandles.classData
-            factoryArray = new Function<?, ?>[delegate.size()];
-            Handle classObjectBootstrap = new Handle(
-                Opcodes.H_INVOKESTATIC,
-                "java/lang/invoke/MethodHandles",
-                "classData",
-                "(" + LOOKUP_DESC_STR + STRING_DESC_STR + CLASS_DESC_STR + ")" + OBJECT_DESC_STR,
-                false
-            );
-            ConstantDynamic factoryArrayConstant = new ConstantDynamic("_", OBJECT_DESC_STR, classObjectBootstrap);
+            attachment = new ArrayList<>(delegate.size() + 1);
+            attachment.add(ctxt);
 
-            int fi = 0;
+            int fi = 1;
             //    protected Memory getDelegateMemory(int offset) {
             MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PROTECTED, "getDelegateMemory", "(I)" + Memory.class.descriptorString(), null, null);
             mv.visitParameter("offset", 0);
@@ -468,16 +473,11 @@ public final class MemoryFactory {
                 mv.visitLabel(outOfRange);
 
                 // also insert the init code for the field to the ctor
-                Function<CompilationContext, Memory> factory = ctxt1 -> MemoryFactory.allocate(ctxt1, member.getType(), 1, upgradeLongs);
-                factoryArray[fi] = factory;
+                Supplier<Memory> factory = () -> MemoryFactory.allocate(ctxt, member.getType(), 1, upgradeLongs);
+                attachment.add(factory);
                 ctor.visitVarInsn(Opcodes.ALOAD, 0); // this
-                ctor.visitLdcInsn(factoryArrayConstant); // this factoryArray
-                ctor.visitTypeInsn(Opcodes.CHECKCAST, "[Ljava/util/function/Function;");
-                ctor.visitLdcInsn(Integer.valueOf(fi)); // this factoryArray index
-                ctor.visitInsn(Opcodes.AALOAD); // this factory
-                ctor.visitVarInsn(Opcodes.ALOAD, 0); // this factory this
-                ctor.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/qbicc/interpreter/memory/VarHandleMemory", "getCompilationContext", "()" + CompilationContext.class.descriptorString(), false); // this factory ctxt
-                ctor.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/function/Function", "apply", "(" + OBJECT_DESC_STR + ")" + OBJECT_DESC_STR, true); // this memory
+                ctor.visitLdcInsn(new ConstantDynamic(ConstantDescs.DEFAULT_NAME, Supplier.class.descriptorString(), CLASS_DATA_AT_HANDLE, Integer.valueOf(fi))); // this factory
+                ctor.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/function/Supplier", "get", "()" + OBJECT_DESC_STR, true); // this memory
                 ctor.visitTypeInsn(Opcodes.CHECKCAST, "org/qbicc/interpreter/Memory");
                 ctor.visitFieldInsn(Opcodes.PUTFIELD, clazzName, fieldName, Memory.class.descriptorString());
                 fi ++;
@@ -492,6 +492,16 @@ public final class MemoryFactory {
         ctor.visitInsn(Opcodes.RETURN);
         ctor.visitMaxs(0, 0);
         ctor.visitEnd();
+
+        // implement getCompilationContext() in terms of condy
+
+        MethodVisitor gccmv = cw.visitMethod(Opcodes.ACC_PROTECTED, "getCompilationContext", "()" + CompilationContext.class.descriptorString(), null, null);
+        gccmv.visitCode();
+        gccmv.visitLdcInsn(CTXT);
+        gccmv.visitInsn(Opcodes.ARETURN);
+        gccmv.visitMaxs(0, 0);
+        gccmv.visitEnd();
+
         cw.visitEnd();
 
         byte[] bytes = cw.toByteArray();
@@ -502,20 +512,20 @@ public final class MemoryFactory {
         Class<? extends Memory> clazz;
         MethodHandles.Lookup hiddenClassLookup;
         try {
-            hiddenClassLookup = lookup.defineHiddenClassWithClassData(bytes, factoryArray, false);
+            hiddenClassLookup = lookup.defineHiddenClassWithClassData(bytes, attachment, false);
         } catch (IllegalAccessException e) {
             throw new IllegalStateException("Unexpected illegal access", e);
         }
         clazz = hiddenClassLookup.lookupClass().asSubclass(Memory.class);
         MethodHandle constructor;
         try {
-            constructor = hiddenClassLookup.findConstructor(clazz, MethodType.methodType(void.class, CompilationContext.class));
+            constructor = hiddenClassLookup.findConstructor(clazz, MethodType.methodType(void.class));
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new IllegalStateException("Unexpected failure finding constructor", e);
         }
-        return new GenMemoryInfo(clazzName, ctxt -> {
+        return new GenMemoryInfo(clazzName, () -> {
             try {
-                return (Memory) constructor.invoke(ctxt);
+                return (Memory) constructor.invoke();
             } catch (Throwable e) {
                 throw new IllegalStateException("Unexpected construction failure", e);
             }
@@ -553,7 +563,7 @@ public final class MemoryFactory {
         int intCount = Math.toIntExact(count);
         // vectored
         if (type instanceof CompoundType ct) {
-            return getMemoryFactory(ctxt, ct, upgradeLongs).apply(ctxt);
+            return getMemoryFactory(ctxt, ct, upgradeLongs).get();
         } else if (type instanceof IntegerType it) {
             // todo: more compact impls
             return switch (it.getMinBits()) {
