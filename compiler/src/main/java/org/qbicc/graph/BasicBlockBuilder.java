@@ -456,23 +456,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value load(ValueHandle handle, ReadAccessMode mode);
 
-    Value getAndAdd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
-
-    Value getAndBitwiseAnd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
-
-    Value getAndBitwiseNand(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
-
-    Value getAndBitwiseOr(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
-
-    Value getAndBitwiseXor(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
-
-    Value getAndSet(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
-
-    Value getAndSetMax(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
-
-    Value getAndSetMin(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
-
-    Value getAndSub(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
+    Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
     Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength);
 

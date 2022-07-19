@@ -10,6 +10,7 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
+import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -85,65 +86,21 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value getAndAdd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        checkAtomicAccessor(target);
-        return super.getAndAdd(target, update, readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndBitwiseAnd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        checkAtomicAccessor(target);
-        return super.getAndBitwiseAnd(target, update, readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndBitwiseNand(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        checkAtomicAccessor(target);
-        return super.getAndBitwiseNand(target, update, readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndBitwiseOr(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        checkAtomicAccessor(target);
-        return super.getAndBitwiseOr(target, update, readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndBitwiseXor(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        checkAtomicAccessor(target);
-        return super.getAndBitwiseXor(target, update, readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndSet(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        if (target instanceof StaticField sf && getAccessor(sf.getVariableElement()) != null) {
-            if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
-                Value loaded = load(target, readMode);
-                store(target, update, writeMode);
-                return loaded;
-            } else {
-                atomicNotAllowed();
+    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (op == ReadModifyWrite.Op.SET) {
+            if (target instanceof StaticField sf && getAccessor(sf.getVariableElement()) != null) {
+                if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
+                    Value loaded = load(target, readMode);
+                    store(target, update, writeMode);
+                    return loaded;
+                } else {
+                    atomicNotAllowed();
+                }
             }
+        } else {
+            checkAtomicAccessor(target);
         }
-        return super.getAndSet(target, update, readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndSetMax(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        checkAtomicAccessor(target);
-        return super.getAndSetMax(target, update, readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndSetMin(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        checkAtomicAccessor(target);
-        return super.getAndSetMin(target, update, readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndSub(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        checkAtomicAccessor(target);
-        return super.getAndSub(target, update, readMode, writeMode);
+        return super.readModifyWrite(target, op, update, readMode, writeMode);
     }
 
     private void checkAtomicAccessor(final ValueHandle target) {

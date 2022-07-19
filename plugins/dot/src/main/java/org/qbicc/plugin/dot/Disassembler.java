@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
@@ -54,15 +55,6 @@ import org.qbicc.graph.ExtractInstanceField;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
 import org.qbicc.graph.FunctionElementHandle;
-import org.qbicc.graph.GetAndAdd;
-import org.qbicc.graph.GetAndBitwiseAnd;
-import org.qbicc.graph.GetAndBitwiseNand;
-import org.qbicc.graph.GetAndBitwiseOr;
-import org.qbicc.graph.GetAndBitwiseXor;
-import org.qbicc.graph.GetAndSet;
-import org.qbicc.graph.GetAndSetMax;
-import org.qbicc.graph.GetAndSetMin;
-import org.qbicc.graph.GetAndSub;
 import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
@@ -105,6 +97,7 @@ import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
+import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.ReadModifyWriteValue;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.ReferenceTo;
@@ -134,6 +127,7 @@ import org.qbicc.graph.VaArg;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueReturn;
+import org.qbicc.graph.ValueVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.literal.ArrayLiteral;
@@ -555,56 +549,9 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, GetAndAdd node) {
-            readModifyWrite("get+add %s ← %s", param, node);
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, GetAndBitwiseAnd node) {
-            readModifyWrite("get+and %s ← %s", param, node);
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, GetAndBitwiseNand node) {
-            readModifyWrite("get+nand %s ← %s", param, node);
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, GetAndBitwiseOr node) {
-            readModifyWrite("get+or %s ← %s", param, node);
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, GetAndBitwiseXor node) {
-            readModifyWrite("get+xor %s ← %s", param, node);
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, GetAndSet node) {
-            readModifyWrite("get+set %s ← %s", param, node);
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, GetAndSetMax node) {
-            readModifyWrite("get+set-max %s ← %s", param, node);
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, GetAndSetMin node) {
-            readModifyWrite("get+set-min %s ← %s", param, node);
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, GetAndSub node) {
-            readModifyWrite("get+sub %s ← %s", param, node);
+        public Void visit(Disassembler param, ReadModifyWrite node) {
+            String op = node.getOp().name().toLowerCase(Locale.ROOT);
+            readModifyWrite("get+" + op + " %s ← %s", param, node);
             return delegate.visit(param, node);
         }
 

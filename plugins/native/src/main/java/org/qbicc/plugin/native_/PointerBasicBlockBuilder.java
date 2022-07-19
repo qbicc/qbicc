@@ -12,6 +12,7 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Executable;
 import org.qbicc.graph.Node;
+import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
@@ -89,48 +90,8 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value getAndAdd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndAdd(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndBitwiseAnd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndBitwiseAnd(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndBitwiseNand(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndBitwiseNand(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndBitwiseOr(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndBitwiseOr(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndBitwiseXor(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndBitwiseXor(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndSet(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndSet(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndSetMax(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndSetMax(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndSetMin(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndSetMin(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndSub(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndSub(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
+    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return super.readModifyWrite(target, op, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
     }
 
     @Override

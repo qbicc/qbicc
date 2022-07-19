@@ -39,11 +39,6 @@ import org.qbicc.graph.Extend;
 import org.qbicc.graph.ExtractElement;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
-import org.qbicc.graph.GetAndAdd;
-import org.qbicc.graph.GetAndBitwiseAnd;
-import org.qbicc.graph.GetAndBitwiseOr;
-import org.qbicc.graph.GetAndBitwiseXor;
-import org.qbicc.graph.GetAndSet;
 import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
@@ -69,6 +64,7 @@ import org.qbicc.graph.Or;
 import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
+import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Return;
 import org.qbicc.graph.Select;
@@ -628,51 +624,23 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         return loadInsn.asLocal();
     }
 
-    public LLValue visit(Void param, GetAndAdd node) {
+    @Override
+    public LLValue visit(Void unused, ReadModifyWrite node) {
         map(node.getDependency());
         ValueHandle valueHandle = node.getValueHandle();
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).add();
-        insn.align(valueHandle.getPointeeType().getAlign());
-        insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
-        return insn.asLocal();
-    }
-
-    public LLValue visit(Void param, GetAndBitwiseAnd node) {
-        map(node.getDependency());
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).and();
-        insn.align(valueHandle.getPointeeType().getAlign());
-        insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
-        return insn.asLocal();
-    }
-
-    public LLValue visit(Void param, GetAndBitwiseOr node) {
-        map(node.getDependency());
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).or();
-        insn.align(valueHandle.getPointeeType().getAlign());
-        insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
-        return insn.asLocal();
-    }
-
-    public LLValue visit(Void param, GetAndBitwiseXor node) {
-        map(node.getDependency());
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).xor();
-        insn.align(valueHandle.getPointeeType().getAlign());
-        insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
-        return insn.asLocal();
-    }
-
-    public LLValue visit(Void param, GetAndSet node) {
-        map(node.getDependency());
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).xchg();
+        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr);
+        switch (node.getOp()) {
+            case SET -> insn.xchg();
+            case ADD -> insn.add();
+            case SUB -> insn.sub();
+            case BITWISE_AND -> insn.and();
+            case BITWISE_NAND -> insn.nand();
+            case BITWISE_OR -> insn.or();
+            case BITWISE_XOR -> insn.xor();
+            case MIN -> insn.min();
+            case MAX -> insn.max();
+        }
         insn.align(valueHandle.getPointeeType().getAlign());
         insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.asLocal();

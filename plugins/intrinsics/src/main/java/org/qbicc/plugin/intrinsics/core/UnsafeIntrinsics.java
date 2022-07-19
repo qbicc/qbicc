@@ -21,6 +21,7 @@ import org.qbicc.graph.Load;
 import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.OrderedNode;
+import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -292,11 +293,11 @@ public class UnsafeIntrinsics {
             "Long", BaseTypeDescriptor.J
         ).entrySet()) {
             for (Map.Entry<String, BuilderGetAndModOp> nameAndOp : Map.of(
-                "Add", BasicBlockBuilder::getAndAdd,
-                "BitwiseAnd", BasicBlockBuilder::getAndBitwiseAnd,
-                "BitwiseOr", BasicBlockBuilder::getAndBitwiseOr,
-                "BitwiseXor", BasicBlockBuilder::getAndBitwiseXor,
-                "Set", (BuilderGetAndModOp) BasicBlockBuilder::getAndSet
+                "Add", (basicBlockBuilder, target1, update, readMode, writeMode) -> basicBlockBuilder.readModifyWrite(target1, ReadModifyWrite.Op.ADD, update, readMode, writeMode),
+                "BitwiseAnd", (basicBlockBuilder1, target2, update1, readMode1, writeMode1) -> basicBlockBuilder1.readModifyWrite(target2, ReadModifyWrite.Op.BITWISE_AND, update1, readMode1, writeMode1),
+                "BitwiseOr", (basicBlockBuilder2, target3, update2, readMode2, writeMode2) -> basicBlockBuilder2.readModifyWrite(target3, ReadModifyWrite.Op.BITWISE_OR, update2, readMode2, writeMode2),
+                "BitwiseXor", (basicBlockBuilder3, target4, update3, readMode3, writeMode3) -> basicBlockBuilder3.readModifyWrite(target4, ReadModifyWrite.Op.BITWISE_XOR, update3, readMode3, writeMode3),
+                "Set", (BuilderGetAndModOp) (basicBlockBuilder4, target5, update4, readMode4, writeMode4) -> basicBlockBuilder4.readModifyWrite(target5, ReadModifyWrite.Op.SET, update4, readMode4, writeMode4)
             ).entrySet()) {
                 for (Map.Entry<String, AccessMode[]> suffixAndMode : Map.of(
                     "", new AccessMode[] { GlobalSeqCst, GlobalSeqCst },
