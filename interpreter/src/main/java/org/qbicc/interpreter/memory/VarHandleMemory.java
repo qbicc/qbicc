@@ -21,20 +21,14 @@ import org.qbicc.type.ValueType;
  * A memory implementation which uses {@link java.lang.invoke.VarHandle} to access its members.
  */
 public abstract class VarHandleMemory extends AbstractMemory {
-    private final CompilationContext ctxt;
 
     /**
      * Construct a new instance.
-     *
-     * @param ctxt the compilation context (must not be {@code null})
      */
-    protected VarHandleMemory(CompilationContext ctxt) {
-        this.ctxt = ctxt;
+    protected VarHandleMemory() {
     }
 
-    protected CompilationContext getCompilationContext() {
-        return ctxt;
-    }
+    protected abstract CompilationContext getCompilationContext();
 
     protected Memory getDelegateMemory(int offset) {
         return null;
@@ -254,7 +248,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
                 return (Pointer) handle.getVolatile(this);
             }
         } else if (handle.varType() == long.class) {
-            PointerType voidPointerType = ctxt.getTypeSystem().getVoidType().getPointer();
+            PointerType voidPointerType = getCompilationContext().getTypeSystem().getVoidType().getPointer();
             return new IntegerAsPointer(voidPointerType, load64(offset, mode));
         } else {
             throw invalidMemoryAccess();
@@ -377,7 +371,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         }
         VarHandle handle = getHandle((int) offset);
         if (handle.varType() == Pointer.class) {
-            TypeSystem ts = ctxt.getTypeSystem();
+            TypeSystem ts = getCompilationContext().getTypeSystem();
             IntegerAsPointer ptr = new IntegerAsPointer(ts.getVoidType().getPointer(), value);
             storePointer(offset, ptr, mode);
         } else if (handle.varType() == double.class) {
@@ -628,7 +622,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         }
         VarHandle handle = getHandle((int) offset);
         if (handle.varType() == Pointer.class) {
-            TypeSystem ts = ctxt.getTypeSystem();
+            TypeSystem ts = getCompilationContext().getTypeSystem();
             PointerType voidPointerType = ts.getVoidType().getPointer();
             Pointer witness = loadPointer(offset, readMode);
             if (witness == null && expect == 0 || witness instanceof IntegerAsPointer iap && expect == iap.getValue()) {
@@ -764,7 +758,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             if (result == 0) {
                 return null;
             }
-            PointerType voidPointerType = ctxt.getTypeSystem().getVoidType().getPointer();
+            PointerType voidPointerType = getCompilationContext().getTypeSystem().getVoidType().getPointer();
             return new IntegerAsPointer(voidPointerType, result);
         } else if (handle.varType() == Pointer.class) {
             Pointer witness;
@@ -927,7 +921,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             if (value == 0) {
                 val = getAndSetPointer(offset, null, readMode, writeMode);
             } else {
-                PointerType voidPointerType = ctxt.getTypeSystem().getVoidType().getPointer();
+                PointerType voidPointerType = getCompilationContext().getTypeSystem().getVoidType().getPointer();
                 val = getAndSetPointer(offset, new IntegerAsPointer(voidPointerType, value), readMode, writeMode);
             }
             if (val == null) {
@@ -1039,7 +1033,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
             } else {
                 throw pointerAsInteger();
             }
-            PointerType voidPointerType = ctxt.getTypeSystem().getVoidType().getPointer();
+            PointerType voidPointerType = getCompilationContext().getTypeSystem().getVoidType().getPointer();
             return new IntegerAsPointer(voidPointerType, val);
         } else if (handle.varType() == Pointer.class) {
             if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
