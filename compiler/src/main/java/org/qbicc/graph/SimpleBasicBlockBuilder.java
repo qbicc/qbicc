@@ -377,7 +377,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         throw Assert.unsupported();
     }
 
-    public ValueHandle lengthOf(final ValueHandle arrayHandle) {
+    public PointerValue lengthOf(final PointerValue arrayHandle) {
         throw new IllegalStateException("lengthOf not converted");
     }
 
@@ -433,12 +433,12 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         throw new IllegalStateException("CheckCast of unresolved type");
     }
 
-    public Value selectMember(ValueHandle handle) {
+    public Value selectMember(PointerValue handle) {
         TypeSystem ts = element.getEnclosingType().getContext().getTypeSystem();
         return new MemberSelector(callSite, element, line, bci, handle, ts.getVoidType());
     }
 
-    public ValueHandle currentThread() {
+    public PointerValue currentThread() {
         ReferenceType refType = element.getEnclosingType().getContext().getCompilationContext().getBootstrapClassContext().findDefinedType("java/lang/Thread").load().getObjectType().getReference();
         return new CurrentThread(element, line, bci, refType);
     }
@@ -447,103 +447,103 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return asDependency(new VaArg(callSite, element, line, bci, requireDependency(), vaList, type));
     }
 
-    public ValueHandle memberOf(final ValueHandle structHandle, final CompoundType.Member member) {
+    public PointerValue memberOf(final PointerValue structHandle, final CompoundType.Member member) {
         return new MemberOf(callSite, element, line, bci, structHandle, member);
     }
 
-    public ValueHandle elementOf(ValueHandle array, Value index) {
+    public PointerValue elementOf(PointerValue array, Value index) {
         return new ElementOf(callSite, element, line, bci, array, index);
     }
 
-    public ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType) {
+    public PointerValue unsafeHandle(PointerValue base, Value offset, ValueType outputType) {
         return new UnsafeHandle(callSite, element, line, bci, base, offset, outputType);
     }
 
-    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
+    public PointerValue pointerHandle(Value pointer, Value offsetValue) {
         return new PointerHandle(callSite, element, line, bci, pointer, offsetValue);
     }
 
-    public ValueHandle referenceHandle(Value reference) {
+    public PointerValue referenceHandle(Value reference) {
         return new ReferenceHandle(callSite, element, line, bci, reference);
     }
 
-    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
+    public PointerValue instanceFieldOf(PointerValue instance, FieldElement field) {
         return new InstanceFieldOf(element, line, bci, (InstanceFieldElement) field, field.getType(), instance);
     }
 
-    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
+    public PointerValue instanceFieldOf(PointerValue instance, TypeDescriptor owner, String name, TypeDescriptor type) {
         throw new IllegalStateException("Instance field of unresolved type");
     }
 
-    public ValueHandle staticField(FieldElement field) {
+    public PointerValue staticField(FieldElement field) {
         return new StaticField(element, line, bci, (StaticFieldElement) field, field.getType());
     }
 
-    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+    public PointerValue staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         throw new IllegalStateException("Static field of unresolved type");
     }
 
-    public ValueHandle globalVariable(GlobalVariableElement variable) {
+    public PointerValue globalVariable(GlobalVariableElement variable) {
         return new GlobalVariable(element, line, bci, variable, variable.getType());
     }
 
-    public ValueHandle localVariable(LocalVariableElement variable) {
+    public PointerValue localVariable(LocalVariableElement variable) {
         return new LocalVariable(element, line, bci, variable, variable.getType());
     }
 
-    public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
+    public PointerValue exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         return new ExactMethodElementHandle(element, line, bci, method, instance, callSiteDescriptor, callSiteType);
     }
 
-    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         throw new IllegalStateException("Unresolved instance method");
     }
 
-    public ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
+    public PointerValue virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         return new VirtualMethodElementHandle(element, line, bci, method, instance, callSiteDescriptor, callSiteType);
     }
 
-    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         throw new IllegalStateException("Unresolved instance method");
     }
 
-    public ValueHandle interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
+    public PointerValue interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         return new InterfaceMethodElementHandle(element, line, bci, method, instance, callSiteDescriptor, callSiteType);
     }
 
-    public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         throw new IllegalStateException("Unresolved instance method");
     }
 
-    public ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType) {
+    public PointerValue staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType) {
         return new StaticMethodElementHandle(element, line, bci, method, callSiteDescriptor, callSiteType);
     }
 
-    public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         throw new IllegalStateException("Unresolved static method");
     }
 
-    public ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
+    public PointerValue constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         return new ConstructorElementHandle(element, line, bci, constructor, instance, callSiteDescriptor, callSiteType);
     }
 
-    public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
+    public PointerValue constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
         throw new IllegalStateException("Unresolved constructor");
     }
 
-    public ValueHandle functionOf(FunctionElement function) {
+    public PointerValue functionOf(FunctionElement function) {
         return new FunctionElementHandle(element, line, bci, function);
     }
 
-    public ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type) {
+    public PointerValue asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type) {
         return new AsmHandle(callSite, element, line, bci, instruction, constraints, flags, type);
     }
 
-    public Value addressOf(ValueHandle handle) {
+    public Value addressOf(PointerValue handle) {
         return new AddressOf(callSite, element, line, bci, handle);
     }
 
-    public Value referenceTo(ValueHandle handle) throws IllegalArgumentException {
+    public Value referenceTo(PointerValue handle) throws IllegalArgumentException {
         return new ReferenceTo(callSite, element, line, bci, handle);
     }
 
@@ -626,20 +626,20 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         throw new IllegalStateException("New of unresolved array type");
     }
 
-    public Value load(final ValueHandle handle, final ReadAccessMode mode) {
+    public Value load(final PointerValue handle, final ReadAccessMode mode) {
         return asDependency(new Load(callSite, element, line, bci, requireDependency(), handle, mode));
     }
 
-    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    public Value readModifyWrite(PointerValue target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         return asDependency(new ReadModifyWrite(callSite, element, line, bci, requireDependency(), target, op, update, readMode, writeMode));
     }
 
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(PointerValue target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         CompilationContext ctxt = getCurrentElement().getEnclosingType().getContext().getCompilationContext();
         return asDependency(new CmpAndSwap(callSite, element, line, bci, CmpAndSwap.getResultType(ctxt, target.getPointeeType()), requireDependency(), target, expect, update, readMode, writeMode, strength));
     }
 
-    public Node store(ValueHandle handle, Value value, WriteAccessMode mode) {
+    public Node store(PointerValue handle, Value value, WriteAccessMode mode) {
         return asDependency(new Store(callSite, element, line, bci, requireDependency(), handle, value, mode));
     }
 
@@ -659,11 +659,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return asDependency(new MonitorExit(callSite, element, line, bci, requireDependency(), Assert.checkNotNullParam("obj", obj)));
     }
 
-    public Value call(ValueHandle target, List<Value> arguments) {
+    public Value call(PointerValue target, List<Value> arguments) {
         return asDependency(new Call(callSite, element, line, bci, requireDependency(), target, arguments));
     }
 
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+    public Value callNoSideEffects(PointerValue target, List<Value> arguments) {
         return new CallNoSideEffects(callSite, element, line, bci, target, arguments);
     }
 
@@ -750,23 +750,23 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return asDependency(new SafePoint(callSite, element, line, bci, requireDependency()));
     }
 
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+    public BasicBlock callNoReturn(PointerValue target, List<Value> arguments) {
         return terminate(requireCurrentBlock(), new CallNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments));
     }
 
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock invokeNoReturn(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         return terminate(requireCurrentBlock(), new InvokeNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, targetArguments));
     }
 
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+    public BasicBlock tailCall(PointerValue target, List<Value> arguments) {
         return terminate(requireCurrentBlock(), new TailCall(callSite, element, line, bci, blockEntry, dependency, target, arguments));
     }
 
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock tailInvoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         return terminate(requireCurrentBlock(), new TailInvoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, targetArguments));
     }
 
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+    public Value invoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         final BlockLabel currentBlock = requireCurrentBlock();
         Invoke invoke = new Invoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, resumeLabel, targetArguments);
         terminate(currentBlock, invoke);

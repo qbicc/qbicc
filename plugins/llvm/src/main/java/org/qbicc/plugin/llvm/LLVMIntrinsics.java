@@ -13,7 +13,7 @@ import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -84,10 +84,10 @@ public final class LLVMIntrinsics {
 
         StaticIntrinsic saVaStart = (builder, target, arguments) -> {
             BasicBlockBuilder fb = builder.getFirstBuilder();
-            ValueHandle vaListHandle;
+            PointerValue vaListHandle;
             Value vaList = arguments.get(0);
             if (vaList instanceof Load load) {
-                vaListHandle = load.getValueHandle();
+                vaListHandle = load.getPointerValue();
             } else {
                 ctxt.error(builder.getLocation(), "Invalid ap argument to va_start: must have an address");
                 return voidLiteral;
@@ -99,10 +99,10 @@ public final class LLVMIntrinsics {
 
         StaticIntrinsic saVaEnd = (builder, target, arguments) -> {
             BasicBlockBuilder fb = builder.getFirstBuilder();
-            ValueHandle vaListHandle;
+            PointerValue vaListHandle;
             Value vaList = arguments.get(0);
             if (vaList instanceof Load load) {
-                vaListHandle = load.getValueHandle();
+                vaListHandle = load.getPointerValue();
             } else {
                 ctxt.error(builder.getLocation(), "Invalid ap argument to va_end: must have an address");
                 return voidLiteral;
@@ -114,18 +114,18 @@ public final class LLVMIntrinsics {
 
         StaticIntrinsic saVaCopy = (builder, target, arguments) -> {
             BasicBlockBuilder fb = builder.getFirstBuilder();
-            ValueHandle destHandle;
+            PointerValue destHandle;
             Value destList = arguments.get(0);
             if (destList instanceof Load load) {
-                destHandle = load.getValueHandle();
+                destHandle = load.getPointerValue();
             } else {
                 ctxt.error(builder.getLocation(), "Invalid dest argument to va_copy: must have an address");
                 return voidLiteral;
             }
-            ValueHandle srcHandle;
+            PointerValue srcHandle;
             Value srcList = arguments.get(1);
             if (srcList instanceof Load load2) {
-                srcHandle = load2.getValueHandle();
+                srcHandle = load2.getPointerValue();
             } else {
                 ctxt.error(builder.getLocation(), "Invalid src argument to va_copy: must have an address");
                 return voidLiteral;
@@ -138,10 +138,10 @@ public final class LLVMIntrinsics {
         // this one is technically implementation-neutral, but we can keep it here until we have another backend
         StaticIntrinsic saVaArg = (builder, target, arguments) -> {
             BasicBlockBuilder fb = builder.getFirstBuilder();
-            ValueHandle vaListHandle;
+            PointerValue vaListHandle;
             Value vaList = arguments.get(0);
             if (vaList instanceof Load load) {
-                vaListHandle = load.getValueHandle();
+                vaListHandle = load.getPointerValue();
             } else {
                 ctxt.error(builder.getLocation(), "Invalid ap argument to va_arg: must have an address");
                 throw new BlockEarlyTermination(builder.unreachable());
@@ -334,7 +334,7 @@ public final class LLVMIntrinsics {
         }
         boolean noReturn = (flags & ASM_FLAG_NO_RETURN) != 0;
 
-        ValueHandle asm = bb.asm(instruction, operands, flagSet, type);
+        PointerValue asm = bb.asm(instruction, operands, flagSet, type);
 
         if (noReturn) {
             throw new BlockEarlyTermination(bb.callNoReturn(asm, args));

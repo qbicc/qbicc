@@ -48,7 +48,7 @@ import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Throw;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.Return;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.Literal;
@@ -103,10 +103,10 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
         @Override
         public Void visit(AnalysisContext param, Store node) {
             if (visitKnown(param, node)) {
-                final ValueHandle handle = node.getValueHandle();
+                final PointerValue handle = node.getPointerValue();
                 final Value value = node.getValue();
 
-                if (handle instanceof InstanceFieldOf fieldOf && fieldOf.getValueHandle() instanceof ReferenceHandle ref) {
+                if (handle instanceof InstanceFieldOf fieldOf && fieldOf.getPointerValue() instanceof ReferenceHandle ref) {
                     if (value instanceof New) {
                         if (isThisRef(ref)) {
                             // this.f = new T();
@@ -141,7 +141,7 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
 
         @Override
         public Void visit(AnalysisContext param, Call node) {
-            if (visitKnown(param, node) && node.getValueHandle() instanceof Executable) {
+            if (visitKnown(param, node) && node.getPointerValue() instanceof Executable) {
                 param.escapeAnalysisState.addCall(element, node);
             }
 
@@ -374,7 +374,7 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
         }
 
         @Override
-        public Void visitUnknown(AnalysisContext param, ValueHandle node) {
+        public Void visitUnknown(AnalysisContext param, PointerValue node) {
             visitUnknown(param, (Node) node);
             return null;
         }
@@ -394,8 +394,8 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
             if (param.visited.add(node)) {
                 boolean isNodeSupported = isSupported(param, node);
 
-                if (node.hasValueHandleDependency()) {
-                    final ValueHandle dependency = node.getValueHandle();
+                if (node.hasPointerValueDependency()) {
+                    final PointerValue dependency = node.getPointerValue();
                     checkSupport(isNodeSupported, dependency, param);
                     dependency.accept(this, param);
                 }
@@ -416,8 +416,8 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
                         ((Value) dependency).accept(this, param);
                     } else if (dependency instanceof Terminator) {
                         ((Terminator) dependency).accept(this, param);
-                    } else if (dependency instanceof ValueHandle) {
-                        ((ValueHandle) dependency).accept(this, param);
+                    } else if (dependency instanceof PointerValue) {
+                        ((PointerValue) dependency).accept(this, param);
                     }
                 }
 

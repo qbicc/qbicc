@@ -11,7 +11,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.Store;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.plugin.dot.Disassembler;
 import org.qbicc.plugin.dot.DotAttributes;
 
@@ -37,9 +37,9 @@ public final class EscapeAnalysisDotVisitor implements NodeVisitor.Delegating<Di
 
     @Override
     public Void visit(Disassembler param, Store node) {
-        final ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof StaticField || valueHandle instanceof InstanceFieldOf) {
-            decorate(param, valueHandle);
+        final PointerValue pointerValue = node.getPointerValue();
+        if (pointerValue instanceof StaticField || pointerValue instanceof InstanceFieldOf) {
+            decorate(param, pointerValue);
         }
 
         return delegate.visit(param, node);

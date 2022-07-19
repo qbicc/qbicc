@@ -21,7 +21,7 @@ import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.WordCastValue;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
@@ -471,7 +471,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             // pointer to struct/array -> pointer to first member/element
             if (inPtrType.getPointeeType() instanceof CompoundType) {
                 final IntegerLiteral z = ctxt.getLiteralFactory().literalOf(0);
-                ValueHandle outVal = addressOfFirst(pointerHandle(input, z), outPtrType.getPointeeType());
+                PointerValue outVal = addressOfFirst(pointerHandle(input, z), outPtrType.getPointeeType());
                 if (outVal != null) {
                     return addressOf(outVal);
                 }
@@ -480,12 +480,12 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.bitCast(input, toType);
     }
 
-    private ValueHandle addressOfFirst(final ValueHandle input, final ValueType outputType) {
+    private PointerValue addressOfFirst(final PointerValue input, final ValueType outputType) {
         // if the output type matches the first member or element of input, return its handle
         if (input.getPointeeType() instanceof CompoundType ct && ct.getMemberCount() > 0) {
             final CompoundType.Member memberZero = ct.getMember(0);
             if (memberZero.getOffset() == 0) {
-                ValueHandle nextHandle = memberOf(input, memberZero);
+                PointerValue nextHandle = memberOf(input, memberZero);
                 if (outputType.equals(memberZero.getType())) {
                     return nextHandle;
                 } else {
@@ -493,7 +493,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
         } else if (input.getPointeeType() instanceof ArrayType at && at.getElementCount() > 0) {
-            ValueHandle nextHandle = elementOf(input, ctxt.getLiteralFactory().literalOf(0));
+            PointerValue nextHandle = elementOf(input, ctxt.getLiteralFactory().literalOf(0));
             if (outputType.equals(at.getElementType())) {
                 return nextHandle;
             } else {
@@ -638,21 +638,21 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     // handles
 
     @Override
-    public Value addressOf(ValueHandle handle) {
+    public Value addressOf(PointerValue handle) {
         if (handle instanceof PointerHandle ph && isZero(ph.getOffsetValue())) {
-            return ((PointerHandle) handle).getPointerValue();
+            return ((PointerHandle) handle).getBaseValue();
         }
         return super.addressOf(handle);
     }
 
     @Override
-    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
+    public PointerValue pointerHandle(Value pointer, Value offsetValue) {
         if (pointer instanceof AddressOf) {
             if (isZero(offsetValue)) {
-                return pointer.getValueHandle();
-            } else if (pointer.getValueHandle() instanceof PointerHandle ph) {
+                return pointer.getPointerValue();
+            } else if (pointer.getPointerValue() instanceof PointerHandle ph) {
                 // merge the offset value
-                return pointerHandle(ph.getPointerValue(), add(ph.getOffsetValue(), offsetValue));
+                return pointerHandle(ph.getBaseValue(), add(ph.getOffsetValue(), offsetValue));
             }
         }
         return super.pointerHandle(pointer, offsetValue);

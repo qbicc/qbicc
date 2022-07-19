@@ -12,7 +12,7 @@ import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 /**
  * A value handle to an executable element.
  */
-public abstract class Executable extends AbstractValueHandle {
+public abstract class Executable extends AbstractPointerValue {
     private final ExecutableElement executable;
     private final MethodDescriptor callSiteDescriptor;
     private final InvokableType callSiteType;

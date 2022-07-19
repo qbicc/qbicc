@@ -30,8 +30,8 @@ import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.ValueHandleVisitor;
+import org.qbicc.graph.PointerValue;
+import org.qbicc.graph.PointerValueVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
@@ -60,7 +60,7 @@ import org.qbicc.type.definition.element.StaticMethodElement;
  * As a result of the analysis, new ExecutableElements may become reachable and
  * this be enqueued for compilation.
  */
-public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<Void, Void> {
+public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implements PointerValueVisitor<Void, Void> {
     private final CompilationContext ctxt;
 
     public ReachabilityBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
@@ -103,7 +103,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         }
 
         @Override
-        public Void visitUnknown(ReachabilityContext param, ValueHandle node) {
+        public Void visitUnknown(ReachabilityContext param, PointerValue node) {
             visitUnknown(param, (Node) node);
             return null;
         }
@@ -125,8 +125,8 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
 
         boolean visitUnknown(ReachabilityContext param, Node node) {
             if (param.visited.add(node)) {
-                if (node.hasValueHandleDependency()) {
-                    node.getValueHandle().accept(this, param);
+                if (node.hasPointerValueDependency()) {
+                    node.getPointerValue().accept(this, param);
                 }
                 int cnt = node.getValueDependencyCount();
                 for (int i = 0; i < cnt; i ++) {
@@ -140,7 +140,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
                         v.accept(this, param);
                     } else if (dependency instanceof Terminator t) {
                         t.accept(this, param);
-                    } else if (dependency instanceof ValueHandle vh) {
+                    } else if (dependency instanceof PointerValue vh) {
                         vh.accept(this, param);
                     }
                 }

@@ -8,29 +8,29 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * Get the reference of an object referred to by a value handle.
  */
 public final class ReferenceTo extends AbstractValue {
-    private final ValueHandle valueHandle;
+    private final PointerValue pointerValue;
     private final ReferenceType referenceType;
 
-    ReferenceTo(Node callSite, ExecutableElement element, int line, int bci, ValueHandle valueHandle) {
+    ReferenceTo(Node callSite, ExecutableElement element, int line, int bci, PointerValue pointerValue) {
         super(callSite, element, line, bci);
-        this.valueHandle = valueHandle;
-        ObjectType objectType = (ObjectType) valueHandle.getPointeeType();
+        this.pointerValue = pointerValue;
+        ObjectType objectType = (ObjectType) pointerValue.getPointeeType();
         referenceType = objectType.getReference();
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
+    public boolean hasPointerValueDependency() {
         return true;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
-        return valueHandle;
+    public PointerValue getPointerValue() {
+        return pointerValue;
     }
 
     @Override
     int calcHashCode() {
-        return valueHandle.hashCode();
+        return pointerValue.hashCode();
     }
 
     @Override
@@ -44,7 +44,7 @@ public final class ReferenceTo extends AbstractValue {
     }
 
     public boolean equals(ReferenceTo other) {
-        return this == other || other != null && valueHandle.equals(other.valueHandle);
+        return this == other || other != null && pointerValue.equals(other.pointerValue);
     }
 
     @Override

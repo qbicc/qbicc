@@ -13,7 +13,7 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.BooleanType;
@@ -84,7 +84,7 @@ public final class LocalVariableLoweringBasicBlockBuilder extends DelegatingBasi
     }
 
     @Override
-    public ValueHandle localVariable(LocalVariableElement variable) {
+    public PointerValue localVariable(LocalVariableElement variable) {
         final Value pointer = allocatedVariables.get(variable);
         if (pointer == null) {
             throw new NoSuchElementException();

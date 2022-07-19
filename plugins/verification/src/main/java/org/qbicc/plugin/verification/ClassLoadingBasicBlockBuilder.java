@@ -9,7 +9,7 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.context.ClassContext;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -34,7 +34,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         this.ctxt = getContext();
     }
 
-    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
+    public PointerValue instanceFieldOf(PointerValue instance, TypeDescriptor owner, String name, TypeDescriptor type) {
         if (loadClass(owner)) {
             return super.instanceFieldOf(instance, owner, name, type);
         }
@@ -42,7 +42,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+    public PointerValue staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         if (loadClass(owner)) {
             return super.staticField(owner, name, type);
         }
@@ -50,7 +50,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         if (loadClass(owner)) {
             return super.exactMethodOf(instance, owner, name, descriptor);
         }
@@ -58,7 +58,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         if (loadClass(owner)) {
             return super.virtualMethodOf(instance, owner, name, descriptor);
         }
@@ -66,7 +66,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         if (loadClass(owner)) {
             return super.interfaceMethodOf(instance, owner, name, descriptor);
         }
@@ -74,7 +74,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         if (loadClass(owner)) {
             return super.staticMethod(owner, name, descriptor);
         }
@@ -82,7 +82,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
+    public PointerValue constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
         if (loadClass(owner)) {
             return super.constructorOf(instance, owner, descriptor);
         }

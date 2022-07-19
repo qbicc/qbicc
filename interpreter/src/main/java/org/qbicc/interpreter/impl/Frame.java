@@ -82,6 +82,9 @@ import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.PointerHandle;
+import org.qbicc.graph.PointerValue;
+import org.qbicc.graph.PointerValueVisitor;
+import org.qbicc.graph.PointerValueVisitorLong;
 import org.qbicc.graph.PopCount;
 import org.qbicc.graph.Reachable;
 import org.qbicc.graph.ReadModifyWrite;
@@ -107,9 +110,6 @@ import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Unreachable;
 import org.qbicc.graph.UnsafeHandle;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.ValueHandleVisitor;
-import org.qbicc.graph.ValueHandleVisitorLong;
 import org.qbicc.graph.Return;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
@@ -336,13 +336,13 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl param, AddressOf node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        Memory memory = getMemory(valueHandle);
+        PointerValue pointerValue = node.getPointerValue();
+        Memory memory = getMemory(pointerValue);
         if (memory == null) {
             return null;
         }
         MemoryPointer memoryPointer = new MemoryPointer(node.getType(PointerType.class), memory);
-        return memoryPointer.offsetInBytes(getOffset(valueHandle), true);
+        return memoryPointer.offsetInBytes(getOffset(pointerValue), true);
     }
 
     @Override
@@ -1436,7 +1436,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     // Memory-affecting Values
     ///////////////////////////
 
-    private Object call(VmThreadImpl thread, ValueHandle handle, List<Object> arguments) {
+    private Object call(VmThreadImpl thread, PointerValue handle, List<Object> arguments) {
         if (depth == 4096) {
             // todo: configure
             VmThrowableClassImpl soeClass = (VmThrowableClassImpl) thread.vm.getBootstrapClassLoader().loadClass("java/lang/StackOverflowError");
@@ -1456,24 +1456,24 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl thread, Call node) {
-        return call(thread, node.getValueHandle(), require(node.getArguments()));
+        return call(thread, node.getPointerValue(), require(node.getArguments()));
     }
 
     @Override
     public Object visit(VmThreadImpl thread, CallNoSideEffects node) {
-        return call(thread, node.getValueHandle(), require(node.getArguments()));
+        return call(thread, node.getPointerValue(), require(node.getArguments()));
     }
 
     @Override
     public BasicBlock visit(VmThreadImpl thread, CallNoReturn node) {
-        call(thread, node.getValueHandle(), require(node.getArguments()));
+        call(thread, node.getPointerValue(), require(node.getArguments()));
         throw Assert.unreachableCode();
     }
 
     @Override
     public BasicBlock visit(VmThreadImpl thread, Invoke node) {
         try {
-            values.put(node.getReturnValue(), call(thread, node.getValueHandle(), require(node.getArguments())));
+            values.put(node.getReturnValue(), call(thread, node.getPointerValue(), require(node.getArguments())));
             return node.getResumeTarget();
         } catch (Thrown t) {
             this.exception = t.getThrowable();
@@ -1489,7 +1489,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public BasicBlock visit(VmThreadImpl thread, InvokeNoReturn node) {
         try {
-            call(thread, node.getValueHandle(), require(node.getArguments()));
+            call(thread, node.getPointerValue(), require(node.getArguments()));
             throw Assert.unreachableCode();
         } catch (Thrown t) {
             this.exception = t.getThrowable();
@@ -1499,14 +1499,14 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public BasicBlock visit(VmThreadImpl thread, TailCall node) {
-        output = call(thread, node.getValueHandle(), require(node.getArguments()));
+        output = call(thread, node.getPointerValue(), require(node.getArguments()));
         return null;
     }
 
     @Override
     public BasicBlock visit(VmThreadImpl thread, TailInvoke node) {
         try {
-            output = call(thread, node.getValueHandle(), require(node.getArguments()));
+            output = call(thread, node.getPointerValue(), require(node.getArguments()));
             return null; // return
         } catch (Thrown t) {
             this.exception = t.getThrowable();
@@ -1537,13 +1537,13 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl thread, CmpAndSwap node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof StaticField sf) {
+        PointerValue pointerValue = node.getPointerValue();
+        if (pointerValue instanceof StaticField sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
-        Memory memory = getMemory(valueHandle);
-        long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getPointeeType();
+        Memory memory = getMemory(pointerValue);
+        long offset = getOffset(pointerValue);
+        ValueType type = node.getPointerValue().getPointeeType();
         Value expect = node.getExpectedValue();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
@@ -1613,13 +1613,13 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl thread, ReadModifyWrite node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof StaticField sf) {
+        PointerValue pointerValue = node.getPointerValue();
+        if (pointerValue instanceof StaticField sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
-        Memory memory = getMemory(valueHandle);
-        long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getPointeeType();
+        Memory memory = getMemory(pointerValue);
+        long offset = getOffset(pointerValue);
+        ValueType type = node.getPointerValue().getPointeeType();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
         WriteAccessMode writeAccessMode = node.getWriteAccessMode();
@@ -1793,19 +1793,19 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl thread, Load node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof CurrentThread) {
+        PointerValue pointerValue = node.getPointerValue();
+        if (pointerValue instanceof CurrentThread) {
             return thread;
         }
-        if (valueHandle instanceof StaticField sf) {
+        if (pointerValue instanceof StaticField sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
-        Memory memory = getMemory(valueHandle);
+        Memory memory = getMemory(pointerValue);
         if (memory == null) {
             throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
         }
-        long offset = getOffset(valueHandle);
-        ValueType type = valueHandle.getPointeeType();
+        long offset = getOffset(pointerValue);
+        ValueType type = pointerValue.getPointeeType();
         ReadAccessMode mode = node.getAccessMode();
         if (isInt8(type)) {
             return Byte.valueOf((byte) memory.load8(offset, mode));
@@ -1985,13 +1985,13 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Void visit(VmThreadImpl thread, Store node) {
-        ValueHandle valueHandle = node.getValueHandle();
+        PointerValue pointerValue = node.getPointerValue();
         Value value = node.getValue();
         WriteAccessMode mode = node.getAccessMode();
-        if (valueHandle instanceof StaticField sf) {
+        if (pointerValue instanceof StaticField sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
-        store(thread, valueHandle, value, mode);
+        store(thread, pointerValue, value, mode);
         return null;
     }
 
@@ -1999,14 +1999,14 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
      * Store a value into the interpreter memory.
      *
      * @param thread the thread (must not be {@code null})
-     * @param valueHandle the store target (must not be {@code null})
+     * @param pointerValue the store target (must not be {@code null})
      * @param value the value to store
      * @param mode the atomicity mode (must not be {@code null})
      */
-    void store(VmThreadImpl thread, final ValueHandle valueHandle, final Value value, final WriteAccessMode mode) {
-        Memory memory = getMemory(valueHandle);
-        long offset = getOffset(valueHandle);
-        ValueType type = valueHandle.getPointeeType();
+    void store(VmThreadImpl thread, final PointerValue pointerValue, final Value value, final WriteAccessMode mode) {
+        Memory memory = getMemory(pointerValue);
+        long offset = getOffset(pointerValue);
+        ValueType type = pointerValue.getPointeeType();
         store(thread, memory, offset, type, value, mode);
     }
 
@@ -2129,9 +2129,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     // Value handles
     /////////////////
 
-    static final ValueHandleVisitor<Frame, VmObjectImpl> GET_RECEIVER = new ValueHandleVisitor<Frame, VmObjectImpl>() {
+    static final PointerValueVisitor<Frame, VmObjectImpl> GET_RECEIVER = new PointerValueVisitor<Frame, VmObjectImpl>() {
         @Override
-        public VmObjectImpl visitUnknown(Frame frame, ValueHandle node) {
+        public VmObjectImpl visitUnknown(Frame frame, PointerValue node) {
             throw invalidHandleTypeForOp();
         }
 
@@ -2162,7 +2162,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public VmObjectImpl visit(Frame frame, PointerHandle node) {
-            if (node.getPointerValue().getType() instanceof PointerType pt) {
+            if (node.getBaseValue().getType() instanceof PointerType pt) {
                 if (pt.getPointeeType() instanceof StaticMethodType || pt.getPointeeType() instanceof FunctionType) {
                     // no receiver
                     return null;
@@ -2174,9 +2174,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
     };
 
-    static final ValueHandleVisitor<Frame, ExecutableElement> GET_EXECUTABLE_ELEMENT = new ValueHandleVisitor<Frame, ExecutableElement>() {
+    static final PointerValueVisitor<Frame, ExecutableElement> GET_EXECUTABLE_ELEMENT = new PointerValueVisitor<Frame, ExecutableElement>() {
         @Override
-        public ExecutableElement visitUnknown(Frame frame, ValueHandle node) {
+        public ExecutableElement visitUnknown(Frame frame, PointerValue node) {
             throw invalidHandleTypeForOp();
         }
 
@@ -2242,8 +2242,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public ExecutableElement visit(Frame param, PointerHandle node) {
-            if (((PointerType)node.getPointerValue().getType()).getPointeeType() instanceof StaticMethodType) {
-                StaticMethodPointer pointer = (StaticMethodPointer) param.require(node.getPointerValue());
+            if (((PointerType)node.getBaseValue().getType()).getPointeeType() instanceof StaticMethodType) {
+                StaticMethodPointer pointer = (StaticMethodPointer) param.require(node.getBaseValue());
                 if (pointer == null) {
                     // or perhaps null pointer...
                     throw unsatisfiedLink();
@@ -2306,15 +2306,15 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
     };
 
-    static final ValueHandleVisitor<Frame, Memory> GET_MEMORY = new ValueHandleVisitor<Frame, Memory>() {
+    static final PointerValueVisitor<Frame, Memory> GET_MEMORY = new PointerValueVisitor<Frame, Memory>() {
         @Override
-        public Memory visitUnknown(Frame frame, ValueHandle node) {
+        public Memory visitUnknown(Frame frame, PointerValue node) {
             throw invalidHandleTypeForOp();
         }
 
         @Override
         public Memory visit(Frame frame, ElementOf node) {
-            return node.getValueHandle().accept(this, frame);
+            return node.getPointerValue().accept(this, frame);
         }
 
         @Override
@@ -2329,7 +2329,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
                 throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run-time field "+variableElement));
             }
-            return node.getValueHandle().accept(this, frame);
+            return node.getPointerValue().accept(this, frame);
         }
 
         @Override
@@ -2339,7 +2339,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public Memory visit(Frame frame, MemberOf node) {
-            return node.getValueHandle().accept(this, frame);
+            return node.getPointerValue().accept(this, frame);
         }
 
         @Override
@@ -2371,12 +2371,12 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             } else if (rawVal == null) {
                 return null;
             }
-            return node.getValueHandle().accept(this, frame);
+            return node.getPointerValue().accept(this, frame);
         }
 
         @Override
         public Memory visit(Frame frame, PointerHandle node) {
-            Pointer pointer = frame.unboxPointer(node.getPointerValue());
+            Pointer pointer = frame.unboxPointer(node.getBaseValue());
             if (pointer == null) {
                 // it's possible that it's a null pointer being added to another pointer, as the JDK sometimes does
                 Pointer pv = frame.unboxPointer(node.getOffsetValue());
@@ -2391,9 +2391,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
     };
 
-    static final ValueHandleVisitor<Frame, VmObjectImpl> GET_OBJECT = new ValueHandleVisitor<Frame, VmObjectImpl>() {
+    static final PointerValueVisitor<Frame, VmObjectImpl> GET_OBJECT = new PointerValueVisitor<Frame, VmObjectImpl>() {
         @Override
-        public VmObjectImpl visitUnknown(Frame frame, ValueHandle node) {
+        public VmObjectImpl visitUnknown(Frame frame, PointerValue node) {
             throw invalidHandleTypeForOp();
         }
 
@@ -2403,17 +2403,17 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public VmObjectImpl visit(Frame frame, ElementOf node) {
-            return node.getValueHandle().accept(this, frame);
+            return node.getPointerValue().accept(this, frame);
         }
 
         @Override
         public VmObjectImpl visit(Frame frame, InstanceFieldOf node) {
-            return node.getValueHandle().accept(this, frame);
+            return node.getPointerValue().accept(this, frame);
         }
 
         @Override
         public VmObjectImpl visit(Frame frame, MemberOf node) {
-            return node.getValueHandle().accept(this, frame);
+            return node.getPointerValue().accept(this, frame);
         }
 
         @Override
@@ -2424,7 +2424,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public VmObjectImpl visit(Frame frame, UnsafeHandle node) {
-            return node.getValueHandle().accept(this, frame);
+            return node.getPointerValue().accept(this, frame);
         }
     };
 
@@ -2432,16 +2432,16 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         return new IllegalArgumentException("Invalid handle type for operation");
     }
 
-    static final ValueHandleVisitorLong<Frame> GET_OFFSET = new ValueHandleVisitorLong<Frame>() {
+    static final PointerValueVisitorLong<Frame> GET_OFFSET = new PointerValueVisitorLong<Frame>() {
         @Override
-        public long visitUnknown(Frame thread, ValueHandle node) {
+        public long visitUnknown(Frame thread, PointerValue node) {
             throw unsupportedType();
         }
 
         @Override
         public long visit(Frame frame, ElementOf node) {
             int index = frame.unboxInt(node.getIndex());
-            ValueHandle delegate = node.getValueHandle();
+            PointerValue delegate = node.getPointerValue();
             ValueType delegateValueType = delegate.getPointeeType();
             if (delegate instanceof ReferenceHandle) {
                 // array object access?
@@ -2455,13 +2455,13 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                     Layout interpLayout = Layout.get(ctxt);
                     int fieldOffset = interpLayout.getInstanceLayoutInfo(field.getEnclosingType()).getMember(field).getOffset();
                     ArrayType contentType = (ArrayType)field.getType();
-                    return node.getValueHandle().accept(this, frame) + fieldOffset + index * contentType.getElementSize();
+                    return node.getPointerValue().accept(this, frame) + fieldOffset + index * contentType.getElementSize();
                 } else {
                     throw unsupportedType();
                 }
             } else if (delegateValueType instanceof ArrayType) {
                 // primitive array access
-                return node.getValueHandle().accept(this, frame) + index * ((ArrayType) delegateValueType).getElementSize();
+                return node.getPointerValue().accept(this, frame) + index * ((ArrayType) delegateValueType).getElementSize();
             } else {
                 throw unsupportedType();
             }
@@ -2479,7 +2479,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             InstanceFieldElement field = node.getVariableElement();
             LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(field.getEnclosingType());
             try {
-                return node.getValueHandle().accept(this, frame) + layoutInfo.getMember(field).getOffset();
+                return node.getPointerValue().accept(this, frame) + layoutInfo.getMember(field).getOffset();
             } catch (NullPointerException e) {
                 throw e;
             }
@@ -2492,12 +2492,12 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public long visit(Frame frame, MemberOf node) {
-            return node.getValueHandle().accept(this, frame) + node.getMember().getOffset();
+            return node.getPointerValue().accept(this, frame) + node.getMember().getOffset();
         }
 
         @Override
         public long visit(Frame frame, PointerHandle node) {
-            Pointer pointer = frame.unboxPointer(node.getPointerValue());
+            Pointer pointer = frame.unboxPointer(node.getBaseValue());
             if (pointer == null) {
                 // it's possible that it's a null pointer being added to another pointer, as the JDK sometimes does
                 pointer = frame.unboxPointer(node.getOffsetValue());
@@ -2545,16 +2545,16 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
     };
 
-    private long getOffset(final ValueHandle valueHandle) {
-        return valueHandle.accept(GET_OFFSET, this);
+    private long getOffset(final PointerValue pointerValue) {
+        return pointerValue.accept(GET_OFFSET, this);
     }
 
-    private Memory getMemory(final ValueHandle valueHandle) {
-        return valueHandle.accept(GET_MEMORY, this);
+    private Memory getMemory(final PointerValue pointerValue) {
+        return pointerValue.accept(GET_MEMORY, this);
     }
 
-    private VmObjectImpl getObject(final ValueHandle valueHandle) {
-        return valueHandle.accept(GET_OBJECT, this);
+    private VmObjectImpl getObject(final PointerValue pointerValue) {
+        return pointerValue.accept(GET_OBJECT, this);
     }
 
     /////////////

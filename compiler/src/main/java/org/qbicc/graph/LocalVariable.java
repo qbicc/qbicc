@@ -42,11 +42,11 @@ public final class LocalVariable extends Variable {
     }
 
     @Override
-    public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
+    public <T, R> R accept(PointerValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
 
-    public <T> long accept(final ValueHandleVisitorLong<T> visitor, final T param) {
+    public <T> long accept(final PointerValueVisitorLong<T> visitor, final T param) {
         return visitor.visit(param, this);
     }
 

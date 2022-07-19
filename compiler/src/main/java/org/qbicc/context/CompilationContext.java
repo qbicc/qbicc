@@ -12,7 +12,7 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClassLoader;
@@ -173,7 +173,7 @@ public interface CompilationContext extends DiagnosticContext {
      * @return the copier (not {@code null})
      * @throws IllegalStateException if the current phase does not have a copier
      */
-    BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> getCopier();
+    BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue>> getCopier();
 
     /**
      * Get the section with the given name, if it exists.

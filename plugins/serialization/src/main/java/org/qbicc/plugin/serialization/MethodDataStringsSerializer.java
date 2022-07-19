@@ -7,7 +7,7 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -59,37 +59,37 @@ public final class MethodDataStringsSerializer extends DelegatingBasicBlockBuild
         heap.serializeVmObject(vm.intern(methodDesc), true);
     }
 
-    public Value call(ValueHandle target, List<Value> arguments) {
+    public Value call(PointerValue target, List<Value> arguments) {
         createMethodDataStrings();
         return super.call(target, arguments);
     }
 
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+    public Value callNoSideEffects(PointerValue target, List<Value> arguments) {
         createMethodDataStrings();
         return super.callNoSideEffects(target, arguments);
     }
 
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+    public BasicBlock callNoReturn(PointerValue target, List<Value> arguments) {
         createMethodDataStrings();
         return super.callNoReturn(target, arguments);
     }
 
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+    public Value invoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         createMethodDataStrings();
         return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock invokeNoReturn(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         createMethodDataStrings();
         return super.invokeNoReturn(target, arguments, catchLabel, targetArguments);
     }
 
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+    public BasicBlock tailCall(PointerValue target, List<Value> arguments) {
         createMethodDataStrings();
         return super.tailCall(target, arguments);
     }
 
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock tailInvoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         createMethodDataStrings();
         return super.tailInvoke(target, arguments, catchLabel, targetArguments);
     }

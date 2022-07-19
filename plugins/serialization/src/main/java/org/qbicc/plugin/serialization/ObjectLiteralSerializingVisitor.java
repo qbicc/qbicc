@@ -5,7 +5,7 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
@@ -16,16 +16,16 @@ import org.qbicc.interpreter.VmString;
  * and replaces the object literal with a reference to the data declaration
  * in the initial heap.
  */
-public class ObjectLiteralSerializingVisitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, ValueHandle> {
+public class ObjectLiteralSerializingVisitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, PointerValue> {
     private final CompilationContext ctxt;
-    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate;
+    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate;
 
-    public ObjectLiteralSerializingVisitor(final CompilationContext ctxt, final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate) {
+    public ObjectLiteralSerializingVisitor(final CompilationContext ctxt, final NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate) {
         this.ctxt = ctxt;
         this.delegate = delegate;
     }
 
-    public NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> getDelegateNodeVisitor() {
+    public NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> getDelegateNodeVisitor() {
         return delegate;
     }
 

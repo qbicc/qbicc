@@ -128,111 +128,111 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().checkcast(value, desc);
     }
 
-    public Value selectMember(ValueHandle handle) {
+    public Value selectMember(PointerValue handle) {
         return getDelegate().selectMember(handle);
     }
 
-    public ValueHandle currentThread() {
+    public PointerValue currentThread() {
         return getDelegate().currentThread();
     }
 
-    public ValueHandle memberOf(final ValueHandle structHandle, final CompoundType.Member member) {
+    public PointerValue memberOf(final PointerValue structHandle, final CompoundType.Member member) {
         return getDelegate().memberOf(structHandle, member);
     }
 
-    public ValueHandle elementOf(final ValueHandle array, final Value index) {
+    public PointerValue elementOf(final PointerValue array, final Value index) {
         return getDelegate().elementOf(array, index);
     }
 
-    public ValueHandle unsafeHandle(final ValueHandle base, final Value offset, final ValueType outputType) {
+    public PointerValue unsafeHandle(final PointerValue base, final Value offset, final ValueType outputType) {
         return getDelegate().unsafeHandle(base, offset, outputType);
     }
 
-    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
+    public PointerValue pointerHandle(Value pointer, Value offsetValue) {
         return getDelegate().pointerHandle(pointer, offsetValue);
     }
 
-    public ValueHandle referenceHandle(Value reference) {
+    public PointerValue referenceHandle(Value reference) {
         return getDelegate().referenceHandle(reference);
     }
 
-    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
+    public PointerValue instanceFieldOf(PointerValue instance, FieldElement field) {
         return getDelegate().instanceFieldOf(instance, field);
     }
 
-    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
+    public PointerValue instanceFieldOf(PointerValue instance, TypeDescriptor owner, String name, TypeDescriptor type) {
         return getDelegate().instanceFieldOf(instance, owner, name, type);
     }
 
-    public ValueHandle staticField(FieldElement field) {
+    public PointerValue staticField(FieldElement field) {
         return getDelegate().staticField(field);
     }
 
-    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+    public PointerValue staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         return getDelegate().staticField(owner, name, type);
     }
 
-    public ValueHandle globalVariable(GlobalVariableElement variable) {
+    public PointerValue globalVariable(GlobalVariableElement variable) {
         return getDelegate().globalVariable(variable);
     }
 
-    public ValueHandle localVariable(LocalVariableElement variable) {
+    public PointerValue localVariable(LocalVariableElement variable) {
         return getDelegate().localVariable(variable);
     }
 
-    public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
+    public PointerValue exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         return getDelegate().exactMethodOf(instance, method, callSiteDescriptor, callSiteType);
     }
 
-    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         return getDelegate().exactMethodOf(instance, owner, name, descriptor);
     }
 
-    public ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
+    public PointerValue virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         return getDelegate().virtualMethodOf(instance, method, callSiteDescriptor, callSiteType);
     }
 
-    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         return getDelegate().virtualMethodOf(instance, owner, name, descriptor);
     }
 
-    public ValueHandle interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
+    public PointerValue interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         return getDelegate().interfaceMethodOf(instance, method, callSiteDescriptor, callSiteType);
     }
 
-    public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         return getDelegate().interfaceMethodOf(instance, owner, name, descriptor);
     }
 
-    public ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType) {
+    public PointerValue staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType) {
         return getDelegate().staticMethod(method, callSiteDescriptor, callSiteType);
     }
 
-    public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         return getDelegate().staticMethod(owner, name, descriptor);
     }
 
-    public ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
+    public PointerValue constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         return getDelegate().constructorOf(instance, constructor, callSiteDescriptor, callSiteType);
     }
 
-    public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
+    public PointerValue constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
         return getDelegate().constructorOf(instance, owner, descriptor);
     }
 
-    public ValueHandle functionOf(FunctionElement function) {
+    public PointerValue functionOf(FunctionElement function) {
         return getDelegate().functionOf(function);
     }
 
-    public ValueHandle asm(final String instruction, final String constraints, final Set<AsmHandle.Flag> flags, FunctionType type) {
+    public PointerValue asm(final String instruction, final String constraints, final Set<AsmHandle.Flag> flags, FunctionType type) {
         return getDelegate().asm(instruction, constraints, flags, type);
     }
 
-    public Value addressOf(final ValueHandle handle) {
+    public Value addressOf(final PointerValue handle) {
         return getDelegate().addressOf(handle);
     }
 
-    public Value referenceTo(ValueHandle handle) throws IllegalArgumentException {
+    public Value referenceTo(PointerValue handle) throws IllegalArgumentException {
         return getDelegate().referenceTo(handle);
     }
 
@@ -288,7 +288,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().select(condition, trueValue, falseValue);
     }
 
-    public ValueHandle lengthOf(final ValueHandle arrayHandle) {
+    public PointerValue lengthOf(final PointerValue arrayHandle) {
         return getDelegate().lengthOf(arrayHandle);
     }
 
@@ -320,19 +320,19 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().multiNewArray(desc, dimensions);
     }
 
-    public Value load(final ValueHandle handle, final ReadAccessMode accessMode) {
+    public Value load(final PointerValue handle, final ReadAccessMode accessMode) {
         return getDelegate().load(handle, accessMode);
     }
 
-    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    public Value readModifyWrite(PointerValue target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         return getDelegate().readModifyWrite(target, op, update, readMode, writeMode);
     }
 
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(PointerValue target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         return getDelegate().cmpAndSwap(target, expect, update, readMode, writeMode, strength);
     }
 
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
+    public Node store(PointerValue handle, Value value, WriteAccessMode accessMode) {
         return getDelegate().store(handle, value, accessMode);
     }
 
@@ -352,11 +352,11 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().monitorExit(obj);
     }
 
-    public Value call(ValueHandle target, List<Value> arguments) {
+    public Value call(PointerValue target, List<Value> arguments) {
         return getDelegate().call(target, arguments);
     }
 
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+    public Value callNoSideEffects(PointerValue target, List<Value> arguments) {
         return getDelegate().callNoSideEffects(target, arguments);
     }
 
@@ -376,23 +376,23 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().safePoint();
     }
 
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+    public BasicBlock callNoReturn(PointerValue target, List<Value> arguments) {
         return getDelegate().callNoReturn(target, arguments);
     }
 
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock invokeNoReturn(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         return getDelegate().invokeNoReturn(target, arguments, catchLabel, targetArguments);
     }
 
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+    public BasicBlock tailCall(PointerValue target, List<Value> arguments) {
         return getDelegate().tailCall(target, arguments);
     }
 
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock tailInvoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         return getDelegate().tailInvoke(target, arguments, catchLabel, targetArguments);
     }
 
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+    public Value invoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         return getDelegate().invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
     }
 

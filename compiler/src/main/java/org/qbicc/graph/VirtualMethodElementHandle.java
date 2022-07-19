@@ -36,12 +36,12 @@ public final class VirtualMethodElementHandle extends InstanceMethodElementHandl
     }
 
     @Override
-    public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
+    public <T, R> R accept(PointerValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
 
     @Override
-    public <T> long accept(ValueHandleVisitorLong<T> visitor, T param) {
+    public <T> long accept(PointerValueVisitorLong<T> visitor, T param) {
         return visitor.visit(param, this);
     }
 }

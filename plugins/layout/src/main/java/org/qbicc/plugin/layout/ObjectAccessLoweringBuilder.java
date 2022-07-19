@@ -4,8 +4,8 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.ValueHandleVisitor;
+import org.qbicc.graph.PointerValue;
+import org.qbicc.graph.PointerValueVisitor;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.CompoundType;
@@ -22,7 +22,7 @@ import org.qbicc.type.definition.element.FieldElement;
 /**
  *
  */
-public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<Void, ValueHandle> {
+public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder implements PointerValueVisitor<Void, PointerValue> {
     private final CompilationContext ctxt;
 
     public ObjectAccessLoweringBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
@@ -31,7 +31,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     }
 
     @Override
-    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
+    public PointerValue pointerHandle(Value pointer, Value offsetValue) {
         BasicBlockBuilder fb = getFirstBuilder();
         PointerType pointerType = (PointerType) pointer.getType();
         if (pointerType.getPointeeType() instanceof PhysicalObjectType pot) {
@@ -72,7 +72,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
         return super.stackAllocate(type, count, align);
     }
 
-    public ValueHandle elementOf(ValueHandle array, Value index) {
+    public PointerValue elementOf(PointerValue array, Value index) {
         if (array.getPointeeType() instanceof CompoundType ct && ct.getMemberCount() > 0) {
             // ElementOf a CompoundType -> ElementOf the last Member
             CompoundType.Member lastMember = ct.getMember(ct.getMemberCount() - 1);
@@ -83,7 +83,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     }
 
     @Override
-    public ValueHandle referenceHandle(Value reference) {
+    public PointerValue referenceHandle(Value reference) {
         BasicBlockBuilder fb = getFirstBuilder();
         // convert reference to pointer
         Layout layout = Layout.get(ctxt);
@@ -101,7 +101,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     }
 
     @Override
-    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
+    public PointerValue instanceFieldOf(PointerValue instance, FieldElement field) {
         BasicBlockBuilder fb = getFirstBuilder();
         Layout layout = Layout.get(ctxt);
         LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(field.getEnclosingType());
@@ -109,10 +109,10 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     }
 
     @Override
-    public ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType) {
+    public PointerValue unsafeHandle(PointerValue base, Value offset, ValueType outputType) {
         BasicBlockBuilder fb = getFirstBuilder();
         UnsignedIntegerType u8 = ctxt.getTypeSystem().getUnsignedInteger8Type();
-        ValueHandle valueHandle = fb.pointerHandle(fb.bitCast(fb.addressOf(base), u8.getPointer()), offset);
-        return fb.pointerHandle(fb.bitCast(fb.addressOf(valueHandle), outputType.getPointer()));
+        PointerValue pointerValue = fb.pointerHandle(fb.bitCast(fb.addressOf(base), u8.getPointer()), offset);
+        return fb.pointerHandle(fb.bitCast(fb.addressOf(pointerValue), outputType.getPointer()));
     }
 }

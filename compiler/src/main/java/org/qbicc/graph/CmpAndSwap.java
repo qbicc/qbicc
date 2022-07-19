@@ -22,7 +22,7 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
     private static final AttachmentKey<Map<ValueType, CompoundType>> RESULT_TYPE_MAP_KEY = new AttachmentKey<>();
 
     private final Node dependency;
-    private final ValueHandle target;
+    private final PointerValue target;
     private final Value expectedValue;
     private final Value updateValue;
     private final CompoundType resultType;
@@ -30,7 +30,7 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
     private final WriteAccessMode writeAccessMode;
     private final Strength strength;
 
-    CmpAndSwap(final Node callSite, final ExecutableElement element, final int line, final int bci, final CompoundType resultType, final Node dependency, final ValueHandle target, final Value expectedValue, final Value updateValue, final ReadAccessMode readAccessMode, final WriteAccessMode writeAccessMode, Strength strength) {
+    CmpAndSwap(final Node callSite, final ExecutableElement element, final int line, final int bci, final CompoundType resultType, final Node dependency, final PointerValue target, final Value expectedValue, final Value updateValue, final ReadAccessMode readAccessMode, final WriteAccessMode writeAccessMode, Strength strength) {
         super(callSite, element, line, bci);
         this.resultType = Assert.checkNotNullParam("resultType", resultType);
         this.dependency = Assert.checkNotNullParam("dependency", dependency);
@@ -74,11 +74,11 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
         return dependency;
     }
 
-    public ValueHandle getValueHandle() {
+    public PointerValue getPointerValue() {
         return target;
     }
 
-    public boolean hasValueHandleDependency() {
+    public boolean hasPointerValueDependency() {
         return true;
     }
 

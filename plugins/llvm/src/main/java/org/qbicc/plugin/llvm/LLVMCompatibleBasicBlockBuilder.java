@@ -16,7 +16,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
@@ -228,7 +228,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
+    public Value load(PointerValue handle, ReadAccessMode accessMode) {
         Value loaded;
         if (accessMode.includes(GlobalAcquire)) {
             // we have to emit a global fence
@@ -288,7 +288,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
+    public Node store(PointerValue handle, Value value, WriteAccessMode accessMode) {
         if (handle.getPointeeType() instanceof BooleanType) {
             ctxt.error("Invalid boolean-typed handle %s", handle);
         }
@@ -338,7 +338,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(PointerValue target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         BasicBlockBuilder fb = getFirstBuilder();
         CompoundType resultType = CmpAndSwap.getResultType(ctxt, target.getPointeeType());
         ReadAccessMode lowerReadMode = readMode;
@@ -390,7 +390,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    public Value readModifyWrite(PointerValue target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         BasicBlockBuilder fb = getFirstBuilder();
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
@@ -432,7 +432,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+    public BasicBlock tailCall(PointerValue target, List<Value> arguments) {
         if (isTailCallSafe()) {
             return super.tailCall(target, arguments);
         }
@@ -441,7 +441,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock invokeNoReturn(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         // declare personality function
         MethodElement personalityMethod = UnwindExceptionStrategy.get(ctxt).getPersonalityMethod();
         Function function = ctxt.getExactFunction(personalityMethod);
@@ -450,7 +450,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+    public Value invoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         // declare personality function
         MethodElement personalityMethod = UnwindExceptionStrategy.get(ctxt).getPersonalityMethod();
         Function function = ctxt.getExactFunction(personalityMethod);
@@ -459,7 +459,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock tailInvoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         // declare personality function
         MethodElement personalityMethod = UnwindExceptionStrategy.get(ctxt).getPersonalityMethod();
         Function function = ctxt.getExactFunction(personalityMethod);
@@ -490,7 +490,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         return false;
     }
 
-    private static boolean isVoidFunction(ValueHandle target) {
+    private static boolean isVoidFunction(PointerValue target) {
         FunctionType type = (FunctionType) target.getPointeeType();
         return type.getReturnType() instanceof VoidType;
     }

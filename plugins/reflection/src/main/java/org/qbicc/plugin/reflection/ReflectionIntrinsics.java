@@ -18,7 +18,7 @@ import org.qbicc.graph.InstanceMethodElementHandle;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.schedule.Schedule;
@@ -97,7 +97,7 @@ public final class ReflectionIntrinsics {
                     // get the target statically
                     realHandle = lf.literalOf((VmObject) vm.invokeVirtual(asType, instanceLit.getValue(), List.of(realType)));
                     // and transform to `invokeExact`
-                    ValueHandle invokeExactHandle = fb.exactMethodOf(realHandle, methodHandleDesc, "invokeExact", callSiteDescriptor);
+                    PointerValue invokeExactHandle = fb.exactMethodOf(realHandle, methodHandleDesc, "invokeExact", callSiteDescriptor);
                     return fb.call(invokeExactHandle, arguments);
                 } catch (Thrown t) {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invoke intrinsic: %s", t);
@@ -127,10 +127,10 @@ public final class ReflectionIntrinsics {
                 int asTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("asType"));
                 MethodElement asType = mhDef.getMethod(asTypeIdx);
                 // get the target dynamically
-                ValueHandle asTypeHandle = fb.virtualMethodOf(instance, asType);
+                PointerValue asTypeHandle = fb.virtualMethodOf(instance, asType);
                 realHandle = fb.call(asTypeHandle, List.of(lf.literalOf(realType)));
                 // and transform to `invokeExact`
-                ValueHandle invokeExactHandle = fb.exactMethodOf(realHandle, methodHandleDesc, "invokeExact", callSiteDescriptor);
+                PointerValue invokeExactHandle = fb.exactMethodOf(realHandle, methodHandleDesc, "invokeExact", callSiteDescriptor);
                 throw new BlockEarlyTermination(fb.tailCall(invokeExactHandle, arguments));
             } catch (Thrown t) {
                 ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invoke method: %s", t);
@@ -159,7 +159,7 @@ public final class ReflectionIntrinsics {
                     // check the type now
                     vm.invokeExact(checkType, instanceLit.getValue(), List.of(realType));
                     // type is OK; now we can forward to invokeBasic(...) on this same instance
-                    ValueHandle invokeBasicHandle = fb.exactMethodOf(instance, methodHandleDesc, "invokeBasic", callSiteDescriptor);
+                    PointerValue invokeBasicHandle = fb.exactMethodOf(instance, methodHandleDesc, "invokeBasic", callSiteDescriptor);
                     return fb.call(invokeBasicHandle, arguments);
                 } catch (Thrown t) {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invokeExact intrinsic: %s", t);
@@ -186,11 +186,11 @@ public final class ReflectionIntrinsics {
                 LoadedTypeDefinition mhDef = target.getExecutable().getEnclosingType().load();
                 int checkTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("checkType"));
                 MethodElement checkType = mhDef.getMethod(checkTypeIdx);
-                ValueHandle checkTypeHandle = fb.exactMethodOf(instance, checkType);
+                PointerValue checkTypeHandle = fb.exactMethodOf(instance, checkType);
                 // check the type dynamically at run time
                 fb.call(checkTypeHandle, List.of(lf.literalOf(realType)));
                 // and transform to `invokeBasic`
-                ValueHandle invokeBasicHandle = fb.exactMethodOf(instance, methodHandleDesc, "invokeBasic", callSiteDescriptor);
+                PointerValue invokeBasicHandle = fb.exactMethodOf(instance, methodHandleDesc, "invokeBasic", callSiteDescriptor);
                 throw new BlockEarlyTermination(fb.tailCall(invokeBasicHandle, arguments));
             } catch (Thrown t) {
                 ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invokeExact method: %s", t);

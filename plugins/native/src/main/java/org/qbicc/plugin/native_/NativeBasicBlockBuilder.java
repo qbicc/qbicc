@@ -13,7 +13,7 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.pointer.ProgramObjectPointer;
@@ -58,37 +58,37 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
+    public Value call(PointerValue target, List<Value> arguments) {
         return super.call(target, mapArguments(target, arguments));
     }
 
     @Override
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+    public Value callNoSideEffects(PointerValue target, List<Value> arguments) {
         return super.callNoSideEffects(target, mapArguments(target, arguments));
     }
 
     @Override
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+    public BasicBlock callNoReturn(PointerValue target, List<Value> arguments) {
         return super.callNoReturn(target, mapArguments(target, arguments));
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock invokeNoReturn(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         return super.invokeNoReturn(target, mapArguments(target, arguments), catchLabel, targetArguments);
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+    public BasicBlock tailCall(PointerValue target, List<Value> arguments) {
         return super.tailCall(target, mapArguments(target, arguments));
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock tailInvoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         return super.tailInvoke(target, mapArguments(target, arguments), catchLabel, targetArguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+    public Value invoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         return super.invoke(target, mapArguments(target, arguments), catchLabel, resumeLabel, targetArguments);
     }
 
@@ -100,7 +100,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
      * @param arguments the input arguments (must not be {@code null})
      * @return the mapped arguments (not {@code null})
      */
-    private List<Value> mapArguments(ValueHandle handle, List<Value> arguments) {
+    private List<Value> mapArguments(PointerValue handle, List<Value> arguments) {
         ValueType valueType = handle.getPointeeType();
         if (valueType instanceof FunctionType fnType) {
             if (fnType.isVariadic()) {
@@ -136,7 +136,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
         NativeFunctionInfo functionInfo = nativeInfo.getFunctionInfo(owner, name, descriptor);
         if (functionInfo != null) {
@@ -157,27 +157,27 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         return super.exactMethodOf(instance, deNative(owner), name, deNative(descriptor));
     }
 
     @Override
-    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         return super.virtualMethodOf(instance, deNative(owner), name, deNative(descriptor));
     }
 
     @Override
-    public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         return super.interfaceMethodOf(instance, deNative(owner), name, deNative(descriptor));
     }
 
     @Override
-    public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
+    public PointerValue constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
         return super.constructorOf(instance, deNative(owner), deNative(descriptor));
     }
 
     @Override
-    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+    public PointerValue staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
         NativeDataInfo fieldInfo = nativeInfo.getFieldInfo(owner, name);
         if (fieldInfo != null) {
@@ -187,7 +187,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
+    public PointerValue instanceFieldOf(PointerValue instance, TypeDescriptor owner, String name, TypeDescriptor type) {
         return super.instanceFieldOf(instance, deNative(owner), name, deNative(type));
     }
 

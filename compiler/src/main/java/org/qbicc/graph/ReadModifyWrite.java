@@ -9,13 +9,13 @@ import org.qbicc.type.definition.element.ExecutableElement;
 
 public final class ReadModifyWrite extends AbstractValue implements ReadModifyWriteValue, OrderedNode {
     private final Node dependency;
-    private final ValueHandle target;
+    private final PointerValue target;
     private final Value updateValue;
     private final ReadAccessMode readMode;
     private final WriteAccessMode writeMode;
     private final Op op;
 
-    ReadModifyWrite(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final ValueHandle target, Op op, final Value updateValue, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    ReadModifyWrite(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final PointerValue target, Op op, final Value updateValue, ReadAccessMode readMode, WriteAccessMode writeMode) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.target = target;
@@ -48,7 +48,7 @@ public final class ReadModifyWrite extends AbstractValue implements ReadModifyWr
         return dependency;
     }
 
-    public ValueHandle getValueHandle() {
+    public PointerValue getPointerValue() {
         return target;
     }
 
@@ -108,7 +108,7 @@ public final class ReadModifyWrite extends AbstractValue implements ReadModifyWr
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
+    public boolean hasPointerValueDependency() {
         return true;
     }
 

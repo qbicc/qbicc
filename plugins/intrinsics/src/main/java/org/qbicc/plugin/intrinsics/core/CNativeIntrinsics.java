@@ -22,7 +22,7 @@ import org.qbicc.graph.MemberSelector;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.WordCastValue;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
@@ -123,13 +123,13 @@ final class CNativeIntrinsics {
         StaticIntrinsic addrOf = (builder, target, arguments) -> {
             Value value = arguments.get(0);
             if (value instanceof MemberSelector ms) {
-                return builder.addressOf(ms.getValueHandle());
+                return builder.addressOf(ms.getPointerValue());
             }
             while (value instanceof BitCast || value instanceof Extend || value instanceof Truncate) {
                 value = ((WordCastValue)value).getInput();
             }
             if (value instanceof Load load) {
-                return builder.addressOf(load.getValueHandle());
+                return builder.addressOf(load.getPointerValue());
             } else {
                 ctxt.error(builder.getLocation(), "Cannot take address of value");
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(value.getType().getPointer());
@@ -196,7 +196,7 @@ final class CNativeIntrinsics {
             FieldElement priorityFld = jltVal.findField("priority");
             FieldElement contextClassLoaderFld = jltVal.findField("contextClassLoader");
 
-            ValueHandle threadRef = builder.referenceHandle(thread);
+            PointerValue threadRef = builder.referenceHandle(thread);
             builder.store(builder.instanceFieldOf(threadRef, nameFld), arguments.get(0), SingleUnshared);
             builder.store(builder.instanceFieldOf(threadRef, groupFld), arguments.get(1), SingleUnshared);
             Value tid = builder.call(builder.staticMethod(thrDesc, "nextThreadID", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of())), List.of());
@@ -861,7 +861,7 @@ final class CNativeIntrinsics {
 
     static Value smartConvert(BasicBlockBuilder builder, Value input, WordType toType, boolean cRules) {
         if (input instanceof MemberSelector ms) {
-            return smartConvert(builder, builder.load(ms.getValueHandle(), SinglePlain), toType, cRules);
+            return smartConvert(builder, builder.load(ms.getPointerValue(), SinglePlain), toType, cRules);
         }
         CompilationContext ctxt = builder.getCurrentElement().getEnclosingType().getContext().getCompilationContext();
         ValueType fromType = input.getType();

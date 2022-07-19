@@ -15,7 +15,7 @@ import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
@@ -55,7 +55,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
+    public Value load(PointerValue handle, ReadAccessMode accessMode) {
         if (handle instanceof StaticField sf) {
             final StaticFieldElement fieldElement = sf.getVariableElement();
             Value constantValue = Constants.get(ctxt).getConstantValue(fieldElement);
@@ -73,7 +73,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
+    public Value call(PointerValue target, List<Value> arguments) {
         if (target.isFold()) try {
             return fold(target, arguments);
         } catch (Thrown t) {
@@ -83,12 +83,12 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+    public Value callNoSideEffects(PointerValue target, List<Value> arguments) {
         return target.isFold() ? fold(target, arguments) : super.callNoSideEffects(target, arguments);
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+    public BasicBlock tailCall(PointerValue target, List<Value> arguments) {
         if (target.isFold()) try {
             return return_(fold(target, arguments));
         } catch (Thrown t) {
@@ -98,7 +98,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock tailInvoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         if (target.isFold()) try {
             return return_(fold(target, arguments));
         } catch (Thrown t) {
@@ -108,7 +108,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+    public Value invoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         if (target.isFold()) {
             ImmutableMap<Slot, Value> immutableMap = Maps.immutable.ofMap(targetArguments);
             try {
@@ -124,7 +124,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private static final Object[] NO_ARGS = new Object[0];
 
-    private Value fold(final ValueHandle target, final List<Value> arguments) throws Thrown {
+    private Value fold(final PointerValue target, final List<Value> arguments) throws Thrown {
         // we fold per call site, so caching does not really make sense
         if (target instanceof StaticMethodElementHandle sh && target.getPointeeType() instanceof StaticMethodType smt) {
             int size = arguments.size();

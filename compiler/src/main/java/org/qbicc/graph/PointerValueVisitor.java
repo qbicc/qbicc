@@ -3,8 +3,8 @@ package org.qbicc.graph;
 /**
  *
  */
-public interface ValueHandleVisitor<T, R> {
-    default R visitUnknown(T t, ValueHandle node) {
+public interface PointerValueVisitor<T, R> {
+    default R visitUnknown(T t, PointerValue node) {
         return null;
     }
 
@@ -76,97 +76,97 @@ public interface ValueHandleVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
-    interface Delegating<T, R> extends ValueHandleVisitor<T, R> {
-        ValueHandleVisitor<T, R> getDelegateValueHandleVisitor();
+    interface Delegating<T, R> extends PointerValueVisitor<T, R> {
+        PointerValueVisitor<T, R> getDelegatePointerValueVisitor();
 
         @Override
-        default R visitUnknown(T t, ValueHandle node) {
-            return node.accept(getDelegateValueHandleVisitor(), t);
+        default R visitUnknown(T t, PointerValue node) {
+            return node.accept(getDelegatePointerValueVisitor(), t);
         }
 
         @Override
         default R visit(T t, AsmHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
 
         @Override
         default R visit(T t, ConstructorElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
 
         @Override
         default R visit(T t, CurrentThread node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
 
         @Override
         default R visit(T t, ElementOf node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
 
         @Override
         default R visit(T t, ExactMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
 
         @Override
         default R visit(T t, FunctionElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
 
         @Override
         default R visit(T t, GlobalVariable node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
 
         @Override
         default R visit(T t, InstanceFieldOf node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
 
         @Override
         default R visit(T t, InterfaceMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
 
         @Override
         default R visit(T t, VirtualMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
 
         @Override
         default R visit(T t, LocalVariable node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
 
         @Override
         default R visit(T t, MemberOf node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
 
         @Override
         default R visit(T t, StaticField node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
 
         @Override
         default R visit(T t, StaticMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
 
         @Override
         default R visit(T t, UnsafeHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
 
         @Override
         default R visit(T t, PointerHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
 
         @Override
         default R visit(T t, ReferenceHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerValueVisitor().visit(t, node);
         }
     }
 }

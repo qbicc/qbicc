@@ -16,7 +16,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ArrayType;
@@ -37,7 +37,7 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public ValueHandle referenceHandle(Value reference) {
+    public PointerValue referenceHandle(Value reference) {
         if (reference.getType() instanceof PointerType) {
             return pointerHandle(reference);
         } else if (reference.getType() instanceof ArrayType) {
@@ -60,7 +60,7 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return value;
     }
 
-    private List<Value> castVoidPointers(List<Value> arguments, ValueHandle target) {
+    private List<Value> castVoidPointers(List<Value> arguments, PointerValue target) {
         return target instanceof Executable ex ? castVoidPointers(arguments, ex) : arguments;
     }
 
@@ -82,52 +82,52 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
+    public Node store(PointerValue handle, Value value, WriteAccessMode accessMode) {
         return super.store(handle, castVoidPointer(value, handle.getPointeeType()), accessMode);
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(PointerValue target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         return super.cmpAndSwap(target, castVoidPointer(expect, target.getPointeeType()), castVoidPointer(update, target.getPointeeType()), readMode, writeMode, strength);
     }
 
     @Override
-    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    public Value readModifyWrite(PointerValue target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         return super.readModifyWrite(target, op, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
+    public Value call(PointerValue target, List<Value> arguments) {
         return super.call(target, castVoidPointers(arguments, target));
     }
 
     @Override
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+    public Value callNoSideEffects(PointerValue target, List<Value> arguments) {
         return super.callNoSideEffects(target, castVoidPointers(arguments, target));
     }
 
     @Override
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+    public BasicBlock callNoReturn(PointerValue target, List<Value> arguments) {
         return super.callNoReturn(target, castVoidPointers(arguments, target));
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock invokeNoReturn(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         return super.invokeNoReturn(target, castVoidPointers(arguments, target), catchLabel, targetArguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+    public Value invoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         return super.invoke(target, castVoidPointers(arguments, target), catchLabel, resumeLabel, targetArguments);
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+    public BasicBlock tailCall(PointerValue target, List<Value> arguments) {
         return super.tailCall(target, castVoidPointers(arguments, target));
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock tailInvoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         return super.tailInvoke(target, castVoidPointers(arguments, target), catchLabel, targetArguments);
     }
 }

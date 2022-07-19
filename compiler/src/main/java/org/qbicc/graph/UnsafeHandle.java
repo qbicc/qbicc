@@ -10,12 +10,12 @@ import java.util.Objects;
 /**
  * A base + offset to be used in an Unsafe memory access.
  */
-public class UnsafeHandle extends AbstractValueHandle {
-    private final ValueHandle base;
+public class UnsafeHandle extends AbstractPointerValue {
+    private final PointerValue base;
     private final Value offset;
     private final ValueType outputType;
 
-    UnsafeHandle(Node callSite, ExecutableElement element, int line, int bci, ValueHandle base, Value offset, ValueType outputType) {
+    UnsafeHandle(Node callSite, ExecutableElement element, int line, int bci, PointerValue base, Value offset, ValueType outputType) {
         super(callSite, element, line, bci);
         this.base = base;
         this.offset = offset;
@@ -23,12 +23,12 @@ public class UnsafeHandle extends AbstractValueHandle {
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
+    public boolean hasPointerValueDependency() {
         return true;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
+    public PointerValue getPointerValue() {
         return base;
     }
 
@@ -62,7 +62,7 @@ public class UnsafeHandle extends AbstractValueHandle {
         return base.getDetectedMode();
     }
 
-    public ValueHandle getBase() {
+    public PointerValue getBase() {
         return base;
     }
 
@@ -100,11 +100,11 @@ public class UnsafeHandle extends AbstractValueHandle {
         return this == other || other != null && base.equals(other.base) && offset.equals(other.offset) && outputType.equals(other.offset);
     }
 
-    public <T, R> R accept(final ValueHandleVisitor<T, R> visitor, final T param) {
+    public <T, R> R accept(final PointerValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
 
-    public <T> long accept(final ValueHandleVisitorLong<T> visitor, final T param) {
+    public <T> long accept(final PointerValueVisitorLong<T> visitor, final T param) {
         return visitor.visit(param, this);
     }
 }

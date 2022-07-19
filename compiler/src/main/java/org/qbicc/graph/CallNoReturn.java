@@ -12,16 +12,16 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * Exceptions thrown by the target are not caught; instead, they are propagated out of the caller's frame.
  * This node terminates its block.
  *
- * @see BasicBlockBuilder#callNoReturn(ValueHandle, List)
+ * @see BasicBlockBuilder#callNoReturn(PointerValue, List)
  */
 public final class CallNoReturn extends AbstractTerminator {
     private final Node dependency;
     private final BasicBlock terminatedBlock;
-    private final ValueHandle target;
+    private final PointerValue target;
     private final List<Value> arguments;
     private final InvokableType calleeType;
 
-    CallNoReturn(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments) {
+    CallNoReturn(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, PointerValue target, List<Value> arguments) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.terminatedBlock = new BasicBlock(blockEntry, this);
@@ -89,12 +89,12 @@ public final class CallNoReturn extends AbstractTerminator {
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
+    public boolean hasPointerValueDependency() {
         return true;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
+    public PointerValue getPointerValue() {
         return target;
     }
 

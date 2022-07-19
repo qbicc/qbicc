@@ -14,7 +14,7 @@ import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 /**
  *
  */
-public abstract class Variable extends AbstractValueHandle {
+public abstract class Variable extends AbstractPointerValue {
     private final VariableElement variableElement;
     private final PointerType pointerType;
 

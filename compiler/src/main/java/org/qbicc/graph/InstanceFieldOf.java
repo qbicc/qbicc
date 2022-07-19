@@ -9,22 +9,22 @@ import org.qbicc.type.definition.element.InstanceFieldElement;
  * A field handle for an instance field.
  */
 public final class InstanceFieldOf extends Field {
-    private final ValueHandle instance;
+    private final PointerValue instance;
     private final PhysicalObjectType instanceType;
 
-    InstanceFieldOf(ExecutableElement element, int line, int bci, InstanceFieldElement fieldElement, ValueType valueType, ValueHandle instance) {
+    InstanceFieldOf(ExecutableElement element, int line, int bci, InstanceFieldElement fieldElement, ValueType valueType, PointerValue instance) {
         super(element, line, bci, fieldElement, valueType.getPointer().withQualifiersFrom(instance.getType()));
         instanceType = (PhysicalObjectType) instance.getPointeeType();
         this.instance = instance;
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
+    public boolean hasPointerValueDependency() {
         return true;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
+    public PointerValue getPointerValue() {
         return instance;
     }
 
@@ -64,12 +64,12 @@ public final class InstanceFieldOf extends Field {
     }
 
     @Override
-    public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
+    public <T, R> R accept(PointerValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
 
     @Override
-    public <T> long accept(ValueHandleVisitorLong<T> visitor, T param) {
+    public <T> long accept(PointerValueVisitorLong<T> visitor, T param) {
         return visitor.visit(param, this);
     }
 }

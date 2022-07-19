@@ -8,22 +8,22 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * Selected members may be unwrapped to be used as lvalues, or may be lazily transformed to plain loads.
  */
 public final class MemberSelector extends AbstractValue {
-    private final ValueHandle handle;
+    private final PointerValue handle;
     private final VoidType voidType;
 
-    MemberSelector(Node callSite, ExecutableElement element, int line, int bci, ValueHandle handle, VoidType voidType) {
+    MemberSelector(Node callSite, ExecutableElement element, int line, int bci, PointerValue handle, VoidType voidType) {
         super(callSite, element, line, bci);
         this.handle = handle;
         this.voidType = voidType;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
+    public PointerValue getPointerValue() {
         return handle;
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
+    public boolean hasPointerValueDependency() {
         return true;
     }
 

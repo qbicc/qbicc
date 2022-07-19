@@ -11,7 +11,7 @@ import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 /**
  * A handle representing the location where the current thread is stashed.
  */
-public final class CurrentThread extends AbstractValueHandle {
+public final class CurrentThread extends AbstractPointerValue {
     private final ReferenceType valueType;
 
     CurrentThread(ExecutableElement element, int line, int bci, ReferenceType valueType) {
@@ -80,12 +80,12 @@ public final class CurrentThread extends AbstractValueHandle {
     }
 
     @Override
-    public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
+    public <T, R> R accept(PointerValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
 
     @Override
-    public <T> long accept(ValueHandleVisitorLong<T> visitor, T param) {
+    public <T> long accept(PointerValueVisitorLong<T> visitor, T param) {
         return visitor.visit(param, this);
     }
 }

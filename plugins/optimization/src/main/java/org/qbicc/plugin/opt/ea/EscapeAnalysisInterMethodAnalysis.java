@@ -59,7 +59,7 @@ public class EscapeAnalysisInterMethodAnalysis implements Consumer<CompilationCo
             // Skipped because arguments are initialized as argument escape during intra method analysis phase
 
             for (Call callee : state.getCallees(caller)) {
-                final ExecutableElement calleeElement = ((Executable) callee.getValueHandle()).getExecutable();
+                final ExecutableElement calleeElement = ((Executable) callee.getPointerValue()).getExecutable();
                 final ConnectionGraph calleeCG = updateConnectionGraphIfNotVisited(calleeElement);
                 if (calleeCG != null) {
                     // 4.4 Update Connection Graph Immediately After a Method Invocation

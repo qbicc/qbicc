@@ -13,7 +13,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.plugin.coreclasses.BasicHeaderInitializer;
@@ -26,13 +26,13 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.MethodElement;
 
-public final class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, ValueHandle> {
+public final class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, PointerValue> {
     private final CompilationContext ctxt;
-    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate;
+    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate;
     private final EscapeAnalysisState escapeAnalysisState;
     private final MethodElement zeroMethod;
 
-    public EscapeAnalysisOptimizeVisitor(final CompilationContext ctxt, final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate) {
+    public EscapeAnalysisOptimizeVisitor(final CompilationContext ctxt, final NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate) {
         this.ctxt = ctxt;
         this.delegate = delegate;
         this.escapeAnalysisState = EscapeAnalysisState.getPrevious(ctxt);
@@ -58,7 +58,7 @@ public final class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegati
         return new IllegalStateException("Required method is missing from the NoGC helpers");
     }
 
-    public NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> getDelegateNodeVisitor() {
+    public NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> getDelegateNodeVisitor() {
         return delegate;
     }
 

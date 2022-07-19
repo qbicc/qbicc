@@ -11,10 +11,10 @@ import org.qbicc.type.definition.element.ExecutableElement;
  */
 public class Load extends AbstractValue implements OrderedNode {
     private final Node dependency;
-    private final ValueHandle handle;
+    private final PointerValue handle;
     private final ReadAccessMode mode;
 
-    Load(Node callSite, ExecutableElement element, int line, int bci, Node dependency, ValueHandle handle, ReadAccessMode mode) {
+    Load(Node callSite, ExecutableElement element, int line, int bci, Node dependency, PointerValue handle, ReadAccessMode mode) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.handle = handle;
@@ -60,12 +60,12 @@ public class Load extends AbstractValue implements OrderedNode {
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
+    public boolean hasPointerValueDependency() {
         return true;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
+    public PointerValue getPointerValue() {
         return handle;
     }
 

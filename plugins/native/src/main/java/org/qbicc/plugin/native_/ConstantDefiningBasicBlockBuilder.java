@@ -12,7 +12,7 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -53,7 +53,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
+    public Node store(PointerValue handle, Value value, WriteAccessMode accessMode) {
         Value test = value;
         while (test instanceof CastValue) {
             test = ((CastValue) test).getInput();

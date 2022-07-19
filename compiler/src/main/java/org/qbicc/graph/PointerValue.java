@@ -8,7 +8,7 @@ import org.qbicc.type.ValueType;
 /**
  * A handle expression for some thing which is addressable at run time (i.e. can be read from and/or written to).
  */
-public interface ValueHandle extends Unschedulable {
+public interface PointerValue extends Unschedulable {
     /**
      * Get the type that a pointer to the referred value would have.
      *
@@ -110,7 +110,7 @@ public interface ValueHandle extends Unschedulable {
      */
     AccessMode getDetectedMode();
 
-    <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param);
+    <T, R> R accept(PointerValueVisitor<T, R> visitor, T param);
 
-    <T> long accept(ValueHandleVisitorLong<T> visitor, T param);
+    <T> long accept(PointerValueVisitorLong<T> visitor, T param);
 }

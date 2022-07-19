@@ -4,7 +4,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.StaticMethodType;
@@ -29,37 +29,37 @@ public class ClassInitializingBasicBlockBuilder extends DelegatingBasicBlockBuil
     }
 
     @Override
-    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
+    public PointerValue instanceFieldOf(PointerValue instance, FieldElement field) {
         initialize(field.getEnclosingType());
         return super.instanceFieldOf(instance, field);
     }
 
     @Override
-    public ValueHandle staticField(FieldElement field) {
+    public PointerValue staticField(FieldElement field) {
         initializeStaticMember(field.getEnclosingType());
         return super.staticField(field);
     }
 
     @Override
-    public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
+    public PointerValue exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         initialize(method.getEnclosingType());
         return super.exactMethodOf(instance, method, callSiteDescriptor, callSiteType);
     }
 
     @Override
-    public ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
+    public PointerValue virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         initialize(method.getEnclosingType());
         return super.virtualMethodOf(instance, method, callSiteDescriptor, callSiteType);
     }
 
     @Override
-    public ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType) {
+    public PointerValue staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType) {
         initializeStaticMember(method.getEnclosingType());
         return super.staticMethod(method, callSiteDescriptor, callSiteType);
     }
 
     @Override
-    public ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
+    public PointerValue constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         initialize(constructor.getEnclosingType());
         return super.constructorOf(instance, constructor, callSiteDescriptor, callSiteType);
     }

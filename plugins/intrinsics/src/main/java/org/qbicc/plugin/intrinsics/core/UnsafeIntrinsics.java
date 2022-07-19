@@ -24,7 +24,7 @@ import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.Variable;
 import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.atomic.GlobalAccessMode;
@@ -122,7 +122,7 @@ public class UnsafeIntrinsics {
             ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getObjectType();
             expectType = objectType.getReference();
         }
-        ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, expectType);
+        PointerValue handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, expectType);
         Value result = builder.cmpAndSwap(handle, expect, update, readMode, writeMode, strength);
         // result is a compound structure; extract the result
         return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, expectType).getMember(0));
@@ -188,7 +188,7 @@ public class UnsafeIntrinsics {
             ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getObjectType();
             expectType = objectType.getReference();
         }
-        ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, expectType);
+        PointerValue handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, expectType);
         Value result = builder.cmpAndSwap(handle, expect, update, readMode, writeMode, strength);
         // result is a compound structure; extract the success flag
         return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, expectType).getMember(1));
@@ -272,7 +272,7 @@ public class UnsafeIntrinsics {
             ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getObjectType();
             operandType = objectType.getReference();
         }
-        ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, operandType);
+        PointerValue handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, operandType);
         return builder.readModifyWrite(handle, op, operand, readMode, writeMode);
     }
 
@@ -370,7 +370,7 @@ public class UnsafeIntrinsics {
                 intrinsics.registerIntrinsic(unsafeDesc, name, desc, (builder, instance, target, arguments) -> {
                     Value obj = arguments.get(0);
                     Value offset = arguments.get(1);
-                    ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, outputType);
+                    PointerValue handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, outputType);
                     return builder.load(handle, suffixAndMode.getValue());
                 });
             }
@@ -445,7 +445,7 @@ public class UnsafeIntrinsics {
                         value = builder.select(value, ctxt.getLiteralFactory().literalOf((IntegerType) valueType, 1),
                             ctxt.getLiteralFactory().literalOf((IntegerType) valueType, 0));
                     }
-                    ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, valueType);
+                    PointerValue handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, valueType);
                     builder.store(handle, value, suffixAndMode.getValue());
                     return voidLiteral;
                 });
@@ -666,13 +666,13 @@ public class UnsafeIntrinsics {
     private static Value traverseLoads(Value value) {
         // todo: modify Load to carry a "known value"?
         if (value instanceof Load) {
-            ValueHandle valueHandle = value.getValueHandle();
-            if (valueHandle instanceof LocalVariable || valueHandle instanceof Variable && ((Variable) valueHandle).getVariableElement().isFinal()) {
+            PointerValue pointerValue = value.getPointerValue();
+            if (pointerValue instanceof LocalVariable || pointerValue instanceof Variable v && v.getVariableElement().isFinal()) {
                 Node dependency = value;
                 while (dependency instanceof OrderedNode) {
                     dependency = ((OrderedNode) dependency).getDependency();
                     if (dependency instanceof Store) {
-                        if (dependency.getValueHandle().equals(valueHandle)) {
+                        if (dependency.getPointerValue().equals(pointerValue)) {
                             return ((Store) dependency).getValue();
                         }
                     }

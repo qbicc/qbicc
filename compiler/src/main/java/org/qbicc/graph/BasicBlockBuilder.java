@@ -399,7 +399,7 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the member selection node (not {@code null})
      * @see MemberSelector
      */
-    Value selectMember(ValueHandle handle);
+    Value selectMember(PointerValue handle);
 
     // memory handles
 
@@ -409,17 +409,17 @@ public interface BasicBlockBuilder extends Locatable {
      *
      * @return the handle (not {@code null})
      */
-    ValueHandle currentThread();
+    PointerValue currentThread();
 
-    ValueHandle lengthOf(ValueHandle arrayHandle);
+    PointerValue lengthOf(PointerValue arrayHandle);
 
-    ValueHandle memberOf(ValueHandle structHandle, CompoundType.Member member);
+    PointerValue memberOf(PointerValue structHandle, CompoundType.Member member);
 
-    ValueHandle elementOf(ValueHandle array, Value index);
+    PointerValue elementOf(PointerValue array, Value index);
 
-    ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType);
+    PointerValue unsafeHandle(PointerValue base, Value offset, ValueType outputType);
 
-    ValueHandle pointerHandle(Value pointer, Value offsetValue);
+    PointerValue pointerHandle(Value pointer, Value offsetValue);
 
     /**
      * Convenience method to construct a pointer handle with a zero offset.
@@ -428,25 +428,25 @@ public interface BasicBlockBuilder extends Locatable {
      * @param pointer the pointer value (must not be {@code null})
      * @return the zero-offset pointer handle (must not be {@code null})
      */
-    default ValueHandle pointerHandle(Value pointer) {
+    default PointerValue pointerHandle(Value pointer) {
         return pointerHandle(pointer, getCurrentElement().getEnclosingType().getContext().getLiteralFactory().literalOf(0));
     }
 
-    ValueHandle referenceHandle(Value reference);
+    PointerValue referenceHandle(Value reference);
 
-    ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field);
+    PointerValue instanceFieldOf(PointerValue instance, FieldElement field);
 
-    ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type);
+    PointerValue instanceFieldOf(PointerValue instance, TypeDescriptor owner, String name, TypeDescriptor type);
 
-    ValueHandle staticField(FieldElement field);
+    PointerValue staticField(FieldElement field);
 
-    ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type);
+    PointerValue staticField(TypeDescriptor owner, String name, TypeDescriptor type);
 
-    ValueHandle globalVariable(GlobalVariableElement variable);
+    PointerValue globalVariable(GlobalVariableElement variable);
 
-    ValueHandle localVariable(LocalVariableElement variable);
+    PointerValue localVariable(LocalVariableElement variable);
 
-    ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
+    PointerValue exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
 
     /**
      * Convenience method to construct a method handle whose descriptor and type match the element's descriptor and type.
@@ -456,13 +456,13 @@ public interface BasicBlockBuilder extends Locatable {
      * @param method the method element (must not be {@code null})
      * @return the value handle (not {@code null})
      */
-    default ValueHandle exactMethodOf(Value instance, MethodElement method) {
+    default PointerValue exactMethodOf(Value instance, MethodElement method) {
         return exactMethodOf(instance, method, method.getDescriptor(), (InstanceMethodType) method.getType());
     }
 
-    ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
+    PointerValue exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
-    ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
+    PointerValue virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
 
     /**
      * Convenience method to construct a method handle whose descriptor and type match the element's descriptor and type.
@@ -472,13 +472,13 @@ public interface BasicBlockBuilder extends Locatable {
      * @param method the method element (must not be {@code null})
      * @return the value handle (not {@code null})
      */
-    default ValueHandle virtualMethodOf(Value instance, MethodElement method) {
+    default PointerValue virtualMethodOf(Value instance, MethodElement method) {
         return virtualMethodOf(instance, method, method.getDescriptor(), (InstanceMethodType) method.getType());
     }
 
-    ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
+    PointerValue virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
-    ValueHandle interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
+    PointerValue interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
 
     /**
      * Convenience method to construct a method handle whose descriptor and type match the element's descriptor and type.
@@ -488,13 +488,13 @@ public interface BasicBlockBuilder extends Locatable {
      * @param method the method element (must not be {@code null})
      * @return the value handle (not {@code null})
      */
-    default ValueHandle interfaceMethodOf(Value instance, MethodElement method) {
+    default PointerValue interfaceMethodOf(Value instance, MethodElement method) {
         return interfaceMethodOf(instance, method, method.getDescriptor(), (InstanceMethodType) method.getType());
     }
 
-    ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
+    PointerValue interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
-    ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType);
+    PointerValue staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType);
 
     /**
      * Convenience method to construct a method handle whose descriptor and type match the element's descriptor and type.
@@ -503,13 +503,13 @@ public interface BasicBlockBuilder extends Locatable {
      * @param method the method element (must not be {@code null})
      * @return the value handle (not {@code null})
      */
-    default ValueHandle staticMethod(MethodElement method) {
+    default PointerValue staticMethod(MethodElement method) {
         return staticMethod(method, method.getDescriptor(), (StaticMethodType) method.getType());
     }
 
-    ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor);
+    PointerValue staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor);
 
-    ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
+    PointerValue constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
 
     /**
      * Convenience method to construct a constructor handle whose descriptor and type match the element's descriptor and type.
@@ -519,19 +519,19 @@ public interface BasicBlockBuilder extends Locatable {
      * @param constructor the constructor element (must not be {@code null})
      * @return the value handle (not {@code null})
      */
-    default ValueHandle constructorOf(Value instance, ConstructorElement constructor) {
+    default PointerValue constructorOf(Value instance, ConstructorElement constructor) {
         return constructorOf(instance, constructor, constructor.getDescriptor(), constructor.getType());
     }
 
-    ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor);
+    PointerValue constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor);
 
-    ValueHandle functionOf(FunctionElement function);
+    PointerValue functionOf(FunctionElement function);
 
-    ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type);
+    PointerValue asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type);
 
     // memory
 
-    Value addressOf(ValueHandle handle);
+    Value addressOf(PointerValue handle);
 
     /**
      * Get a value that is a reference to the given value handle. If the handle's type is not an allocated
@@ -541,7 +541,7 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the reference value (not {@code null})
      * @throws IllegalArgumentException if the value handle does not refer to something that can be referenced
      */
-    Value referenceTo(ValueHandle handle) throws IllegalArgumentException;
+    Value referenceTo(PointerValue handle) throws IllegalArgumentException;
 
     Value stackAllocate(ValueType type, Value count, Value align);
 
@@ -559,23 +559,23 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value multiNewArray(ArrayTypeDescriptor desc, List<Value> dimensions);
 
-    default Value load(ValueHandle handle) {
+    default Value load(PointerValue handle) {
         return load(handle, SinglePlain);
     }
 
-    Value load(ValueHandle handle, ReadAccessMode mode);
+    Value load(PointerValue handle, ReadAccessMode mode);
 
-    Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
+    Value readModifyWrite(PointerValue target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength);
+    Value cmpAndSwap(PointerValue target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength);
 
     Value vaArg(Value vaList, ValueType type);
 
-    default Node store(ValueHandle handle, Value value) {
+    default Node store(PointerValue handle, Value value) {
         return store(handle, value, SinglePlain);
     }
 
-    Node store(ValueHandle handle, Value value, WriteAccessMode mode);
+    Node store(PointerValue handle, Value value, WriteAccessMode mode);
 
     Node initCheck(InitializerElement initializer, Value initThunk);
 
@@ -596,7 +596,7 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the invocation result (not {@code null})
      * @see Call
      */
-    Value call(ValueHandle target, List<Value> arguments);
+    Value call(PointerValue target, List<Value> arguments);
 
     /**
      * Call an invocation target that does not have side-effects (and does not have any program-order dependency relationships).
@@ -607,7 +607,7 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the invocation result (not {@code null})
      * @see CallNoSideEffects
      */
-    Value callNoSideEffects(ValueHandle target, List<Value> arguments);
+    Value callNoSideEffects(PointerValue target, List<Value> arguments);
 
     // misc
 
@@ -676,7 +676,7 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the terminated block (not {@code null}
      * @see CallNoReturn
      */
-    BasicBlock callNoReturn(ValueHandle target, List<Value> arguments);
+    BasicBlock callNoReturn(PointerValue target, List<Value> arguments);
 
     /**
      * Call an invocation target that does not return - thus terminating the block - and catch the thrown exception.
@@ -691,7 +691,7 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the terminated block (not {@code null}
      * @see InvokeNoReturn
      */
-    BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments);
+    BasicBlock invokeNoReturn(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments);
 
     /**
      * Tail-call an invocation target that returns the same type as this method, thus terminating the block.  The
@@ -702,7 +702,7 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the terminated block (not {@code null}
      * @see TailCall
      */
-    BasicBlock tailCall(ValueHandle target, List<Value> arguments);
+    BasicBlock tailCall(PointerValue target, List<Value> arguments);
 
     /**
      * Tail-call an invocation target that returns the same type as this method - thus terminating the block - and catch
@@ -719,7 +719,7 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the terminated block (not {@code null}
      * @see TailInvoke
      */
-    BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments);
+    BasicBlock tailInvoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments);
 
     /**
      * Call an invocation target and catch the thrown exception, terminating the block.
@@ -739,7 +739,7 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the invocation result (not {@code null})
      * @see Invoke
      */
-    Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments);
+    Value invoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments);
 
     /**
      * Generate a {@code goto} termination node.  The terminated block is returned.

@@ -14,7 +14,7 @@ import org.qbicc.graph.InstanceMethodElementHandle;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
@@ -38,7 +38,7 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
-    public ValueHandle memberOf(ValueHandle structHandle, CompoundType.Member member) {
+    public PointerValue memberOf(PointerValue structHandle, CompoundType.Member member) {
         if (structHandle.getPointeeType() instanceof CompoundType) {
             return super.memberOf(structHandle, member);
         }
@@ -47,7 +47,7 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
-    public ValueHandle elementOf(ValueHandle array, Value index) {
+    public PointerValue elementOf(PointerValue array, Value index) {
         if (array.getPointeeType() instanceof ArrayType || array.getPointeeType() instanceof ArrayObjectType) {
             if (index.getType() instanceof UnsignedIntegerType uit) {
                 // try to extend it
@@ -66,7 +66,7 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
-    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
+    public PointerValue pointerHandle(Value pointer, Value offsetValue) {
         if (pointer.getType() instanceof PointerType) {
             if (offsetValue.getType() instanceof UnsignedIntegerType uit) {
                 // try to extend it
@@ -112,41 +112,41 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
+    public Value call(PointerValue target, List<Value> arguments) {
         return super.call(check(target), arguments);
     }
 
     @Override
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+    public Value callNoSideEffects(PointerValue target, List<Value> arguments) {
         return super.callNoSideEffects(check(target), arguments);
     }
 
     @Override
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+    public BasicBlock callNoReturn(PointerValue target, List<Value> arguments) {
         return super.callNoReturn(check(target), arguments);
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock invokeNoReturn(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         return super.invokeNoReturn(check(target), arguments, catchLabel, targetArguments);
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+    public BasicBlock tailCall(PointerValue target, List<Value> arguments) {
         return super.tailCall(check(target), arguments);
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock tailInvoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         return super.tailInvoke(check(target), arguments, catchLabel, targetArguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+    public Value invoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         return super.invoke(check(target), arguments, catchLabel, resumeLabel, targetArguments);
     }
 
-    private ValueHandle check(ValueHandle handle) {
+    private PointerValue check(PointerValue handle) {
         if (getCurrentElement().hasAllModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS)) {
             ExecutableElement target;
             // not an exhaustive check but good enough for detecting common errors

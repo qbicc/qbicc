@@ -13,15 +13,15 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * The return value of the target is the type of this node (which may be {@link org.qbicc.type.VoidType VoidType}).
  * Exceptions thrown by the target are not caught; instead, they are propagated out of the caller's frame.
  *
- * @see BasicBlockBuilder#call(org.qbicc.graph.ValueHandle, java.util.List)
+ * @see BasicBlockBuilder#call(PointerValue, java.util.List)
  */
 public final class Call extends AbstractValue implements OrderedNode {
     private final Node dependency;
-    private final ValueHandle target;
+    private final PointerValue target;
     private final List<Value> arguments;
     private final InvokableType functionType;
 
-    Call(Node callSite, ExecutableElement element, int line, int bci, Node dependency, ValueHandle target, List<Value> arguments) {
+    Call(Node callSite, ExecutableElement element, int line, int bci, Node dependency, PointerValue target, List<Value> arguments) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.target = target;
@@ -93,12 +93,12 @@ public final class Call extends AbstractValue implements OrderedNode {
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
+    public boolean hasPointerValueDependency() {
         return true;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
+    public PointerValue getPointerValue() {
         return target;
     }
 

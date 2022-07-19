@@ -3,7 +3,7 @@ package org.qbicc.plugin.coreclasses;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.definition.element.FieldElement;
 
@@ -15,29 +15,29 @@ import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
  */
 public class BasicHeaderInitializer {
 
-    public static void initializeObjectHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final ValueHandle handle, final Value typeId) {
+    public static void initializeObjectHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final PointerValue handle, final Value typeId) {
         initializeObjectHeader(ctxt, bb, CoreClasses.get(ctxt), handle, typeId);
     }
 
-    public static void initializeArrayHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final ValueHandle handle, final Value typeId, final Value size) {
+    public static void initializeArrayHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final PointerValue handle, final Value typeId, final Value size) {
         initializeArrayHeader(ctxt, bb, CoreClasses.get(ctxt), handle, typeId, size);
     }
 
-    public static void initializeRefArrayHeader(CompilationContext ctxt, BasicBlockBuilder bb, final ValueHandle handle, Value elemTypeId, Value dimensions, final Value size) {
+    public static void initializeRefArrayHeader(CompilationContext ctxt, BasicBlockBuilder bb, final PointerValue handle, Value elemTypeId, Value dimensions, final Value size) {
         initializeRefArrayHeader(ctxt, bb, CoreClasses.get(ctxt), handle, elemTypeId, dimensions, size);
     }
 
 
-    private static void initializeObjectHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final CoreClasses coreClasses, final ValueHandle handle, final Value typeId) {
+    private static void initializeObjectHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final CoreClasses coreClasses, final PointerValue handle, final Value typeId) {
         bb.store(bb.instanceFieldOf(handle, coreClasses.getObjectTypeIdField()), typeId, SinglePlain);
     }
 
-    private static void initializeArrayHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final CoreClasses coreClasses, final ValueHandle handle, final Value typeId, final Value size) {
+    private static void initializeArrayHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final CoreClasses coreClasses, final PointerValue handle, final Value typeId, final Value size) {
         initializeObjectHeader(ctxt, bb, coreClasses, handle, typeId);
         bb.store(bb.instanceFieldOf(handle, coreClasses.getArrayLengthField()), size, SinglePlain);
     }
 
-    private static void initializeRefArrayHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final CoreClasses coreClasses, final ValueHandle handle, Value elemTypeId, Value dimensions, final Value size) {
+    private static void initializeRefArrayHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final CoreClasses coreClasses, final PointerValue handle, Value elemTypeId, Value dimensions, final Value size) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         initializeArrayHeader(ctxt, bb, coreClasses, handle, lf.literalOfType(coreClasses.getReferenceArrayTypeDefinition().load().getClassType()), size);
         FieldElement dimsField = coreClasses.getRefArrayDimensionsField();

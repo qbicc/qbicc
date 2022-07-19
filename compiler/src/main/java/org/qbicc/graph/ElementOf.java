@@ -12,12 +12,12 @@ import org.qbicc.type.definition.element.ExecutableElement;
 /**
  * A handle for an array element.  The input handle must be a handle to an array or pointer.
  */
-public final class ElementOf extends AbstractValueHandle {
-    private final ValueHandle inputHandle;
+public final class ElementOf extends AbstractPointerValue {
+    private final PointerValue inputHandle;
     private final Value index;
     private final PointerType pointerType;
 
-    ElementOf(Node callSite, ExecutableElement element, int line, int bci, ValueHandle inputHandle, Value index) {
+    ElementOf(Node callSite, ExecutableElement element, int line, int bci, PointerValue inputHandle, Value index) {
         super(callSite, element, line, bci);
         this.inputHandle = inputHandle;
         this.index = index;
@@ -55,12 +55,12 @@ public final class ElementOf extends AbstractValueHandle {
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
+    public boolean hasPointerValueDependency() {
         return true;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
+    public PointerValue getPointerValue() {
         return inputHandle;
     }
 
@@ -105,11 +105,11 @@ public final class ElementOf extends AbstractValueHandle {
         return this == other || other != null && inputHandle.equals(other.inputHandle) && index.equals(other.index);
     }
 
-    public <T, R> R accept(final ValueHandleVisitor<T, R> visitor, final T param) {
+    public <T, R> R accept(final PointerValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
 
-    public <T> long accept(final ValueHandleVisitorLong<T> visitor, final T param) {
+    public <T> long accept(final PointerValueVisitorLong<T> visitor, final T param) {
         return visitor.visit(param, this);
     }
 }

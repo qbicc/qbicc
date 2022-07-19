@@ -1,7 +1,6 @@
 package org.qbicc.graph.schedule;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -21,7 +20,7 @@ import org.qbicc.graph.Slot;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.type.definition.element.LocalVariableElement;
 
 /**
@@ -148,8 +147,8 @@ public interface Schedule {
                     }
                 }
             }
-            if (node.hasValueHandleDependency()) {
-                buildSequence(node.getValueHandle(), mapping, visited, sequences, blockParameters, locals);
+            if (node.hasPointerValueDependency()) {
+                buildSequence(node.getPointerValue(), mapping, visited, sequences, blockParameters, locals);
             }
             int cnt = node.getValueDependencyCount();
             for (int i = 0; i < cnt; i ++) {
@@ -190,9 +189,9 @@ public interface Schedule {
 
     private static BlockInfo scheduleDependenciesEarly(BlockInfo root, Map<BasicBlock, BlockInfo> blockInfos, Map<Node, BlockInfo> scheduledNodes, Node node) {
         BlockInfo selected = root;
-        if (node.hasValueHandleDependency()) {
-            ValueHandle valueHandle = node.getValueHandle();
-            BlockInfo candidate = scheduleEarly(root, blockInfos, scheduledNodes, valueHandle);
+        if (node.hasPointerValueDependency()) {
+            PointerValue pointerValue = node.getPointerValue();
+            BlockInfo candidate = scheduleEarly(root, blockInfos, scheduledNodes, pointerValue);
             if (candidate.domDepth > selected.domDepth) {
                 selected = candidate;
             }

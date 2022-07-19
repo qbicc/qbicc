@@ -6,7 +6,7 @@ import org.qbicc.context.ClassContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -54,37 +54,37 @@ public final class PatcherResolverBasicBlockBuilder extends DelegatingBasicBlock
     }
 
     @Override
-    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+    public PointerValue staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         return super.staticField(info.transform(owner), name, info.transform(type));
     }
 
     @Override
-    public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         return super.staticMethod(info.transform(owner), name, info.transform(descriptor));
     }
 
     @Override
-    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
+    public PointerValue instanceFieldOf(PointerValue instance, TypeDescriptor owner, String name, TypeDescriptor type) {
         return super.instanceFieldOf(instance, info.transform(owner), name, info.transform(type));
     }
 
     @Override
-    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         return super.exactMethodOf(instance, info.transform(owner), name, info.transform(descriptor));
     }
 
     @Override
-    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         return super.virtualMethodOf(instance, info.transform(owner), name, info.transform(descriptor));
     }
 
     @Override
-    public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         return super.interfaceMethodOf(instance, info.transform(owner), name, info.transform(descriptor));
     }
 
     @Override
-    public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
+    public PointerValue constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
         return super.constructorOf(instance, info.transform(owner), info.transform(descriptor));
     }
 

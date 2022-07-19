@@ -15,16 +15,16 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * Otherwise, this node will translate to a plain {@code call} followed by a {@code return} on the back end.
  * This node terminates its block.
  *
- * @see BasicBlockBuilder#tailCall(org.qbicc.graph.ValueHandle, java.util.List)
+ * @see BasicBlockBuilder#tailCall(PointerValue, java.util.List)
  */
 public final class TailCall extends AbstractTerminator {
     private final Node dependency;
     private final BasicBlock terminatedBlock;
-    private final ValueHandle target;
+    private final PointerValue target;
     private final List<Value> arguments;
     private final InvokableType calleeType;
 
-    TailCall(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments) {
+    TailCall(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, PointerValue target, List<Value> arguments) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.terminatedBlock = new BasicBlock(blockEntry, this);
@@ -92,12 +92,12 @@ public final class TailCall extends AbstractTerminator {
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
+    public boolean hasPointerValueDependency() {
         return true;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
+    public PointerValue getPointerValue() {
         return target;
     }
 

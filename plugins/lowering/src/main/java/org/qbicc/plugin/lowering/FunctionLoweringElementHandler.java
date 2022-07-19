@@ -12,7 +12,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.object.Function;
 import org.qbicc.type.definition.MethodBody;
@@ -35,7 +35,7 @@ public final class FunctionLoweringElementHandler implements Consumer<Executable
             // copy to a function.
             ClassContext classContext = element.getEnclosingType().getContext();
             CompilationContext compilationContext = classContext.getCompilationContext();
-            BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> copier = compilationContext.getCopier();
+            BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue>> copier = compilationContext.getCopier();
             MethodBody original = element.getMethodBody();
             BasicBlock entryBlock = original.getEntryBlock();
             List<Slot> paramSlots;

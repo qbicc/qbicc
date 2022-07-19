@@ -12,7 +12,7 @@ import org.qbicc.graph.Return;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.TerminatorVisitor;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
@@ -23,25 +23,25 @@ import org.qbicc.type.VoidType;
 /**
  *
  */
-public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, ValueHandle> {
+public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, PointerValue> {
     private final CompilationContext ctxt;
-    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate;
+    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate;
 
-    public BooleanAccessCopier(CompilationContext ctxt, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate) {
+    public BooleanAccessCopier(CompilationContext ctxt, NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate) {
         this.ctxt = ctxt;
         this.delegate = delegate;
     }
 
     @Override
-    public NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> getDelegateNodeVisitor() {
+    public NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> getDelegateNodeVisitor() {
         return delegate;
     }
 
     @Override
     public Node visit(Node.Copier param, Store node) {
         param.copyNode(node.getDependency());
-        ValueHandle origHandle = node.getValueHandle();
-        ValueHandle copyHandle = param.copyValueHandle(origHandle);
+        PointerValue origHandle = node.getPointerValue();
+        PointerValue copyHandle = param.copyPointerValue(origHandle);
         BasicBlockBuilder b = param.getBlockBuilder();
         Value copiedValue = param.copyValue(node.getValue());
         if (origHandle.getPointeeType() instanceof BooleanType && copyHandle.getPointeeType() instanceof IntegerType it) {
@@ -53,8 +53,8 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
     @Override
     public Value visit(Node.Copier param, Load node) {
         param.copyNode(node.getDependency());
-        ValueHandle origHandle = node.getValueHandle();
-        ValueHandle copyHandle = param.copyValueHandle(origHandle);
+        PointerValue origHandle = node.getPointerValue();
+        PointerValue copyHandle = param.copyPointerValue(origHandle);
         BasicBlockBuilder b = param.getBlockBuilder();
         Value loaded = b.load(copyHandle, node.getAccessMode());
         if (origHandle.getPointeeType() instanceof BooleanType bt && copyHandle.getPointeeType() instanceof IntegerType) {
@@ -67,8 +67,8 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
     @Override
     public Value visit(Node.Copier param, CmpAndSwap node) {
         param.copyNode(node.getDependency());
-        ValueHandle origHandle = node.getValueHandle();
-        ValueHandle copyHandle = param.copyValueHandle(origHandle);
+        PointerValue origHandle = node.getPointerValue();
+        PointerValue copyHandle = param.copyPointerValue(origHandle);
         Value copiedExpect = param.copyValue(node.getExpectedValue());
         Value copiedUpdate = param.copyValue(node.getUpdateValue());
         BasicBlockBuilder b = param.getBlockBuilder();
@@ -92,8 +92,8 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
     @Override
     public Value visit(Node.Copier param, ReadModifyWrite node) {
         param.copyNode(node.getDependency());
-        ValueHandle origHandle = node.getValueHandle();
-        ValueHandle copyHandle = param.copyValueHandle(origHandle);
+        PointerValue origHandle = node.getPointerValue();
+        PointerValue copyHandle = param.copyPointerValue(origHandle);
         BasicBlockBuilder b = param.getBlockBuilder();
         Value copiedUpdate = param.copyValue(node.getUpdateValue());
         ReadModifyWrite.Op op = node.getOp();

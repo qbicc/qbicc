@@ -54,9 +54,9 @@ abstract class AbstractNode implements Node {
     @Override
     public StringBuilder toString(StringBuilder b) {
         b.append(getNodeName());
-        if (hasValueHandleDependency()) {
+        if (hasPointerValueDependency()) {
             b.append('[');
-            getValueHandle().toString(b);
+            getPointerValue().toString(b);
             b.append(']');
         }
         return b;

@@ -9,7 +9,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -28,7 +28,7 @@ public final class VarHandleResolvingBasicBlockBuilder extends DelegatingBasicBl
     }
 
     @Override
-    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         if (owner instanceof ClassTypeDescriptor ctd && ctd.packageAndClassNameEquals("java/lang/invoke", "VarHandle")) {
             return super.virtualMethodOf(instance, owner, name, translate(name, descriptor));
         }
@@ -36,7 +36,7 @@ public final class VarHandleResolvingBasicBlockBuilder extends DelegatingBasicBl
     }
 
     @Override
-    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         if (owner instanceof ClassTypeDescriptor ctd && ctd.packageAndClassNameEquals("java/lang/invoke", "VarHandle")) {
             return super.exactMethodOf(instance, owner, name, translate(name, descriptor));
         }

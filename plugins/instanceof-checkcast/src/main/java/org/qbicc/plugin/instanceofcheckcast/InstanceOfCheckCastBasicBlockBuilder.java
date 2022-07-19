@@ -11,7 +11,7 @@ import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -259,9 +259,9 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(getDelegate().getCurrentElement());
             Value inputTypeId = load(instanceFieldOf(referenceHandle(input), CoreClasses.get(ctxt).getObjectTypeIdField()));
             // typeIdStruct = qbicc_typeid_array[typeId]
-            ValueHandle typeIdStruct = elementOf(globalVariable(typeIdGlobal), inputTypeId);
+            PointerValue typeIdStruct = elementOf(globalVariable(typeIdGlobal), inputTypeId);
             // bits = &typeIdStruct.interfaceBits
-            ValueHandle bits = memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("interfaceBits"));
+            PointerValue bits = memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("interfaceBits"));
             // thisByte = bits[byteIndex]
             Value thisByte = load(elementOf(bits, lf.literalOf(byteIndex)));
             // maskedValue = thisByte & mask
@@ -302,7 +302,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
             // 1. use toType (a TypeId) to load the corresponding maxTypeId
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(getDelegate().getCurrentElement());
-            ValueHandle typeIdStruct = elementOf(globalVariable(typeIdGlobal), toType);
+            PointerValue typeIdStruct = elementOf(globalVariable(typeIdGlobal), toType);
             Value maxTypeId = load(memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("maxSubTypeId")));
 
             // 2. Test passes iff toType <= valueTypeId <= maxTypeId

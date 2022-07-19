@@ -10,13 +10,13 @@ import org.qbicc.type.definition.element.ExecutableElement;
 /**
  * A handle for a structure member.  The input handle must have compound type.
  */
-public final class MemberOf extends AbstractValueHandle {
-    private final ValueHandle structureHandle;
+public final class MemberOf extends AbstractPointerValue {
+    private final PointerValue structureHandle;
     private final PointerType pointerType;
     private final CompoundType structType;
     private final CompoundType.Member member;
 
-    MemberOf(Node callSite, ExecutableElement element, int line, int bci, ValueHandle structureHandle, CompoundType.Member member) {
+    MemberOf(Node callSite, ExecutableElement element, int line, int bci, PointerValue structureHandle, CompoundType.Member member) {
         super(callSite, element, line, bci);
         this.structureHandle = structureHandle;
         this.member = member;
@@ -53,12 +53,12 @@ public final class MemberOf extends AbstractValueHandle {
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
+    public boolean hasPointerValueDependency() {
         return true;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
+    public PointerValue getPointerValue() {
         return structureHandle;
     }
 
@@ -87,11 +87,11 @@ public final class MemberOf extends AbstractValueHandle {
         return this == other || other != null && structureHandle.equals(other.structureHandle) && member.equals(other.member);
     }
 
-    public <T, R> R accept(final ValueHandleVisitor<T, R> visitor, final T param) {
+    public <T, R> R accept(final PointerValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
 
-    public <T> long accept(final ValueHandleVisitorLong<T> visitor, final T param) {
+    public <T> long accept(final PointerValueVisitorLong<T> visitor, final T param) {
         return visitor.visit(param, this);
     }
 }

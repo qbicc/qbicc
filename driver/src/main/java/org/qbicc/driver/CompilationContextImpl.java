@@ -29,7 +29,7 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClassLoader;
@@ -85,7 +85,7 @@ final class CompilationContextImpl implements CompilationContext {
 
     // mutable state
     private volatile BiFunction<BasicBlockBuilder.FactoryContext, ExecutableElement, BasicBlockBuilder> blockFactory;
-    private volatile BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> copier;
+    private volatile BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue>> copier;
     private final Vm vm;
     private final NativeMethodConfigurator nativeMethodConfigurator;
     private final Consumer<ClassContext> classContextListener;
@@ -587,7 +587,7 @@ final class CompilationContextImpl implements CompilationContext {
         this.blockFactory = blockFactory;
     }
 
-    void setCopier(final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> copier) {
+    void setCopier(final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue>> copier) {
         this.copier = copier;
     }
 
@@ -733,8 +733,8 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     @Override
-    public BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> getCopier() {
-        BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> copier = this.copier;
+    public BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue>> getCopier() {
+        BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue>> copier = this.copier;
         if (copier == null) {
             throw new IllegalStateException();
         }

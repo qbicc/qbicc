@@ -7,26 +7,26 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * Get the address of an object referred to by a value handle.
  */
 public final class AddressOf extends AbstractValue {
-    private final ValueHandle valueHandle;
+    private final PointerValue pointerValue;
 
-    AddressOf(Node callSite, ExecutableElement element, int line, int bci, ValueHandle valueHandle) {
+    AddressOf(Node callSite, ExecutableElement element, int line, int bci, PointerValue pointerValue) {
         super(callSite, element, line, bci);
-        this.valueHandle = valueHandle;
+        this.pointerValue = pointerValue;
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
+    public boolean hasPointerValueDependency() {
         return true;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
-        return valueHandle;
+    public PointerValue getPointerValue() {
+        return pointerValue;
     }
 
     @Override
     int calcHashCode() {
-        return valueHandle.hashCode();
+        return pointerValue.hashCode();
     }
 
     @Override
@@ -40,12 +40,12 @@ public final class AddressOf extends AbstractValue {
     }
 
     public boolean equals(AddressOf other) {
-        return this == other || other != null && valueHandle.equals(other.valueHandle);
+        return this == other || other != null && pointerValue.equals(other.pointerValue);
     }
 
     @Override
     public ValueType getType() {
-        return valueHandle.getType();
+        return pointerValue.getType();
     }
 
     @Override
@@ -60,6 +60,6 @@ public final class AddressOf extends AbstractValue {
 
     @Override
     public boolean isConstant() {
-        return valueHandle.isConstantLocation();
+        return pointerValue.isConstantLocation();
     }
 }

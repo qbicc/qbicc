@@ -7,7 +7,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
@@ -188,18 +188,18 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                 LoadedTypeDefinition cNative = bcc.findDefinedType("org/qbicc/runtime/CNative").load();
                 if (fromType.getMinBits() == 32) {
                     if (toType.getMinBits() == 32) {
-                        ValueHandle floatToInt = fb.staticMethod(cNative.requireSingleMethod(me -> me.nameEquals("floatToInt")));
+                        PointerValue floatToInt = fb.staticMethod(cNative.requireSingleMethod(me -> me.nameEquals("floatToInt")));
                         return fb.callNoSideEffects(floatToInt, List.of(from));
                     } else if (toType.getMinBits() == 64) {
-                        ValueHandle floatToLong = fb.staticMethod(cNative.requireSingleMethod(me -> me.nameEquals("floatToLong")));
+                        PointerValue floatToLong = fb.staticMethod(cNative.requireSingleMethod(me -> me.nameEquals("floatToLong")));
                         return fb.callNoSideEffects(floatToLong, List.of(from));
                     }
                 } else if (fromType.getMinBits() == 64) {
                     if (toType.getMinBits() == 32) {
-                        ValueHandle doubleToInt = fb.staticMethod(cNative.requireSingleMethod(me -> me.nameEquals("doubleToInt")));
+                        PointerValue doubleToInt = fb.staticMethod(cNative.requireSingleMethod(me -> me.nameEquals("doubleToInt")));
                         return fb.callNoSideEffects(doubleToInt, List.of(from));
                     } else if (toType.getMinBits() == 64) {
-                        ValueHandle doubleToLong = fb.staticMethod(cNative.requireSingleMethod(me -> me.nameEquals("doubleToLong")));
+                        PointerValue doubleToLong = fb.staticMethod(cNative.requireSingleMethod(me -> me.nameEquals("doubleToLong")));
                         return fb.callNoSideEffects(doubleToLong, List.of(from));
                     }
                 }

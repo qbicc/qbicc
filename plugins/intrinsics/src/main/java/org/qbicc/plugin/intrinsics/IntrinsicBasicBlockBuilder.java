@@ -16,7 +16,7 @@ import org.qbicc.graph.InstanceMethodElementHandle;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 
 /**
  * The basic block builder which substitutes invocations of intrinsic methods.
@@ -50,7 +50,7 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
+    public Value call(PointerValue target, List<Value> arguments) {
         if (target instanceof StaticMethodElementHandle) {
             StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
             StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());
@@ -81,7 +81,7 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+    public Value callNoSideEffects(PointerValue target, List<Value> arguments) {
         if (target instanceof StaticMethodElementHandle) {
             StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
             StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());
@@ -112,7 +112,7 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+    public BasicBlock callNoReturn(PointerValue target, List<Value> arguments) {
         if (target instanceof StaticMethodElementHandle) {
             StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
             StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());
@@ -139,7 +139,7 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock invokeNoReturn(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         if (target instanceof StaticMethodElementHandle) {
             StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
             StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());
@@ -165,7 +165,7 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+    public BasicBlock tailCall(PointerValue target, List<Value> arguments) {
         if (target instanceof StaticMethodElementHandle) {
             StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
             StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());
@@ -196,7 +196,7 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock tailInvoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         if (target instanceof StaticMethodElementHandle) {
             StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
             StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());
@@ -227,7 +227,7 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+    public Value invoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         if (target instanceof StaticMethodElementHandle) {
             StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
             StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());

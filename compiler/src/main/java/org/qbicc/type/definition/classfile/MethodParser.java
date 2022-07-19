@@ -28,7 +28,7 @@ import org.qbicc.graph.MemberSelector;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
@@ -628,7 +628,7 @@ final class MethodParser {
                         v2 = pop1();
                         v1 = pop1();
                         if (v1 instanceof MemberSelector ms) {
-                            v1 = gf.selectMember(gf.elementOf(ms.getValueHandle(), v2));
+                            v1 = gf.selectMember(gf.elementOf(ms.getPointerValue(), v2));
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = gf.extractElement(v1, v2);
                         } else if (v1.getType() instanceof PointerType) {
@@ -644,7 +644,7 @@ final class MethodParser {
                         v2 = pop1();
                         v1 = pop1();
                         if (v1 instanceof MemberSelector ms) {
-                            v1 = gf.selectMember(gf.elementOf(ms.getValueHandle(), v2));
+                            v1 = gf.selectMember(gf.elementOf(ms.getPointerValue(), v2));
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = gf.extractElement(v1, v2);
                         } else if (v1.getType() instanceof PointerType) {
@@ -663,7 +663,7 @@ final class MethodParser {
                         v2 = pop1();
                         v1 = pop1();
                         if (v1 instanceof MemberSelector ms) {
-                            v1 = gf.selectMember(gf.elementOf(ms.getValueHandle(), v2));
+                            v1 = gf.selectMember(gf.elementOf(ms.getPointerValue(), v2));
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = promote(gf.extractElement(v1, v2));
                         } else if (v1.getType() instanceof PointerType) {
@@ -720,7 +720,7 @@ final class MethodParser {
                         v2 = pop1();
                         v1 = pop1();
                         if (v1 instanceof MemberSelector ms) {
-                            gf.store(gf.elementOf(ms.getValueHandle(), v2), v3, SinglePlain);
+                            gf.store(gf.elementOf(ms.getPointerValue(), v2), v3, SinglePlain);
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
@@ -737,7 +737,7 @@ final class MethodParser {
                         v2 = pop1();
                         v1 = pop1();
                         if (v1 instanceof MemberSelector ms) {
-                            gf.store(gf.elementOf(ms.getValueHandle(), v2), v3, SinglePlain);
+                            gf.store(gf.elementOf(ms.getPointerValue(), v2), v3, SinglePlain);
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
@@ -754,7 +754,7 @@ final class MethodParser {
                         v2 = pop1();
                         v1 = pop1();
                         if (v1 instanceof MemberSelector ms) {
-                            gf.store(gf.elementOf(ms.getValueHandle(), v2), v3, SinglePlain);
+                            gf.store(gf.elementOf(ms.getPointerValue(), v2), v3, SinglePlain);
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
@@ -771,7 +771,7 @@ final class MethodParser {
                         v2 = pop1();
                         v1 = pop1();
                         if (v1 instanceof MemberSelector ms) {
-                            gf.store(gf.elementOf(ms.getValueHandle(), v2), v3, SinglePlain);
+                            gf.store(gf.elementOf(ms.getPointerValue(), v2), v3, SinglePlain);
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
@@ -789,7 +789,7 @@ final class MethodParser {
                         v2 = pop1();
                         v1 = pop1();
                         if (v1 instanceof MemberSelector ms) {
-                            gf.store(gf.elementOf(ms.getValueHandle(), v2), v3, SinglePlain);
+                            gf.store(gf.elementOf(ms.getPointerValue(), v2), v3, SinglePlain);
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
@@ -1364,7 +1364,7 @@ final class MethodParser {
                         TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
                         String name = getNameOfFieldRef(fieldRef);
                         // todo: signature context
-                        ValueHandle handle = gf.staticField(owner, name, desc);
+                        PointerValue handle = gf.staticField(owner, name, desc);
                         Value value = promote(gf.load(handle, handle.getDetectedMode().getReadAccess()), desc);
                         push(value, desc.isClass2());
                         break;
@@ -1375,7 +1375,7 @@ final class MethodParser {
                         TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getFieldrefConstantClassIndex(fieldRef));
                         TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
                         String name = getNameOfFieldRef(fieldRef);
-                        ValueHandle handle = gf.staticField(owner, name, desc);
+                        PointerValue handle = gf.staticField(owner, name, desc);
                         gf.store(handle, storeTruncate(pop(desc.isClass2()), desc), handle.getDetectedMode().getWriteAccess());
                         break;
                     }
@@ -1387,7 +1387,7 @@ final class MethodParser {
                         String name = getNameOfFieldRef(fieldRef);
                         v1 = pop1();
                         if (v1 instanceof MemberSelector ms) {
-                            ValueHandle vh = ms.getValueHandle();
+                            PointerValue vh = ms.getPointerValue();
                             ValueType valueType = vh.getPointeeType();
                             if (valueType instanceof CompoundType ct) {
                                 push1(gf.selectMember(gf.memberOf(vh, ct.getMember(name))));
@@ -1401,7 +1401,7 @@ final class MethodParser {
                             final CompoundType.Member member = ct.getMember(name);
                             push(promote(gf.extractMember(v1, member)), desc.isClass2());
                         } else {
-                            ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
+                            PointerValue handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
                             Value value = promote(gf.load(handle, handle.getDetectedMode().getReadAccess()), desc);
                             push(value, desc.isClass2());
                             if (v1.getType() instanceof ReferenceType) {
@@ -1419,7 +1419,7 @@ final class MethodParser {
                         v2 = pop(desc.isClass2());
                         v1 = pop1();
                         if (v1 instanceof MemberSelector ms) {
-                            ValueHandle vh = ms.getValueHandle();
+                            PointerValue vh = ms.getPointerValue();
                             ValueType valueType = vh.getPointeeType();
                             if (valueType instanceof CompoundType ct) {
                                 gf.store(gf.memberOf(vh, ct.getMember(name)), storeTruncate(v2, desc), SinglePlain);
@@ -1433,7 +1433,7 @@ final class MethodParser {
                             final CompoundType.Member member = ct.getMember(name);
                             replaceAll(v1, gf.insertMember(v1, member, storeTruncate(v2, desc)));
                         } else {
-                            ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
+                            PointerValue handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
                             gf.store(handle, storeTruncate(v2, desc), handle.getDetectedMode().getWriteAccess());
                             if (v1.getType() instanceof ReferenceType) {
                                 replaceAll(v1, gf.notNull(v1));
@@ -1486,7 +1486,7 @@ final class MethodParser {
                             gf.call(gf.constructorOf(v1, owner, desc), List.of(demote(args, desc)));
                         } else {
                             TypeDescriptor returnType = desc.getReturnType();
-                            ValueHandle handle;
+                            PointerValue handle;
                             if (opcode == OP_INVOKESTATIC) {
                                 handle = gf.staticMethod(owner, name, desc);
                             } else if (opcode == OP_INVOKESPECIAL) {

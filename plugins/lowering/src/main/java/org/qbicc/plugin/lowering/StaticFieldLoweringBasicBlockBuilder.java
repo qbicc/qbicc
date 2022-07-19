@@ -3,7 +3,7 @@ package org.qbicc.plugin.lowering;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -25,7 +25,7 @@ public class StaticFieldLoweringBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public ValueHandle staticField(FieldElement field) {
+    public PointerValue staticField(FieldElement field) {
         if (! field.isStatic()) {
             throw new IllegalArgumentException();
         }

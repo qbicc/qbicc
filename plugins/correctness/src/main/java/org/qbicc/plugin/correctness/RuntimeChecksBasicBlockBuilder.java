@@ -23,8 +23,8 @@ import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.ValueHandleVisitor;
+import org.qbicc.graph.PointerValue;
+import org.qbicc.graph.PointerValueVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
@@ -65,13 +65,13 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
+    public Value load(PointerValue handle, ReadAccessMode accessMode) {
         check(handle);
         return super.load(handle, accessMode);
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
+    public Node store(PointerValue handle, Value value, WriteAccessMode accessMode) {
         Value narrowedValue = check(handle, value);
         return super.store(handle, narrowedValue != null ? narrowedValue : value, accessMode);
     }
@@ -91,37 +91,37 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public Value addressOf(ValueHandle handle) {
+    public Value addressOf(PointerValue handle) {
         check(handle);
         return super.addressOf(handle);
     }
 
     @Override
-    public ValueHandle lengthOf(ValueHandle handle) {
+    public PointerValue lengthOf(PointerValue handle) {
         check(handle);
         return super.lengthOf(handle);
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
+    public Value call(PointerValue target, List<Value> arguments) {
         check(target);
         return super.call(target, arguments);
     }
 
     @Override
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+    public Value callNoSideEffects(PointerValue target, List<Value> arguments) {
         check(target);
         return super.callNoSideEffects(target, arguments);
     }
 
     @Override
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+    public BasicBlock callNoReturn(PointerValue target, List<Value> arguments) {
         check(target);
         return super.callNoReturn(target, arguments);
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock invokeNoReturn(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         check(target);
         return super.invokeNoReturn(target, arguments, catchLabel, targetArguments);
     }
@@ -132,19 +132,19 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+    public BasicBlock tailCall(PointerValue target, List<Value> arguments) {
         check(target);
         return super.tailCall(target, arguments);
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock tailInvoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         check(target);
         return super.tailInvoke(target, arguments, catchLabel, targetArguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+    public Value invoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         check(target);
         return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
     }
@@ -222,15 +222,15 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         throw new BlockEarlyTermination(callNoReturn(staticMethod(helper), List.of()));
     }
 
-    private Value check(ValueHandle handle) {
+    private Value check(PointerValue handle) {
         return check(handle, null);
     }
 
-    private Value check(ValueHandle handle, Value storedValue) {
-        return handle.accept(new ValueHandleVisitor<Void, Value>() {
+    private Value check(PointerValue handle, Value storedValue) {
+        return handle.accept(new PointerValueVisitor<Void, Value>() {
             @Override
             public Value visit(Void param, ElementOf node) {
-                ValueHandle arrayHandle = node.getValueHandle();
+                PointerValue arrayHandle = node.getPointerValue();
                 arrayHandle.accept(this, param);
                 ValueType arrayType = arrayHandle.getPointeeType();
                 if (arrayType instanceof ArrayObjectType) {
@@ -256,7 +256,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                 if (node.getVariableElement().isStatic()) {
                     throwIncompatibleClassChangeError();
                 } else {
-                    node.getValueHandle().accept(this, param);
+                    node.getPointerValue().accept(this, param);
                 }
                 return null;
             }
@@ -363,7 +363,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         begin(goAhead);
     }
 
-    private void indexOutOfBoundsCheck(ValueHandle array, Value index) {
+    private void indexOutOfBoundsCheck(PointerValue array, Value index) {
         final BlockLabel notNegative = new BlockLabel();
         final BlockLabel throwIt = new BlockLabel();
         final BlockLabel goAhead = new BlockLabel();

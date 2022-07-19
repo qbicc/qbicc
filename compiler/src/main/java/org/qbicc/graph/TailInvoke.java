@@ -16,17 +16,17 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * Generally this node will translate to a plain {@code invoke} followed by a {@code return} on the back end.
  * This node terminates its block.
  *
- * @see BasicBlockBuilder#tailInvoke(org.qbicc.graph.ValueHandle, java.util.List, org.qbicc.graph.BlockLabel, java.util.Map)
+ * @see BasicBlockBuilder#tailInvoke(PointerValue, java.util.List, org.qbicc.graph.BlockLabel, java.util.Map)
  */
 public final class TailInvoke extends AbstractTerminator {
     private final Node dependency;
     private final BasicBlock terminatedBlock;
-    private final ValueHandle target;
+    private final PointerValue target;
     private final List<Value> arguments;
     private final InvokableType calleeType;
     private final BlockLabel catchLabel;
 
-    TailInvoke(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    TailInvoke(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         super(callSite, element, line, bci, targetArguments);
         this.dependency = dependency;
         this.terminatedBlock = new BasicBlock(blockEntry, this);
@@ -95,12 +95,12 @@ public final class TailInvoke extends AbstractTerminator {
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
+    public boolean hasPointerValueDependency() {
         return true;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
+    public PointerValue getPointerValue() {
         return target;
     }
 

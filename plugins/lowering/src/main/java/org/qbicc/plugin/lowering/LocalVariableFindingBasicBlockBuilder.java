@@ -4,7 +4,7 @@ import java.util.LinkedHashSet;
 
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.type.definition.element.LocalVariableElement;
 
 /**
@@ -19,7 +19,7 @@ public final class LocalVariableFindingBasicBlockBuilder extends DelegatingBasic
     }
 
     @Override
-    public ValueHandle localVariable(LocalVariableElement variable) {
+    public PointerValue localVariable(LocalVariableElement variable) {
         return super.localVariable(record(variable));
     }
 

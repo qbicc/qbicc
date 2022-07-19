@@ -17,19 +17,19 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * If no exception is thrown by the callee, execution resumes in the resume block.
  * This node terminates its block.
  *
- * @see BasicBlockBuilder#invoke(org.qbicc.graph.ValueHandle, java.util.List, org.qbicc.graph.BlockLabel, org.qbicc.graph.BlockLabel, java.util.Map)
+ * @see BasicBlockBuilder#invoke(PointerValue, java.util.List, org.qbicc.graph.BlockLabel, org.qbicc.graph.BlockLabel, java.util.Map)
  */
 public final class Invoke extends AbstractTerminator implements Resume {
     private final Node dependency;
     private final BasicBlock terminatedBlock;
-    private final ValueHandle target;
+    private final PointerValue target;
     private final List<Value> arguments;
     private final InvokableType calleeType;
     private final BlockLabel catchLabel;
     private final BlockLabel resumeLabel;
     private final ReturnValue returnValue;
 
-    Invoke(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+    Invoke(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, PointerValue target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         super(callSite, element, line, bci, targetArguments);
         this.dependency = dependency;
         this.terminatedBlock = new BasicBlock(blockEntry, this);
@@ -104,12 +104,12 @@ public final class Invoke extends AbstractTerminator implements Resume {
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
+    public boolean hasPointerValueDependency() {
         return true;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
+    public PointerValue getPointerValue() {
         return target;
     }
 

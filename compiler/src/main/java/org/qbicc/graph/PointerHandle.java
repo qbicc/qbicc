@@ -15,7 +15,7 @@ import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 /**
  *
  */
-public final class PointerHandle extends AbstractValueHandle {
+public final class PointerHandle extends AbstractPointerValue {
     private final Value pointerValue;
     private final Value offsetValue;
     private final PointerType pointerType;
@@ -90,7 +90,7 @@ public final class PointerHandle extends AbstractValueHandle {
         return "Pointer";
     }
 
-    public Value getPointerValue() {
+    public Value getBaseValue() {
         return pointerValue;
     }
 
@@ -120,11 +120,11 @@ public final class PointerHandle extends AbstractValueHandle {
     }
 
     @Override
-    public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
+    public <T, R> R accept(PointerValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
 
-    public <T> long accept(final ValueHandleVisitorLong<T> visitor, final T param) {
+    public <T> long accept(final PointerValueVisitorLong<T> visitor, final T param) {
         return visitor.visit(param, this);
     }
 }

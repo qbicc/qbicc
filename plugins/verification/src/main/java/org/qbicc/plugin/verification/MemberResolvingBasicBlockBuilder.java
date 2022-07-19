@@ -13,7 +13,7 @@ import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.MemberSelector;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
@@ -58,15 +58,15 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         this.ctxt = getContext();
     }
 
-    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
+    public PointerValue instanceFieldOf(PointerValue instance, TypeDescriptor owner, String name, TypeDescriptor type) {
         return instanceFieldOf(instance, resolveField(owner, name, type));
     }
 
-    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+    public PointerValue staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         return staticField(resolveField(owner, name, type));
     }
 
-    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         DefinedTypeDefinition definedType = resolveDescriptor(owner);
         if (definedType != null) {
             // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
@@ -90,7 +90,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         }
     }
 
-    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         DefinedTypeDefinition definedType = resolveDescriptor(owner);
         if (definedType != null) {
             // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
@@ -107,7 +107,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         }
     }
 
-    public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         DefinedTypeDefinition definedType = resolveDescriptor(owner);
         if (definedType != null) {
             // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
@@ -124,7 +124,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         }
     }
 
-    public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public PointerValue staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         DefinedTypeDefinition definedType = resolveDescriptor(owner);
         if (definedType != null) {
             // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed.
@@ -148,7 +148,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         }
     }
 
-    public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
+    public PointerValue constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
         DefinedTypeDefinition definedType = resolveDescriptor(owner);
         if (definedType != null) {
             // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed

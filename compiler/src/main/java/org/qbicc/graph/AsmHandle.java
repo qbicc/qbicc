@@ -12,7 +12,7 @@ import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 /**
  * A handle for an inline assembly expression which can be called or invoked.
  */
-public final class AsmHandle extends AbstractValueHandle {
+public final class AsmHandle extends AbstractPointerValue {
     private final String instruction;
     private final String constraints;
     private final Set<Flag> flags;
@@ -83,11 +83,11 @@ public final class AsmHandle extends AbstractValueHandle {
     }
 
     @Override
-    public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
+    public <T, R> R accept(PointerValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
 
-    public <T> long accept(ValueHandleVisitorLong<T> visitor, T param) {
+    public <T> long accept(PointerValueVisitorLong<T> visitor, T param) {
         return visitor.visit(param, this);
     }
 

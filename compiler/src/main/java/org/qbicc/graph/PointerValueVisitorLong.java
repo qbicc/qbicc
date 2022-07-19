@@ -3,8 +3,8 @@ package org.qbicc.graph;
 /**
  *
  */
-public interface ValueHandleVisitorLong<T> {
-    default long visitUnknown(T t, ValueHandle node) {
+public interface PointerValueVisitorLong<T> {
+    default long visitUnknown(T t, PointerValue node) {
         return 0;
     }
 
@@ -76,97 +76,97 @@ public interface ValueHandleVisitorLong<T> {
         return visitUnknown(t, node);
     }
 
-    interface Delegating<T> extends ValueHandleVisitorLong<T> {
-        ValueHandleVisitorLong<T> getDelegateValueHandleVisitor();
+    interface Delegating<T> extends PointerValueVisitorLong<T> {
+        PointerValueVisitorLong<T> getDelegatePointerHandleVisitor();
 
         @Override
-        default long visitUnknown(T t, ValueHandle node) {
-            return node.accept(getDelegateValueHandleVisitor(), t);
+        default long visitUnknown(T t, PointerValue node) {
+            return node.accept(getDelegatePointerHandleVisitor(), t);
         }
 
         @Override
         default long visit(T t, AsmHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
 
         @Override
         default long visit(T t, ConstructorElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
 
         @Override
         default long visit(T t, CurrentThread node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
 
         @Override
         default long visit(T t, ElementOf node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
 
         @Override
         default long visit(T t, ExactMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
 
         @Override
         default long visit(T t, FunctionElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
 
         @Override
         default long visit(T t, GlobalVariable node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
 
         @Override
         default long visit(T t, InstanceFieldOf node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
 
         @Override
         default long visit(T t, InterfaceMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
 
         @Override
         default long visit(T t, VirtualMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
 
         @Override
         default long visit(T t, LocalVariable node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
 
         @Override
         default long visit(T t, MemberOf node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
 
         @Override
         default long visit(T t, StaticField node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
 
         @Override
         default long visit(T t, StaticMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
 
         @Override
         default long visit(T t, UnsafeHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
 
         @Override
         default long visit(T t, PointerHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
 
         @Override
         default long visit(T t, ReferenceHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
+            return getDelegatePointerHandleVisitor().visit(t, node);
         }
     }
 }

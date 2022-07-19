@@ -18,8 +18,8 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.ValueHandleVisitor;
+import org.qbicc.graph.PointerValue;
+import org.qbicc.graph.PointerValueVisitor;
 import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
@@ -28,8 +28,8 @@ import org.qbicc.graph.atomic.WriteAccessMode;
 /**
  *
  */
-public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<AccessMode, Value> {
-    private Map<ValueHandle, Value> knownValues = new HashMap<>();
+public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBuilder implements PointerValueVisitor<AccessMode, Value> {
+    private Map<PointerValue, Value> knownValues = new HashMap<>();
 
     public LocalMemoryTrackingBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
@@ -44,7 +44,7 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
 
     @Override
     public <T> BasicBlock begin(BlockLabel blockLabel, T arg, BiConsumer<T, BasicBlockBuilder> maker) {
-        final Map<ValueHandle, Value> oldKnownValues = knownValues;
+        final Map<PointerValue, Value> oldKnownValues = knownValues;
         knownValues = new HashMap<>();
         try {
             return super.begin(blockLabel, arg, maker);
@@ -54,7 +54,7 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
+    public Value load(PointerValue handle, ReadAccessMode accessMode) {
         // todo: hopefully we can be slightly more aggressive than this
         if (! GlobalPlain.includes(accessMode)) {
             knownValues.clear();
@@ -70,21 +70,21 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
-        ValueHandle root = findRoot(handle);
+    public Node store(PointerValue handle, Value value, WriteAccessMode accessMode) {
+        PointerValue root = findRoot(handle);
         knownValues.keySet().removeIf(k -> ! hasSameRoot(k, root));
         knownValues.put(handle, value);
         return super.store(handle, value, accessMode);
     }
 
     @Override
-    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    public Value readModifyWrite(PointerValue target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
         return super.readModifyWrite(target, op, update, readMode, writeMode);
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(PointerValue target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         knownValues.clear();
         return super.cmpAndSwap(target, expect, update, readMode, writeMode, strength);
     }
@@ -108,51 +108,51 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
+    public Value call(PointerValue target, List<Value> arguments) {
         knownValues.clear();
         return super.call(target, arguments);
     }
 
     @Override
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+    public BasicBlock callNoReturn(PointerValue target, List<Value> arguments) {
         knownValues.clear();
         return super.callNoReturn(target, arguments);
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock invokeNoReturn(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         knownValues.clear();
         return super.invokeNoReturn(target, arguments, catchLabel, targetArguments);
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+    public BasicBlock tailCall(PointerValue target, List<Value> arguments) {
         knownValues.clear();
         return super.tailCall(target, arguments);
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock tailInvoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         knownValues.clear();
         return super.tailInvoke(target, arguments, catchLabel, targetArguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+    public Value invoke(PointerValue target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         knownValues.clear();
         return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
-    private static ValueHandle findRoot(ValueHandle handle) {
-        return handle instanceof ElementOf || ! handle.hasValueHandleDependency() ? handle : findRoot(handle.getValueHandle());
+    private static PointerValue findRoot(PointerValue handle) {
+        return handle instanceof ElementOf || ! handle.hasPointerValueDependency() ? handle : findRoot(handle.getPointerValue());
     }
 
-    private static boolean hasSameRoot(ValueHandle handle, ValueHandle root) {
+    private static boolean hasSameRoot(PointerValue handle, PointerValue root) {
         return findRoot(handle).equals(root);
     }
 
     @Override
-    public Value visitUnknown(AccessMode param, ValueHandle node) {
+    public Value visitUnknown(AccessMode param, PointerValue node) {
         return knownValues.get(node);
     }
 
@@ -162,7 +162,7 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
         if (value != null) {
             return value;
         } else {
-            value = node.getValueHandle().accept(this, param);
+            value = node.getPointerValue().accept(this, param);
             if (value != null) {
                 return extractElement(value, node.getIndex());
             } else {
@@ -177,7 +177,7 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
         if (value != null) {
             return value;
         } else {
-            value = node.getValueHandle().accept(this, param);
+            value = node.getPointerValue().accept(this, param);
             if (value != null) {
                 return extractMember(value, node.getMember());
             } else {

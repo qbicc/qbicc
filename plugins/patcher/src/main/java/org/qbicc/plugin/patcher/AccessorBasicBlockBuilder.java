@@ -13,7 +13,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -46,7 +46,7 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
+    public Value load(PointerValue handle, ReadAccessMode accessMode) {
         if (handle instanceof StaticField staticField) {
             FieldElement field = staticField.getVariableElement();
             VmObject accessor = getAccessor(field);
@@ -64,7 +64,7 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
+    public Node store(PointerValue handle, Value value, WriteAccessMode accessMode) {
         if (handle instanceof StaticField staticField) {
             FieldElement field = staticField.getVariableElement();
             VmObject accessor = getAccessor(field);
@@ -80,13 +80,13 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(PointerValue target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         checkAtomicAccessor(target);
         return super.cmpAndSwap(target, expect, update, readMode, writeMode, strength);
     }
 
     @Override
-    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    public Value readModifyWrite(PointerValue target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (op == ReadModifyWrite.Op.SET) {
             if (target instanceof StaticField sf && getAccessor(sf.getVariableElement()) != null) {
                 if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
@@ -103,7 +103,7 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.readModifyWrite(target, op, update, readMode, writeMode);
     }
 
-    private void checkAtomicAccessor(final ValueHandle target) {
+    private void checkAtomicAccessor(final PointerValue target) {
         if (target instanceof StaticField sf && getAccessor(sf.getVariableElement()) != null) {
             atomicNotAllowed();
         }

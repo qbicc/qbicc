@@ -13,14 +13,14 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * The return value of the target is the type of this node (which may be {@link org.qbicc.type.VoidType VoidType}).
  * Exceptions are considered a side-effect, thus the target must not throw exceptions (this excludes most Java methods, which can throw {@code OutOfMemoryError} among other things).
  *
- * @see BasicBlockBuilder#callNoSideEffects(ValueHandle, List)
+ * @see BasicBlockBuilder#callNoSideEffects(PointerValue, List)
  */
 public final class CallNoSideEffects extends AbstractValue {
-    private final ValueHandle target;
+    private final PointerValue target;
     private final List<Value> arguments;
     private final InvokableType calleeType;
 
-    CallNoSideEffects(Node callSite, ExecutableElement element, int line, int bci, ValueHandle target, List<Value> arguments) {
+    CallNoSideEffects(Node callSite, ExecutableElement element, int line, int bci, PointerValue target, List<Value> arguments) {
         super(callSite, element, line, bci);
         this.target = target;
         this.arguments = arguments;
@@ -86,12 +86,12 @@ public final class CallNoSideEffects extends AbstractValue {
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
+    public boolean hasPointerValueDependency() {
         return true;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
+    public PointerValue getPointerValue() {
         return target;
     }
 
