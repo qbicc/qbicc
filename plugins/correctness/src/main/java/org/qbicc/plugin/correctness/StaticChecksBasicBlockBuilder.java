@@ -31,7 +31,7 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
 
     @Override
     public ValueHandle memberOf(ValueHandle structHandle, CompoundType.Member member) {
-        if (structHandle.getValueType() instanceof CompoundType) {
+        if (structHandle.getPointeeType() instanceof CompoundType) {
             return super.memberOf(structHandle, member);
         }
         ctxt.error(getLocation(), "`memberOf` handle must have structure type");
@@ -40,7 +40,7 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
 
     @Override
     public ValueHandle elementOf(ValueHandle array, Value index) {
-        if (array.getValueType() instanceof ArrayType || array.getValueType() instanceof ArrayObjectType) {
+        if (array.getPointeeType() instanceof ArrayType || array.getPointeeType() instanceof ArrayObjectType) {
             if (index.getType() instanceof UnsignedIntegerType uit) {
                 // try to extend it
                 Value extended = tryExtend(index, uit);

@@ -1548,7 +1548,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
         Memory memory = getMemory(valueHandle);
         long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
+        ValueType type = node.getValueHandle().getPointeeType();
         Value expect = node.getExpectedValue();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
@@ -1624,7 +1624,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
         Memory memory = getMemory(valueHandle);
         long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
+        ValueType type = node.getValueHandle().getPointeeType();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
         WriteAccessMode writeAccessMode = node.getWriteAccessMode();
@@ -1649,7 +1649,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
         Memory memory = getMemory(valueHandle);
         long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
+        ValueType type = node.getValueHandle().getPointeeType();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
         WriteAccessMode writeAccessMode = node.getWriteAccessMode();
@@ -1676,7 +1676,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
         Memory memory = getMemory(valueHandle);
         long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
+        ValueType type = node.getValueHandle().getPointeeType();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
         WriteAccessMode writeAccessMode = node.getWriteAccessMode();
@@ -1703,7 +1703,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
         Memory memory = getMemory(valueHandle);
         long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
+        ValueType type = node.getValueHandle().getPointeeType();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
         WriteAccessMode writeAccessMode = node.getWriteAccessMode();
@@ -1730,7 +1730,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
         Memory memory = getMemory(valueHandle);
         long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
+        ValueType type = node.getValueHandle().getPointeeType();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
         WriteAccessMode writeAccessMode = node.getWriteAccessMode();
@@ -1757,7 +1757,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
         Memory memory = getMemory(valueHandle);
         long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
+        ValueType type = node.getValueHandle().getPointeeType();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
         WriteAccessMode writeAccessMode = node.getWriteAccessMode();
@@ -1792,7 +1792,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
         Memory memory = getMemory(valueHandle);
         long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
+        ValueType type = node.getValueHandle().getPointeeType();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
         WriteAccessMode writeAccessMode = node.getWriteAccessMode();
@@ -1831,7 +1831,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
         Memory memory = getMemory(valueHandle);
         long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
+        ValueType type = node.getValueHandle().getPointeeType();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
         WriteAccessMode writeAccessMode = node.getWriteAccessMode();
@@ -1870,7 +1870,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
         Memory memory = getMemory(valueHandle);
         long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
+        ValueType type = node.getValueHandle().getPointeeType();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
         WriteAccessMode writeAccessMode = node.getWriteAccessMode();
@@ -1901,7 +1901,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
         }
         long offset = getOffset(valueHandle);
-        ValueType type = valueHandle.getValueType();
+        ValueType type = valueHandle.getPointeeType();
         ReadAccessMode mode = node.getAccessMode();
         if (isInt8(type)) {
             return Byte.valueOf((byte) memory.load8(offset, mode));
@@ -2096,7 +2096,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     void store(VmThreadImpl thread, final ValueHandle valueHandle, final Value value, final WriteAccessMode mode) {
         Memory memory = getMemory(valueHandle);
         long offset = getOffset(valueHandle);
-        ValueType type = valueHandle.getValueType();
+        ValueType type = valueHandle.getPointeeType();
         store(thread, memory, offset, type, value, mode);
     }
 
@@ -2540,7 +2540,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         public long visit(Frame frame, ElementOf node) {
             int index = frame.unboxInt(node.getIndex());
             ValueHandle delegate = node.getValueHandle();
-            ValueType delegateValueType = delegate.getValueType();
+            ValueType delegateValueType = delegate.getPointeeType();
             if (delegate instanceof ReferenceHandle) {
                 // array object access?
                 Value referenceValue = ((ReferenceHandle) delegate).getReferenceValue();
@@ -2609,7 +2609,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             }
             long offset = frame.unboxLong(node.getOffsetValue());
             // get the number of *bytes* to offset by, because the pointer's type might differ from the handle type
-            PointerType pointerType = node.getPointerType();
+            PointerType pointerType = node.getType();
             ValueType pointeeType = pointerType.getPointeeType();
             long byteOffset = offset * pointeeType.getSize();
             Pointer targetPointer = pointer.offsetInBytes(byteOffset, true);

@@ -97,13 +97,13 @@ public final class AsmHandle extends AbstractValueHandle {
     }
 
     @Override
-    public FunctionType getValueType() {
+    public FunctionType getPointeeType() {
         return type;
     }
 
     @Override
 
-    public PointerType getPointerType() {
+    public PointerType getType() {
         // not really allowed though
         return type.getPointer();
     }

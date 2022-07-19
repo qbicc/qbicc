@@ -17,7 +17,7 @@ public class ArrayLengthBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public ValueHandle lengthOf(ValueHandle array) {
-        ValueType arrayType = array.getValueType();
+        ValueType arrayType = array.getPointeeType();
         if (arrayType instanceof ArrayObjectType) {
             return instanceFieldOf(array, CoreClasses.get(ctxt).getArrayLengthField());
         }

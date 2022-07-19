@@ -659,7 +659,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
 
     public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         CompilationContext ctxt = getCurrentElement().getEnclosingType().getContext().getCompilationContext();
-        return asDependency(new CmpAndSwap(callSite, element, line, bci, CmpAndSwap.getResultType(ctxt, target.getValueType()), requireDependency(), target, expect, update, readMode, writeMode, strength));
+        return asDependency(new CmpAndSwap(callSite, element, line, bci, CmpAndSwap.getResultType(ctxt, target.getPointeeType()), requireDependency(), target, expect, update, readMode, writeMode, strength));
     }
 
     public Node store(ValueHandle handle, Value value, WriteAccessMode mode) {
@@ -729,7 +729,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         FieldElement exceptionField = ctxt.getExceptionField();
         ValueHandle handle = instanceFieldOf(referenceHandle(fb.notNull(thr)), exceptionField);
         LiteralFactory lf = ctxt.getLiteralFactory();
-        Value exceptionValue = notNull(getAndSet(handle, lf.zeroInitializerLiteralOfType(handle.getValueType()), SingleUnshared, SingleUnshared));
+        Value exceptionValue = notNull(getAndSet(handle, lf.zeroInitializerLiteralOfType(handle.getPointeeType()), SingleUnshared, SingleUnshared));
         BasicBlock sourceBlock = goto_(exceptionHandler.getHandler());
         exceptionHandler.enterHandler(from, sourceBlock, exceptionValue);
     }

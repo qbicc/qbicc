@@ -27,8 +27,8 @@ public final class FunctionElementHandle extends Executable {
     }
 
     @Override
-    public FunctionType getValueType() {
-        return (FunctionType) super.getValueType();
+    public FunctionType getPointeeType() {
+        return (FunctionType) super.getPointeeType();
     }
 
     @Override

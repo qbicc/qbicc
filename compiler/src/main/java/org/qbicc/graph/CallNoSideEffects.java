@@ -24,7 +24,7 @@ public final class CallNoSideEffects extends AbstractValue {
         super(callSite, element, line, bci);
         this.target = target;
         this.arguments = arguments;
-        calleeType = (InvokableType) target.getValueType();
+        calleeType = (InvokableType) target.getPointeeType();
     }
 
     @Override

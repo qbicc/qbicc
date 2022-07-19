@@ -481,7 +481,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private ValueHandle addressOfFirst(final ValueHandle input, final ValueType outputType) {
         // if the output type matches the first member or element of input, return its handle
-        if (input.getValueType() instanceof CompoundType ct && ct.getMemberCount() > 0) {
+        if (input.getPointeeType() instanceof CompoundType ct && ct.getMemberCount() > 0) {
             final CompoundType.Member memberZero = ct.getMember(0);
             if (memberZero.getOffset() == 0) {
                 ValueHandle nextHandle = memberOf(input, memberZero);
@@ -491,7 +491,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                     return addressOfFirst(nextHandle, outputType);
                 }
             }
-        } else if (input.getValueType() instanceof ArrayType at && at.getElementCount() > 0) {
+        } else if (input.getPointeeType() instanceof ArrayType at && at.getElementCount() > 0) {
             ValueHandle nextHandle = elementOf(input, ctxt.getLiteralFactory().literalOf(0));
             if (outputType.equals(at.getElementType())) {
                 return nextHandle;

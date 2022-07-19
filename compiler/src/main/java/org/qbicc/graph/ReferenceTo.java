@@ -14,7 +14,7 @@ public final class ReferenceTo extends AbstractValue {
     ReferenceTo(Node callSite, ExecutableElement element, int line, int bci, ValueHandle valueHandle) {
         super(callSite, element, line, bci);
         this.valueHandle = valueHandle;
-        ObjectType objectType = (ObjectType) valueHandle.getValueType();
+        ObjectType objectType = (ObjectType) valueHandle.getPointeeType();
         referenceType = objectType.getReference();
     }
 

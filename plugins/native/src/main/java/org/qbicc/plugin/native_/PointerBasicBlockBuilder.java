@@ -80,57 +80,57 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
-        return super.store(handle, castVoidPointer(value, handle.getValueType()), accessMode);
+        return super.store(handle, castVoidPointer(value, handle.getPointeeType()), accessMode);
     }
 
     @Override
     public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
-        return super.cmpAndSwap(target, castVoidPointer(expect, target.getValueType()), castVoidPointer(update, target.getValueType()), readMode, writeMode, strength);
+        return super.cmpAndSwap(target, castVoidPointer(expect, target.getPointeeType()), castVoidPointer(update, target.getPointeeType()), readMode, writeMode, strength);
     }
 
     @Override
     public Value getAndAdd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndAdd(target, castVoidPointer(update, target.getValueType()), readMode, writeMode);
+        return super.getAndAdd(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
     }
 
     @Override
     public Value getAndBitwiseAnd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndBitwiseAnd(target, castVoidPointer(update, target.getValueType()), readMode, writeMode);
+        return super.getAndBitwiseAnd(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
     }
 
     @Override
     public Value getAndBitwiseNand(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndBitwiseNand(target, castVoidPointer(update, target.getValueType()), readMode, writeMode);
+        return super.getAndBitwiseNand(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
     }
 
     @Override
     public Value getAndBitwiseOr(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndBitwiseOr(target, castVoidPointer(update, target.getValueType()), readMode, writeMode);
+        return super.getAndBitwiseOr(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
     }
 
     @Override
     public Value getAndBitwiseXor(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndBitwiseXor(target, castVoidPointer(update, target.getValueType()), readMode, writeMode);
+        return super.getAndBitwiseXor(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
     }
 
     @Override
     public Value getAndSet(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndSet(target, castVoidPointer(update, target.getValueType()), readMode, writeMode);
+        return super.getAndSet(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
     }
 
     @Override
     public Value getAndSetMax(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndSetMax(target, castVoidPointer(update, target.getValueType()), readMode, writeMode);
+        return super.getAndSetMax(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
     }
 
     @Override
     public Value getAndSetMin(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndSetMin(target, castVoidPointer(update, target.getValueType()), readMode, writeMode);
+        return super.getAndSetMin(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
     }
 
     @Override
     public Value getAndSub(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.getAndSub(target, castVoidPointer(update, target.getValueType()), readMode, writeMode);
+        return super.getAndSub(target, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
     }
 
     @Override

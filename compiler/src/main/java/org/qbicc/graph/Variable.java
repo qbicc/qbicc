@@ -42,7 +42,7 @@ public abstract class Variable extends AbstractValueHandle {
         return variableElement;
     }
 
-    public PointerType getPointerType() {
+    public PointerType getType() {
         return pointerType;
     }
 

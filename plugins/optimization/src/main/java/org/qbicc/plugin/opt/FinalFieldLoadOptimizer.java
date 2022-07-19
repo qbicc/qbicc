@@ -70,7 +70,7 @@ public class FinalFieldLoadOptimizer extends DelegatingBasicBlockBuilder {
                 } else if (desc.equals(BaseTypeDescriptor.D)) {
                     contents =  ctxt.getLiteralFactory().literalOf(mem.loadDouble(offset, SinglePlain));
                 } else {
-                   if (fh.getValueType() instanceof TypeType) {
+                   if (fh.getPointeeType() instanceof TypeType) {
                        ValueType tt = mem.loadType(offset, SinglePlain);
                        contents = ctxt.getLiteralFactory().literalOfType(tt);
                    } else {

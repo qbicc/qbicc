@@ -562,7 +562,7 @@ public interface Node {
             }
 
             public ValueHandle visit(final Copier param, final AsmHandle node) {
-                return param.getBlockBuilder().asm(node.getInstruction(), node.getConstraints(), node.getFlags(), node.getValueType());
+                return param.getBlockBuilder().asm(node.getInstruction(), node.getConstraints(), node.getFlags(), node.getPointeeType());
             }
 
             public ValueHandle visit(Copier param, ElementOf node) {

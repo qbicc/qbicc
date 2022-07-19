@@ -77,7 +77,7 @@ public final class PointerHandle extends AbstractValueHandle {
         return SinglePlain;
     }
 
-    public PointerType getPointerType() {
+    public PointerType getType() {
         return pointerType;
     }
 

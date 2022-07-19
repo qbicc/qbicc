@@ -338,7 +338,7 @@ final class CNativeIntrinsics {
             LiteralFactory lf = ctxt.getLiteralFactory();
             TypeSystem ts = ctxt.getTypeSystem();
             String content;
-            PointerType returnType = (PointerType) target.getValueType().getReturnType();
+            PointerType returnType = (PointerType) target.getPointeeType().getReturnType();
             if (arguments.get(0) instanceof StringLiteral sl) {
                 content = sl.getValue();
             } else if (arguments.get(0) instanceof ObjectLiteral ol && ol.getValue() instanceof VmString vs) {

@@ -30,7 +30,7 @@ public final class TailCall extends AbstractTerminator {
         this.terminatedBlock = new BasicBlock(blockEntry, this);
         this.target = target;
         this.arguments = arguments;
-        calleeType = (InvokableType) target.getValueType();
+        calleeType = (InvokableType) target.getPointeeType();
     }
 
     @Override

@@ -29,7 +29,7 @@ public final class InvokeNoReturn extends AbstractTerminator {
         this.target = target;
         this.arguments = arguments;
         this.catchLabel = catchLabel;
-        calleeType = (InvokableType) target.getValueType();
+        calleeType = (InvokableType) target.getPointeeType();
     }
 
     @Override

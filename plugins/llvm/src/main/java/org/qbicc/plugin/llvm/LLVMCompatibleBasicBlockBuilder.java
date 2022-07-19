@@ -240,14 +240,14 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             return super.load(handle, SingleUnshared);
         }
         // Break apart atomic structure and array loads
-        if (handle.getValueType() instanceof CompoundType ct) {
+        if (handle.getPointeeType() instanceof CompoundType ct) {
             LiteralFactory lf = ctxt.getLiteralFactory();
             Value res = lf.zeroInitializerLiteralOfType(ct);
             for (CompoundType.Member member : ct.getPaddedMembers()) {
                 res = insertMember(res, member, load(memberOf(handle, member), accessMode));
             }
             return res;
-        } else if (handle.getValueType() instanceof ArrayType at) {
+        } else if (handle.getPointeeType() instanceof ArrayType at) {
             long ec = at.getElementCount();
             LiteralFactory lf = ctxt.getLiteralFactory();
             if (ec < 16) {
@@ -289,7 +289,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
 
     @Override
     public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
-        if (handle.getValueType() instanceof BooleanType) {
+        if (handle.getPointeeType() instanceof BooleanType) {
             ctxt.error("Invalid boolean-typed handle %s", handle);
         }
         if (value.getType() instanceof BooleanType) {
@@ -306,12 +306,12 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             return store(handle, value, SingleUnshared);
         }
         // Break apart atomic structure and array stores
-        if (handle.getValueType() instanceof CompoundType ct) {
+        if (handle.getPointeeType() instanceof CompoundType ct) {
             for (CompoundType.Member member : ct.getPaddedMembers()) {
                 store(memberOf(handle, member), extractMember(value, member), accessMode);
             }
             return nop();
-        } else if (handle.getValueType() instanceof ArrayType at) {
+        } else if (handle.getPointeeType() instanceof ArrayType at) {
             long ec = at.getElementCount();
             LiteralFactory lf = ctxt.getLiteralFactory();
             if (ec < 16) {
@@ -342,7 +342,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     @Override
     public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         BasicBlockBuilder fb = getFirstBuilder();
-        CompoundType resultType = CmpAndSwap.getResultType(ctxt, target.getValueType());
+        CompoundType resultType = CmpAndSwap.getResultType(ctxt, target.getPointeeType());
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
         Value result;
@@ -707,7 +707,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     private static boolean isVoidFunction(ValueHandle target) {
-        FunctionType type = (FunctionType) target.getValueType();
+        FunctionType type = (FunctionType) target.getPointeeType();
         return type.getReturnType() instanceof VoidType;
     }
 }

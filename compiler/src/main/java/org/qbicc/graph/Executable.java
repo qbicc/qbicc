@@ -30,12 +30,12 @@ public abstract class Executable extends AbstractValueHandle {
     }
 
     @Override
-    public PointerType getPointerType() {
-        return getValueType().getPointer();
+    public PointerType getType() {
+        return getPointeeType().getPointer();
     }
 
     @Override
-    public InvokableType getValueType() {
+    public InvokableType getPointeeType() {
         return callSiteType;
     }
 

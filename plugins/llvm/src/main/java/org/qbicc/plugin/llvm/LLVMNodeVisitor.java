@@ -281,8 +281,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         map(node.getDependency());
         ValueHandle valueHandle = node.getValueHandle();
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        org.qbicc.machine.llvm.op.Store storeInsn = builder.store(map(valueHandle.getPointerType()), map(node.getValue()), map(node.getValue().getType()), ptr);
-        storeInsn.align(valueHandle.getValueType().getAlign());
+        org.qbicc.machine.llvm.op.Store storeInsn = builder.store(map(valueHandle.getType()), map(node.getValue()), map(node.getValue().getType()), ptr);
+        storeInsn.align(valueHandle.getPointeeType().getAlign());
         WriteAccessMode accessMode = node.getAccessMode();
         if (SingleUnshared.includes(accessMode)) {
             // do nothing; not atomic
@@ -609,7 +609,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         map(node.getDependency());
         ValueHandle valueHandle = node.getValueHandle();
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        org.qbicc.machine.llvm.op.Load loadInsn = builder.load(map(valueHandle.getPointerType()), map(valueHandle.getValueType()), ptr);
+        org.qbicc.machine.llvm.op.Load loadInsn = builder.load(map(valueHandle.getType()), map(valueHandle.getPointeeType()), ptr);
         loadInsn.align(node.getType().getAlign());
         ReadAccessMode accessMode = node.getAccessMode();
         if (SingleUnshared.includes(accessMode)) {
@@ -632,8 +632,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         map(node.getDependency());
         ValueHandle valueHandle = node.getValueHandle();
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).add();
-        insn.align(valueHandle.getValueType().getAlign());
+        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).add();
+        insn.align(valueHandle.getPointeeType().getAlign());
         insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.asLocal();
     }
@@ -642,8 +642,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         map(node.getDependency());
         ValueHandle valueHandle = node.getValueHandle();
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).and();
-        insn.align(valueHandle.getValueType().getAlign());
+        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).and();
+        insn.align(valueHandle.getPointeeType().getAlign());
         insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.asLocal();
     }
@@ -652,8 +652,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         map(node.getDependency());
         ValueHandle valueHandle = node.getValueHandle();
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).or();
-        insn.align(valueHandle.getValueType().getAlign());
+        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).or();
+        insn.align(valueHandle.getPointeeType().getAlign());
         insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.asLocal();
     }
@@ -662,8 +662,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         map(node.getDependency());
         ValueHandle valueHandle = node.getValueHandle();
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).xor();
-        insn.align(valueHandle.getValueType().getAlign());
+        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).xor();
+        insn.align(valueHandle.getPointeeType().getAlign());
         insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.asLocal();
     }
@@ -672,8 +672,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         map(node.getDependency());
         ValueHandle valueHandle = node.getValueHandle();
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getPointerType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).xchg();
-        insn.align(valueHandle.getValueType().getAlign());
+        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr).xchg();
+        insn.align(valueHandle.getPointeeType().getAlign());
         insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.asLocal();
     }
@@ -1308,7 +1308,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     }
 
     GetElementPtr gep(LLValue ptr, ValueHandle handle) {
-        PointerType pointerType = handle.getPointerType();
+        PointerType pointerType = handle.getType();
         ValueType pointeeType = pointerType.getPointeeType();
         return builder.getelementptr(pointeeType instanceof VoidType ? i8 : map(pointeeType), map(pointerType), ptr);
     }
@@ -1334,8 +1334,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     public LLValue visit(final Void param, final CmpAndSwap node) {
         map(node.getDependency());
         ValueHandle valueHandle = node.getValueHandle();
-        LLValue ptrType = map(valueHandle.getPointerType());
-        LLValue type = map(valueHandle.getValueType());
+        LLValue ptrType = map(valueHandle.getType());
+        LLValue type = map(valueHandle.getPointeeType());
         LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
         LLValue expect = map(node.getExpectedValue());
         LLValue update = map(node.getUpdateValue());

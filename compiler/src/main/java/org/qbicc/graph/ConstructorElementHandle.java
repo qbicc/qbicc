@@ -50,8 +50,8 @@ public final class ConstructorElementHandle extends Executable {
     }
 
     @Override
-    public InstanceMethodType getValueType() {
-        return (InstanceMethodType) super.getValueType();
+    public InstanceMethodType getPointeeType() {
+        return (InstanceMethodType) super.getPointeeType();
     }
 
     @Override
