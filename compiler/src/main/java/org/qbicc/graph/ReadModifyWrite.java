@@ -7,20 +7,22 @@ import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
-abstract class AbstractReadModifyWriteValue extends AbstractValue implements ReadModifyWriteValue, OrderedNode {
+public final class ReadModifyWrite extends AbstractValue implements ReadModifyWriteValue, OrderedNode {
     private final Node dependency;
     private final ValueHandle target;
     private final Value updateValue;
     private final ReadAccessMode readMode;
     private final WriteAccessMode writeMode;
+    private final Op op;
 
-    AbstractReadModifyWriteValue(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final ValueHandle target, final Value updateValue, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    ReadModifyWrite(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final ValueHandle target, Op op, final Value updateValue, ReadAccessMode readMode, WriteAccessMode writeMode) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.target = target;
         this.updateValue = updateValue;
         this.readMode = readMode;
         this.writeMode = writeMode;
+        this.op = op;
         if (! target.isWritable()) {
             throw new IllegalArgumentException("Handle is not writable");
         }
@@ -31,6 +33,10 @@ abstract class AbstractReadModifyWriteValue extends AbstractValue implements Rea
 
     public ValueType getType() {
         return updateValue.getType();
+    }
+
+    public Op getOp() {
+        return op;
     }
 
     public boolean isConstant() {
@@ -64,13 +70,20 @@ abstract class AbstractReadModifyWriteValue extends AbstractValue implements Rea
         return Objects.hash(getClass(), dependency, target, updateValue, readMode, writeMode);
     }
 
+    @Override
+    String getNodeName() {
+        return "ReadModifyWrite";
+    }
+
     public boolean equals(final Object other) {
-        return other instanceof AbstractReadModifyWriteValue && equals((AbstractReadModifyWriteValue) other);
+        return other instanceof ReadModifyWrite && equals((ReadModifyWrite) other);
     }
 
     @Override
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
+        b.append('.');
+        b.append(op);
         b.append('(');
         b.append(updateValue);
         b.append(',');
@@ -81,7 +94,7 @@ abstract class AbstractReadModifyWriteValue extends AbstractValue implements Rea
         return b;
     }
 
-    private boolean equals(final AbstractReadModifyWriteValue other) {
+    private boolean equals(final ReadModifyWrite other) {
         return this == other || other.getClass() == getClass() && dependency.equals(other.dependency) && target.equals(other.target)
             && updateValue.equals(other.updateValue) && readMode.equals(other.readMode) && writeMode.equals(other.writeMode);
     }
@@ -97,5 +110,28 @@ abstract class AbstractReadModifyWriteValue extends AbstractValue implements Rea
     @Override
     public boolean hasValueHandleDependency() {
         return true;
+    }
+
+    @Override
+    public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
+        return visitor.visit(param, this);
+    }
+
+    @Override
+    public <T> long accept(ValueVisitorLong<T> visitor, T param) {
+        return visitor.visit(param, this);
+    }
+
+    public enum Op {
+        SET,
+        ADD,
+        SUB,
+        BITWISE_AND,
+        BITWISE_NAND,
+        BITWISE_OR,
+        BITWISE_XOR,
+        MIN,
+        MAX,
+        ;
     }
 }

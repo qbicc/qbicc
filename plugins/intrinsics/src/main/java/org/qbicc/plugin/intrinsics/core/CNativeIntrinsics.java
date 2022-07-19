@@ -19,6 +19,7 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.MemberSelector;
+import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -682,12 +683,12 @@ final class CNativeIntrinsics {
         for (String name : List.of("Opaque", "Acquire", "Release", "")) {
             ReadAccessMode readMode = readModeMap.get(name);
             WriteAccessMode writeMode = writeModeMap.get(name);
-            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndSet(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(builder.pointerHandle(instance), ReadModifyWrite.Op.SET, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndSet" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
                 if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
-                    return builder.getAndSet(builder.pointerHandle(builder.bitCast(instance, pt)), arguments.get(1), readMode, writeMode);
+                    return builder.readModifyWrite(builder.pointerHandle(builder.bitCast(instance, pt)), ReadModifyWrite.Op.SET, arguments.get(1), readMode, writeMode);
                 } else {
                     ctxt.error(builder.getLocation(), "Pointee argument must be a class literal");
                     return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType());
@@ -701,12 +702,12 @@ final class CNativeIntrinsics {
         for (String name : List.of("Opaque", "Acquire", "Release", "")) {
             ReadAccessMode readMode = readModeMap.get(name);
             WriteAccessMode writeMode = writeModeMap.get(name);
-            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndSetMin(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(builder.pointerHandle(instance), ReadModifyWrite.Op.MIN, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndSetMin" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
                 if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
-                    return builder.getAndSetMin(builder.pointerHandle(builder.bitCast(instance, pt)), arguments.get(1), readMode, writeMode);
+                    return builder.readModifyWrite(builder.pointerHandle(builder.bitCast(instance, pt)), ReadModifyWrite.Op.MIN, arguments.get(1), readMode, writeMode);
                 } else {
                     ctxt.error(builder.getLocation(), "Pointee argument must be a class literal");
                     return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType());
@@ -720,12 +721,12 @@ final class CNativeIntrinsics {
         for (String name : List.of("Opaque", "Acquire", "Release", "")) {
             ReadAccessMode readMode = readModeMap.get(name);
             WriteAccessMode writeMode = writeModeMap.get(name);
-            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndSetMax(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(builder.pointerHandle(instance), ReadModifyWrite.Op.MAX, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndSetMax" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
                 if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
-                    return builder.getAndSetMax(builder.pointerHandle(builder.bitCast(instance, pt)), arguments.get(1), readMode, writeMode);
+                    return builder.readModifyWrite(builder.pointerHandle(builder.bitCast(instance, pt)), ReadModifyWrite.Op.MAX, arguments.get(1), readMode, writeMode);
                 } else {
                     ctxt.error(builder.getLocation(), "Pointee argument must be a class literal");
                     return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType());
@@ -739,12 +740,12 @@ final class CNativeIntrinsics {
         for (String name : List.of("Opaque", "Acquire", "Release", "")) {
             ReadAccessMode readMode = readModeMap.get(name);
             WriteAccessMode writeMode = writeModeMap.get(name);
-            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndAdd(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(builder.pointerHandle(instance), ReadModifyWrite.Op.ADD, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndAdd" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
                 if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
-                    return builder.getAndAdd(builder.pointerHandle(builder.bitCast(instance, pt)), arguments.get(1), readMode, writeMode);
+                    return builder.readModifyWrite(builder.pointerHandle(builder.bitCast(instance, pt)), ReadModifyWrite.Op.ADD, arguments.get(1), readMode, writeMode);
                 } else {
                     ctxt.error(builder.getLocation(), "Pointee argument must be a class literal");
                     return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType());
@@ -758,12 +759,12 @@ final class CNativeIntrinsics {
         for (String name : List.of("Opaque", "Acquire", "Release", "")) {
             ReadAccessMode readMode = readModeMap.get(name);
             WriteAccessMode writeMode = writeModeMap.get(name);
-            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndSub(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(builder.pointerHandle(instance), ReadModifyWrite.Op.SUB, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndSubtract" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
                 if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
-                    return builder.getAndSub(builder.pointerHandle(builder.bitCast(instance, pt)), arguments.get(1), readMode, writeMode);
+                    return builder.readModifyWrite(builder.pointerHandle(builder.bitCast(instance, pt)), ReadModifyWrite.Op.SUB, arguments.get(1), readMode, writeMode);
                 } else {
                     ctxt.error(builder.getLocation(), "Pointee argument must be a class literal");
                     return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType());
@@ -777,12 +778,12 @@ final class CNativeIntrinsics {
         for (String name : List.of("Opaque", "Acquire", "Release", "")) {
             ReadAccessMode readMode = readModeMap.get(name);
             WriteAccessMode writeMode = writeModeMap.get(name);
-            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndBitwiseAnd(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(builder.pointerHandle(instance), ReadModifyWrite.Op.BITWISE_AND, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndBitwiseAnd" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
                 if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
-                    return builder.getAndBitwiseAnd(builder.pointerHandle(builder.bitCast(instance, pt)), arguments.get(1), readMode, writeMode);
+                    return builder.readModifyWrite(builder.pointerHandle(builder.bitCast(instance, pt)), ReadModifyWrite.Op.BITWISE_AND, arguments.get(1), readMode, writeMode);
                 } else {
                     ctxt.error(builder.getLocation(), "Pointee argument must be a class literal");
                     return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType());
@@ -796,12 +797,12 @@ final class CNativeIntrinsics {
         for (String name : List.of("Opaque", "Acquire", "Release", "")) {
             ReadAccessMode readMode = readModeMap.get(name);
             WriteAccessMode writeMode = writeModeMap.get(name);
-            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndBitwiseOr(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(builder.pointerHandle(instance), ReadModifyWrite.Op.BITWISE_OR, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndBitwiseOr" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
                 if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
-                    return builder.getAndBitwiseOr(builder.pointerHandle(builder.bitCast(instance, pt)), arguments.get(1), readMode, writeMode);
+                    return builder.readModifyWrite(builder.pointerHandle(builder.bitCast(instance, pt)), ReadModifyWrite.Op.BITWISE_OR, arguments.get(1), readMode, writeMode);
                 } else {
                     ctxt.error(builder.getLocation(), "Pointee argument must be a class literal");
                     return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType());
@@ -815,12 +816,12 @@ final class CNativeIntrinsics {
         for (String name : List.of("Opaque", "Acquire", "Release", "")) {
             ReadAccessMode readMode = readModeMap.get(name);
             WriteAccessMode writeMode = writeModeMap.get(name);
-            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndBitwiseXor(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(builder.pointerHandle(instance), ReadModifyWrite.Op.BITWISE_XOR, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndBitwiseXor" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
                 if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
-                    return builder.getAndBitwiseXor(builder.pointerHandle(builder.bitCast(instance, pt)), arguments.get(1), readMode, writeMode);
+                    return builder.readModifyWrite(builder.pointerHandle(builder.bitCast(instance, pt)), ReadModifyWrite.Op.BITWISE_XOR, arguments.get(1), readMode, writeMode);
                 } else {
                     ctxt.error(builder.getLocation(), "Pointee argument must be a class literal");
                     return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType());
@@ -834,12 +835,12 @@ final class CNativeIntrinsics {
         for (String name : List.of("Opaque", "Acquire", "Release", "")) {
             ReadAccessMode readMode = readModeMap.get(name);
             WriteAccessMode writeMode = writeModeMap.get(name);
-            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.getAndBitwiseNand(builder.pointerHandle(instance), arguments.get(0), readMode, writeMode);
+            InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(builder.pointerHandle(instance), ReadModifyWrite.Op.BITWISE_NAND, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndBitwiseNand" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
                 if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
-                    return builder.getAndBitwiseNand(builder.pointerHandle(builder.bitCast(instance, pt)), arguments.get(1), readMode, writeMode);
+                    return builder.readModifyWrite(builder.pointerHandle(builder.bitCast(instance, pt)), ReadModifyWrite.Op.BITWISE_NAND, arguments.get(1), readMode, writeMode);
                 } else {
                     ctxt.error(builder.getLocation(), "Pointee argument must be a class literal");
                     return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType());

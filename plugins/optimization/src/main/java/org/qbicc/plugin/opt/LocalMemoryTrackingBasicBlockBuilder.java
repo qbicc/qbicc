@@ -15,6 +15,7 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.MemberOf;
 import org.qbicc.graph.Node;
+import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
@@ -67,57 +68,9 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value getAndAdd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.getAndAdd(target, update, readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndBitwiseAnd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        knownValues.clear();
-        return super.getAndBitwiseAnd(target, update, readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndBitwiseNand(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        knownValues.clear();
-        return super.getAndBitwiseNand(target, update, readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndBitwiseOr(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        knownValues.clear();
-        return super.getAndBitwiseOr(target, update, readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndBitwiseXor(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        knownValues.clear();
-        return super.getAndBitwiseXor(target, update, readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndSet(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        knownValues.clear();
-        return super.getAndSet(target, update, readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndSetMax(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        knownValues.clear();
-        return super.getAndSetMax(target, update, readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndSetMin(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        knownValues.clear();
-        return super.getAndSetMin(target, update, readMode, writeMode);
-    }
-
-    @Override
-    public Value getAndSub(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        knownValues.clear();
-        return super.getAndSub(target, update, readMode, writeMode);
+        return super.readModifyWrite(target, op, update, readMode, writeMode);
     }
 
     @Override
