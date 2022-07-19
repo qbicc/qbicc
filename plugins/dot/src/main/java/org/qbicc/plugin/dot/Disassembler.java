@@ -67,7 +67,6 @@ import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
 import org.qbicc.graph.InitCheck;
-import org.qbicc.graph.InitializerHandle;
 import org.qbicc.graph.InsertElement;
 import org.qbicc.graph.InsertMember;
 import org.qbicc.graph.InstanceFieldOf;
@@ -1265,14 +1264,6 @@ public final class Disassembler {
         public Void visit(Disassembler param, GlobalVariable node) {
             final String id = param.nextId();
             final String description = node.getVariableElement().getName();
-            param.nodeInfo.put(node, new NodeInfo(id, description));
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, InitializerHandle node) {
-            final String id = param.nextId();
-            final String description = node.getExecutable().toString();
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }

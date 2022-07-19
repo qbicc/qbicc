@@ -418,8 +418,6 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle functionOf(FunctionElement function);
 
-    ValueHandle initializerOf(InitializerElement initializer);
-
     ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type);
 
     // memory

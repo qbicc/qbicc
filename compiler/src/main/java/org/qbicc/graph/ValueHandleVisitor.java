@@ -36,10 +36,6 @@ public interface ValueHandleVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
-    default R visit(T t, InitializerHandle node) {
-        return visitUnknown(t, node);
-    }
-
     default R visit(T t, InstanceFieldOf node) {
         return visitUnknown(t, node);
     }
@@ -120,11 +116,6 @@ public interface ValueHandleVisitor<T, R> {
 
         @Override
         default R visit(T t, GlobalVariable node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default R visit(T t, InitializerHandle node) {
             return getDelegateValueHandleVisitor().visit(t, node);
         }
 
