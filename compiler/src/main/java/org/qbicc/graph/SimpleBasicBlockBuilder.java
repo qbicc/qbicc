@@ -517,10 +517,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new FunctionElementHandle(element, line, bci, function);
     }
 
-    public ValueHandle initializerOf(InitializerElement initializer) {
-        return new InitializerHandle(element, line, bci, initializer, MethodDescriptor.VOID_METHOD_DESCRIPTOR, typeSystem.getStaticMethodType(typeSystem.getVoidType(), List.of()));
-    }
-
     public ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type) {
         return new AsmHandle(callSite, element, line, bci, instruction, constraints, flags, type);
     }

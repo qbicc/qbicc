@@ -60,7 +60,6 @@ import org.qbicc.graph.GetAndSub;
 import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
-import org.qbicc.graph.InitializerHandle;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.InstanceOf;
 import org.qbicc.graph.InterfaceMethodElementHandle;
@@ -2330,11 +2329,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public ExecutableElement visit(Frame param, GlobalVariable node) {
-            throw unsatisfiedLink();
-        }
-
-        @Override
-        public ExecutableElement visit(Frame param, InitializerHandle node) {
             throw unsatisfiedLink();
         }
 

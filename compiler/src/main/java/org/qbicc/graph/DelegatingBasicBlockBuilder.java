@@ -218,10 +218,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().functionOf(function);
     }
 
-    public ValueHandle initializerOf(InitializerElement initializer) {
-        return getDelegate().initializerOf(initializer);
-    }
-
     public ValueHandle asm(final String instruction, final String constraints, final Set<AsmHandle.Flag> flags, FunctionType type) {
         return getDelegate().asm(instruction, constraints, flags, type);
     }
