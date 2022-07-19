@@ -1206,7 +1206,7 @@ public final class Reflection {
                     Value instance = bbb.addParam(entryLabel, Slot.funcParam(0), e.getEnclosingType().load().getObjectType().getReference());
                     // load the field value
                     ReadAccessMode mode = element.isVolatile() ? GlobalSeqCst : SinglePlain;
-                    value = bbb.load(bbb.instanceFieldOf(bbb.referenceHandle(instance), element), mode);
+                    value = bbb.load(bbb.instanceFieldOf(bbb.decodeReference(instance), element), mode);
                 } else {
                     assert kind == MethodHandleKind.GET_STATIC;
                     // no instance, no structure
@@ -1268,7 +1268,7 @@ public final class Reflection {
                 if (kind == MethodHandleKind.PUT_FIELD) {
                     Value instance = bbb.addParam(entryLabel, Slot.funcParam(0), element.getEnclosingType().load().getObjectType().getReference());
                     WriteAccessMode mode = element.isVolatile() ? GlobalSeqCst : SinglePlain;
-                    bbb.store(bbb.instanceFieldOf(bbb.referenceHandle(instance), element), value, mode);
+                    bbb.store(bbb.instanceFieldOf(bbb.decodeReference(instance), element), value, mode);
                 } else {
                     assert kind == MethodHandleKind.PUT_STATIC;
                     WriteAccessMode mode = element.isVolatile() ? GlobalSeqCst : SinglePlain;

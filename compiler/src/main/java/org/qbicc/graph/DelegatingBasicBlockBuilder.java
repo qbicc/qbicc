@@ -148,12 +148,12 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().unsafeHandle(base, offset, outputType);
     }
 
-    public PointerValue pointerHandle(Value pointer, Value offsetValue) {
-        return getDelegate().pointerHandle(pointer, offsetValue);
+    public PointerValue offsetPointer(Value pointer, Value offsetValue) {
+        return getDelegate().offsetPointer(pointer, offsetValue);
     }
 
-    public PointerValue referenceHandle(Value reference) {
-        return getDelegate().referenceHandle(reference);
+    public PointerValue decodeReference(Value reference) {
+        return getDelegate().decodeReference(reference);
     }
 
     public PointerValue instanceFieldOf(PointerValue instance, FieldElement field) {
@@ -232,8 +232,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().addressOf(handle);
     }
 
-    public Value referenceTo(PointerValue handle) throws IllegalArgumentException {
-        return getDelegate().referenceTo(handle);
+    public Value encodeReference(PointerValue handle) throws IllegalArgumentException {
+        return getDelegate().encodeReference(handle);
     }
 
     public Value stackAllocate(final ValueType type, final Value count, final Value align) {

@@ -171,7 +171,7 @@ public final class LLVMIntrinsics {
             LiteralFactory lf = ctxt.getLiteralFactory();
             FunctionType fnType = ts.getFunctionType(ts.getSignedInteger32Type(), ts.getFloat32Type());
             FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i32.f32", fnType);
-            return builder.getFirstBuilder().callNoSideEffects(builder.pointerHandle(lf.literalOf(decl)), arguments);
+            return builder.getFirstBuilder().callNoSideEffects(builder.pointerValueOf(lf.literalOf(decl)), arguments);
         };
 
         intrinsics.registerIntrinsic(cNativeDesc, "floatToInt1", floatToInt, floatToInt1);
@@ -181,7 +181,7 @@ public final class LLVMIntrinsics {
             LiteralFactory lf = ctxt.getLiteralFactory();
             FunctionType fnType = ts.getFunctionType(ts.getSignedInteger64Type(), ts.getFloat32Type());
             FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i64.f32", fnType);
-            return builder.getFirstBuilder().callNoSideEffects(builder.pointerHandle(lf.literalOf(decl)), arguments);
+            return builder.getFirstBuilder().callNoSideEffects(builder.pointerValueOf(lf.literalOf(decl)), arguments);
         };
 
         intrinsics.registerIntrinsic(cNativeDesc, "floatToLong1", floatToLong, floatToLong1);
@@ -191,7 +191,7 @@ public final class LLVMIntrinsics {
             LiteralFactory lf = ctxt.getLiteralFactory();
             FunctionType fnType = ts.getFunctionType(ts.getSignedInteger32Type(), ts.getFloat64Type());
             FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i32.f64", fnType);
-            return builder.getFirstBuilder().callNoSideEffects(builder.pointerHandle(lf.literalOf(decl)), arguments);
+            return builder.getFirstBuilder().callNoSideEffects(builder.pointerValueOf(lf.literalOf(decl)), arguments);
         };
 
         intrinsics.registerIntrinsic(cNativeDesc, "doubleToInt1", doubleToInt, doubleToInt1);
@@ -201,7 +201,7 @@ public final class LLVMIntrinsics {
             LiteralFactory lf = ctxt.getLiteralFactory();
             FunctionType fnType = ts.getFunctionType(ts.getSignedInteger64Type(), ts.getFloat64Type());
             FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i64.f64", fnType);
-            return builder.getFirstBuilder().callNoSideEffects(builder.pointerHandle(lf.literalOf(decl)), arguments);
+            return builder.getFirstBuilder().callNoSideEffects(builder.pointerValueOf(lf.literalOf(decl)), arguments);
         };
 
         intrinsics.registerIntrinsic(cNativeDesc, "doubleToLong1", doubleToLong, doubleToLong1);

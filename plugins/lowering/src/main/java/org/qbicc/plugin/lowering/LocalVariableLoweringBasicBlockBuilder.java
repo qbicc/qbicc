@@ -89,6 +89,6 @@ public final class LocalVariableLoweringBasicBlockBuilder extends DelegatingBasi
         if (pointer == null) {
             throw new NoSuchElementException();
         }
-        return pointerHandle(pointer);
+        return pointerValueOf(pointer);
     }
 }

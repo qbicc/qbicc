@@ -31,15 +31,15 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     }
 
     @Override
-    public PointerValue pointerHandle(Value pointer, Value offsetValue) {
+    public PointerValue offsetPointer(Value pointer, Value offsetValue) {
         BasicBlockBuilder fb = getFirstBuilder();
         PointerType pointerType = (PointerType) pointer.getType();
         if (pointerType.getPointeeType() instanceof PhysicalObjectType pot) {
             Layout layout = Layout.get(ctxt);
             LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
-            return fb.pointerHandle(fb.valueConvert(pointer, info.getCompoundType().getPointer()));
+            return fb.pointerValueOf(fb.valueConvert(pointer, info.getCompoundType().getPointer()));
         }
-        return getDelegate().pointerHandle(pointer, offsetValue);
+        return getDelegate().offsetPointer(pointer, offsetValue);
     }
 
     @Override
@@ -83,7 +83,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     }
 
     @Override
-    public PointerValue referenceHandle(Value reference) {
+    public PointerValue decodeReference(Value reference) {
         BasicBlockBuilder fb = getFirstBuilder();
         // convert reference to pointer
         Layout layout = Layout.get(ctxt);
@@ -97,7 +97,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
         } else {
             info = layout.getInstanceLayoutInfo(upperBound.getDefinition());
         }
-        return fb.pointerHandle(fb.valueConvert(reference, info.getCompoundType().getPointer()));
+        return fb.pointerValueOf(fb.valueConvert(reference, info.getCompoundType().getPointer()));
     }
 
     @Override
@@ -112,7 +112,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     public PointerValue unsafeHandle(PointerValue base, Value offset, ValueType outputType) {
         BasicBlockBuilder fb = getFirstBuilder();
         UnsignedIntegerType u8 = ctxt.getTypeSystem().getUnsignedInteger8Type();
-        PointerValue pointerValue = fb.pointerHandle(fb.bitCast(fb.addressOf(base), u8.getPointer()), offset);
-        return fb.pointerHandle(fb.bitCast(fb.addressOf(pointerValue), outputType.getPointer()));
+        PointerValue pointerValue = fb.offsetPointer(fb.bitCast(fb.addressOf(base), u8.getPointer()), offset);
+        return fb.pointerValueOf(fb.bitCast(fb.addressOf(pointerValue), outputType.getPointer()));
     }
 }

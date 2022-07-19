@@ -289,7 +289,7 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
         }
 
         Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate, final List<Value> arguments, final PointerValue target, final Function<Value, BasicBlock> onReturn, final BlockLabel catchLabel, final boolean alwaysInline) {
-            this(delegate, arguments, target.hasPointerValueDependency() ? referenceTo(target.getPointerValue()) : null, onReturn, catchLabel, alwaysInline);
+            this(delegate, arguments, target.hasPointerValueDependency() ? encodeReference(target.getPointerValue()) : null, onReturn, catchLabel, alwaysInline);
         }
 
         Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate, final List<Value> arguments, final Value this_, final Function<Value, BasicBlock> onReturn, final BlockLabel catchLabel, final boolean alwaysInline) {

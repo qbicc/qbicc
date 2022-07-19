@@ -35,7 +35,7 @@ public class InitCheckLoweringBasicBlockBuilder extends DelegatingBasicBlockBuil
 
         final BlockLabel callInit = new BlockLabel();
         final BlockLabel goAhead = new BlockLabel();
-        Value done = load(getFirstBuilder().instanceFieldOf(referenceHandle(initThunk), run.getEnclosingType().load().findField("done")), GlobalAcquire);
+        Value done = load(getFirstBuilder().instanceFieldOf(decodeReference(initThunk), run.getEnclosingType().load().findField("done")), GlobalAcquire);
         if_(isNe(done, lf.literalOf(ctxt.getTypeSystem().getSignedInteger8Type(), 0)), goAhead, callInit, Map.of());
         try {
             begin(callInit);

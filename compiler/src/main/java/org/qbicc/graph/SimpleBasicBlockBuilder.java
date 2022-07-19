@@ -459,11 +459,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return new UnsafeHandle(callSite, element, line, bci, base, offset, outputType);
     }
 
-    public PointerValue pointerHandle(Value pointer, Value offsetValue) {
+    public PointerValue offsetPointer(Value pointer, Value offsetValue) {
         return new PointerHandle(callSite, element, line, bci, pointer, offsetValue);
     }
 
-    public PointerValue referenceHandle(Value reference) {
+    public PointerValue decodeReference(Value reference) {
         return new ReferenceHandle(callSite, element, line, bci, reference);
     }
 
@@ -543,7 +543,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return new AddressOf(callSite, element, line, bci, handle);
     }
 
-    public Value referenceTo(PointerValue handle) throws IllegalArgumentException {
+    public Value encodeReference(PointerValue handle) throws IllegalArgumentException {
         return new ReferenceTo(callSite, element, line, bci, handle);
     }
 

@@ -248,9 +248,9 @@ public final class ReflectionIntrinsics {
             TypeSystem ts = ctxt.getTypeSystem();
             Reflection reflection = Reflection.get(ctxt);
             BasicBlockBuilder fb = builder.getFirstBuilder();
-            Value lambdaForm = fb.load(fb.instanceFieldOf(fb.referenceHandle(instance), reflection.methodHandleLambdaFormField));
-            Value memberName = fb.load(fb.instanceFieldOf(fb.referenceHandle(lambdaForm), reflection.lambdaFormMemberNameField));
-            Value methodPtr = fb.load(fb.instanceFieldOf(fb.referenceHandle(memberName), reflection.memberNameExactDispatcherField));
+            Value lambdaForm = fb.load(fb.instanceFieldOf(fb.decodeReference(instance), reflection.methodHandleLambdaFormField));
+            Value memberName = fb.load(fb.instanceFieldOf(fb.decodeReference(lambdaForm), reflection.lambdaFormMemberNameField));
+            Value methodPtr = fb.load(fb.instanceFieldOf(fb.decodeReference(memberName), reflection.memberNameExactDispatcherField));
             // pass the method handle to the lambda form
             ArrayList<Value> newArgs = new ArrayList<>(arguments.size() + 1);
             newArgs.add(instance);
@@ -261,7 +261,7 @@ public final class ReflectionIntrinsics {
             StaticMethodType dispatcherType = ts.getStaticMethodType(methodType.getReturnType(), parameterTypes).withFirstParameterType(methodType.getReceiverType());
             // cast to the matching static method pointer type for this particular helper shape
             Value castMethodPtr = fb.bitCast(methodPtr, dispatcherType.getPointer());
-            throw new BlockEarlyTermination(fb.tailCall(fb.pointerHandle(castMethodPtr), newArgs));
+            throw new BlockEarlyTermination(fb.tailCall(fb.pointerValueOf(castMethodPtr), newArgs));
         };
         patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "invokeBasic", objArrayToObj, new InstanceIntrinsicMethodBodyFactory(invokeBasicMethodBody), 0);
 
@@ -304,11 +304,11 @@ public final class ReflectionIntrinsics {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             int lastArg = arguments.size() - 1;
             Value memberName = arguments.get(lastArg);
-            Value methodPtr = fb.load(fb.instanceFieldOf(fb.referenceHandle(memberName), reflection.memberNameExactDispatcherField));
+            Value methodPtr = fb.load(fb.instanceFieldOf(fb.decodeReference(memberName), reflection.memberNameExactDispatcherField));
             StaticMethodType methodType = (StaticMethodType) target.getExecutable().getType();
             // cast to the matching static method pointer type for this particular shape
             Value castMethodPtr = fb.bitCast(methodPtr, methodType.trimLastParameter().getPointer());
-            throw new BlockEarlyTermination(fb.tailCall(fb.pointerHandle(castMethodPtr), arguments.subList(0, lastArg)));
+            throw new BlockEarlyTermination(fb.tailCall(fb.pointerValueOf(castMethodPtr), arguments.subList(0, lastArg)));
         };
         patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "linkToStatic", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToStaticMethodBody), 0);
 
@@ -351,11 +351,11 @@ public final class ReflectionIntrinsics {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             int lastArg = arguments.size() - 1;
             Value memberName = arguments.get(lastArg);
-            Value methodPtr = fb.load(fb.instanceFieldOf(fb.referenceHandle(memberName), reflection.memberNameExactDispatcherField));
+            Value methodPtr = fb.load(fb.instanceFieldOf(fb.decodeReference(memberName), reflection.memberNameExactDispatcherField));
             StaticMethodType methodType = (StaticMethodType) target.getExecutable().getType();
             // cast to the matching static helper method pointer type for this particular shape
             Value castMethodPtr = fb.bitCast(methodPtr, methodType.trimLastParameter().getPointer());
-            throw new BlockEarlyTermination(fb.tailCall(fb.pointerHandle(castMethodPtr), arguments.subList(0, lastArg)));
+            throw new BlockEarlyTermination(fb.tailCall(fb.pointerValueOf(castMethodPtr), arguments.subList(0, lastArg)));
         };
         patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "linkToInterface", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToInterfaceMethodBody), 0);
 
@@ -396,11 +396,11 @@ public final class ReflectionIntrinsics {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             int lastArg = arguments.size() - 1;
             Value memberName = arguments.get(lastArg);
-            Value methodPtr = fb.load(fb.instanceFieldOf(fb.referenceHandle(memberName), reflection.memberNameExactDispatcherField));
+            Value methodPtr = fb.load(fb.instanceFieldOf(fb.decodeReference(memberName), reflection.memberNameExactDispatcherField));
             StaticMethodType methodType = (StaticMethodType) target.getExecutable().getType();
             // cast to the matching static helper method pointer type for this particular shape
             Value castMethodPtr = fb.bitCast(methodPtr, methodType.trimLastParameter().getPointer());
-            throw new BlockEarlyTermination(fb.tailCall(fb.pointerHandle(castMethodPtr), arguments.subList(0, lastArg)));
+            throw new BlockEarlyTermination(fb.tailCall(fb.pointerValueOf(castMethodPtr), arguments.subList(0, lastArg)));
         };
         patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "linkToSpecial", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToSpecialMethodBody), 0);
 
@@ -441,11 +441,11 @@ public final class ReflectionIntrinsics {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             int lastArg = arguments.size() - 1;
             Value memberName = arguments.get(lastArg);
-            Value methodPtr = fb.load(fb.instanceFieldOf(fb.referenceHandle(memberName), reflection.memberNameExactDispatcherField));
+            Value methodPtr = fb.load(fb.instanceFieldOf(fb.decodeReference(memberName), reflection.memberNameExactDispatcherField));
             StaticMethodType methodType = (StaticMethodType) target.getExecutable().getType();
             // cast to the matching static helper method pointer type for this particular shape
             Value castMethodPtr = fb.bitCast(methodPtr, methodType.trimLastParameter().getPointer());
-            throw new BlockEarlyTermination(fb.tailCall(fb.pointerHandle(castMethodPtr), arguments.subList(0, lastArg)));
+            throw new BlockEarlyTermination(fb.tailCall(fb.pointerValueOf(castMethodPtr), arguments.subList(0, lastArg)));
         };
         patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "linkToVirtual", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToVirtualMethodBody), 0);
 

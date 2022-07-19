@@ -471,7 +471,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             // pointer to struct/array -> pointer to first member/element
             if (inPtrType.getPointeeType() instanceof CompoundType) {
                 final IntegerLiteral z = ctxt.getLiteralFactory().literalOf(0);
-                PointerValue outVal = addressOfFirst(pointerHandle(input, z), outPtrType.getPointeeType());
+                PointerValue outVal = addressOfFirst(this.offsetPointer(input, z), outPtrType.getPointeeType());
                 if (outVal != null) {
                     return addressOf(outVal);
                 }
@@ -646,16 +646,16 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public PointerValue pointerHandle(Value pointer, Value offsetValue) {
+    public PointerValue offsetPointer(Value pointer, Value offsetValue) {
         if (pointer instanceof AddressOf) {
             if (isZero(offsetValue)) {
                 return pointer.getPointerValue();
             } else if (pointer.getPointerValue() instanceof PointerHandle ph) {
                 // merge the offset value
-                return pointerHandle(ph.getBaseValue(), add(ph.getOffsetValue(), offsetValue));
+                return this.offsetPointer(ph.getBaseValue(), add(ph.getOffsetValue(), offsetValue));
             }
         }
-        return super.pointerHandle(pointer, offsetValue);
+        return super.offsetPointer(pointer, offsetValue);
     }
 
     private static boolean isAlwaysNull(final Value value) {

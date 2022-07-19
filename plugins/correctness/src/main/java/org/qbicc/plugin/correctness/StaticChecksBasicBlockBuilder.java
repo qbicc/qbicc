@@ -66,7 +66,7 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
-    public PointerValue pointerHandle(Value pointer, Value offsetValue) {
+    public PointerValue offsetPointer(Value pointer, Value offsetValue) {
         if (pointer.getType() instanceof PointerType) {
             if (offsetValue.getType() instanceof UnsignedIntegerType uit) {
                 // try to extend it
@@ -78,7 +78,7 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
                 }
                 // recoverable
             }
-            return super.pointerHandle(pointer, offsetValue);
+            return super.offsetPointer(pointer, offsetValue);
         }
         ctxt.error(getLocation(), "`pointerHandle` value must have pointer type");
         throw new BlockEarlyTermination(unreachable());

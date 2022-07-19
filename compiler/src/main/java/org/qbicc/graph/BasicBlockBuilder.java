@@ -401,7 +401,7 @@ public interface BasicBlockBuilder extends Locatable {
      */
     Value selectMember(PointerValue handle);
 
-    // memory handles
+    // pointer values
 
     /**
      * A handle to the current thread.  The handle's value type is always assignable to a reference to {@code java.lang.Thread}.
@@ -419,7 +419,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     PointerValue unsafeHandle(PointerValue base, Value offset, ValueType outputType);
 
-    PointerValue pointerHandle(Value pointer, Value offsetValue);
+    PointerValue offsetPointer(Value pointer, Value offsetValue);
 
     /**
      * Convenience method to construct a pointer handle with a zero offset.
@@ -428,11 +428,11 @@ public interface BasicBlockBuilder extends Locatable {
      * @param pointer the pointer value (must not be {@code null})
      * @return the zero-offset pointer handle (must not be {@code null})
      */
-    default PointerValue pointerHandle(Value pointer) {
-        return pointerHandle(pointer, getCurrentElement().getEnclosingType().getContext().getLiteralFactory().literalOf(0));
+    default PointerValue pointerValueOf(Value pointer) {
+        return pointer instanceof PointerValue pv ? pv : offsetPointer(pointer, getCurrentElement().getEnclosingType().getContext().getLiteralFactory().literalOf(0));
     }
 
-    PointerValue referenceHandle(Value reference);
+    PointerValue decodeReference(Value reference);
 
     PointerValue instanceFieldOf(PointerValue instance, FieldElement field);
 
@@ -541,7 +541,7 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the reference value (not {@code null})
      * @throws IllegalArgumentException if the value handle does not refer to something that can be referenced
      */
-    Value referenceTo(PointerValue handle) throws IllegalArgumentException;
+    Value encodeReference(PointerValue handle) throws IllegalArgumentException;
 
     Value stackAllocate(ValueType type, Value count, Value align);
 

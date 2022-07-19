@@ -632,9 +632,9 @@ final class MethodParser {
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = gf.extractElement(v1, v2);
                         } else if (v1.getType() instanceof PointerType) {
-                            v1 = gf.load(gf.pointerHandle(v1, v2), SingleUnshared);
+                            v1 = gf.load(gf.offsetPointer(v1, v2), SingleUnshared);
                         } else {
-                            v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2));
+                            v1 = gf.load(gf.elementOf(gf.decodeReference(v1), v2));
                         }
                         push1(v1);
                         break;
@@ -648,9 +648,9 @@ final class MethodParser {
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = gf.extractElement(v1, v2);
                         } else if (v1.getType() instanceof PointerType) {
-                            v1 = gf.load(gf.pointerHandle(v1, v2), SingleUnshared);
+                            v1 = gf.load(gf.offsetPointer(v1, v2), SingleUnshared);
                         } else {
-                            v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2));
+                            v1 = gf.load(gf.elementOf(gf.decodeReference(v1), v2));
                         }
                         push2(v1);
                         break;
@@ -667,9 +667,9 @@ final class MethodParser {
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = promote(gf.extractElement(v1, v2));
                         } else if (v1.getType() instanceof PointerType) {
-                            v1 = promote(gf.load(gf.pointerHandle(v1, v2), SingleUnshared));
+                            v1 = promote(gf.load(gf.offsetPointer(v1, v2), SingleUnshared));
                         } else {
-                            v1 = promote(gf.load(gf.elementOf(gf.referenceHandle(v1), v2)));
+                            v1 = promote(gf.load(gf.elementOf(gf.decodeReference(v1), v2)));
                         }
                         push1(v1);
                         break;
@@ -724,9 +724,9 @@ final class MethodParser {
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
-                            gf.store(gf.pointerHandle(v1, v2), v3, SingleUnshared);
+                            gf.store(gf.offsetPointer(v1, v2), v3, SingleUnshared);
                         } else {
-                            gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3);
+                            gf.store(gf.elementOf(gf.decodeReference(v1), v2), v3);
                             if (v1.getType() instanceof ReferenceType) {
                                 replaceAll(v1, gf.notNull(v1));
                             }
@@ -741,9 +741,9 @@ final class MethodParser {
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
-                            gf.store(gf.pointerHandle(v1, v2), v3, SingleUnshared);
+                            gf.store(gf.offsetPointer(v1, v2), v3, SingleUnshared);
                         } else {
-                            gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3);
+                            gf.store(gf.elementOf(gf.decodeReference(v1), v2), v3);
                             if (v1.getType() instanceof ReferenceType) {
                                 replaceAll(v1, gf.notNull(v1));
                             }
@@ -758,9 +758,9 @@ final class MethodParser {
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
-                            gf.store(gf.pointerHandle(v1, v2), v3, SingleUnshared);
+                            gf.store(gf.offsetPointer(v1, v2), v3, SingleUnshared);
                         } else {
-                            gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3);
+                            gf.store(gf.elementOf(gf.decodeReference(v1), v2), v3);
                             if (v1.getType() instanceof ReferenceType) {
                                 replaceAll(v1, gf.notNull(v1));
                             }
@@ -775,9 +775,9 @@ final class MethodParser {
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
-                            gf.store(gf.pointerHandle(v1, v2), v3, SingleUnshared);
+                            gf.store(gf.offsetPointer(v1, v2), v3, SingleUnshared);
                         } else {
-                            gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3);
+                            gf.store(gf.elementOf(gf.decodeReference(v1), v2), v3);
                             if (v1.getType() instanceof ReferenceType) {
                                 replaceAll(v1, gf.notNull(v1));
                             }
@@ -793,9 +793,9 @@ final class MethodParser {
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
-                            gf.store(gf.pointerHandle(v1, v2), v3, SingleUnshared);
+                            gf.store(gf.offsetPointer(v1, v2), v3, SingleUnshared);
                         } else {
-                            gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3);
+                            gf.store(gf.elementOf(gf.decodeReference(v1), v2), v3);
                             if (v1.getType() instanceof ReferenceType) {
                                 replaceAll(v1, gf.notNull(v1));
                             }
@@ -1401,7 +1401,7 @@ final class MethodParser {
                             final CompoundType.Member member = ct.getMember(name);
                             push(promote(gf.extractMember(v1, member)), desc.isClass2());
                         } else {
-                            PointerValue handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
+                            PointerValue handle = gf.instanceFieldOf(gf.decodeReference(v1), owner, name, desc);
                             Value value = promote(gf.load(handle, handle.getDetectedMode().getReadAccess()), desc);
                             push(value, desc.isClass2());
                             if (v1.getType() instanceof ReferenceType) {
@@ -1433,7 +1433,7 @@ final class MethodParser {
                             final CompoundType.Member member = ct.getMember(name);
                             replaceAll(v1, gf.insertMember(v1, member, storeTruncate(v2, desc)));
                         } else {
-                            PointerValue handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
+                            PointerValue handle = gf.instanceFieldOf(gf.decodeReference(v1), owner, name, desc);
                             gf.store(handle, storeTruncate(v2, desc), handle.getDetectedMode().getWriteAccess());
                             if (v1.getType() instanceof ReferenceType) {
                                 replaceAll(v1, gf.notNull(v1));
@@ -1650,7 +1650,7 @@ final class MethodParser {
                     }
                     case OP_ARRAYLENGTH:
                         v1 = pop1();
-                        push1(gf.load(gf.lengthOf(gf.referenceHandle(v1))));
+                        push1(gf.load(gf.lengthOf(gf.decodeReference(v1))));
                         if (v1.getType() instanceof ReferenceType) {
                             replaceAll(v1, gf.notNull(v1));
                         }

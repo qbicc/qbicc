@@ -754,7 +754,7 @@ public interface Node {
             }
 
             public Value visit(Copier param, ReferenceTo node) {
-                return param.getBlockBuilder().referenceTo(param.copyPointerValue(node.getPointerValue()));
+                return param.getBlockBuilder().encodeReference(param.copyPointerValue(node.getPointerValue()));
             }
 
             public Value visit(final Copier param, final Rol node) {
@@ -766,11 +766,11 @@ public interface Node {
             }
 
             public PointerValue visit(Copier param, PointerHandle node) {
-                return param.getBlockBuilder().pointerHandle(param.copyValue(node.getBaseValue()), param.copyValue(node.getOffsetValue()));
+                return param.getBlockBuilder().offsetPointer(param.copyValue(node.getBaseValue()), param.copyValue(node.getOffsetValue()));
             }
 
             public PointerValue visit(Copier param, ReferenceHandle node) {
-                return param.getBlockBuilder().referenceHandle(param.copyValue(node.getReferenceValue()));
+                return param.getBlockBuilder().decodeReference(param.copyValue(node.getReferenceValue()));
             }
 
             public Value visit(final Copier param, final Select node) {

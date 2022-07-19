@@ -150,7 +150,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
             // declare it
-            return pointerHandle(ctxt.getLiteralFactory().literalOf(ctxt.getOrAddProgramModule(getRootElement())
+            return pointerValueOf(ctxt.getLiteralFactory().literalOf(ctxt.getOrAddProgramModule(getRootElement())
                 .declareFunction(null, functionInfo.getName(), functionInfo.getType())));
         }
         return super.staticMethod(owner, name, deNative(descriptor));
@@ -181,7 +181,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
         NativeDataInfo fieldInfo = nativeInfo.getFieldInfo(owner, name);
         if (fieldInfo != null) {
-            return pointerHandle(getAndDeclareSymbolLiteral(fieldInfo));
+            return pointerValueOf(getAndDeclareSymbolLiteral(fieldInfo));
         }
         return super.staticField(deNative(owner), name, deNative(type));
     }

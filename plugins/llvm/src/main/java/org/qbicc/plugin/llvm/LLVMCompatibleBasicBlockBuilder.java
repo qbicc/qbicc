@@ -108,7 +108,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         FunctionType functionType = tps.getFunctionType(numericType, numericType, numericType);
         FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, funcName, functionType);
         final LiteralFactory lf = ctxt.getLiteralFactory();
-        return getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v1, v2));
+        return getFirstBuilder().callNoSideEffects(pointerValueOf(lf.literalOf(declaration)), List.of(v1, v2));
     }
 
     @Override
@@ -123,7 +123,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         String functionName = "llvm.bswap.i" + minBits;
         FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType);
         final LiteralFactory lf = ctxt.getLiteralFactory();
-        return getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v));
+        return getFirstBuilder().callNoSideEffects(pointerValueOf(lf.literalOf(declaration)), List.of(v));
     }
 
     @Override
@@ -135,7 +135,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         String functionName = "llvm.bitreverse.i" + minBits;
         FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType);
         final LiteralFactory lf = ctxt.getLiteralFactory();
-        return getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v));
+        return getFirstBuilder().callNoSideEffects(pointerValueOf(lf.literalOf(declaration)), List.of(v));
     }
 
     @Override
@@ -147,7 +147,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         String functionName = "llvm.ctlz.i" + minBits;
         FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType);
         LiteralFactory lf = ctxt.getLiteralFactory();
-        Value result = getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v, lf.literalOf(false)));
+        Value result = getFirstBuilder().callNoSideEffects(pointerValueOf(lf.literalOf(declaration)), List.of(v, lf.literalOf(false)));
         // LLVM always returns the same type as the input
         if (minBits < 32) {
             result = getFirstBuilder().extend(result, tps.getUnsignedInteger32Type());
@@ -170,7 +170,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         String functionName = "llvm.cttz.i" + minBits;
         FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType);
         LiteralFactory lf = ctxt.getLiteralFactory();
-        Value result = getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v, lf.literalOf(false)));
+        Value result = getFirstBuilder().callNoSideEffects(pointerValueOf(lf.literalOf(declaration)), List.of(v, lf.literalOf(false)));
         // LLVM always returns the same type as the input
         if (minBits < 32) {
             result = getFirstBuilder().extend(result, tps.getUnsignedInteger32Type());
@@ -193,7 +193,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         String functionName = "llvm.ctpop.i" + minBits;
         FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType);
         final LiteralFactory lf = ctxt.getLiteralFactory();
-        Value result = getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v));
+        Value result = getFirstBuilder().callNoSideEffects(pointerValueOf(lf.literalOf(declaration)), List.of(v));
         // LLVM always returns the same type as the input
         if (minBits < 32) {
             result = getFirstBuilder().extend(result, tps.getUnsignedInteger32Type());
@@ -284,7 +284,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public BasicBlock unreachable() {
         TypeSystem ts = ctxt.getTypeSystem();
         FunctionDeclaration decl = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, "llvm.trap", ts.getFunctionType(ts.getVoidType()));
-        return callNoReturn(pointerHandle(ctxt.getLiteralFactory().literalOf(decl)), List.of());
+        return callNoReturn(pointerValueOf(ctxt.getLiteralFactory().literalOf(decl)), List.of());
     }
 
     @Override

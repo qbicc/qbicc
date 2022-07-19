@@ -58,7 +58,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         call(staticMethod(method), List.of(ptrVal, size));
 
         Value oop = valueConvert(ptrVal, type.getReference());
-        BasicHeaderInitializer.initializeObjectHeader(ctxt, this, referenceHandle(oop), typeId);
+        BasicHeaderInitializer.initializeObjectHeader(ctxt, this, decodeReference(oop), typeId);
         return oop;
     }
 
@@ -68,7 +68,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(ltd).getCompoundType();
         Value ptrVal = allocateArray(compoundType, size, arrayType.getElementType().getSize());
         Value oop = valueConvert(ptrVal, arrayType.getReference());
-        BasicHeaderInitializer.initializeArrayHeader(ctxt, this, referenceHandle(oop), ctxt.getLiteralFactory().literalOfType(ltd.getClassType()), size);
+        BasicHeaderInitializer.initializeArrayHeader(ctxt, this, decodeReference(oop), ctxt.getLiteralFactory().literalOfType(ltd.getClassType()), size);
         return oop;
     }
 
@@ -79,7 +79,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         CompoundType compoundType = info.getCompoundType();
         Value ptrVal = allocateArray(compoundType, size, ctxt.getTypeSystem().getReferenceSize());
         Value oop = valueConvert(ptrVal, arrayType.getReference());
-        BasicHeaderInitializer.initializeRefArrayHeader(ctxt, this, referenceHandle(oop), elemTypeId, dimensions, size);
+        BasicHeaderInitializer.initializeRefArrayHeader(ctxt, this, decodeReference(oop), elemTypeId, dimensions, size);
         return oop;
     }
 
