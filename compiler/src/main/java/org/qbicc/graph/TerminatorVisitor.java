@@ -4,127 +4,127 @@ package org.qbicc.graph;
  * A visitor over a graph of terminator nodes.  Terminator nodes form a directed graph which may contain cycles.
  */
 public interface TerminatorVisitor<T, R> {
-    default R visitUnknown(T param, Terminator node) {
+    default R visitUnknown(T t, Terminator node) {
         return null;
     }
 
-    default R visit(T param, CallNoReturn node) {
-        return visitUnknown(param, node);
+    default R visit(T t, CallNoReturn node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Goto node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Goto node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, If node) {
-        return visitUnknown(param, node);
+    default R visit(T t, If node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Invoke node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Invoke node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, InvokeNoReturn node) {
-        return visitUnknown(param, node);
+    default R visit(T t, InvokeNoReturn node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Jsr node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Jsr node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Ret node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Ret node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Return node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Return node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Switch node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Switch node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, TailCall node) {
-        return visitUnknown(param, node);
+    default R visit(T t, TailCall node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, TailInvoke node) {
-        return visitUnknown(param, node);
+    default R visit(T t, TailInvoke node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Throw node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Throw node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, ValueReturn node) {
-        return visitUnknown(param, node);
+    default R visit(T t, ValueReturn node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Unreachable node) { return visitUnknown(param, node); }
+    default R visit(T t, Unreachable node) { return visitUnknown(t, node); }
 
     // Errors
 
     interface Delegating<T, R> extends TerminatorVisitor<T, R> {
         TerminatorVisitor<T, R> getDelegateTerminatorVisitor();
 
-        default R visitUnknown(T param, Terminator node) {
-            return node.accept(getDelegateTerminatorVisitor(), param);
+        default R visitUnknown(T t, Terminator node) {
+            return node.accept(getDelegateTerminatorVisitor(), t);
         }
 
-        default R visit(T param, CallNoReturn node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
+        default R visit(T t, CallNoReturn node) {
+            return getDelegateTerminatorVisitor().visit(t, node);
         }
 
-        default R visit(T param, Goto node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
+        default R visit(T t, Goto node) {
+            return getDelegateTerminatorVisitor().visit(t, node);
         }
 
-        default R visit(T param, If node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
+        default R visit(T t, If node) {
+            return getDelegateTerminatorVisitor().visit(t, node);
         }
 
-        default R visit(T param, Invoke node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
+        default R visit(T t, Invoke node) {
+            return getDelegateTerminatorVisitor().visit(t, node);
         }
 
-        default R visit(T param, InvokeNoReturn node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
+        default R visit(T t, InvokeNoReturn node) {
+            return getDelegateTerminatorVisitor().visit(t, node);
         }
 
-        default R visit(T param, Jsr node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
+        default R visit(T t, Jsr node) {
+            return getDelegateTerminatorVisitor().visit(t, node);
         }
 
-        default R visit(T param, Ret node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
+        default R visit(T t, Ret node) {
+            return getDelegateTerminatorVisitor().visit(t, node);
         }
 
-        default R visit(T param, Return node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
+        default R visit(T t, Return node) {
+            return getDelegateTerminatorVisitor().visit(t, node);
         }
 
-        default R visit(T param, Unreachable node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
+        default R visit(T t, Unreachable node) {
+            return getDelegateTerminatorVisitor().visit(t, node);
         }
 
-        default R visit(T param, Switch node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
+        default R visit(T t, Switch node) {
+            return getDelegateTerminatorVisitor().visit(t, node);
         }
 
-        default R visit(T param, TailCall node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
+        default R visit(T t, TailCall node) {
+            return getDelegateTerminatorVisitor().visit(t, node);
         }
 
-        default R visit(T param, TailInvoke node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
+        default R visit(T t, TailInvoke node) {
+            return getDelegateTerminatorVisitor().visit(t, node);
         }
 
-        default R visit(T param, Throw node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
+        default R visit(T t, Throw node) {
+            return getDelegateTerminatorVisitor().visit(t, node);
         }
 
-        default R visit(T param, ValueReturn node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
+        default R visit(T t, ValueReturn node) {
+            return getDelegateTerminatorVisitor().visit(t, node);
         }
 
     }
