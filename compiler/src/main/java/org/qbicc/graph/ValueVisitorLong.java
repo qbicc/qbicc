@@ -24,655 +24,655 @@ import org.qbicc.graph.literal.ZeroInitializerLiteral;
  * A visitor over a graph of values.  Values form a directed acyclic graph (DAG).
  */
 public interface ValueVisitorLong<T> {
-    default long visitUnknown(final T param, Value node) {
+    default long visitUnknown(final T t, Value node) {
         return 0;
     }
 
-    default long visit(T param, Add node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Add node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, AddressOf node) {
-        return visitUnknown(param, node);
+    default long visit(T t, AddressOf node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, And node) {
-        return visitUnknown(param, node);
+    default long visit(T t, And node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, ArrayLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, ArrayLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, BitCast node) {
-        return visitUnknown(param, node);
+    default long visit(T t, BitCast node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, BitCastLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, BitCastLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, BitReverse node) {
-        return visitUnknown(param, node);
+    default long visit(T t, BitReverse node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, BlockLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, BlockLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, BlockParameter node) {
-        return visitUnknown(param, node);
+    default long visit(T t, BlockParameter node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, BooleanLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, BooleanLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, ByteArrayLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, ByteArrayLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, ByteSwap node) {
-        return visitUnknown(param, node);
+    default long visit(T t, ByteSwap node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Call node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Call node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, CallNoSideEffects node) {
-        return visitUnknown(param, node);
+    default long visit(T t, CallNoSideEffects node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, ClassOf node) {
-        return visitUnknown(param, node);
+    default long visit(T t, ClassOf node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Comp node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Comp node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, CountLeadingZeros node) {
-        return visitUnknown(param, node);
+    default long visit(T t, CountLeadingZeros node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, CountTrailingZeros node) {
-        return visitUnknown(param, node);
+    default long visit(T t, CountTrailingZeros node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Cmp node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Cmp node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, CmpAndSwap node) {
-        return visitUnknown(param, node);
+    default long visit(T t, CmpAndSwap node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, CmpG node) {
-        return visitUnknown(param, node);
+    default long visit(T t, CmpG node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, CmpL node) {
-        return visitUnknown(param, node);
+    default long visit(T t, CmpL node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, IsEq node) {
-        return visitUnknown(param, node);
+    default long visit(T t, IsEq node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, IsGe node) {
-        return visitUnknown(param, node);
+    default long visit(T t, IsGe node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, IsGt node) {
-        return visitUnknown(param, node);
+    default long visit(T t, IsGt node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, IsLe node) {
-        return visitUnknown(param, node);
+    default long visit(T t, IsLe node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, IsLt node) {
-        return visitUnknown(param, node);
+    default long visit(T t, IsLt node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, IsNe node) {
-        return visitUnknown(param, node);
+    default long visit(T t, IsNe node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, CheckCast node) {
-        return visitUnknown(param, node);
+    default long visit(T t, CheckCast node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, CompoundLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, CompoundLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, ConstantLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, ConstantLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Convert node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Convert node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Div node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Div node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, ElementOfLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, ElementOfLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Extend node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Extend node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, ExtractElement node) {
-        return visitUnknown(param, node);
+    default long visit(T t, ExtractElement node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, ExtractInstanceField node) {
-        return visitUnknown(param, node);
+    default long visit(T t, ExtractInstanceField node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, ExtractMember node) {
-        return visitUnknown(param, node);
+    default long visit(T t, ExtractMember node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, FloatLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, FloatLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, InsertElement node) {
-        return visitUnknown(param, node);
+    default long visit(T t, InsertElement node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, InsertMember node) {
-        return visitUnknown(param, node);
+    default long visit(T t, InsertMember node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, InstanceOf node) {
-        return visitUnknown(param, node);
+    default long visit(T t, InstanceOf node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, IntegerLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, IntegerLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Invoke.ReturnValue node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Invoke.ReturnValue node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Load node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Load node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Max node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Max node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, MemberSelector node) {
-        return visitUnknown(param, node);
+    default long visit(T t, MemberSelector node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, MethodHandleLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, MethodHandleLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Min node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Min node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Mod node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Mod node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, MultiNewArray node) {
-        return visitUnknown(param, node);
+    default long visit(T t, MultiNewArray node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Multiply node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Multiply node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Neg node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Neg node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, New node) {
-        return visitUnknown(param, node);
+    default long visit(T t, New node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, NewArray node) {
-        return visitUnknown(param, node);
+    default long visit(T t, NewArray node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, NewReferenceArray node) {
-        return visitUnknown(param, node);
+    default long visit(T t, NewReferenceArray node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, NotNull node) {
-        return visitUnknown(param, node);
+    default long visit(T t, NotNull node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, NullLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, NullLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, ObjectLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, ObjectLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, OffsetOfField node) {
-        return visitUnknown(param, node);
+    default long visit(T t, OffsetOfField node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Or node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Or node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, PointerLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, PointerLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, PopCount node) {
-        return visitUnknown(param, node);
+    default long visit(T t, PopCount node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, ReadModifyWrite node) {
-        return visitUnknown(param, node);
+    default long visit(T t, ReadModifyWrite node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, ReferenceTo node) {
-        return visitUnknown(param, node);
+    default long visit(T t, ReferenceTo node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Rol node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Rol node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Ror node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Ror node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Select node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Select node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Shl node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Shl node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Shr node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Shr node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, StackAllocation node) {
-        return visitUnknown(param, node);
+    default long visit(T t, StackAllocation node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, StringLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, StringLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Sub node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Sub node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Truncate node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Truncate node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, TypeLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, TypeLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, UndefinedLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, UndefinedLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, VaArg node) {
-        return visitUnknown(param, node);
+    default long visit(T t, VaArg node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, ValueConvertLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, ValueConvertLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, Xor node) {
-        return visitUnknown(param, node);
+    default long visit(T t, Xor node) {
+        return visitUnknown(t, node);
     }
 
-    default long visit(T param, ZeroInitializerLiteral node) {
-        return visitUnknown(param, node);
+    default long visit(T t, ZeroInitializerLiteral node) {
+        return visitUnknown(t, node);
     }
 
     interface Delegating<T> extends ValueVisitorLong<T> {
         ValueVisitorLong<T> getDelegateValueVisitor();
 
-        default long visitUnknown(final T param, Value node) {
-            return node.accept(getDelegateValueVisitor(), param);
+        default long visitUnknown(final T t, Value node) {
+            return node.accept(getDelegateValueVisitor(), t);
         }
 
-        default long visit(T param, Add node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Add node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, AddressOf node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, AddressOf node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, And node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, And node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, ArrayLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, ArrayLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, BitCast node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, BitCast node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, BitCastLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, BitCastLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, BitReverse node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, BitReverse node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, BlockLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, BlockLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, BlockParameter node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, BlockParameter node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, BooleanLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, BooleanLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, ByteArrayLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, ByteArrayLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, ByteSwap node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, ByteSwap node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Call node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Call node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, CallNoSideEffects node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, CallNoSideEffects node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, CheckCast node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, CheckCast node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, ClassOf node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, ClassOf node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Comp node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Comp node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, CountLeadingZeros node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, CountLeadingZeros node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, CountTrailingZeros node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, CountTrailingZeros node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Cmp node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Cmp node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, CmpAndSwap node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, CmpAndSwap node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, CmpG node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, CmpG node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, CmpL node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, CmpL node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, CompoundLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, CompoundLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, ConstantLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, ConstantLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Convert node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Convert node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Div node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Div node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, ElementOfLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, ElementOfLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Extend node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Extend node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, ExtractElement node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, ExtractElement node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, ExtractInstanceField node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, ExtractInstanceField node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, ExtractMember node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, ExtractMember node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, FloatLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, FloatLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, InsertElement node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, InsertElement node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, InsertMember node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, InsertMember node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, InstanceOf node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, InstanceOf node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, IntegerLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, IntegerLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Invoke.ReturnValue node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Invoke.ReturnValue node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, IsEq node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, IsEq node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, IsGe node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, IsGe node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, IsGt node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, IsGt node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, IsLe node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, IsLe node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, IsLt node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, IsLt node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, IsNe node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, IsNe node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Load node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Load node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Max node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Max node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, MemberSelector node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, MemberSelector node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, MethodHandleLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, MethodHandleLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Min node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Min node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Mod node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Mod node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, MultiNewArray node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, MultiNewArray node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Multiply node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Multiply node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Neg node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Neg node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, New node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, New node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, NewArray node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, NewArray node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, NewReferenceArray node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, NewReferenceArray node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, NotNull node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, NotNull node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, NullLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, NullLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, ObjectLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, ObjectLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, OffsetOfField node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, OffsetOfField node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Or node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Or node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, PointerLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, PointerLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, PopCount node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, PopCount node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, ReadModifyWrite node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, ReadModifyWrite node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, ReferenceTo node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, ReferenceTo node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Rol node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Rol node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Ror node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Ror node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Select node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Select node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Shl node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Shl node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Shr node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Shr node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, StackAllocation node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, StackAllocation node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, StringLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, StringLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Sub node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Sub node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Truncate node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Truncate node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, TypeLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, TypeLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, UndefinedLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, UndefinedLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, VaArg node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, VaArg node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, ValueConvertLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, ValueConvertLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, Xor node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, Xor node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default long visit(T param, ZeroInitializerLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default long visit(T t, ZeroInitializerLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
     }
 }
