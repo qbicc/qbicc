@@ -24,727 +24,727 @@ import org.qbicc.graph.literal.ZeroInitializerLiteral;
  * A visitor over a graph of values.  Values form a directed acyclic graph (DAG).
  */
 public interface ValueVisitor<T, R> {
-    default R visitUnknown(final T param, Value node) {
+    default R visitUnknown(final T t, Value node) {
         return null;
     }
 
-    default R visit(T param, Add node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Add node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, AddressOf node) {
-        return visitUnknown(param, node);
+    default R visit(T t, AddressOf node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, And node) {
-        return visitUnknown(param, node);
+    default R visit(T t, And node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, ArrayLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, ArrayLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, BitCast node) {
-        return visitUnknown(param, node);
+    default R visit(T t, BitCast node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, BitCastLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, BitCastLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, BitReverse node) {
-        return visitUnknown(param, node);
+    default R visit(T t, BitReverse node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, BlockLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, BlockLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, BooleanLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, BooleanLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, ByteArrayLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, ByteArrayLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, ByteSwap node) {
-        return visitUnknown(param, node);
+    default R visit(T t, ByteSwap node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Call node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Call node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, CallNoSideEffects node) {
-        return visitUnknown(param, node);
+    default R visit(T t, CallNoSideEffects node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, ClassOf node) {
-        return visitUnknown(param, node);
+    default R visit(T t, ClassOf node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Comp node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Comp node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, CountLeadingZeros node) {
-        return visitUnknown(param, node);
+    default R visit(T t, CountLeadingZeros node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, CountTrailingZeros node) {
-        return visitUnknown(param, node);
+    default R visit(T t, CountTrailingZeros node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Cmp node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Cmp node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, CmpAndSwap node) {
-        return visitUnknown(param, node);
+    default R visit(T t, CmpAndSwap node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, CmpG node) {
-        return visitUnknown(param, node);
+    default R visit(T t, CmpG node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, CmpL node) {
-        return visitUnknown(param, node);
+    default R visit(T t, CmpL node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, IsEq node) {
-        return visitUnknown(param, node);
+    default R visit(T t, IsEq node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, IsGe node) {
-        return visitUnknown(param, node);
+    default R visit(T t, IsGe node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, IsGt node) {
-        return visitUnknown(param, node);
+    default R visit(T t, IsGt node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, IsLe node) {
-        return visitUnknown(param, node);
+    default R visit(T t, IsLe node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, IsLt node) {
-        return visitUnknown(param, node);
+    default R visit(T t, IsLt node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, IsNe node) {
-        return visitUnknown(param, node);
+    default R visit(T t, IsNe node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, CheckCast node) {
-        return visitUnknown(param, node);
+    default R visit(T t, CheckCast node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, CompoundLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, CompoundLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, ConstantLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, ConstantLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Convert node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Convert node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Div node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Div node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, ElementOfLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, ElementOfLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Extend node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Extend node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, ExtractElement node) {
-        return visitUnknown(param, node);
+    default R visit(T t, ExtractElement node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, ExtractInstanceField node) {
-        return visitUnknown(param, node);
+    default R visit(T t, ExtractInstanceField node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, ExtractMember node) {
-        return visitUnknown(param, node);
+    default R visit(T t, ExtractMember node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, FloatLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, FloatLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, GetAndAdd node) {
-        return visitUnknown(param, node);
+    default R visit(T t, GetAndAdd node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, GetAndBitwiseAnd node) {
-        return visitUnknown(param, node);
+    default R visit(T t, GetAndBitwiseAnd node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, GetAndBitwiseNand node) {
-        return visitUnknown(param, node);
+    default R visit(T t, GetAndBitwiseNand node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, GetAndBitwiseOr node) {
-        return visitUnknown(param, node);
+    default R visit(T t, GetAndBitwiseOr node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, GetAndBitwiseXor node) {
-        return visitUnknown(param, node);
+    default R visit(T t, GetAndBitwiseXor node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, GetAndSet node) {
-        return visitUnknown(param, node);
+    default R visit(T t, GetAndSet node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, GetAndSetMax node) {
-        return visitUnknown(param, node);
+    default R visit(T t, GetAndSetMax node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, GetAndSetMin node) {
-        return visitUnknown(param, node);
+    default R visit(T t, GetAndSetMin node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, GetAndSub node) {
-        return visitUnknown(param, node);
+    default R visit(T t, GetAndSub node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, InsertElement node) {
-        return visitUnknown(param, node);
+    default R visit(T t, InsertElement node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, InsertMember node) {
-        return visitUnknown(param, node);
+    default R visit(T t, InsertMember node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, InstanceOf node) {
-        return visitUnknown(param, node);
+    default R visit(T t, InstanceOf node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, IntegerLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, IntegerLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Invoke.ReturnValue node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Invoke.ReturnValue node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Load node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Load node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Max node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Max node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, MemberSelector node) {
-        return visitUnknown(param, node);
+    default R visit(T t, MemberSelector node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, MethodHandleLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, MethodHandleLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Min node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Min node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Mod node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Mod node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, MultiNewArray node) {
-        return visitUnknown(param, node);
+    default R visit(T t, MultiNewArray node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Multiply node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Multiply node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Neg node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Neg node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, New node) {
-        return visitUnknown(param, node);
+    default R visit(T t, New node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, NewArray node) {
-        return visitUnknown(param, node);
+    default R visit(T t, NewArray node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, NewReferenceArray node) {
-        return visitUnknown(param, node);
+    default R visit(T t, NewReferenceArray node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, NotNull node) {
-        return visitUnknown(param, node);
+    default R visit(T t, NotNull node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, NullLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, NullLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, ObjectLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, ObjectLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, OffsetOfField node) {
-        return visitUnknown(param, node);
+    default R visit(T t, OffsetOfField node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Or node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Or node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, ParameterValue node) {
-        return visitUnknown(param, node);
+    default R visit(T t, ParameterValue node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, PhiValue node) {
-        return visitUnknown(param, node);
+    default R visit(T t, PhiValue node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, PointerLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, PointerLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, PopCount node) {
-        return visitUnknown(param, node);
+    default R visit(T t, PopCount node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, ReferenceTo node) {
-        return visitUnknown(param, node);
+    default R visit(T t, ReferenceTo node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Rol node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Rol node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Ror node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Ror node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Select node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Select node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Shl node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Shl node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Shr node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Shr node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, StackAllocation node) {
-        return visitUnknown(param, node);
+    default R visit(T t, StackAllocation node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, StringLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, StringLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Sub node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Sub node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Truncate node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Truncate node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, TypeLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, TypeLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, UndefinedLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, UndefinedLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, VaArg node) {
-        return visitUnknown(param, node);
+    default R visit(T t, VaArg node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, ValueConvertLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, ValueConvertLiteral node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, Xor node) {
-        return visitUnknown(param, node);
+    default R visit(T t, Xor node) {
+        return visitUnknown(t, node);
     }
 
-    default R visit(T param, ZeroInitializerLiteral node) {
-        return visitUnknown(param, node);
+    default R visit(T t, ZeroInitializerLiteral node) {
+        return visitUnknown(t, node);
     }
 
     interface Delegating<T, R> extends ValueVisitor<T, R> {
         ValueVisitor<T, R> getDelegateValueVisitor();
 
-        default R visitUnknown(final T param, Value node) {
-            return node.accept(getDelegateValueVisitor(), param);
+        default R visitUnknown(final T t, Value node) {
+            return node.accept(getDelegateValueVisitor(), t);
         }
 
-        default R visit(T param, Add node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Add node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, AddressOf node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, AddressOf node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, And node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, And node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, ArrayLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, ArrayLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, BitCast node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, BitCast node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, BitCastLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, BitCastLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, BitReverse node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, BitReverse node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, BlockLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, BlockLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, BooleanLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, BooleanLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, ByteArrayLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, ByteArrayLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, ByteSwap node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, ByteSwap node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Call node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Call node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, CallNoSideEffects node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, CallNoSideEffects node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, CheckCast node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, CheckCast node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, ClassOf node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, ClassOf node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Comp node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Comp node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, CountLeadingZeros node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, CountLeadingZeros node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, CountTrailingZeros node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, CountTrailingZeros node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Cmp node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Cmp node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, CmpAndSwap node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, CmpAndSwap node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, CmpG node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, CmpG node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, CmpL node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, CmpL node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, CompoundLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, CompoundLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, ConstantLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, ConstantLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Convert node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Convert node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Div node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Div node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, ElementOfLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, ElementOfLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Extend node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Extend node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, ExtractElement node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, ExtractElement node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, ExtractInstanceField node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, ExtractInstanceField node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, ExtractMember node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, ExtractMember node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, FloatLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, FloatLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, GetAndAdd node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, GetAndAdd node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, GetAndBitwiseAnd node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, GetAndBitwiseAnd node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, GetAndBitwiseNand node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, GetAndBitwiseNand node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, GetAndBitwiseOr node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, GetAndBitwiseOr node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, GetAndBitwiseXor node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, GetAndBitwiseXor node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, GetAndSet node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, GetAndSet node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, GetAndSetMax node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, GetAndSetMax node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, GetAndSetMin node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, GetAndSetMin node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, GetAndSub node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, GetAndSub node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, InsertElement node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, InsertElement node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, InsertMember node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, InsertMember node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, InstanceOf node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, InstanceOf node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, IntegerLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, IntegerLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Invoke.ReturnValue node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Invoke.ReturnValue node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, IsEq node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, IsEq node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, IsGe node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, IsGe node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, IsGt node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, IsGt node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, IsLe node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, IsLe node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, IsLt node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, IsLt node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, IsNe node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, IsNe node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Load node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Load node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Max node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Max node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, MemberSelector node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, MemberSelector node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, MethodHandleLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, MethodHandleLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Min node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Min node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Mod node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Mod node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, MultiNewArray node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, MultiNewArray node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Multiply node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Multiply node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Neg node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Neg node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, New node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, New node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, NewArray node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, NewArray node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, NewReferenceArray node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, NewReferenceArray node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, NotNull node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, NotNull node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, NullLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, NullLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, ObjectLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, ObjectLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, OffsetOfField node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, OffsetOfField node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Or node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Or node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, ParameterValue node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, ParameterValue node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, PhiValue node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, PhiValue node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, PointerLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, PointerLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, PopCount node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, PopCount node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, ReferenceTo node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, ReferenceTo node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Rol node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Rol node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Ror node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Ror node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Select node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Select node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Shl node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Shl node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Shr node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Shr node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, StackAllocation node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, StackAllocation node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, StringLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, StringLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Sub node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Sub node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Truncate node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Truncate node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, TypeLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, TypeLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, UndefinedLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, UndefinedLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, VaArg node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, VaArg node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, ValueConvertLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, ValueConvertLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, Xor node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, Xor node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T param, ZeroInitializerLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
+        default R visit(T t, ZeroInitializerLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
         }
     }
 }
