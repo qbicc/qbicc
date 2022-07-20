@@ -33,7 +33,7 @@
         <version.org.jboss.logging>3.5.0.Final</version.org.jboss.logging>
         <version.org.jboss.logging.commons>1.0.0.Final</version.org.jboss.logging.commons>
         <version.org.jboss.logmanager>2.1.18.Final</version.org.jboss.logmanager>
-        <version.org.jboss.slf4j.logmanager>1.1.0.Final</version.org.jboss.slf4j.logmanager>
+        <version.org.jboss.slf4j.logmanager>1.2.0.Final</version.org.jboss.slf4j.logmanager>
         <version.org.ow2.asm>9.3</version.org.ow2.asm>
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
 
