@@ -268,12 +268,12 @@ public final class Disassembler {
     private NodeInfo disassemble(Node node) {
         NodeInfo nodeInfo = this.nodeInfo.get(node);
         if (Objects.isNull(nodeInfo)) {
-            if (node instanceof Value value) {
+            if (node instanceof PointerValue pointerValue) {
+                pointerValue.accept(visitor, this);
+            } else if (node instanceof Value value) {
                 value.accept(visitor, this);
             } else if (node instanceof Action action) {
                 action.accept(visitor, this);
-            } else if (node instanceof PointerValue pointerValue) {
-                pointerValue.accept(visitor, this);
             } else {
                 assert node instanceof Terminator;
                 ((Terminator) node).accept(visitor, this);

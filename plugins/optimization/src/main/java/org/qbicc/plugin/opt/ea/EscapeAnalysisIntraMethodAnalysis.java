@@ -412,12 +412,12 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
                     checkSupport(isNodeSupported, dependency, param);
                     if (dependency instanceof Action) {
                         ((Action) dependency).accept(this, param);
+                    } else if (dependency instanceof PointerValue) {
+                        ((PointerValue) dependency).accept(this, param);
                     } else if (dependency instanceof Value) {
                         ((Value) dependency).accept(this, param);
                     } else if (dependency instanceof Terminator) {
                         ((Terminator) dependency).accept(this, param);
-                    } else if (dependency instanceof PointerValue) {
-                        ((PointerValue) dependency).accept(this, param);
                     }
                 }
 

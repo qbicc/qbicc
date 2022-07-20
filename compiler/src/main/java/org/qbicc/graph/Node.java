@@ -162,12 +162,12 @@ public interface Node {
         }
 
         public Node copyNode(Node original) {
-            if (original instanceof Value) {
+            if (original instanceof PointerValue) {
+                return copyPointerValue((PointerValue) original);
+            } else if (original instanceof Value) {
                 return copyValue((Value) original);
             } else if (original instanceof Action) {
                 return copyAction((Action) original);
-            } else if (original instanceof PointerValue) {
-                return copyPointerValue((PointerValue) original);
             } else {
                 assert original instanceof Terminator;
                 BasicBlock block = copyTerminator((Terminator) original);

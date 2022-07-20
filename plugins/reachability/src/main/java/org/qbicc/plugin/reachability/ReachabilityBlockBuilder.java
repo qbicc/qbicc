@@ -138,12 +138,12 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
                     Node dependency =on.getDependency();
                     if (dependency instanceof Action a) {
                         a.accept(this, param);
+                    } else if (dependency instanceof PointerValue vh) {
+                        vh.accept(this, param);
                     } else if (dependency instanceof Value v) {
                         v.accept(this, param);
                     } else if (dependency instanceof Terminator t) {
                         t.accept(this, param);
-                    } else if (dependency instanceof PointerValue vh) {
-                        vh.accept(this, param);
                     }
                 }
                 return true;
