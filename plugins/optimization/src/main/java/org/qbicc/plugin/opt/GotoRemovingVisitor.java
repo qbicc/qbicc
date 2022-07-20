@@ -14,20 +14,19 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.PointerValue;
 
 /**
  * A copier which removes all goto nodes that are only entered by one entry block.
  */
-public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, PointerValue> {
-    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate;
+public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock> {
+    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate;
     private final Set<BasicBlock> deleted = new HashSet<>();
 
-    public GotoRemovingVisitor(final CompilationContext context, final NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate) {
+    public GotoRemovingVisitor(final CompilationContext context, final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate) {
         this.delegate = delegate;
     }
 
-    public NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> getDelegateNodeVisitor() {
+    public NodeVisitor<Node.Copier, Value, Node, BasicBlock> getDelegateNodeVisitor() {
         return delegate;
     }
 

@@ -91,7 +91,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         }
     }
 
-    static final class ReachabilityVisitor implements NodeVisitor<ReachabilityContext, Void, Void, Void, Void>, RootPointer.Visitor<ReachabilityContext, Void> {
+    static final class ReachabilityVisitor implements NodeVisitor<ReachabilityContext, Void, Void, Void>, RootPointer.Visitor<ReachabilityContext, Void> {
         @Override
         public Void visitUnknown(ReachabilityContext param, Action node) {
             visitUnknown(param, (Node) node);

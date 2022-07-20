@@ -23,17 +23,17 @@ import org.qbicc.type.VoidType;
 /**
  *
  */
-public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, PointerValue> {
+public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock> {
     private final CompilationContext ctxt;
-    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate;
+    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate;
 
-    public BooleanAccessCopier(CompilationContext ctxt, NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate) {
+    public BooleanAccessCopier(CompilationContext ctxt, NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate) {
         this.ctxt = ctxt;
         this.delegate = delegate;
     }
 
     @Override
-    public NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> getDelegateNodeVisitor() {
+    public NodeVisitor<Node.Copier, Value, Node, BasicBlock> getDelegateNodeVisitor() {
         return delegate;
     }
 

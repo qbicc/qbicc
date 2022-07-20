@@ -23,7 +23,7 @@ import org.qbicc.graph.literal.ZeroInitializerLiteral;
 /**
  * A visitor over a graph of values.  Values form a directed acyclic graph (DAG).
  */
-public interface ValueVisitor<T, R> {
+public interface ValueVisitor<T, R> extends PointerValueVisitor<T, R> {
     default R visitUnknown(final T t, Value node) {
         return null;
     }
@@ -356,7 +356,7 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
-    interface Delegating<T, R> extends ValueVisitor<T, R> {
+    interface Delegating<T, R> extends ValueVisitor<T, R>, PointerValueVisitor.Delegating<T, R> {
         ValueVisitor<T, R> getDelegateValueVisitor();
 
         default R visitUnknown(final T t, Value node) {

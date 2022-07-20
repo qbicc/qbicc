@@ -276,23 +276,23 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
         }
     }
 
-    final class Visitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, PointerValue> {
-        private final NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate;
+    final class Visitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock> {
+        private final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate;
         private final List<Value> arguments;
         private final Value this_;
         private final Function<Value, BasicBlock> onReturn;
         private final BlockLabel catchLabel;
         private final boolean alwaysInline;
 
-        Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate, final BlockLabel resume, final List<Value> arguments, final Value this_, final boolean alwaysInline) {
+        Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate, final BlockLabel resume, final List<Value> arguments, final Value this_, final boolean alwaysInline) {
             this(delegate, arguments, this_, val -> goto_(resume, Slot.result(), val), null, alwaysInline);
         }
 
-        Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate, final List<Value> arguments, final PointerValue target, final Function<Value, BasicBlock> onReturn, final BlockLabel catchLabel, final boolean alwaysInline) {
+        Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate, final List<Value> arguments, final PointerValue target, final Function<Value, BasicBlock> onReturn, final BlockLabel catchLabel, final boolean alwaysInline) {
             this(delegate, arguments, target.hasPointerValueDependency() ? encodeReference(target.getPointerValue()) : null, onReturn, catchLabel, alwaysInline);
         }
 
-        Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate, final List<Value> arguments, final Value this_, final Function<Value, BasicBlock> onReturn, final BlockLabel catchLabel, final boolean alwaysInline) {
+        Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate, final List<Value> arguments, final Value this_, final Function<Value, BasicBlock> onReturn, final BlockLabel catchLabel, final boolean alwaysInline) {
             this.delegate = delegate;
             this.arguments = arguments;
             this.this_ = this_;
@@ -301,7 +301,7 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
             this.alwaysInline = alwaysInline;
         }
 
-        public NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> getDelegateNodeVisitor() {
+        public NodeVisitor<Node.Copier, Value, Node, BasicBlock> getDelegateNodeVisitor() {
             return delegate;
         }
 

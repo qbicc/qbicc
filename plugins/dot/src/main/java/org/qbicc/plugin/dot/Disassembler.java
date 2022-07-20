@@ -168,7 +168,7 @@ public final class Disassembler {
     private BasicBlock currentBlock;
     private int currentNodeId;
 
-    Disassembler(BasicBlock entryBlock, ExecutableElement element, CompilationContext ctxt, BiFunction<CompilationContext, NodeVisitor<Disassembler, Void, Void, Void, Void>, NodeVisitor<Disassembler, Void, Void, Void, Void>> nodeVisitorFactory) {
+    Disassembler(BasicBlock entryBlock, ExecutableElement element, CompilationContext ctxt, BiFunction<CompilationContext, NodeVisitor<Disassembler, Void, Void, Void>, NodeVisitor<Disassembler, Void, Void, Void>> nodeVisitorFactory) {
         this.schedule = Schedule.forMethod(entryBlock);
         this.visitor = new DisassembleVisitor(nodeVisitorFactory.apply(ctxt, new Terminus()));
         this.element = element;
@@ -303,15 +303,15 @@ public final class Disassembler {
 
     record NodeInfo(String id, String description) {}
 
-    private final class DisassembleVisitor implements NodeVisitor.Delegating<Disassembler, Void, Void, Void, Void> {
-        private final NodeVisitor<Disassembler, Void, Void, Void, Void> delegate;
+    private final class DisassembleVisitor implements NodeVisitor.Delegating<Disassembler, Void, Void, Void> {
+        private final NodeVisitor<Disassembler, Void, Void, Void> delegate;
 
-        private DisassembleVisitor(NodeVisitor<Disassembler, Void, Void, Void, Void> delegate) {
+        private DisassembleVisitor(NodeVisitor<Disassembler, Void, Void, Void> delegate) {
             this.delegate = delegate;
         }
 
         @Override
-        public NodeVisitor<Disassembler, Void, Void, Void, Void> getDelegateNodeVisitor() {
+        public NodeVisitor<Disassembler, Void, Void, Void> getDelegateNodeVisitor() {
             return delegate;
         }
 
@@ -1422,7 +1422,7 @@ public final class Disassembler {
         }
     }
 
-    private static final class Terminus implements NodeVisitor<Disassembler, Void, Void, Void, Void> {
+    private static final class Terminus implements NodeVisitor<Disassembler, Void, Void, Void> {
         @Override
         public Void visitUnknown(Disassembler param, Action node) {
             return null;

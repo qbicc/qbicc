@@ -84,7 +84,7 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
         analysisContext.process(element, methodBody.getEntryBlock());
     }
 
-    static final class AnalysisVisitor implements NodeVisitor<AnalysisContext, Void, Void, Void, Void> {
+    static final class AnalysisVisitor implements NodeVisitor<AnalysisContext, Void, Void, Void> {
         private final ExecutableElement element;
 
         public AnalysisVisitor(ExecutableElement element) {

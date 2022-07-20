@@ -5,7 +5,6 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.PointerValue;
 import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
@@ -31,17 +30,17 @@ import org.qbicc.type.definition.element.StaticFieldElement;
 /**
  *
  */
-public final class MemberPointerCopier implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, PointerValue> {
+public final class MemberPointerCopier implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock> {
     private final CompilationContext ctxt;
-    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate;
+    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate;
 
-    public MemberPointerCopier(CompilationContext ctxt, NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> delegate) {
+    public MemberPointerCopier(CompilationContext ctxt, NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate) {
         this.ctxt = ctxt;
         this.delegate = delegate;
     }
 
     @Override
-    public NodeVisitor<Node.Copier, Value, Node, BasicBlock, PointerValue> getDelegateNodeVisitor() {
+    public NodeVisitor<Node.Copier, Value, Node, BasicBlock> getDelegateNodeVisitor() {
         return delegate;
     }
 

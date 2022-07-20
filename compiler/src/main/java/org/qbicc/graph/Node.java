@@ -89,7 +89,7 @@ public interface Node {
     final class Copier {
         private final BasicBlock entryBlock;
         private final BasicBlockBuilder blockBuilder;
-        private final NodeVisitor<Copier, Value, Node, BasicBlock, PointerValue> nodeVisitor;
+        private final NodeVisitor<Copier, Value, Node, BasicBlock> nodeVisitor;
         private final Map<BasicBlock, BlockLabel> copiedBlocks = new HashMap<>();
         private final HashMap<Node, Node> copiedNodes = new HashMap<>();
         private final HashMap<Terminator, BasicBlock> copiedTerminators = new HashMap<>();
@@ -99,7 +99,7 @@ public interface Node {
         private final Schedule schedule;
 
         Copier(BasicBlock entryBlock, BasicBlockBuilder builder, CompilationContext ctxt,
-            BiFunction<CompilationContext, NodeVisitor<Copier, Value, Node, BasicBlock, PointerValue>, NodeVisitor<Copier, Value, Node, BasicBlock, PointerValue>> nodeVisitorFactory
+            BiFunction<CompilationContext, NodeVisitor<Copier, Value, Node, BasicBlock>, NodeVisitor<Copier, Value, Node, BasicBlock>> nodeVisitorFactory
         ) {
             this.entryBlock = entryBlock;
             this.ctxt = ctxt;
@@ -109,7 +109,7 @@ public interface Node {
         }
 
         public static BasicBlock execute(BasicBlock entryBlock, BasicBlockBuilder builder, CompilationContext param,
-            BiFunction<CompilationContext, NodeVisitor<Copier, Value, Node, BasicBlock, PointerValue>, NodeVisitor<Copier, Value, Node, BasicBlock, PointerValue>> nodeVisitorFactory
+            BiFunction<CompilationContext, NodeVisitor<Copier, Value, Node, BasicBlock>, NodeVisitor<Copier, Value, Node, BasicBlock>> nodeVisitorFactory
         ) {
             return new Copier(entryBlock, builder, param, nodeVisitorFactory).copyProgram();
         }
@@ -201,6 +201,7 @@ public interface Node {
         }
 
         public PointerValue copyPointerValue(PointerValue original) {
+            // todo: merge with copyValue
             PointerValue copy = (PointerValue) copiedNodes.get(original);
             if (copy == null) {
                 int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
@@ -209,7 +210,7 @@ public interface Node {
                 Node origCallSite = original.getCallSite();
                 Node oldCallSite = origCallSite == null ? blockBuilder.getCallSite() : blockBuilder.setCallSite(copyNode(origCallSite));
                 try {
-                    copy = original.accept(nodeVisitor, this);
+                    copy = (PointerValue) original.accept(nodeVisitor, this);
                     copiedNodes.put(original, copy);
                 } finally {
                     blockBuilder.setLineNumber(oldLine);
@@ -305,7 +306,7 @@ public interface Node {
             return basicBlock;
         }
 
-        static class Terminus implements NodeVisitor<Copier, Value, Node, BasicBlock, PointerValue> {
+        static class Terminus implements NodeVisitor<Copier, Value, Node, BasicBlock> {
             public Node visitUnknown(final Copier param, final Action node) {
                 throw Assert.unreachableCode();
             }

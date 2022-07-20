@@ -141,7 +141,7 @@ import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.ParameterElement;
 
-final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, Instruction, Void> {
+final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, Instruction> {
     final CompilationContext ctxt;
     final Module module;
     final LLVMModuleDebugInfo debugInfo;
