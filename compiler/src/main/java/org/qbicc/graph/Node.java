@@ -15,7 +15,6 @@ import org.eclipse.collections.api.map.ImmutableMap;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.Literal;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -74,7 +73,6 @@ public interface Node {
         private final Queue<BasicBlock> blockQueue = new ArrayDeque<>();
         private final Terminus terminus = new Terminus();
         private final CompilationContext ctxt;
-        private final Schedule schedule;
 
         public Copier(BasicBlock entryBlock, BasicBlockBuilder builder, CompilationContext ctxt,
             BiFunction<CompilationContext, NodeVisitor<Copier, Value, Node, BasicBlock>, NodeVisitor<Copier, Value, Node, BasicBlock>> nodeVisitorFactory
@@ -82,7 +80,6 @@ public interface Node {
             this.entryBlock = entryBlock;
             this.ctxt = ctxt;
             blockBuilder = builder;
-            this.schedule = Schedule.forMethod(entryBlock);
             nodeVisitor = nodeVisitorFactory.apply(ctxt, terminus);
         }
 
@@ -160,7 +157,7 @@ public interface Node {
         public Value copyValue(Value original) {
             Value copy = (Value) copiedNodes.get(original);
             if (copy == null) {
-                if (! (original instanceof Unschedulable) && schedule.getBlockForNode(original) == null) {
+                if (! (original instanceof Unschedulable) && original.getScheduledBlock() == null) {
                     blockBuilder.getContext().warning(blockBuilder.getCurrentElement(), "Converting unscheduled node %s to unreachable()", original.toString());
                     throw new BlockEarlyTermination(blockBuilder.unreachable());
                 }
@@ -222,7 +219,7 @@ public interface Node {
         public Node copyAction(Action original) {
             Node copy = copiedNodes.get(original);
             if (copy == null) {
-                if (! (original instanceof Unschedulable) && schedule.getBlockForNode(original) == null) {
+                if (! (original instanceof Unschedulable) && original.getScheduledBlock() == null) {
                     throw new IllegalStateException("Missing schedule for node");
                 }
                 int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
@@ -246,7 +243,7 @@ public interface Node {
         public BasicBlock copyTerminator(Terminator original) {
             BasicBlock basicBlock = copiedTerminators.get(original);
             if (basicBlock == null) {
-                if (! (original instanceof Unschedulable) && schedule.getBlockForNode(original) == null) {
+                if (! (original instanceof Unschedulable) && original.getScheduledBlock() == null) {
                     throw new IllegalStateException("Missing schedule for node");
                 }
                 // copy the terminator and its dependencies

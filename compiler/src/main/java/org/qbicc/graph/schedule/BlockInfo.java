@@ -54,4 +54,17 @@ final class BlockInfo {
         }
         return domDepth;
     }
+
+    boolean dominates(final BlockInfo[] allBlocks, final BlockInfo other) {
+        // this block dominates other if it is the immediate dominator of other or its ancestor
+        if (this == other || index == 1) {
+            // blocks dominate themselves, and block 1 dominates everything
+            return true;
+        }
+        if (other.index == 1) {
+            // we're not block 1 but the other is, so we cannot possibly dominate it
+            return false;
+        }
+        return dominates(allBlocks, allBlocks[other.dominator - 1]); // indexes are 1-based, array is 0-based
+    }
 }

@@ -26,7 +26,6 @@ import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
@@ -1508,8 +1507,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
         gf.finish();
         BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
-        Schedule schedule = Schedule.forMethod(entryBlock);
-        return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(parameters.length));
+        return MethodBody.of(entryBlock, Slot.simpleArgList(parameters.length));
     }
 
     int getSlotSize(int viTag) {

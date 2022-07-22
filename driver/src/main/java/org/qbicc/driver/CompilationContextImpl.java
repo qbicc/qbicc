@@ -30,6 +30,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.schedule.Scheduler;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.machine.arch.Platform;
@@ -89,9 +90,10 @@ final class CompilationContextImpl implements CompilationContext {
     private final NativeMethodConfigurator nativeMethodConfigurator;
     private final Consumer<ClassContext> classContextListener;
     private final Section implicitSection = addSection(IMPLICIT_SECTION_NAME, 0, Segment.DATA);
+    private final Scheduler scheduler;
 
     CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory,
-                           BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder, BiFunction<ClassContext, String, byte[]> bootstrapResourceFinder, BiFunction<ClassContext, String, List<byte[]>> bootstrapResourcesFinder,
+                           Scheduler scheduler, BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder, BiFunction<ClassContext, String, byte[]> bootstrapResourceFinder, BiFunction<ClassContext, String, List<byte[]>> bootstrapResourcesFinder,
                            BiFunction<ClassContext, String, DefinedTypeDefinition> appFinder, BiFunction<ClassContext, String, byte[]> appResourceFinder, BiFunction<ClassContext, String, List<byte[]>> appResourcesFinder,
                            Function<CompilationContext, Vm> vmFactory, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories,
                            List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories,
@@ -100,6 +102,7 @@ final class CompilationContextImpl implements CompilationContext {
         this.platform = platform;
         this.typeSystem = typeSystem;
         this.literalFactory = literalFactory;
+        this.scheduler = scheduler;
         this.outputDir = outputDir;
         this.resolverFactories = resolverFactories;
         this.classContextListener = classContextListener;
@@ -251,6 +254,10 @@ final class CompilationContextImpl implements CompilationContext {
 
     public TypeSystem getTypeSystem() {
         return typeSystem;
+    }
+
+    public Scheduler getScheduler() {
+        return scheduler;
     }
 
     public LiteralFactory getLiteralFactory() {

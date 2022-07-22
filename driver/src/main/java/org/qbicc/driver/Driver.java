@@ -30,6 +30,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.schedule.Scheduler;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFileProvider;
@@ -158,7 +159,8 @@ public class Driver implements Closeable {
 
         java.util.function.Function<CompilationContext, Vm> vmFactory = Assert.checkNotNullParam("builder.vmFactory", builder.vmFactory);
         NativeMethodConfigurator nativeMethodConfigurator = constructNativeMethodConfigurator(builder);
-        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, this::defaultFinder, this::defaultResourceFinder, this::defaultResourcesFinder, this::appFinder, this::appResourceFinder, this::appResourcesFinder, vmFactory, outputDir, resolverFactories, typeBuilderFactories, nativeMethodConfigurator, classContextListener);
+        Scheduler scheduler = new Scheduler(Scheduler.Mode.EARLY);
+        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, scheduler, this::defaultFinder, this::defaultResourceFinder, this::defaultResourcesFinder, this::appFinder, this::appResourceFinder, this::appResourcesFinder, vmFactory, outputDir, resolverFactories, typeBuilderFactories, nativeMethodConfigurator, classContextListener);
         // start with ADD
         compilationContext.setBlockFactory(addBuilderFactory);
 

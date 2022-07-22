@@ -22,6 +22,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.schedule.Scheduler;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.machine.arch.Platform;
@@ -58,6 +59,11 @@ public class TestClassContext implements ClassContext {
         }
 
         public TypeSystem getTypeSystem() {
+            return null;
+        }
+
+        @Override
+        public Scheduler getScheduler() {
             return null;
         }
 

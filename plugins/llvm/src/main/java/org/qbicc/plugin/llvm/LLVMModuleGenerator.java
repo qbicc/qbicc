@@ -7,7 +7,6 @@ import org.qbicc.facts.core.ExecutableReachabilityFacts;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.machine.llvm.FunctionAttributes;
 import org.qbicc.machine.llvm.FunctionDefinition;
 import org.qbicc.machine.llvm.Global;
@@ -177,7 +176,7 @@ final class LLVMModuleGenerator {
                         functionDefinition.attribute(FunctionAttributes.noreturn);
                     }
 
-                    LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(context, module, debugInfo, pseudoIntrinsics, topSubprogram, moduleVisitor, Schedule.forMethod(entryBlock), fn, functionDefinition);
+                    LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(context, module, debugInfo, pseudoIntrinsics, topSubprogram, moduleVisitor, fn, functionDefinition);
                     if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                         functionDefinition.section(sectionName);
                     }
