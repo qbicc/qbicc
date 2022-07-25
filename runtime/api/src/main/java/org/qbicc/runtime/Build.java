@@ -220,6 +220,11 @@ public final class Build {
         }
 
         @Fold
+        public static boolean isPThreads() {
+            return ! isWasm();
+        }
+
+        @Fold
         public static boolean isMusl() {
             return defined(__MUSL__);
         }
@@ -334,6 +339,12 @@ public final class Build {
         public static final class IsGLibCLike implements BooleanSupplier {
             public boolean getAsBoolean() {
                 return isGLibCLike();
+            }
+        }
+
+        public static final class IsPThreads implements BooleanSupplier {
+            public boolean getAsBoolean() {
+                return isPThreads();
             }
         }
 
