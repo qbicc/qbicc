@@ -191,11 +191,13 @@ public final class Heap {
                 // OK
                 return;
             }
-            // need to commit it
-            c_int res = mprotect(heap.plus(committedOld), word(index - committedOld), wordOr(PROT_READ, PROT_WRITE));
-            if (res == word(-1)) {
-                // failed to commit; throw without allocating anything
-                throw OOME;
+            if (!Build.Target.isWasm()) {
+                // need to commit it
+                c_int res = mprotect(heap.plus(committedOld), word(index - committedOld), wordOr(PROT_READ, PROT_WRITE));
+                if (res == word(-1)) {
+                    // failed to commit; throw without allocating anything
+                    throw OOME;
+                }
             }
         } while (! committedPtr.compareAndSetRelease(word(committedOld), word(index)));
         // requested memory is committed
@@ -337,38 +339,43 @@ public final class Heap {
         }
         // First, reserve the full address space that we need
         long heapAlignment = getConfiguredHeapAlignment();
-        void_ptr heap = mmap(zero(),
-            word(maxHeap + heapAlignment),
-            PROT_NONE,
-            wordOr(MAP_ANON, MAP_PRIVATE),
-            word(-1),
-            zero()
-        );
-        if (heap == MAP_FAILED) {
-            errorMsgTemplate = utf8z("Failed to map initial heap: %s\n").cast();
-            initErrno = errno;
-            // failed
-            return false;
-        }
-        // align the heap
-        long misalignment = heap.longValue() & (heapAlignment - 1);
-        // release the extra address space at the start and the end
-        long trimAtStart = heapAlignment - misalignment;
-        if (trimAtStart > 0) {
-            munmap(heap, word(trimAtStart));
-            heap = heap.plus(trimAtStart);
-        }
-        // (heap is now aligned)
-        if (misalignment > 0) {
-            munmap(heap.plus(maxHeap), word(misalignment));
-        }
-        // next attempt to commit the minimum heap size
-        c_int res = mprotect0(minHeap, heap);
-        if (res == word(-1)) {
-            errorMsgTemplate = utf8z("Failed to commit minimum heap space: %s\n").cast();
-            initErrno = errno;
-            // failed
-            return false;
+        void_ptr heap;
+        if (Build.Target.isWasm()) {
+             heap = malloc(word(1073741824));
+        } else {
+            heap = mmap(zero(),
+                word(maxHeap + heapAlignment),
+                PROT_NONE,
+                wordOr(MAP_ANON, MAP_PRIVATE),
+                word(-1),
+                zero()
+            );
+            if (heap == MAP_FAILED) {
+                errorMsgTemplate = utf8z("Failed to map initial heap: %s\n").cast();
+                initErrno = errno;
+                // failed
+                return false;
+            }
+            // align the heap
+            long misalignment = heap.longValue() & (heapAlignment - 1);
+            // release the extra address space at the start and the end
+            long trimAtStart = heapAlignment - misalignment;
+            if (trimAtStart > 0) {
+                munmap(heap, word(trimAtStart));
+                heap = heap.plus(trimAtStart);
+            }
+            // (heap is now aligned)
+            if (misalignment > 0) {
+                munmap(heap.plus(maxHeap), word(misalignment));
+            }
+            // next attempt to commit the minimum heap size
+            c_int res = mprotect(heap, word(minHeap), wordOr(PROT_READ, PROT_WRITE));
+            if (res == word(-1)) {
+                errorMsgTemplate = utf8z("Failed to commit minimum heap space: %s\n").cast();
+                initErrno = errno;
+                // failed
+                return false;
+            }
         }
         Heap.heap = heap;
         Heap.allocated = 0;
@@ -378,15 +385,6 @@ public final class Heap {
         VarHandle.releaseFence();
         // The empty heap is configured!
         return true;
-    }
-
-    @Inline
-    private static c_int mprotect0(long minHeap, void_ptr heap) {
-        if (Build.Target.isWasm()) {
-            return word(0);
-        } else {
-            return mprotect(heap, word(minHeap), wordOr(PROT_READ, PROT_WRITE));
-        }
     }
 
     @export(withScope = ExportScope.LOCAL)
@@ -425,6 +423,9 @@ public final class Heap {
     @destructor(priority = 0)
     @export
     static void destroyHeap() {
+        if (Build.Target.isWasm()) {
+            return;
+        }
         VarHandle.acquireFence();
         void_ptr heap = Heap.heap;
         if (heap != null) {
