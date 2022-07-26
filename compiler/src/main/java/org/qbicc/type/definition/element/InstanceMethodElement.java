@@ -50,9 +50,6 @@ public final class InstanceMethodElement extends MethodElement {
     public InstanceMethodPointer getOrCreateInstanceMethodPointer(Function<InstanceMethodElement, InstanceMethodPointer> factory) {
         InstanceMethodPointer pointer = this.pointer;
         if (pointer == null) {
-            if (isStatic()) {
-                throw new IllegalArgumentException("Instance pointer for static method");
-            }
             pointer = factory.apply(this);
             InstanceMethodPointer appearing = (InstanceMethodPointer) pointerHandle.compareAndExchange(this, null, pointer);
             if (appearing != null) {

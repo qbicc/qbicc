@@ -27,7 +27,7 @@ public class ClangToolProvider implements ToolProvider {
         return list;
     }
 
-    static final Pattern VERSION_PATTERN = Pattern.compile("^(?:clang|Apple (?:LLVM|clang)|Ubuntu|Homebrew (?:LLVM|clang)) version (\\S+)");
+    static final Pattern VERSION_PATTERN = Pattern.compile("^(?:clang|Apple (?:LLVM|clang)|Ubuntu (?:LLVM|clang)|Homebrew (?:LLVM|clang)) version (\\S+)");
 
     private <T extends Tool> void tryOne(final Class<T> type, final Platform platform, final ArrayList<T> list, final Path path) {
         if (path != null && Files.isExecutable(path)) {

@@ -1,6 +1,7 @@
 package org.qbicc.plugin.reflection;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.interpreter.Thrown;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -23,10 +24,14 @@ public class ReflectiveMethodAccessorGenerator implements Consumer<ExecutableEle
         CompilationContext ctxt = executableElement.getEnclosingType().getContext().getCompilationContext();
         if (ReachabilityRoots.get(ctxt).getReflectiveMethods().contains(executableElement)) {
             Reflection r = Reflection.get(ctxt);
-            if (executableElement instanceof MethodElement me) {
-                r.makeAvailableForRuntimeReflection(me);
-            } else if (executableElement instanceof ConstructorElement ce) {
-                r.makeAvailableForRuntimeReflection(ce);
+            try {
+                if (executableElement instanceof MethodElement me) {
+                    r.makeAvailableForRuntimeReflection(me);
+                } else if (executableElement instanceof ConstructorElement ce) {
+                    r.makeAvailableForRuntimeReflection(ce);
+                }
+            } catch (Thrown e) {
+                ctxt.warning("Failed to make %s available for runtime reflection: %s", executableElement.toString(), e.getMessage());
             }
         }
     }

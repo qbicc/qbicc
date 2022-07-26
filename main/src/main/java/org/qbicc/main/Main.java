@@ -521,7 +521,7 @@ public class Main implements Callable<DiagnosticContext> {
 
                                 builder.addPreHook(Phase.ANALYZE, new VMHelpersSetupHook());
                                 builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::forceCoreClassesReachable);
-                                builder.addPreHook(Phase.ANALYZE, ReachabilityRoots::processReachabilityRoots);
+                                builder.addPreHook(Phase.ANALYZE, ReachabilityRoots::processRootsForAnalyze);
                                 builder.addElementHandler(Phase.ANALYZE, new ElementBodyCopier());
                                 if (optEscapeAnalysis) {
                                     builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new EscapeAnalysisIntraMethodAnalysis()));
@@ -561,7 +561,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
 
-                                builder.addPreHook(Phase.LOWER, ReachabilityRoots::enqueueReachabilityRoots);
+                                builder.addPreHook(Phase.LOWER, ReachabilityRoots::processRootsForLower);
                                 builder.addPreHook(Phase.LOWER, new ClassObjectSerializer());
                                 if (optEscapeAnalysis) {
                                     builder.addCopyFactory(Phase.LOWER, EscapeAnalysisOptimizeVisitor::new);

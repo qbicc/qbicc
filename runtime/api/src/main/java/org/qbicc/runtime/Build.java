@@ -195,6 +195,12 @@ public final class Build {
             return defined(__wasm__);
         }
 
+        @Fold
+        public static boolean isWasi() {
+            return defined(__wasi__) || defined(__EMSCRIPTEN__);
+        }
+
+
         // Toolchain
 
         @Fold
@@ -217,6 +223,11 @@ public final class Build {
         @Fold
         public static boolean isUCLibC() {
             return defined(__UCLIBC__);
+        }
+
+        @Fold
+        public static boolean isPThreads() {
+            return ! isWasm();
         }
 
         @Fold
@@ -265,6 +276,8 @@ public final class Build {
         private static final object __arm__ = constant();
         private static final object __aarch64__ = constant();
         private static final object __wasm__ = constant();
+        private static final object __wasi__ = constant();
+        private static final object __EMSCRIPTEN__ = constant();
         private static final object _M_ARM = constant();
         @include("<features.h>")
         private static final c_int __GNU_LIBRARY__ = constant();
@@ -317,6 +330,12 @@ public final class Build {
                 return isWasm();
             }
         }
+
+        public static final class IsWasi implements BooleanSupplier {
+            public boolean getAsBoolean() {
+                return isWasi();
+            }
+        }
         //
 
         public static final class IsGcc implements BooleanSupplier {
@@ -334,6 +353,12 @@ public final class Build {
         public static final class IsGLibCLike implements BooleanSupplier {
             public boolean getAsBoolean() {
                 return isGLibCLike();
+            }
+        }
+
+        public static final class IsPThreads implements BooleanSupplier {
+            public boolean getAsBoolean() {
+                return isPThreads();
             }
         }
 

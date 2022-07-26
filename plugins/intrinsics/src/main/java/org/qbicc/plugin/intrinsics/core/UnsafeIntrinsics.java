@@ -261,11 +261,7 @@ public class UnsafeIntrinsics {
         );
     }
 
-    private interface BuilderGetAndModOp {
-        Value apply(BasicBlockBuilder builder, ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
-    }
-
-    private static Value doGetAndModify(CompilationContext ctxt, BasicBlockBuilder builder, BuilderGetAndModOp op, List<Value> arguments, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    private static Value doGetAndModify(CompilationContext ctxt, BasicBlockBuilder builder, ReadModifyWrite.Op op, List<Value> arguments, ReadAccessMode readMode, WriteAccessMode writeMode) {
         Value obj = arguments.get(0);
         Value offset = arguments.get(1);
         Value operand = arguments.get(2);
@@ -276,7 +272,7 @@ public class UnsafeIntrinsics {
             operandType = objectType.getReference();
         }
         ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, operandType);
-        return op.apply(builder, handle, operand, readMode, writeMode);
+        return builder.readModifyWrite(handle, op, operand, readMode, writeMode);
     }
 
     private static void registerGetAndModIntrinsics(final CompilationContext ctxt) {
@@ -292,12 +288,12 @@ public class UnsafeIntrinsics {
             "Int", BaseTypeDescriptor.I,
             "Long", BaseTypeDescriptor.J
         ).entrySet()) {
-            for (Map.Entry<String, BuilderGetAndModOp> nameAndOp : Map.of(
-                "Add", (basicBlockBuilder, target1, update, readMode, writeMode) -> basicBlockBuilder.readModifyWrite(target1, ReadModifyWrite.Op.ADD, update, readMode, writeMode),
-                "BitwiseAnd", (basicBlockBuilder1, target2, update1, readMode1, writeMode1) -> basicBlockBuilder1.readModifyWrite(target2, ReadModifyWrite.Op.BITWISE_AND, update1, readMode1, writeMode1),
-                "BitwiseOr", (basicBlockBuilder2, target3, update2, readMode2, writeMode2) -> basicBlockBuilder2.readModifyWrite(target3, ReadModifyWrite.Op.BITWISE_OR, update2, readMode2, writeMode2),
-                "BitwiseXor", (basicBlockBuilder3, target4, update3, readMode3, writeMode3) -> basicBlockBuilder3.readModifyWrite(target4, ReadModifyWrite.Op.BITWISE_XOR, update3, readMode3, writeMode3),
-                "Set", (BuilderGetAndModOp) (basicBlockBuilder4, target5, update4, readMode4, writeMode4) -> basicBlockBuilder4.readModifyWrite(target5, ReadModifyWrite.Op.SET, update4, readMode4, writeMode4)
+            for (Map.Entry<String, ReadModifyWrite.Op> nameAndOp : Map.of(
+                "Add", ReadModifyWrite.Op.ADD,
+                "BitwiseAnd", ReadModifyWrite.Op.BITWISE_AND,
+                "BitwiseOr", ReadModifyWrite.Op.BITWISE_OR,
+                "BitwiseXor", ReadModifyWrite.Op.BITWISE_XOR,
+                "Set", ReadModifyWrite.Op.SET
             ).entrySet()) {
                 for (Map.Entry<String, AccessMode[]> suffixAndMode : Map.of(
                     "", new AccessMode[] { GlobalSeqCst, GlobalSeqCst },
