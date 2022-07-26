@@ -499,6 +499,19 @@ public class BuildtimeHeap {
                         memberMap.put(om, lf.literalOf(it, iap.getValue()));
                     } else if (asPointerVal == null) {
                         memberMap.put(om, lf.literalOf(it, 0));
+                    } else if (asPointerVal instanceof StaticMethodPointer smp) {
+                        // lower method pointers to their corresponding objects
+                        StaticMethodElement method = smp.getStaticMethod();
+                        ctxt.enqueue(method);
+                        Function function = ctxt.getExactFunction(method);
+                        FunctionDeclaration decl = into.getProgramModule().declareFunction(function);
+                        memberMap.put(om, lf.valueConvertLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), it));
+                    } else if (asPointerVal instanceof StaticFieldPointer sfp) {
+                        // lower static field pointers to their corresponding program objects
+                        StaticFieldElement sfe = sfp.getStaticField();
+                        GlobalVariableElement global = getGlobalForStaticField(sfe);
+                        DataDeclaration decl = into.getProgramModule().declareData(sfe, global.getName(), global.getType());
+                        memberMap.put(om, lf.valueConvertLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), it));
                     } else if (asPointerVal instanceof MemoryPointer mp) {
                         ctxt.error(f.getLocation(), "An object contains a memory pointer: %s", mp);
                     } else {
@@ -537,6 +550,12 @@ public class BuildtimeHeap {
                     Function function = ctxt.getExactFunction(method);
                     FunctionDeclaration decl = into.getProgramModule().declareFunction(function);
                     memberMap.put(om, lf.bitcastLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), smp.getType()));
+                } else if (pointer instanceof StaticFieldPointer sfp) {
+                    // lower static field pointers to their corresponding program objects
+                    StaticFieldElement sfe = sfp.getStaticField();
+                    GlobalVariableElement global = getGlobalForStaticField(sfe);
+                    DataDeclaration decl = into.getProgramModule().declareData(sfe, global.getName(), global.getType());
+                    memberMap.put(om, lf.bitcastLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), sfp.getType()));
                 } else if (pointer instanceof MemoryPointer mp) {
                     ctxt.error(f.getLocation(), "An object contains a memory pointer: %s", mp);
                 } else {
