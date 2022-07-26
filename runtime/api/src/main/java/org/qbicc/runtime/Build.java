@@ -197,7 +197,7 @@ public final class Build {
 
         @Fold
         public static boolean isWasi() {
-            return defined(__wasi__);
+            return defined(__wasi__) || defined(__EMSCRIPTEN__);
         }
 
 
@@ -272,6 +272,7 @@ public final class Build {
         private static final object __aarch64__ = constant();
         private static final object __wasm__ = constant();
         private static final object __wasi__ = constant();
+        private static final object __EMSCRIPTEN__ = constant();
         private static final object _M_ARM = constant();
         @include("<features.h>")
         private static final c_int __GNU_LIBRARY__ = constant();
