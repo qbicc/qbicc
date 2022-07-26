@@ -230,7 +230,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             public Value visit(Void param, ElementOf node) {
                 ValueHandle arrayHandle = node.getValueHandle();
                 arrayHandle.accept(this, param);
-                ValueType arrayType = arrayHandle.getValueType();
+                ValueType arrayType = arrayHandle.getPointeeType();
                 if (arrayType instanceof ArrayObjectType) {
                     indexOutOfBoundsCheck(arrayHandle, node.getIndex());
                     if (arrayType instanceof ReferenceArrayObjectType referenceArrayType && storedValue != null) {

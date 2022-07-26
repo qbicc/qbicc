@@ -99,7 +99,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
      * @return the mapped arguments (not {@code null})
      */
     private List<Value> mapArguments(ValueHandle handle, List<Value> arguments) {
-        ValueType valueType = handle.getValueType();
+        ValueType valueType = handle.getPointeeType();
         if (valueType instanceof FunctionType fnType) {
             if (fnType.isVariadic()) {
                 // build up an argument list from the varargs array

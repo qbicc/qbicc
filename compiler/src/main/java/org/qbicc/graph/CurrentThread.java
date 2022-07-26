@@ -20,7 +20,7 @@ public final class CurrentThread extends AbstractValueHandle {
     }
 
     @Override
-    public ReferenceType getValueType() {
+    public ReferenceType getPointeeType() {
         return valueType;
     }
 
@@ -45,7 +45,7 @@ public final class CurrentThread extends AbstractValueHandle {
     }
 
     @Override
-    public PointerType getPointerType() {
+    public PointerType getType() {
         return valueType.getPointer();
     }
 

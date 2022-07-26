@@ -12,6 +12,7 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.GlobalAccessMode;
@@ -240,14 +241,14 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             return super.load(handle, SingleUnshared);
         }
         // Break apart atomic structure and array loads
-        if (handle.getValueType() instanceof CompoundType ct) {
+        if (handle.getPointeeType() instanceof CompoundType ct) {
             LiteralFactory lf = ctxt.getLiteralFactory();
             Value res = lf.zeroInitializerLiteralOfType(ct);
             for (CompoundType.Member member : ct.getPaddedMembers()) {
                 res = insertMember(res, member, load(memberOf(handle, member), accessMode));
             }
             return res;
-        } else if (handle.getValueType() instanceof ArrayType at) {
+        } else if (handle.getPointeeType() instanceof ArrayType at) {
             long ec = at.getElementCount();
             LiteralFactory lf = ctxt.getLiteralFactory();
             if (ec < 16) {
@@ -289,7 +290,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
 
     @Override
     public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
-        if (handle.getValueType() instanceof BooleanType) {
+        if (handle.getPointeeType() instanceof BooleanType) {
             ctxt.error("Invalid boolean-typed handle %s", handle);
         }
         if (value.getType() instanceof BooleanType) {
@@ -306,12 +307,12 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             return store(handle, value, SingleUnshared);
         }
         // Break apart atomic structure and array stores
-        if (handle.getValueType() instanceof CompoundType ct) {
+        if (handle.getPointeeType() instanceof CompoundType ct) {
             for (CompoundType.Member member : ct.getPaddedMembers()) {
                 store(memberOf(handle, member), extractMember(value, member), accessMode);
             }
             return nop();
-        } else if (handle.getValueType() instanceof ArrayType at) {
+        } else if (handle.getPointeeType() instanceof ArrayType at) {
             long ec = at.getElementCount();
             LiteralFactory lf = ctxt.getLiteralFactory();
             if (ec < 16) {
@@ -342,7 +343,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     @Override
     public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         BasicBlockBuilder fb = getFirstBuilder();
-        CompoundType resultType = CmpAndSwap.getResultType(ctxt, target.getValueType());
+        CompoundType resultType = CmpAndSwap.getResultType(ctxt, target.getPointeeType());
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
         Value result;
@@ -392,7 +393,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Value getAndAdd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         BasicBlockBuilder fb = getFirstBuilder();
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
@@ -401,7 +402,18 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             // not actually atomic!
             // emit fences via load and store logic.
             result = fb.load(target, readMode);
-            fb.store(target, fb.add(result, update), writeMode);
+            Value computed = switch (op) {
+                case SET -> update;
+                case ADD -> fb.add(result, update);
+                case SUB -> fb.sub(result, update);
+                case BITWISE_AND -> fb.and(result, update);
+                case BITWISE_NAND -> fb.complement(fb.and(result, update));
+                case BITWISE_OR -> fb.or(result, update);
+                case BITWISE_XOR -> fb.xor(result, update);
+                case MIN -> fb.min(result, update);
+                case MAX -> fb.max(result, update);
+            };
+            fb.store(target, computed, writeMode);
         } else {
             boolean readRequiresFence = readMode.includes(GlobalAcquire);
             if (readMode instanceof GlobalAccessMode) {
@@ -411,224 +423,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             if (writeMode instanceof GlobalAccessMode) {
                 lowerWriteMode = SingleOpaque;
             }
-            result = super.getAndAdd(target, update, lowerReadMode, lowerWriteMode);
-            if (readRequiresFence) {
-                fence(readMode.getGlobalAccess());
-            }
-            if (writeRequiresFence) {
-                fb.fence(writeMode.getGlobalAccess());
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public Value getAndBitwiseAnd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        BasicBlockBuilder fb = getFirstBuilder();
-        ReadAccessMode lowerReadMode = readMode;
-        WriteAccessMode lowerWriteMode = writeMode;
-        Value result;
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            // not actually atomic!
-            // emit fences via load and store logic.
-            result = fb.load(target, readMode);
-            fb.store(target, fb.and(result, update), writeMode);
-        } else {
-            boolean readRequiresFence = readMode.includes(GlobalAcquire);
-            if (readMode instanceof GlobalAccessMode) {
-                lowerReadMode = SingleOpaque;
-            }
-            boolean writeRequiresFence = writeMode.includes(GlobalRelease);
-            if (writeMode instanceof GlobalAccessMode) {
-                lowerWriteMode = SingleOpaque;
-            }
-            result = super.getAndBitwiseAnd(target, update, lowerReadMode, lowerWriteMode);
-            if (readRequiresFence) {
-                fence(readMode.getGlobalAccess());
-            }
-            if (writeRequiresFence) {
-                fb.fence(writeMode.getGlobalAccess());
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public Value getAndBitwiseOr(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        BasicBlockBuilder fb = getFirstBuilder();
-        ReadAccessMode lowerReadMode = readMode;
-        WriteAccessMode lowerWriteMode = writeMode;
-        Value result;
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            // not actually atomic!
-            // emit fences via load and store logic.
-            result = fb.load(target, readMode);
-            fb.store(target, fb.or(result, update), writeMode);
-        } else {
-            boolean readRequiresFence = readMode.includes(GlobalAcquire);
-            if (readMode instanceof GlobalAccessMode) {
-                lowerReadMode = SingleOpaque;
-            }
-            boolean writeRequiresFence = writeMode.includes(GlobalRelease);
-            if (writeMode instanceof GlobalAccessMode) {
-                lowerWriteMode = SingleOpaque;
-            }
-            result = super.getAndBitwiseOr(target, update, lowerReadMode, lowerWriteMode);
-            if (readRequiresFence) {
-                fence(readMode.getGlobalAccess());
-            }
-            if (writeRequiresFence) {
-                fb.fence(writeMode.getGlobalAccess());
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public Value getAndBitwiseXor(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        BasicBlockBuilder fb = getFirstBuilder();
-        ReadAccessMode lowerReadMode = readMode;
-        WriteAccessMode lowerWriteMode = writeMode;
-        Value result;
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            // not actually atomic!
-            // emit fences via load and store logic.
-            result = fb.load(target, readMode);
-            fb.store(target, fb.xor(result, update), writeMode);
-        } else {
-            boolean readRequiresFence = readMode.includes(GlobalAcquire);
-            if (readMode instanceof GlobalAccessMode) {
-                lowerReadMode = SingleOpaque;
-            }
-            boolean writeRequiresFence = writeMode.includes(GlobalRelease);
-            if (writeMode instanceof GlobalAccessMode) {
-                lowerWriteMode = SingleOpaque;
-            }
-            result = super.getAndBitwiseXor(target, update, lowerReadMode, lowerWriteMode);
-            if (readRequiresFence) {
-                fence(readMode.getGlobalAccess());
-            }
-            if (writeRequiresFence) {
-                fb.fence(writeMode.getGlobalAccess());
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public Value getAndSet(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        BasicBlockBuilder fb = getFirstBuilder();
-        ReadAccessMode lowerReadMode = readMode;
-        WriteAccessMode lowerWriteMode = writeMode;
-        Value result;
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            // not actually atomic!
-            // emit fences via load and store logic.
-            result = fb.load(target, readMode);
-            fb.store(target, update, writeMode);
-        } else {
-            boolean readRequiresFence = readMode.includes(GlobalAcquire);
-            if (readMode instanceof GlobalAccessMode) {
-                lowerReadMode = SingleOpaque;
-            }
-            boolean writeRequiresFence = writeMode.includes(GlobalRelease);
-            if (writeMode instanceof GlobalAccessMode) {
-                lowerWriteMode = SingleOpaque;
-            }
-            result = super.getAndSet(target, update, lowerReadMode, lowerWriteMode);
-            if (readRequiresFence) {
-                fence(readMode.getGlobalAccess());
-            }
-            if (writeRequiresFence) {
-                fb.fence(writeMode.getGlobalAccess());
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public Value getAndSetMax(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        BasicBlockBuilder fb = getFirstBuilder();
-        ReadAccessMode lowerReadMode = readMode;
-        WriteAccessMode lowerWriteMode = writeMode;
-        Value result;
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            // not actually atomic!
-            // emit fences via load and store logic.
-            result = fb.load(target, readMode);
-            fb.store(target, fb.max(result, update), writeMode);
-        } else {
-            boolean readRequiresFence = readMode.includes(GlobalAcquire);
-            if (readMode instanceof GlobalAccessMode) {
-                lowerReadMode = SingleOpaque;
-            }
-            boolean writeRequiresFence = writeMode.includes(GlobalRelease);
-            if (writeMode instanceof GlobalAccessMode) {
-                lowerWriteMode = SingleOpaque;
-            }
-            result = super.getAndSetMax(target, update, lowerReadMode, lowerWriteMode);
-            if (readRequiresFence) {
-                fence(readMode.getGlobalAccess());
-            }
-            if (writeRequiresFence) {
-                fb.fence(writeMode.getGlobalAccess());
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public Value getAndSetMin(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        BasicBlockBuilder fb = getFirstBuilder();
-        ReadAccessMode lowerReadMode = readMode;
-        WriteAccessMode lowerWriteMode = writeMode;
-        Value result;
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            // not actually atomic!
-            // emit fences via load and store logic.
-            result = fb.load(target, readMode);
-            fb.store(target, fb.min(result, update), writeMode);
-        } else {
-            boolean readRequiresFence = readMode.includes(GlobalAcquire);
-            if (readMode instanceof GlobalAccessMode) {
-                lowerReadMode = SingleOpaque;
-            }
-            boolean writeRequiresFence = writeMode.includes(GlobalRelease);
-            if (writeMode instanceof GlobalAccessMode) {
-                lowerWriteMode = SingleOpaque;
-            }
-            result = super.getAndSetMin(target, update, lowerReadMode, lowerWriteMode);
-            if (readRequiresFence) {
-                fence(readMode.getGlobalAccess());
-            }
-            if (writeRequiresFence) {
-                fb.fence(writeMode.getGlobalAccess());
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public Value getAndSub(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        BasicBlockBuilder fb = getFirstBuilder();
-        ReadAccessMode lowerReadMode = readMode;
-        WriteAccessMode lowerWriteMode = writeMode;
-        Value result;
-        if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
-            // not actually atomic!
-            // emit fences via load and store logic.
-            result = fb.load(target, readMode);
-            fb.store(target, fb.sub(result, update), writeMode);
-        } else {
-            boolean readRequiresFence = readMode.includes(GlobalAcquire);
-            if (readMode instanceof GlobalAccessMode) {
-                lowerReadMode = SingleOpaque;
-            }
-            boolean writeRequiresFence = writeMode.includes(GlobalRelease);
-            if (writeMode instanceof GlobalAccessMode) {
-                lowerWriteMode = SingleOpaque;
-            }
-            result = super.getAndSub(target, update, lowerReadMode, lowerWriteMode);
+            result = super.readModifyWrite(target, op, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
                 fence(readMode.getGlobalAccess());
             }
@@ -707,7 +502,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     private static boolean isVoidFunction(ValueHandle target) {
-        FunctionType type = (FunctionType) target.getValueType();
+        FunctionType type = (FunctionType) target.getPointeeType();
         return type.getReturnType() instanceof VoidType;
     }
 }

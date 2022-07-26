@@ -43,7 +43,7 @@ public class UnsafeHandle extends AbstractValueHandle {
     }
 
     @Override
-    public PointerType getPointerType() {
+    public PointerType getType() {
         return outputType.getPointer();
     }
 

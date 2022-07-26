@@ -621,45 +621,13 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new Load(callSite, element, line, bci, requireDependency(), handle, mode));
     }
 
-    public Value getAndAdd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return asDependency(new GetAndAdd(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
-    }
-
-    public Value getAndBitwiseAnd(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return asDependency(new GetAndBitwiseAnd(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
-    }
-
-    public Value getAndBitwiseNand(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return asDependency(new GetAndBitwiseNand(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
-    }
-
-    public Value getAndBitwiseOr(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return asDependency(new GetAndBitwiseOr(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
-    }
-
-    public Value getAndBitwiseXor(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return asDependency(new GetAndBitwiseXor(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
-    }
-
-    public Value getAndSet(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return asDependency(new GetAndSet(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
-    }
-
-    public Value getAndSetMax(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return asDependency(new GetAndSetMax(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
-    }
-
-    public Value getAndSetMin(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return asDependency(new GetAndSetMin(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
-    }
-
-    public Value getAndSub(ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return asDependency(new GetAndSub(callSite, element, line, bci, requireDependency(), target, update, readMode, writeMode));
+    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return asDependency(new ReadModifyWrite(callSite, element, line, bci, requireDependency(), target, op, update, readMode, writeMode));
     }
 
     public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         CompilationContext ctxt = getCurrentElement().getEnclosingType().getContext().getCompilationContext();
-        return asDependency(new CmpAndSwap(callSite, element, line, bci, CmpAndSwap.getResultType(ctxt, target.getValueType()), requireDependency(), target, expect, update, readMode, writeMode, strength));
+        return asDependency(new CmpAndSwap(callSite, element, line, bci, CmpAndSwap.getResultType(ctxt, target.getPointeeType()), requireDependency(), target, expect, update, readMode, writeMode, strength));
     }
 
     public Node store(ValueHandle handle, Value value, WriteAccessMode mode) {
@@ -729,7 +697,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         FieldElement exceptionField = ctxt.getExceptionField();
         ValueHandle handle = instanceFieldOf(referenceHandle(fb.notNull(thr)), exceptionField);
         LiteralFactory lf = ctxt.getLiteralFactory();
-        Value exceptionValue = notNull(getAndSet(handle, lf.zeroInitializerLiteralOfType(handle.getValueType()), SingleUnshared, SingleUnshared));
+        Value exceptionValue = notNull(readModifyWrite(handle, ReadModifyWrite.Op.SET, lf.zeroInitializerLiteralOfType(handle.getPointeeType()), SingleUnshared, SingleUnshared));
         BasicBlock sourceBlock = goto_(exceptionHandler.getHandler());
         exceptionHandler.enterHandler(from, sourceBlock, exceptionValue);
     }

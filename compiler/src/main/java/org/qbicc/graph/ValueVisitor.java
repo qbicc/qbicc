@@ -180,42 +180,6 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
-    default R visit(T t, GetAndAdd node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, GetAndBitwiseAnd node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, GetAndBitwiseNand node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, GetAndBitwiseOr node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, GetAndBitwiseXor node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, GetAndSet node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, GetAndSetMax node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, GetAndSetMin node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, GetAndSub node) {
-        return visitUnknown(t, node);
-    }
-
     default R visit(T t, InsertElement node) {
         return visitUnknown(t, node);
     }
@@ -317,6 +281,10 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T t, PopCount node) {
+        return visitUnknown(t, node);
+    }
+
+    default R visit(T t, ReadModifyWrite node) {
         return visitUnknown(t, node);
     }
 
@@ -519,42 +487,6 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T t, GetAndAdd node) {
-            return getDelegateValueVisitor().visit(t, node);
-        }
-
-        default R visit(T t, GetAndBitwiseAnd node) {
-            return getDelegateValueVisitor().visit(t, node);
-        }
-
-        default R visit(T t, GetAndBitwiseNand node) {
-            return getDelegateValueVisitor().visit(t, node);
-        }
-
-        default R visit(T t, GetAndBitwiseOr node) {
-            return getDelegateValueVisitor().visit(t, node);
-        }
-
-        default R visit(T t, GetAndBitwiseXor node) {
-            return getDelegateValueVisitor().visit(t, node);
-        }
-
-        default R visit(T t, GetAndSet node) {
-            return getDelegateValueVisitor().visit(t, node);
-        }
-
-        default R visit(T t, GetAndSetMax node) {
-            return getDelegateValueVisitor().visit(t, node);
-        }
-
-        default R visit(T t, GetAndSetMin node) {
-            return getDelegateValueVisitor().visit(t, node);
-        }
-
-        default R visit(T t, GetAndSub node) {
-            return getDelegateValueVisitor().visit(t, node);
-        }
-
         default R visit(T t, InsertElement node) {
             return getDelegateValueVisitor().visit(t, node);
         }
@@ -680,6 +612,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T t, PopCount node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default R visit(T t, ReadModifyWrite node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

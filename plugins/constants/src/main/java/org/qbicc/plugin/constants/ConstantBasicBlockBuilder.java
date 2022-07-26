@@ -125,7 +125,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private Value fold(final ValueHandle target, final List<Value> arguments) throws Thrown {
         // we fold per call site, so caching does not really make sense
-        if (target instanceof StaticMethodElementHandle sh && target.getValueType() instanceof StaticMethodType smt) {
+        if (target instanceof StaticMethodElementHandle sh && target.getPointeeType() instanceof StaticMethodType smt) {
             int size = arguments.size();
             Object[] args = size == 0 ? NO_ARGS : new Object[size];
             for (int i = 0; i < size; i ++) {

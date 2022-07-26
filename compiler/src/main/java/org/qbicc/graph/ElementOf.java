@@ -22,7 +22,7 @@ public final class ElementOf extends AbstractValueHandle {
         this.inputHandle = inputHandle;
         this.index = index;
 
-        ValueType inputType = inputHandle.getValueType();
+        ValueType inputType = inputHandle.getPointeeType();
         PointerType pointerType;
 
         if (inputType instanceof ArrayType) {
@@ -33,11 +33,11 @@ public final class ElementOf extends AbstractValueHandle {
             throw new IllegalArgumentException("Invalid input type: " + inputType);
         }
 
-        this.pointerType = pointerType.withQualifiersFrom(inputHandle.getPointerType());
+        this.pointerType = pointerType.withQualifiersFrom(inputHandle.getType());
     }
 
     @Override
-    public PointerType getPointerType() {
+    public PointerType getType() {
         return pointerType;
     }
 

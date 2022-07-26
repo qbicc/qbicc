@@ -562,7 +562,7 @@ public interface Node {
             }
 
             public ValueHandle visit(final Copier param, final AsmHandle node) {
-                return param.getBlockBuilder().asm(node.getInstruction(), node.getConstraints(), node.getFlags(), node.getValueType());
+                return param.getBlockBuilder().asm(node.getInstruction(), node.getConstraints(), node.getFlags(), node.getPointeeType());
             }
 
             public ValueHandle visit(Copier param, ElementOf node) {
@@ -599,51 +599,6 @@ public interface Node {
 
             public Value visit(final Copier param, final FloatLiteral node) {
                 return node;
-            }
-
-            public Value visit(final Copier param, final GetAndAdd node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndAdd(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
-            }
-
-            public Value visit(final Copier param, final GetAndBitwiseAnd node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndBitwiseAnd(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
-            }
-
-            public Value visit(final Copier param, final GetAndBitwiseNand node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndBitwiseNand(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
-            }
-
-            public Value visit(final Copier param, final GetAndBitwiseOr node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndBitwiseOr(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
-            }
-
-            public Value visit(final Copier param, final GetAndBitwiseXor node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndBitwiseXor(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
-            }
-
-            public Value visit(final Copier param, final GetAndSet node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndSet(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
-            }
-
-            public Value visit(final Copier param, final GetAndSetMax node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndSetMax(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
-            }
-
-            public Value visit(final Copier param, final GetAndSetMin node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndSetMin(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
-            }
-
-            public Value visit(final Copier param, final GetAndSub node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().getAndSub(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
             }
 
             public Value visit(final Copier param, final InsertElement node) {
@@ -803,6 +758,10 @@ public interface Node {
 
             public Value visit(final Copier param, final PopCount node) {
                 return param.getBlockBuilder().populationCount(param.copyValue(node.getInput()));
+            }
+
+            public Value visit(Copier copier, ReadModifyWrite node) {
+                return copier.getBlockBuilder().readModifyWrite(copier.copyValueHandle(node.getValueHandle()), node.getOp(), copier.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
             }
 
             public Value visit(Copier param, ReferenceTo node) {

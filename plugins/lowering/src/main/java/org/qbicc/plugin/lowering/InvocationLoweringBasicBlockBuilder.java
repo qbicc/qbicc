@@ -64,7 +64,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     @Override
     public Value load(ValueHandle handle, ReadAccessMode accessMode) {
         if (handle instanceof CurrentThread ct) {
-            return parameter(ct.getValueType(), "thr", 0);
+            return parameter(ct.getPointeeType(), "thr", 0);
         }
         return super.load(handle, accessMode);
     }
@@ -262,7 +262,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     public ValueHandle visit(ArrayList<Value> args, PointerHandle node) {
         // potentially, a pointer to a method
         Value pointerValue = node.getPointerValue();
-        ValueType valueType = node.getValueType();
+        ValueType valueType = node.getPointeeType();
         if (valueType instanceof MethodType mt) {
             // we have to bitcast it, and also transform the arguments accordingly
             final BasicBlockBuilder fb = getFirstBuilder();

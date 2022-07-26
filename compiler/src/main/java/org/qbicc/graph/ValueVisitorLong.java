@@ -180,42 +180,6 @@ public interface ValueVisitorLong<T> {
         return visitUnknown(param, node);
     }
 
-    default long visit(T param, GetAndAdd node) {
-        return visitUnknown(param, node);
-    }
-
-    default long visit(T param, GetAndBitwiseAnd node) {
-        return visitUnknown(param, node);
-    }
-
-    default long visit(T param, GetAndBitwiseNand node) {
-        return visitUnknown(param, node);
-    }
-
-    default long visit(T param, GetAndBitwiseOr node) {
-        return visitUnknown(param, node);
-    }
-
-    default long visit(T param, GetAndBitwiseXor node) {
-        return visitUnknown(param, node);
-    }
-
-    default long visit(T param, GetAndSet node) {
-        return visitUnknown(param, node);
-    }
-
-    default long visit(T param, GetAndSetMax node) {
-        return visitUnknown(param, node);
-    }
-
-    default long visit(T param, GetAndSetMin node) {
-        return visitUnknown(param, node);
-    }
-
-    default long visit(T param, GetAndSub node) {
-        return visitUnknown(param, node);
-    }
-
     default long visit(T param, InsertElement node) {
         return visitUnknown(param, node);
     }
@@ -317,6 +281,10 @@ public interface ValueVisitorLong<T> {
     }
 
     default long visit(T param, PopCount node) {
+        return visitUnknown(param, node);
+    }
+
+    default long visit(T param, ReadModifyWrite node) {
         return visitUnknown(param, node);
     }
 
@@ -519,42 +487,6 @@ public interface ValueVisitorLong<T> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
-        default long visit(T param, GetAndAdd node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default long visit(T param, GetAndBitwiseAnd node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default long visit(T param, GetAndBitwiseNand node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default long visit(T param, GetAndBitwiseOr node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default long visit(T param, GetAndBitwiseXor node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default long visit(T param, GetAndSet node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default long visit(T param, GetAndSetMax node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default long visit(T param, GetAndSetMin node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default long visit(T param, GetAndSub node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
         default long visit(T param, InsertElement node) {
             return getDelegateValueVisitor().visit(param, node);
         }
@@ -680,6 +612,10 @@ public interface ValueVisitorLong<T> {
         }
 
         default long visit(T param, PopCount node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default long visit(T param, ReadModifyWrite node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

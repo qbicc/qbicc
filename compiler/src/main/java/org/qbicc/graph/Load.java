@@ -52,7 +52,7 @@ public class Load extends AbstractValue implements OrderedNode {
     }
 
     public ValueType getType() {
-        return handle.getValueType();
+        return handle.getPointeeType();
     }
 
     public ReadAccessMode getAccessMode() {

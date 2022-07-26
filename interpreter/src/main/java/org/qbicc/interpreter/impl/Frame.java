@@ -48,15 +48,6 @@ import org.qbicc.graph.Extend;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
 import org.qbicc.graph.FunctionElementHandle;
-import org.qbicc.graph.GetAndAdd;
-import org.qbicc.graph.GetAndBitwiseAnd;
-import org.qbicc.graph.GetAndBitwiseNand;
-import org.qbicc.graph.GetAndBitwiseOr;
-import org.qbicc.graph.GetAndBitwiseXor;
-import org.qbicc.graph.GetAndSet;
-import org.qbicc.graph.GetAndSetMax;
-import org.qbicc.graph.GetAndSetMin;
-import org.qbicc.graph.GetAndSub;
 import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
@@ -93,6 +84,7 @@ import org.qbicc.graph.Or;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
+import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Ret;
 import org.qbicc.graph.Return;
@@ -1548,7 +1540,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
         Memory memory = getMemory(valueHandle);
         long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
+        ValueType type = node.getValueHandle().getPointeeType();
         Value expect = node.getExpectedValue();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
@@ -1617,273 +1609,182 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
-    public Object visit(VmThreadImpl thread, GetAndAdd node) {
+    public Object visit(VmThreadImpl thread, ReadModifyWrite node) {
         ValueHandle valueHandle = node.getValueHandle();
         if (valueHandle instanceof StaticField sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
         Memory memory = getMemory(valueHandle);
         long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
+        ValueType type = node.getValueHandle().getPointeeType();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
         WriteAccessMode writeAccessMode = node.getWriteAccessMode();
-        if (isInt8(type)) {
-            return Byte.valueOf((byte) memory.getAndAdd8(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt16(type)) {
-            return Short.valueOf((short) memory.getAndAdd16(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt32(type)) {
-            return Integer.valueOf(memory.getAndAdd32(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt64(type)) {
-            return Long.valueOf(memory.getAndAdd64(offset, unboxLong(update), readAccessMode, writeAccessMode));
-        } else {
-            throw unsupportedType();
-        }
-    }
-
-    @Override
-    public Object visit(VmThreadImpl thread, GetAndBitwiseAnd node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof StaticField sf) {
-            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
-        }
-        Memory memory = getMemory(valueHandle);
-        long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
-        Value update = node.getUpdateValue();
-        ReadAccessMode readAccessMode = node.getReadAccessMode();
-        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
-        if (isInt8(type)) {
-            return Byte.valueOf((byte) memory.getAndBitwiseAnd8(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt16(type)) {
-            return Short.valueOf((short) memory.getAndBitwiseAnd16(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt32(type)) {
-            return Integer.valueOf(memory.getAndBitwiseAnd32(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt64(type)) {
-            return Long.valueOf(memory.getAndBitwiseAnd64(offset, unboxLong(update), readAccessMode, writeAccessMode));
-        } else if (isBool(type)) {
-            return Boolean.valueOf((memory.getAndBitwiseAnd8(offset, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode) & 1) != 0);
-        } else {
-            throw unsupportedType();
-        }
-    }
-
-    @Override
-    public Object visit(VmThreadImpl thread, GetAndBitwiseNand node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof StaticField sf) {
-            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
-        }
-        Memory memory = getMemory(valueHandle);
-        long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
-        Value update = node.getUpdateValue();
-        ReadAccessMode readAccessMode = node.getReadAccessMode();
-        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
-        if (isInt8(type)) {
-            return Byte.valueOf((byte) memory.getAndBitwiseNand8(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt16(type)) {
-            return Short.valueOf((short) memory.getAndBitwiseNand16(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt32(type)) {
-            return Integer.valueOf(memory.getAndBitwiseNand32(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt64(type)) {
-            return Long.valueOf(memory.getAndBitwiseNand64(offset, unboxLong(update), readAccessMode, writeAccessMode));
-        } else if (isBool(type)) {
-            return Boolean.valueOf((memory.getAndBitwiseNand8(offset, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode) & 1) != 0);
-        } else {
-            throw unsupportedType();
-        }
-    }
-
-    @Override
-    public Object visit(VmThreadImpl thread, GetAndBitwiseOr node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof StaticField sf) {
-            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
-        }
-        Memory memory = getMemory(valueHandle);
-        long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
-        Value update = node.getUpdateValue();
-        ReadAccessMode readAccessMode = node.getReadAccessMode();
-        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
-        if (isInt8(type)) {
-            return Byte.valueOf((byte) memory.getAndBitwiseOr8(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt16(type)) {
-            return Short.valueOf((short) memory.getAndBitwiseOr16(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt32(type)) {
-            return Integer.valueOf(memory.getAndBitwiseOr32(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt64(type)) {
-            return Long.valueOf(memory.getAndBitwiseOr64(offset, unboxLong(update), readAccessMode, writeAccessMode));
-        } else if (isBool(type)) {
-            return Boolean.valueOf((memory.getAndBitwiseOr8(offset, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode) & 1) != 0);
-        } else {
-            throw unsupportedType();
-        }
-    }
-
-    @Override
-    public Object visit(VmThreadImpl thread, GetAndBitwiseXor node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof StaticField sf) {
-            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
-        }
-        Memory memory = getMemory(valueHandle);
-        long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
-        Value update = node.getUpdateValue();
-        ReadAccessMode readAccessMode = node.getReadAccessMode();
-        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
-        if (isInt8(type)) {
-            return Byte.valueOf((byte) memory.getAndBitwiseXor8(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt16(type)) {
-            return Short.valueOf((short) memory.getAndBitwiseXor16(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt32(type)) {
-            return Integer.valueOf(memory.getAndBitwiseXor32(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt64(type)) {
-            return Long.valueOf(memory.getAndBitwiseXor64(offset, unboxLong(update), readAccessMode, writeAccessMode));
-        } else if (isBool(type)) {
-            return Boolean.valueOf((memory.getAndBitwiseXor8(offset, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode) & 1) != 0);
-        } else {
-            throw unsupportedType();
-        }
-    }
-
-    @Override
-    public Object visit(VmThreadImpl thread, GetAndSet node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof StaticField sf) {
-            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
-        }
-        Memory memory = getMemory(valueHandle);
-        long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
-        Value update = node.getUpdateValue();
-        ReadAccessMode readAccessMode = node.getReadAccessMode();
-        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
-        if (isBool(type)) {
-            return Boolean.valueOf(memory.getAndSet8(offset, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode) != 0);
-        } else if (isInt8(type)) {
-            return Byte.valueOf((byte) memory.getAndSet8(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt16(type)) {
-            return Short.valueOf((short) memory.getAndSet16(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt32(type)) {
-            return Integer.valueOf(memory.getAndSet32(offset, unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt64(type)) {
-            return Long.valueOf(memory.getAndSet64(offset, unboxLong(update), readAccessMode, writeAccessMode));
-        } else if (isFloat32(type)) {
-            return Float.valueOf(Float.intBitsToFloat(memory.getAndSet32(offset, Float.floatToRawIntBits(unboxFloat(update)), readAccessMode, writeAccessMode)));
-        } else if (isFloat64(type)) {
-            return Double.valueOf(Double.longBitsToDouble(memory.getAndSet64(offset, Double.doubleToRawLongBits(unboxDouble(update)), readAccessMode, writeAccessMode)));
-        } else if (isRef(type)) {
-            return memory.getAndSetRef(offset, (VmObject) require(update), readAccessMode, writeAccessMode);
-        } else if (type instanceof PointerType) {
-            return memory.getAndSetPointer(offset, unboxPointer(update), readAccessMode, writeAccessMode);
-        } else {
-            throw unsupportedType();
-        }
-    }
-
-    @Override
-    public Object visit(VmThreadImpl thread, GetAndSetMax node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof StaticField sf) {
-            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
-        }
-        Memory memory = getMemory(valueHandle);
-        long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
-        Value update = node.getUpdateValue();
-        ReadAccessMode readAccessMode = node.getReadAccessMode();
-        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
-        if (isSigned(type)) {
-            if (isInt8(type)) {
-                return Byte.valueOf((byte) memory.getAndSetMaxSigned8(offset, unboxInt(update), readAccessMode, writeAccessMode));
-            } else if (isInt16(type)) {
-                return Short.valueOf((short) memory.getAndSetMaxSigned16(offset, unboxInt(update), readAccessMode, writeAccessMode));
-            } else if (isInt32(type)) {
-                return Integer.valueOf(memory.getAndSetMaxSigned32(offset, unboxInt(update), readAccessMode, writeAccessMode));
-            } else if (isInt64(type)) {
-                return Long.valueOf(memory.getAndSetMaxSigned64(offset, unboxLong(update), readAccessMode, writeAccessMode));
-            } else {
-                throw unsupportedType();
+        switch (node.getOp()) {
+            case SET -> {
+                if (isBool(type)) {
+                    return Boolean.valueOf(memory.getAndSet8(offset, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode) != 0);
+                } else if (isInt8(type)) {
+                    return Byte.valueOf((byte) memory.getAndSet8(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt16(type)) {
+                    return Short.valueOf((short) memory.getAndSet16(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt32(type)) {
+                    return Integer.valueOf(memory.getAndSet32(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt64(type)) {
+                    return Long.valueOf(memory.getAndSet64(offset, unboxLong(update), readAccessMode, writeAccessMode));
+                } else if (isFloat32(type)) {
+                    return Float.valueOf(Float.intBitsToFloat(memory.getAndSet32(offset, Float.floatToRawIntBits(unboxFloat(update)), readAccessMode, writeAccessMode)));
+                } else if (isFloat64(type)) {
+                    return Double.valueOf(Double.longBitsToDouble(memory.getAndSet64(offset, Double.doubleToRawLongBits(unboxDouble(update)), readAccessMode, writeAccessMode)));
+                } else if (isRef(type)) {
+                    return memory.getAndSetRef(offset, (VmObject) require(update), readAccessMode, writeAccessMode);
+                } else if (type instanceof PointerType) {
+                    return memory.getAndSetPointer(offset, unboxPointer(update), readAccessMode, writeAccessMode);
+                } else {
+                    throw unsupportedType();
+                }
             }
-        } else {
-            if (isInt8(type)) {
-                return Byte.valueOf((byte) memory.getAndSetMaxUnsigned8(offset, unboxInt(update), readAccessMode, writeAccessMode));
-            } else if (isInt16(type)) {
-                return Short.valueOf((short) memory.getAndSetMaxUnsigned16(offset, unboxInt(update), readAccessMode, writeAccessMode));
-            } else if (isInt32(type)) {
-                return Integer.valueOf(memory.getAndSetMaxUnsigned32(offset, unboxInt(update), readAccessMode, writeAccessMode));
-            } else if (isInt64(type)) {
-                return Long.valueOf(memory.getAndSetMaxUnsigned64(offset, unboxLong(update), readAccessMode, writeAccessMode));
-            } else {
-                throw unsupportedType();
+            case ADD -> {
+                if (isInt8(type)) {
+                    return Byte.valueOf((byte) memory.getAndAdd8(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt16(type)) {
+                    return Short.valueOf((short) memory.getAndAdd16(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt32(type)) {
+                    return Integer.valueOf(memory.getAndAdd32(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt64(type)) {
+                    return Long.valueOf(memory.getAndAdd64(offset, unboxLong(update), readAccessMode, writeAccessMode));
+                } else {
+                    throw unsupportedType();
+                }
             }
-        }
-    }
-
-    @Override
-    public Object visit(VmThreadImpl thread, GetAndSetMin node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof StaticField sf) {
-            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
-        }
-        Memory memory = getMemory(valueHandle);
-        long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
-        Value update = node.getUpdateValue();
-        ReadAccessMode readAccessMode = node.getReadAccessMode();
-        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
-        if (isSigned(type)) {
-            if (isInt8(type)) {
-                return Byte.valueOf((byte) memory.getAndSetMinSigned8(offset, unboxInt(update), readAccessMode, writeAccessMode));
-            } else if (isInt16(type)) {
-                return Short.valueOf((short) memory.getAndSetMinSigned16(offset, unboxInt(update), readAccessMode, writeAccessMode));
-            } else if (isInt32(type)) {
-                return Integer.valueOf(memory.getAndSetMinSigned32(offset, unboxInt(update), readAccessMode, writeAccessMode));
-            } else if (isInt64(type)) {
-                return Long.valueOf(memory.getAndSetMinSigned64(offset, unboxLong(update), readAccessMode, writeAccessMode));
-            } else {
-                throw unsupportedType();
+            case SUB -> {
+                if (isInt8(type)) {
+                    return Byte.valueOf((byte) memory.getAndAdd8(offset, -unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt16(type)) {
+                    return Short.valueOf((short) memory.getAndAdd16(offset, -unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt32(type)) {
+                    return Integer.valueOf(memory.getAndAdd32(offset, -unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt64(type)) {
+                    return Long.valueOf(memory.getAndAdd64(offset, -unboxLong(update), readAccessMode, writeAccessMode));
+                } else {
+                    throw unsupportedType();
+                }
             }
-        } else {
-            if (isInt8(type)) {
-                return Byte.valueOf((byte) memory.getAndSetMinUnsigned8(offset, unboxInt(update), readAccessMode, writeAccessMode));
-            } else if (isInt16(type)) {
-                return Short.valueOf((short) memory.getAndSetMinUnsigned16(offset, unboxInt(update), readAccessMode, writeAccessMode));
-            } else if (isInt32(type)) {
-                return Integer.valueOf(memory.getAndSetMinUnsigned32(offset, unboxInt(update), readAccessMode, writeAccessMode));
-            } else if (isInt64(type)) {
-                return Long.valueOf(memory.getAndSetMinUnsigned64(offset, unboxLong(update), readAccessMode, writeAccessMode));
-            } else {
-                throw unsupportedType();
+            case BITWISE_AND -> {
+                if (isInt8(type)) {
+                    return Byte.valueOf((byte) memory.getAndBitwiseAnd8(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt16(type)) {
+                    return Short.valueOf((short) memory.getAndBitwiseAnd16(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt32(type)) {
+                    return Integer.valueOf(memory.getAndBitwiseAnd32(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt64(type)) {
+                    return Long.valueOf(memory.getAndBitwiseAnd64(offset, unboxLong(update), readAccessMode, writeAccessMode));
+                } else if (isBool(type)) {
+                    return Boolean.valueOf((memory.getAndBitwiseAnd8(offset, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode) & 1) != 0);
+                } else {
+                    throw unsupportedType();
+                }
             }
-        }
-    }
-
-    @Override
-    public Object visit(VmThreadImpl thread, GetAndSub node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof StaticField sf) {
-            ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
-        }
-        Memory memory = getMemory(valueHandle);
-        long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getValueType();
-        Value update = node.getUpdateValue();
-        ReadAccessMode readAccessMode = node.getReadAccessMode();
-        WriteAccessMode writeAccessMode = node.getWriteAccessMode();
-        if (isInt8(type)) {
-            return Byte.valueOf((byte) memory.getAndAdd8(offset, -unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt16(type)) {
-            return Short.valueOf((short) memory.getAndAdd16(offset, -unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt32(type)) {
-            return Integer.valueOf(memory.getAndAdd32(offset, -unboxInt(update), readAccessMode, writeAccessMode));
-        } else if (isInt64(type)) {
-            return Long.valueOf(memory.getAndAdd64(offset, -unboxLong(update), readAccessMode, writeAccessMode));
-        } else {
-            throw unsupportedType();
+            case BITWISE_NAND -> {
+                if (isInt8(type)) {
+                    return Byte.valueOf((byte) memory.getAndBitwiseNand8(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt16(type)) {
+                    return Short.valueOf((short) memory.getAndBitwiseNand16(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt32(type)) {
+                    return Integer.valueOf(memory.getAndBitwiseNand32(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt64(type)) {
+                    return Long.valueOf(memory.getAndBitwiseNand64(offset, unboxLong(update), readAccessMode, writeAccessMode));
+                } else if (isBool(type)) {
+                    return Boolean.valueOf((memory.getAndBitwiseNand8(offset, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode) & 1) != 0);
+                } else {
+                    throw unsupportedType();
+                }
+            }
+            case BITWISE_OR -> {
+                if (isInt8(type)) {
+                    return Byte.valueOf((byte) memory.getAndBitwiseOr8(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt16(type)) {
+                    return Short.valueOf((short) memory.getAndBitwiseOr16(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt32(type)) {
+                    return Integer.valueOf(memory.getAndBitwiseOr32(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt64(type)) {
+                    return Long.valueOf(memory.getAndBitwiseOr64(offset, unboxLong(update), readAccessMode, writeAccessMode));
+                } else if (isBool(type)) {
+                    return Boolean.valueOf((memory.getAndBitwiseOr8(offset, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode) & 1) != 0);
+                } else {
+                    throw unsupportedType();
+                }
+            }
+            case BITWISE_XOR -> {
+                if (isInt8(type)) {
+                    return Byte.valueOf((byte) memory.getAndBitwiseXor8(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt16(type)) {
+                    return Short.valueOf((short) memory.getAndBitwiseXor16(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt32(type)) {
+                    return Integer.valueOf(memory.getAndBitwiseXor32(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                } else if (isInt64(type)) {
+                    return Long.valueOf(memory.getAndBitwiseXor64(offset, unboxLong(update), readAccessMode, writeAccessMode));
+                } else if (isBool(type)) {
+                    return Boolean.valueOf((memory.getAndBitwiseXor8(offset, unboxBool(update) ? 1 : 0, readAccessMode, writeAccessMode) & 1) != 0);
+                } else {
+                    throw unsupportedType();
+                }
+            }
+            case MIN -> {
+                if (isSigned(type)) {
+                    if (isInt8(type)) {
+                        return Byte.valueOf((byte) memory.getAndSetMinSigned8(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                    } else if (isInt16(type)) {
+                        return Short.valueOf((short) memory.getAndSetMinSigned16(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                    } else if (isInt32(type)) {
+                        return Integer.valueOf(memory.getAndSetMinSigned32(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                    } else if (isInt64(type)) {
+                        return Long.valueOf(memory.getAndSetMinSigned64(offset, unboxLong(update), readAccessMode, writeAccessMode));
+                    } else {
+                        throw unsupportedType();
+                    }
+                } else {
+                    if (isInt8(type)) {
+                        return Byte.valueOf((byte) memory.getAndSetMinUnsigned8(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                    } else if (isInt16(type)) {
+                        return Short.valueOf((short) memory.getAndSetMinUnsigned16(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                    } else if (isInt32(type)) {
+                        return Integer.valueOf(memory.getAndSetMinUnsigned32(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                    } else if (isInt64(type)) {
+                        return Long.valueOf(memory.getAndSetMinUnsigned64(offset, unboxLong(update), readAccessMode, writeAccessMode));
+                    } else {
+                        throw unsupportedType();
+                    }
+                }
+            }
+            case MAX -> {
+                if (isSigned(type)) {
+                    if (isInt8(type)) {
+                        return Byte.valueOf((byte) memory.getAndSetMaxSigned8(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                    } else if (isInt16(type)) {
+                        return Short.valueOf((short) memory.getAndSetMaxSigned16(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                    } else if (isInt32(type)) {
+                        return Integer.valueOf(memory.getAndSetMaxSigned32(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                    } else if (isInt64(type)) {
+                        return Long.valueOf(memory.getAndSetMaxSigned64(offset, unboxLong(update), readAccessMode, writeAccessMode));
+                    } else {
+                        throw unsupportedType();
+                    }
+                } else {
+                    if (isInt8(type)) {
+                        return Byte.valueOf((byte) memory.getAndSetMaxUnsigned8(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                    } else if (isInt16(type)) {
+                        return Short.valueOf((short) memory.getAndSetMaxUnsigned16(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                    } else if (isInt32(type)) {
+                        return Integer.valueOf(memory.getAndSetMaxUnsigned32(offset, unboxInt(update), readAccessMode, writeAccessMode));
+                    } else if (isInt64(type)) {
+                        return Long.valueOf(memory.getAndSetMaxUnsigned64(offset, unboxLong(update), readAccessMode, writeAccessMode));
+                    } else {
+                        throw unsupportedType();
+                    }
+                }
+            }
+            default -> throw Assert.impossibleSwitchCase(node.getOp());
         }
     }
 
@@ -1901,7 +1802,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
         }
         long offset = getOffset(valueHandle);
-        ValueType type = valueHandle.getValueType();
+        ValueType type = valueHandle.getPointeeType();
         ReadAccessMode mode = node.getAccessMode();
         if (isInt8(type)) {
             return Byte.valueOf((byte) memory.load8(offset, mode));
@@ -2096,7 +1997,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     void store(VmThreadImpl thread, final ValueHandle valueHandle, final Value value, final WriteAccessMode mode) {
         Memory memory = getMemory(valueHandle);
         long offset = getOffset(valueHandle);
-        ValueType type = valueHandle.getValueType();
+        ValueType type = valueHandle.getPointeeType();
         store(thread, memory, offset, type, value, mode);
     }
 
@@ -2540,7 +2441,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         public long visit(Frame frame, ElementOf node) {
             int index = frame.unboxInt(node.getIndex());
             ValueHandle delegate = node.getValueHandle();
-            ValueType delegateValueType = delegate.getValueType();
+            ValueType delegateValueType = delegate.getPointeeType();
             if (delegate instanceof ReferenceHandle) {
                 // array object access?
                 Value referenceValue = ((ReferenceHandle) delegate).getReferenceValue();
@@ -2609,7 +2510,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             }
             long offset = frame.unboxLong(node.getOffsetValue());
             // get the number of *bytes* to offset by, because the pointer's type might differ from the handle type
-            PointerType pointerType = node.getPointerType();
+            PointerType pointerType = node.getType();
             ValueType pointeeType = pointerType.getPointeeType();
             long byteOffset = offset * pointeeType.getSize();
             Pointer targetPointer = pointer.offsetInBytes(byteOffset, true);

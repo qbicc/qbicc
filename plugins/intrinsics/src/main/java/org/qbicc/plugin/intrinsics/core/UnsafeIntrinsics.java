@@ -21,6 +21,7 @@ import org.qbicc.graph.Load;
 import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.OrderedNode;
+import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -260,11 +261,7 @@ public class UnsafeIntrinsics {
         );
     }
 
-    private interface BuilderGetAndModOp {
-        Value apply(BasicBlockBuilder builder, ValueHandle target, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
-    }
-
-    private static Value doGetAndModify(CompilationContext ctxt, BasicBlockBuilder builder, BuilderGetAndModOp op, List<Value> arguments, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    private static Value doGetAndModify(CompilationContext ctxt, BasicBlockBuilder builder, ReadModifyWrite.Op op, List<Value> arguments, ReadAccessMode readMode, WriteAccessMode writeMode) {
         Value obj = arguments.get(0);
         Value offset = arguments.get(1);
         Value operand = arguments.get(2);
@@ -275,7 +272,7 @@ public class UnsafeIntrinsics {
             operandType = objectType.getReference();
         }
         ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, operandType);
-        return op.apply(builder, handle, operand, readMode, writeMode);
+        return builder.readModifyWrite(handle, op, operand, readMode, writeMode);
     }
 
     private static void registerGetAndModIntrinsics(final CompilationContext ctxt) {
@@ -291,12 +288,12 @@ public class UnsafeIntrinsics {
             "Int", BaseTypeDescriptor.I,
             "Long", BaseTypeDescriptor.J
         ).entrySet()) {
-            for (Map.Entry<String, BuilderGetAndModOp> nameAndOp : Map.of(
-                "Add", BasicBlockBuilder::getAndAdd,
-                "BitwiseAnd", BasicBlockBuilder::getAndBitwiseAnd,
-                "BitwiseOr", BasicBlockBuilder::getAndBitwiseOr,
-                "BitwiseXor", BasicBlockBuilder::getAndBitwiseXor,
-                "Set", (BuilderGetAndModOp) BasicBlockBuilder::getAndSet
+            for (Map.Entry<String, ReadModifyWrite.Op> nameAndOp : Map.of(
+                "Add", ReadModifyWrite.Op.ADD,
+                "BitwiseAnd", ReadModifyWrite.Op.BITWISE_AND,
+                "BitwiseOr", ReadModifyWrite.Op.BITWISE_OR,
+                "BitwiseXor", ReadModifyWrite.Op.BITWISE_XOR,
+                "Set", ReadModifyWrite.Op.SET
             ).entrySet()) {
                 for (Map.Entry<String, AccessMode[]> suffixAndMode : Map.of(
                     "", new AccessMode[] { GlobalSeqCst, GlobalSeqCst },

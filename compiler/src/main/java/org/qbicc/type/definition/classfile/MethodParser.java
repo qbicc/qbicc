@@ -1594,7 +1594,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v1 = pop1();
                         if (v1 instanceof MemberSelector ms) {
                             ValueHandle vh = ms.getValueHandle();
-                            ValueType valueType = vh.getValueType();
+                            ValueType valueType = vh.getPointeeType();
                             if (valueType instanceof CompoundType ct) {
                                 push1(gf.selectMember(gf.memberOf(vh, ct.getMember(name))));
                             } else if (valueType instanceof PhysicalObjectType) {
@@ -1626,7 +1626,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v1 = pop1();
                         if (v1 instanceof MemberSelector ms) {
                             ValueHandle vh = ms.getValueHandle();
-                            ValueType valueType = vh.getValueType();
+                            ValueType valueType = vh.getPointeeType();
                             if (valueType instanceof CompoundType ct) {
                                 gf.store(gf.memberOf(vh, ct.getMember(name)), storeTruncate(v2, desc), SinglePlain);
                             } else if (valueType instanceof PhysicalObjectType) {

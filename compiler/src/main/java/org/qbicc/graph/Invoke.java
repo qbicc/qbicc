@@ -36,7 +36,7 @@ public final class Invoke extends AbstractTerminator implements Resume {
         this.arguments = arguments;
         this.catchLabel = catchLabel;
         this.resumeLabel = resumeLabel;
-        calleeType = (InvokableType) target.getValueType();
+        calleeType = (InvokableType) target.getPointeeType();
         returnValue = new ReturnValue();
     }
 

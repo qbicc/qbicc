@@ -3,7 +3,6 @@ package org.qbicc.plugin.native_;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ValueType;
@@ -18,7 +17,7 @@ public class StructMemberAccessBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
-        ValueType valueType = instance.getValueType();
+        ValueType valueType = instance.getPointeeType();
         if (valueType instanceof CompoundType) {
             return memberOf(instance, ((CompoundType) valueType).getMember(field.getName()));
         }

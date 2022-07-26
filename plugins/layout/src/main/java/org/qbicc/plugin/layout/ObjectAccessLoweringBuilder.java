@@ -73,7 +73,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     }
 
     public ValueHandle elementOf(ValueHandle array, Value index) {
-        if (array.getValueType() instanceof CompoundType ct && ct.getMemberCount() > 0) {
+        if (array.getPointeeType() instanceof CompoundType ct && ct.getMemberCount() > 0) {
             // ElementOf a CompoundType -> ElementOf the last Member
             CompoundType.Member lastMember = ct.getMember(ct.getMemberCount() - 1);
             BasicBlockBuilder fb = getFirstBuilder();

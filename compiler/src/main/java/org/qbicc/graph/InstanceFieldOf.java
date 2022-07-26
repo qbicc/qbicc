@@ -13,8 +13,8 @@ public final class InstanceFieldOf extends Field {
     private final PhysicalObjectType instanceType;
 
     InstanceFieldOf(ExecutableElement element, int line, int bci, InstanceFieldElement fieldElement, ValueType valueType, ValueHandle instance) {
-        super(element, line, bci, fieldElement, valueType.getPointer().withQualifiersFrom(instance.getPointerType()));
-        instanceType = (PhysicalObjectType) instance.getValueType();
+        super(element, line, bci, fieldElement, valueType.getPointer().withQualifiersFrom(instance.getType()));
+        instanceType = (PhysicalObjectType) instance.getPointeeType();
         this.instance = instance;
     }
 

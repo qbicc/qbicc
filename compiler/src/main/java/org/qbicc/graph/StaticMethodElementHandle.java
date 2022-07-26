@@ -20,8 +20,8 @@ public final class StaticMethodElementHandle extends Executable {
     }
 
     @Override
-    public StaticMethodType getValueType() {
-        return (StaticMethodType) super.getValueType();
+    public StaticMethodType getPointeeType() {
+        return (StaticMethodType) super.getPointeeType();
     }
 
     @Override

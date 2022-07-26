@@ -1,6 +1,5 @@
 package org.qbicc.graph;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,7 +47,7 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
             throw new IllegalArgumentException("Handle is not readable");
         }
 
-        ValueType targetType = target.getValueType();
+        ValueType targetType = target.getPointeeType();
         /* expected and update value both be assignable to the handle. */
         if (!(expectedValue instanceof NullLiteral || targetType.isImplicitlyConvertibleFrom(expectedValue.getType()))) {
             throw new IllegalArgumentException("The target and expected value types must agree.");

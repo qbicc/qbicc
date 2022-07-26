@@ -33,13 +33,13 @@ public final class ReferenceHandle extends AbstractValueHandle {
         return 1;
     }
 
-    public PointerType getPointerType() {
+    public PointerType getType() {
         return pointerType;
     }
 
     @Override
-    public ObjectType getValueType() {
-        return (ObjectType) super.getValueType();
+    public ObjectType getPointeeType() {
+        return (ObjectType) super.getPointeeType();
     }
 
     @Override

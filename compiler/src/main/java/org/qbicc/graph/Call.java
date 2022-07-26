@@ -26,7 +26,7 @@ public final class Call extends AbstractValue implements OrderedNode {
         this.dependency = dependency;
         this.target = target;
         this.arguments = arguments;
-        functionType = (InvokableType) target.getValueType();
+        functionType = (InvokableType) target.getPointeeType();
     }
 
     @Override

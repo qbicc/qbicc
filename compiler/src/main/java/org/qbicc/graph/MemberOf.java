@@ -20,8 +20,8 @@ public final class MemberOf extends AbstractValueHandle {
         super(callSite, element, line, bci);
         this.structureHandle = structureHandle;
         this.member = member;
-        pointerType = member.getType().getPointer().withQualifiersFrom(structureHandle.getPointerType());
-        structType = (CompoundType) structureHandle.getValueType();
+        pointerType = member.getType().getPointer().withQualifiersFrom(structureHandle.getType());
+        structType = (CompoundType) structureHandle.getPointeeType();
     }
 
     public CompoundType getStructType() {
@@ -29,7 +29,7 @@ public final class MemberOf extends AbstractValueHandle {
     }
 
     @Override
-    public PointerType getPointerType() {
+    public PointerType getType() {
         return pointerType;
     }
 

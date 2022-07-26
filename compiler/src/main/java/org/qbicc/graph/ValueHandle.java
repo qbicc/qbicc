@@ -13,15 +13,15 @@ public interface ValueHandle extends Unschedulable {
      *
      * @return the referred pointer type
      */
-    PointerType getPointerType();
+    PointerType getType();
 
     /**
      * Get the type that the referred value would have. Equivalent to {@code getPointerType().getPointeeType()}.
      *
      * @return the referred value type
      */
-    default ValueType getValueType() {
-        return getPointerType().getPointeeType();
+    default ValueType getPointeeType() {
+        return getType().getPointeeType();
     }
 
     /**
