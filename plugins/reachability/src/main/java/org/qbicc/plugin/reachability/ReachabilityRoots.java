@@ -96,7 +96,8 @@ public class ReachabilityRoots {
         return reflectiveFields.add(f);
     }
 
-    public static void processReachabilityRoots(CompilationContext ctxt) {
+    // During Analyze, we can allow reachability analysis to figure things out for us.
+    public static void processRootsForAnalyze(CompilationContext ctxt) {
         ReachabilityRoots roots = get(ctxt);
         ReachabilityInfo info = ReachabilityInfo.get(ctxt);
         for (ExecutableElement e : roots.autoQueuedMethods) {
@@ -116,13 +117,20 @@ public class ReachabilityRoots {
         }
     }
 
-    public static void enqueueReachabilityRoots(CompilationContext ctxt) {
+    // During Lower, we don't have to handle instance methods in the autoQueued or reflective sets.
+    // These methods are either in the dispatchTable set, or reachability analysis has determined that
+    // there cannot be an instantiated class that could invoke the method, and therefore it is not reachable.
+    public static void processRootsForLower(CompilationContext ctxt) {
         ReachabilityRoots roots = get(ctxt);
         for (ExecutableElement e : roots.autoQueuedMethods) {
-            ctxt.enqueue(e);
+            if (e.isStatic()) {
+                ctxt.enqueue(e);
+            }
         }
         for (ExecutableElement e : roots.reflectiveMethods) {
-            ctxt.enqueue(e);
+            if (e.isStatic()) {
+                ctxt.enqueue(e);
+            }
         }
         for (ExecutableElement e : roots.dispatchTableMethods) {
             ctxt.enqueue(e);
