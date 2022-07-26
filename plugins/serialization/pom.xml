@@ -12,13 +12,17 @@
 
     <artifactId>qbicc-plugin-serialization</artifactId>
 
-    <name>Qbicc Plugin: Layout</name>
+    <name>Qbicc Plugin: Serialization</name>
     <description>Support for serializing the build time heap</description>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-compiler</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-constants</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

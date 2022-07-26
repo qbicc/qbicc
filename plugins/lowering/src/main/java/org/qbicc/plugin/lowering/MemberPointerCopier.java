@@ -12,6 +12,7 @@ import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.pointer.ElementPointer;
 import org.qbicc.pointer.ExecutableElementPointer;
 import org.qbicc.pointer.GlobalPointer;
@@ -60,7 +61,7 @@ public final class MemberPointerCopier implements NodeVisitor.Delegating<Node.Co
             return ProgramObjectPointer.of(decl);
         } else if (pointer instanceof StaticFieldPointer sfp) {
             StaticFieldElement field = sfp.getStaticField();
-            GlobalVariableElement global = Lowering.get(ctxt).getGlobalForStaticField(field);
+            GlobalVariableElement global = BuildtimeHeap.get(ctxt).getGlobalForStaticField(field);
             ProgramModule programModule = ctxt.getOrAddProgramModule(copier.getBlockBuilder().getCurrentElement().getEnclosingType());
             DataDeclaration decl = programModule.declareData(field, global.getName(), global.getType());
             return ProgramObjectPointer.of(decl);

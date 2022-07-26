@@ -6,15 +6,22 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.OffsetOfField;
+import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmClass;
@@ -29,6 +36,7 @@ import org.qbicc.object.Linkage;
 import org.qbicc.object.ModuleSection;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ProgramObject;
+import org.qbicc.plugin.constants.Constants;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
@@ -36,8 +44,10 @@ import org.qbicc.pointer.IntegerAsPointer;
 import org.qbicc.pointer.MemoryPointer;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.ProgramObjectPointer;
+import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ArrayType;
+import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
@@ -55,7 +65,11 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.definition.element.StaticMethodElement;
+import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.generic.TypeSignature;
 
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
@@ -100,6 +114,10 @@ public class BuildtimeHeap {
      * The values, indexed by typeId to be serialized in the classArrayGlobal
      */
     private Literal[] rootClasses;
+    /**
+     * The mapping from static fields to global variables
+     */
+    private final Map<FieldElement, GlobalVariableElement> staticFields = new ConcurrentHashMap<>();
 
     private int literalCounter = 0;
 
@@ -191,6 +209,102 @@ public class BuildtimeHeap {
         ProgramModule programModule = ctxt.getOrAddProgramModule(originalElement.getEnclosingType());
         DataDeclaration decl = programModule.declareData(rootClassesDecl);
         return decl;
+    }
+
+    public GlobalVariableElement getGlobalForStaticField(StaticFieldElement field) {
+        GlobalVariableElement global = staticFields.get(field);
+        if (global != null) {
+            return global;
+        }
+        DefinedTypeDefinition typeDef = field.getEnclosingType();
+        ClassContext classContext = typeDef.getContext();
+        CompilationContext ctxt = classContext.getCompilationContext();
+        StringBuilder b = new StringBuilder(64);
+        // todo: consider class loader
+        b.append(typeDef.getInternalName().replace('/', '.'));
+        b.append('.');
+        b.append(field.getName());
+        TypeDescriptor fieldDesc = field.getTypeDescriptor();
+        String globalName = b.toString();
+        final GlobalVariableElement.Builder builder = GlobalVariableElement.builder(globalName, fieldDesc);
+        ValueType globalType = widenBoolean(field.getType());
+        builder.setType(globalType);
+        builder.setSignature(TypeSignature.synthesize(classContext, fieldDesc));
+        builder.setModifiers(field.getModifiers());
+        builder.setEnclosingType(typeDef);
+        String sectionName = CompilationContext.IMPLICIT_SECTION_NAME;
+        builder.setSection(sectionName);
+        global = builder.build();
+        GlobalVariableElement appearing = staticFields.putIfAbsent(field, global);
+        if (appearing != null) {
+            return appearing;
+        }
+        // Sleazy hack.  The static fields of the InitialHeap class will be declared during serialization.
+        if (typeDef.internalPackageAndNameEquals("org/qbicc/runtime/main", "InitialHeap")) {
+            return global;
+        }
+        // we added it, so we must add the definition as well
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        ModuleSection section = ctxt.getOrAddProgramModule(typeDef).getOrAddSection(sectionName);
+        Value initialValue;
+        if (field.getRunTimeInitializer() != null) {
+            initialValue = lf.zeroInitializerLiteralOfType(globalType);
+        } else {
+            initialValue = field.getReplacementValue(ctxt);
+            if (initialValue == null) {
+                initialValue = typeDef.load().getInitialValue(field);
+            }
+            if (initialValue == null) {
+                initialValue = Constants.get(ctxt).getConstantValue(field);
+                if (initialValue == null) {
+                    initialValue = lf.zeroInitializerLiteralOfType(globalType);
+                }
+            }
+        }
+        if (initialValue instanceof OffsetOfField oof) {
+            // special case: the field holds an offset which is really an integer
+            FieldElement offsetField = oof.getFieldElement();
+            LayoutInfo instanceLayout = Layout.get(ctxt).getInstanceLayoutInfo(offsetField.getEnclosingType());
+            if (offsetField.isStatic()) {
+                initialValue = lf.literalOf(0);
+            } else {
+                initialValue = lf.literalOf(instanceLayout.getMember(offsetField).getOffset());
+            }
+        }
+        if (initialValue.getType() instanceof BooleanType && globalType instanceof IntegerType it) {
+            // widen the initial value
+            if (initialValue instanceof BooleanLiteral) {
+                initialValue = lf.literalOf(it, ((BooleanLiteral) initialValue).booleanValue() ? 1 : 0);
+            } else if (initialValue instanceof ZeroInitializerLiteral) {
+                initialValue = lf.literalOf(it, 0);
+            } else {
+                throw new IllegalArgumentException("Cannot initialize boolean field");
+            }
+        }
+        if (initialValue instanceof ObjectLiteral ol) {
+            BuildtimeHeap bth = BuildtimeHeap.get(ctxt);
+            bth.serializeVmObject(ol.getValue(), false);
+            initialValue = bth.referToSerializedVmObject(ol.getValue(), ol.getType(), section.getProgramModule());
+        }
+        final Data data = section.addData(field, globalName, initialValue);
+        data.setLinkage(Linkage.EXTERNAL);
+        data.setDsoLocal();
+        return global;
+    }
+
+    private ValueType widenBoolean(ValueType type) {
+        // todo: n-bit booleans
+        if (type instanceof BooleanType) {
+            TypeSystem ts = type.getTypeSystem();
+            return ts.getUnsignedInteger8Type();
+        } else if (type instanceof ArrayType arrayType) {
+            TypeSystem ts = type.getTypeSystem();
+            ValueType elementType = arrayType.getElementType();
+            ValueType widened = widenBoolean(elementType);
+            return elementType == widened ? type : ts.getArrayType(widened, arrayType.getElementCount());
+        } else {
+            return type;
+        }
     }
 
     public boolean containsObject(VmObject value) {
@@ -385,6 +499,19 @@ public class BuildtimeHeap {
                         memberMap.put(om, lf.literalOf(it, iap.getValue()));
                     } else if (asPointerVal == null) {
                         memberMap.put(om, lf.literalOf(it, 0));
+                    } else if (asPointerVal instanceof StaticMethodPointer smp) {
+                        // lower method pointers to their corresponding objects
+                        StaticMethodElement method = smp.getStaticMethod();
+                        ctxt.enqueue(method);
+                        Function function = ctxt.getExactFunction(method);
+                        FunctionDeclaration decl = into.getProgramModule().declareFunction(function);
+                        memberMap.put(om, lf.valueConvertLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), it));
+                    } else if (asPointerVal instanceof StaticFieldPointer sfp) {
+                        // lower static field pointers to their corresponding program objects
+                        StaticFieldElement sfe = sfp.getStaticField();
+                        GlobalVariableElement global = getGlobalForStaticField(sfe);
+                        DataDeclaration decl = into.getProgramModule().declareData(sfe, global.getName(), global.getType());
+                        memberMap.put(om, lf.valueConvertLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), it));
                     } else if (asPointerVal instanceof MemoryPointer mp) {
                         ctxt.error(f.getLocation(), "An object contains a memory pointer: %s", mp);
                     } else {
@@ -423,6 +550,12 @@ public class BuildtimeHeap {
                     Function function = ctxt.getExactFunction(method);
                     FunctionDeclaration decl = into.getProgramModule().declareFunction(function);
                     memberMap.put(om, lf.bitcastLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), smp.getType()));
+                } else if (pointer instanceof StaticFieldPointer sfp) {
+                    // lower static field pointers to their corresponding program objects
+                    StaticFieldElement sfe = sfp.getStaticField();
+                    GlobalVariableElement global = getGlobalForStaticField(sfe);
+                    DataDeclaration decl = into.getProgramModule().declareData(sfe, global.getName(), global.getType());
+                    memberMap.put(om, lf.bitcastLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), sfp.getType()));
                 } else if (pointer instanceof MemoryPointer mp) {
                     ctxt.error(f.getLocation(), "An object contains a memory pointer: %s", mp);
                 } else {
