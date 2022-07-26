@@ -521,6 +521,12 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         if (literal instanceof TypeLiteral) {
             int dims = 0;
             ValueType type = ((TypeLiteral)literal).getValue();
+            if (type instanceof UnresolvedType) {
+                ClassTypeDescriptor cd = ClassTypeDescriptor.synthesize(ctxt, "java/lang/NoClassDefFoundError");
+                Value ncdfe = gf.new_(cd);
+                gf.call(gf.constructorOf(gf.new_(cd), cd, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+                throw new BlockEarlyTermination(gf.throw_(ncdfe));
+            }
             if (type instanceof ReferenceArrayObjectType) {
                 literal = convertToBaseTypeLiteral((ReferenceArrayObjectType)type);
                 dims = ((ReferenceArrayObjectType)type).getDimensionCount();
