@@ -193,6 +193,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean optEscapeAnalysis;
     private final Platform platform;
     private final boolean isWasm;
+    private final boolean gcSupport;
     private final boolean smallTypeIds;
     private final List<Path> librarySearchPaths;
     private final List<String> buildFeatures;
@@ -218,6 +219,7 @@ public class Main implements Callable<DiagnosticContext> {
         optEscapeAnalysis = builder.optEscapeAnalysis;
         platform = builder.platform;
         isWasm = platform.getCpu() == Cpu.WASM32;
+        gcSupport = !isWasm;
         smallTypeIds = builder.smallTypeIds;
         backend = builder.backend;
         ArrayList<ClassPathEntry> bootPaths = new ArrayList<>(builder.bootPathsPrepend.size() + 6 + builder.bootPathsAppend.size());
@@ -620,7 +622,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
 
                                 if (llvm) {
-                                    builder.addPreHook(Phase.GENERATE, new LLVMGenerator(isPie ? 2 : 0, isPie ? 2 : 0, referencePointerFactory));
+                                    builder.addPreHook(Phase.GENERATE, new LLVMGenerator(isPie ? 2 : 0, isPie ? 2 : 0, gcSupport, referencePointerFactory));
                                 }
 
                                 builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
@@ -631,7 +633,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 if (llvm) {
                                     builder.addPostHook(Phase.GENERATE, new MethodDataEmitter());
-                                    builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(isPie, compileOutput, referencePointerFactory, llvmCompilerFactory, optOptions, llcOptions));
+                                    builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(isPie, compileOutput, gcSupport, referencePointerFactory, llvmCompilerFactory, optOptions, llcOptions));
                                     if (! isWasm) {
                                         builder.addPostHook(Phase.GENERATE, new LLVMStripStackMapStage());
                                     }
