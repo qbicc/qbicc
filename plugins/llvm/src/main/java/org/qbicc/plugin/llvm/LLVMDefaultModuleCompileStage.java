@@ -10,14 +10,16 @@ import java.util.function.Consumer;
 public class LLVMDefaultModuleCompileStage implements Consumer<CompilationContext> {
     private final boolean isPie;
     private final boolean compileOutput;
+    private final boolean gcSupport;
     private final LLVMReferencePointerFactory refFactory;
     private LLVMCompiler.Factory llvmCompilerFactory;
     private List<String> optOptions;
     private List<String> llcOptions;
 
-    public LLVMDefaultModuleCompileStage(boolean isPie, boolean compileOutput, LLVMReferencePointerFactory refFactory, LLVMCompiler.Factory llvmCompilerFactory, List<String> optOptions, List<String> llcOptions) {
+    public LLVMDefaultModuleCompileStage(boolean isPie, boolean compileOutput, boolean gcSupport, LLVMReferencePointerFactory refFactory, LLVMCompiler.Factory llvmCompilerFactory, List<String> optOptions, List<String> llcOptions) {
         this.isPie = isPie;
         this.compileOutput = compileOutput;
+        this.gcSupport = gcSupport;
         this.refFactory = refFactory;
         this.llvmCompilerFactory = llvmCompilerFactory;
         this.optOptions = optOptions;
@@ -26,7 +28,7 @@ public class LLVMDefaultModuleCompileStage implements Consumer<CompilationContex
 
     @Override
     public void accept(CompilationContext context) {
-        LLVMModuleGenerator generator = new LLVMModuleGenerator(context, isPie ? 2 : 0, isPie ? 2 : 0, refFactory);
+        LLVMModuleGenerator generator = new LLVMModuleGenerator(context, isPie ? 2 : 0, isPie ? 2 : 0, gcSupport, refFactory);
         DefinedTypeDefinition defaultTypeDefinition = context.getDefaultTypeDefinition();
         Path modulePath = generator.processProgramModule(context.getOrAddProgramModule(defaultTypeDefinition));
         if (compileOutput) {

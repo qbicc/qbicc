@@ -54,12 +54,14 @@ final class LLVMModuleGenerator {
     private final CompilationContext context;
     private final int picLevel;
     private final int pieLevel;
+    private final boolean gcSupport;
     private final LLVMReferencePointerFactory refFactory;
 
-    LLVMModuleGenerator(final CompilationContext context, final int picLevel, final int pieLevel, final LLVMReferencePointerFactory refFactory) {
+    LLVMModuleGenerator(final CompilationContext context, final int picLevel, final int pieLevel, final boolean gcSupport, final LLVMReferencePointerFactory refFactory) {
         this.context = context;
         this.picLevel = picLevel;
         this.pieLevel = pieLevel;
+        this.gcSupport = gcSupport;
         this.refFactory = refFactory;
     }
 
@@ -162,7 +164,9 @@ final class LLVMModuleGenerator {
                     }
                     functionDefinition.attribute(FunctionAttributes.framePointer("non-leaf"));
                     functionDefinition.attribute(FunctionAttributes.uwtable);
-                    functionDefinition.gc("statepoint-example");
+                    if (gcSupport) {
+                        functionDefinition.gc("statepoint-example");
+                    }
                     if (fn.isNoReturn()) {
                         functionDefinition.attribute(FunctionAttributes.noreturn);
                     }
