@@ -54,7 +54,10 @@ public final class ConditionEvaluation {
             // CPU architectures
             Map.entry("org/qbicc/runtime/Build$Target$IsAmd64", Boolean.valueOf(platform.getCpu() == Cpu.X86_64)),
             Map.entry("org/qbicc/runtime/Build$Target$IsArm", Boolean.valueOf(platform.getCpu() == Cpu.ARM)),
-            Map.entry("org/qbicc/runtime/Build$Target$IsWasm", Boolean.valueOf(platform.getCpu() == Cpu.WASM32))
+            Map.entry("org/qbicc/runtime/Build$Target$IsWasm", Boolean.valueOf(platform.getCpu() == Cpu.WASM32)),
+
+            // Capabilities
+            Map.entry("org/qbicc/runtime/Build$Target$IsPThreads", Boolean.valueOf(platform.getCpu() != Cpu.WASM32))
         );
     }
 
