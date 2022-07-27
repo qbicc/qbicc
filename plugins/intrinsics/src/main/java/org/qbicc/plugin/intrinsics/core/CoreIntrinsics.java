@@ -85,7 +85,7 @@ public final class CoreIntrinsics {
         registerJavaLangSystemIntrinsics(ctxt);
         registerJavaLangStackTraceElementInstrinsics(ctxt);
         registerJavaLangThreadIntrinsics(ctxt);
-        if (ctxt.getPlatform().getCpu() != Cpu.WASM32) {
+        if (ctxt.getPlatform().getCpu() == Cpu.WASM32) {
             registerEmptyJavaLangThrowableIntrinsics(ctxt);
         } else {
             registerJavaLangThrowableIntrinsics(ctxt);
