@@ -49,6 +49,7 @@ public final class ConditionEvaluation {
             Map.entry("org/qbicc/runtime/Build$Target$IsMacOs", Boolean.valueOf(platform.getOs() == OS.DARWIN)),
             Map.entry("org/qbicc/runtime/Build$Target$IsPosix", Boolean.valueOf(platform.getOs() != OS.WIN32)),
             Map.entry("org/qbicc/runtime/Build$Target$IsUnix", Boolean.valueOf(platform.getOs() != OS.WIN32)),
+            Map.entry("org/qbicc/runtime/Build$Target$IsWasi", Boolean.valueOf(platform.getOs() == OS.WASI)),
 
             // CPU architectures
             Map.entry("org/qbicc/runtime/Build$Target$IsAmd64", Boolean.valueOf(platform.getCpu() == Cpu.X86_64)),
