@@ -1,6 +1,7 @@
 package org.qbicc.runtime.main;
 
 import org.qbicc.runtime.AutoQueued;
+import org.qbicc.runtime.Build;
 import org.qbicc.runtime.Hidden;
 import org.qbicc.runtime.Inline;
 import org.qbicc.runtime.InlineCondition;
@@ -220,6 +221,10 @@ public final class VMHelpers {
     public static void JLT_start0(void_ptr_unaryoperator_function_ptr runFuncPtr, void_ptr thread) {
         // TODO once invokedynamic is working for lambda expressions use addr_of_function to fetch the correct function pointer
         //function_ptr<UnaryOperator<void_ptr>> runFuncPtr = addr_of_function(VMHelpers::threadWrapperNative);
+
+        if (! Build.Target.isPThreads()) {
+            return;
+        }
 
         /* create pthread */
         pthread_t_ptr pthreadPtr = malloc(sizeof(pthread_t.class));
