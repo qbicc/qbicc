@@ -847,6 +847,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return terminate(requireCurrentBlock(), new Switch(callSite, element, line, bci, blockEntry, dependency, defaultTarget, checkValues, targets, value));
     }
 
+    public BasicBlock typeSwitch(Value value, Map<ObjectType, BlockLabel> valueToTargetMap, BlockLabel defaultTarget) {
+        return terminate(requireCurrentBlock(), new TypeSwitch(callSite, element, line, bci, blockEntry, dependency, defaultTarget, valueToTargetMap, value));
+    }
+
     private BasicBlock terminate(final BlockLabel block, final Terminator op) {
         BasicBlock realBlock = op.getTerminatedBlock();
         terminatedBlock = realBlock;

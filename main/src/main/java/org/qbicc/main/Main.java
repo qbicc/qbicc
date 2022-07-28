@@ -107,6 +107,7 @@ import org.qbicc.plugin.lowering.MemberPointerCopier;
 import org.qbicc.plugin.lowering.StaticFieldLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.ThrowExceptionHelper;
 import org.qbicc.plugin.lowering.ThrowLoweringBasicBlockBuilder;
+import org.qbicc.plugin.lowering.TypeSwitchLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.VMHelpersSetupHook;
 import org.qbicc.plugin.main_method.AddMainClassHook;
 import org.qbicc.plugin.main_method.MainMethod;
@@ -580,6 +581,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addCopyFactory(Phase.LOWER, MemberPointerCopier::new);
                                 builder.addCopyFactory(Phase.LOWER, ObjectLiteralSerializingVisitor::new);
 
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, TypeSwitchLoweringBasicBlockBuilder::new);
                                 if (isWasm) {
                                     builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, AbortingThrowLoweringBasicBlockBuilder::new);
                                 } else {

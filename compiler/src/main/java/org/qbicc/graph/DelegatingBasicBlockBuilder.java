@@ -1,6 +1,7 @@
 package org.qbicc.graph;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.qbicc.context.Location;
@@ -412,6 +413,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public BasicBlock switch_(final Value value, final int[] checkValues, final BlockLabel[] targets, final BlockLabel defaultTarget) {
         return getDelegate().switch_(value, checkValues, targets, defaultTarget);
+    }
+
+    public BasicBlock typeSwitch(Value value, Map<ObjectType, BlockLabel> valueToTargetMap, BlockLabel defaultTarget) {
+        return getDelegate().typeSwitch(value, valueToTargetMap, defaultTarget);
     }
 
     public Value add(final Value v1, final Value v2) {

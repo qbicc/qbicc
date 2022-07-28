@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.ArrayLiteral;
@@ -30,6 +31,7 @@ import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.graph.literal.ValueConvertLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.graph.schedule.Schedule;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
@@ -432,6 +434,18 @@ public interface Node {
             public BasicBlock visit(Copier param, Throw node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().throw_(param.copyValue(node.getThrownValue()));
+            }
+
+            public BasicBlock visit(Copier param, TypeSwitch node) {
+                param.copyNode(node.getDependency());
+                Map<ObjectType, BlockLabel> copyMap = node.getValueToTargetMap()
+                    .entrySet()
+                    .stream()
+                    .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> param.copyBlock(BlockLabel.getTargetOf(e.getValue()))
+                    ));
+                return param.getBlockBuilder().typeSwitch(param.copyValue(node.getSwitchValue()), copyMap, param.copyBlock(node.getDefaultTarget()));
             }
 
             public BasicBlock visit(Copier param, Unreachable node) {

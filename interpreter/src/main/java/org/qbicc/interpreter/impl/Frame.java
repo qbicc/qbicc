@@ -24,6 +24,7 @@ import org.qbicc.graph.BinaryValue;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BitReverse;
 import org.qbicc.graph.BlockEntry;
+import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.ByteSwap;
 import org.qbicc.graph.Call;
 import org.qbicc.graph.CallNoReturn;
@@ -105,6 +106,7 @@ import org.qbicc.graph.Terminator;
 import org.qbicc.graph.TerminatorVisitor;
 import org.qbicc.graph.Throw;
 import org.qbicc.graph.Truncate;
+import org.qbicc.graph.TypeSwitch;
 import org.qbicc.graph.Unreachable;
 import org.qbicc.graph.UnsafeHandle;
 import org.qbicc.graph.Value;
@@ -2083,6 +2085,18 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 high = idx - 1;
             } else {
                 return node.getTargetForIndex(idx);
+            }
+        }
+        return node.getDefaultTarget();
+    }
+
+    @Override
+    public BasicBlock visit(VmThreadImpl vmThread, TypeSwitch node) {
+        ValueType type = unboxType(node.getSwitchValue());
+        // linear search
+        for (Map.Entry<ObjectType, BlockLabel> entry : node.getValueToTargetMap().entrySet()) {
+            if (type.equals(entry.getKey())) {
+                return BlockLabel.getTargetOf(entry.getValue());
             }
         }
         return node.getDefaultTarget();

@@ -3,6 +3,7 @@ package org.qbicc.graph;
 import static org.qbicc.graph.atomic.AccessModes.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.qbicc.context.Locatable;
@@ -609,6 +610,8 @@ public interface BasicBlockBuilder extends Locatable {
     BasicBlock throw_(Value value);
 
     BasicBlock switch_(Value value, int[] checkValues, BlockLabel[] targets, BlockLabel defaultTarget);
+
+    BasicBlock typeSwitch(Value value, Map<ObjectType, BlockLabel> valueToTargetMap, BlockLabel defaultTarget);
 
     /**
      * Construct a {@code jsr} node which must be returned from.  Before lowering, {@code jsr} nodes are inlined,
