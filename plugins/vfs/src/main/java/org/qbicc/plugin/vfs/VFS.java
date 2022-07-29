@@ -104,6 +104,7 @@ public final class VFS {
 
         LoadedTypeDefinition ufspDef = classContext.findDefinedType("sun/nio/fs/UnixFileSystemProvider").load();
 
+        vm.registerInvokable(ufspDef.requireSingleMethod("checkAccess"), this::doUfspCheckAccess);
         vm.registerInvokable(ufspDef.requireSingleMethod("isRegularFile"), this::doUfspIsRegularFile);
         vm.registerInvokable(ufspDef.requireSingleMethod("isDirectory"), this::doUfspIsDirectory);
         vm.registerInvokable(ufspDef.requireSingleMethod("newDirectoryStream"), this::doUfspNewDirectoryStream);
@@ -192,6 +193,11 @@ public final class VFS {
             throw wrapIOE(e);
         }
         return entry == null ? null : vmThread.getVM().intern(entry);
+    }
+
+    private Object doUfspCheckAccess(final VmThread vmThread, final VmObject provider, final List<Object> args) {
+        // Assume that if a file exists in the VFS, then it is readable
+        return doUfspExists(vmThread, provider, args);
     }
 
     private Object doUfspIsRegularFile(final VmThread vmThread, final VmObject provider, final List<Object> args) {
