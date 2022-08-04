@@ -354,6 +354,9 @@ public class BuildtimeHeap {
             // Could be part of a cyclic object graph; must record the symbol for this object before we serialize its fields
             LoadedTypeDefinition concreteType = ot.getDefinition().load();
             LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
+            if (concreteType.getTypeId() == -1) {
+                ctxt.warning("Serialized an instance of %s whose typeId is -1 (unreachable type)", concreteType.getDescriptor().toString());
+            }
             if (isRootClass(value)) {
                 int typeId = ((VmClass)value).getTypeDefinition().getTypeId();
                 rootClasses[typeId] = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(value.getObjectType()); // indicate serialization has started
