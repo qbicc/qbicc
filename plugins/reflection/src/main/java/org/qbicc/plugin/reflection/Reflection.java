@@ -19,6 +19,10 @@ import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
+import org.qbicc.graph.literal.BooleanLiteral;
+import org.qbicc.graph.literal.ByteArrayLiteral;
+import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
@@ -39,7 +43,10 @@ import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.FloatType;
+import org.qbicc.type.IntegerType;
 import org.qbicc.type.InvokableType;
+import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -1520,9 +1527,9 @@ public final class Reflection {
         ctxt.enqueue(me);
         try {
             if (me.isStatic()) {
-                return vm.invokeExact(me, null, unboxed);
+                return box(vm.invokeExact(me, null, unboxed));
             } else {
-                return vm.invokeVirtual(me, receiver, unboxed);
+                return box(vm.invokeVirtual(me, receiver, unboxed));
             }
         } catch (Thrown thrown) {
             throw new Thrown(invocationTargetExceptionClass.newInstance(thrown.getThrowable()));
@@ -1560,6 +1567,30 @@ public final class Reflection {
         } else {
             // plain object
             return boxed;
+        }
+    }
+
+    private VmObject box(final Object unboxed) {
+        if (unboxed == null || unboxed instanceof VmObject) {
+            return (VmObject)unboxed;
+        } else if (unboxed instanceof Boolean bv) {
+            return vm.box(ctxt.getBootstrapClassContext(), ctxt.getLiteralFactory().literalOf(bv.booleanValue()));
+        } else if (unboxed instanceof Byte bv) {
+            return vm.box(ctxt.getBootstrapClassContext(), ctxt.getLiteralFactory().literalOf(bv.byteValue()));
+        } else if (unboxed instanceof Character cv) {
+            return vm.box(ctxt.getBootstrapClassContext(), ctxt.getLiteralFactory().literalOf(cv.charValue()));
+        } else if (unboxed instanceof Short sv) {
+            return vm.box(ctxt.getBootstrapClassContext(), ctxt.getLiteralFactory().literalOf(sv.shortValue()));
+        } else if (unboxed instanceof Integer iv) {
+            return vm.box(ctxt.getBootstrapClassContext(), ctxt.getLiteralFactory().literalOf(iv.intValue()));
+        } else if (unboxed instanceof Float fv) {
+            return vm.box(ctxt.getBootstrapClassContext(), ctxt.getLiteralFactory().literalOf(fv.floatValue()));
+        } else if (unboxed instanceof Long lv) {
+            return vm.box(ctxt.getBootstrapClassContext(), ctxt.getLiteralFactory().literalOf(lv.longValue()));
+        } else if (unboxed instanceof Double dv) {
+            return vm.box(ctxt.getBootstrapClassContext(), ctxt.getLiteralFactory().literalOf(dv.doubleValue()));
+        } else {
+            throw new UnsupportedOperationException("Unexpected value for hyperboxing");
         }
     }
 
