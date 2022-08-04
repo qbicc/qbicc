@@ -107,6 +107,9 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
                 for (int i = 0; i < cnt; i ++) {
                     node.getSuccessor(i).getTerminator().accept(this, param);
                 }
+                for (Value v: node.getOutboundValues().values()) {
+                    v.accept(this, param);
+                }
             }
             return null;
         }
