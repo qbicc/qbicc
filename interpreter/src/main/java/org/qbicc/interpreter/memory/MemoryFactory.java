@@ -42,6 +42,7 @@ import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeType;
+import org.qbicc.type.UnresolvedType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
@@ -350,6 +351,9 @@ public final class MemoryFactory {
                     fieldClazz = ValueType.class;
                     fieldTypeArg = Type.getType(fieldClazz);
                 } else if (memberType instanceof ReferenceType) {
+                    fieldClazz = VmObject.class;
+                    fieldTypeArg = Type.getType(fieldClazz);
+                } else if (memberType instanceof UnresolvedType) {
                     fieldClazz = VmObject.class;
                     fieldTypeArg = Type.getType(fieldClazz);
                 } else {
