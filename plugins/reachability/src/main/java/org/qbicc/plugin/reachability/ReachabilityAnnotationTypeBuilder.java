@@ -1,10 +1,18 @@
 package org.qbicc.plugin.reachability;
 
 import org.qbicc.context.ClassContext;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.plugin.core.ConditionEvaluation;
+import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.ArrayAnnotationValue;
+import org.qbicc.type.annotation.ClassAnnotationValue;
+import org.qbicc.type.annotation.StringAnnotationValue;
 import org.qbicc.type.definition.ConstructorResolver;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.MethodResolver;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -12,24 +20,98 @@ import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.generic.TypeParameterContext;
+import org.qbicc.type.generic.TypeSignature;
+
+import java.util.List;
+import java.util.function.Predicate;
 
 public class ReachabilityAnnotationTypeBuilder implements DefinedTypeDefinition.Builder.Delegating {
     private final DefinedTypeDefinition.Builder delegate;
     private final ReachabilityRoots roots;
+    private final ClassContext classCtxt;
+    private final CompilationContext ctxt;
 
     private final ClassTypeDescriptor autoQueued;
     private final ClassTypeDescriptor reflectivelyAccessed;
+    private final ClassTypeDescriptor reflectivelyAccesses;
 
     public ReachabilityAnnotationTypeBuilder(final ClassContext classCtxt, DefinedTypeDefinition.Builder delegate) {
         this.delegate = delegate;
-        this.roots = ReachabilityRoots.get(classCtxt.getCompilationContext());
+        this.classCtxt = classCtxt;
+        this.ctxt = classCtxt.getCompilationContext();
+        this.roots = ReachabilityRoots.get(ctxt);
         autoQueued = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/AutoQueued");
         reflectivelyAccessed = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/ReflectivelyAccessed");
+        reflectivelyAccesses = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/ReflectivelyAccesses");
     }
 
     @Override
     public DefinedTypeDefinition.Builder getDelegate() {
         return delegate;
+    }
+
+    @Override
+    public void setInvisibleAnnotations(final List<Annotation> annotations) {
+        for (Annotation annotation : annotations) {
+            if (annotation.getDescriptor().equals(reflectivelyAccesses)) {
+                ConditionEvaluation conditionEvaluation = ConditionEvaluation.get(ctxt);
+                if (conditionEvaluation.evaluateConditions(classCtxt, this, annotation)) {
+                    ArrayAnnotationValue array = (ArrayAnnotationValue) annotation.getValue("value");
+                    int cnt = array.getElementCount();
+                    for (int j = 0; j < cnt; j ++) {
+                        Annotation element = (Annotation) array.getValue(j);
+                        try {
+                            TypeDescriptor clazz = ((ClassAnnotationValue) element.getValue("clazz")).getDescriptor();
+                            String method = ((StringAnnotationValue) element.getValue("method")).getString();
+                            ValueType vt = classCtxt.resolveTypeFromDescriptor(clazz, TypeParameterContext.EMPTY, TypeSignature.synthesize(classCtxt, clazz));
+                            if (vt instanceof ClassObjectType ct) {
+                                LoadedTypeDefinition ltd = ct.getDefinition().load();
+                                ArrayAnnotationValue ap = ((ArrayAnnotationValue) element.getValue("params"));
+                                final Predicate<List<TypeDescriptor>> checkParams;
+                                if (ap == null) {
+                                    checkParams = args -> true;
+                                } else {
+                                    TypeDescriptor[] params = new TypeDescriptor[ap.getElementCount()];
+                                    for (int i = 0; i < params.length; i++) {
+                                        params[i] = ((ClassAnnotationValue) ap.getValue(i)).getDescriptor();
+                                    }
+                                    checkParams = args -> {
+                                        if (args.size() != params.length) {
+                                            return false;
+                                        }
+                                        for (int i=0; i<params.length; i++) {
+                                            if (!args.get(i).equals(params[i])) {
+                                                return false;
+                                            }
+                                        }
+                                        return true;
+                                    };
+                                }
+                                if (method.equals("<init>")) {
+                                    int idx = ltd.findSingleConstructorIndex(ce -> checkParams.test(ce.getDescriptor().getParameterTypes()));
+                                    if (idx != -1) {
+                                        roots.registerReflectiveConstructor(ltd.getConstructor(idx));
+                                    } else {
+                                        ctxt.warning("No match for @ReflectivelyAccessedElement %s", annotation);
+                                    }
+                                } else {
+                                    int idx = ltd.findSingleMethodIndex(me -> me.nameEquals(method) && checkParams.test(me.getDescriptor().getParameterTypes()));
+                                    if (idx != -1) {
+                                        roots.registerReflectiveMethod(ltd.getMethod(idx));
+                                    } else {
+                                        ctxt.warning("No match for @ReflectivelyAccessedElement %s", annotation);
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            ctxt.warning(e,"Failed to process @ReflectivelyAccessedElement annotation %s", element.toString());
+                        }
+                    }
+                }
+            }
+        }
+        getDelegate().setInvisibleAnnotations(annotations);
     }
 
     @Override
