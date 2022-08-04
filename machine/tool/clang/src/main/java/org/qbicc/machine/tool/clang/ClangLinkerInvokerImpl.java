@@ -79,6 +79,7 @@ final class ClangLinkerInvokerImpl extends AbstractClangInvoker implements Clang
             cmd.add("-no-pie");
         }
         cmd.add("-pthread");
+        cmd.add("-Wno-unused-command-line-argument");
 
         for (Path libraryPath : libraryPaths) {
             cmd.add("-L" + libraryPath.toString());
