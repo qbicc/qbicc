@@ -185,6 +185,18 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
             if (visitUnknown(param, (Node)node)) {
                 ConstructorElement target = node.getExecutable();
                 param.analysis.processReachableExactInvocation(target, param.currentElement);
+                // The lambda meta factory and other reflective machinery in the JDK use Unsafe.allocateInstance
+                // instead of a "real" New to instantiate a class.  To compensate, reachability analysis assumes
+                // that if a ConstructorElementHandle is invoked and the invocation isn't the super.<init> that starts
+                // all non-Object constructors, then the declaring type of the constructor _must_ have been instantiated somehow.
+                if (!target.getEnclosingType().load().isAbstract()) {
+                    if (!(param.currentElement instanceof ConstructorElement) ||
+                        (param.currentElement instanceof ConstructorElement &&
+                            (param.currentElement.getEnclosingType().load().getSuperClass() == null ||
+                            !param.currentElement.getEnclosingType().load().getSuperClass().equals(target.getEnclosingType())))) {
+                        param.analysis.processInstantiatedClass(target.getEnclosingType().load(), false, param.currentElement);
+                    }
+                }
             }
             return null;
         }
