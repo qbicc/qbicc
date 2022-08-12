@@ -61,9 +61,9 @@ public class ReachabilityAnnotationTypeBuilder implements DefinedTypeDefinition.
                     int cnt = array.getElementCount();
                     for (int j = 0; j < cnt; j ++) {
                         Annotation element = (Annotation) array.getValue(j);
+                        TypeDescriptor clazz = ((ClassAnnotationValue) element.getValue("clazz")).getDescriptor();
+                        String method = ((StringAnnotationValue) element.getValue("method")).getString();
                         try {
-                            TypeDescriptor clazz = ((ClassAnnotationValue) element.getValue("clazz")).getDescriptor();
-                            String method = ((StringAnnotationValue) element.getValue("method")).getString();
                             ValueType vt = classCtxt.resolveTypeFromDescriptor(clazz, TypeParameterContext.EMPTY, TypeSignature.synthesize(classCtxt, clazz));
                             if (vt instanceof ClassObjectType ct) {
                                 LoadedTypeDefinition ltd = ct.getDefinition().load();
@@ -80,7 +80,7 @@ public class ReachabilityAnnotationTypeBuilder implements DefinedTypeDefinition.
                                         if (args.size() != params.length) {
                                             return false;
                                         }
-                                        for (int i=0; i<params.length; i++) {
+                                        for (int i = 0; i < params.length; i++) {
                                             if (!args.get(i).equals(params[i])) {
                                                 return false;
                                             }
@@ -93,19 +93,19 @@ public class ReachabilityAnnotationTypeBuilder implements DefinedTypeDefinition.
                                     if (idx != -1) {
                                         roots.registerReflectiveConstructor(ltd.getConstructor(idx));
                                     } else {
-                                        ctxt.warning("No match for @ReflectivelyAccessedElement %s", annotation);
+                                        ctxt.warning("@RA Annotation not processed on %s. No match for %s.%s", this.getLocation(), clazz, method);
                                     }
                                 } else {
                                     int idx = ltd.findSingleMethodIndex(me -> me.nameEquals(method) && checkParams.test(me.getDescriptor().getParameterTypes()));
                                     if (idx != -1) {
                                         roots.registerReflectiveMethod(ltd.getMethod(idx));
                                     } else {
-                                        ctxt.warning("No match for @ReflectivelyAccessedElement %s", annotation);
+                                        ctxt.warning("RA Annotation not processed on %s. No match for %s.%s", this.getLocation(), clazz, method);
                                     }
                                 }
                             }
                         } catch (Exception e) {
-                            ctxt.warning(e,"Failed to process @ReflectivelyAccessedElement annotation %s", element.toString());
+                            ctxt.warning(e,"RA Annotation not processed in %s. No unique match for  %s.%s", this.getLocation(), clazz,  method);
                         }
                     }
                 }
