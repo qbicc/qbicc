@@ -1,7 +1,6 @@
 package org.qbicc.runtime.main;
 
 import org.qbicc.runtime.AutoQueued;
-import org.qbicc.runtime.Build;
 import org.qbicc.runtime.Hidden;
 import org.qbicc.runtime.Inline;
 import org.qbicc.runtime.InlineCondition;
@@ -12,9 +11,7 @@ import org.qbicc.runtime.NotReachableException;
 import java.util.Arrays;
 
 import static org.qbicc.runtime.CNative.*;
-import static org.qbicc.runtime.posix.PThread.*;
 import static org.qbicc.runtime.stdc.Stdint.*;
-import static org.qbicc.runtime.stdc.Stdlib.*;
 
 /**
  * Runtime Helpers to support the operation of the compiled code.
@@ -195,22 +192,6 @@ public final class VMHelpers {
     }
 
     /**
-     * Wrapper for threadWrapperNative intrinsic.
-     * The export annotation allows this function to be passed as the void*(void*) type required by pthread_create
-     * and doesn't generate an additional thread parameter.
-     * @param threadParam - java.lang.Thread object that has been cast to a void pointer to be compatible with pthread_create
-     * @return null - this return value will not be used
-     */
-    @export
-    public static void_ptr threadWrapper(void_ptr threadParam) {
-        if (threadParam == null) {
-            // TODO this is a workaround until addr_of_function is working
-            return threadParam;
-        }
-        return CompilerIntrinsics.threadWrapperNative(threadParam);
-    }
-
-    /**
      * A pointer to this function is passed to pthread_create in Thread.start0.
      * The role of this wrapper is to transition a newly started Thread from C to Java calling
      * conventions and then invoke the Thread's run method.
@@ -224,41 +205,6 @@ public final class VMHelpers {
         VM._qbicc_bound_thread = thread;
         thread.run();
         return word(0).cast();
-    }
-
-    /**
-     * Helper for java.lang.Thread.start0 allocates a pthread and creates/runs the thread.
-     * @param runFuncPtr - pointer to threadWrapper
-     * @param thread - Java thread object that has been cast to a void pointer to be compatible with pthread_create
-     */
-    @Hidden
-    @Inline(InlineCondition.NEVER)
-    @AutoQueued
-    public static void JLT_start0(void_ptr_unaryoperator_function_ptr runFuncPtr, void_ptr thread) {
-        // TODO once invokedynamic is working for lambda expressions use addr_of_function to fetch the correct function pointer
-        //function_ptr<UnaryOperator<void_ptr>> runFuncPtr = addr_of_function(VMHelpers::threadWrapperNative);
-
-        if (! Build.Target.isPThreads()) {
-            return;
-        }
-
-        /* create pthread */
-        pthread_t_ptr pthreadPtr = malloc(sizeof(pthread_t.class));
-        if (pthreadPtr.isNull()) {
-            throw new OutOfMemoryError(/*"Allocation failed"*/);
-        }
-
-        /* make GC aware of thread before starting */
-        if (!CompilerIntrinsics.saveNativeThread(thread, pthreadPtr)) {
-            free(pthreadPtr.cast());
-            throw new OutOfMemoryError();
-        }
-
-        int result = pthread_create(pthreadPtr, zero(), runFuncPtr, thread).intValue();
-        if (0 != result) {
-            free(pthreadPtr.cast());
-            throw new InternalError("pthread error code: " + result);
-        }
     }
 
     /**

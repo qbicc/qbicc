@@ -22,15 +22,6 @@ public class CompilerIntrinsics {
     @Hidden
     public static native void copyInstanceFields(Class<?> clazz, Object src, Object dst);
 
-
-    /**
-     * TODO
-     * @param thread
-     * @param pthreadPtr
-     * @return
-     */
-    public static native boolean saveNativeThread(void_ptr thread, PThread.pthread_t_ptr pthreadPtr);
-
     /**
      * This intrinsic gets a C-style function pointer to the specified static method.
      * The method should be annotated with @export and must be the only method of that
@@ -40,13 +31,6 @@ public class CompilerIntrinsics {
      * @param method the name of the method
      */
     public static native void_ptr_unaryoperator_function_ptr nativeFunctionPointer(String clazz, String method);
-
-    /**
-     * This intrinsic sets up and executes the `public void run()` of threadParam.
-     * @param threadParam - java.lang.Thread object that has been cast to a void pointer to be compatible with pthread_create
-     * @return null - this return value will not be used
-     */
-    public static native void_ptr threadWrapperNative(void_ptr threadParam);
 
     /**
      * Get the dimensionality for the represented type from a java.lang.Class instance.
