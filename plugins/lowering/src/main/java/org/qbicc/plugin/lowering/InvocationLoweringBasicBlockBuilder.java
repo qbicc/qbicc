@@ -13,6 +13,7 @@ import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.CurrentThread;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ExactMethodElementHandle;
+import org.qbicc.graph.Executable;
 import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.InterfaceMethodElementHandle;
 import org.qbicc.graph.PhiValue;
@@ -81,6 +82,23 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         }
         return super.currentThread();
     }
+
+    @Override
+    public Value addressOf(final ValueHandle handle) {
+        if (handle instanceof StaticMethodElementHandle mh) {
+            if (!mh.getExecutable().hasMethodBodyFactory() && mh.getExecutable().hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+                // Convert native method that wasn't intercepted by an intrinsic to a runtime link error
+                throw new BlockEarlyTermination(raiseLinkError(mh.getExecutable()));
+            }
+            ctxt.enqueue(mh.getExecutable());
+            Function function = ctxt.getExactFunction(mh.getExecutable());
+            FunctionDeclaration decl = ctxt.getOrAddProgramModule(originalElement).declareFunction(function);
+            final LiteralFactory lf = ctxt.getLiteralFactory();
+            return super.addressOf(pointerHandle(lf.literalOf(decl)));
+        }
+        return super.addressOf(handle);
+    }
+
 
     public Value call(ValueHandle target, List<Value> arguments) {
         ArrayList<Value> argList = new ArrayList<>(arguments);

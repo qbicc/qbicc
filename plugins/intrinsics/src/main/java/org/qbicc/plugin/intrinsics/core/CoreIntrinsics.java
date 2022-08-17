@@ -31,10 +31,13 @@ import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.machine.arch.Cpu;
+import org.qbicc.object.Function;
+import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ProgramObject;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -701,6 +704,27 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor ciDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/CompilerIntrinsics");
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor clsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+        ClassTypeDescriptor strDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
+        ClassTypeDescriptor voidUnaryfunctionPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$void_ptr_unaryoperator_function_ptr");
+
+        MethodDescriptor nfpDesc = MethodDescriptor.synthesize(classContext, voidUnaryfunctionPtrDesc, List.of(strDesc, strDesc));
+        StaticIntrinsic nfp = (builder, target, arguments) -> {
+            StringLiteral clazz = (StringLiteral)arguments.get(0);
+            StringLiteral name = (StringLiteral)arguments.get(1);
+            LoadedTypeDefinition ltd = classContext.findDefinedType(clazz.getValue().replace('.', '/')).load();
+            WordType toType = ctxt.getTypeSystem().getFunctionType(ctxt.getTypeSystem().getVoidType().getPointer(), List.of(ctxt.getTypeSystem().getVoidType().getPointer())).getPointer();
+            try {
+                MethodElement me = ltd.requireSingleMethod(name.getValue());
+                // The three argument form of staticMethod enables the machinery that processes the @export annotation
+                ValueHandle mh  = builder.staticMethod(me.getEnclosingType().getDescriptor(), name.getValue(), me.getDescriptor());
+                Value funcPtr = builder.addressOf(mh);
+                return builder.bitCast(funcPtr, toType);
+            } catch (IllegalArgumentException e) {
+                ctxt.error("CompilerIntrinsics.nativeFunctionPointer: failed to find: %s.%s", clazz.getValue(), name.getValue());
+                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(toType);
+            }
+        };
+        intrinsics.registerIntrinsic(Phase.ADD, ciDesc, "nativeFunctionPointer", nfpDesc, nfp);
 
         MethodDescriptor newRefArrayDesc =  MethodDescriptor.synthesize(classContext, objDesc, List.of(clsDesc, BaseTypeDescriptor.I, BaseTypeDescriptor.I));
         StaticIntrinsic newRefArray = (builder, target, arguments) -> {
