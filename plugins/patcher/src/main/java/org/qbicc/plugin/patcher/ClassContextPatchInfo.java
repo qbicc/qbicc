@@ -11,6 +11,7 @@ import org.qbicc.context.ClassContext;
 import org.qbicc.context.Diagnostic;
 import org.qbicc.context.Location;
 import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.annotation.ClassAnnotationValue;
 import org.qbicc.type.annotation.StringAnnotationValue;
 import org.qbicc.type.definition.InitializerResolver;
@@ -123,6 +124,8 @@ final class ClassContextPatchInfo {
         boolean runTimeAspect = false;
         String patchedClassPackage = null;
         String patchedClassName = null;
+        List<Annotation> transferredAnnotations = null;
+        boolean shouldTransferAnnotations = false;
         for (int i = 0; i < cnt; i ++) {
             if (classFile.attributeNameEquals(i, "RuntimeInvisibleAnnotations")) {
                 // found annotations
@@ -171,6 +174,13 @@ final class ClassContextPatchInfo {
                             return;
                         }
                         replaceInit = annotation;
+                    } else if (descriptor.packageAndClassNameEquals(Patcher.PATCHER_PKG, "Annotate")) {
+                        shouldTransferAnnotations = true;
+                    } else {
+                        if (transferredAnnotations == null) {
+                            transferredAnnotations = new ArrayList<>();
+                        }
+                        transferredAnnotations.add(annotation);
                     }
                 }
             }
@@ -184,7 +194,12 @@ final class ClassContextPatchInfo {
         ClassPatchInfo classPatchInfo = getOrAdd(patchedClassInternalName);
         boolean foundInit = false;
         synchronized (classPatchInfo) {
-            // do methods *first* because included may be the field initializer
+            if (shouldTransferAnnotations) {
+                for (Annotation a : transferredAnnotations) {
+                    classPatchInfo.addClassAnnotation(a);
+                }
+            }
+            // do methods before fields because included may be the field initializer
             cnt = classFile.getMethodCount();
             // use these modifiers when adding a new method
             int addModifiers = runTimeAspect ? ClassFile.I_ACC_RUN_TIME : 0;

@@ -1,5 +1,6 @@
 package org.qbicc.plugin.patcher;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -109,6 +110,23 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
         } else {
             getDelegate().setInitializer(resolver, index);
         }
+    }
+
+    @Override
+    public void setInvisibleAnnotations(List<Annotation> annotations) {
+        ClassPatchInfo classPatchInfo = this.classPatchInfo;
+        if (classPatchInfo != null) {
+            synchronized (classPatchInfo) {
+                List<Annotation> added = classPatchInfo.getAddedClassAnnotations();
+                if (!added.isEmpty()) {
+                    ArrayList<Annotation> tmp = new ArrayList<>();
+                    tmp.addAll(annotations);
+                    tmp.addAll(added);
+                    annotations = tmp;
+                }
+            }
+        }
+        getDelegate().setInvisibleAnnotations(annotations);
     }
 
     @Override
