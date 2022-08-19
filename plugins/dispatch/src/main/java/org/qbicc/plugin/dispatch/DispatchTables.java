@@ -256,7 +256,7 @@ public class DispatchTables {
         HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
         for (int i = 0; i < vtable.length; i++) {
             FunctionType funType = ctxt.getFunctionTypeForElement(vtable[i]);
-            if (vtable[i].isAbstract() || vtable[i].hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+            if (vtable[i].isAbstract() || (vtable[i].hasAllModifiersOf(ClassFile.ACC_NATIVE) && ctxt.getExactFunctionIfExists(vtable[i]) == null)) {
                 MethodElement stub = methodFinder.getMethod(vtable[i].isAbstract() ? "raiseAbstractMethodError" : "raiseUnsatisfiedLinkError");
                 Function stubImpl = ctxt.getExactFunction(stub);
                 FunctionDeclaration decl = programModule.declareFunction(stub, stubImpl.getName(), stubImpl.getValueType());
