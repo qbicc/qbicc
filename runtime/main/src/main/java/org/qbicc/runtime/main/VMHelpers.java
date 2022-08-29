@@ -211,6 +211,22 @@ public final class VMHelpers {
     }
 
     /**
+     * A pointer to this function is passed to pthread_create in Thread.start0.
+     * The role of this wrapper is to transition a newly started Thread from C to Java calling
+     * conventions and then invoke the Thread's run method.
+     * @param threadParam - java.lang.Thread object for the newly started thread (cast to a void pointer to be compatible with pthread_create)
+     * @return null - this return value will not be used
+     */
+    @export
+    public static void_ptr pthreadCreateWrapper(void_ptr threadParam) {
+        Object thrObj = ptrToRef(threadParam);
+        Thread thread = (Thread)thrObj;
+        VM._qbicc_bound_thread = thread;
+        thread.run();
+        return word(0).cast();
+    }
+
+    /**
      * Helper for java.lang.Thread.start0 allocates a pthread and creates/runs the thread.
      * @param runFuncPtr - pointer to threadWrapper
      * @param thread - Java thread object that has been cast to a void pointer to be compatible with pthread_create
@@ -243,13 +259,6 @@ public final class VMHelpers {
             free(pthreadPtr.cast());
             throw new InternalError("pthread error code: " + result);
         }
-    }
-
-    // TODO: Class library compatibility kludge.
-    //       Once Thread.start0 is defined in Thread$_native instead as a compiler intrinsic, it can
-    //       call CompilerIntrinsics.threadWrapperNative directly and this redirection method can be removed.
-    public static void_ptr threadWrapperNative(void_ptr threadParam) {
-        return CompilerIntrinsics.threadWrapperNative(threadParam);
     }
 
     /**
