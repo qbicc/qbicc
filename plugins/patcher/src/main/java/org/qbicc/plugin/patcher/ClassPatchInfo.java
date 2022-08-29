@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.definition.MethodBodyFactory;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -33,6 +34,7 @@ final class ClassPatchInfo {
     private InitializerPatchInfo replacedInitializer;
     private boolean deletedInitializer;
     private Map<String, Map<MethodDescriptor, MethodBodyPatchInfo>> methodBodyReplacedMethods;
+    private List<Annotation> addedClassAnnotations;
 
     ClassPatchInfo() {
         annotatedFields = Map.of();
@@ -49,6 +51,7 @@ final class ClassPatchInfo {
         injectedMethods = List.of();
         deletedMethods = Map.of();
         methodBodyReplacedMethods = Map.of();
+        addedClassAnnotations = List.of();
     }
 
     ClassPatchInfo(int ignored) {
@@ -113,6 +116,11 @@ final class ClassPatchInfo {
     InitializerPatchInfo getReplacementInitializerInfo() {
         assert Thread.holdsLock(this);
         return replacedInitializer;
+    }
+
+    List<Annotation> getAddedClassAnnotations() {
+        assert Thread.holdsLock(this);
+        return addedClassAnnotations;
     }
 
     // add
@@ -275,6 +283,12 @@ final class ClassPatchInfo {
         assert Thread.holdsLock(this);
         checkCommitted();
         replacedInitializer = initializerPatchInfo;
+    }
+
+    void addClassAnnotation(final Annotation annotation) {
+        assert Thread.holdsLock(this);
+        checkCommitted();
+        addedClassAnnotations = listWith(addedClassAnnotations, annotation);
     }
 
     private void checkCommitted() {

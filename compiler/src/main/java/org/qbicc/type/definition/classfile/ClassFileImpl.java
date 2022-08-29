@@ -690,6 +690,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         ClassTypeDescriptor descriptor = (ClassTypeDescriptor) getClassConstantAsDescriptor(getShort(interfacesOffset - 6));
         builder.setDescriptor(descriptor);
         ClassSignature signature = null;
+        boolean foundRuntimeInvisibleAnnotations = false;
         for (int i = 0; i < acnt; i ++) {
             if (attributeNameEquals(i, "RuntimeVisibleAnnotations")) {
                 ByteBuffer data = getRawAttributeContent(i);
@@ -714,6 +715,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                         access |= I_ACC_PINNED;
                     }
                 }
+                foundRuntimeInvisibleAnnotations = true;
                 builder.setInvisibleAnnotations(List.of(annotations));
             } else if (attributeNameEquals(i, "RuntimeVisibleTypeAnnotations")) {
                 TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getRawAttributeContent(i));
@@ -776,6 +778,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 }
             }
         }
+        if (!foundRuntimeInvisibleAnnotations) {
+            builder.setInvisibleAnnotations(List.of()); // allows PatchedTypeBuilder to intercept and implement the @Annotate annotation on types
+        }
+
         if (signature == null) {
             ClassTypeSignature superClassSig = superClassName == null ? null : (ClassTypeSignature) TypeSignature.synthesize(ctxt, ClassTypeDescriptor.synthesize(ctxt, superClassName));
             ClassTypeSignature[] interfaceSigs = new ClassTypeSignature[cnt];
