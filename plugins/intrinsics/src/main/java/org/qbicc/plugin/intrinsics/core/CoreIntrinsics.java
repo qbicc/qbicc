@@ -223,85 +223,15 @@ public final class CoreIntrinsics {
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
         final int threadAlive = 0x0001;
-        final int threadTerminated = 0x0002;
-        final int threadRunnable = 0x0004;
 
         ClassTypeDescriptor jltDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
-        ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/VM");
-        ClassTypeDescriptor vmHelpersDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/VMHelpers");
-        ClassTypeDescriptor compIntrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/CompilerIntrinsics");
-        ClassTypeDescriptor pthreadPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/posix/PThread$pthread_t_ptr");
-        ClassTypeDescriptor voidPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$void_ptr");
-        ClassTypeDescriptor voidUnaryfunctionPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$void_ptr_unaryoperator_function_ptr");
 
         MethodDescriptor returnJlt = MethodDescriptor.synthesize(classContext, jltDesc, List.of());
-        MethodDescriptor voidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
         MethodDescriptor booleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
 
         /* public static native Thread currentThread(); */
         StaticIntrinsic currentThread = (builder, target, arguments) -> builder.load(builder.currentThread(), SingleUnshared);
         intrinsics.registerIntrinsic(jltDesc, "currentThread", returnJlt, currentThread);
-
-        /* VMHelpers.java - threadWrapper: helper method for java.lang.Thread.start0 */
-        MethodDescriptor threadWrapperNativeDesc = MethodDescriptor.synthesize(classContext, voidPtrDesc, List.of(voidPtrDesc));
-        StaticIntrinsic threadWrapperNative = (builder, target, arguments) -> {
-            Value threadVoidPtr = arguments.get(0);
-
-            DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
-            LoadedTypeDefinition jltVal = jlt.load();
-            ReferenceType jltType = jltVal.getObjectType().getReference();
-            Value threadObject = builder.valueConvert(threadVoidPtr, jltType);
-            ValueHandle threadObjectHandle = builder.referenceHandle(threadObject);
-
-            /* set current thread */
-            builder.store(builder.staticField(vmDesc, "_qbicc_bound_thread", jltDesc), threadObject, SingleUnshared);
-
-            /* call "run" method of thread object */
-            VirtualMethodElementHandle runHandle = (VirtualMethodElementHandle)builder.virtualMethodOf(threadObject, jltDesc, "run", voidDesc);
-            builder.call(runHandle, List.of());
-
-            /* set java.lang.Thread.threadStatus to terminated */
-            ValueHandle threadStatusHandle = builder.instanceFieldOf(threadObjectHandle, jltDesc, "threadStatus", BaseTypeDescriptor.I);
-            builder.store(threadStatusHandle, ctxt.getLiteralFactory().literalOf(threadTerminated), SingleUnshared);
-
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getExecutable().getType().getReturnType()); /* return null */
-        };
-        intrinsics.registerIntrinsic(compIntrDesc, "threadWrapperNative", threadWrapperNativeDesc, threadWrapperNative);
-
-        /* VMHelpers.java - saveNativeThread: helper method for java.lang.Thread.start0 */
-        MethodDescriptor saveNativeThreadDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(voidPtrDesc, pthreadPtrDesc));
-        StaticIntrinsic saveNativeThread = (builder, target, arguments) -> {
-            // TODO implement
-            return ctxt.getLiteralFactory().literalOf(true);
-        };
-        intrinsics.registerIntrinsic(compIntrDesc, "saveNativeThread", saveNativeThreadDesc, saveNativeThread);
-
-        /* private native void start0(); */
-        InstanceIntrinsic start0 = (builder, instance, target, arguments) -> {
-            PointerType voidPointerType = ctxt.getTypeSystem().getVoidType().getPointer();
-
-            /* set java.lang.Thread.threadStatus to runnable and alive */
-            ValueHandle threadStatusHandle = builder.instanceFieldOf(builder.referenceHandle(instance), jltDesc, "threadStatus", BaseTypeDescriptor.I);
-            builder.store(threadStatusHandle, ctxt.getLiteralFactory().literalOf(threadRunnable | threadAlive), SingleUnshared);
-
-            /* pass threadWrapper as function_ptr - TODO this will eventually be replaced by a call to CNative.addr_of_function */
-            MethodDescriptor threadWrapperDesc = MethodDescriptor.synthesize(classContext, voidPtrDesc, List.of(voidPtrDesc));
-            ValueHandle threadWrapperValueHandle = builder.staticMethod(vmHelpersDesc, "threadWrapper", threadWrapperDesc); // TODO: Call intrinsic directly when start0 is moved to Thread$_native.java
-            Value threadWrapperFunctionPointer = builder.addressOf(threadWrapperValueHandle);
-
-            /* call threadWrapper with null parameter so it does nothing - TODO this is a workaround to create a declares statement for threadWrapper in java.lang.Thread */
-            builder.call(threadWrapperValueHandle, List.of(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(voidPointerType)));
-
-            /* pass java.lang.Thread object as ptr<void> */
-            Value threadVoidPtr = builder.valueConvert(instance, voidPointerType);
-
-            /* start pthread in VMHelpers */
-            MethodDescriptor JLT_start0Desc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(voidUnaryfunctionPtrDesc, voidPtrDesc));
-            builder.call(builder.staticMethod(vmHelpersDesc, "JLT_start0", JLT_start0Desc), List.of(threadWrapperFunctionPointer, threadVoidPtr));
-
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
-        };
-        intrinsics.registerIntrinsic(jltDesc, "start0", voidDesc, start0);
 
         /* public final native boolean isAlive(); */
         InstanceIntrinsic isAlive = (builder, instance, target, arguments) -> {
