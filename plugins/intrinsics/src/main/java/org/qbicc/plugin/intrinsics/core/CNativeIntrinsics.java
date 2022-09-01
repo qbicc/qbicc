@@ -88,6 +88,7 @@ final class CNativeIntrinsics {
         ClassTypeDescriptor thrDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
         ClassTypeDescriptor strDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+        ClassTypeDescriptor qthrDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ThreadSupportQbicc");
 
         ClassTypeDescriptor boolPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$_Bool_ptr");
 
@@ -178,10 +179,13 @@ final class CNativeIntrinsics {
         intrinsics.registerIntrinsic(cNativeDesc, "ptrToRef", MethodDescriptor.synthesize(classContext, objDesc, List.of(ptrDesc)), ptrToRef);
 
         StaticIntrinsic attachNewThread = (builder, target, arguments) -> {
-            //java.lang.Thread.nextThreadID
+            // Allocate uninitialized Thread object
             Value thread = builder.new_(thrDesc);
-            // immediately set the thread to be the current thread
-            builder.store(builder.staticField(vmDesc, "_qbicc_bound_thread", thrDesc), thread, SingleUnshared);
+            // immediately set the newly allocated thread object to be the current thread
+            DefinedTypeDefinition tlq = classContext.findDefinedType("java/lang/ThreadSupportQbicc");
+            ClassTypeDescriptor qbtDesc = classContext.findDefinedType("java/lang/ThreadSupportQbicc") == null ? vmDesc : qthrDesc; // TODO: ?: is class Library Compatibility kludge
+            builder.store(builder.staticField(qbtDesc, "_qbicc_bound_thread", thrDesc), thread, SingleUnshared);
+
             // now start initializing
             DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
             LoadedTypeDefinition jltVal = jlt.load();
