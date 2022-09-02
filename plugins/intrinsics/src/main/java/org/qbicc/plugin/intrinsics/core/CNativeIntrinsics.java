@@ -75,7 +75,6 @@ final class CNativeIntrinsics {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
-        ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/VM");
         ClassTypeDescriptor cNativeDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative");
         ClassTypeDescriptor typeIdDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$type_id");
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
@@ -88,7 +87,7 @@ final class CNativeIntrinsics {
         ClassTypeDescriptor thrDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
         ClassTypeDescriptor strDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
-        ClassTypeDescriptor qthrDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ThreadSupportQbicc");
+        ClassTypeDescriptor qthrDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread$_qbicc");
 
         ClassTypeDescriptor boolPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$_Bool_ptr");
 
@@ -182,9 +181,7 @@ final class CNativeIntrinsics {
             // Allocate uninitialized Thread object
             Value thread = builder.new_(thrDesc);
             // immediately set the newly allocated thread object to be the current thread
-            DefinedTypeDefinition tlq = classContext.findDefinedType("java/lang/ThreadSupportQbicc");
-            ClassTypeDescriptor qbtDesc = classContext.findDefinedType("java/lang/ThreadSupportQbicc") == null ? vmDesc : qthrDesc; // TODO: ?: is class Library Compatibility kludge
-            builder.store(builder.staticField(qbtDesc, "_qbicc_bound_thread", thrDesc), thread, SingleUnshared);
+            builder.store(builder.staticField(qthrDesc, "_qbicc_bound_java_thread", thrDesc), thread, SingleUnshared);
 
             // now start initializing
             DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");

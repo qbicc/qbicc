@@ -75,7 +75,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         if (originalElement instanceof FunctionElement fe) {
             ProgramModule programModule = ctxt.getOrAddProgramModule(fe.getEnclosingType());
             ReferenceType type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread").load().getClassType().getReference();
-            DataDeclaration decl = programModule.declareData(null, "_qbicc_bound_thread", type);
+            DataDeclaration decl = programModule.declareData(null, "_qbicc_bound_java_thread", type);
             decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
             final LiteralFactory lf = ctxt.getLiteralFactory();
             return pointerHandle(lf.literalOf(decl));

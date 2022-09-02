@@ -1,1 +1,2 @@
+org.qbicc.runtime.main.ThreadSupportQbiccAccess
 org.qbicc.runtime.stackwalk.StackTraceElementAccess
