@@ -972,6 +972,14 @@ public final class VmImpl implements Vm {
             seedGenerator.registerInvokable("getSystemEntropy", (thread, target, args) ->
                 thread.getVM().newByteArray(new SecureRandom().generateSeed(20))
             );
+            seedGenerator.registerInvokable("generateSeed", (thread, target, args) -> {
+                VmByteArrayImpl bytes = (VmByteArrayImpl) args.get(0);
+                byte[] seed = new SecureRandom().generateSeed(bytes.getLength());
+                for (int i=0; i<seed.length; i++) {
+                    bytes.getArray()[i] = seed[i];
+                }
+                return null;
+            });
 
             /////////////////
             // TODO: temporary workaround for var/method handle initialization
