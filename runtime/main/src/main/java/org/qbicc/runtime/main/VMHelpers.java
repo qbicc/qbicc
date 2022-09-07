@@ -202,7 +202,7 @@ public final class VMHelpers {
     public static void_ptr pthreadCreateWrapper(void_ptr threadParam) {
         Object thrObj = ptrToRef(threadParam);
         Thread thread = (Thread)thrObj;
-        VM._qbicc_bound_thread = thread;
+        ThreadSupportQbiccAccess._qbicc_bound_java_thread = thread;
         thread.run();
         return word(0).cast();
     }
