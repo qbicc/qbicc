@@ -125,6 +125,7 @@ import org.qbicc.plugin.native_.PointerBasicBlockBuilder;
 import org.qbicc.plugin.native_.PointerTypeResolver;
 import org.qbicc.plugin.native_.StructMemberAccessBasicBlockBuilder;
 import org.qbicc.plugin.nativeimage.FeatureProcessor;
+import org.qbicc.plugin.nativeimage.RuntimeInitializingTypeBuilder;
 import org.qbicc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
 import org.qbicc.plugin.opt.FinalFieldLoadOptimizer;
 import org.qbicc.plugin.opt.GotoRemovingVisitor;
@@ -429,6 +430,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addTypeBuilderFactory(CoreAnnotationTypeBuilder::new);
                                 builder.addTypeBuilderFactory(ReachabilityAnnotationTypeBuilder::new);
                                 builder.addTypeBuilderFactory(Patcher::getTypeBuilder);
+                                builder.addTypeBuilderFactory(RuntimeInitializingTypeBuilder::new);
                                 builder.addTypeBuilderFactory(AccessorTypeBuilder::new);
 
                                 builder.setClassContextListener(Patcher::initialize);

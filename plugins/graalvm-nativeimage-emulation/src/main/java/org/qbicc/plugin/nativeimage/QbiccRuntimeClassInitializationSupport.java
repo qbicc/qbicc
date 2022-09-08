@@ -27,7 +27,9 @@ public class QbiccRuntimeClassInitializationSupport implements RuntimeClassIniti
 
     @Override
     public void initializeAtRunTime(Class<?> aClass, String reason) {
-        ctxt.warning("ignoring: initializeAtRuntime %s %s", aClass.toString(), reason);
+        String name = aClass.getName();
+        String internalName = name.replace('.', '/');
+        FeaturePatcher.get(ctxt).addRuntimeInitializedClass(internalName);
     }
 
     @Override
