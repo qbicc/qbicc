@@ -29,6 +29,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-layout</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-apploader</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.smallrye.common</groupId>
