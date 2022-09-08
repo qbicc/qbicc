@@ -5,11 +5,11 @@ import org.qbicc.type.definition.InitializerResolver;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.InitializerElement;
 
-final class OnceRunTimeInitializerResolver implements InitializerResolver {
+public final class OnceRunTimeInitializerResolver implements InitializerResolver {
     private final InitializerResolver delegate;
     private volatile InitializerElement element;
 
-    OnceRunTimeInitializerResolver(InitializerResolver delegate) {
+    public OnceRunTimeInitializerResolver(InitializerResolver delegate) {
         this.delegate = delegate;
     }
 
