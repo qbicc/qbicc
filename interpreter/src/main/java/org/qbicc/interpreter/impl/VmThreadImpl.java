@@ -1,5 +1,6 @@
 package org.qbicc.interpreter.impl;
 
+import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.VmThrowable;
@@ -55,6 +56,16 @@ final class VmThreadImpl extends VmObjectImpl implements VmThread {
             throw new IllegalArgumentException("Invalid thread priority: "+priority);
         }
         memory.store32(offset, priority, SinglePlain);
+    }
+
+    VmClassLoader getContextClassLoader() {
+        int offset = indexOf(clazz.getTypeDefinition().findField("contextClassLoader"));
+        return (VmClassLoader) memory.loadRef(offset, SinglePlain);
+    }
+
+    void setContextClassLoader(VmClassLoader cl) {
+        int offset = indexOf(clazz.getTypeDefinition().findField("contextClassLoader"));
+        memory.storeRef(offset, cl, SinglePlain);
     }
 
     void setBoundThread(Thread boundThread) {

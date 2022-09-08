@@ -26,7 +26,6 @@ import java.util.zip.CRC32;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.atomic.AccessModes;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ByteArrayLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
@@ -54,6 +53,7 @@ import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.interpreter.memory.MemoryFactory;
 import org.qbicc.machine.arch.Platform;
+import org.qbicc.plugin.apploader.AppClassLoader;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
@@ -675,11 +675,6 @@ public final class VmImpl implements Vm {
                 startedThreads.add(vmThread);
                 return null;
             });
-            threadNativeClass.registerInvokable("getContextClassLoader", (thread, target, args) -> {
-                VmClassImpl classLoaders = bootstrapClassLoader.loadClass("jdk/internal/loader/ClassLoaders");
-                VmClassLoader appClassLoader = (VmClassLoader) classLoaders.getStaticMemory().loadRef(classLoaders.indexOfStatic(classLoaders.getTypeDefinition().findField("APP_LOADER")), AccessModes.SinglePlain);
-                return appClassLoader;
-            });
 
             // Throwable
             VmClassImpl throwableClass = bootstrapClassLoader.loadClass("java/lang/Throwable");
@@ -1207,7 +1202,16 @@ public final class VmImpl implements Vm {
 
     public void initialize(final VmClass vmClass) {
         VmThreadImpl vmThread = (VmThreadImpl) Vm.requireCurrentThread();
-        ((VmClassImpl)vmClass).initialize(vmThread);
+        VmClassLoader oldTCCL = vmThread.getContextClassLoader();
+        try {
+            if (oldTCCL == null) {
+                VmClassLoader appCl = AppClassLoader.get(ctxt).getAppClassLoader();
+                vmThread.setContextClassLoader(appCl);
+            }
+            ((VmClassImpl) vmClass).initialize(vmThread);
+        } finally {
+            vmThread.setContextClassLoader(oldTCCL);
+        }
     }
 
     public void deliverSignal(final Signal signal) {

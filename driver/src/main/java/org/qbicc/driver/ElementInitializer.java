@@ -6,6 +6,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
+import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
