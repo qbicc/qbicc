@@ -287,7 +287,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
             // skip JVM call
             DefinedTypeDefinition definedType = classContext.findDefinedType(intName.getContent());
             if (definedType == null) {
-                VmThrowable throwable = thread.getVM().noClassDefFoundErrorClass.newInstance("Class not found: " + intName.getContent());
+                VmThrowable throwable = thread.getVM().classNotFoundExceptionClass.newInstance("Class not found: " + intName.getContent());
                 thread.setThrown(throwable);
                 throw new Thrown(throwable);
             }

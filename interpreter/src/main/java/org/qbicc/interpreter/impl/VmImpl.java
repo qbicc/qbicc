@@ -162,6 +162,7 @@ public final class VmImpl implements Vm {
 
     final VmThrowableClassImpl incompatibleClassChangeErrorClass;
     final VmThrowableClassImpl noClassDefFoundErrorClass;
+    final VmThrowableClassImpl classNotFoundExceptionClass;
     final VmThrowableClassImpl verifyErrorClass;
 
     final VmThrowableClassImpl noSuchFieldErrorClass;
@@ -328,6 +329,8 @@ public final class VmImpl implements Vm {
         incompatibleClassChangeErrorClass.postConstruct(this);
         noClassDefFoundErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/NoClassDefFoundError").load());
         noClassDefFoundErrorClass.postConstruct(this);
+        classNotFoundExceptionClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/ClassNotFoundException").load());
+        classNotFoundExceptionClass.postConstruct(this);
         verifyErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/VerifyError").load());
         verifyErrorClass.postConstruct(this);
 
