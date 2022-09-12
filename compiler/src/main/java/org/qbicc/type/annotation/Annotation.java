@@ -89,6 +89,14 @@ public final class Annotation extends AnnotationValue {
         return new Annotation(typeDescriptor, values);
     }
 
+    public static Annotation synthesize(ClassTypeDescriptor descriptor) {
+        return synthesize(descriptor, Map.of());
+    }
+
+    public static Annotation synthesize(ClassTypeDescriptor descriptor, final Map<String, AnnotationValue> values) {
+        return new Annotation(descriptor, values);
+    }
+
     public static List<Annotation> parseList(final ClassFile classFile, final ClassContext classContext, final ByteBuffer buf) {
         int ac = buf.getShort() & 0xffff;
         Annotation[] annotations = new Annotation[ac];
