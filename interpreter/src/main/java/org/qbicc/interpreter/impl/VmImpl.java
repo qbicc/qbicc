@@ -753,6 +753,16 @@ public final class VmImpl implements Vm {
                 }
                 return null;
             });
+            classClass.registerInvokable("getInterfaces0", (thread, target, args) -> {
+                LoadedTypeDefinition ltd = ((VmClassImpl)target).getTypeDefinition();
+                LoadedTypeDefinition[] ltdInt = ltd.getInterfaces();
+                VmClass[] interfaces = new VmClass[ltdInt.length];
+                for (int i=0; i<ltdInt.length; i++) {
+                    interfaces[i] = ltdInt[i].getVmClass();
+                }
+                VmArray ans = newArrayOf(classClass, interfaces);
+                return ans;
+            });
             classClass.registerInvokable("isInstance", (thread, target, args) -> {
                 VmClassImpl clazz = (VmClassImpl) target;
                 VmObject obj = (VmObject) args.get(0);
