@@ -73,7 +73,9 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
             VmClassImpl frameClass = vm.getClassLoaderForContext(frameClassDef.getContext()).getOrDefineClass(frameClassDef.load());
             steMemory.storeRef(declaringClassObjectIdx, frameClass, SinglePlain);
             steMemory.store32(lineNumberIdx, ip.getSourceLine(), SinglePlain);
-            steMemory.storeRef(fileNameIdx, vm.intern(frameElement.getSourceFileName()), SinglePlain);
+            if (frameElement.getSourceFileName() != null) {
+                steMemory.storeRef(fileNameIdx, vm.intern(frameElement.getSourceFileName()), SinglePlain);
+            }
             steMemory.storeRef(declaringClassIdx, vm.intern(frameClass.getName()), SinglePlain);
             String methodName;
             if (frameElement instanceof MethodElement) {
