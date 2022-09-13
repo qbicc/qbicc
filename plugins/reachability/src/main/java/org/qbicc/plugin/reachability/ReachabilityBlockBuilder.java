@@ -35,7 +35,9 @@ import org.qbicc.pointer.ReferenceAsPointer;
 import org.qbicc.pointer.RootPointer;
 import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
+import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
@@ -150,6 +152,18 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         public Void visit(ReachabilityContext param, PointerLiteral value) {
             RootPointer pointer = value.getPointer().getRootPointer();
             pointer.accept(this, param);
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, TypeLiteral value) {
+            if (value.getValue() instanceof ClassObjectType cot) {
+                param.analysis.processReachableType(cot.getDefinition().load(), param.currentElement);
+            } else if (value.getValue() instanceof InterfaceObjectType iot) {
+                param.analysis.processReachableType(iot.getDefinition().load(), param.currentElement);
+            } else if (value.getValue() instanceof ReferenceArrayObjectType aot) {
+                param.analysis.processArrayElementType(aot.getLeafElementType());
+            }
             return null;
         }
 
@@ -296,9 +310,6 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
             if (visitUnknown(param, (Node)node)) {
                 MethodElement methodElement = RuntimeMethodFinder.get(param.ctxt).getMethod("getClassFromTypeId");
                 param.analysis.processReachableExactInvocation(methodElement, param.currentElement);
-                if (node.getInput() instanceof TypeLiteral tl && tl.getValue() instanceof ClassObjectType cot) {
-                    param.analysis.processReachableType(cot.getDefinition().load(), param.currentElement);
-                }
             }
             return null;
         }
