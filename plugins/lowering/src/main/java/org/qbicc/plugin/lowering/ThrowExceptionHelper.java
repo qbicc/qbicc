@@ -4,6 +4,7 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.ClassContext;
 import org.qbicc.plugin.patcher.Patcher;
+import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -12,6 +13,8 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.generic.TypeSignature;
+
+import java.util.List;
 
 public class ThrowExceptionHelper {
     private static final AttachmentKey<ThrowExceptionHelper> KEY = new AttachmentKey<>();
@@ -56,11 +59,13 @@ public class ThrowExceptionHelper {
     public static void init(CompilationContext ctxt) {
         ClassContext classContext = ctxt.getBootstrapClassContext();
         ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/unwind/Unwind$struct__Unwind_Exception");
+        ClassTypeDescriptor serAsZero = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/SerializeAsZero");
         Patcher.get(ctxt).addField(classContext, "java/lang/Thread", "unwindException", desc, new FieldResolver() {
             @Override
             public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
                 builder.setSignature(TypeSignature.synthesize(classContext, desc));
                 builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_RESOLVE | ClassFile.I_ACC_NO_REFLECT);
+                builder.addInvisibleAnnotations(List.of(Annotation.synthesize(serAsZero)));
                 DefinedTypeDefinition jltDefined = classContext.findDefinedType("java/lang/Thread");
                 builder.setEnclosingType(jltDefined);
                 return builder.build();

@@ -11,9 +11,11 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.context.ClassContext;
+import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.VerifyFailedException;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -152,22 +154,32 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private BasicBlock noClassDefFound(TypeDescriptor desc) {
-        ctxt.warning(getLocation(), "Reference to %s always produces NoClassDefFoundError", desc);
         Info info = Info.get(ctxt);
         ClassTypeDescriptor ncdfeClass = info.ncdfeClass;
-        // todo: add class name to exception string
         Value ncdfe = new_(ncdfeClass);
-        call(constructorOf(ncdfe, ncdfeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+        String fullName;
+        if (desc instanceof ClassTypeDescriptor ctd) {
+            fullName = ctd.getPackageName().isEmpty() ? ctd.getClassName() : ctd.getPackageName() + '/' + ctd.getClassName();
+        } else {
+            fullName = desc.toString();
+        }
+        StringLiteral msg = ctxt.getLiteralFactory().literalOf(fullName, getClassContext().findDefinedType("java/lang/String").load().getObjectType().getReference());
+        call(constructorOf(ncdfe, ncdfeClass, info.voidStringDesc), List.of(msg));
         return throw_(ncdfe);
     }
 
     private BasicBlock verifyError(TypeDescriptor desc) {
-        ctxt.warning(getLocation(), "Reference to %s always produces VerifyError", desc);
         Info info = Info.get(ctxt);
         ClassTypeDescriptor veClass = info.veClass;
-        // todo: add class name to exception string
         Value ve = new_(veClass);
-        call(constructorOf(ve, veClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+        String fullName;
+        if (desc instanceof ClassTypeDescriptor ctd) {
+            fullName = ctd.getPackageName().isEmpty() ? ctd.getClassName() : ctd.getPackageName() + '/' + ctd.getClassName();
+        } else {
+            fullName = desc.toString();
+        }
+        StringLiteral msg = ctxt.getLiteralFactory().literalOf(fullName, getClassContext().findDefinedType("java/lang/String").load().getObjectType().getReference());
+        call(constructorOf(ve, veClass, info.voidStringDesc), List.of(msg));
         return throw_(ve);
     }
 
@@ -204,12 +216,15 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     static final class Info {
         final ClassTypeDescriptor ncdfeClass;
         final ClassTypeDescriptor veClass;
+        final MethodDescriptor voidStringDesc;
 
         private Info(final CompilationContext ctxt) {
             DefinedTypeDefinition type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/NoClassDefFoundError");
             ncdfeClass = (ClassTypeDescriptor) type.getDescriptor();
             type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/VerifyError");
             veClass = (ClassTypeDescriptor) type.getDescriptor();
+            type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/String");
+            voidStringDesc = MethodDescriptor.synthesize(ctxt.getBootstrapClassContext(), BaseTypeDescriptor.V, List.of(type.getDescriptor()));
         }
 
         static Info get(CompilationContext ctxt) {
