@@ -10,6 +10,7 @@ import java.util.Map;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmStaticFieldBaseObject;
@@ -100,6 +101,11 @@ class BuildtimeHeapAnalyzer {
                             analysis.processReachableExactInvocation(smp.getStaticMethod(), rootElement);
                         }
                     }
+                }
+
+                if (cur instanceof VmClass vc) {
+                    // Ensure that this class gets assigned a typeID
+                    analysis.processReachableType(vc.getTypeDefinition(), rootElement);
                 }
             } else if (ot instanceof ReferenceArrayObjectType) {
                 analysis.processArrayElementType(((ReferenceArrayObjectType) ot).getLeafElementType());

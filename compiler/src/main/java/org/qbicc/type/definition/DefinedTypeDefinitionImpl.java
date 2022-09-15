@@ -450,6 +450,9 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             }
             // replace in the map *first*, *then* replace our local ref
             // definingLoader.replaceTypeDefinition(name, this, verified);
+            if (this.loaded != null) {
+                throw new IllegalStateException("Recursive class loading detected "+getInternalName());
+            }
             this.loaded = loaded;
             return loaded.load();
         }

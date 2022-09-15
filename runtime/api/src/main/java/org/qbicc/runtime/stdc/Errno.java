@@ -21,46 +21,52 @@ public final class Errno {
     public static final class errno_t extends word {
     }
 
-    public static final class GLibCErrnoAccessor implements Accessor<Integer> {
-        @extern
-        private static native int_ptr __errno_location();
-
-        public int getAsInt() {
-            return __errno_location().loadUnshared().intValue();
-        }
-
-        public void set(int value) {
-            __errno_location().storeUnshared(word(value));
-        }
-    }
-
-    public static final class MacOsErrnoAccessor implements Accessor<Integer> {
-        @extern
-        private static native int_ptr __error();
-
-        public int getAsInt() {
-            return __error().loadUnshared().intValue();
-        }
-
-        public void set(int value) {
-            __error().storeUnshared(word(value));
-        }
-    }
-
-    public static final class AixErrnoAccessor implements Accessor<Integer> {
-        @extern
-        private static native int_ptr _Errno();
-
-        public int getAsInt() {
-            return _Errno().loadUnshared().intValue();
-        }
-
-        public void set(int value) {
-            _Errno().storeUnshared(word(value));
-        }
-    }
-
     public static final c_int EDOM = constant();
     public static final c_int EILSEQ = constant();
     public static final c_int ERANGE = constant();
+}
+
+// Although it would be nicer, defining these as nested classes of Errno
+// doesn't work in qbicc yet because DefinedTypeDefinitionImpl.load()
+// doesn't guard against the same thread re-entering load recursively
+// which happens when the AccessorTypeBuilder tries to load these classes,
+// which in turn wants to load their nestHost.
+
+final class GLibCErrnoAccessor implements Accessor<Integer> {
+    @extern
+    private static native int_ptr __errno_location();
+
+    public int getAsInt() {
+        return __errno_location().loadUnshared().intValue();
+    }
+
+    public void set(int value) {
+        __errno_location().storeUnshared(word(value));
+    }
+}
+
+final class MacOsErrnoAccessor implements Accessor<Integer> {
+    @extern
+    private static native int_ptr __error();
+
+    public int getAsInt() {
+        return __error().loadUnshared().intValue();
+    }
+
+    public void set(int value) {
+        __error().storeUnshared(word(value));
+    }
+}
+
+final class AixErrnoAccessor implements Accessor<Integer> {
+    @extern
+    private static native int_ptr _Errno();
+
+    public int getAsInt() {
+        return _Errno().loadUnshared().intValue();
+    }
+
+    public void set(int value) {
+        _Errno().storeUnshared(word(value));
+    }
 }
