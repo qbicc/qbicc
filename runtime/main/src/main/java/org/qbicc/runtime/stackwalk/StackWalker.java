@@ -65,6 +65,11 @@ public final class StackWalker extends StackObject {
         if (! ready) throw new IllegalStateException();
         unw_word_t ip = auto();
         unw_get_reg(addr_of(refToPtr(this).sel().cursor), UNW_REG_IP, addr_of(ip));
+        if (Build.Target.isAarch64() && Build.Target.isMacOs()) {
+            // This is the "right" thing to do, but we don't compile our code enabling pauth.
+            // asm(unw_word_t.class, "xpaci $0", "=r,r", ASM_FLAG_SIDE_EFFECT, ip);
+            ip = word(ip.longValue() & 0x00000FFFFFFFFFFFL);
+        }
         return ip.cast();
     }
 
