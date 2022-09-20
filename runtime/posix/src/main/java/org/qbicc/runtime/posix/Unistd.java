@@ -91,4 +91,6 @@ public final class Unistd {
     public static char_ptr_ptr environ;
 
     public static native char_ptr getcwd(char_ptr buf, size_t size);
+
+    public static native c_int isatty(c_int fd);
 }
