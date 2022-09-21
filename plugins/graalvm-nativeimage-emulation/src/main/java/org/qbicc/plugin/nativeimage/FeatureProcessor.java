@@ -1,5 +1,6 @@
 package org.qbicc.plugin.nativeimage;
 
+import com.oracle.svm.core.BuildPhaseProvider;
 import com.oracle.svm.core.jdk.Resources;
 import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.nativeimage.impl.RuntimeClassInitializationSupport;
@@ -23,6 +24,16 @@ public class FeatureProcessor {
         QbiccImageSingletonsSupport qiss = new QbiccImageSingletonsSupport();
         qiss.add(RuntimeReflectionSupport.class, new QbiccRuntimeReflectionSupport(ctxt));
         qiss.add(RuntimeClassInitializationSupport.class, new QbiccRuntimeClassInitializationSupport(ctxt));
+        try {
+            Class<BuildPhaseProvider> buildPhaseProviderClass = (Class<BuildPhaseProvider>)Class.forName("com.oracle.svm.core.BuildPhaseProvider");
+            Constructor<BuildPhaseProvider> bc = buildPhaseProviderClass.getDeclaredConstructor();
+            bc.setAccessible(true);
+            BuildPhaseProvider buildPhaseProviderInstance = bc.newInstance();
+            qiss.add(BuildPhaseProvider.class, buildPhaseProviderInstance);
+        } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            ctxt.error("Unable to instantiate com.oracle.svm.core.BuildPhaseProvider");
+            return;
+        }
         try {
             Class<Resources> resourcesClass = (Class<Resources>)Class.forName("com.oracle.svm.core.jdk.Resources");
             Constructor<Resources> rc = resourcesClass.getDeclaredConstructor();
