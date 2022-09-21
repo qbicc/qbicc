@@ -34,11 +34,11 @@
             <artifactId>qbicc-plugin-reachability</artifactId>
         </dependency>
 
-        <!-- Use the same svm version as the Quarkus extension we are attempting to interpret -->
+        <!-- Match svm version used by Quarkus (2.7 ==>  21.3.0; 2.12 ==> 22.2.0) -->
         <dependency>
             <groupId>org.graalvm.nativeimage</groupId>
             <artifactId>svm</artifactId>
-            <version>21.3.0</version>
+            <version>22.2.0</version>
         </dependency>
     </dependencies>
 
