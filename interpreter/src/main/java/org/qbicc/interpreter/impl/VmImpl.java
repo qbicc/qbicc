@@ -576,6 +576,9 @@ public final class VmImpl implements Vm {
                 return manuallyInitialize(clazz.newInstance());
             });
 
+            // make it a no-op at build-time
+            unsafeClass.registerInvokable("checkNativeAddress", (thread, target, args) -> null);
+
             // System
             VmClassImpl systemClass = bootstrapClassLoader.loadClass("java/lang/System");
 
