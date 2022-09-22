@@ -707,6 +707,6 @@ public interface ClassFile extends FieldResolver,
     static ClassFile of(final ClassContext ctxt, ByteBuffer orig) {
         orig.order(ByteOrder.BIG_ENDIAN);
         ByteBuffer buffer = orig.duplicate();
-        return new ClassFileImpl(ctxt, buffer);
+        return ClassFileImpl.make(ctxt, buffer);
     }
 }

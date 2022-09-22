@@ -1,5 +1,6 @@
 package org.qbicc.type.definition.classfile;
 
+import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
@@ -7,6 +8,11 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.List;
 
+import io.smallrye.common.constraint.Assert;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.BasicBlock;
@@ -28,6 +34,7 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
+import org.qbicc.type.definition.ByteBufferInputStream;
 import org.qbicc.type.definition.ClassFileUtil;
 import org.qbicc.type.definition.DefineFailedException;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -90,11 +97,20 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
     private final ClassContext ctxt;
     private final String sourceFile;
 
-    ClassFileImpl(final ClassContext ctxt, final ByteBuffer buffer) {
-        super(buffer);
-        this.ctxt = ctxt;
-        literalFactory = ctxt.getLiteralFactory();
-        // scan the file to build up offset tables
+    private static class ClassUpgrader extends ClassVisitor {
+
+        protected ClassUpgrader(int api, ClassVisitor classVisitor) {
+            super(api, classVisitor);
+        }
+
+        @Override
+        public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+            Assert.assertTrue(version < 50);
+            cv.visit(50, access, name, signature, superName, interfaces);
+        }
+    }
+
+    public static ClassFile make(final ClassContext ctxt, ByteBuffer buffer) {
         ByteBuffer scanBuf = buffer.duplicate();
         // do some basic pieces of verification
         if (scanBuf.order() != ByteOrder.BIG_ENDIAN) {
@@ -106,8 +122,38 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
         int minor = scanBuf.getShort() & 0xffff;
         int major = scanBuf.getShort() & 0xffff;
-        // todo fix up
         if (major < 45 || major == 45 && minor < 3 || major > 61 || major == 61 && minor > 0) {
+            throw new DefineFailedException("Unsupported class version " + major + "." + minor);
+        }
+        if (major < 50) {
+            try {
+                // Rewrite old classfile versions to ensure that we have the stack map tables we need for phi nodes
+                ClassReader cr = new ClassReader(new ByteBufferInputStream(buffer.duplicate()));
+                ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+                cr.accept(new ClassUpgrader(Opcodes.ASM9, cw), ClassReader.SKIP_FRAMES);
+                byte[] result = cw.toByteArray();
+                buffer = ByteBuffer.wrap(result);
+            } catch (IOException e) {
+                ctxt.getCompilationContext().warning("Failed to rewrite input class file; may be missing stack maps");
+            }
+        }
+        return new ClassFileImpl(ctxt, buffer);
+    }
+
+    private ClassFileImpl(final ClassContext ctxt, final ByteBuffer buffer) {
+        super(buffer);
+        this.ctxt = ctxt;
+        literalFactory = ctxt.getLiteralFactory();
+        // scan the file to build up offset tables
+        ByteBuffer scanBuf = buffer.duplicate();
+        // we checked this above, but verify in case we used ASM to rewrite things.
+        int magic = scanBuf.getInt();
+        if (magic != 0xcafebabe) {
+            throw new DefineFailedException("Bad magic number");
+        }
+        int minor = scanBuf.getShort() & 0xffff;
+        int major = scanBuf.getShort() & 0xffff;
+        if (major < 50 || major > 61 || major == 61 && minor > 0) {
             throw new DefineFailedException("Unsupported class version " + major + "." + minor);
         }
         int cpCount = (scanBuf.getShort() & 0xffff);
