@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.jar.JarFile;
+import java.util.zip.ZipFile;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.machine.vfs.VirtualFileSystem;
@@ -67,9 +68,9 @@ public abstract class ClassPathElement implements Closeable {
      * @return the class path element (not {@code null})
      * @throws IOException if the JAR file failed to open
      */
-    public static ClassPathElement forJarFile(Path path) throws IOException {
+    public static ClassPathElement forJarFile(Path path, Runtime.Version version) throws IOException {
         Assert.checkNotNullParam("path", path);
-        return new JarFileClassPathElement(new JarFile(path.toFile()));
+        return new JarFileClassPathElement(new JarFile(path.toFile(), true, ZipFile.OPEN_READ, version));
     }
 
     /**
@@ -79,9 +80,9 @@ public abstract class ClassPathElement implements Closeable {
      * @return the class path element (not {@code null})
      * @throws IOException if the JAR file failed to open
      */
-    public static ClassPathElement forJarFile(File file) throws IOException {
+    public static ClassPathElement forJarFile(File file, Runtime.Version version) throws IOException {
         Assert.checkNotNullParam("path", file);
-        return forJarFile(file.toPath());
+        return forJarFile(file.toPath(), version);
     }
 
     /**

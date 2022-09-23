@@ -174,9 +174,9 @@ public class QbiccCompileMojo extends AbstractMojo {
         }
     }
 
-    private void resolveClassPath(final DiagnosticContext ctxt, final Consumer<ClassPathItem> consumer, final List<ClassPathEntry> classPathEntries) throws IOException {
+    private void resolveClassPath(final DiagnosticContext ctxt, final Consumer<ClassPathItem> consumer, final List<ClassPathEntry> classPathEntries, Runtime.Version version) throws IOException {
         final DefaultArtifactRequestor requestor = new DefaultArtifactRequestor();
-        final List<ClassPathItem> result = requestor.requestArtifactsFromRepositories(repoSystem, repositorySystemSession, remoteRepositories, classPathEntries, ctxt);
+        final List<ClassPathItem> result = requestor.requestArtifactsFromRepositories(repoSystem, repositorySystemSession, remoteRepositories, classPathEntries, ctxt, version);
         result.forEach(consumer);
     }
 

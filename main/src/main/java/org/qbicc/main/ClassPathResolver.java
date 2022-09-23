@@ -11,5 +11,5 @@ import org.qbicc.driver.ClassPathItem;
  * A class path resolver.
  */
 public interface ClassPathResolver {
-    void resolveClassPath(DiagnosticContext ctxt, Consumer<ClassPathItem> classPathItemConsumer, final List<ClassPathEntry> paths) throws IOException;
+    void resolveClassPath(DiagnosticContext ctxt, Consumer<ClassPathItem> classPathItemConsumer, final List<ClassPathEntry> paths, Runtime.Version version) throws IOException;
 }
