@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  EA==
+symbol: null
+size: 1
+valueAsInt: 16
+valueAsUnsignedLong: 16
+valueAsSignedLong: 16

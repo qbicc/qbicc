@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  LA==
+symbol: null
+size: 1
+valueAsInt: 44
+valueAsUnsignedLong: 44
+valueAsSignedLong: 44

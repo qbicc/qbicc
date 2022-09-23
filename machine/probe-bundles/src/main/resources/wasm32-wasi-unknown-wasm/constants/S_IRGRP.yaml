@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  IA==
+symbol: null
+size: 1
+valueAsInt: 32
+valueAsUnsignedLong: 32
+valueAsSignedLong: 32

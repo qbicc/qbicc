@@ -1,0 +1,92 @@
+---
+st_ino:
+  size: 8
+  align: 0
+  offset: 8
+  signed: false
+  unsigned: true
+  floating: false
+st_gid:
+  size: 4
+  align: 0
+  offset: 20
+  signed: false
+  unsigned: true
+  floating: false
+st_mode:
+  size: 2
+  align: 0
+  offset: 4
+  signed: false
+  unsigned: true
+  floating: false
+st_ctime:
+  size: 8
+  align: 0
+  offset: 64
+  signed: true
+  unsigned: false
+  floating: false
+st_rdev:
+  size: 4
+  align: 0
+  offset: 24
+  signed: true
+  unsigned: false
+  floating: false
+st_size:
+  size: 8
+  align: 0
+  offset: 96
+  signed: true
+  unsigned: false
+  floating: false
+st_mtime:
+  size: 8
+  align: 0
+  offset: 48
+  signed: true
+  unsigned: false
+  floating: false
+st_blocks:
+  size: 8
+  align: 0
+  offset: 104
+  signed: true
+  unsigned: false
+  floating: false
+st_atime:
+  size: 8
+  align: 0
+  offset: 32
+  signed: true
+  unsigned: false
+  floating: false
+st_blksize:
+  size: 4
+  align: 0
+  offset: 112
+  signed: true
+  unsigned: false
+  floating: false
+st_dev:
+  size: 4
+  align: 0
+  offset: 0
+  signed: true
+  unsigned: false
+  floating: false
+st_nlink:
+  size: 2
+  align: 0
+  offset: 6
+  signed: false
+  unsigned: true
+  floating: false
+st_uid:
+  size: 4
+  align: 0
+  offset: 16
+  signed: false
+  unsigned: true
+  floating: false

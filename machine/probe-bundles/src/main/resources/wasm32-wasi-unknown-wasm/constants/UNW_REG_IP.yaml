@@ -1,0 +1,9 @@
+---
+defined: false
+value: !!binary |-
+  /w==
+symbol: null
+size: 1
+valueAsInt: 255
+valueAsUnsignedLong: 255
+valueAsSignedLong: -1

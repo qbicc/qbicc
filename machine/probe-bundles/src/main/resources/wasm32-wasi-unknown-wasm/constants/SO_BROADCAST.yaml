@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  Bg==
+symbol: null
+size: 1
+valueAsInt: 6
+valueAsUnsignedLong: 6
+valueAsSignedLong: 6

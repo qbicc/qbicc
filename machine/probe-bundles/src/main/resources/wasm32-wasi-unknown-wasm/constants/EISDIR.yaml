@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  Hw==
+symbol: null
+size: 1
+valueAsInt: 31
+valueAsUnsignedLong: 31
+valueAsSignedLong: 31

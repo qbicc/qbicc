@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  CQ==
+symbol: null
+size: 1
+valueAsInt: 9
+valueAsUnsignedLong: 9
+valueAsSignedLong: 9

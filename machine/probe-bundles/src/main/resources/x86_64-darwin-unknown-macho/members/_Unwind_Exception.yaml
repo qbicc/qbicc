@@ -1,0 +1,15 @@
+---
+exception_class:
+  size: 8
+  align: 0
+  offset: 0
+  signed: false
+  unsigned: true
+  floating: false
+exception_cleanup:
+  size: 8
+  align: 0
+  offset: 8
+  signed: false
+  unsigned: false
+  floating: false

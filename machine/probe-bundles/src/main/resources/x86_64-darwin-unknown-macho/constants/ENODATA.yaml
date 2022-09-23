@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  YAAAAA==
+symbol: null
+size: 4
+valueAsInt: 96
+valueAsUnsignedLong: 96
+valueAsSignedLong: 96

@@ -1,0 +1,71 @@
+---
+tm_min:
+  size: 4
+  align: 0
+  offset: 4
+  signed: true
+  unsigned: false
+  floating: false
+tm_sec:
+  size: 4
+  align: 0
+  offset: 0
+  signed: true
+  unsigned: false
+  floating: false
+tm_hour:
+  size: 4
+  align: 0
+  offset: 8
+  signed: true
+  unsigned: false
+  floating: false
+tm_mday:
+  size: 4
+  align: 0
+  offset: 12
+  signed: true
+  unsigned: false
+  floating: false
+tm_year:
+  size: 4
+  align: 0
+  offset: 20
+  signed: true
+  unsigned: false
+  floating: false
+tm_mon:
+  size: 4
+  align: 0
+  offset: 16
+  signed: true
+  unsigned: false
+  floating: false
+tm_isdst:
+  size: 4
+  align: 0
+  offset: 32
+  signed: true
+  unsigned: false
+  floating: false
+tm_gmtoff:
+  size: 4
+  align: 0
+  offset: 36
+  signed: true
+  unsigned: false
+  floating: false
+tm_wday:
+  size: 4
+  align: 0
+  offset: 24
+  signed: true
+  unsigned: false
+  floating: false
+tm_yday:
+  size: 4
+  align: 0
+  offset: 28
+  signed: true
+  unsigned: false
+  floating: false

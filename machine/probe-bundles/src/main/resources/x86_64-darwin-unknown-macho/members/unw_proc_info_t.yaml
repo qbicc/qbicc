@@ -1,0 +1,64 @@
+---
+handler:
+  size: 8
+  align: 0
+  offset: 24
+  signed: false
+  unsigned: true
+  floating: false
+unwind_info:
+  size: 8
+  align: 0
+  offset: 56
+  signed: false
+  unsigned: true
+  floating: false
+lsda:
+  size: 8
+  align: 0
+  offset: 16
+  signed: false
+  unsigned: true
+  floating: false
+start_ip:
+  size: 8
+  align: 0
+  offset: 0
+  signed: false
+  unsigned: true
+  floating: false
+flags:
+  size: 8
+  align: 0
+  offset: 40
+  signed: false
+  unsigned: true
+  floating: false
+format:
+  size: 4
+  align: 0
+  offset: 48
+  signed: false
+  unsigned: true
+  floating: false
+gp:
+  size: 8
+  align: 0
+  offset: 32
+  signed: false
+  unsigned: true
+  floating: false
+unwind_info_size:
+  size: 4
+  align: 0
+  offset: 52
+  signed: false
+  unsigned: true
+  floating: false
+end_ip:
+  size: 8
+  align: 0
+  offset: 8
+  signed: false
+  unsigned: true
+  floating: false

@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  Gw==
+symbol: null
+size: 1
+valueAsInt: 27
+valueAsUnsignedLong: 27
+valueAsSignedLong: 27

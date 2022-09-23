@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  HA==
+symbol: null
+size: 1
+valueAsInt: 28
+valueAsUnsignedLong: 28
+valueAsSignedLong: 28

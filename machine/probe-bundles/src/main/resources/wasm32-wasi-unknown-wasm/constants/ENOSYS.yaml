@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  NA==
+symbol: null
+size: 1
+valueAsInt: 52
+valueAsUnsignedLong: 52
+valueAsSignedLong: 52

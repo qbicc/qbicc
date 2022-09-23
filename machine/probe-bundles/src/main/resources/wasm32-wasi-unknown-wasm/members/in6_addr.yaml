@@ -1,0 +1,8 @@
+---
+s6_addr:
+  size: 16
+  align: 0
+  offset: 0
+  signed: false
+  unsigned: false
+  floating: false

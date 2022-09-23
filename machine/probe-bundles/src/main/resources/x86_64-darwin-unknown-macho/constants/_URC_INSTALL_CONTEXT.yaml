@@ -1,0 +1,9 @@
+---
+defined: false
+value: !!binary |-
+  BwAAAA==
+symbol: null
+size: 4
+valueAsInt: 7
+valueAsUnsignedLong: 7
+valueAsSignedLong: 7

@@ -1,0 +1,29 @@
+---
+sa_flags:
+  size: 4
+  align: 0
+  offset: 132
+  signed: true
+  unsigned: false
+  floating: false
+sa_mask:
+  size: 128
+  align: 0
+  offset: 4
+  signed: false
+  unsigned: false
+  floating: false
+sa_sigaction:
+  size: 4
+  align: 0
+  offset: 0
+  signed: false
+  unsigned: false
+  floating: false
+sa_handler:
+  size: 4
+  align: 0
+  offset: 0
+  signed: false
+  unsigned: false
+  floating: false

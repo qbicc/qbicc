@@ -1,0 +1,22 @@
+---
+revents:
+  size: 2
+  align: 0
+  offset: 6
+  signed: true
+  unsigned: false
+  floating: false
+fd:
+  size: 4
+  align: 0
+  offset: 0
+  signed: true
+  unsigned: false
+  floating: false
+events:
+  size: 2
+  align: 0
+  offset: 4
+  signed: true
+  unsigned: false
+  floating: false

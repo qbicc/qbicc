@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  DQ==
+symbol: null
+size: 1
+valueAsInt: 13
+valueAsUnsignedLong: 13
+valueAsSignedLong: 13

@@ -1,0 +1,50 @@
+---
+msg_flags:
+  size: 4
+  align: 0
+  offset: 44
+  signed: true
+  unsigned: false
+  floating: false
+msg_control:
+  size: 8
+  align: 0
+  offset: 32
+  signed: false
+  unsigned: false
+  floating: false
+msg_namelen:
+  size: 4
+  align: 0
+  offset: 8
+  signed: false
+  unsigned: true
+  floating: false
+msg_name:
+  size: 8
+  align: 0
+  offset: 0
+  signed: false
+  unsigned: false
+  floating: false
+msg_controllen:
+  size: 4
+  align: 0
+  offset: 40
+  signed: false
+  unsigned: true
+  floating: false
+msg_iov:
+  size: 8
+  align: 0
+  offset: 16
+  signed: false
+  unsigned: false
+  floating: false
+msg_iovlen:
+  size: 4
+  align: 0
+  offset: 24
+  signed: true
+  unsigned: false
+  floating: false

@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  Dg==
+symbol: null
+size: 1
+valueAsInt: 14
+valueAsUnsignedLong: 14
+valueAsSignedLong: 14

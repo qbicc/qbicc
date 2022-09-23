@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  gA==
+symbol: null
+size: 1
+valueAsInt: 128
+valueAsUnsignedLong: 128
+valueAsSignedLong: -128

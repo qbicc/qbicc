@@ -1,0 +1,15 @@
+---
+tv_sec:
+  size: 8
+  align: 0
+  offset: 0
+  signed: true
+  unsigned: false
+  floating: false
+tv_nsec:
+  size: 4
+  align: 0
+  offset: 8
+  signed: true
+  unsigned: false
+  floating: false

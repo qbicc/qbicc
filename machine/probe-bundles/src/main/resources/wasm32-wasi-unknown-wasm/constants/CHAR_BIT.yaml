@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  CA==
+symbol: null
+size: 1
+valueAsInt: 8
+valueAsUnsignedLong: 8
+valueAsSignedLong: 8

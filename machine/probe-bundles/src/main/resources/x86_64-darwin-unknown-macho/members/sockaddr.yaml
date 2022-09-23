@@ -1,0 +1,15 @@
+---
+sa_family:
+  size: 1
+  align: 0
+  offset: 1
+  signed: false
+  unsigned: true
+  floating: false
+sa_data:
+  size: 14
+  align: 0
+  offset: 2
+  signed: false
+  unsigned: false
+  floating: false

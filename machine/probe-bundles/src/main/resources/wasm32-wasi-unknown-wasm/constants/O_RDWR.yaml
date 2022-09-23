@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  Ag==
+symbol: null
+size: 1
+valueAsInt: 2
+valueAsUnsignedLong: 2
+valueAsSignedLong: 2

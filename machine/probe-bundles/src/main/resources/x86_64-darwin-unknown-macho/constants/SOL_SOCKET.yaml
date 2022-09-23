@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  //8AAA==
+symbol: null
+size: 4
+valueAsInt: 65535
+valueAsUnsignedLong: 65535
+valueAsSignedLong: 65535

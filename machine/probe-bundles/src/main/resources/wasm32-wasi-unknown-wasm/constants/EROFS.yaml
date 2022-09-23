@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  RQ==
+symbol: null
+size: 1
+valueAsInt: 69
+valueAsUnsignedLong: 69
+valueAsSignedLong: 69

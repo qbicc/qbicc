@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  PA==
+symbol: null
+size: 1
+valueAsInt: 60
+valueAsUnsignedLong: 60
+valueAsSignedLong: 60

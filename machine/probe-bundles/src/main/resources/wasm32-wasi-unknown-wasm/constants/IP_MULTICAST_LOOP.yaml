@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  Ig==
+symbol: null
+size: 1
+valueAsInt: 34
+valueAsUnsignedLong: 34
+valueAsSignedLong: 34

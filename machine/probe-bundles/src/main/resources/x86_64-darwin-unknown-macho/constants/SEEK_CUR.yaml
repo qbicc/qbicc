@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  AQAAAA==
+symbol: null
+size: 4
+valueAsInt: 1
+valueAsUnsignedLong: 1
+valueAsSignedLong: 1

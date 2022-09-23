@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  Sw==
+symbol: null
+size: 1
+valueAsInt: 75
+valueAsUnsignedLong: 75
+valueAsSignedLong: 75

@@ -1,0 +1,9 @@
+---
+defined: true
+value: !!binary |-
+  IQ==
+symbol: null
+size: 1
+valueAsInt: 33
+valueAsUnsignedLong: 33
+valueAsSignedLong: 33
