@@ -4,6 +4,6 @@ value: !!binary |-
   //////////8=
 symbol: null
 size: 8
-valueAsInt: -1
 valueAsUnsignedLong: -1
 valueAsSignedLong: -1
+valueAsInt: -1

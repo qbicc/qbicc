@@ -4,6 +4,6 @@ value: !!binary |-
   CQAAAA==
 symbol: null
 size: 4
-valueAsInt: 9
 valueAsUnsignedLong: 9
 valueAsSignedLong: 9
+valueAsInt: 9

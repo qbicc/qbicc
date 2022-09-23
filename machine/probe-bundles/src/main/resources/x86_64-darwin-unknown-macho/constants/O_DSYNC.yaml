@@ -4,6 +4,6 @@ value: !!binary |-
   AABAAA==
 symbol: null
 size: 4
-valueAsInt: 4194304
 valueAsUnsignedLong: 4194304
 valueAsSignedLong: 4194304
+valueAsInt: 4194304
