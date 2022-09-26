@@ -2297,7 +2297,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         public Memory visit(Frame frame, StaticFieldPointer pointer) {
             StaticFieldElement variableElement = pointer.getStaticField();
             if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
-                throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run time field"));
+                throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run-time field "+ variableElement));
             }
             DefinedTypeDefinition enclosingType = variableElement.getEnclosingType();
             VmClassImpl clazz = (VmClassImpl) enclosingType.load().getVmClass();
@@ -2326,7 +2326,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         public Memory visit(Frame frame, InstanceFieldOf node) {
             InstanceFieldElement variableElement = node.getVariableElement();
             if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
-                throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run time field"));
+                throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run-time field "+variableElement));
             }
             return node.getValueHandle().accept(this, frame);
         }
@@ -2345,7 +2345,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         public Memory visit(Frame frame, StaticField node) {
             StaticFieldElement variableElement = node.getVariableElement();
             if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
-                throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run time field"));
+                throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run-time field "+variableElement));
             }
             DefinedTypeDefinition enclosingType = variableElement.getEnclosingType();
             VmClassImpl clazz = (VmClassImpl) enclosingType.load().getVmClass();
