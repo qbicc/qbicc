@@ -36,7 +36,8 @@ import org.qbicc.driver.ClassPathItem;
 public final class DefaultArtifactRequestor {
     public DefaultArtifactRequestor() {}
 
-    public List<ClassPathItem> requestArtifactsFromRepositories(RepositorySystem system, final RepositorySystemSession session, final List<RemoteRepository> remoteRepositoryList, final List<ClassPathEntry> classPathList, final DiagnosticContext ctxt) throws IOException {
+    public List<ClassPathItem> requestArtifactsFromRepositories(RepositorySystem system, final RepositorySystemSession session, final List<RemoteRepository> remoteRepositoryList,
+                                                                final List<ClassPathEntry> classPathList, final DiagnosticContext ctxt, Runtime.Version version) throws IOException {
         CollectRequest collectRequest = new CollectRequest((Dependency)null, null, system.newResolutionRepositories(session, remoteRepositoryList));
         Map<String, Map<String, ClassPathEntry>> gaToCpe = new HashMap<>();
         for (ClassPathEntry classPathEntry : classPathList) {
@@ -99,14 +100,14 @@ public final class DefaultArtifactRequestor {
                     // we requested it from Maven
                     for (ArtifactResult artifactResult : resultMapping.getOrDefault(classPathEntry, List.of())) {
                         unmappedResults.remove(artifactResult);
-                        appendArtifactResult(system, session, resultList, artifactResult);
+                        appendArtifactResult(system, session, resultList, artifactResult, version);
                     }
                 } else if (classPathEntry instanceof ClassPathEntry.FilePath fp) {
                     Path path = fp.getPath();
                     if (Files.isDirectory(path)) {
                         resultList.add(new ClassPathItem(path.toString(), List.of(ClassPathElement.forDirectory(path)), List.of()));
                     } else if (Files.isRegularFile(path)) {
-                        ClassPathElement element = ClassPathElement.forJarFile(path);
+                        ClassPathElement element = ClassPathElement.forJarFile(path, version);
                         try {
                             resultList.add(new ClassPathItem(path.toString(), List.of(element), List.of()));
                         } catch (Throwable t) {
@@ -121,7 +122,7 @@ public final class DefaultArtifactRequestor {
             // now append the remaining ones
             for (ArtifactResult unmappedResult : unmappedResults) {
                 // todo - log?
-                appendArtifactResult(system, session, resultList, unmappedResult);
+                appendArtifactResult(system, session, resultList, unmappedResult, version);
             }
         } catch (Throwable t) {
             for (ClassPathItem item : resultList) {
@@ -136,7 +137,8 @@ public final class DefaultArtifactRequestor {
         return new HashMap<>();
     }
 
-    static void appendArtifactResult(RepositorySystem system, final RepositorySystemSession session, final List<ClassPathItem> resultList, final ArtifactResult artifactResult) throws IOException {
+    static void appendArtifactResult(RepositorySystem system, final RepositorySystemSession session, final List<ClassPathItem> resultList,
+                                     final ArtifactResult artifactResult, Runtime.Version version) throws IOException {
         if (artifactResult.isResolved() && !artifactResult.isMissing()) {
             Artifact resultArtifact = artifactResult.getArtifact();
             if (! artifactResult.getArtifact().getExtension().equals("jar")) {
@@ -152,10 +154,10 @@ public final class DefaultArtifactRequestor {
                     sourceFile = sourceResult.getArtifact().getFile();
                 }
             } catch (ArtifactResolutionException ignored) {}
-            ClassPathElement element = ClassPathElement.forJarFile(jarFile);
+            ClassPathElement element = ClassPathElement.forJarFile(jarFile, version);
             List<ClassPathElement> jarPath = List.of(element);
             try {
-                ClassPathElement sourceElement = sourceFile == null ? null : ClassPathElement.forJarFile(sourceFile);
+                ClassPathElement sourceElement = sourceFile == null ? null : ClassPathElement.forJarFile(sourceFile, version);
                 List<ClassPathElement> sourcePath = sourceFile == null ? List.of() : List.of(sourceElement);
                 try {
                     resultList.add(new ClassPathItem(resultArtifact.toString(), jarPath, sourcePath));
