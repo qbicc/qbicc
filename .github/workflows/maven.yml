@@ -79,10 +79,11 @@ jobs:
           name: test-reports
           path: 'test-reports.tgz'
 
-      - run: mkdir staging && cp integration-tests/target/bundles/*-runner.jar staging
+      - run: mkdir staging && cp -r target/bundles staging
+        working-directory: ./myqbicc
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
             name: Package
-            path: staging
+            path: ./myqbicc/staging
