@@ -75,15 +75,19 @@ public final class CProbe {
 
     // temporary, for CI run
     public Result tryDump(Platform platform, CToolChain toolChain, ObjectFileProvider objectFileProvider, DiagnosticContext errorReporter) throws IOException {
-        Result result = forPlatform(platform);
-        if (result == null) { // failed loading
+        Result result;
+        try {
+            result = forPlatform(platform);
+        } catch (NoSuchElementException e) { // failed loading
             result = run(toolChain, objectFileProvider, errorReporter);
+            if (result == null) return result;
             dump(toolChain.getPlatform(), (ResultImpl) result);
         }
         return result;
     }
 
     public Result forPlatform(Platform platform) throws IOException {
+        LoadableResult.byteOrder0(platform); // throws NoSuchElementException if byte-order.yaml is missing for this platform
         return new LoadableResult(platform);
     }
 
@@ -97,7 +101,7 @@ public final class CProbe {
      * @throws IOException if communications with or execution of the compiler failed
      */
     public Result run(CToolChain toolChain, ObjectFileProvider objectFileProvider, DiagnosticContext errorReporter) throws IOException {
-        System.out.println("Probe invoked: " + new Throwable().getStackTrace()[1]);
+        System.out.println("Probe invoked: " + new Throwable().getStackTrace()[2]);
         final CCompilerInvoker inv = toolChain.newCompilerInvoker();
         StringBuilder b = new StringBuilder();
         for (Step item : items) {
@@ -180,8 +184,7 @@ public final class CProbe {
 
     private void dump(Platform platform, ResultImpl probeResult) {
         try {
-
-            Path dir = Files.createDirectories(Path.of(platform.toString()).toAbsolutePath());
+            Path dir = Files.createDirectories(Path.of("target", "bundles", platform.toString()).toAbsolutePath());
             Path types = Files.createDirectories(dir.resolve("types"));
             Path constants = Files.createDirectories(dir.resolve("constants"));
             Path members = Files.createDirectories(dir.resolve("members"));
@@ -881,16 +884,20 @@ public final class CProbe {
 
         @Override
         public ByteOrder getByteOrder() {
+            return byteOrder0(platform);
+        }
+
+        private static ByteOrder byteOrder0(Platform platform) {
             String s = '/' + platform.toString() + "/byte-order.yaml";
-            try (InputStream res = this.getClass().getResourceAsStream(s)) {
+            try (InputStream res = platform.getClass().getResourceAsStream(s)) {
                 String ss = new String(res.readAllBytes(), StandardCharsets.UTF_8);
                 return switch (ss) {
                     case "LITTLE_ENDIAN" -> ByteOrder.LITTLE_ENDIAN;
                     case "BIG_ENDIAN" -> ByteOrder.BIG_ENDIAN;
                     default -> throw new IllegalArgumentException(ss);
                 };
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+            } catch (IOException | NullPointerException e) {
+                throw new NoSuchElementException(e);
             }
         }
 
