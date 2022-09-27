@@ -79,6 +79,7 @@
                         <configuration>
                             <mainClass>org.qbicc.tests.TestRunner</mainClass>
                             <skip>${skipTests}</skip>
+                            <platform>wasm-wasi</platform>
                         </configuration>
                     </execution>
                 </executions>

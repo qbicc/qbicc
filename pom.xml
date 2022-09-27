@@ -62,6 +62,7 @@
         <version.io.kaitai>0.10</version.io.kaitai>
 
         <!-- this is the class lib version; the class lib cannot be used in a POM but is used in resources -->
+<!--        <version.qbicc.classlib>17.alpha.0.36-SNAPSHOT</version.qbicc.classlib>-->
         <version.qbicc.classlib>17.alpha.0.35</version.qbicc.classlib>
     </properties>
 

@@ -15,6 +15,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.ConstantLiteral;
+import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.plugin.constants.Constants;
@@ -80,71 +81,73 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
         ClassContext classContext = fieldElement.getEnclosingType().getContext();
         /* Capture location during the ADD phase since constants are defined lazily. */
         Location location = getLocation();
-        constants.registerConstant(fieldElement, () -> {
-            CProbe.Builder builder = CProbe.builder();
-            // get the element's info
-            String name = fieldElement.getName();
-            boolean nameOverridden = false;
-            // process enclosing type first
-            ProbeUtils.ProbeProcessor pp = new ProbeUtils.ProbeProcessor(classContext, fieldElement.getEnclosingType());
-            for (Annotation annotation : fieldElement.getEnclosingType().getInvisibleAnnotations()) {
-                pp.processAnnotation(annotation);
+        constants.registerConstant(fieldElement, () -> literalForConstant(fieldElement, conditionEvaluation, classContext, location));
+    }
+
+    private Literal literalForConstant(FieldElement fieldElement, ConditionEvaluation conditionEvaluation, ClassContext classContext, Location location) {
+        CProbe.Builder builder = CProbe.builder();
+        // get the element's info
+        String name = fieldElement.getName();
+        boolean nameOverridden = false;
+        // process enclosing type first
+        ProbeUtils.ProbeProcessor pp = new ProbeUtils.ProbeProcessor(classContext, fieldElement.getEnclosingType());
+        for (Annotation annotation : fieldElement.getEnclosingType().getInvisibleAnnotations()) {
+            pp.processAnnotation(annotation);
+        }
+        pp.accept(builder);
+        // now process the annotated member so it can override
+        pp = new ProbeUtils.ProbeProcessor(classContext, fieldElement);
+        for (Annotation annotation : fieldElement.getInvisibleAnnotations()) {
+            ClassTypeDescriptor desc = annotation.getDescriptor();
+            if (pp.processAnnotation(annotation)) {
+                continue;
             }
-            pp.accept(builder);
-            // now process the annotated member so it can override
-            pp = new ProbeUtils.ProbeProcessor(classContext, fieldElement);
-            for (Annotation annotation : fieldElement.getInvisibleAnnotations()) {
-                ClassTypeDescriptor desc = annotation.getDescriptor();
-                if (pp.processAnnotation(annotation)) {
-                    continue;
-                }
-                if (desc.getPackageName().equals(Native.NATIVE_PKG))
-                    if (desc.getClassName().equals(Native.ANN_NAME) && ! nameOverridden) {
-                        if (conditionEvaluation.evaluateConditions(classContext, () -> location, annotation)) {
-                            name = ((StringAnnotationValue) annotation.getValue("value")).getString();
-                            nameOverridden = true;
-                        }
-                    } else if (desc.getClassName().equals(Native.ANN_NAME_LIST) && ! nameOverridden) {
-                        if (annotation.getValue("value") instanceof ArrayAnnotationValue aav) {
-                            int cnt = aav.getElementCount();
-                            for (int j = 0; j < cnt; j ++) {
-                                if (aav.getValue(j) instanceof Annotation nested) {
-                                    ClassTypeDescriptor nestedDesc = nested.getDescriptor();
-                                    if (nestedDesc.getPackageName().equals(Native.NATIVE_PKG)) {
-                                        if (nestedDesc.getClassName().equals(Native.ANN_NAME)) {
-                                            if (conditionEvaluation.evaluateConditions(classContext, () -> location, nested)) {
-                                                name = ((StringAnnotationValue) nested.getValue("value")).getString();
-                                                nameOverridden = true;
-                                                // stop searching for names
-                                                break;
-                                            }
+            if (desc.getPackageName().equals(Native.NATIVE_PKG))
+                if (desc.getClassName().equals(Native.ANN_NAME) && ! nameOverridden) {
+                    if (conditionEvaluation.evaluateConditions(classContext, () -> location, annotation)) {
+                        name = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                        nameOverridden = true;
+                    }
+                } else if (desc.getClassName().equals(Native.ANN_NAME_LIST) && ! nameOverridden) {
+                    if (annotation.getValue("value") instanceof ArrayAnnotationValue aav) {
+                        int cnt = aav.getElementCount();
+                        for (int j = 0; j < cnt; j ++) {
+                            if (aav.getValue(j) instanceof Annotation nested) {
+                                ClassTypeDescriptor nestedDesc = nested.getDescriptor();
+                                if (nestedDesc.getPackageName().equals(Native.NATIVE_PKG)) {
+                                    if (nestedDesc.getClassName().equals(Native.ANN_NAME)) {
+                                        if (conditionEvaluation.evaluateConditions(classContext, () -> location, nested)) {
+                                            name = ((StringAnnotationValue) nested.getValue("value")).getString();
+                                            nameOverridden = true;
+                                            // stop searching for names
+                                            break;
                                         }
                                     }
                                 }
                             }
                         }
                     }
-            }
-            pp.accept(builder);
-            // todo: recursively process enclosing types (requires InnerClasses support)
-            builder.probeConstant(name, location.getSourceFilePath(), location.getLineNumber());
-            // run the probe
-            CProbe probe = builder.build();
-            LiteralFactory lf = ctxt.getLiteralFactory();
-            CProbe.Result result;
-            try {
-                result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), null);
-                if (result == null) {
-                    // constant is undefined
-                    return lf.undefinedLiteralOfType(fieldElement.getType());
                 }
-            } catch (IOException e) {
-                // constant is undefined either way
+        }
+        pp.accept(builder);
+        // todo: recursively process enclosing types (requires InnerClasses support)
+        builder.probeConstant(name, location.getSourceFilePath(), location.getLineNumber());
+        // run the probe
+        CProbe probe = builder.build();
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        CProbe.Result result;
+        try {
+            result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), null);
+            if (result == null) {
+                // constant is undefined
                 return lf.undefinedLiteralOfType(fieldElement.getType());
             }
-            CProbe.ConstantInfo constantInfo = result.getConstantInfo(name);
-            // compute the type and raw value
-            return constantInfo.getValueAsLiteralOfType(ctxt.getTypeSystem(), lf, fieldElement.getType());
-        });
+        } catch (IOException e) {
+            // constant is undefined either way
+            return lf.undefinedLiteralOfType(fieldElement.getType());
+        }
+        CProbe.ConstantInfo constantInfo = result.getConstantInfo(name);
+        // compute the type and raw value
+        return constantInfo.getValueAsLiteralOfType(ctxt.getTypeSystem(), lf, fieldElement.getType());
     }
 }

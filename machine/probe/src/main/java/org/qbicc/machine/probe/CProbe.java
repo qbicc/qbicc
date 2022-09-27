@@ -17,10 +17,13 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.qbicc.context.DiagnosticContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFile;
 import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.tool.CCompilerInvoker;
@@ -72,6 +75,7 @@ public final class CProbe {
      * @throws IOException if communications with or execution of the compiler failed
      */
     public Result run(CToolChain toolChain, ObjectFileProvider objectFileProvider, DiagnosticContext errorReporter) throws IOException {
+        System.out.println("Probe invoked: " + new Throwable().getStackTrace()[1]);
         final CCompilerInvoker inv = toolChain.newCompilerInvoker();
         StringBuilder b = new StringBuilder();
         for (Step item : items) {
@@ -147,9 +151,77 @@ public final class CProbe {
                     typeInfos.put(type, info);
                     memberInfos.put(type, memberInfo);
                 }
-                return new Result(typeInfos, memberInfos, functionInfos, constantInfos, byteOrder);
+                Result result = new Result(typeInfos, memberInfos, functionInfos, constantInfos, byteOrder);
+                dump(toolChain.getPlatform(), result);
+                return result;
             }
         }
+    }
+
+    private void dump(Platform platform, Result probeResult) {
+        try {
+
+            Path dir = Files.createDirectories(Path.of(platform.toString()).toAbsolutePath());
+            Path types = Files.createDirectories(dir.resolve("types"));
+            Path constants = Files.createDirectories(dir.resolve("constants"));
+            Path members = Files.createDirectories(dir.resolve("members"));
+            Path functions = Files.createDirectories(dir.resolve("functions"));
+
+            ObjectMapper m = new ObjectMapper(new YAMLFactory());
+
+            {
+                Path p = dir.resolve("byte-order.yaml");
+                Files.writeString(p, probeResult.byteOrder.toString());
+            }
+
+            for (var ti : probeResult.typeInfos.entrySet()) {
+                CProbe.Type.Info typeInfo = ti.getValue();
+                String tps = m.writeValueAsString(typeInfo);
+                System.out.println(tps);
+                System.out.println("---");
+                Path p = types.resolve(ti.getKey().getName() + ".yaml");
+                System.out.println(p);
+                Files.writeString(p, tps);
+            }
+
+            for (var ci : probeResult.constantInfos.entrySet()) {
+                var name = ci.getKey();
+                String tps = m.writeValueAsString(ci.getValue());
+                System.out.println(tps);
+                System.out.println("---");
+                Path p = constants.resolve(name + ".yaml").toAbsolutePath();
+                System.out.println(p);
+                Files.writeString(p, tps);
+            }
+
+            for (var ci : probeResult.memberInfos.entrySet()) {
+                if (ci.getValue().isEmpty()) continue;
+                var name = ci.getKey();
+                String tps = m.writeValueAsString(ci.getValue());
+                System.out.println(tps);
+                System.out.println("---");
+                Path p = members.resolve(name.getName() + ".yaml").toAbsolutePath();
+                System.out.println(p);
+                Files.writeString(p, tps);
+            }
+
+
+
+            for (var fs : probeResult.functionInfos.entrySet()) {
+                var name = fs.getKey();
+                String tps = m.writeValueAsString(fs.getValue());
+                System.out.println(tps);
+                System.out.println("---");
+                Path p = functions.resolve(name + ".yaml").toAbsolutePath();
+                System.out.println(p);
+                Files.writeString(p, tps);
+
+            }
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
 
