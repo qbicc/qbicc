@@ -69,6 +69,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-machine-probe-bundles</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-machine-file-elf</artifactId>
         </dependency>
         <dependency>

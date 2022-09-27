@@ -2,8 +2,10 @@ package org.qbicc.machine.probe;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -17,6 +19,12 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.qbicc.context.DiagnosticContext;
@@ -63,6 +71,10 @@ public final class CProbe {
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    public Result forPlatform(Platform platform) throws IOException {
+        return new LoadableResult(platform);
     }
 
     /**
@@ -151,14 +163,14 @@ public final class CProbe {
                     typeInfos.put(type, info);
                     memberInfos.put(type, memberInfo);
                 }
-                Result result = new Result(typeInfos, memberInfos, functionInfos, constantInfos, byteOrder);
+                ResultImpl result = new ResultImpl(typeInfos, memberInfos, functionInfos, constantInfos, byteOrder);
                 dump(toolChain.getPlatform(), result);
                 return result;
             }
         }
     }
 
-    private void dump(Platform platform, Result probeResult) {
+    private void dump(Platform platform, ResultImpl probeResult) {
         try {
 
             Path dir = Files.createDirectories(Path.of(platform.toString()).toAbsolutePath());
@@ -700,7 +712,13 @@ public final class CProbe {
             private final boolean unsigned;
             private final boolean floating;
 
-            Info(final long size, final long align, final long offset, final boolean signed, final boolean unsigned, final boolean floating) {
+            @JsonCreator
+            Info(@JsonProperty("size") final long size,
+                 @JsonProperty("align") final long align,
+                 @JsonProperty("offset") final long offset,
+                 @JsonProperty("signed")final boolean signed,
+                 @JsonProperty("unsigned") final boolean unsigned,
+                 @JsonProperty("floating")final boolean floating) {
                 this.size = size;
                 this.align = align;
                 this.offset = offset;
@@ -735,17 +753,30 @@ public final class CProbe {
         }
     }
 
+    public interface Result {
+        Type.Info getTypeInfo(Type type) throws NoSuchElementException;
+
+        Type.Info getTypeInfoOfMember(Type type, String memberName) throws NoSuchElementException;
+
+        FunctionInfo getFunctionInfo(String funcName) throws NoSuchElementException;
+
+        ConstantInfo getConstantInfo(String constant) throws NoSuchElementException;
+
+        ByteOrder getByteOrder();
+    }
+
+
     /**
      * The probe result.
      */
-    public static final class Result {
+    public static final class ResultImpl implements Result {
         private final Map<Type, Type.Info> typeInfos;
         private final Map<Type, Map<String, Type.Info>> memberInfos;
         private final Map<String, FunctionInfo> functionInfos;
         private final Map<String, ConstantInfo> constantInfos;
         private final ByteOrder byteOrder;
 
-        Result(final Map<Type, Type.Info> typeInfos, final Map<Type, Map<String, Type.Info>> memberInfos, final Map<String, FunctionInfo> functionInfos, final Map<String, ConstantInfo> constantInfos, ByteOrder byteOrder) {
+        ResultImpl(final Map<Type, Type.Info> typeInfos, final Map<Type, Map<String, Type.Info>> memberInfos, final Map<String, FunctionInfo> functionInfos, final Map<String, ConstantInfo> constantInfos, ByteOrder byteOrder) {
             this.typeInfos = typeInfos;
             this.memberInfos = memberInfos;
             this.functionInfos = functionInfos;
@@ -753,6 +784,7 @@ public final class CProbe {
             this.byteOrder = byteOrder;
         }
 
+        @Override
         public Type.Info getTypeInfo(Type type) throws NoSuchElementException {
             Type.Info info = typeInfos.get(type);
             if (info == null) {
@@ -761,6 +793,7 @@ public final class CProbe {
             return info;
         }
 
+        @Override
         public Type.Info getTypeInfoOfMember(Type type, String memberName) throws NoSuchElementException {
             Map<String, Type.Info> map = memberInfos.get(type);
             if (map == null) {
@@ -773,6 +806,7 @@ public final class CProbe {
             return info;
         }
 
+        @Override
         public FunctionInfo getFunctionInfo(String funcName) throws NoSuchElementException {
             FunctionInfo val = functionInfos.get(funcName);
             if (val == null) {
@@ -781,6 +815,7 @@ public final class CProbe {
             return val;
         }
 
+        @Override
         public ConstantInfo getConstantInfo(String constant) throws NoSuchElementException {
             ConstantInfo val = constantInfos.get(constant);
             if (val == null) {
@@ -789,8 +824,88 @@ public final class CProbe {
             return val;
         }
 
+        @Override
         public ByteOrder getByteOrder() {
             return byteOrder;
+        }
+    }
+
+    public static final class LoadableResult implements Result {
+
+        private static final ObjectMapper Mapper;
+
+        static {
+            Mapper = new ObjectMapper(new YAMLFactory());
+            Mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.NONE);
+            Mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+            Mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        }
+
+        private final Platform platform;
+
+        LoadableResult(Platform platform) {
+            this.platform = platform;
+        }
+
+        @Override
+        public Type.Info getTypeInfo(Type type) throws NoSuchElementException {
+            return fromResource(resourceName("types", type.getName()), Type.Info.class);
+        }
+
+        @Override
+        public Type.Info getTypeInfoOfMember(Type type, String memberName) throws NoSuchElementException {
+            Map<String, Type.Info> members = fromResource(resourceName("members", type.getName()), new TypeReference<>() {});
+            Type.Info info = members.get(memberName);
+            if (info == null) {
+                throw new NoSuchElementException();
+            }
+            return info;        }
+
+        @Override
+        public FunctionInfo getFunctionInfo(String funcName) throws NoSuchElementException {
+            return fromResource(resourceName( "functions", funcName), FunctionInfo.class);
+        }
+
+        @Override
+        public ConstantInfo getConstantInfo(String constant) throws NoSuchElementException {
+            return fromResource(resourceName("constants", constant), ConstantInfo.class);
+        }
+
+        @Override
+        public ByteOrder getByteOrder() {
+            String s = '/' + platform.toString() + "/byte-order.yaml";
+            try (InputStream res = this.getClass().getResourceAsStream(s)) {
+                String ss = new String(res.readAllBytes(), StandardCharsets.UTF_8);
+                return switch (ss) {
+                    case "LITTLE_ENDIAN" -> ByteOrder.LITTLE_ENDIAN;
+                    case "BIG_ENDIAN" -> ByteOrder.BIG_ENDIAN;
+                    default -> throw new IllegalArgumentException(ss);
+                };
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        private <T> T fromResource(String s, Class<T> type) {
+            try (InputStream res = this.getClass().getResourceAsStream(s)) {
+                if (res == null) throw new NoSuchElementException(s);
+                return Mapper.readValue(res, type);
+            } catch (IOException e) {
+                throw new NoSuchElementException("Could not load bundle: "+s, e);
+            }
+        }
+
+        private <T> T fromResource(String s, TypeReference<T> type) {
+            try (InputStream res = this.getClass().getResourceAsStream(s)) {
+                return Mapper.readValue(res, type);
+            } catch (IOException e) {
+                throw new NoSuchElementException("Could not load bundle: "+s, e);
+            }
+        }
+
+
+        private String resourceName(String symbolType, String name) {
+            return '/' + platform.toString() + '/' + symbolType + '/' + name + ".yaml";
         }
     }
 
@@ -804,7 +919,16 @@ public final class CProbe {
         private final boolean floating;
         private final boolean bool;
 
-        ConstantInfo(final boolean defined, final byte[] value, final String symbol, final ByteOrder byteOrder, boolean signed, boolean unsigned, boolean floating, boolean bool) {
+        @JsonCreator
+        ConstantInfo(
+            @JsonProperty("defined") final boolean defined,
+            @JsonProperty("value") final byte[] value,
+            @JsonProperty("symbol") final String symbol,
+            @JsonProperty("byteOrder") final ByteOrder byteOrder,
+            @JsonProperty("signed") boolean signed,
+            @JsonProperty("unsigned") boolean unsigned,
+            @JsonProperty("floating") boolean floating,
+            @JsonProperty("bool") boolean bool) {
             this.defined = defined;
             this.value = value;
             this.symbol = symbol;
@@ -942,7 +1066,8 @@ public final class CProbe {
     public static final class FunctionInfo {
         private final String resolvedName;
 
-        FunctionInfo(String resolvedName) {
+        @JsonCreator
+        FunctionInfo(@JsonProperty("resolvedName") String resolvedName) {
             this.resolvedName = resolvedName;
         }
 

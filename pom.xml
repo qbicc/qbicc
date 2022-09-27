@@ -220,6 +220,13 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-machine-probe-bundles</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-machine-vfs</artifactId>
                 <version>${project.version}</version>
             </dependency>

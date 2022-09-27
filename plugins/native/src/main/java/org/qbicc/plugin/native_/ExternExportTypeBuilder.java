@@ -2,6 +2,7 @@ package org.qbicc.plugin.native_;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import org.jboss.logging.Logger;
 import org.qbicc.context.ClassContext;
@@ -358,15 +359,20 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 CProbe probe = builder.build();
                 CProbe.Result result;
                 try {
-                    result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), null);
+//                    result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), null);
+                    result = probe.forPlatform(ctxt.getPlatform());
                     if (result == null) {
                         return null;
                     }
                 } catch (IOException e) {
                     return null;
                 }
-                CProbe.FunctionInfo functionInfo = result.getFunctionInfo(origMethod.getName());
-                return functionInfo.getResolvedName();
+                try {
+                    CProbe.FunctionInfo functionInfo = result.getFunctionInfo(origMethod.getName());
+                    return functionInfo.getResolvedName();
+                } catch (NoSuchElementException el) {
+                    return null;
+                }
             }
         }, index, name, descriptor);
     }

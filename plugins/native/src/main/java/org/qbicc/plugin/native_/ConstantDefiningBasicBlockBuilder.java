@@ -1,6 +1,7 @@
 package org.qbicc.plugin.native_;
 
 import java.io.IOException;
+import java.util.NoSuchElementException;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
@@ -137,7 +138,8 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
         LiteralFactory lf = ctxt.getLiteralFactory();
         CProbe.Result result;
         try {
-            result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), null);
+            result = probe.forPlatform(classContext.getCompilationContext().getPlatform());
+//            result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), null);
             if (result == null) {
                 // constant is undefined
                 return lf.undefinedLiteralOfType(fieldElement.getType());
@@ -146,8 +148,12 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
             // constant is undefined either way
             return lf.undefinedLiteralOfType(fieldElement.getType());
         }
-        CProbe.ConstantInfo constantInfo = result.getConstantInfo(name);
+        try {
+            CProbe.ConstantInfo constantInfo = result.getConstantInfo(name);
+            return constantInfo.getValueAsLiteralOfType(ctxt.getTypeSystem(), lf, fieldElement.getType());
+        } catch (NoSuchElementException el) {
+            return lf.undefinedLiteralOfType(fieldElement.getType());
+        }
         // compute the type and raw value
-        return constantInfo.getValueAsLiteralOfType(ctxt.getTypeSystem(), lf, fieldElement.getType());
     }
 }

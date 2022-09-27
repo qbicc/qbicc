@@ -11,7 +11,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,8 +26,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.jar.JarInputStream;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.smallrye.common.constraint.Assert;
 import org.apache.maven.settings.Settings;
 import org.apache.maven.settings.building.SettingsBuildingException;
@@ -344,7 +341,8 @@ public class Main implements Callable<DiagnosticContext> {
                     // execute
                     CProbe probe = probeBuilder.build();
                     try {
-                        CProbe.Result probeResult = probe.run(toolChain, objectFileProvider, initialContext);
+                        CProbe.Result probeResult = probe.forPlatform(platform);
+//                        CProbe.Result probeResult = probe.run(toolChain, objectFileProvider, initialContext);
                         if (probeResult == null) {
                             initialContext.error("Type system probe compiler execution failed");
                         } else {
