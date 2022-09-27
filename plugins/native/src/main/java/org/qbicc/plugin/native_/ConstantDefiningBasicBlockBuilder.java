@@ -138,8 +138,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
         LiteralFactory lf = ctxt.getLiteralFactory();
         CProbe.Result result;
         try {
-            result = probe.forPlatform(classContext.getCompilationContext().getPlatform());
-//            result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), null);
+            result = probe.tryDump(classContext.getCompilationContext().getPlatform(), ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), null);
             if (result == null) {
                 // constant is undefined
                 return lf.undefinedLiteralOfType(fieldElement.getType());

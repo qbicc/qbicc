@@ -318,7 +318,7 @@ final class NativeInfo {
                             pb.probeType(probeType);
                             CProbe probe = pb.build();
                             try {
-                                CProbe.Result result = probe.forPlatform(classContext.getCompilationContext().getPlatform());
+                                CProbe.Result result = probe.tryDump(classContext.getCompilationContext().getPlatform(), ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), ctxt);
                                 if (result != null) {
                                     CProbe.Type.Info typeInfo = result.getTypeInfo(probeType);
                                     long size = typeInfo.getSize();

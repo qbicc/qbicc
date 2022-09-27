@@ -359,8 +359,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 CProbe probe = builder.build();
                 CProbe.Result result;
                 try {
-//                    result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), null);
-                    result = probe.forPlatform(ctxt.getPlatform());
+                    result = probe.tryDump(ctxt.getPlatform(), ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), null);
                     if (result == null) {
                         return null;
                     }

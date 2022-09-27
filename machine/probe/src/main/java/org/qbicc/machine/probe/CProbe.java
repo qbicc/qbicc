@@ -73,6 +73,16 @@ public final class CProbe {
         return new Builder();
     }
 
+    // temporary, for CI run
+    public Result tryDump(Platform platform, CToolChain toolChain, ObjectFileProvider objectFileProvider, DiagnosticContext errorReporter) throws IOException {
+        Result result = forPlatform(platform);
+        if (result == null) { // failed loading
+            result = run(toolChain, objectFileProvider, errorReporter);
+            dump(toolChain.getPlatform(), (ResultImpl) result);
+        }
+        return result;
+    }
+
     public Result forPlatform(Platform platform) throws IOException {
         return new LoadableResult(platform);
     }
@@ -163,9 +173,7 @@ public final class CProbe {
                     typeInfos.put(type, info);
                     memberInfos.put(type, memberInfo);
                 }
-                ResultImpl result = new ResultImpl(typeInfos, memberInfos, functionInfos, constantInfos, byteOrder);
-                dump(toolChain.getPlatform(), result);
-                return result;
+                return new ResultImpl(typeInfos, memberInfos, functionInfos, constantInfos, byteOrder);
             }
         }
     }

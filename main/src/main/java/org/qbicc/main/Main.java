@@ -341,8 +341,7 @@ public class Main implements Callable<DiagnosticContext> {
                     // execute
                     CProbe probe = probeBuilder.build();
                     try {
-                        CProbe.Result probeResult = probe.forPlatform(platform);
-//                        CProbe.Result probeResult = probe.run(toolChain, objectFileProvider, initialContext);
+                        CProbe.Result probeResult = probe.tryDump(platform, toolChain, objectFileProvider, initialContext);
                         if (probeResult == null) {
                             initialContext.error("Type system probe compiler execution failed");
                         } else {
