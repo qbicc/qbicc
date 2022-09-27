@@ -369,6 +369,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 }
                 try {
                     CProbe.FunctionInfo functionInfo = result.getFunctionInfo(origMethod.getName());
+                    if (functionInfo == null) return null;
                     return functionInfo.getResolvedName();
                 } catch (NoSuchElementException el) {
                     return null;

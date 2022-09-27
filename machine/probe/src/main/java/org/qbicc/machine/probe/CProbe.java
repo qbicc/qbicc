@@ -1072,6 +1072,7 @@ public final class CProbe {
         }
 
         public String getResolvedName() {
+            if (resolvedName == null) return null;
             // check if the obtained value matches the expected pattern of function name
             Pattern namePattern = Pattern.compile("([a-zA-Z_][a-zA-Z_0-9]*)[(][)]");
             Matcher matcher = namePattern.matcher(resolvedName);
