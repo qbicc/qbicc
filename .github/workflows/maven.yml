@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        llvm-version: ["12", "13", "14", "15"]
+        llvm-version: ["13", "14", "15"]
         os: [ubuntu-latest, macos-latest]
         exclude:
           # see https://github.com/llvm/llvm-project/issues/57218
