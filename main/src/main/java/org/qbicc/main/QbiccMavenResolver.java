@@ -189,8 +189,9 @@ final class QbiccMavenResolver {
         return List.copyOf(authorizedRepos);
     }
 
-    List<ClassPathItem> requestArtifacts(RepositorySystemSession session, Settings settings, List<ClassPathEntry> classPathList, DiagnosticContext ctxt) throws IOException {
-        return new DefaultArtifactRequestor().requestArtifactsFromRepositories(system, session, createRemoteRepositoryList(settings), classPathList, ctxt);
+    List<ClassPathItem> requestArtifacts(RepositorySystemSession session, Settings settings, List<ClassPathEntry> classPathList,
+                                         DiagnosticContext ctxt, Runtime.Version version) throws IOException {
+        return new DefaultArtifactRequestor().requestArtifactsFromRepositories(system, session, createRemoteRepositoryList(settings), classPathList, ctxt, version);
     }
 
     static Proxy convertProxy(org.apache.maven.settings.Proxy proxy) {

@@ -179,6 +179,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final List<ClassPathEntry> bootPaths;
     private final List<ClassPathEntry> appPaths;
     private final ClassLoader hostAppClassLoader;
+    private final Runtime.Version classLibVersion;
     private final Path outputPath;
     private final String outputName;
     private final Consumer<Iterable<Diagnostic>> diagnosticsHandler;
@@ -258,6 +259,8 @@ public class Main implements Callable<DiagnosticContext> {
             }
         }
         hostAppClassLoader = URLClassLoader.newInstance(urls.toArray(new URL[0]));
+
+        classLibVersion = Runtime.Version.parse(builder.classLibVersion.split("\\.")[0]);
     }
 
     public DiagnosticContext call() {
@@ -282,13 +285,13 @@ public class Main implements Callable<DiagnosticContext> {
             builder.setOutputDirectory(outputPath);
             // process the class paths
             try {
-                classPathResolver.resolveClassPath(initialContext, builder::addBootClassPathItem, bootPaths);
+                classPathResolver.resolveClassPath(initialContext, builder::addBootClassPathItem, bootPaths, classLibVersion);
             } catch (IOException e) {
                 // todo: close class path items?
                 return;
             }
             try {
-                classPathResolver.resolveClassPath(initialContext, builder::addAppClassPathItem, appPaths);
+                classPathResolver.resolveClassPath(initialContext, builder::addAppClassPathItem, appPaths, classLibVersion);
             } catch (IOException e) {
                 return;
             }
@@ -667,7 +670,7 @@ public class Main implements Callable<DiagnosticContext> {
         return ClassPathEntry.of(new DefaultArtifact("org.qbicc", artifactId, "jar", MainProperties.QBICC_VERSION));
     }
 
-    private void resolveClassPath(DiagnosticContext ctxt, Consumer<ClassPathItem> classPathItemConsumer, final List<ClassPathEntry> paths) throws IOException {
+    private void resolveClassPath(DiagnosticContext ctxt, Consumer<ClassPathItem> classPathItemConsumer, final List<ClassPathEntry> paths, Runtime.Version version) throws IOException {
         QbiccMavenResolver resolver = new QbiccMavenResolver(new QbiccServiceLocator());
         File globalSettings = resolver.getGlobalSettings();
         File userSettings = resolver.getUserSettings();
@@ -678,7 +681,7 @@ public class Main implements Callable<DiagnosticContext> {
             throw new IOException(e);
         }
         RepositorySystemSession session = resolver.createSession(settings);
-        List<ClassPathItem> result = resolver.requestArtifacts(session, settings, paths, ctxt);
+        List<ClassPathItem> result = resolver.requestArtifacts(session, settings, paths, ctxt, version);
         result.forEach(classPathItemConsumer);
     }
 
