@@ -57,7 +57,7 @@
         <version.httpcomponents.httpcore>4.4.15</version.httpcomponents.httpcore>
         <version.javax.inject>1</version.javax.inject>
         <version.jsoup>1.15.3</version.jsoup>
-        <version.slf4j>1.7.36</version.slf4j>
+        <version.slf4j>2.0.3</version.slf4j>
 
         <version.io.kaitai>0.10</version.io.kaitai>
 
