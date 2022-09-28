@@ -15,12 +15,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
@@ -781,7 +783,7 @@ public class Main implements Callable<DiagnosticContext> {
             .prependBootPaths(optionsProcessor.prependedBootPathEntries)
             .addAppPaths(optionsProcessor.appPathEntries)
             .processJarArgument(optionsProcessor.inputJar)
-            .addBuildFeatures(optionsProcessor.buildFeatures)
+            .addBuildFeatures(optionsProcessor.buildFeatures.stream().toList())
             .setOutputPath(optionsProcessor.outputPath)
             .setOutputName(optionsProcessor.outputName)
             .setMainClass(optionsProcessor.mainClass)
@@ -888,7 +890,7 @@ public class Main implements Callable<DiagnosticContext> {
 
         @CommandLine.Option(names ="--build-feature", description = "GraalVM native-image Feature")
         void addBuildFeature(List<String> features) { buildFeatures.addAll(features); }
-        private final List<String> buildFeatures = new ArrayList<>();
+        private final Set<String> buildFeatures = new HashSet<>();
 
         @CommandLine.Option(names = "--jar", description = "Compile an executable jar")
         private Path inputJar;
