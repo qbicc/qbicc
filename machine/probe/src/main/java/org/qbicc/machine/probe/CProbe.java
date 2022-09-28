@@ -202,7 +202,7 @@ public final class CProbe {
                 String tps = m.writeValueAsString(typeInfo);
                 System.out.println(tps);
                 System.out.println("---");
-                Path p = types.resolve(ti.getKey().getName() + ".yaml");
+                Path p = types.resolve(toYamlName(ti.getKey().getName()));
                 System.out.println(p);
                 Files.writeString(p, tps);
             }
@@ -212,18 +212,18 @@ public final class CProbe {
                 String tps = m.writeValueAsString(ci.getValue());
                 System.out.println(tps);
                 System.out.println("---");
-                Path p = constants.resolve(name + ".yaml").toAbsolutePath();
+                Path p = constants.resolve(toYamlName(name)).toAbsolutePath();
                 System.out.println(p);
                 Files.writeString(p, tps);
             }
 
             for (var ci : probeResult.memberInfos.entrySet()) {
                 if (ci.getValue().isEmpty()) continue;
-                var name = ci.getKey();
+                var key = ci.getKey();
                 String tps = m.writeValueAsString(ci.getValue());
                 System.out.println(tps);
                 System.out.println("---");
-                Path p = members.resolve(name.getName() + ".yaml").toAbsolutePath();
+                Path p = members.resolve(toYamlName(key.getName())).toAbsolutePath();
                 System.out.println(p);
                 Files.writeString(p, tps);
             }
@@ -235,7 +235,7 @@ public final class CProbe {
                 String tps = m.writeValueAsString(fs.getValue());
                 System.out.println(tps);
                 System.out.println("---");
-                Path p = functions.resolve(name + ".yaml").toAbsolutePath();
+                Path p = functions.resolve(toYamlName(name)).toAbsolutePath();
                 System.out.println(p);
                 Files.writeString(p, tps);
 
@@ -245,6 +245,10 @@ public final class CProbe {
             throw new RuntimeException(e);
         }
 
+    }
+
+    private static String toYamlName(String name) {
+        return sanitizeName(name) + ".yaml";
     }
 
 
@@ -841,6 +845,10 @@ public final class CProbe {
         }
     }
 
+    static String sanitizeName(String name) {
+        return name.replace("*", "(ptr)");
+    }
+
     public static final class LoadableResult implements Result {
 
         private static final ObjectMapper Mapper;
@@ -920,7 +928,7 @@ public final class CProbe {
 
 
         private String resourceName(String symbolType, String name) {
-            return '/' + platform.toString() + '/' + symbolType + '/' + name + ".yaml";
+            return '/' + platform.toString() + '/' + symbolType + '/' + sanitizeName(name) + ".yaml";
         }
     }
 
