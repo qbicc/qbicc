@@ -1,4 +1,4 @@
-package org.qbicc.plugin.nativeimage;
+package org.qbicc.plugin.initializationcontrol;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.plugin.patcher.OnceRunTimeInitializerResolver;

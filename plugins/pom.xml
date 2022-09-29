@@ -26,6 +26,7 @@
         <module>correctness</module>
         <module>dispatch</module>
         <module>dot</module>
+        <module>initialization-control</module>
         <module>instanceof-checkcast</module>
         <module>intrinsics</module>
         <module>gc</module>

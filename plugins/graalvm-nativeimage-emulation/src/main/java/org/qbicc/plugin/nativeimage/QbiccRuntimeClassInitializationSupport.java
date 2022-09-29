@@ -2,6 +2,7 @@ package org.qbicc.plugin.nativeimage;
 
 import org.graalvm.nativeimage.impl.RuntimeClassInitializationSupport;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.plugin.initializationcontrol.FeaturePatcher;
 
 public class QbiccRuntimeClassInitializationSupport implements RuntimeClassInitializationSupport {
     private final CompilationContext ctxt;
@@ -12,12 +13,13 @@ public class QbiccRuntimeClassInitializationSupport implements RuntimeClassIniti
 
     @Override
     public void initializeAtRunTime(String name, String reason) {
-        ctxt.warning("ignoring: initializeAtRuntime %s %s", name, reason);
+        String internalName = name.replace('.', '/');
+        FeaturePatcher.get(ctxt).addRuntimeInitializedClass(internalName);
     }
 
     @Override
     public void initializeAtBuildTime(String name, String reason) {
-        // No-op for qbicc; this is what we do anyways
+        // No-op for qbicc; this is what we do by default
     }
 
     @Override
@@ -39,7 +41,7 @@ public class QbiccRuntimeClassInitializationSupport implements RuntimeClassIniti
 
     @Override
     public void initializeAtBuildTime(Class<?> aClass, String reason) {
-        // No-op for qbicc; this is what we do anyways
+        // No-op for qbicc; this is what we do by default
     }
 
     @Override

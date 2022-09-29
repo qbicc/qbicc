@@ -80,6 +80,7 @@ import org.qbicc.plugin.gc.common.MultiNewArrayExpansionBasicBlockBuilder;
 import org.qbicc.plugin.gc.nogc.NoGcBasicBlockBuilder;
 import org.qbicc.plugin.gc.nogc.NoGcSetupHook;
 import org.qbicc.plugin.gc.nogc.NoGcTypeSystemConfigurator;
+import org.qbicc.plugin.initializationcontrol.QbiccFeatureProcessor;
 import org.qbicc.plugin.instanceofcheckcast.InstanceOfCheckCastBasicBlockBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayEmitter;
@@ -126,8 +127,8 @@ import org.qbicc.plugin.native_.NativeXtorLoweringHook;
 import org.qbicc.plugin.native_.PointerBasicBlockBuilder;
 import org.qbicc.plugin.native_.PointerTypeResolver;
 import org.qbicc.plugin.native_.StructMemberAccessBasicBlockBuilder;
-import org.qbicc.plugin.nativeimage.FeatureProcessor;
-import org.qbicc.plugin.nativeimage.RuntimeInitializingTypeBuilder;
+import org.qbicc.plugin.nativeimage.GraalFeatureProcessor;
+import org.qbicc.plugin.initializationcontrol.RuntimeInitializingTypeBuilder;
 import org.qbicc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
 import org.qbicc.plugin.opt.FinalFieldLoadOptimizer;
 import org.qbicc.plugin.opt.GotoRemovingVisitor;
@@ -200,7 +201,8 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean gcSupport;
     private final boolean smallTypeIds;
     private final List<Path> librarySearchPaths;
-    private final List<String> buildFeatures;
+    private final List<String> graalFeatures;
+    private final List<Path> qbiccFeatures;
     private final ClassPathResolver classPathResolver;
     private final Backend backend;
     private final List<String> optOptions;
@@ -247,7 +249,8 @@ public class Main implements Callable<DiagnosticContext> {
         this.bootPaths = bootPaths;
         appPaths = List.copyOf(builder.appPaths);
         librarySearchPaths = builder.librarySearchPaths;
-        buildFeatures = builder.buildFeatures;
+        graalFeatures = builder.graalFeatures;
+        qbiccFeatures = builder.qbiccFeatures;
         classPathResolver = builder.classPathResolver == null ? this::resolveClassPath : builder.classPathResolver;
 
         List<URL> urls = new ArrayList<>();
@@ -483,7 +486,10 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachable);
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
-                                    FeatureProcessor.processBuildFeature(compilationContext, buildFeatures, hostAppClassLoader);
+                                    GraalFeatureProcessor.process(compilationContext, graalFeatures, hostAppClassLoader);
+                                });
+                                builder.addPreHook(Phase.ADD, compilationContext -> {
+                                    QbiccFeatureProcessor.process(compilationContext, qbiccFeatures);
                                 });
                                 builder.addElementHandler(Phase.ADD, new ElementBodyCreator());
                                 builder.addElementHandler(Phase.ADD, new BuildTimeOnlyElementHandler());
@@ -783,7 +789,8 @@ public class Main implements Callable<DiagnosticContext> {
             .prependBootPaths(optionsProcessor.prependedBootPathEntries)
             .addAppPaths(optionsProcessor.appPathEntries)
             .processJarArgument(optionsProcessor.inputJar)
-            .addBuildFeatures(optionsProcessor.buildFeatures.stream().toList())
+            .addGraalFeatures(optionsProcessor.graalFeatures.stream().toList())
+            .addQbiccFeatures(optionsProcessor.qbiccFeatures.stream().toList())
             .setOutputPath(optionsProcessor.outputPath)
             .setOutputName(optionsProcessor.outputName)
             .setMainClass(optionsProcessor.mainClass)
@@ -888,9 +895,13 @@ public class Main implements Callable<DiagnosticContext> {
         }
         private final List<ClassPathEntry> appPathEntries = new ArrayList<>();
 
-        @CommandLine.Option(names ="--build-feature", description = "GraalVM native-image Feature")
-        void addBuildFeature(List<String> features) { buildFeatures.addAll(features); }
-        private final Set<String> buildFeatures = new HashSet<>();
+        @CommandLine.Option(names ="--graal-feature", description = "GraalVM native-image Feature")
+        void addGraalFeature(List<String> features) { graalFeatures.addAll(features); }
+        private final Set<String> graalFeatures = new HashSet<>();
+
+        @CommandLine.Option(names="--qbicc-feature", description = "qbicc build configuration file")
+        void addQbiccFeature(List<Path> features) { qbiccFeatures.addAll(features); }
+        private final Set<Path> qbiccFeatures = new HashSet<>();
 
         @CommandLine.Option(names = "--jar", description = "Compile an executable jar")
         private Path inputJar;
@@ -1075,7 +1086,8 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean smallTypeIds = false;
         private Backend backend = Backend.llvm;
         private List<Path> librarySearchPaths = List.of();
-        private List<String> buildFeatures = new ArrayList<>();
+        private List<String> graalFeatures = new ArrayList<>();
+        private List<Path> qbiccFeatures = new ArrayList<>();
         private ClassPathResolver classPathResolver;
         private List<String> optOptions = new ArrayList<>();
         private List<String> llcOptions = new ArrayList<>();
@@ -1124,8 +1136,13 @@ public class Main implements Callable<DiagnosticContext> {
             return this;
         }
 
-        public Builder addBuildFeatures(List<String> features) {
-            buildFeatures.addAll(features);
+        public Builder addGraalFeatures(List<String> features) {
+            graalFeatures.addAll(features);
+            return this;
+        }
+
+        public Builder addQbiccFeatures(List<Path> configs) {
+            qbiccFeatures.addAll(configs);
             return this;
         }
 

@@ -1,4 +1,4 @@
-package org.qbicc.plugin.nativeimage;
+package org.qbicc.plugin.initializationcontrol;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
@@ -6,7 +6,7 @@ import org.qbicc.context.CompilationContext;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-class FeaturePatcher {
+public class FeaturePatcher {
 
     private static final AttachmentKey<FeaturePatcher> KEY = new AttachmentKey<>();
 
@@ -29,11 +29,11 @@ class FeaturePatcher {
         return patcher;
     }
 
-    void addRuntimeInitializedClass(String internalName) {
+    public void addRuntimeInitializedClass(String internalName) {
         runtimeInitializedClasses.add(internalName);
     }
 
-    boolean isRuntimeInitializedClass(String internalName) {
+    public boolean isRuntimeInitializedClass(String internalName) {
         return runtimeInitializedClasses.contains(internalName);
     }
 }

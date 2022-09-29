@@ -381,6 +381,12 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-plugin-initialization-control</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-plugin-instanceof-checkcast</artifactId>
                 <version>${project.version}</version>
             </dependency>

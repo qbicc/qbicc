@@ -10,10 +10,10 @@
         <version>0.46.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qbicc-plugin-graalvm-nativeimage-emulation</artifactId>
+    <artifactId>qbicc-plugin-initialization-control</artifactId>
 
-    <name>Qbicc Plugin: GraalVM NativeImage Emulation</name>
-    <description>Emulates build-time Feature support of GraalVM's native-image tool</description>
+    <name>Qbicc Plugin: Initialization Control</name>
+    <description>Support for customizing build-time initialization</description>
 
     <dependencies>
         <dependency>
@@ -23,23 +23,18 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-plugin-apploader</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-plugin-initialization-control</artifactId>
+            <artifactId>qbicc-plugin-patcher</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-reachability</artifactId>
         </dependency>
-
-        <!-- Match svm version used by Quarkus (2.7 ==>  21.3.0; 2.12 ==> 22.2.0) -->
         <dependency>
-            <groupId>org.graalvm.nativeimage</groupId>
-            <artifactId>svm</artifactId>
-            <version>22.2.0</version>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+            <version>2.13.3</version>
         </dependency>
+
     </dependencies>
 
 </project>
