@@ -16,6 +16,7 @@ import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.InitializerResolver;
 import org.qbicc.type.definition.MethodBodyFactory;
 import org.qbicc.type.definition.MethodResolver;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
@@ -334,7 +335,9 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
         public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
             InitializerElement rtInit = initInfo.getInitializerResolver().resolveInitializer(initInfo.getInitializerResolverIndex(), enclosing, InitializerElement.builder());
             builder.setRunTimeInitializer(rtInit);
-            return fieldResolver.resolveField(index, enclosing, builder);
+            FieldElement fieldElement = fieldResolver.resolveField(index, enclosing, builder);
+            fieldElement.setModifierFlags(ClassFile.I_ACC_RUN_TIME);
+            return fieldElement;
         }
     }
 

@@ -385,7 +385,7 @@ final class ClassContextPatchInfo {
                     if (isStatic && runTimeAspect) {
                         classPatchInfo.runtimeInitField(new RuntimeInitializerPatchInfo(internalName, i, initResolver, initIndex, fieldDesc, fieldName, controllingAnnotation));
                     }
-                    classPatchInfo.addField(new FieldPatchInfo(internalName, i, addModifiers, classFile, fieldDesc, fieldName, controllingAnnotation, null));
+                    classPatchInfo.addField(new FieldPatchInfo(internalName, i, 0, classFile, fieldDesc, fieldName, controllingAnnotation, null));
                 } else if (kind == K_REMOVE) {
                     classPatchInfo.deleteField(fieldName, fieldDesc, internalName, controllingAnnotation);
                 } else if (kind == K_REPLACE) {
