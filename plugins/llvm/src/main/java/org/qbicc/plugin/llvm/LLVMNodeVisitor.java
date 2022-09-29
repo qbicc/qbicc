@@ -22,6 +22,7 @@ import org.qbicc.graph.AsmHandle;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEntry;
+import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.CheckCast;
@@ -70,6 +71,7 @@ import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Select;
 import org.qbicc.graph.Shl;
 import org.qbicc.graph.Shr;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.StackAllocation;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
@@ -216,7 +218,38 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     // actions
 
     public Instruction visit(final Void param, final BlockEntry node) {
-        // no operation
+        // extract phis from the block input parameters
+        BasicBlock block = node.getPinnedBlock();
+        if (block.getIndex() == 0) {
+            // initial block cannot have phis (its parameters are actually function parameters)
+            return null;
+        }
+        Map<Slot, Phi> phis = new HashMap<>(block.getParameters().size());
+        // create all phis before recursing to predecessors
+        for (Slot slot : block.getParameters()) {
+            BlockParameter blockParameter = block.getParameterValue(slot);
+            Phi phi = builder.phi(map(blockParameter.getType()));
+            phis.put(slot, phi);
+            LLValue result = phi.asLocal(blockParameter.appendQualifiedName(new StringBuilder()).toString());
+            mappedValues.put(blockParameter, result);
+        }
+        for (BasicBlock incomingBlock : block.getIncoming()) {
+            Terminator terminator = incomingBlock.getTerminator();
+            for (Slot slot : block.getParameters()) {
+                Phi phi = phis.get(slot);
+                Value v = terminator.getOutboundArgument(slot);
+                // process dependencies
+                LLBasicBlock incoming = map(incomingBlock);
+                LLValue data = map(v);
+                // we have to list the phi as many times as the predecessor enters this block
+                int cnt = terminator.getSuccessorCount();
+                for (int i = 0; i < cnt; i ++) {
+                    if (terminator.getSuccessor(i) == block) {
+                        phi.item(data, incoming);
+                    }
+                }
+            }
+        }
         return null;
     }
 

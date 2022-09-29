@@ -130,7 +130,12 @@ public final class BlockParameter extends AbstractValue implements PinnedNode {
     }
 
     public StringBuilder appendQualifiedName(StringBuilder b) {
-        return getPinnedBlock().toString(b).append('.').append(slot);
+        BasicBlock pinnedBlock = getPinnedBlock();
+        if (pinnedBlock.getIndex() != 0) {
+            // block zero doesn't need a qualifier, really
+            pinnedBlock.toString(b).append('.');
+        }
+        return b.append(slot);
     }
 
     @Override
