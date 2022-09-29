@@ -420,7 +420,7 @@ public final class Heap {
         return num;
     }
 
-    @destructor(priority = 0)
+    //@destructor(priority = 0)
     @export
     static void destroyHeap() {
         if (Build.Target.isWasm()) {
