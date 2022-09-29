@@ -114,6 +114,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-initialization-control</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-instanceof-checkcast</artifactId>
         </dependency>
         <dependency>

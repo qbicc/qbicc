@@ -18,8 +18,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-public class FeatureProcessor {
-    public static void processBuildFeature(CompilationContext ctxt, List<String> features, ClassLoader cl) {
+public class GraalFeatureProcessor {
+    public static void process(CompilationContext ctxt, List<String> features, ClassLoader cl) {
         if (features.isEmpty()) {
             return;
         }
