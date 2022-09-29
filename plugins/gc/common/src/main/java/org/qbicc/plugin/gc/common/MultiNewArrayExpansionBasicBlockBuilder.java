@@ -2,6 +2,7 @@ package org.qbicc.plugin.gc.common;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
@@ -44,19 +45,19 @@ public class MultiNewArrayExpansionBasicBlockBuilder extends DelegatingBasicBloc
         }
         // create a loop to create and fill each nested array
         BlockLabel loop = new BlockLabel();
-        BasicBlock initial = goto_(loop);
+        BasicBlock initial = goto_(loop, Map.of());
         begin(loop);
         PhiValue phi = phi(dimension.getType(), loop);
         BlockLabel exit = new BlockLabel();
         BlockLabel resume = new BlockLabel();
         LiteralFactory lf = ctxt.getLiteralFactory();
-        if_(isEq(phi, dimension), exit, resume);
+        if_(isEq(phi, dimension), exit, resume, Map.of());
         try {
             begin(resume);
             phi.setValueForBlock(ctxt, getCurrentElement(), initial, lf.literalOf(0));
             Value innerArray = multiNewArray((ArrayTypeDescriptor) elementDesc, dimensions);
             store(elementOf(referenceHandle(newArray), phi), innerArray);
-            BasicBlock loopExit = goto_(loop);
+            BasicBlock loopExit = goto_(loop, Map.of());
             phi.setValueForBlock(ctxt, getCurrentElement(), loopExit, add(phi, lf.literalOf(1)));
         } catch (BlockEarlyTermination ignored) {
             // continue

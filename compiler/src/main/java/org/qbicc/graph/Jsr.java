@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import java.util.Map;
 import java.util.Objects;
 
 import org.qbicc.graph.literal.BlockLiteral;
@@ -14,9 +15,9 @@ public final class Jsr extends AbstractTerminator implements Resume, Terminator 
     private final BlockLiteral returnAddress;
     private final BasicBlock terminatedBlock;
 
-    Jsr(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final BlockLabel jsrTargetLabel, final BlockLiteral returnAddress) {
-        super(callSite, element, line, bci);
-        terminatedBlock = new BasicBlock(blockEntry, this);
+    Jsr(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final BlockLabel jsrTargetLabel, final BlockLiteral returnAddress, Map<Slot, BlockParameter> parameters, Map<Slot, Value> targetArguments) {
+        super(callSite, element, line, bci, targetArguments);
+        terminatedBlock = new BasicBlock(blockEntry, this, parameters);
         this.dependency = dependency;
         this.jsrTargetLabel = jsrTargetLabel;
         this.returnAddress = returnAddress;

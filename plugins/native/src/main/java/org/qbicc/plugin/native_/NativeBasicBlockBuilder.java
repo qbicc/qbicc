@@ -3,6 +3,7 @@ package org.qbicc.plugin.native_;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
@@ -10,6 +11,7 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -71,8 +73,8 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
-        return super.invokeNoReturn(target, mapArguments(target, arguments), catchLabel);
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return super.invokeNoReturn(target, mapArguments(target, arguments), catchLabel, targetArguments);
     }
 
     @Override
@@ -81,13 +83,13 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
-        return super.tailInvoke(target, mapArguments(target, arguments), catchLabel);
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return super.tailInvoke(target, mapArguments(target, arguments), catchLabel, targetArguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
-        return super.invoke(target, mapArguments(target, arguments), catchLabel, resumeLabel);
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        return super.invoke(target, mapArguments(target, arguments), catchLabel, resumeLabel, targetArguments);
     }
 
     /**

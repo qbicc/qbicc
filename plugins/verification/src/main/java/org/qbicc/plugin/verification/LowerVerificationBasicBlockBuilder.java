@@ -1,6 +1,7 @@
 package org.qbicc.plugin.verification;
 
 import java.util.List;
+import java.util.Map;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
@@ -8,6 +9,7 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.type.ArrayObjectType;
@@ -33,12 +35,12 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
         return return_();
     }
 
-    public BasicBlock jsr(final BlockLabel subLabel, final BlockLiteral returnAddress) {
+    public BasicBlock jsr(final BlockLabel subLabel, final BlockLiteral returnAddress, Map<Slot, Value> targetArguments) {
         invalidNode("jsr");
-        return goto_(returnAddress.getBlockLabel());
+        return goto_(returnAddress.getBlockLabel(), Map.of());
     }
 
-    public BasicBlock ret(final Value address) {
+    public BasicBlock ret(final Value address, Map<Slot, Value> targetArguments) {
         invalidNode("ret");
         return return_();
     }

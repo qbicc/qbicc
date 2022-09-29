@@ -1,6 +1,7 @@
 package org.qbicc.graph;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.qbicc.context.Location;
@@ -48,6 +49,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
             last = delegate;
         }
         setFirstBuilder(this);
+    }
+
+    public BlockParameter addParam(Slot slot, ValueType type, boolean nullable) {
+        return delegate.addParam(slot, type, nullable);
     }
 
     public BasicBlockBuilder getFirstBuilder() {
@@ -370,28 +375,28 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().callNoReturn(target, arguments);
     }
 
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
-        return getDelegate().invokeNoReturn(target, arguments, catchLabel);
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return getDelegate().invokeNoReturn(target, arguments, catchLabel, targetArguments);
     }
 
     public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
         return getDelegate().tailCall(target, arguments);
     }
 
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
-        return getDelegate().tailInvoke(target, arguments, catchLabel);
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return getDelegate().tailInvoke(target, arguments, catchLabel, targetArguments);
     }
 
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
-        return getDelegate().invoke(target, arguments, catchLabel, resumeLabel);
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        return getDelegate().invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
-    public BasicBlock goto_(final BlockLabel resumeLabel) {
-        return getDelegate().goto_(resumeLabel);
+    public BasicBlock goto_(final BlockLabel resumeLabel, Map<Slot, Value> args) {
+        return getDelegate().goto_(resumeLabel, args);
     }
 
-    public BasicBlock if_(final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget) {
-        return getDelegate().if_(condition, trueTarget, falseTarget);
+    public BasicBlock if_(Value condition, BlockLabel trueTarget, BlockLabel falseTarget, Map<Slot, Value> targetArguments) {
+        return getDelegate().if_(condition, trueTarget, falseTarget, targetArguments);
     }
 
     public BasicBlock return_() {
@@ -410,8 +415,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().throw_(value);
     }
 
-    public BasicBlock switch_(final Value value, final int[] checkValues, final BlockLabel[] targets, final BlockLabel defaultTarget) {
-        return getDelegate().switch_(value, checkValues, targets, defaultTarget);
+    public BasicBlock switch_(final Value value, final int[] checkValues, final BlockLabel[] targets, final BlockLabel defaultTarget, Map<Slot, Value> targetArguments) {
+        return getDelegate().switch_(value, checkValues, targets, defaultTarget, targetArguments);
     }
 
     public Value add(final Value v1, final Value v2) {
@@ -562,12 +567,12 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().populationCount(v);
     }
 
-    public BasicBlock jsr(final BlockLabel subLabel, final BlockLiteral returnAddress) {
-        return getDelegate().jsr(subLabel, returnAddress);
+    public BasicBlock jsr(final BlockLabel subLabel, final BlockLiteral returnAddress, Map<Slot, Value> targetArguments) {
+        return getDelegate().jsr(subLabel, returnAddress, targetArguments);
     }
 
-    public BasicBlock ret(final Value address) {
-        return getDelegate().ret(address);
+    public BasicBlock ret(final Value address, Map<Slot, Value> targetArguments) {
+        return getDelegate().ret(address, targetArguments);
     }
 
     public Node nop() {

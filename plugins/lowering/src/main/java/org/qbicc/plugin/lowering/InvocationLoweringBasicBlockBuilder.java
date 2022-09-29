@@ -2,6 +2,7 @@ package org.qbicc.plugin.lowering;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
@@ -13,11 +14,11 @@ import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.CurrentThread;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ExactMethodElementHandle;
-import org.qbicc.graph.Executable;
 import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.InterfaceMethodElementHandle;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -115,9 +116,9 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         return super.callNoReturn(target.accept(this, argList), argList);
     }
 
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         ArrayList<Value> argList = new ArrayList<>(arguments);
-        return super.invokeNoReturn(target.accept(this, argList), argList, catchLabel);
+        return super.invokeNoReturn(target.accept(this, argList), argList, catchLabel, targetArguments);
     }
 
     public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
@@ -125,14 +126,14 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         return super.tailCall(target.accept(this, argList), argList);
     }
 
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         ArrayList<Value> argList = new ArrayList<>(arguments);
-        return super.tailInvoke(target.accept(this, argList), argList, catchLabel);
+        return super.tailInvoke(target.accept(this, argList), argList, catchLabel, targetArguments);
     }
 
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         ArrayList<Value> argList = new ArrayList<>(arguments);
-        return super.invoke(target.accept(this, argList), argList, catchLabel, resumeLabel);
+        return super.invoke(target.accept(this, argList), argList, catchLabel, resumeLabel, targetArguments);
     }
 
     @Override
@@ -236,16 +237,16 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         BlockLabel exitMatched = new BlockLabel();
         BlockLabel loop = new BlockLabel();
 
-        BasicBlock initial = goto_(loop);
+        BasicBlock initial = goto_(loop, Map.of());
         begin(loop);
         PhiValue phi = phi(ctxt.getTypeSystem().getSignedInteger32Type(), loop);
         IntegerLiteral zero = ctxt.getLiteralFactory().literalOf(0);
         phi.setValueForBlock(ctxt, getCurrentElement(), initial, zero);
         Value candidateId = fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, phi), dt.getItableDictType().getMember("typeId")));
-        if_(isEq(candidateId, ctxt.getLiteralFactory().literalOf(info.getInterface().getTypeId())), exitMatched, checkForICCE);
+        if_(isEq(candidateId, ctxt.getLiteralFactory().literalOf(info.getInterface().getTypeId())), exitMatched, checkForICCE, Map.of());
         try {
             begin(checkForICCE);
-            BasicBlock body = if_(isEq(candidateId, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(info.getInterface().getObjectType().getTypeType())), failLabel, loop);
+            BasicBlock body = if_(isEq(candidateId, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(info.getInterface().getObjectType().getTypeType())), failLabel, loop, Map.of());
             phi.setValueForBlock(ctxt, getCurrentElement(), body, fb.add(phi, ctxt.getLiteralFactory().literalOf(1)));
 
             begin(failLabel);

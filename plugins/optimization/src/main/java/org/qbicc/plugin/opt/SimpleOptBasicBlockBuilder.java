@@ -18,6 +18,7 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.Neg;
 import org.qbicc.graph.PointerHandle;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -549,42 +550,43 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
     }
 
-    public BasicBlock if_(final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget) {
+    @Override
+    public BasicBlock if_(final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget, final Map<Slot, Value> targetArguments) {
         if (condition instanceof Comp comp) {
-            return if_(comp.getInput(), falseTarget, trueTarget);
+            return if_(comp.getInput(), falseTarget, trueTarget, targetArguments);
         }
         final BooleanLiteral trueLit = ctxt.getLiteralFactory().literalOf(true);
         final BooleanLiteral falseLit = ctxt.getLiteralFactory().literalOf(false);
         if (condition.isDefEq(trueLit) || condition.isDefNe(falseLit)) {
-            return goto_(trueTarget);
+            return goto_(trueTarget, targetArguments);
         } else if (condition.isDefEq(falseLit) || condition.isDefNe(trueLit)) {
-            return goto_(falseTarget);
+            return goto_(falseTarget, targetArguments);
         } else if (trueTarget == falseTarget) {
-            return goto_(trueTarget);
+            return goto_(trueTarget, targetArguments);
         } else {
-            return getDelegate().if_(condition, trueTarget, falseTarget);
+            return getDelegate().if_(condition, trueTarget, falseTarget, targetArguments);
         }
     }
 
     @Override
-    public BasicBlock switch_(Value value, int[] checkValues, BlockLabel[] targets, BlockLabel defaultTarget) {
+    public BasicBlock switch_(Value value, int[] checkValues, BlockLabel[] targets, BlockLabel defaultTarget, Map<Slot, Value> targetArguments) {
         if (value.getType() instanceof IntegerType it) {
             LiteralFactory lf = ctxt.getLiteralFactory();
             boolean defaultMatches = true;
             for (int checkValue : checkValues) {
                 IntegerLiteral checkValueLit = lf.literalOf(it, checkValue);
                 if (value.isDefEq(checkValueLit)) {
-                    return goto_(targets[checkValue]);
+                    return goto_(targets[checkValue], targetArguments);
                 }
                 if (defaultMatches && ! value.isDefNe(checkValueLit)) {
                     defaultMatches = false;
                 }
             }
             if (defaultMatches) {
-                return goto_(defaultTarget);
+                return goto_(defaultTarget, targetArguments);
             }
         }
-        return getDelegate().switch_(value, checkValues, targets, defaultTarget);
+        return getDelegate().switch_(value, checkValues, targets, defaultTarget, targetArguments);
     }
 
     @Override

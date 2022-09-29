@@ -3,6 +3,7 @@ package org.qbicc.graph;
 import static org.qbicc.graph.atomic.AccessModes.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.qbicc.context.Locatable;
@@ -42,6 +43,20 @@ import org.qbicc.type.descriptor.TypeDescriptor;
  * A program graph builder, which builds each basic block in succession and wires them together.
  */
 public interface BasicBlockBuilder extends Locatable {
+    // parameters
+
+    /**
+     * Add an input parameter to the block being built.
+     * Any control flow transfer to this block <em>must</em> provide an argument value for each parameter.
+     *
+     * @param slot the parameter name (must not be {@code null})
+     * @param type the parameter type (must not be {@code null})
+     * @param nullable {@code true} if the reference- or pointer-typed parameter can be {@code null}, or {@code false} otherwise
+     * @return the parameter value (not {@code null})
+     * @throws IllegalArgumentException if the parameter is already defined or {@code type} is not nullable but {@code nullable} was set
+     */
+    BlockParameter addParam(Slot slot, ValueType type, boolean nullable);
+
     // context
 
     /**
@@ -531,14 +546,18 @@ public interface BasicBlockBuilder extends Locatable {
 
     /**
      * Call an invocation target that does not return - thus terminating the block - and catch the thrown exception.
+     * The given arguments must provide an argument value for every parameter defined in the target block.
+     * Extra arguments are ignored.
+     * An implicit argument for the thrown exception is provided to the catch block (see {@link Slot#thrown()}.
      *
      * @param target the invocation target handle (must not be {@code null})
      * @param arguments the invocation arguments (must not be {@code null})
      * @param catchLabel the exception handler label (must not be {@code null})
+     * @param targetArguments the block arguments to pass to the target block (must not be {@code null})
      * @return the terminated block (not {@code null}
      * @see InvokeNoReturn
      */
-    BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel);
+    BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments);
 
     /**
      * Tail-call an invocation target that returns the same type as this method, thus terminating the block.  The
@@ -555,50 +574,70 @@ public interface BasicBlockBuilder extends Locatable {
      * Tail-call an invocation target that returns the same type as this method - thus terminating the block - and catch
      * the thrown exception.  The backend can optimize such calls into tail calls if the calling element is
      * {@linkplain ClassFile#I_ACC_HIDDEN hidden}.
+     * The given arguments must provide an argument value for every parameter defined in the target block.
+     * Extra arguments are ignored.
+     * An implicit argument for the thrown exception is provided to the catch block (see {@link Slot#thrown()}.
      *
      * @param target the invocation target handle (must not be {@code null})
      * @param arguments the invocation arguments (must not be {@code null})
      * @param catchLabel the exception handler label (must not be {@code null})
+     * @param targetArguments the block arguments to pass to the target blocks (must not be {@code null})
      * @return the terminated block (not {@code null}
      * @see TailInvoke
      */
-    BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel);
+    BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments);
 
     /**
      * Call an invocation target and catch the thrown exception, terminating the block.
      * <b>Note</b>: the terminated block is not returned.
      * The return value of this method is the return value of the invocation,
      * which will always be pinned to the {@code resumeLabel} block.
+     * The given arguments must provide an argument value for every parameter defined in the target block.
+     * Extra arguments are ignored.
+     * An implicit argument for the thrown exception is provided to the catch block (see {@link Slot#thrown()}.
+     * An implicit argument for the return value is provided to the resume block (see {@link Slot#result()}.
      *
      * @param target the invocation target handle (must not be {@code null})
      * @param arguments the invocation arguments (must not be {@code null})
      * @param catchLabel the exception handler label (must not be {@code null})
      * @param resumeLabel the handle of the resume target (must not be {@code null})
+     * @param targetArguments the block arguments to pass to the target blocks (must not be {@code null})
      * @return the invocation result (not {@code null})
      * @see Invoke
      */
-    Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel);
+    Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments);
 
     /**
      * Generate a {@code goto} termination node.  The terminated block is returned.
+     * The given arguments must provide an argument value for every parameter defined in the target block.
+     * Extra arguments are ignored.
      *
      * @param resumeLabel the handle of the jump target (must not be {@code null})
+     * @param arguments the block arguments to pass to the target block (must not be {@code null})
      * @return the terminated block
      */
-    BasicBlock goto_(BlockLabel resumeLabel);
+    BasicBlock goto_(BlockLabel resumeLabel, Map<Slot, Value> arguments);
+
+    default BasicBlock goto_(BlockLabel resumeLabel, Slot slot, Value argValue) {
+        return goto_(resumeLabel, Map.of(slot, argValue));
+    }
 
     /**
      * Construct an {@code if} node.  If the condition is true, the {@code trueTarget} will receive control.  Otherwise,
      * the {@code falseTarget} will receive control.
      * <p>
      * Terminates the current block, which is returned.
+     * <p>
+     * The given arguments must provide an argument value for every parameter defined in either of the target blocks.
+     * Extra arguments are ignored.
      *
      * @param condition the condition (must not be {@code null})
      * @param trueTarget the execution target to use when {@code condition} is {@code true}
      * @param falseTarget the execution target to use when {@code condition} is {@code false}
+     * @param targetArguments the block arguments to pass to the target blocks (must not be {@code null})
      * @return the terminated block
      */
-    BasicBlock if_(Value condition, BlockLabel trueTarget, BlockLabel falseTarget);
+    BasicBlock if_(Value condition, BlockLabel trueTarget, BlockLabel falseTarget, Map<Slot, Value> targetArguments);
 
     BasicBlock return_();
 
@@ -608,29 +647,37 @@ public interface BasicBlockBuilder extends Locatable {
 
     BasicBlock throw_(Value value);
 
-    BasicBlock switch_(Value value, int[] checkValues, BlockLabel[] targets, BlockLabel defaultTarget);
+    BasicBlock switch_(Value value, int[] checkValues, BlockLabel[] targets, BlockLabel defaultTarget, Map<Slot, Value> targetArguments);
 
     /**
      * Construct a {@code jsr} node which must be returned from.  Before lowering, {@code jsr} nodes are inlined,
      * copying all of the nodes into new basic blocks.
      * <p>
-     * Terminates the current block.
+     * Terminates the current block, which is returned.
+     * <p>
+     * The given arguments must provide an argument value for every parameter defined in the target block.
+     * Extra arguments are ignored.
      *
      * @param subLabel the subroutine call target (must not be {@code null})
      * @param returnAddress the return address literal (must not be {@code null})
+     * @param targetArguments the block arguments to pass to the target block (must not be {@code null})
      * @return the terminated block
      */
-    BasicBlock jsr(BlockLabel subLabel, BlockLiteral returnAddress);
+    BasicBlock jsr(BlockLabel subLabel, BlockLiteral returnAddress, Map<Slot, Value> targetArguments);
 
     /**
      * Return from a {@code jsr} subroutine call.
      * <p>
      * Terminates the current block.
+     * <p>
+     * The given arguments must provide an argument value for every parameter defined in the return block.
+     * Extra arguments are ignored.
      *
      * @param address the return address (must not be {@code null})
+     * @param targetArguments the block arguments to pass to the return block (must not be {@code null})
      * @return the node
      */
-    BasicBlock ret(Value address);
+    BasicBlock ret(Value address, Map<Slot, Value> targetArguments);
 
     /**
      * Get the current block's entry node.

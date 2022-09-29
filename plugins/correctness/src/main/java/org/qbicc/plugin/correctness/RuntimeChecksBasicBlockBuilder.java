@@ -1,6 +1,7 @@
 package org.qbicc.plugin.correctness;
 
 import java.util.List;
+import java.util.Map;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
@@ -18,6 +19,7 @@ import org.qbicc.graph.InstanceMethodElementHandle;
 import org.qbicc.graph.InterfaceMethodElementHandle;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.ReferenceHandle;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
@@ -119,9 +121,9 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         check(target);
-        return super.invokeNoReturn(target, arguments, catchLabel);
+        return super.invokeNoReturn(target, arguments, catchLabel, targetArguments);
     }
 
     @Override
@@ -136,15 +138,15 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         check(target);
-        return super.tailInvoke(target, arguments, catchLabel);
+        return super.tailInvoke(target, arguments, catchLabel, targetArguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         check(target);
-        return super.invoke(target, arguments, catchLabel, resumeLabel);
+        return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
     @Override
@@ -197,7 +199,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             final BlockLabel throwIt = new BlockLabel();
             final BlockLabel goAhead = new BlockLabel();
 
-            if_(isEq(v2, zero), throwIt, goAhead);
+            if_(isEq(v2, zero), throwIt, goAhead, Map.of());
             try {
                 begin(throwIt);
                 MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseArithmeticException");
@@ -350,7 +352,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         final BlockLabel throwIt = new BlockLabel();
         final BlockLabel goAhead = new BlockLabel();
         final LiteralFactory lf = ctxt.getLiteralFactory();
-        if_(isEq(value, lf.zeroInitializerLiteralOfType(value.getType())), throwIt, goAhead);
+        if_(isEq(value, lf.zeroInitializerLiteralOfType(value.getType())), throwIt, goAhead, Map.of());
         try {
             begin(throwIt);
             MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseNullPointerException");
@@ -368,11 +370,11 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         LiteralFactory lf = ctxt.getLiteralFactory();
         final IntegerLiteral zero = lf.literalOf(0);
 
-        if_(isLt(index, zero), throwIt, notNegative);
+        if_(isLt(index, zero), throwIt, notNegative, Map.of());
         try {
             begin(notNegative);
             final Value length = load(instanceFieldOf(array, CoreClasses.get(ctxt).getArrayLengthField()));
-            if_(isGe(index, length), throwIt, goAhead);
+            if_(isGe(index, length), throwIt, goAhead, Map.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
         }
@@ -390,7 +392,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         final BlockLabel throwIt = new BlockLabel();
         final BlockLabel goAhead = new BlockLabel();
         final IntegerLiteral zero = ctxt.getLiteralFactory().literalOf(0);
-        if_(isLt(size, zero), throwIt, goAhead);
+        if_(isLt(size, zero), throwIt, goAhead, Map.of());
         try {
             begin(throwIt);
             MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseNegativeArraySizeException");

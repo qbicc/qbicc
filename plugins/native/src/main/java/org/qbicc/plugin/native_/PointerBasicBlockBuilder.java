@@ -2,6 +2,7 @@ package org.qbicc.plugin.native_;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
@@ -13,6 +14,7 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Executable;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.ReadModifyWrite;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
@@ -110,13 +112,13 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
-        return super.invokeNoReturn(target, castVoidPointers(arguments, target), catchLabel);
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return super.invokeNoReturn(target, castVoidPointers(arguments, target), catchLabel, targetArguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
-        return super.invoke(target, castVoidPointers(arguments, target), catchLabel, resumeLabel);
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        return super.invoke(target, castVoidPointers(arguments, target), catchLabel, resumeLabel, targetArguments);
     }
 
     @Override
@@ -125,7 +127,7 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
-        return super.tailInvoke(target, castVoidPointers(arguments, target), catchLabel);
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return super.tailInvoke(target, castVoidPointers(arguments, target), catchLabel, targetArguments);
     }
 }

@@ -1,7 +1,10 @@
 package org.qbicc.plugin.intrinsics;
 
 import java.util.List;
+import java.util.Map;
 
+import org.eclipse.collections.api.factory.Maps;
+import org.eclipse.collections.api.map.ImmutableMap;
 import org.jboss.logging.Logger;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Phase;
@@ -10,6 +13,7 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.InstanceMethodElementHandle;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -135,7 +139,7 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         if (target instanceof StaticMethodElementHandle) {
             StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
             StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());
@@ -157,7 +161,7 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 return unreachable();
             }
         }
-        return super.invokeNoReturn(target, arguments, catchLabel);
+        return super.invokeNoReturn(target, arguments, catchLabel, targetArguments);
     }
 
     @Override
@@ -192,7 +196,7 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         if (target instanceof StaticMethodElementHandle) {
             StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
             StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());
@@ -219,11 +223,11 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 }
             }
         }
-        return super.tailInvoke(target, arguments, catchLabel);
+        return super.tailInvoke(target, arguments, catchLabel, targetArguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         if (target instanceof StaticMethodElementHandle) {
             StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
             StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());
@@ -231,7 +235,8 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
                     (StaticMethodElementHandle) target,
                     arguments);
-                goto_(resumeLabel);
+                ImmutableMap<Slot, Value> immutableMap = Maps.immutable.ofMap(targetArguments);
+                goto_(resumeLabel, immutableMap.newWithKeyValue(Slot.result(), result).castToMap());
                 return result;
             }
         } else if (target instanceof InstanceMethodElementHandle) {
@@ -244,11 +249,12 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
                     instance,
                     (InstanceMethodElementHandle) target,
                     arguments);
-                goto_(resumeLabel);
+                ImmutableMap<Slot, Value> immutableMap = Maps.immutable.ofMap(targetArguments);
+                goto_(resumeLabel, immutableMap.newWithKeyValue(Slot.result(), result).castToMap());
                 return result;
             }
         }
-        return super.invoke(target, arguments, catchLabel, resumeLabel);
+        return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
 }
