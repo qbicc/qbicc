@@ -28,6 +28,7 @@ import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmReferenceArrayClass;
+import org.qbicc.interpreter.memory.ByteArrayMemory;
 import org.qbicc.object.Data;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
@@ -36,6 +37,7 @@ import org.qbicc.object.Linkage;
 import org.qbicc.object.ModuleSection;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ProgramObject;
+import org.qbicc.object.Section;
 import org.qbicc.plugin.constants.Constants;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
@@ -88,6 +90,10 @@ public class BuildtimeHeap {
      * For interning VmObjects
      */
     private final IdentityHashMap<VmObject, DataDeclaration> vmObjects = new IdentityHashMap<>();
+    /**
+     * For interning native memory
+     */
+    private final IdentityHashMap<byte[], DataDeclaration> nativeMemory = new IdentityHashMap<>();
     /**
      * The array of root classes which is intended to be the first object in the initial heap
      */
@@ -516,7 +522,13 @@ public class BuildtimeHeap {
                         DataDeclaration decl = into.getProgramModule().declareData(sfe, global.getName(), global.getType());
                         memberMap.put(om, lf.valueConvertLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), it));
                     } else if (asPointerVal instanceof MemoryPointer mp) {
-                        ctxt.error(f.getLocation(), "An object contains a memory pointer: %s", mp);
+                        if (mp.getRootMemoryIfExists() instanceof ByteArrayMemory bam) {
+                            // Support serializing "native" memory allocated by Unsafe.allocateMemory0
+                            DataDeclaration memDecl = serializeNativeMemory(bam.getArray(), objectSection);
+                            memberMap.put(om, lf.valueConvertLiteral(lf.literalOf(memDecl), it));
+                        } else {
+                            ctxt.error(f.getLocation(), "An object contains a memory pointer: %s", mp);
+                        }
                     } else {
                         memberMap.put(om, lf.bitcastLiteral(lf.literalOf(asPointerVal), it));
                     }
@@ -675,5 +687,16 @@ public class BuildtimeHeap {
 
         Data arrayData = defineData(into, nextLiteralName(into), ctxt.getLiteralFactory().literalOf(literalCT, memberMap));
         return arrayData.getDeclaration();
+    }
+
+    private DataDeclaration serializeNativeMemory(byte[] bytes, ModuleSection into) {
+        DataDeclaration existing = nativeMemory.get(bytes);
+        if (existing != null) {
+            return existing;
+        }
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        Literal memoryLiteral = lf.literalOf(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getSignedInteger8Type(), bytes.length), bytes);
+        Data memoryData = defineData(into, nextLiteralName(into), memoryLiteral);
+        return memoryData.getDeclaration();
     }
 }
