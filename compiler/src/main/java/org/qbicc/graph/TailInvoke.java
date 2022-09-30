@@ -2,6 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.qbicc.type.InvokableType;
@@ -15,7 +16,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * Generally this node will translate to a plain {@code invoke} followed by a {@code return} on the back end.
  * This node terminates its block.
  *
- * @see BasicBlockBuilder#tailInvoke(org.qbicc.graph.ValueHandle, java.util.List, org.qbicc.graph.BlockLabel)
+ * @see BasicBlockBuilder#tailInvoke(org.qbicc.graph.ValueHandle, java.util.List, org.qbicc.graph.BlockLabel, java.util.Map)
  */
 public final class TailInvoke extends AbstractTerminator {
     private final Node dependency;
@@ -25,10 +26,10 @@ public final class TailInvoke extends AbstractTerminator {
     private final InvokableType calleeType;
     private final BlockLabel catchLabel;
 
-    TailInvoke(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
-        super(callSite, element, line, bci);
+    TailInvoke(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, BlockParameter> parameters, Map<Slot, Value> targetArguments) {
+        super(callSite, element, line, bci, targetArguments);
         this.dependency = dependency;
-        this.terminatedBlock = new BasicBlock(blockEntry, this);
+        this.terminatedBlock = new BasicBlock(blockEntry, this, parameters);
         this.target = target;
         this.arguments = arguments;
         this.catchLabel = catchLabel;

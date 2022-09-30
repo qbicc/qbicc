@@ -1,6 +1,7 @@
 package org.qbicc.plugin.instanceofcheckcast;
 
 import java.util.List;
+import java.util.Map;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
@@ -81,7 +82,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         final BlockLabel pass = new BlockLabel();
         final BlockLabel fail = new BlockLabel();
         final BlockLabel dynCheck = new BlockLabel();
-        if_(isEq(input, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(inputType)), pass, dynCheck);
+        if_(isEq(input, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(inputType)), pass, dynCheck, Map.of());
 
         // raise exception on failure.
         try {
@@ -145,7 +146,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
                 }
                 MethodElement method = RuntimeMethodFinder.get(ctxt).getMethod(helperName);
                 getFirstBuilder().call(getFirstBuilder().staticMethod(method), List.of(input, toType, toDimensions));
-                goto_(pass);
+                goto_(pass, Map.of());
             }
         } catch (BlockEarlyTermination ignored) {
             // continue
@@ -193,7 +194,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         final BlockLabel allDone = new BlockLabel();
 
         // first, handle null
-        if_(isEq(input, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType())), fail, notNull);
+        if_(isEq(input, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType())), fail, notNull, Map.of());
 
         Value passResult = null;
         BlockLabel passLabel = null;
@@ -207,10 +208,10 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
                 passResult = getFirstBuilder().call(getFirstBuilder().staticMethod(helper),
                     List.of(input, lf.literalOfType(expectedType), lf.literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), expectedDimensions)));
                 passLabel = notNull;
-                goto_(allDone);
+                goto_(allDone, Map.of());
             } else {
                 begin(passInline);
-                goto_(allDone);
+                goto_(allDone, Map.of());
                 passLabel = passInline;
                 passResult = lf.literalOf(true);
             }
@@ -218,7 +219,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             // continue
         }
         begin(fail);
-        goto_(allDone);
+        goto_(allDone, Map.of());
 
         begin(allDone);
         PhiValue phi = phi(ctxt.getTypeSystem().getBooleanType(), allDone);
@@ -253,7 +254,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             LoadedTypeDefinition arrayVTD = dtd.load();
             final int primArrayTypeId = arrayVTD.getTypeId();
             Value inputTypeId = load(instanceFieldOf(referenceHandle(input), CoreClasses.get(ctxt).getObjectTypeIdField()));
-            if_(isEq(inputTypeId, lf.literalOf(primArrayTypeId)), pass, fail);
+            if_(isEq(inputTypeId, lf.literalOf(primArrayTypeId)), pass, fail, Map.of());
         } else if (toType instanceof InterfaceObjectType) {
             // 2 - expectedType statically known to be an interface
             SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
@@ -270,7 +271,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             Value thisByte = load(elementOf(bits, lf.literalOf(byteIndex)));
             // maskedValue = thisByte & mask
             Value maskedValue = and(thisByte, lf.literalOf(mask));
-            if_(isEq(maskedValue, lf.literalOf(mask)), pass, fail);
+            if_(isEq(maskedValue, lf.literalOf(mask)), pass, fail, Map.of());
         } else {
             // 3 - expectedType statically known to be a class
             // There are two sub cases when dealing with classes:
@@ -284,13 +285,13 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             Literal vtdTypeId = lf.literalOf(typeId);
             if (typeId == maxSubId) {
                 // "leaf" class case - use direct comparison
-                if_(isEq(inputTypeId, vtdTypeId), pass, fail);
+                if_(isEq(inputTypeId, vtdTypeId), pass, fail, Map.of());
             } else {
                 // "non-leaf" class case
                 // (instanceId - castClassId <= (castClassId.range - castClassId)
                 IntegerLiteral allowedRange = lf.literalOf(maxSubId - typeId);
                 Value subtract = sub(inputTypeId, vtdTypeId);
-                if_(isLe(subtract, allowedRange), pass, fail);
+                if_(isLe(subtract, allowedRange), pass, fail, Map.of());
             }
         }
 
@@ -312,7 +313,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             // 2. Test passes iff toType <= valueTypeId <= maxTypeId
             //    Note: we could instead test: (valueTypeId - toType) <=_unsigned (maxTypeId - toType) since typeIds are all positive
             Value valueTypeId = load(instanceFieldOf(referenceHandle(input), CoreClasses.get(ctxt).getObjectTypeIdField()));
-            if_(and(isLe(toType, valueTypeId), isLe(valueTypeId, maxTypeId)), pass, fail);
+            if_(and(isLe(toType, valueTypeId), isLe(valueTypeId, maxTypeId)), pass, fail, Map.of());
             return true;
         }
 

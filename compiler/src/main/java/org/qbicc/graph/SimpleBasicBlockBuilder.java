@@ -1,5 +1,7 @@
 package org.qbicc.graph;
 
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,6 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.smallrye.common.constraint.Assert;
+import org.eclipse.collections.api.factory.SortedMaps;
+import org.eclipse.collections.api.map.sorted.ImmutableSortedMap;
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.atomic.GlobalAccessMode;
@@ -23,6 +29,7 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.NullableType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
@@ -33,7 +40,6 @@ import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
-import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -49,9 +55,6 @@ import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
-import io.smallrye.common.constraint.Assert;
-
-import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuilder.ExceptionHandler {
     private final TypeSystem typeSystem;
@@ -69,12 +72,28 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     private Node callSite;
     private BasicBlock terminatedBlock;
     private boolean started;
+    private ImmutableSortedMap<Slot, BlockParameter> parameters;
 
     SimpleBasicBlockBuilder(final ExecutableElement element, final TypeSystem typeSystem) {
         this.element = element;
         this.typeSystem = typeSystem;
         this.rootElement = element;
         bci = - 1;
+        parameters = SortedMaps.immutable.empty();
+    }
+
+    @Override
+    public BlockParameter addParam(Slot slot, ValueType type, boolean nullable) {
+        BlockParameter parameter = parameters.get(slot);
+        if (parameter != null) {
+            throw new IllegalArgumentException("Parameter " + slot + " already defined");
+        }
+        if (nullable && ! (type instanceof NullableType)) {
+            throw new IllegalArgumentException("Parameter can only be nullable if its type is nullable");
+        }
+        parameter = new BlockParameter(callSite, element, type, nullable, currentBlock, slot);
+        parameters = parameters.newWithKeyValue(slot, parameter);
+        return parameter;
     }
 
     public BasicBlockBuilder getFirstBuilder() {
@@ -674,7 +693,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         BlockLabel resume = new BlockLabel();
         BlockLabel setupHandler = new BlockLabel();
         BlockLabel currentBlock = requireCurrentBlock();
-        Value result = invoke(target, arguments, setupHandler, resume);
+        Value result = invoke(target, arguments, setupHandler, resume, Map.of());
         BasicBlock from;
         if (result instanceof Invoke.ReturnValue) {
             from = ((Invoke.ReturnValue) result).getInvoke().getTerminatedBlock();
@@ -698,7 +717,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         ValueHandle handle = instanceFieldOf(referenceHandle(fb.notNull(thr)), exceptionField);
         LiteralFactory lf = ctxt.getLiteralFactory();
         Value exceptionValue = notNull(readModifyWrite(handle, ReadModifyWrite.Op.SET, lf.zeroInitializerLiteralOfType(handle.getPointeeType()), SingleUnshared, SingleUnshared));
-        BasicBlock sourceBlock = goto_(exceptionHandler.getHandler());
+        BasicBlock sourceBlock = goto_(exceptionHandler.getHandler(), Map.of());
         exceptionHandler.enterHandler(from, sourceBlock, exceptionValue);
     }
 
@@ -754,16 +773,16 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         if (exceptionHandler != null && canThrow(target)) {
             // promote to invoke
             BlockLabel setupHandler = new BlockLabel();
-            BasicBlock result = invokeNoReturn(target, arguments, setupHandler);
+            BasicBlock result = invokeNoReturn(target, arguments, setupHandler, Map.of());
             // this is the entry point for the stack unwinder
             setUpHandler(exceptionHandler, setupHandler, result);
             return result;
         }
-        return terminate(requireCurrentBlock(), new CallNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments));
+        return terminate(requireCurrentBlock(), new CallNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments, parameters.castToMap()));
     }
 
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
-        return terminate(requireCurrentBlock(), new InvokeNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel));
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return terminate(requireCurrentBlock(), new InvokeNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, parameters.castToMap(), targetArguments));
     }
 
     public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
@@ -772,21 +791,21 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         if (exceptionHandler != null && canThrow(target)) {
             // promote to invoke
             BlockLabel setupHandler = new BlockLabel();
-            BasicBlock result = tailInvoke(target, arguments, setupHandler);
+            BasicBlock result = tailInvoke(target, arguments, setupHandler, Map.of());
             // this is the entry point for the stack unwinder
             setUpHandler(exceptionHandler, setupHandler, result);
             return result;
         }
-        return terminate(requireCurrentBlock(), new TailCall(callSite, element, line, bci, blockEntry, dependency, target, arguments));
+        return terminate(requireCurrentBlock(), new TailCall(callSite, element, line, bci, blockEntry, dependency, target, arguments, parameters.castToMap()));
     }
 
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
-        return terminate(requireCurrentBlock(), new TailInvoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel));
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return terminate(requireCurrentBlock(), new TailInvoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, parameters.castToMap(), targetArguments));
     }
 
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         final BlockLabel currentBlock = requireCurrentBlock();
-        Invoke invoke = new Invoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, resumeLabel);
+        Invoke invoke = new Invoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, resumeLabel, parameters.castToMap(), targetArguments);
         terminate(currentBlock, invoke);
         return invoke.getReturnValue();
     }
@@ -795,39 +814,39 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return ! (target instanceof Executable ex && ex.getExecutable().hasAllModifiersOf(ClassFile.I_ACC_NO_THROW));
     }
 
-    public BasicBlock goto_(final BlockLabel resumeLabel) {
-        return terminate(requireCurrentBlock(), new Goto(callSite, element, line, bci, blockEntry, dependency, resumeLabel));
+    public BasicBlock goto_(final BlockLabel resumeLabel, final Map<Slot, Value> targetArguments) {
+        return terminate(requireCurrentBlock(), new Goto(callSite, element, line, bci, blockEntry, dependency, resumeLabel, parameters.castToMap(), targetArguments));
     }
 
-    public BasicBlock if_(final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget) {
-        return terminate(requireCurrentBlock(), new If(callSite, element, line, bci, blockEntry, dependency, condition, trueTarget, falseTarget));
+    public BasicBlock if_(final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget, final Map<Slot, Value> targetArguments) {
+        return terminate(requireCurrentBlock(), new If(callSite, element, line, bci, blockEntry, dependency, condition, trueTarget, falseTarget, parameters.castToMap(), targetArguments));
     }
 
     public BasicBlock return_() {
-        return terminate(requireCurrentBlock(), new Return(callSite, element, line, bci, blockEntry, dependency));
+        return terminate(requireCurrentBlock(), new Return(callSite, element, line, bci, blockEntry, dependency, parameters.castToMap()));
     }
 
     public BasicBlock return_(final Value value) {
         if (value == null || value.getType() instanceof VoidType) {
             return return_();
         }
-        return terminate(requireCurrentBlock(), new ValueReturn(callSite, element, line, bci, blockEntry, dependency, value));
+        return terminate(requireCurrentBlock(), new ValueReturn(callSite, element, line, bci, blockEntry, dependency, value, parameters.castToMap()));
     }
 
     public BasicBlock unreachable() {
-        return terminate(requireCurrentBlock(), new Unreachable(callSite, element, line, bci, blockEntry, dependency));
+        return terminate(requireCurrentBlock(), new Unreachable(callSite, element, line, bci, blockEntry, dependency, parameters.castToMap()));
     }
 
     public BasicBlock throw_(final Value value) {
-        return terminate(requireCurrentBlock(), new Throw(callSite, element, line, bci, blockEntry, dependency, value));
+        return terminate(requireCurrentBlock(), new Throw(callSite, element, line, bci, blockEntry, dependency, value, parameters.castToMap()));
     }
 
-    public BasicBlock jsr(final BlockLabel subLabel, final BlockLiteral returnAddress) {
-        return terminate(requireCurrentBlock(), new Jsr(callSite, element, line, bci, blockEntry, dependency, subLabel, returnAddress));
+    public BasicBlock jsr(final BlockLabel subLabel, final BlockLiteral returnAddress, Map<Slot, Value> targetArguments) {
+        return terminate(requireCurrentBlock(), new Jsr(callSite, element, line, bci, blockEntry, dependency, subLabel, returnAddress, parameters.castToMap(), targetArguments));
     }
 
-    public BasicBlock ret(final Value address) {
-        return terminate(requireCurrentBlock(), new Ret(callSite, element, line, bci, blockEntry, dependency, address));
+    public BasicBlock ret(final Value address, Map<Slot, Value> targetArguments) {
+        return terminate(requireCurrentBlock(), new Ret(callSite, element, line, bci, blockEntry, dependency, address, parameters.castToMap(), targetArguments));
     }
 
     public BlockEntry getBlockEntry() {
@@ -843,8 +862,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return block;
     }
 
-    public BasicBlock switch_(final Value value, final int[] checkValues, final BlockLabel[] targets, final BlockLabel defaultTarget) {
-        return terminate(requireCurrentBlock(), new Switch(callSite, element, line, bci, blockEntry, dependency, defaultTarget, checkValues, targets, value));
+    public BasicBlock switch_(final Value value, final int[] checkValues, final BlockLabel[] targets, final BlockLabel defaultTarget, final Map<Slot, Value> targetArguments) {
+        return terminate(requireCurrentBlock(), new Switch(callSite, element, line, bci, blockEntry, dependency, defaultTarget, checkValues, targets, value, parameters.castToMap(), targetArguments));
     }
 
     private BasicBlock terminate(final BlockLabel block, final Terminator op) {
@@ -854,6 +873,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         blockEntry = null;
         currentBlock = null;
         dependency = null;
+        parameters = SortedMaps.immutable.empty();
         return realBlock;
     }
 

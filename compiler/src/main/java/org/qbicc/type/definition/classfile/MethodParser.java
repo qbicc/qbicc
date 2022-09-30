@@ -341,7 +341,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 } else {
                     if (catchAll) {
                         outboundExValue = phi;
-                        innerFrom = gf.goto_(block);
+                        innerFrom = gf.goto_(block, Map.of());
                         // make sure the phi is correctly registered even though we don't really use a stack here
                         push1(outboundExValue);
                         saveExitValues(innerFrom);
@@ -349,7 +349,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     } else {
                         Value[] ourLocals = saveLocals();
                         outboundExValue = gf.bitCast(phi, exType);
-                        innerFrom = gf.if_(gf.instanceOf(phi, exType.getUpperBound(), 0), block, delegate.getHandler());
+                        innerFrom = gf.if_(gf.instanceOf(phi, exType.getUpperBound(), 0), block, delegate.getHandler(), Map.of());
                         // enter the delegate handler if the exception type didn't match
                         // make sure the phi is correctly registered even though we don't really use a stack here
                         push1(outboundExValue);
@@ -587,11 +587,11 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         System.arraycopy(locals, 0, this.locals, 0, locals.length);
     }
 
-    static final class Slot {
+    static final class OldSlot {
         private final boolean stack;
         private final int index;
 
-        Slot(boolean stack, int index) {
+        OldSlot(boolean stack, int index) {
             this.stack = stack;
             this.index = index;
         }
@@ -611,10 +611,10 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
 
         @Override
         public boolean equals(Object obj) {
-            return obj instanceof Slot && equals((Slot) obj);
+            return obj instanceof OldSlot && equals((OldSlot) obj);
         }
 
-        public boolean equals(Slot obj) {
+        public boolean equals(OldSlot obj) {
             return obj == this || obj != null && obj.stack == stack && obj.index == index;
         }
 
@@ -624,27 +624,27 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         }
     }
 
-    final List<Slot> stackSlotCache = new ArrayList<>(4);
-    final List<Slot> varSlotCache = new ArrayList<>(8);
+    final List<OldSlot> stackSlotCache = new ArrayList<>(4);
+    final List<OldSlot> varSlotCache = new ArrayList<>(8);
 
     /**
      * Each phi value exists only in one logical slot when it is created.  This map records the slot for each
      * phi value.
      */
-    final Map<PhiValue, Slot> phiValueSlots = new HashMap<>();
+    final Map<PhiValue, OldSlot> phiValueSlots = new HashMap<>();
     /**
      * The values that are <em>available</em> at the end of each block. Successor blocks may choose
      * not to consume these values.
      */
-    final Map<BasicBlock, Map<Slot, Value>> blockExitValues = new HashMap<>();
+    final Map<BasicBlock, Map<OldSlot, Value>> blockExitValues = new HashMap<>();
     /**
      * The set of blocks whose bytecode has been processed.
      */
     final Set<BlockLabel> visited = new HashSet<>();
 
-    Slot getStackSlot(int idx) {
+    OldSlot getStackSlot(int idx) {
         int size = stackSlotCache.size();
-        Slot slot;
+        OldSlot slot;
         if (idx >= size) {
             stackSlotCache.addAll(Collections.nCopies(idx - size + 1, null));
             slot = null;
@@ -652,15 +652,15 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             slot = stackSlotCache.get(idx);
         }
         if (slot == null) {
-            slot = new Slot(true, idx);
+            slot = new OldSlot(true, idx);
             stackSlotCache.set(idx, slot);
         }
         return slot;
     }
 
-    Slot getVarSlot(int idx) {
+    OldSlot getVarSlot(int idx) {
         int size = varSlotCache.size();
-        Slot slot;
+        OldSlot slot;
         if (idx >= size) {
             varSlotCache.addAll(Collections.nCopies(idx - size + 1, null));
             slot = null;
@@ -668,7 +668,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             slot = varSlotCache.get(idx);
         }
         if (slot == null)  {
-            slot = new Slot(false, idx);
+            slot = new OldSlot(false, idx);
             varSlotCache.set(idx, slot);
         }
         return slot;
@@ -1417,13 +1417,13 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         if (dest == null) {
                             // only called from one site
                             dest = new BlockLabel();
-                            gf.jsr(dest, lf.literalOf(retBlock));
+                            gf.jsr(dest, lf.literalOf(retBlock), Map.of());
                             buffer.position(target);
                             gf.begin(dest);
                             processNewBlock();
                         } else {
                             // the jsr call
-                            BasicBlock termBlock = gf.jsr(dest, lf.literalOf(retBlock));
+                            BasicBlock termBlock = gf.jsr(dest, lf.literalOf(retBlock), Map.of());
                             // process the jsr call target block with our current stack
                             buffer.position(target);
                             processBlock(termBlock);
@@ -1435,7 +1435,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     }
                     case OP_RET:
                         // each ret records the output stack and locals at the point of the ret, and then exits.
-                        setJsrExitState(gf.ret(pop1()), saveStack(), saveLocals());
+                        setJsrExitState(gf.ret(pop1(), Map.of()), saveStack(), saveLocals());
                         // exit one level of recursion
                         return;
                     case OP_TABLESWITCH: {
@@ -1468,7 +1468,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             defaultSingle = false;
                         }
                         seen.add(defaultBlock);
-                        BasicBlock exited = gf.switch_(pop1(), vals, handles, defaultBlock);
+                        BasicBlock exited = gf.switch_(pop1(), vals, handles, defaultBlock, Map.of());
                         Value[] stackSnap = saveStack();
                         Value[] varSnap = saveLocals();
                         buffer.position(db + src);
@@ -1522,7 +1522,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             defaultSingle = false;
                         }
                         seen.add(defaultBlock);
-                        BasicBlock exited = gf.switch_(pop1(), vals, handles, defaultBlock);
+                        BasicBlock exited = gf.switch_(pop1(), vals, handles, defaultBlock, Map.of());
                         Value[] stackSnap = saveStack();
                         Value[] varSnap = saveLocals();
                         buffer.position(db + src);
@@ -1930,7 +1930,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 int epIdx = info.getEntryPointIndex(buffer.position());
                 if (epIdx >= 0) {
                     // two or more blocks enter here; start a new block via goto
-                    processBlock(gf.goto_(blockHandles[epIdx]));
+                    processBlock(gf.goto_(blockHandles[epIdx], Map.of()));
                     return;
                 }
             }
@@ -1945,7 +1945,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             // already recorded the exit values
             return;
         }
-        Map<Slot, Value> exitValues = new HashMap<>();
+        Map<OldSlot, Value> exitValues = new HashMap<>();
         for (int i = 0; i < sp; i++) {
             Value value = stack[i];
             if (value != null) {
@@ -1969,10 +1969,10 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     static final class PhiPopulationContext {
         final CompilationContext ctxt;
         final HashSet<Node> visited = new HashSet<>();
-        final Map<PhiValue, Slot> phiValueSlots;
-        final Map<BasicBlock, Map<Slot, Value>> blockExitValues;
+        final Map<PhiValue, OldSlot> phiValueSlots;
+        final Map<BasicBlock, Map<OldSlot, Value>> blockExitValues;
 
-        PhiPopulationContext(CompilationContext ctxt, Map<PhiValue, Slot> phiValueSlots, Map<BasicBlock, Map<Slot, Value>> blockExitValues) {
+        PhiPopulationContext(CompilationContext ctxt, Map<PhiValue, OldSlot> phiValueSlots, Map<BasicBlock, Map<OldSlot, Value>> blockExitValues) {
             this.ctxt = ctxt;
             this.phiValueSlots = phiValueSlots;
             this.blockExitValues = blockExitValues;
@@ -2048,7 +2048,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             if (param.visited.add(node)) {
                 // make sure everything is transitively reachable
                 BasicBlock block = node.getPinnedBlock();
-                Slot slot = param.phiValueSlots.get(node);
+                OldSlot slot = param.phiValueSlots.get(node);
                 if (slot == null) {
                     // this is an already-populated phi
                     for (BasicBlock incomingBlock : block.getIncoming()) {
@@ -2060,7 +2060,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 } else {
                     for (BasicBlock incomingBlock : block.getIncoming()) {
                         if (incomingBlock.isReachable()) {
-                            Map<Slot, Value> exitValues = param.blockExitValues.get(incomingBlock);
+                            Map<OldSlot, Value> exitValues = param.blockExitValues.get(incomingBlock);
                             if (exitValues == null) {
                                 param.ctxt.error(node.getElement().getLocation(), "No exit values from reachable block");
                             } else {
@@ -2100,13 +2100,13 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         if (block == null) {
             // only one entry point
             block = new BlockLabel();
-            gf.goto_(block);
+            gf.goto_(block, Map.of());
             // set the position after, so that the bci for the instruction is correct
             buffer.position(target);
             gf.begin(block);
             processNewBlock();
         } else {
-            from = gf.goto_(block);
+            from = gf.goto_(block, Map.of());
             // set the position after, so that the bci for the instruction is correct
             buffer.position(target);
             processBlock(from);
@@ -2132,7 +2132,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         if (b2s) {
             b2 = new BlockLabel();
         }
-        BasicBlock from = gf.if_(cond, b1, b2);
+        BasicBlock from = gf.if_(cond, b1, b2, Map.of());
         Value[] varSnap = saveLocals();
         Value[] stackSnap = saveStack();
         buffer.position(dest1);

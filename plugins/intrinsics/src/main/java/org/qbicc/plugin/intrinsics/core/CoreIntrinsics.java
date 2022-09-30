@@ -5,6 +5,7 @@ import static org.qbicc.graph.atomic.AccessModes.*;
 import java.nio.ByteOrder;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.jboss.logging.Logger;
 import org.qbicc.context.ClassContext;
@@ -26,18 +27,14 @@ import org.qbicc.graph.Store;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Variable;
-import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
-import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.machine.arch.Cpu;
-import org.qbicc.object.Function;
-import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ProgramObject;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -56,7 +53,6 @@ import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NullableType;
-import org.qbicc.type.PointerType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
@@ -866,12 +862,12 @@ public final class CoreIntrinsics {
             Value result = componentClass;
             PhiValue phi = builder.phi(result.getType(), fallThrough);
 
-            BasicBlock from = builder.if_(builder.isGt(dims, ctxt.getLiteralFactory().literalOf(0)), trueBranch, fallThrough); // if (dimensions > 0)
+            BasicBlock from = builder.if_(builder.isGt(dims, ctxt.getLiteralFactory().literalOf(0)), trueBranch, fallThrough, Map.of()); // if (dimensions > 0)
             phi.setValueForBlock(ctxt, builder.getCurrentElement(), from, result);
 
             builder.begin(trueBranch); // true; create Class for array reference
             result = builder.getFirstBuilder().call(builder.staticMethod(getOrCreateArrayClass), List.of(componentClass, dims));
-            from = builder.goto_(fallThrough);
+            from = builder.goto_(fallThrough, Map.of());
             phi.setValueForBlock(ctxt, builder.getCurrentElement(), from, result);
             builder.begin(fallThrough);
             return phi;

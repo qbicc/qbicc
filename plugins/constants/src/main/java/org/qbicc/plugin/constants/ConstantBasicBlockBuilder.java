@@ -1,7 +1,10 @@
 package org.qbicc.plugin.constants;
 
 import java.util.List;
+import java.util.Map;
 
+import org.eclipse.collections.api.factory.Maps;
+import org.eclipse.collections.api.map.ImmutableMap;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
@@ -9,6 +12,7 @@ import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
@@ -98,27 +102,30 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         if (target.isFold()) try {
             return return_(fold(target, arguments));
         } catch (Thrown t) {
-            storeException(t);
-            return goto_(catchLabel);
+            ObjectLiteral val = storeException(t);
+            return goto_(catchLabel, Slot.thrown(), val);
         }
-        return super.tailInvoke(target, arguments, catchLabel);
+        return super.tailInvoke(target, arguments, catchLabel, targetArguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
-        if (target.isFold()) try {
-            Value result = fold(target, arguments);
-            goto_(resumeLabel);
-            return result;
-        } catch (Thrown t) {
-            storeException(t);
-            goto_(catchLabel);
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        if (target.isFold()) {
+            ImmutableMap<Slot, Value> immutableMap = Maps.immutable.ofMap(targetArguments);
+            try {
+                Value result = fold(target, arguments);
+                goto_(resumeLabel, immutableMap.newWithKeyValue(Slot.result(), result).castToMap());
+                return result;
+            } catch (Thrown t) {
+                ObjectLiteral val = storeException(t);
+                goto_(catchLabel, immutableMap.newWithKeyValue(Slot.thrown(), val).castToMap());
+            }
         }
-        return super.invoke(target, arguments, catchLabel, resumeLabel);
+        return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
     private static final Object[] NO_ARGS = new Object[0];
@@ -205,8 +212,10 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(unreachable());
     }
 
-    private Node storeException(final Thrown t) {
+    private ObjectLiteral storeException(final Thrown t) {
         // todo: rework when landing pads are done
-        return store(instanceFieldOf(referenceHandle(load(currentThread(), SingleUnshared)), ctxt.getExceptionField()), ctxt.getLiteralFactory().literalOf(t.getThrowable()), SinglePlain);
+        ObjectLiteral value = ctxt.getLiteralFactory().literalOf(t.getThrowable());
+        store(instanceFieldOf(referenceHandle(load(currentThread(), SingleUnshared)), ctxt.getExceptionField()), value, SinglePlain);
+        return value;
     }
 }

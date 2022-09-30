@@ -60,6 +60,10 @@ public interface ValueVisitorLong<T> {
         return visitUnknown(param, node);
     }
 
+    default long visit(T param, BlockParameter node) {
+        return visitUnknown(param, node);
+    }
+
     default long visit(T param, BooleanLiteral node) {
         return visitUnknown(param, node);
     }
@@ -388,6 +392,10 @@ public interface ValueVisitorLong<T> {
         }
 
         default long visit(T param, BlockLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default long visit(T param, BlockParameter node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

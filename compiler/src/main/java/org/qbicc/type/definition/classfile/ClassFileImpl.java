@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import io.smallrye.common.constraint.Assert;
 import org.objectweb.asm.ClassReader;
@@ -1483,7 +1484,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             methodParser.processNewBlock();
         } else {
             // we have to jump into it because there is a loop that includes index 0
-            methodParser.processBlock(gf.goto_(entryBlockHandle));
+            methodParser.processBlock(gf.goto_(entryBlockHandle, Map.of()));
             entryBlockHandle = newLabel;
         }
         gf.finish();

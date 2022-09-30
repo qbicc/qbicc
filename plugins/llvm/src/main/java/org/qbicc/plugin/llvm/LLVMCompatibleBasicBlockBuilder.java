@@ -3,6 +3,7 @@ package org.qbicc.plugin.llvm;
 import static org.qbicc.graph.atomic.AccessModes.*;
 
 import java.util.List;
+import java.util.Map;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
@@ -13,6 +14,7 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.ReadModifyWrite;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.GlobalAccessMode;
@@ -264,12 +266,12 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 BlockLabel top = new BlockLabel();
                 BlockLabel exit = new BlockLabel();
                 SignedIntegerType idxType = ctxt.getTypeSystem().getSignedInteger64Type();
-                BasicBlock entry = goto_(top);
+                BasicBlock entry = goto_(top, Map.of());
                 PhiValue idx = phi(idxType, top);
                 PhiValue val = phi(at, top);
                 begin(top);
                 Value modVal = insertElement(val, idx, load(elementOf(handle, idx), accessMode));
-                BasicBlock loop = if_(isLt(idx, lf.literalOf(idxType, ec)), top, exit);
+                BasicBlock loop = if_(isLt(idx, lf.literalOf(idxType, ec)), top, exit, Map.of());
                 idx.setValueForBlock(ctxt, getCurrentElement(), entry, lf.literalOf(idxType, 0));
                 val.setValueForBlock(ctxt, getCurrentElement(), entry, lf.zeroInitializerLiteralOfType(at));
                 idx.setValueForBlock(ctxt, getCurrentElement(), loop, add(idx, lf.literalOf(idxType, 1)));
@@ -326,11 +328,11 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 BlockLabel top = new BlockLabel();
                 BlockLabel exit = new BlockLabel();
                 SignedIntegerType idxType = ctxt.getTypeSystem().getSignedInteger64Type();
-                BasicBlock entry = goto_(top);
+                BasicBlock entry = goto_(top, Map.of());
                 PhiValue idx = phi(idxType, top);
                 begin(top);
                 store(elementOf(handle, idx), extractElement(value, idx));
-                BasicBlock loop = if_(isLt(idx, lf.literalOf(idxType, ec)), top, exit);
+                BasicBlock loop = if_(isLt(idx, lf.literalOf(idxType, ec)), top, exit, Map.of());
                 idx.setValueForBlock(ctxt, getCurrentElement(), entry, lf.literalOf(idxType, 0));
                 idx.setValueForBlock(ctxt, getCurrentElement(), loop, add(idx, lf.literalOf(idxType, 1)));
                 begin(exit);
@@ -358,10 +360,10 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             Literal zeroStruct = lf.zeroInitializerLiteralOfType(resultType);
             Value withCompareVal = fb.insertMember(zeroStruct, resultType.getMember(0), compareVal);
             result = fb.insertMember(withCompareVal, resultType.getMember(1), compareResult);
-            fb.if_(compareResult, success, resume);
+            fb.if_(compareResult, success, resume, Map.of());
             fb.begin(success);
             fb.store(target, update, writeMode);
-            fb.goto_(resume);
+            fb.goto_(resume, Map.of());
             fb.begin(resume);
         } else {
             boolean readRequiresFence = readMode.includes(GlobalAcquire);
@@ -381,10 +383,10 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 Value successFlag = fb.extractMember(result, resultType.getMember(1));
                 BlockLabel success = new BlockLabel();
                 BlockLabel resume = new BlockLabel();
-                fb.if_(successFlag, success, resume);
+                fb.if_(successFlag, success, resume, Map.of());
                 fb.begin(success);
                 fb.fence(writeMode.getGlobalAccess());
-                fb.goto_(resume);
+                fb.goto_(resume, Map.of());
                 fb.begin(resume);
             }
         }
@@ -449,36 +451,37 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         // declare personality function
         MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
         Function function = ctxt.getExactFunction(personalityMethod);
         ctxt.getOrAddProgramModule(getRootElement()).declareFunction(function);
-        return super.invokeNoReturn(target, arguments, catchLabel);
+        return super.invokeNoReturn(target, arguments, catchLabel, targetArguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         // declare personality function
         MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
         Function function = ctxt.getExactFunction(personalityMethod);
         ctxt.getOrAddProgramModule(getRootElement()).declareFunction(function);
-        return super.invoke(target, arguments, catchLabel, resumeLabel);
+        return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         // declare personality function
         MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
         Function function = ctxt.getExactFunction(personalityMethod);
         ctxt.getOrAddProgramModule(getRootElement()).declareFunction(function);
         if (isTailCallSafe()) {
-            return super.tailInvoke(target, arguments, catchLabel);
+            return super.tailInvoke(target, arguments, catchLabel, targetArguments);
         }
         // break tail invoke
         BlockLabel resumeLabel = new BlockLabel();
-        Value retVal = super.invoke(target, arguments, catchLabel, resumeLabel);
+        Value retVal = super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
         begin(resumeLabel);
+        //BlockParameter retVal = addParam(Slot.result(), ((InvokableType) target.getPointeeType()).getReturnType(), true);
         if (isVoidFunction(target)) {
             return super.return_();
         } else {

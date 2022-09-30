@@ -14,6 +14,7 @@ import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.qbicc.graph.atomic.AccessModes.GlobalAcquire;
 
@@ -35,11 +36,11 @@ public class InitCheckLoweringBasicBlockBuilder extends DelegatingBasicBlockBuil
         final BlockLabel callInit = new BlockLabel();
         final BlockLabel goAhead = new BlockLabel();
         Value done = load(getFirstBuilder().instanceFieldOf(referenceHandle(initThunk), run.getEnclosingType().load().findField("done")), GlobalAcquire);
-        if_(isNe(done, lf.literalOf(ctxt.getTypeSystem().getSignedInteger8Type(), 0)), goAhead, callInit);
+        if_(isNe(done, lf.literalOf(ctxt.getTypeSystem().getSignedInteger8Type(), 0)), goAhead, callInit, Map.of());
         try {
             begin(callInit);
             getFirstBuilder().call(getFirstBuilder().virtualMethodOf(initThunk, run), List.of());
-            goto_(goAhead);
+            goto_(goAhead, Map.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
         }

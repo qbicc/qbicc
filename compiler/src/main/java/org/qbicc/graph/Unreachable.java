@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import java.util.Map;
 import java.util.Objects;
 
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -8,10 +9,10 @@ public class Unreachable extends AbstractTerminator implements Terminator {
     private final Node dependency;
     private final BasicBlock terminatedBlock;
 
-    Unreachable(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, Node dependency) {
+    Unreachable(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, Node dependency, Map<Slot, BlockParameter> parameters) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
-        terminatedBlock = new BasicBlock(blockEntry, this);
+        terminatedBlock = new BasicBlock(blockEntry, this, parameters);
     }
 
     public BasicBlock getTerminatedBlock() {

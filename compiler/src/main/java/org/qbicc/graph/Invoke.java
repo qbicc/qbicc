@@ -2,6 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.qbicc.type.InvokableType;
@@ -16,7 +17,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * If no exception is thrown by the callee, execution resumes in the resume block.
  * This node terminates its block.
  *
- * @see BasicBlockBuilder#invoke(org.qbicc.graph.ValueHandle, java.util.List, org.qbicc.graph.BlockLabel, org.qbicc.graph.BlockLabel)
+ * @see BasicBlockBuilder#invoke(org.qbicc.graph.ValueHandle, java.util.List, org.qbicc.graph.BlockLabel, org.qbicc.graph.BlockLabel, java.util.Map)
  */
 public final class Invoke extends AbstractTerminator implements Resume {
     private final Node dependency;
@@ -28,10 +29,10 @@ public final class Invoke extends AbstractTerminator implements Resume {
     private final BlockLabel resumeLabel;
     private final ReturnValue returnValue;
 
-    Invoke(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
-        super(callSite, element, line, bci);
+    Invoke(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, BlockParameter> parameters, Map<Slot, Value> targetArguments) {
+        super(callSite, element, line, bci, targetArguments);
         this.dependency = dependency;
-        this.terminatedBlock = new BasicBlock(blockEntry, this);
+        this.terminatedBlock = new BasicBlock(blockEntry, this, parameters);
         this.target = target;
         this.arguments = arguments;
         this.catchLabel = catchLabel;

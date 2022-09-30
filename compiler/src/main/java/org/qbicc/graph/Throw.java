@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import java.util.Map;
 import java.util.Objects;
 
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -13,9 +14,9 @@ public final class Throw extends AbstractTerminator implements Terminator {
     private final Value thrownValue;
     private final BasicBlock terminatedBlock;
 
-    Throw(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value thrownValue) {
+    Throw(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value thrownValue, Map<Slot, BlockParameter> parameters) {
         super(callSite, element, line, bci);
-        terminatedBlock = new BasicBlock(blockEntry, this);
+        terminatedBlock = new BasicBlock(blockEntry, this, parameters);
         this.dependency = dependency;
         this.thrownValue = thrownValue;
     }

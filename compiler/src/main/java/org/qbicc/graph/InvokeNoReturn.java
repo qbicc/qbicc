@@ -2,6 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.qbicc.type.InvokableType;
@@ -12,7 +13,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * Exceptions thrown by the target are caught and delivered to the catch block.
  * This node terminates its block.
  *
- * @see BasicBlockBuilder#invokeNoReturn(org.qbicc.graph.ValueHandle, java.util.List, org.qbicc.graph.BlockLabel)
+ * @see BasicBlockBuilder#invokeNoReturn(org.qbicc.graph.ValueHandle, java.util.List, org.qbicc.graph.BlockLabel, java.util.Map)
  */
 public final class InvokeNoReturn extends AbstractTerminator {
     private final Node dependency;
@@ -22,10 +23,10 @@ public final class InvokeNoReturn extends AbstractTerminator {
     private final InvokableType calleeType;
     private final BlockLabel catchLabel;
 
-    InvokeNoReturn(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
-        super(callSite, element, line, bci);
+    InvokeNoReturn(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, BlockParameter> parameters, Map<Slot, Value> targetArguments) {
+        super(callSite, element, line, bci, targetArguments);
         this.dependency = dependency;
-        this.terminatedBlock = new BasicBlock(blockEntry, this);
+        this.terminatedBlock = new BasicBlock(blockEntry, this, parameters);
         this.target = target;
         this.arguments = arguments;
         this.catchLabel = catchLabel;

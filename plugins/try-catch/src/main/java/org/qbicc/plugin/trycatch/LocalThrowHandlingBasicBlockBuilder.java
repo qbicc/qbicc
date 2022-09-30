@@ -1,6 +1,7 @@
 package org.qbicc.plugin.trycatch;
 
 import java.util.List;
+import java.util.Map;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
@@ -8,6 +9,7 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -39,7 +41,7 @@ public class LocalThrowHandlingBasicBlockBuilder extends DelegatingBasicBlockBui
         BasicBlockBuilder fb = getFirstBuilder();
         if (value.isNullable()) {
             BlockLabel npe = new BlockLabel();
-            BasicBlock from = fb.if_(fb.isEq(value, lf.zeroInitializerLiteralOfType(value.getType())), npe, exceptionHandler.getHandler());
+            BasicBlock from = fb.if_(fb.isEq(value, lf.zeroInitializerLiteralOfType(value.getType())), npe, exceptionHandler.getHandler(), Map.of(Slot.thrown(), fb.notNull(value)));
             // dispatch to the exception handler
             exceptionHandler.enterHandler(from, null, fb.notNull(value));
             // throw an NPE to the handler instead
@@ -51,11 +53,11 @@ public class LocalThrowHandlingBasicBlockBuilder extends DelegatingBasicBlockBui
             // pre-resolver
             ValueHandle ctor = fb.constructorOf(ex, npeType.getDescriptor(), MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of()));
             fb.call(ctor, List.of());
-            BasicBlock from2 = fb.goto_(exceptionHandler.getHandler());
+            BasicBlock from2 = fb.goto_(exceptionHandler.getHandler(), Map.of(Slot.thrown(), ex));
             exceptionHandler.enterHandler(from2, null, ex);
             return from;
         } else {
-            BasicBlock from = fb.goto_(exceptionHandler.getHandler());
+            BasicBlock from = fb.goto_(exceptionHandler.getHandler(), Map.of(Slot.thrown(), fb.notNull(value)));
             // dispatch to the exception handler
             exceptionHandler.enterHandler(from, null, fb.notNull(value));
             return from;

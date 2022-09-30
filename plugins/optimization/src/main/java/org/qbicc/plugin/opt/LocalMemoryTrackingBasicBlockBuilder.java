@@ -16,6 +16,7 @@ import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.MemberOf;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.ReadModifyWrite;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
@@ -110,9 +111,9 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         knownValues.clear();
-        return super.invokeNoReturn(target, arguments, catchLabel);
+        return super.invokeNoReturn(target, arguments, catchLabel, targetArguments);
     }
 
     @Override
@@ -122,15 +123,15 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         knownValues.clear();
-        return super.tailInvoke(target, arguments, catchLabel);
+        return super.tailInvoke(target, arguments, catchLabel, targetArguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         knownValues.clear();
-        return super.invoke(target, arguments, catchLabel, resumeLabel);
+        return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
     private static ValueHandle findRoot(ValueHandle handle) {

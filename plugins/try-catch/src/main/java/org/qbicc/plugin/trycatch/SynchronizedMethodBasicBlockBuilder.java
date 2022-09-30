@@ -10,6 +10,7 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -84,7 +85,7 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
                 // release the lock
                 monitorExit(monitor);
                 // hopefully the delegate simply rethrows
-                BasicBlock ourFrom = goto_(delegate.getHandler());
+                BasicBlock ourFrom = goto_(delegate.getHandler(), Map.of(Slot.thrown(), exceptionValue));
                 // direct goto next block (no landing pad)
                 delegate.enterHandler(ourFrom, null, phi);
             }

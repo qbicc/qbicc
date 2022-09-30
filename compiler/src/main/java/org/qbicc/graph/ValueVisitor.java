@@ -60,6 +60,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, BlockParameter node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, BooleanLiteral node) {
         return visitUnknown(t, node);
     }
@@ -388,6 +392,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T t, BlockLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default R visit(T t, BlockParameter node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

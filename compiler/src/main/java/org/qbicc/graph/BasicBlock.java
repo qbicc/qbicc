@@ -1,6 +1,7 @@
 package org.qbicc.graph;
 
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -12,15 +13,17 @@ import io.smallrye.common.constraint.Assert;
 public final class BasicBlock {
     private final BlockEntry blockEntry;
     private final Terminator terminator;
+    private final Map<Slot, BlockParameter> parameters;
     private BlockLabel myLabel;
     private boolean reachable;
     private Set<BasicBlock> incoming = Set.of();
     private Set<Loop> loops = Set.of();
     private int index;
 
-    BasicBlock(final BlockEntry blockEntry, final Terminator terminator) {
+    BasicBlock(final BlockEntry blockEntry, final Terminator terminator, Map<Slot, BlockParameter> parameters) {
         this.blockEntry = blockEntry;
         this.terminator = terminator;
+        this.parameters = parameters;
     }
 
     public BlockEntry getBlockEntry() {
@@ -57,6 +60,23 @@ public final class BasicBlock {
      */
     public Set<Loop> getLoops() {
         return loops;
+    }
+
+    /**
+     * Get the set of parameters that this block accepts.
+     *
+     * @return the parameter set
+     */
+    public Set<Slot> getParameters() {
+        return parameters.keySet();
+    }
+
+    public BlockParameter getParameterValue(Slot slot) {
+        BlockParameter value = parameters.get(slot);
+        if (value == null) {
+            throw new IllegalArgumentException("No parameter named " + slot + " on " + this);
+        }
+        return value;
     }
 
     void setLoops(Set<Loop> loops) {
@@ -110,6 +130,15 @@ public final class BasicBlock {
 
     public int getIndex() {
         return index;
+    }
+
+    public StringBuilder toString(StringBuilder b) {
+        return b.append("bb").append(index);
+    }
+
+    @Override
+    public String toString() {
+        return toString(new StringBuilder()).toString();
     }
 
     public static final class Loop {
