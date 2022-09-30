@@ -31,7 +31,6 @@ public class RuntimeInitializingTypeBuilder implements DefinedTypeDefinition.Bui
         FeaturePatcher fp = FeaturePatcher.get(classContext.getCompilationContext());
         if (fp.isRuntimeInitializedClass(internalName)) {
             runtimeInitialized = true;
-            classContext.getCompilationContext().info("Initialization of %s deferred to runtime", internalName.replace('/', '.'));
         }
         delegate.setName(internalName);
     }
