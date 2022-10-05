@@ -486,10 +486,10 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachable);
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
-                                    GraalFeatureProcessor.process(compilationContext, graalFeatures, hostAppClassLoader);
+                                    QbiccFeatureProcessor.process(compilationContext, qbiccFeatures);
                                 });
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
-                                    QbiccFeatureProcessor.process(compilationContext, qbiccFeatures);
+                                    GraalFeatureProcessor.process(compilationContext, graalFeatures, hostAppClassLoader);
                                 });
                                 builder.addElementHandler(Phase.ADD, new ElementBodyCreator());
                                 builder.addElementHandler(Phase.ADD, new BuildTimeOnlyElementHandler());

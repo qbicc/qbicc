@@ -5,6 +5,7 @@ import org.qbicc.plugin.patcher.OnceRunTimeInitializerResolver;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.InitializerResolver;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -69,7 +70,11 @@ public class RuntimeInitializingTypeBuilder implements DefinedTypeDefinition.Bui
         public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
             InitializerElement rtInit = initResolver.resolveInitializer(initIndex, enclosing, InitializerElement.builder());
             builder.setRunTimeInitializer(rtInit);
-            return fieldResolver.resolveField(index, enclosing, builder);
+            FieldElement fieldElement = fieldResolver.resolveField(index, enclosing, builder);
+            if (fieldElement.isStatic()) {
+                fieldElement.setModifierFlags(ClassFile.I_ACC_RUN_TIME);
+            }
+            return fieldElement;
         }
     }
 }

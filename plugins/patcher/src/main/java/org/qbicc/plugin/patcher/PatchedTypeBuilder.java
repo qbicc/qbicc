@@ -336,7 +336,9 @@ final class PatchedTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
             InitializerElement rtInit = initInfo.getInitializerResolver().resolveInitializer(initInfo.getInitializerResolverIndex(), enclosing, InitializerElement.builder());
             builder.setRunTimeInitializer(rtInit);
             FieldElement fieldElement = fieldResolver.resolveField(index, enclosing, builder);
-            fieldElement.setModifierFlags(ClassFile.I_ACC_RUN_TIME);
+            if (fieldElement.isStatic()) {
+                fieldElement.setModifierFlags(ClassFile.I_ACC_RUN_TIME);
+            }
             return fieldElement;
         }
     }

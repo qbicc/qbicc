@@ -2,9 +2,6 @@ package org.qbicc.plugin.nativeimage;
 
 import org.graalvm.nativeimage.hosted.Feature;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.plugin.reachability.ReachabilityRoots;
-import org.qbicc.type.definition.LoadedTypeDefinition;
-import org.qbicc.type.definition.element.FieldElement;
 
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
@@ -15,17 +12,16 @@ import java.util.function.Consumer;
 
 public class QbiccBeforeAnalysisAccess implements Feature.BeforeAnalysisAccess {
     final CompilationContext ctxt;
+    final QbiccRuntimeReflectionSupport qrrs;
 
-    QbiccBeforeAnalysisAccess(CompilationContext ctxt) {
+    QbiccBeforeAnalysisAccess(CompilationContext ctxt, QbiccRuntimeReflectionSupport qrrs) {
         this.ctxt = ctxt;
+        this.qrrs = qrrs;
     }
 
     @Override
     public void registerAsUsed(Class<?> type) {
-        LoadedTypeDefinition ltd = ClassMapper.mapClass(ctxt, type);
-        if (ltd != null) {
-            ReachabilityRoots.get(ctxt).registerReflectiveClass(ltd);
-        }
+        qrrs.registeredClasses.add(type);
     }
 
     @Override
@@ -37,18 +33,12 @@ public class QbiccBeforeAnalysisAccess implements Feature.BeforeAnalysisAccess {
 
     @Override
     public void registerAsAccessed(Field field) {
-        FieldElement fe = ClassMapper.mapField(ctxt, field);
-        if (fe != null) {
-            ReachabilityRoots.get(ctxt).registerReflectiveField(fe);
-        }
+        qrrs.registeredFields.add(field);
     }
 
     @Override
     public void registerAsUnsafeAccessed(Field field) {
-        FieldElement fe = ClassMapper.mapField(ctxt, field);
-        if (fe != null) {
-            ReachabilityRoots.get(ctxt).registerReflectiveField(fe);
-        }
+        qrrs.registeredFields.add(field);
     }
 
     @Override

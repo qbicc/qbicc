@@ -36,6 +36,7 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.plugin.intrinsics.InstanceIntrinsic;
 import org.qbicc.plugin.intrinsics.Intrinsics;
+import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
@@ -338,6 +339,7 @@ public class UnsafeIntrinsics {
             BaseTypeDescriptor.S, ts.getSignedInteger16Type(),
             BaseTypeDescriptor.I, ts.getSignedInteger32Type(),
             BaseTypeDescriptor.J, ts.getSignedInteger64Type(),
+            BaseTypeDescriptor.Z, ts.getUnsignedInteger8Type(),
             BaseTypeDescriptor.C, ts.getUnsignedInteger16Type(),
             BaseTypeDescriptor.F, ts.getFloat32Type(),
             BaseTypeDescriptor.D, ts.getFloat64Type(),
@@ -349,6 +351,7 @@ public class UnsafeIntrinsics {
             "Short", BaseTypeDescriptor.S,
             "Int", BaseTypeDescriptor.I,
             "Long", BaseTypeDescriptor.J,
+            "Boolean", BaseTypeDescriptor.Z,
             "Char", BaseTypeDescriptor.C,
             "Float", BaseTypeDescriptor.F,
             "Double", BaseTypeDescriptor.D,
@@ -406,6 +409,7 @@ public class UnsafeIntrinsics {
             BaseTypeDescriptor.S, ts.getSignedInteger16Type(),
             BaseTypeDescriptor.I, ts.getSignedInteger32Type(),
             BaseTypeDescriptor.J, ts.getSignedInteger64Type(),
+            BaseTypeDescriptor.Z, ts.getUnsignedInteger8Type(),
             BaseTypeDescriptor.C, ts.getUnsignedInteger16Type(),
             BaseTypeDescriptor.F, ts.getFloat32Type(),
             BaseTypeDescriptor.D, ts.getFloat64Type(),
@@ -417,6 +421,7 @@ public class UnsafeIntrinsics {
             "Short", BaseTypeDescriptor.S,
             "Int", BaseTypeDescriptor.I,
             "Long", BaseTypeDescriptor.J,
+            "Boolean", BaseTypeDescriptor.Z,
             "Char", BaseTypeDescriptor.C,
             "Float", BaseTypeDescriptor.F,
             "Double", BaseTypeDescriptor.D,
@@ -436,6 +441,10 @@ public class UnsafeIntrinsics {
                     Value obj = arguments.get(0);
                     Value offset = arguments.get(1);
                     Value value = arguments.get(2);
+                    if (typeNameAndDesc.getValue().equals(BaseTypeDescriptor.Z)) {
+                        value = builder.select(value, ctxt.getLiteralFactory().literalOf((IntegerType) valueType, 1),
+                            ctxt.getLiteralFactory().literalOf((IntegerType) valueType, 0));
+                    }
                     ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, valueType);
                     builder.store(handle, value, suffixAndMode.getValue());
                     return voidLiteral;
