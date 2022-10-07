@@ -94,7 +94,12 @@ final class CompilationContextImpl implements CompilationContext {
     private final Consumer<ClassContext> classContextListener;
     private final Section implicitSection = addSection(IMPLICIT_SECTION_NAME, 0, Segment.DATA);
 
-    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory, BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder, BiFunction<ClassContext, String, byte[]> bootstrapResourceFinder, BiFunction<ClassContext, String, List<byte[]>> bootstrapResourcesFinder, BiFunction<ClassContext, String, DefinedTypeDefinition> appFinder, BiFunction<ClassContext, String, byte[]> appResourceFinder, BiFunction<ClassContext, String, List<byte[]>> appResourcesFinder, Function<CompilationContext, Vm> vmFactory, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories, List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories, NativeMethodConfigurator nativeMethodConfigurator, Consumer<ClassContext> classContextListener) {
+    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory,
+                           BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder, BiFunction<ClassContext, String, byte[]> bootstrapResourceFinder, BiFunction<ClassContext, String, List<byte[]>> bootstrapResourcesFinder,
+                           BiFunction<ClassContext, String, DefinedTypeDefinition> appFinder, BiFunction<ClassContext, String, byte[]> appResourceFinder, BiFunction<ClassContext, String, List<byte[]>> appResourcesFinder,
+                           Function<CompilationContext, Vm> vmFactory, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories,
+                           List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories,
+                           NativeMethodConfigurator nativeMethodConfigurator, Consumer<ClassContext> classContextListener) {
         this.baseDiagnosticContext = baseDiagnosticContext;
         this.platform = platform;
         this.typeSystem = typeSystem;
@@ -103,7 +108,7 @@ final class CompilationContextImpl implements CompilationContext {
         this.resolverFactories = resolverFactories;
         this.classContextListener = classContextListener;
         bootstrapClassContext = new ClassContextImpl(this, null, bootstrapFinder, bootstrapResourceFinder, bootstrapResourcesFinder);
-        appClassContextFactory = cl -> new ClassContextImpl(this, cl, appFinder, appResourceFinder, bootstrapResourcesFinder);
+        appClassContextFactory = cl -> new ClassContextImpl(this, cl, appFinder, appResourceFinder, appResourcesFinder);
         this.typeBuilderFactories = typeBuilderFactories;
         this.nativeMethodConfigurator = nativeMethodConfigurator;
         handleNewClassContext(bootstrapClassContext);
