@@ -301,8 +301,8 @@ public class Driver implements Closeable {
                 classContext.defineClass(name, def);
                 return def;
             } catch (Exception e) {
-                log.warnf(e, "An exception was thrown while loading class \"%s\" from the bootstrap loader", name);
-                classContext.getCompilationContext().warning("Failed to load class \"%s\" from the bootstrap loader due to an exception: %s", name, e);
+                log.warnf(e, "An exception was thrown while loading class \"%s\"", name);
+                classContext.getCompilationContext().warning("Failed to load class \"%s\" due to an exception: %s", name, e);
                 return null;
             }
         }
@@ -321,8 +321,8 @@ public class Driver implements Closeable {
                 buffer.get(bytes);
                 return bytes;
             } catch (Exception e) {
-                log.warnf(e, "An exception was thrown while loading resource \"%s\" from the bootstrap loader", name);
-                classContext.getCompilationContext().warning("Failed to load resource \"%s\" from the bootstrap loader due to an exception: %s", name, e);
+                log.warnf(e, "An exception was thrown while loading resource \"%s\"", name);
+                classContext.getCompilationContext().warning("Failed to load resource \"%s\" due to an exception: %s", name, e);
                 return null;
             }
         }
@@ -342,8 +342,8 @@ public class Driver implements Closeable {
                 buffer.get(bytes);
                 list.add(bytes);
             } catch (Exception e) {
-                log.warnf(e, "An exception was thrown while loading resource \"%s\" from the bootstrap loader", name);
-                classContext.getCompilationContext().warning("Failed to load resource \"%s\" from the bootstrap loader due to an exception: %s", name, e);
+                log.warnf(e, "An exception was thrown while loading resource \"%s\"", name);
+                classContext.getCompilationContext().warning("Failed to load resource \"%s\" due to an exception: %s", name, e);
                 // might as well continue though
             }
         }
