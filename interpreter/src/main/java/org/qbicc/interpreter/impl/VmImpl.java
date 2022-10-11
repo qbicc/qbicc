@@ -432,8 +432,7 @@ public final class VmImpl implements Vm {
             final VmClassImpl systemClass = bootstrapClassLoader.loadClass("java/lang/System");
             registerHooks(systemClass, HooksForSystem.class, lookup());
             // Runtime
-            VmClassImpl runtimeClass = bootstrapClassLoader.loadClass("java/lang/Runtime");
-            runtimeClass.registerInvokable("availableProcessors", (thread, target, args) -> Integer.valueOf(Runtime.getRuntime().availableProcessors()));
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/Runtime"), HooksForRuntime.class, lookup());
 
             //jdk.internal.util.SystemProps.initProperties
             VmClassImpl systemPropsRawClass = bootstrapClassLoader.loadClass("jdk/internal/util/SystemProps$Raw");
