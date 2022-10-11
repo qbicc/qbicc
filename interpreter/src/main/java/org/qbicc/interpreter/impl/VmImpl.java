@@ -433,20 +433,8 @@ public final class VmImpl implements Vm {
             registerHooks(bootstrapClassLoader.loadClass("java/lang/Runtime"), HooksForRuntime.class, lookup());
             // SystemProps$Raw
             registerHooks(bootstrapClassLoader.loadClass("jdk/internal/util/SystemProps$Raw"), HooksForSystemPropsRaw.class, lookup());
-
-            //    private static native void initStackTraceElements(StackTraceElement[] elements,
-            //                                                      Throwable x);
-
             // StackTraceElement
-            VmClassImpl stackTraceElementClass = bootstrapClassLoader.loadClass("java/lang/StackTraceElement");
-
-            stackTraceElementClass.registerInvokable("initStackTraceElements", (thread, target, args) -> {
-                VmArrayImpl stackTrace = (VmArrayImpl) args.get(0);
-                VmThrowableImpl throwable = (VmThrowableImpl) args.get(1);
-                throwable.initStackTraceElements(stackTrace);
-                return null;
-            });
-
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/StackTraceElement"), HooksForStackTraceElement.class, lookup());
             // StrictMath
             VmClassImpl strictMathClass = bootstrapClassLoader.loadClass("java/lang/StrictMath");
             strictMathClass.registerInvokable("sin", ((thread, target, args) -> Double.valueOf(StrictMath.sin(((Double) args.get(0)).doubleValue()))));
