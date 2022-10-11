@@ -442,15 +442,9 @@ public final class VmImpl implements Vm {
             registerHooks(stringClass, HooksForString.class, lookup());
             // Thread
             registerHooks(bootstrapClassLoader.loadClass("java/lang/Thread"), HooksForThread.class, lookup());
-
-            // Throwable
+            // Throwable (we use the class object later)
             VmClassImpl throwableClass = bootstrapClassLoader.loadClass("java/lang/Throwable");
-
-            idx = throwableClass.getTypeDefinition().findSingleMethodIndex(me -> me.nameEquals("fillInStackTrace") && me.getParameters().size() == 1);
-            throwableClass.registerInvokable(throwableClass.getTypeDefinition().getMethod(idx), (thread, target, args) -> {
-                ((VmThrowableImpl)target).fillInStackTrace();
-                return target;
-            });
+            registerHooks(throwableClass, HooksForThrowable.class, lookup());
 
             // Class
             VmClassImpl classClass = bootstrapClassLoader.loadClass("java/lang/Class");
