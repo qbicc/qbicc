@@ -449,21 +449,8 @@ public final class VmImpl implements Vm {
             registerHooks(classClass, HooksForClass.class, lookup());
             // ClassLoader
             registerHooks(bootstrapClassLoader.loadClass("java/lang/ClassLoader"), HooksForClassLoader.class, lookup());
-
-            VmClassImpl builtinLoader = bootstrapClassLoader.loadClass("jdk/internal/loader/BuiltinClassLoader");
-            builtinLoader.registerInvokable("findClassOnClassPathOrNull", (thread, target, args) -> {
-                VmString name = fixClassname((VmString) args.get(0));
-                VmClassLoaderImpl cl =(VmClassLoaderImpl) target;
-                DefinedTypeDefinition definedType = cl.getClassContext().findDefinedType(name.getContent());
-                if (definedType == null) {
-                    return null;
-                }
-                try {
-                    return definedType.load().getVmClass();
-                } catch (Exception e) {
-                    return null;
-                }
-            });
+            // BuiltinClassLoader
+            registerHooks(bootstrapClassLoader.loadClass("jdk/internal/loader/BuiltinClassLoader"), HooksForBuiltinClassLoader.class, lookup());
 
             // Module
             VmClassImpl moduleClass = bootstrapClassLoader.loadClass("java/lang/Module");
