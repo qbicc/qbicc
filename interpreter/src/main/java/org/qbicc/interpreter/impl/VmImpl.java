@@ -2,7 +2,6 @@ package org.qbicc.interpreter.impl;
 
 import static java.lang.invoke.MethodHandles.lookup;
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
-import static org.qbicc.graph.atomic.AccessModes.SingleRelease;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -448,60 +447,8 @@ public final class VmImpl implements Vm {
             // Class (we use the class object later)
             VmClassImpl classClass = bootstrapClassLoader.loadClass("java/lang/Class");
             registerHooks(classClass, HooksForClass.class, lookup());
-
-            VmClassImpl classloaderClass = bootstrapClassLoader.loadClass("java/lang/ClassLoader");
-            classloaderClass.registerInvokable("defineClass1", (thread, target, args) -> {
-                VmClassLoaderImpl classLoader = (VmClassLoaderImpl) args.get(0);
-                VmString name = fixClassname((VmString) args.get(1));
-                VmByteArrayImpl b = (VmByteArrayImpl) args.get(2);
-                int off = (Integer) args.get(3);
-                int len = (Integer) args.get(4);
-                VmObject pd = (VmObject) args.get(5);
-                VmString source = (VmString) args.get(6);
-                if (off != 0 || len != b.getLength()) {
-                    b = b.copyOfRange(off, len);
-                }
-                if (classLoader == null) {
-                    classLoader = bootstrapClassLoader;
-                }
-                return classLoader.defineClass(name, b, pd);
-            });
-            FieldElement classDataField = classClass.getTypeDefinition().findField("classData");
-            classloaderClass.registerInvokable("defineClass0", (thread, target, args) -> {
-                VmClassLoaderImpl classLoader = (VmClassLoaderImpl) args.get(0);
-                VmClassImpl lookup = (VmClassImpl) args.get(1);
-                VmString name = fixClassname((VmString) args.get(2));
-                VmByteArrayImpl b = (VmByteArrayImpl) args.get(3);
-                int off = ((Integer) args.get(4)).intValue();
-                int len = ((Integer) args.get(5)).intValue();
-                int flags = ((Integer) args.get(8)).intValue();
-                VmObject data = (VmObject) args.get(9);
-                if (off != 0 || len != b.getLength()) {
-                    b = b.copyOfRange(off, len);
-                }
-                if (classLoader == null) {
-                    classLoader = bootstrapClassLoader;
-                }
-                boolean nestMate = (flags & 1) != 0;
-                boolean hidden = (flags & 2) != 0;
-                VmClassImpl defined = classLoader.defineClass(name, b, hidden);
-                if (nestMate) {
-                    VmClassImpl host = lookup.getNestHost();
-                    host.addNestMember(defined);
-                    defined.setNestHost(host);
-                }
-                defined.getMemory().storeRef(defined.indexOf(classDataField), data, SingleRelease);
-                return defined;
-            });
-            classloaderClass.registerInvokable("findBootstrapClass", (thread, target, args) -> {
-                DefinedTypeDefinition definedType = ctxt.getBootstrapClassContext().findDefinedType(((VmString) args.get(0)).getContent().replace('.', '/'));
-                return definedType == null ? null : definedType.load().getVmClass();
-            });
-            classloaderClass.registerInvokable("findLoadedClass0", (thread, target, args) -> {
-                VmClassLoaderImpl classLoader = (VmClassLoaderImpl) target;
-                VmString name = (VmString) args.get(0);
-                return classLoader.findLoadedClass(name.getContent());
-            });
+            // ClassLoader
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/ClassLoader"), HooksForClassLoader.class, lookup());
 
             VmClassImpl builtinLoader = bootstrapClassLoader.loadClass("jdk/internal/loader/BuiltinClassLoader");
             builtinLoader.registerInvokable("findClassOnClassPathOrNull", (thread, target, args) -> {
@@ -683,7 +630,7 @@ public final class VmImpl implements Vm {
     }
 
     // Convert '.' to '/' matching the functionality of fixClassname in the JDK's check_classname.c
-    private VmString fixClassname(VmString name) {
+    VmString fixClassname(VmString name) {
         String n = name.getContent();
         if (n.indexOf('.') == -1) {
             return name;
