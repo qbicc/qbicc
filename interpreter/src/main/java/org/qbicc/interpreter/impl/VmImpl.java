@@ -436,23 +436,7 @@ public final class VmImpl implements Vm {
             // StackTraceElement
             registerHooks(bootstrapClassLoader.loadClass("java/lang/StackTraceElement"), HooksForStackTraceElement.class, lookup());
             // StrictMath
-            VmClassImpl strictMathClass = bootstrapClassLoader.loadClass("java/lang/StrictMath");
-            strictMathClass.registerInvokable("sin", ((thread, target, args) -> Double.valueOf(StrictMath.sin(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("cos", ((thread, target, args) -> Double.valueOf(StrictMath.cos(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("tan", ((thread, target, args) -> Double.valueOf(StrictMath.tan(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("asin", ((thread, target, args) -> Double.valueOf(StrictMath.asin(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("acos", ((thread, target, args) -> Double.valueOf(StrictMath.acos(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("atan", ((thread, target, args) -> Double.valueOf(StrictMath.atan(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("log", ((thread, target, args) -> Double.valueOf(StrictMath.log(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("log10", ((thread, target, args) -> Double.valueOf(StrictMath.log10(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("sqrt", ((thread, target, args) -> Double.valueOf(StrictMath.sqrt(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("IEEEremainder", ((thread, target, args) -> Double.valueOf(StrictMath.IEEEremainder(((Double) args.get(0)).doubleValue(), ((Double) args.get(1)).doubleValue()))));
-            strictMathClass.registerInvokable("atan2", ((thread, target, args) -> Double.valueOf(StrictMath.atan2(((Double) args.get(0)).doubleValue(), ((Double) args.get(1)).doubleValue()))));
-            strictMathClass.registerInvokable("sinh", ((thread, target, args) -> Double.valueOf(StrictMath.sinh(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("cosh", ((thread, target, args) -> Double.valueOf(StrictMath.cosh(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("tanh", ((thread, target, args) -> Double.valueOf(StrictMath.tanh(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("expm1", ((thread, target, args) -> Double.valueOf(StrictMath.expm1(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("log1p", ((thread, target, args) -> Double.valueOf(StrictMath.log1p(((Double) args.get(0)).doubleValue()))));
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/StrictMath"), HooksForStrictMath.class, lookup());
 
             // String
             VmClassImpl stringClass = bootstrapClassLoader.loadClass("java/lang/String");
