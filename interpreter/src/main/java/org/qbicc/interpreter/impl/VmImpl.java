@@ -440,17 +440,8 @@ public final class VmImpl implements Vm {
             // String (we use the class object later)
             VmClassImpl stringClass = bootstrapClassLoader.loadClass("java/lang/String");
             registerHooks(stringClass, HooksForString.class, lookup());
-
             // Thread
-            VmClassImpl threadNativeClass = bootstrapClassLoader.loadClass("java/lang/Thread");
-            threadNativeClass.registerInvokable("yield", (thread, target, args) -> {
-                Thread.yield();
-                return null;
-            });
-            threadNativeClass.registerInvokable("start", (thread, target, args) -> {
-                startedThreads.add(vmThread);
-                return null;
-            });
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/Thread"), HooksForThread.class, lookup());
 
             // Throwable
             VmClassImpl throwableClass = bootstrapClassLoader.loadClass("java/lang/Throwable");
