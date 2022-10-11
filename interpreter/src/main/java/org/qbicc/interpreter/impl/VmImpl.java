@@ -428,33 +428,9 @@ public final class VmImpl implements Vm {
             registerHooks(bootstrapClassLoader.loadClass("org/qbicc/runtime/main/CompilerIntrinsics"), HooksForCompilerIntrinsics.class, lookup());
             // Unsafe
             registerHooks(bootstrapClassLoader.loadClass("jdk/internal/misc/Unsafe"), HooksForUnsafe.class, lookup());
-            // System
-            VmClassImpl systemClass = bootstrapClassLoader.loadClass("java/lang/System");
-
-            systemClass.registerInvokable("nanoTime", (thread, target, args) -> Long.valueOf(System.nanoTime()));
-            systemClass.registerInvokable("currentTimeMillis", (thread, target, args) -> Long.valueOf(System.currentTimeMillis()));
-            systemClass.registerInvokable("arraycopy", (thread, target, args) -> {
-                try {
-                    Object src = ((VmArray) args.get(0)).getArray();
-                    int srcPos = ((Integer) args.get(1)).intValue();
-                    Object dest = ((VmArray) args.get(2)).getArray();
-                    int destPos = ((Integer) args.get(3)).intValue();
-                    int length = ((Integer) args.get(4)).intValue();
-                    //noinspection SuspiciousSystemArraycopy
-                    System.arraycopy(src, srcPos, dest, destPos, length);
-                } catch (ClassCastException ex) {
-                    VmThrowableClassImpl exClass = (VmThrowableClassImpl) bootstrapClassLoader.loadClass("java/lang/ClassCastException");
-                    throw new Thrown(exClass.newInstance());
-                } catch (ArrayStoreException ex) {
-                    VmThrowableClassImpl exClass = (VmThrowableClassImpl) bootstrapClassLoader.loadClass("java/lang/ArrayStoreException");
-                    throw new Thrown(exClass.newInstance());
-                } catch (NullPointerException ex) {
-                    VmThrowableClassImpl exClass = (VmThrowableClassImpl) bootstrapClassLoader.loadClass("java/lang/NullPointerException");
-                    throw new Thrown(exClass.newInstance());
-                }
-                return null;
-            });
-
+            // System (we use the class object later)
+            final VmClassImpl systemClass = bootstrapClassLoader.loadClass("java/lang/System");
+            registerHooks(systemClass, HooksForSystem.class, lookup());
             // Runtime
             VmClassImpl runtimeClass = bootstrapClassLoader.loadClass("java/lang/Runtime");
             runtimeClass.registerInvokable("availableProcessors", (thread, target, args) -> Integer.valueOf(Runtime.getRuntime().availableProcessors()));
