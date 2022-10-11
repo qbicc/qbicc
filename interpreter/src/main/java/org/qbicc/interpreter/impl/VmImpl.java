@@ -451,31 +451,8 @@ public final class VmImpl implements Vm {
             registerHooks(bootstrapClassLoader.loadClass("java/lang/ClassLoader"), HooksForClassLoader.class, lookup());
             // BuiltinClassLoader
             registerHooks(bootstrapClassLoader.loadClass("jdk/internal/loader/BuiltinClassLoader"), HooksForBuiltinClassLoader.class, lookup());
-
             // Module
-            VmClassImpl moduleClass = bootstrapClassLoader.loadClass("java/lang/Module");
-            FieldElement moduleLoaderField = moduleClass.getTypeDefinition().findField("loader", true);
-            moduleClass.registerInvokable("defineModule0", (thread, target, args) -> {
-                VmObjectImpl module = (VmObjectImpl) args.get(0);
-                boolean isOpen = ((Boolean) args.get(1)).booleanValue();
-                VmStringImpl versionObj = (VmStringImpl) args.get(2);
-                VmStringImpl locationObj = (VmStringImpl) args.get(3);
-                VmRefArrayImpl packageNames = (VmRefArrayImpl) args.get(4);
-                VmClassLoaderImpl loader = (VmClassLoaderImpl) module.getMemory().loadRef(moduleClass.indexOf(moduleLoaderField), SinglePlain);
-                if (loader == null) {
-                    loader = bootstrapClassLoader;
-                }
-                for (VmObject vmObject : packageNames.getArray()) {
-                    VmStringImpl packageNameObj = (VmStringImpl) vmObject;
-                    String packageName = packageNameObj.getContent();
-                    loader.setModulePackage(packageName, module);
-                }
-                return null;
-            });
-            moduleClass.registerInvokable("addReads0", (thread, target, args) -> null);
-            moduleClass.registerInvokable("addExports0", (thread, target, args) -> null);
-            moduleClass.registerInvokable("addExportsToAll0", (thread, target, args) -> null);
-            moduleClass.registerInvokable("addExportsToAllUnnamed0", (thread, target, args) -> null);
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/Module"), HooksForModule.class, lookup());
 
             // Array
             VmClassImpl arrayClass = bootstrapClassLoader.loadClass("java/lang/reflect/Array");
