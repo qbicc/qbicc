@@ -451,6 +451,8 @@ public final class VmImpl implements Vm {
             registerHooks(bootstrapClassLoader.loadClass("java/lang/ClassLoader"), HooksForClassLoader.class, lookup());
             // BuiltinClassLoader
             registerHooks(bootstrapClassLoader.loadClass("jdk/internal/loader/BuiltinClassLoader"), HooksForBuiltinClassLoader.class, lookup());
+            // ServiceLoader
+            registerHooks(bootstrapClassLoader.loadClass("java/util/QbiccServiceLoaderSupport"), HooksForQbiccServiceLoaderSupport.class, lookup());
             // Module
             registerHooks(bootstrapClassLoader.loadClass("java/lang/Module"), HooksForModule.class, lookup());
             // Array
