@@ -422,12 +422,8 @@ public final class VmImpl implements Vm {
             registerHooks(bootstrapClassLoader.loadClass("java/lang/Object"), HooksForObject.class, lookup());
             // LockSupport
             registerHooks(bootstrapClassLoader.loadClass("java/util/concurrent/locks/LockSupport"), HooksForLockSupport.class, lookup());
-
             // VMHelpers
-            VmClassImpl vmHelpersClass = bootstrapClassLoader.loadClass("org/qbicc/runtime/main/VMHelpers");
-
-            vmHelpersClass.registerInvokable("getClassFromObject", 1, (thread, target, args) -> ((VmObjectImpl) args.get(0)).getVmClass());
-
+            registerHooks(bootstrapClassLoader.loadClass("org/qbicc/runtime/main/VMHelpers"), HooksForVMHelpers.class, lookup());
             // ObjectModel
             VmClassImpl compIntr = bootstrapClassLoader.loadClass("org/qbicc/runtime/main/CompilerIntrinsics");
 
