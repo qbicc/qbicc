@@ -1,15 +1,24 @@
 package org.qbicc.interpreter.impl;
 
-import static org.qbicc.graph.atomic.AccessModes.*;
+import static java.lang.invoke.MethodHandles.lookup;
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+import static org.qbicc.graph.atomic.AccessModes.SingleRelease;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -17,9 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 import java.util.zip.CRC32;
 
@@ -36,6 +43,7 @@ import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.interpreter.Hook;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Signal;
 import org.qbicc.interpreter.Thrown;
@@ -50,19 +58,18 @@ import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
-import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.interpreter.memory.MemoryFactory;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.plugin.apploader.AppClassLoader;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
-import org.qbicc.pointer.MemoryPointer;
-import org.qbicc.pointer.StaticFieldPointer;
+import org.qbicc.pointer.IntegerAsPointer;
+import org.qbicc.pointer.Pointer;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
@@ -75,9 +82,9 @@ import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
-import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -98,6 +105,8 @@ public final class VmImpl implements Vm {
     private final Consumer<VmObject> manualInitializers;
 
     final MemoryImpl emptyMemory;
+
+    final MethodHandle toPointerConversion;
 
     boolean bootstrapComplete;
 
@@ -181,6 +190,7 @@ public final class VmImpl implements Vm {
 
     VmImpl(final CompilationContext ctxt, Consumer<VmObject> manualInitializers) {
         this.ctxt = ctxt;
+        toPointerConversion = toPointerConversionRaw.bindTo(ctxt.getTypeSystem().getVoidType().getPointer());
         this.manualInitializers = manualInitializers;
         bootstrapComplete = false;
         // force all fields to be populated so the injections are visible to us
@@ -409,68 +419,7 @@ public final class VmImpl implements Vm {
             VmClassLoaderImpl bootstrapClassLoader = this.bootstrapClassLoader;
 
             // Object
-            VmClassImpl objectClass = bootstrapClassLoader.loadClass("java/lang/Object");
-
-            objectClass.registerInvokable("clone", (thread, target, args) -> {
-                VmClassImpl cloneableClass = bootstrapClassLoader.loadClass("java/lang/Cloneable");
-                if (!target.getVmClass().getTypeDefinition().isSubtypeOf(cloneableClass.getTypeDefinition())) {
-                    VmClassImpl cnse = bootstrapClassLoader.loadClass("java/lang/CloneNotSupportedException");
-                    VmThrowable throwable = manuallyInitialize((VmThrowable) cnse.newInstance());
-                    ((VmThreadImpl)thread).setThrown(throwable);
-                    throw new Thrown(throwable);
-                }
-                return ((VmObjectImpl)target).clone();
-            });
-            objectClass.registerInvokable("wait", 0, (thread, target, args) -> {
-                try {
-                    ((VmObjectImpl)target).getCondition().await();
-                } catch (IllegalMonitorStateException e) {
-                    throw new Thrown(illegalMonitorStateException.newInstance());
-                } catch (InterruptedException e) {
-                    throw new Thrown(interruptedException.newInstance());
-                }
-                return null;
-            });
-            objectClass.registerInvokable("wait", 1, (thread, target, args) -> {
-                try {
-                    ((VmObjectImpl)target).getCondition().await(((Long) args.get(0)).longValue(), TimeUnit.MILLISECONDS);
-                } catch (IllegalMonitorStateException e) {
-                    throw new Thrown(illegalMonitorStateException.newInstance());
-                } catch (InterruptedException e) {
-                    throw new Thrown(interruptedException.newInstance());
-                }
-                return null;
-            });
-            objectClass.registerInvokable("wait", 2, (thread, target, args) -> {
-                try {
-                    long millis = ((Long) args.get(0)).longValue();
-                    if ((((Integer) args.get(1)).intValue()) > 0 && millis < Long.MAX_VALUE) {
-                        millis++;
-                    }
-                    ((VmObjectImpl)target).getCondition().await(millis, TimeUnit.MILLISECONDS);
-                } catch (IllegalMonitorStateException e) {
-                    throw new Thrown(illegalMonitorStateException.newInstance());
-                } catch (InterruptedException e) {
-                    throw new Thrown(interruptedException.newInstance());
-                }
-                return null;
-            });
-            objectClass.registerInvokable("notify", (thread, target, args) -> {
-                try {
-                    ((VmObjectImpl)target).getCondition().signal();
-                } catch (IllegalMonitorStateException e) {
-                    throw new Thrown(illegalMonitorStateException.newInstance());
-                }
-                return null;
-            });
-            objectClass.registerInvokable("notifyAll", (thread, target, args) -> {
-                try {
-                    ((VmObjectImpl)target).getCondition().signalAll();
-                } catch (IllegalMonitorStateException e) {
-                    throw new Thrown(illegalMonitorStateException.newInstance());
-                }
-                return null;
-            });
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/Object"), HooksForObject.class, lookup());
 
             VmClassImpl lockSupportClass = bootstrapClassLoader.loadClass("java/util/concurrent/locks/LockSupport");
 
@@ -1293,6 +1242,161 @@ public final class VmImpl implements Vm {
         VmClassLoaderImpl loader = getClassLoaderForContext(classContext);
         VmClassImpl vmClass = loader.getOrDefineClass(enclosingType.load());
         vmClass.registerInvokable(element, invokable);
+    }
+
+    private static final MethodHandle listToArray;
+    private static final MethodHandle toPointerConversionRaw;
+    private static final MethodHandle toLongConversion;
+
+    static {
+        final MethodHandle lta;
+        final MethodHandle tpc;
+        final MethodHandle tlc;
+        try {
+            lta = lookup().unreflect(List.class.getMethod("toArray"));
+            tpc = lookup().unreflect(VmImpl.class.getDeclaredMethod("toPointerConversion", PointerType.class, Object.class));
+            tlc = lookup().unreflect(VmImpl.class.getDeclaredMethod("toLongConversion", Object.class));
+        } catch (IllegalAccessException | NoSuchMethodException e) {
+            throw new Error("Cannot initialize " + VmImpl.class, e);
+        }
+        listToArray = lta;
+        toPointerConversionRaw = tpc;
+        toLongConversion = tlc;
+    }
+
+    @Override
+    public void registerHooks(VmClass clazz, Class<?> hookClass, MethodHandles.Lookup lookup) throws IllegalArgumentException {
+        final LoadedTypeDefinition def = clazz.getTypeDefinition();
+        final Constructor<?>[] ctors = hookClass.getDeclaredConstructors();
+        if (ctors.length != 1) {
+            throw new IllegalArgumentException("Expected exactly one constructor");
+        }
+        final Constructor<?> ctor = ctors[0];
+        final List<Object> ctorArgs = new ArrayList<>(1);
+        for (Class<?> parameterType : ctor.getParameterTypes()) {
+            if (parameterType == Vm.class || parameterType == VmImpl.class) {
+                ctorArgs.add(this);
+            } else {
+                throw new IllegalArgumentException("Invalid argument of " + parameterType + " on constructor of " + hookClass);
+            }
+        }
+        final Method[] methods = hookClass.getDeclaredMethods();
+        final Object instance;
+        try {
+            instance = ctor.newInstance(ctorArgs.toArray());
+        } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
+            throw new IllegalArgumentException("Unable to instantiate hook object", e);
+        }
+        for (Method method : methods) {
+            final Hook hook = method.getAnnotation(Hook.class);
+            if (hook != null) {
+                String name = hook.name();
+                String finalName = name.isEmpty() ? method.getName() : name;
+                String descStr = hook.descriptor();
+                final InvokableElement me;
+                if (descStr.isEmpty()) {
+                    if (name.equals("<init>")) {
+                        me = def.requireSingleConstructor(ce -> true);
+                    } else {
+                        me = def.requireSingleMethod(finalName);
+                    }
+                } else {
+                    MethodDescriptor md = MethodDescriptor.parse(def.getContext(), ByteBuffer.wrap(descStr.getBytes(StandardCharsets.UTF_8)));
+                    if (name.equals("<init>")) {
+                        me = def.requireSingleConstructor(ce -> ce.getDescriptor().equals(md));
+                    } else {
+                        me = def.requireSingleMethod(m -> m.nameEquals(finalName) && m.getDescriptor().equals(md));
+                    }
+                }
+                try {
+                    final boolean hookIsStatic = Modifier.isStatic(method.getModifiers());
+                    final MethodHandle handle = lookup.unreflect(method);
+                    // adapt to VmInvokable; in the future we won't do this anymore (we'll call directly instead)
+                    // we can't use the lambda metafactory unfortunately because we bind arguments
+                    MethodHandle mappedHandle = mapHandleToInvokableForm(me.isStatic(), hookIsStatic, handle);
+                    MethodHandle finalMappedHandle = hookIsStatic ? mappedHandle : mappedHandle.bindTo(instance);
+                    VmInvokable inv = (thread, target, args) -> {
+                        try {
+                            return finalMappedHandle.invokeExact(thread, target, args);
+                        } catch (Thrown t) {
+                            throw t;
+                        } catch (Throwable e) {
+                            throw new Thrown(errorClass.newInstance("Internal error in interpreter hook: " + e));
+                        }
+                    };
+                    registerInvokable(me, inv);
+                } catch (Error e) {
+                    throw e;
+                } catch (Throwable e) {
+                    throw new IllegalArgumentException("Unable to register hook method " + method, e);
+                }
+            }
+        }
+    }
+
+    private MethodHandle mapHandleToInvokableForm(boolean targetIsStatic, boolean hookIsStatic, MethodHandle hookHandle) {
+        // Four forms:
+        // static xxx hook(thread, args...)
+        // static xxx hook(thread, this, args...)
+        // xxx hook(<instance>, thread, args...)
+        // xxx hook(<instance>, thread, this, args...)
+        int pos = hookIsStatic ? 2 : 3;
+        hookHandle = hookHandle.asType(hookHandle.type().changeParameterType(pos - 2, VmThread.class));
+        if (targetIsStatic) {
+            // insert a {@code null} receiver
+            hookHandle = MethodHandles.dropArguments(hookHandle, pos - 1, VmObject.class);
+        } else {
+            hookHandle = hookHandle.asType(hookHandle.type().changeParameterType(pos - 1, VmObject.class));
+        }
+        // we have to go backwards step by step from the user hook type towards VmInvokable
+        // transform any pointer or long-typed arguments
+        hookHandle = fixUpArguments(hookHandle, hookHandle.type(), pos);
+        // this covers the array->positional arguments part
+        hookHandle = hookHandle.asSpreader(pos, Object[].class, hookHandle.type().parameterCount() - pos);
+        // this covers the list->array part
+        hookHandle = MethodHandles.filterArguments(hookHandle, pos, listToArray);
+        // transform the return type
+        hookHandle = hookHandle.asType(hookHandle.type().changeReturnType(Object.class));
+        // and that's it
+        return hookHandle;
+    }
+
+    private MethodHandle fixUpArguments(MethodHandle handle, MethodType type, int idx) {
+        if (idx == type.parameterCount()) {
+            return handle;
+        }
+        final Class<?> pType = type.parameterType(idx);
+        if (pType == long.class) {
+            // input may be a Pointer or a Long, so narrow it if needed
+            handle = MethodHandles.filterArguments(handle, idx, toLongConversion);
+        } else if (pType == Pointer.class) {
+            handle = MethodHandles.filterArguments(handle, idx, toPointerConversion);
+        }
+        return fixUpArguments(handle, type, idx + 1);
+    }
+
+    private static long toLongConversion(Object obj) {
+        if (obj instanceof Long l) {
+            return l.longValue();
+        } else if (obj instanceof IntegerAsPointer p) {
+            return p.getValue();
+        } else if (obj == null) {
+            throw new NullPointerException("Attempted conversion of a null pointer to " + Long.class.getName());
+        } else {
+            throw new ClassCastException("Cannot cast " + obj.getClass().getName() + " to " + Long.class.getName());
+        }
+    }
+
+    private static Pointer toPointerConversion(PointerType type, Object obj) {
+        if (obj instanceof Long l) {
+            return new IntegerAsPointer(type, l.longValue());
+        } else if (obj instanceof Pointer p) {
+            return p;
+        } else if (obj == null) {
+            return null;
+        } else {
+            throw new ClassCastException("Cannot cast " + obj.getClass().getName() + " to " + Pointer.class.getName());
+        }
     }
 
     @Override

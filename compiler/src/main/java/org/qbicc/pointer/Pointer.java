@@ -23,6 +23,10 @@ public abstract class Pointer {
         this.type = type;
     }
 
+    public long getValue() {
+        throw new IllegalArgumentException("Pointer does not have a value");
+    }
+
     public PointerType getType() {
         return type;
     }
