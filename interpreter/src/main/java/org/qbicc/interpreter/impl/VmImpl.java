@@ -459,9 +459,8 @@ public final class VmImpl implements Vm {
             registerHooks(bootstrapClassLoader.loadClass("jdk/internal/reflect/Reflection"), HooksForReflection.class, lookup());
             // OSEnvironment
             registerHooks(bootstrapClassLoader.loadClass("jdk/internal/misc/OSEnvironment"), HooksForOSEnvironment.class, lookup());
-
-            VmClassImpl unixDispatcher = bootstrapClassLoader.loadClass("sun/nio/fs/UnixNativeDispatcher");
-            unixDispatcher.registerInvokable("getcwd", (thread, target, args) -> newByteArray(System.getProperty("user.dir").getBytes()));
+            // UnixNativeDispatcher
+            registerHooks(bootstrapClassLoader.loadClass("sun/nio/fs/UnixNativeDispatcher"), HooksForUnixNativeDispatcher.class, lookup());
 
             // FileDescriptor
             VmClassImpl fdClass = bootstrapClassLoader.loadClass("java/io/FileDescriptor");
