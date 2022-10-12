@@ -47,6 +47,8 @@ public final class LLVM {
 
     public static final LLValue metadata = new MetadataType(null);
 
+    public static final LLValue label = new SingleWord("label");
+
     public static final LLValue ZERO = new IntConstant(0);
 
     public static final LLValue FALSE = new SingleWord("false");
