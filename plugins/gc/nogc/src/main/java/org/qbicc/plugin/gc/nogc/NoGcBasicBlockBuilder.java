@@ -5,6 +5,7 @@ import java.util.List;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -79,6 +80,11 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         Value oop = valueConvert(ptrVal, arrayType.getReference());
         BasicHeaderInitializer.initializeRefArrayHeader(ctxt, this, referenceHandle(oop), elemTypeId, dimensions, size);
         return oop;
+    }
+
+    public Node safePoint() {
+        // No safepoints in NoGC
+        return nop();
     }
 
     private Value allocateArray(CompoundType compoundType, Value size, long elementSize) {

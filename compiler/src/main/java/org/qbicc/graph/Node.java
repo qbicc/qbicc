@@ -380,6 +380,11 @@ public interface Node {
                 return copier.getBlockBuilder().reachable(copier.copyValue(node.getReachableValue()));
             }
 
+            public Node visit(Copier copier, SafePoint node) {
+                copier.copyNode(node.getDependency());
+                return copier.getBlockBuilder().safePoint();
+            }
+
             public Node visit(Copier param, InitCheck node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().initCheck(node.getInitializerElement(), param.copyValue(node.getInitThunk()));

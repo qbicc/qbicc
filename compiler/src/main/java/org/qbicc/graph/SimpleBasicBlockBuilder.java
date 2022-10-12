@@ -771,6 +771,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new Reachable(callSite, element, line, bci, requireDependency(), value));
     }
 
+    public Node safePoint() {
+        return asDependency(new SafePoint(callSite, element, line, bci, requireDependency()));
+    }
+
     public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
         // todo: this should be done in a separate BBB
         ExceptionHandler exceptionHandler = getExceptionHandler();
