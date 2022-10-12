@@ -5,18 +5,24 @@ import static org.qbicc.graph.atomic.AccessModes.*;
 import java.util.List;
 import java.util.Set;
 
+import org.qbicc.context.ClassContext;
+import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Locatable;
 import org.qbicc.context.Location;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.BlockLiteral;
+import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
+import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.StaticMethodType;
@@ -43,6 +49,42 @@ import org.qbicc.type.descriptor.TypeDescriptor;
  */
 public interface BasicBlockBuilder extends Locatable {
     // context
+
+    /**
+     * Get the class context of the current element.
+     *
+     * @return the class context (not {@code null})
+     */
+    default ClassContext getCurrentClassContext() {
+        return getCurrentElement().getEnclosingType().getContext();
+    }
+
+    /**
+     * Get the current compilation context.
+     *
+     * @return the compilation context (not {@code null})
+     */
+    default CompilationContext getContext() {
+        return getCurrentClassContext().getCompilationContext();
+    }
+
+    /**
+     * Get the literal factory.
+     *
+     * @return the literal factory (not {@code null})
+     */
+    default LiteralFactory getLiteralFactory() {
+        return getCurrentClassContext().getLiteralFactory();
+    }
+
+    /**
+     * Get the type system.
+     *
+     * @return the type system (not {@code null})
+     */
+    default TypeSystem getTypeSystem() {
+        return getCurrentClassContext().getTypeSystem();
+    }
 
     /**
      * Get the first builder in this chain.
@@ -159,6 +201,15 @@ public interface BasicBlockBuilder extends Locatable {
 
     // values
 
+    /**
+     * Get the empty {@code void} literal.
+     *
+     * @return the empty {@code void} literal (not {@code null})
+     */
+    default Literal emptyVoid() {
+        return getLiteralFactory().zeroInitializerLiteralOfType(getTypeSystem().getVoidType());
+    }
+
     ParameterValue parameter(ValueType type, String label, int index);
 
     Value offsetOfField(FieldElement fieldElement);
@@ -267,6 +318,38 @@ public interface BasicBlockBuilder extends Locatable {
      */
     Value classOf(Value typeId, Value dims);
 
+    default Value classOf(Value typeId) {
+        return classOf(typeId, getLiteralFactory().literalOf(getTypeSystem().getUnsignedInteger8Type(), 0));
+    }
+
+    default Value classOf(ClassObjectType cot) {
+        return classOf(getLiteralFactory().literalOfType(cot));
+    }
+
+    default Value classOf(InterfaceObjectType iot) {
+        return classOf(getLiteralFactory().literalOfType(iot));
+    }
+
+    default Value classOf(PrimitiveArrayObjectType aot) {
+        return classOf(getLiteralFactory().literalOfType(aot));
+    }
+
+    default Value classOf(ReferenceArrayObjectType aot) {
+        return classOf(getLiteralFactory().literalOfType(aot.getLeafElementType()), getLiteralFactory().literalOf(aot.getDimensionCount()));
+    }
+
+    default Value classOf(ArrayObjectType aot) {
+        return aot instanceof PrimitiveArrayObjectType pa ? classOf(pa) : classOf((ReferenceArrayObjectType) aot);
+    }
+
+    default Value classOf(PhysicalObjectType pot) {
+        return pot instanceof ClassObjectType cot ? classOf(cot) : classOf((ArrayObjectType) pot);
+    }
+
+    default Value classOf(ObjectType ot) {
+        return ot instanceof PhysicalObjectType pot ? classOf(pot) : classOf((InterfaceObjectType) ot);
+    }
+
     Value truncate(Value value, WordType toType);
 
     Value extend(Value value, WordType toType);
@@ -276,6 +359,10 @@ public interface BasicBlockBuilder extends Locatable {
     Value valueConvert(Value value, WordType toType);
 
     Value instanceOf(Value input, ObjectType expectedType, int expectedDimensions);
+
+    default Value instanceOf(Value input, ObjectType expectedType) {
+        return instanceOf(input, expectedType, 0);
+    }
 
     Value instanceOf(Value input, TypeDescriptor desc);
 
