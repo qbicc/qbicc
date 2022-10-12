@@ -467,41 +467,8 @@ public final class VmImpl implements Vm {
             registerHooks(bootstrapClassLoader.loadClass("java/lang/ProcessEnvironment"), HooksForProcessEnvironment.class, lookup());
             // Build
             registerHooks(bootstrapClassLoader.loadClass("org/qbicc/runtime/Build"), HooksForBuild.class, lookup());
-
             // CRC32
-            VmClassImpl crc32 = bootstrapClassLoader.loadClass("java/util/zip/CRC32");
-            crc32.registerInvokable("reset", (thread, target, args) -> {
-                VmObjectImpl t = (VmObjectImpl) target;
-                CRC32 crc = t.getOrAddAttachment(CRC32.class, CRC32::new);
-                crc.reset();
-                t.setIntField(crc32.getTypeDefinition(), "crc", 0);
-                return null;
-            });
-            crc32.registerInvokable("update", 3, (thread, target, args) -> {
-                VmObjectImpl t = (VmObjectImpl) target;
-                VmByteArrayImpl a = (VmByteArrayImpl) args.get(0);
-                int off = ((Integer) args.get(1)).intValue();
-                int len = ((Integer) args.get(2)).intValue();
-                CRC32 crc = t.getOrAddAttachment(CRC32.class, CRC32::new);
-                crc.update(a.getArray(), off, len);
-                t.setIntField(crc32.getTypeDefinition(), "crc", (int) crc.getValue());
-                return null;
-            });
-            crc32.registerInvokable("update", MethodDescriptor.synthesize(
-                bootstrapClassLoader.getClassContext(),
-                    BaseTypeDescriptor.V,
-                    List.of(BaseTypeDescriptor.I)
-                ),
-                (thread, target, args) -> {
-                    VmObjectImpl t = (VmObjectImpl) target;
-                    int val = ((Integer) args.get(0)).intValue() & 0xff;
-                    CRC32 crc = t.getOrAddAttachment(CRC32.class, CRC32::new);
-                    crc.update(val);
-                    t.setIntField(crc32.getTypeDefinition(), "crc", (int) crc.getValue());
-                    return null;
-                }
-            );
-
+            registerHooks(bootstrapClassLoader.loadClass("java/util/zip/CRC32"), HooksForCRC32.class, lookup());
             // RNG
             VmClassImpl seedGenerator = bootstrapClassLoader.loadClass("sun/security/provider/SeedGenerator");
             seedGenerator.registerInvokable("getSystemEntropy", (thread, target, args) ->
