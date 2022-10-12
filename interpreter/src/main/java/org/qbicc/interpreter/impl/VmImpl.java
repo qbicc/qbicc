@@ -463,23 +463,8 @@ public final class VmImpl implements Vm {
             registerHooks(bootstrapClassLoader.loadClass("sun/nio/fs/UnixNativeDispatcher"), HooksForUnixNativeDispatcher.class, lookup());
             // FileDescriptor
             registerHooks(bootstrapClassLoader.loadClass("java/io/FileDescriptor"), HooksForFileDescriptor.class, lookup());
-
             // ProcessEnvironment
-            VmClassImpl processEnvClass = bootstrapClassLoader.loadClass("java/lang/ProcessEnvironment");
-            processEnvClass.registerInvokable("getHostEnvironment", (thread, target, args) -> {
-                // todo: customize
-                VmReferenceArray array = (VmReferenceArray) stringClass.getArrayClass().newInstance(4);
-                VmObject[] arrayArray = array.getArray();
-                int i = 0;
-                for (String str : List.of(
-                    "TZ", TimeZone.getDefault().getDisplayName(),
-                    "LANG", Locale.getDefault().toLanguageTag() + "." + Charset.defaultCharset().name()
-                )) {
-                    arrayArray[i++] = intern(str);
-                }
-                return array;
-            });
-
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/ProcessEnvironment"), HooksForProcessEnvironment.class, lookup());
             // Build
             VmClassImpl build = bootstrapClassLoader.loadClass("org/qbicc/runtime/Build");
             build.registerInvokable("isHost", (thread, target, args) -> Boolean.TRUE);
