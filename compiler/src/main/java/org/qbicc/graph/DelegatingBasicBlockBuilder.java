@@ -371,6 +371,14 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().begin(blockLabel);
     }
 
+    public Node reachable(final Value value) {
+        return getDelegate().reachable(value);
+    }
+
+    public Node safePoint() {
+        return getDelegate().safePoint();
+    }
+
     public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
         return getDelegate().callNoReturn(target, arguments);
     }

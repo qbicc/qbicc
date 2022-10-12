@@ -84,6 +84,7 @@ import org.qbicc.graph.Or;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
+import org.qbicc.graph.Reachable;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Ret;
@@ -1971,6 +1972,12 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         if (heldLocks != null) {
             heldLocks.remove(lock);
         }
+        return null;
+    }
+
+    @Override
+    public Void visit(VmThreadImpl vmThread, Reachable node) {
+        // no operation needed because we aggressively keep values live
         return null;
     }
 
