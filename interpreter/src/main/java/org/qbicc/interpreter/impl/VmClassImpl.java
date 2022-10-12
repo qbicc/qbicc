@@ -55,7 +55,6 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
-import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
 import static org.qbicc.graph.atomic.AccessModes.*;
@@ -644,36 +643,12 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         return target;
     }
 
-    @Override
     public void registerInvokable(final ExecutableElement element, final VmInvokable invokable) {
         Assert.checkNotNullParam("invokable", invokable);
         synchronized (methodTable) {
             if (methodTable.putIfAbsent(element, invokable) != null) {
                 throw new IllegalStateException("Attempted to register an invokable for an already-compiled method");
             }
-        }
-    }
-
-    @Override
-    public void registerInvokable(String name, MethodDescriptor descriptor, VmInvokable invokable) throws IllegalStateException {
-        if (name.equals("<clinit>")) {
-            if (descriptor.equals(MethodDescriptor.VOID_METHOD_DESCRIPTOR)) {
-                registerInvokable(typeDefinition.getInitializer(), invokable);
-            } else {
-                throw new IllegalArgumentException("Invalid initializer descriptor " + descriptor + " on " + this);
-            }
-        } else if (name.equals("<init>")) {
-            int idx = typeDefinition.findConstructorIndex(descriptor);
-            if (idx == -1) {
-                throw new IllegalArgumentException("No constructor found with descriptor " + descriptor + " on " + this);
-            }
-            registerInvokable(typeDefinition.getConstructor(idx), invokable);
-        } else {
-            int idx = typeDefinition.findMethodIndex(name, descriptor);
-            if (idx == -1) {
-                throw new IllegalArgumentException("No method found with name \"" + name + "\" and descriptor " + descriptor + " on " + this);
-            }
-            registerInvokable(typeDefinition.getMethod(idx), invokable);
         }
     }
 
