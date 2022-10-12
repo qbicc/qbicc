@@ -455,21 +455,8 @@ public final class VmImpl implements Vm {
             registerHooks(bootstrapClassLoader.loadClass("java/lang/Module"), HooksForModule.class, lookup());
             // Array
             registerHooks(bootstrapClassLoader.loadClass("java/lang/reflect/Array"), HooksForArray.class, lookup());
-
-            VmClassImpl reflectClass = bootstrapClassLoader.loadClass("jdk/internal/reflect/Reflection");
-            reflectClass.registerInvokable("getCallerClass", (thread, target, args) -> {
-                Frame currentFrame = ((VmThreadImpl)thread).currentFrame;
-                Frame enclosing = currentFrame.enclosing;
-                while (enclosing.element.getEnclosingType().getInternalName().equals("java/lang/reflect/Method") || enclosing.element.hasAllModifiersOf(ClassFile.I_ACC_HIDDEN)) {
-                    enclosing = enclosing.enclosing;
-                }
-                DefinedTypeDefinition def = enclosing.element.getEnclosingType();
-                return def.load().getVmClass();
-            });
-            reflectClass.registerInvokable("getClassAccessFlags", (thread, target, args) -> {
-                VmClassImpl cls = (VmClassImpl)args.get(0);
-                return cls.getTypeDefinition().getModifiers() & 0x1FFF;
-            });
+            // Reflection
+            registerHooks(bootstrapClassLoader.loadClass("jdk/internal/reflect/Reflection"), HooksForReflection.class, lookup());
 
             // OSEnvironment
             VmClassImpl osEnvClass = bootstrapClassLoader.loadClass("jdk/internal/misc/OSEnvironment");
