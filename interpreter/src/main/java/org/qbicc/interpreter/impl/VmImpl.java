@@ -469,19 +469,8 @@ public final class VmImpl implements Vm {
             registerHooks(bootstrapClassLoader.loadClass("org/qbicc/runtime/Build"), HooksForBuild.class, lookup());
             // CRC32
             registerHooks(bootstrapClassLoader.loadClass("java/util/zip/CRC32"), HooksForCRC32.class, lookup());
-            // RNG
-            VmClassImpl seedGenerator = bootstrapClassLoader.loadClass("sun/security/provider/SeedGenerator");
-            seedGenerator.registerInvokable("getSystemEntropy", (thread, target, args) ->
-                thread.getVM().newByteArray(new SecureRandom().generateSeed(20))
-            );
-            seedGenerator.registerInvokable("generateSeed", (thread, target, args) -> {
-                VmByteArrayImpl bytes = (VmByteArrayImpl) args.get(0);
-                byte[] seed = new SecureRandom().generateSeed(bytes.getLength());
-                for (int i=0; i<seed.length; i++) {
-                    bytes.getArray()[i] = seed[i];
-                }
-                return null;
-            });
+            // SeedGenerator
+            registerHooks(bootstrapClassLoader.loadClass("sun/security/provider/SeedGenerator"), HooksForSeedGenerator.class, lookup());
 
             /////////////////
             // TODO: temporary workaround for var/method handle initialization
