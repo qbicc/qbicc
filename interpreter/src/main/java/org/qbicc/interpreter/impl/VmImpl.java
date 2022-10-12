@@ -471,17 +471,10 @@ public final class VmImpl implements Vm {
             registerHooks(bootstrapClassLoader.loadClass("java/util/zip/CRC32"), HooksForCRC32.class, lookup());
             // SeedGenerator
             registerHooks(bootstrapClassLoader.loadClass("sun/security/provider/SeedGenerator"), HooksForSeedGenerator.class, lookup());
-
-            /////////////////
-            // TODO: temporary workaround for var/method handle initialization
-            // Make access check methods always return true
-            VmClassImpl verifyAccess = bootstrapClassLoader.loadClass("sun/invoke/util/VerifyAccess");
-            verifyAccess.registerInvokable("isClassAccessible", (thread, target, args) -> Boolean.TRUE);
-            VmClassImpl lookup = bootstrapClassLoader.loadClass("java/lang/invoke/MethodHandles$Lookup");
-            lookup.registerInvokable("checkAccess", (thread, target, args) -> null);
-            lookup.registerInvokable("checkMethod", (thread, target, args) -> null);
-            lookup.registerInvokable("checkField", (thread, target, args) -> null);
-            // TODO: ↑ ↑ remove this ↑ ↑
+            // VerifyAccess
+            registerHooks(bootstrapClassLoader.loadClass("sun/invoke/util/VerifyAccess"), HooksForVerifyAccess.class, lookup());
+            // MethodHandles$Lookup
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/invoke/MethodHandles$Lookup"), HooksForMethodHandlesLookup.class, lookup());
 
             // Now execute system initialization
             LoadedTypeDefinition systemType = systemClass.getTypeDefinition();
