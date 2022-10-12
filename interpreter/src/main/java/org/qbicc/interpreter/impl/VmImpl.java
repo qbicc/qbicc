@@ -466,9 +466,7 @@ public final class VmImpl implements Vm {
             // ProcessEnvironment
             registerHooks(bootstrapClassLoader.loadClass("java/lang/ProcessEnvironment"), HooksForProcessEnvironment.class, lookup());
             // Build
-            VmClassImpl build = bootstrapClassLoader.loadClass("org/qbicc/runtime/Build");
-            build.registerInvokable("isHost", (thread, target, args) -> Boolean.TRUE);
-            build.registerInvokable("isTarget", (thread, target, args) -> Boolean.FALSE);
+            registerHooks(bootstrapClassLoader.loadClass("org/qbicc/runtime/Build"), HooksForBuild.class, lookup());
 
             // CRC32
             VmClassImpl crc32 = bootstrapClassLoader.loadClass("java/util/zip/CRC32");
