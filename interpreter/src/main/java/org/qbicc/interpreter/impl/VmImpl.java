@@ -453,14 +453,8 @@ public final class VmImpl implements Vm {
             registerHooks(bootstrapClassLoader.loadClass("jdk/internal/loader/BuiltinClassLoader"), HooksForBuiltinClassLoader.class, lookup());
             // Module
             registerHooks(bootstrapClassLoader.loadClass("java/lang/Module"), HooksForModule.class, lookup());
-
             // Array
-            VmClassImpl arrayClass = bootstrapClassLoader.loadClass("java/lang/reflect/Array");
-            arrayClass.registerInvokable("newArray", (thread, target, args) -> {
-                VmClassImpl componentType = (VmClassImpl)args.get(0);
-                int length = (Integer)args.get(1);
-                return manuallyInitialize(componentType.getArrayClass().newInstance(length));
-            });
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/reflect/Array"), HooksForArray.class, lookup());
 
             VmClassImpl reflectClass = bootstrapClassLoader.loadClass("jdk/internal/reflect/Reflection");
             reflectClass.registerInvokable("getCallerClass", (thread, target, args) -> {
