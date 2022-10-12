@@ -2675,12 +2675,28 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     private boolean unboxBool(final Value rightInput) {
         Object required = require(rightInput);
-        return required instanceof Number ? ((Number) required).byteValue() != 0 : ((Boolean)required).booleanValue();
+        if (required instanceof Number num) {
+            return num.byteValue() != 0;
+        } else if (required instanceof Boolean boo) {
+            return boo.booleanValue();
+        } else if (required instanceof Character ch) {
+            return (byte)ch.charValue() != 0;
+        } else {
+            throw unsupportedType();
+        }
     }
 
     private int unboxInt(final Value rightInput) {
         Object required = require(rightInput);
-        return required instanceof Boolean boo ? boo.booleanValue() ? 1 : 0 : ((Number) required).intValue();
+        if (required instanceof Boolean boo) {
+            return boo.booleanValue() ? 1 : 0;
+        } else if (required instanceof Number num) {
+            return num.intValue();
+        } else if (required instanceof Character ch) {
+            return ch.charValue();
+        } else {
+            throw unsupportedType();
+        }
     }
 
     private Pointer unboxPointer(final Value rightInput) {

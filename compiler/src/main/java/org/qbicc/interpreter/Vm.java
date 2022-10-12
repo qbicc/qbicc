@@ -1,5 +1,6 @@
 package org.qbicc.interpreter;
 
+import java.lang.invoke.MethodHandles;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.function.Consumer;
@@ -260,6 +261,36 @@ public interface Vm {
      * @param invokable the invokable (must not be {@code null})
      */
     void registerInvokable(ExecutableElement element, VmInvokable invokable);
+
+    /**
+     * Register invocation hooks for methods on an interpreted class.
+     * Any call to the original method will instead be redirected to the hook.
+     * <p>
+     * An instance of the given hook class will be constructed using its single constructor.
+     *
+     * @param clazz the class containing the methods to hook (must not be {@code null})
+     * @param hookClass the hook class (must not be {@code null})
+     * @param lookup a lookup that grants sufficient access to {@code hookClass} to be able to invoke all of its hook methods (must not be {@code null})
+     * @throws IllegalArgumentException if the hook methods do not match methods on {@code clazz},
+     *      if the hook class does not contain exactly one constructor,
+     *      or if the given {@code lookup} does not grant access to all the hook methods on the class
+     */
+    void registerHooks(VmClass clazz, Class<?> hookClass, MethodHandles.Lookup lookup) throws IllegalArgumentException;
+
+    /**
+     * Register invocation hooks for methods on an interpreted class in the manner of
+     * {@link #registerHooks(VmClass, Class, MethodHandles.Lookup)}, where
+     * the hook methods and constructor must be {@code public}.
+     *
+     * @param clazz the class containing the methods to hook (must not be {@code null})
+     * @param hookClass the hook class (must not be {@code null})
+     * @throws IllegalArgumentException if the hook methods do not match methods on {@code clazz},
+     *      if the hook class does not contain exactly one public constructor,
+     *      or if any of the hook methods on the class are non-public
+     */
+    default void registerHooks(VmClass clazz, Class<?> hookClass) throws IllegalArgumentException {
+        registerHooks(clazz, hookClass, MethodHandles.publicLookup());
+    }
 
     /**
      * Get the primitive class for the given primitive identifier.

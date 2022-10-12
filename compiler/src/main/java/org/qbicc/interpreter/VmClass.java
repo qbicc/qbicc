@@ -48,25 +48,6 @@ public interface VmClass extends VmObject {
 
     Memory getStaticMemory();
 
-    /**
-     * Register an overriding {@code VmInvokable} for the given element.
-     *
-     * @param element the element to override (must not be {@code null})
-     * @param invokable the invokable to call (must not be {@code null})
-     * @throws IllegalStateException if the method was already compiled for interpretation
-     */
-    void registerInvokable(ExecutableElement element, VmInvokable invokable) throws IllegalStateException;
-
-    /**
-     * Register an overriding {@code VmInvokable} for the given element.
-     *
-     * @param name the name of the method or initializer to override (must not be {@code null})
-     * @param descriptor the descriptor of the method or initializer to override (must not be {@code null})
-     * @param invokable the invokable to call (must not be {@code null})
-     * @throws IllegalStateException if the method was already compiled for interpretation
-     */
-    void registerInvokable(String name, MethodDescriptor descriptor, VmInvokable invokable) throws IllegalStateException;
-
     TypeDescriptor getDescriptor();
 
     boolean isAssignableFrom(VmClass other);

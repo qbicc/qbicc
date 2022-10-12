@@ -1,15 +1,22 @@
 package org.qbicc.interpreter.impl;
 
-import static org.qbicc.graph.atomic.AccessModes.*;
+import static java.lang.invoke.MethodHandles.lookup;
+import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
-import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -17,9 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 import java.util.zip.CRC32;
 
@@ -36,6 +41,7 @@ import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.interpreter.Hook;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Signal;
 import org.qbicc.interpreter.Thrown;
@@ -50,19 +56,17 @@ import org.qbicc.interpreter.VmPrimitiveClass;
 import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
-import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.interpreter.memory.MemoryFactory;
-import org.qbicc.machine.arch.Platform;
 import org.qbicc.plugin.apploader.AppClassLoader;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
-import org.qbicc.pointer.MemoryPointer;
-import org.qbicc.pointer.StaticFieldPointer;
+import org.qbicc.pointer.IntegerAsPointer;
+import org.qbicc.pointer.Pointer;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
@@ -75,9 +79,9 @@ import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
-import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -98,6 +102,8 @@ public final class VmImpl implements Vm {
     private final Consumer<VmObject> manualInitializers;
 
     final MemoryImpl emptyMemory;
+
+    final MethodHandle toPointerConversion;
 
     boolean bootstrapComplete;
 
@@ -181,6 +187,7 @@ public final class VmImpl implements Vm {
 
     VmImpl(final CompilationContext ctxt, Consumer<VmObject> manualInitializers) {
         this.ctxt = ctxt;
+        toPointerConversion = toPointerConversionRaw.bindTo(ctxt.getTypeSystem().getVoidType().getPointer());
         this.manualInitializers = manualInitializers;
         bootstrapComplete = false;
         // force all fields to be populated so the injections are visible to us
@@ -409,610 +416,65 @@ public final class VmImpl implements Vm {
             VmClassLoaderImpl bootstrapClassLoader = this.bootstrapClassLoader;
 
             // Object
-            VmClassImpl objectClass = bootstrapClassLoader.loadClass("java/lang/Object");
-
-            objectClass.registerInvokable("clone", (thread, target, args) -> {
-                VmClassImpl cloneableClass = bootstrapClassLoader.loadClass("java/lang/Cloneable");
-                if (!target.getVmClass().getTypeDefinition().isSubtypeOf(cloneableClass.getTypeDefinition())) {
-                    VmClassImpl cnse = bootstrapClassLoader.loadClass("java/lang/CloneNotSupportedException");
-                    VmThrowable throwable = manuallyInitialize((VmThrowable) cnse.newInstance());
-                    ((VmThreadImpl)thread).setThrown(throwable);
-                    throw new Thrown(throwable);
-                }
-                return ((VmObjectImpl)target).clone();
-            });
-            objectClass.registerInvokable("wait", 0, (thread, target, args) -> {
-                try {
-                    ((VmObjectImpl)target).getCondition().await();
-                } catch (IllegalMonitorStateException e) {
-                    throw new Thrown(illegalMonitorStateException.newInstance());
-                } catch (InterruptedException e) {
-                    throw new Thrown(interruptedException.newInstance());
-                }
-                return null;
-            });
-            objectClass.registerInvokable("wait", 1, (thread, target, args) -> {
-                try {
-                    ((VmObjectImpl)target).getCondition().await(((Long) args.get(0)).longValue(), TimeUnit.MILLISECONDS);
-                } catch (IllegalMonitorStateException e) {
-                    throw new Thrown(illegalMonitorStateException.newInstance());
-                } catch (InterruptedException e) {
-                    throw new Thrown(interruptedException.newInstance());
-                }
-                return null;
-            });
-            objectClass.registerInvokable("wait", 2, (thread, target, args) -> {
-                try {
-                    long millis = ((Long) args.get(0)).longValue();
-                    if ((((Integer) args.get(1)).intValue()) > 0 && millis < Long.MAX_VALUE) {
-                        millis++;
-                    }
-                    ((VmObjectImpl)target).getCondition().await(millis, TimeUnit.MILLISECONDS);
-                } catch (IllegalMonitorStateException e) {
-                    throw new Thrown(illegalMonitorStateException.newInstance());
-                } catch (InterruptedException e) {
-                    throw new Thrown(interruptedException.newInstance());
-                }
-                return null;
-            });
-            objectClass.registerInvokable("notify", (thread, target, args) -> {
-                try {
-                    ((VmObjectImpl)target).getCondition().signal();
-                } catch (IllegalMonitorStateException e) {
-                    throw new Thrown(illegalMonitorStateException.newInstance());
-                }
-                return null;
-            });
-            objectClass.registerInvokable("notifyAll", (thread, target, args) -> {
-                try {
-                    ((VmObjectImpl)target).getCondition().signalAll();
-                } catch (IllegalMonitorStateException e) {
-                    throw new Thrown(illegalMonitorStateException.newInstance());
-                }
-                return null;
-            });
-
-            VmClassImpl lockSupportClass = bootstrapClassLoader.loadClass("java/util/concurrent/locks/LockSupport");
-
-            lockSupportClass.registerInvokable("park", 0, (thread, target, args) -> {
-                LockSupport.park();
-                return null;
-            });
-            lockSupportClass.registerInvokable("park", 1, (thread, target, args) -> {
-                LockSupport.park(args.get(0));
-                return null;
-            });
-            lockSupportClass.registerInvokable("unpark", 1, (thread, target, args) -> {
-                VmThreadImpl threadArg = (VmThreadImpl) args.get(0);
-                LockSupport.unpark(threadArg.getBoundThread());
-                return null;
-            });
-
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/Object"), HooksForObject.class, lookup());
+            // LockSupport
+            registerHooks(bootstrapClassLoader.loadClass("java/util/concurrent/locks/LockSupport"), HooksForLockSupport.class, lookup());
             // VMHelpers
-            VmClassImpl vmHelpersClass = bootstrapClassLoader.loadClass("org/qbicc/runtime/main/VMHelpers");
-
-            vmHelpersClass.registerInvokable("getClassFromObject", 1, (thread, target, args) -> ((VmObjectImpl) args.get(0)).getVmClass());
-
-            // ObjectModel
-            VmClassImpl compIntr = bootstrapClassLoader.loadClass("org/qbicc/runtime/main/CompilerIntrinsics");
-
-            compIntr.registerInvokable("typeIdOf", (thread, target, args) -> ((VmObjectImpl) args.get(0)).getObjectTypeId());
-            compIntr.registerInvokable("getTypeIdFromClass", (thread, target, args) -> ((VmClassImpl) args.get(0)).getInstanceObjectTypeId());
-
+            registerHooks(bootstrapClassLoader.loadClass("org/qbicc/runtime/main/VMHelpers"), HooksForVMHelpers.class, lookup());
+            // CompilerIntrinsics
+            registerHooks(bootstrapClassLoader.loadClass("org/qbicc/runtime/main/CompilerIntrinsics"), HooksForCompilerIntrinsics.class, lookup());
             // Unsafe
-            VmClassImpl unsafeClass = bootstrapClassLoader.loadClass("jdk/internal/misc/Unsafe");
-
-            unsafeClass.registerInvokable("allocateMemory0", (thread, target, args) -> {
-                byte[] nativeMem = new byte[Math.toIntExact((Long)args.get(0))];
-                Memory mem =  MemoryFactory.wrap(nativeMem, ctxt.getTypeSystem().getEndianness());
-                return new MemoryPointer(ctxt.getTypeSystem().getSignedInteger8Type().getPointer(), mem);
-            });
-
-            unsafeClass.registerInvokable("ensureClassInitialized", (thread, target, args) -> {
-                ((VmClassImpl) args.get(0)).initialize((VmThreadImpl) thread);
-                return null;
-            });
-            unsafeClass.registerInvokable("shouldBeInitialized0", (thread, target, args) ->
-                Boolean.valueOf(((VmClassImpl) args.get(0)).shouldBeInitialized()));
-
-            unsafeClass.registerInvokable("objectFieldOffset0", (thread, target, args) -> {
-                VmObjectImpl fieldObj = (VmObjectImpl) args.get(0);
-                VmClassImpl fieldClazz = bootstrapClassLoader.loadClass("java/lang/reflect/Field");
-                LoadedTypeDefinition fieldDef = fieldClazz.getTypeDefinition();
-                VmClassImpl clazz = (VmClassImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("clazz")), SinglePlain);
-                VmStringImpl name = (VmStringImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("name")), SinglePlain);
-                LoadedTypeDefinition clazzDef = clazz.getTypeDefinition();
-                FieldElement field = clazzDef.findField(name.getContent());
-                if (field == null || field.isStatic()) {
-                    throw new Thrown(errorClass.newInstance("Invalid argument to objectFieldOffset0"));
-                }
-                field.setModifierFlags(ClassFile.I_ACC_PINNED);
-                LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(clazzDef);
-                CompoundType.Member member = layoutInfo.getMember(field);
-                if (member == null) {
-                    throw new Thrown(errorClass.newInstance("Internal error"));
-                }
-                return Long.valueOf(member.getOffset());
-            });
-            unsafeClass.registerInvokable("objectFieldOffset1", (thread, target, args) -> {
-                VmClassImpl clazz = (VmClassImpl) args.get(0);
-                VmStringImpl name = (VmStringImpl) args.get(1);
-                LoadedTypeDefinition clazzDef = clazz.getTypeDefinition();
-                FieldElement field = clazzDef.findField(name.getContent());
-                if (field == null || field.isStatic()) {
-                    throw new Thrown(errorClass.newInstance("Invalid argument to objectFieldOffset1"));
-                }
-                field.setModifierFlags(ClassFile.I_ACC_PINNED);
-                LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(clazzDef);
-                CompoundType.Member member = layoutInfo.getMember(field);
-                if (member == null) {
-                    throw new Thrown(errorClass.newInstance("Internal error"));
-                }
-                return Long.valueOf(member.getOffset());
-            });
-
-            unsafeClass.registerInvokable("staticFieldBase0", (thread, target, args) -> null);
-            unsafeClass.registerInvokable("staticFieldOffset0", (thread, target, args) -> {
-                VmObjectImpl fieldObj = (VmObjectImpl) args.get(0);
-                VmClassImpl fieldClazz = bootstrapClassLoader.loadClass("java/lang/reflect/Field");
-                LoadedTypeDefinition fieldDef = fieldClazz.getTypeDefinition();
-                VmClassImpl clazz = (VmClassImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("clazz")), SinglePlain);
-                VmStringImpl name = (VmStringImpl) fieldObj.getMemory().loadRef(fieldObj.indexOf(fieldDef.findField("name")), SinglePlain);
-                LoadedTypeDefinition clazzDef = clazz.getTypeDefinition();
-                FieldElement field = clazzDef.findField(name.getContent());
-                if (! (field instanceof StaticFieldElement sfe)) {
-                    throw new Thrown(errorClass.newInstance("Invalid argument to objectFieldOffset0"));
-                }
-                sfe.setModifierFlags(ClassFile.I_ACC_PINNED);
-                return StaticFieldPointer.of(sfe);
-            });
-
-            unsafeClass.registerInvokable("allocateInstance", (thread, target, args) -> {
-                VmClassImpl clazz = (VmClassImpl) args.get(0);
-                if (clazz.getTypeDefinition().isAbstract()) {
-                    VmThrowableClassImpl ie = (VmThrowableClassImpl) bootstrapClassLoader.loadClass("java/lang/InstantiationException");
-                    throw new Thrown(ie.newInstance("Abstract class"));
-                }
-                return manuallyInitialize(clazz.newInstance());
-            });
-
-            // make it a no-op at build-time
-            unsafeClass.registerInvokable("checkNativeAddress", (thread, target, args) -> null);
-
-            // System
-            VmClassImpl systemClass = bootstrapClassLoader.loadClass("java/lang/System");
-
-            systemClass.registerInvokable("nanoTime", (thread, target, args) -> Long.valueOf(System.nanoTime()));
-            systemClass.registerInvokable("currentTimeMillis", (thread, target, args) -> Long.valueOf(System.currentTimeMillis()));
-            systemClass.registerInvokable("arraycopy", (thread, target, args) -> {
-                try {
-                    Object src = ((VmArray) args.get(0)).getArray();
-                    int srcPos = ((Integer) args.get(1)).intValue();
-                    Object dest = ((VmArray) args.get(2)).getArray();
-                    int destPos = ((Integer) args.get(3)).intValue();
-                    int length = ((Integer) args.get(4)).intValue();
-                    //noinspection SuspiciousSystemArraycopy
-                    System.arraycopy(src, srcPos, dest, destPos, length);
-                } catch (ClassCastException ex) {
-                    VmThrowableClassImpl exClass = (VmThrowableClassImpl) bootstrapClassLoader.loadClass("java/lang/ClassCastException");
-                    throw new Thrown(exClass.newInstance());
-                } catch (ArrayStoreException ex) {
-                    VmThrowableClassImpl exClass = (VmThrowableClassImpl) bootstrapClassLoader.loadClass("java/lang/ArrayStoreException");
-                    throw new Thrown(exClass.newInstance());
-                } catch (NullPointerException ex) {
-                    VmThrowableClassImpl exClass = (VmThrowableClassImpl) bootstrapClassLoader.loadClass("java/lang/NullPointerException");
-                    throw new Thrown(exClass.newInstance());
-                }
-                return null;
-            });
-
+            registerHooks(bootstrapClassLoader.loadClass("jdk/internal/misc/Unsafe"), HooksForUnsafe.class, lookup());
+            // System (we use the class object later)
+            final VmClassImpl systemClass = bootstrapClassLoader.loadClass("java/lang/System");
+            registerHooks(systemClass, HooksForSystem.class, lookup());
             // Runtime
-            VmClassImpl runtimeClass = bootstrapClassLoader.loadClass("java/lang/Runtime");
-            runtimeClass.registerInvokable("availableProcessors", (thread, target, args) -> Integer.valueOf(Runtime.getRuntime().availableProcessors()));
-
-            //jdk.internal.util.SystemProps.initProperties
-            VmClassImpl systemPropsRawClass = bootstrapClassLoader.loadClass("jdk/internal/util/SystemProps$Raw");
-            systemPropsRawClass.registerInvokable("platformProperties", this::platformProperties);
-            systemPropsRawClass.registerInvokable("vmProperties", this::vmProperties);
-
-            //    private static native void initStackTraceElements(StackTraceElement[] elements,
-            //                                                      Throwable x);
-
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/Runtime"), HooksForRuntime.class, lookup());
+            // SystemProps$Raw
+            registerHooks(bootstrapClassLoader.loadClass("jdk/internal/util/SystemProps$Raw"), HooksForSystemPropsRaw.class, lookup());
             // StackTraceElement
-            VmClassImpl stackTraceElementClass = bootstrapClassLoader.loadClass("java/lang/StackTraceElement");
-
-            stackTraceElementClass.registerInvokable("initStackTraceElements", (thread, target, args) -> {
-                VmArrayImpl stackTrace = (VmArrayImpl) args.get(0);
-                VmThrowableImpl throwable = (VmThrowableImpl) args.get(1);
-                throwable.initStackTraceElements(stackTrace);
-                return null;
-            });
-
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/StackTraceElement"), HooksForStackTraceElement.class, lookup());
             // StrictMath
-            VmClassImpl strictMathClass = bootstrapClassLoader.loadClass("java/lang/StrictMath");
-            strictMathClass.registerInvokable("sin", ((thread, target, args) -> Double.valueOf(StrictMath.sin(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("cos", ((thread, target, args) -> Double.valueOf(StrictMath.cos(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("tan", ((thread, target, args) -> Double.valueOf(StrictMath.tan(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("asin", ((thread, target, args) -> Double.valueOf(StrictMath.asin(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("acos", ((thread, target, args) -> Double.valueOf(StrictMath.acos(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("atan", ((thread, target, args) -> Double.valueOf(StrictMath.atan(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("log", ((thread, target, args) -> Double.valueOf(StrictMath.log(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("log10", ((thread, target, args) -> Double.valueOf(StrictMath.log10(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("sqrt", ((thread, target, args) -> Double.valueOf(StrictMath.sqrt(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("IEEEremainder", ((thread, target, args) -> Double.valueOf(StrictMath.IEEEremainder(((Double) args.get(0)).doubleValue(), ((Double) args.get(1)).doubleValue()))));
-            strictMathClass.registerInvokable("atan2", ((thread, target, args) -> Double.valueOf(StrictMath.atan2(((Double) args.get(0)).doubleValue(), ((Double) args.get(1)).doubleValue()))));
-            strictMathClass.registerInvokable("sinh", ((thread, target, args) -> Double.valueOf(StrictMath.sinh(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("cosh", ((thread, target, args) -> Double.valueOf(StrictMath.cosh(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("tanh", ((thread, target, args) -> Double.valueOf(StrictMath.tanh(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("expm1", ((thread, target, args) -> Double.valueOf(StrictMath.expm1(((Double) args.get(0)).doubleValue()))));
-            strictMathClass.registerInvokable("log1p", ((thread, target, args) -> Double.valueOf(StrictMath.log1p(((Double) args.get(0)).doubleValue()))));
-
-            // String
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/StrictMath"), HooksForStrictMath.class, lookup());
+            // String (we use the class object later)
             VmClassImpl stringClass = bootstrapClassLoader.loadClass("java/lang/String");
-
-            stringClass.registerInvokable("intern", (thread, target, args) -> intern((VmStringImpl) target));
-            // for performance:
-            // String.hashCode is well-defined
-            stringClass.registerInvokable("hashCode", (thread, target, args) -> Integer.valueOf(((VmStringImpl) target).getContent().hashCode()));
-            stringClass.registerInvokable("equals", (thread, target, args) -> Boolean.valueOf(args.get(0) instanceof VmStringImpl other && ((VmStringImpl)target).contentEquals(other.getContent())));
-            stringClass.registerInvokable("coder", (thread, target, args) -> Byte.valueOf((byte) target.getMemory().load8(stringCoderOffset, SinglePlain)));
-            stringClass.registerInvokable("isLatin1", (thread, target, args) -> Boolean.valueOf(target.getMemory().load8(stringCoderOffset, SinglePlain) == 0));
-            stringClass.registerInvokable("length", (thread, target, args) -> Integer.valueOf(((VmStringImpl) target).getContent().length()));
-            stringClass.registerInvokable("charAt", (thread, target, args) -> {
-                try {
-                    return Integer.valueOf(((VmStringImpl) target).getContent().charAt(((Integer) args.get(0)).intValue()));
-                } catch (StringIndexOutOfBoundsException e) {
-                    VmThrowableClassImpl ioobe = (VmThrowableClassImpl) bootstrapClassLoader.loadClass("java/lang/StringIndexOutOfBoundsException");
-                    throw new Thrown(ioobe.newInstance(e.getMessage()));
-                }
-            });
-
+            registerHooks(stringClass, HooksForString.class, lookup());
             // Thread
-            VmClassImpl threadNativeClass = bootstrapClassLoader.loadClass("java/lang/Thread");
-            threadNativeClass.registerInvokable("yield", (thread, target, args) -> {
-                Thread.yield();
-                return null;
-            });
-            threadNativeClass.registerInvokable("start", (thread, target, args) -> {
-                startedThreads.add(vmThread);
-                return null;
-            });
-
-            // Throwable
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/Thread"), HooksForThread.class, lookup());
+            // Throwable (we use the class object later)
             VmClassImpl throwableClass = bootstrapClassLoader.loadClass("java/lang/Throwable");
-
-            idx = throwableClass.getTypeDefinition().findSingleMethodIndex(me -> me.nameEquals("fillInStackTrace") && me.getParameters().size() == 1);
-            throwableClass.registerInvokable(throwableClass.getTypeDefinition().getMethod(idx), (thread, target, args) -> {
-                ((VmThrowableImpl)target).fillInStackTrace();
-                return target;
-            });
-
-            // Class
+            registerHooks(throwableClass, HooksForThrowable.class, lookup());
+            // Class (we use the class object later)
             VmClassImpl classClass = bootstrapClassLoader.loadClass("java/lang/Class");
-            classClass.registerInvokable("getModifiers", (thread, target, args) -> ((VmClass)target).getTypeDefinition().getModifiers());
-            classClass.registerInvokable("getSuperclass", (thread, target, args) -> {
-                LoadedTypeDefinition sc = ((VmClass)target).getTypeDefinition().getSuperClass();
-                return sc == null ? null : sc.getVmClass();
-            });
-            classClass.registerInvokable("isArray", (thread, target, args) -> {
-                VmClassImpl clazz = (VmClassImpl) target;
-                return clazz instanceof VmArrayClass;
-            });
-            classClass.registerInvokable("isHidden", (thread, target, args) -> {
-                VmClassImpl clazz = (VmClassImpl) target;
-                return clazz.getTypeDefinition().isHidden();
-            });
-
-            classClass.registerInvokable("isInterface", (thread, target, args) ->
-                Boolean.valueOf(! (target instanceof VmPrimitiveClass) && ((VmClassImpl) target).getTypeDefinition().isInterface()));
-            classClass.registerInvokable("isAssignableFrom", (thread, target, args) -> {
-                VmClassImpl lhs = (VmClassImpl) target;
-                VmClassImpl rhs = (VmClassImpl)args.get(0);
-                return Boolean.valueOf(lhs.isAssignableFrom(rhs));
-            });
-            classClass.registerInvokable("isPrimitive", (thread, target, args) -> Boolean.valueOf(target instanceof VmPrimitiveClass));
-            classClass.registerInvokable("getEnclosingMethod0", (thread, target, args) -> {
-                if (target instanceof VmPrimitiveClass) {
-                    return null;
-                }
-                LoadedTypeDefinition def = ((VmClassImpl) target).getTypeDefinition();
-                LoadedTypeDefinition emcDef = def.getEnclosingMethodClass();
-                if (emcDef == null) {
-                    return null;
-                }
-                VmImpl vm = (VmImpl) thread.getVM();
-                VmRefArrayClassImpl arrayClass = (VmRefArrayClassImpl) vm.objectClass.getArrayClass();
-                VmRefArrayImpl vmArray = arrayClass.newInstance(3);
-                ClassContext emcCtxt = emcDef.getContext();
-                VmClassLoaderImpl emcLoader = vm.getClassLoaderForContext(emcCtxt);
-                VmClassImpl emc = emcLoader.loadClass(emcDef.getInternalName());
-                VmObject[] realArray = vmArray.getArray();
-                realArray[0] = emc;
-                MethodElement enclosingMethod = def.getEnclosingMethod();
-                if (enclosingMethod != null) {
-                    realArray[1] = vm.intern(enclosingMethod.getName());
-                    realArray[2] = vm.intern(enclosingMethod.getDescriptor().toString());
-                }
-                return vmArray;
-            });
-            // todo: this one probably should just be a single field on Class
-            classClass.registerInvokable("getDeclaringClass0", (thread, target, args) -> {
-                if (target instanceof VmPrimitiveClass) {
-                    return null;
-                }
-                LoadedTypeDefinition def = ((VmClassImpl) target).getTypeDefinition();
-                NestedClassElement enc = def.getEnclosingNestedClass();
-                if (enc != null) {
-                    DefinedTypeDefinition enclosingType = enc.getEnclosingType();
-                    if (enclosingType != null) {
-                        VmImpl vm = (VmImpl) thread.getVM();
-                        VmClassLoaderImpl loader = vm.getClassLoaderForContext(enclosingType.getContext());
-                        return loader.loadClass(enclosingType.getInternalName());
-                    }
-                }
-                return null;
-            });
-            classClass.registerInvokable("getInterfaces0", (thread, target, args) -> {
-                LoadedTypeDefinition ltd = ((VmClassImpl)target).getTypeDefinition();
-                LoadedTypeDefinition[] ltdInt = ltd.getInterfaces();
-                VmClass[] interfaces = new VmClass[ltdInt.length];
-                for (int i=0; i<ltdInt.length; i++) {
-                    interfaces[i] = ltdInt[i].getVmClass();
-                }
-                VmArray ans = newArrayOf(classClass, interfaces);
-                return ans;
-            });
-            classClass.registerInvokable("isInstance", (thread, target, args) -> {
-                VmClassImpl clazz = (VmClassImpl) target;
-                VmObject obj = (VmObject) args.get(0);
-                if (obj == null) {
-                    return Boolean.FALSE;
-                }
-                VmClass objClazz = obj.getVmClass();
-                return Boolean.valueOf(objClazz.getInstanceObjectType().isSubtypeOf(clazz.getInstanceObjectType()));
-            });
-            classClass.registerInvokable("forName0", (thread, target, args) -> {
-                VmClassLoaderImpl classLoader = (VmClassLoaderImpl) args.get(2);
-                if (classLoader == null) {
-                    classLoader = bootstrapClassLoader;
-                }
-                String name = ((VmStringImpl) args.get(0)).getContent();
-                int dims = 0;
-                while (name.startsWith("[[")) {
-                    name = name.substring(1);
-                    dims ++;
-                }
-                if (name.startsWith("[L")) {
-                    if (! name.endsWith(";")) {
-                        throw new Thrown(noClassDefFoundErrorClass.newInstance("Bad array descriptor"));
-                    }
-                    // load the array class
-                    name = name.substring(2, name.length() - 1);
-                    dims ++;
-                }
-                VmClassImpl clazz = classLoader.loadClass(name.replace('.', '/'));
-                for (int i = 0; i < dims; i ++) {
-                    clazz = clazz.getArrayClass();
-                }
-                if (((Boolean) args.get(1)).booleanValue()) {
-                    clazz.initialize((VmThreadImpl) thread);
-                }
-                return clazz;
-            });
-            classClass.registerInvokable("getGenericSignature0", (thread, target, args) -> {
-                LoadedTypeDefinition ltd = ((VmClass) target).getTypeDefinition();
-                Signature sig = ltd.getSignature();
-                return intern(sig.toString());
-            });
-
-            VmClassImpl classloaderClass = bootstrapClassLoader.loadClass("java/lang/ClassLoader");
-            classloaderClass.registerInvokable("defineClass1", (thread, target, args) -> {
-                VmClassLoaderImpl classLoader = (VmClassLoaderImpl) args.get(0);
-                VmString name = fixClassname((VmString) args.get(1));
-                VmByteArrayImpl b = (VmByteArrayImpl) args.get(2);
-                int off = (Integer) args.get(3);
-                int len = (Integer) args.get(4);
-                VmObject pd = (VmObject) args.get(5);
-                VmString source = (VmString) args.get(6);
-                if (off != 0 || len != b.getLength()) {
-                    b = b.copyOfRange(off, len);
-                }
-                if (classLoader == null) {
-                    classLoader = bootstrapClassLoader;
-                }
-                return classLoader.defineClass(name, b, pd);
-            });
-            FieldElement classDataField = classClass.getTypeDefinition().findField("classData");
-            classloaderClass.registerInvokable("defineClass0", (thread, target, args) -> {
-                VmClassLoaderImpl classLoader = (VmClassLoaderImpl) args.get(0);
-                VmClassImpl lookup = (VmClassImpl) args.get(1);
-                VmString name = fixClassname((VmString) args.get(2));
-                VmByteArrayImpl b = (VmByteArrayImpl) args.get(3);
-                int off = ((Integer) args.get(4)).intValue();
-                int len = ((Integer) args.get(5)).intValue();
-                int flags = ((Integer) args.get(8)).intValue();
-                VmObject data = (VmObject) args.get(9);
-                if (off != 0 || len != b.getLength()) {
-                    b = b.copyOfRange(off, len);
-                }
-                if (classLoader == null) {
-                    classLoader = bootstrapClassLoader;
-                }
-                boolean nestMate = (flags & 1) != 0;
-                boolean hidden = (flags & 2) != 0;
-                VmClassImpl defined = classLoader.defineClass(name, b, hidden);
-                if (nestMate) {
-                    VmClassImpl host = lookup.getNestHost();
-                    host.addNestMember(defined);
-                    defined.setNestHost(host);
-                }
-                defined.getMemory().storeRef(defined.indexOf(classDataField), data, SingleRelease);
-                return defined;
-            });
-            classloaderClass.registerInvokable("findBootstrapClass", (thread, target, args) -> {
-                DefinedTypeDefinition definedType = ctxt.getBootstrapClassContext().findDefinedType(((VmString) args.get(0)).getContent().replace('.', '/'));
-                return definedType == null ? null : definedType.load().getVmClass();
-            });
-            classloaderClass.registerInvokable("findLoadedClass0", (thread, target, args) -> {
-                VmClassLoaderImpl classLoader = (VmClassLoaderImpl) target;
-                VmString name = (VmString) args.get(0);
-                return classLoader.findLoadedClass(name.getContent());
-            });
-
-            VmClassImpl builtinLoader = bootstrapClassLoader.loadClass("jdk/internal/loader/BuiltinClassLoader");
-            builtinLoader.registerInvokable("findClassOnClassPathOrNull", (thread, target, args) -> {
-                VmString name = fixClassname((VmString) args.get(0));
-                VmClassLoaderImpl cl =(VmClassLoaderImpl) target;
-                DefinedTypeDefinition definedType = cl.getClassContext().findDefinedType(name.getContent());
-                if (definedType == null) {
-                    return null;
-                }
-                try {
-                    return definedType.load().getVmClass();
-                } catch (Exception e) {
-                    return null;
-                }
-            });
-
+            registerHooks(classClass, HooksForClass.class, lookup());
+            // ClassLoader
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/ClassLoader"), HooksForClassLoader.class, lookup());
+            // BuiltinClassLoader
+            registerHooks(bootstrapClassLoader.loadClass("jdk/internal/loader/BuiltinClassLoader"), HooksForBuiltinClassLoader.class, lookup());
             // Module
-            VmClassImpl moduleClass = bootstrapClassLoader.loadClass("java/lang/Module");
-            FieldElement moduleLoaderField = moduleClass.getTypeDefinition().findField("loader", true);
-            moduleClass.registerInvokable("defineModule0", (thread, target, args) -> {
-                VmObjectImpl module = (VmObjectImpl) args.get(0);
-                boolean isOpen = ((Boolean) args.get(1)).booleanValue();
-                VmStringImpl versionObj = (VmStringImpl) args.get(2);
-                VmStringImpl locationObj = (VmStringImpl) args.get(3);
-                VmRefArrayImpl packageNames = (VmRefArrayImpl) args.get(4);
-                VmClassLoaderImpl loader = (VmClassLoaderImpl) module.getMemory().loadRef(moduleClass.indexOf(moduleLoaderField), SinglePlain);
-                if (loader == null) {
-                    loader = bootstrapClassLoader;
-                }
-                for (VmObject vmObject : packageNames.getArray()) {
-                    VmStringImpl packageNameObj = (VmStringImpl) vmObject;
-                    String packageName = packageNameObj.getContent();
-                    loader.setModulePackage(packageName, module);
-                }
-                return null;
-            });
-            moduleClass.registerInvokable("addReads0", (thread, target, args) -> null);
-            moduleClass.registerInvokable("addExports0", (thread, target, args) -> null);
-            moduleClass.registerInvokable("addExportsToAll0", (thread, target, args) -> null);
-            moduleClass.registerInvokable("addExportsToAllUnnamed0", (thread, target, args) -> null);
-
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/Module"), HooksForModule.class, lookup());
             // Array
-            VmClassImpl arrayClass = bootstrapClassLoader.loadClass("java/lang/reflect/Array");
-            arrayClass.registerInvokable("newArray", (thread, target, args) -> {
-                VmClassImpl componentType = (VmClassImpl)args.get(0);
-                int length = (Integer)args.get(1);
-                return manuallyInitialize(componentType.getArrayClass().newInstance(length));
-            });
-
-            VmClassImpl reflectClass = bootstrapClassLoader.loadClass("jdk/internal/reflect/Reflection");
-            reflectClass.registerInvokable("getCallerClass", (thread, target, args) -> {
-                Frame currentFrame = ((VmThreadImpl)thread).currentFrame;
-                Frame enclosing = currentFrame.enclosing;
-                while (enclosing.element.getEnclosingType().getInternalName().equals("java/lang/reflect/Method") || enclosing.element.hasAllModifiersOf(ClassFile.I_ACC_HIDDEN)) {
-                    enclosing = enclosing.enclosing;
-                }
-                DefinedTypeDefinition def = enclosing.element.getEnclosingType();
-                return def.load().getVmClass();
-            });
-            reflectClass.registerInvokable("getClassAccessFlags", (thread, target, args) -> {
-                VmClassImpl cls = (VmClassImpl)args.get(0);
-                return cls.getTypeDefinition().getModifiers() & 0x1FFF;
-            });
-
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/reflect/Array"), HooksForArray.class, lookup());
+            // Reflection
+            registerHooks(bootstrapClassLoader.loadClass("jdk/internal/reflect/Reflection"), HooksForReflection.class, lookup());
             // OSEnvironment
-            VmClassImpl osEnvClass = bootstrapClassLoader.loadClass("jdk/internal/misc/OSEnvironment");
-            osEnvClass.registerInvokable("initialize", (thread, target, args) -> null); // Skip this for build-time init.
-
-            VmClassImpl unixDispatcher = bootstrapClassLoader.loadClass("sun/nio/fs/UnixNativeDispatcher");
-            unixDispatcher.registerInvokable("getcwd", (thread, target, args) -> newByteArray(System.getProperty("user.dir").getBytes()));
-
+            registerHooks(bootstrapClassLoader.loadClass("jdk/internal/misc/OSEnvironment"), HooksForOSEnvironment.class, lookup());
+            // UnixNativeDispatcher
+            registerHooks(bootstrapClassLoader.loadClass("sun/nio/fs/UnixNativeDispatcher"), HooksForUnixNativeDispatcher.class, lookup());
             // FileDescriptor
-            VmClassImpl fdClass = bootstrapClassLoader.loadClass("java/io/FileDescriptor");
-            fdClass.registerInvokable("getAppend", (thread, target, args) -> Boolean.FALSE);
-            fdClass.registerInvokable("getHandle", (thread, target, args) -> Long.valueOf(-1));
-
+            registerHooks(bootstrapClassLoader.loadClass("java/io/FileDescriptor"), HooksForFileDescriptor.class, lookup());
             // ProcessEnvironment
-            VmClassImpl processEnvClass = bootstrapClassLoader.loadClass("java/lang/ProcessEnvironment");
-            processEnvClass.registerInvokable("getHostEnvironment", (thread, target, args) -> {
-                // todo: customize
-                VmReferenceArray array = (VmReferenceArray) stringClass.getArrayClass().newInstance(4);
-                VmObject[] arrayArray = array.getArray();
-                int i = 0;
-                for (String str : List.of(
-                    "TZ", TimeZone.getDefault().getDisplayName(),
-                    "LANG", Locale.getDefault().toLanguageTag() + "." + Charset.defaultCharset().name()
-                )) {
-                    arrayArray[i++] = intern(str);
-                }
-                return array;
-            });
-
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/ProcessEnvironment"), HooksForProcessEnvironment.class, lookup());
             // Build
-            VmClassImpl build = bootstrapClassLoader.loadClass("org/qbicc/runtime/Build");
-            build.registerInvokable("isHost", (thread, target, args) -> Boolean.TRUE);
-            build.registerInvokable("isTarget", (thread, target, args) -> Boolean.FALSE);
-
+            registerHooks(bootstrapClassLoader.loadClass("org/qbicc/runtime/Build"), HooksForBuild.class, lookup());
             // CRC32
-            VmClassImpl crc32 = bootstrapClassLoader.loadClass("java/util/zip/CRC32");
-            crc32.registerInvokable("reset", (thread, target, args) -> {
-                VmObjectImpl t = (VmObjectImpl) target;
-                CRC32 crc = t.getOrAddAttachment(CRC32.class, CRC32::new);
-                crc.reset();
-                t.setIntField(crc32.getTypeDefinition(), "crc", 0);
-                return null;
-            });
-            crc32.registerInvokable("update", 3, (thread, target, args) -> {
-                VmObjectImpl t = (VmObjectImpl) target;
-                VmByteArrayImpl a = (VmByteArrayImpl) args.get(0);
-                int off = ((Integer) args.get(1)).intValue();
-                int len = ((Integer) args.get(2)).intValue();
-                CRC32 crc = t.getOrAddAttachment(CRC32.class, CRC32::new);
-                crc.update(a.getArray(), off, len);
-                t.setIntField(crc32.getTypeDefinition(), "crc", (int) crc.getValue());
-                return null;
-            });
-            crc32.registerInvokable("update", MethodDescriptor.synthesize(
-                bootstrapClassLoader.getClassContext(),
-                    BaseTypeDescriptor.V,
-                    List.of(BaseTypeDescriptor.I)
-                ),
-                (thread, target, args) -> {
-                    VmObjectImpl t = (VmObjectImpl) target;
-                    int val = ((Integer) args.get(0)).intValue() & 0xff;
-                    CRC32 crc = t.getOrAddAttachment(CRC32.class, CRC32::new);
-                    crc.update(val);
-                    t.setIntField(crc32.getTypeDefinition(), "crc", (int) crc.getValue());
-                    return null;
-                }
-            );
-
-            // RNG
-            VmClassImpl seedGenerator = bootstrapClassLoader.loadClass("sun/security/provider/SeedGenerator");
-            seedGenerator.registerInvokable("getSystemEntropy", (thread, target, args) ->
-                thread.getVM().newByteArray(new SecureRandom().generateSeed(20))
-            );
-            seedGenerator.registerInvokable("generateSeed", (thread, target, args) -> {
-                VmByteArrayImpl bytes = (VmByteArrayImpl) args.get(0);
-                byte[] seed = new SecureRandom().generateSeed(bytes.getLength());
-                for (int i=0; i<seed.length; i++) {
-                    bytes.getArray()[i] = seed[i];
-                }
-                return null;
-            });
-
-            /////////////////
-            // TODO: temporary workaround for var/method handle initialization
-            // Make access check methods always return true
-            VmClassImpl verifyAccess = bootstrapClassLoader.loadClass("sun/invoke/util/VerifyAccess");
-            verifyAccess.registerInvokable("isClassAccessible", (thread, target, args) -> Boolean.TRUE);
-            VmClassImpl lookup = bootstrapClassLoader.loadClass("java/lang/invoke/MethodHandles$Lookup");
-            lookup.registerInvokable("checkAccess", (thread, target, args) -> null);
-            lookup.registerInvokable("checkMethod", (thread, target, args) -> null);
-            lookup.registerInvokable("checkField", (thread, target, args) -> null);
-            // TODO: ↑ ↑ remove this ↑ ↑
+            registerHooks(bootstrapClassLoader.loadClass("java/util/zip/CRC32"), HooksForCRC32.class, lookup());
+            // SeedGenerator
+            registerHooks(bootstrapClassLoader.loadClass("sun/security/provider/SeedGenerator"), HooksForSeedGenerator.class, lookup());
+            // VerifyAccess
+            registerHooks(bootstrapClassLoader.loadClass("sun/invoke/util/VerifyAccess"), HooksForVerifyAccess.class, lookup());
+            // MethodHandles$Lookup
+            registerHooks(bootstrapClassLoader.loadClass("java/lang/invoke/MethodHandles$Lookup"), HooksForMethodHandlesLookup.class, lookup());
 
             // Now execute system initialization
             LoadedTypeDefinition systemType = systemClass.getTypeDefinition();
@@ -1039,125 +501,12 @@ public final class VmImpl implements Vm {
     }
 
     // Convert '.' to '/' matching the functionality of fixClassname in the JDK's check_classname.c
-    private VmString fixClassname(VmString name) {
+    VmString fixClassname(VmString name) {
         String n = name.getContent();
         if (n.indexOf('.') == -1) {
             return name;
         }
         return intern(n.replace('.', '/'));
-    }
-
-    private VmArray platformProperties(final VmThread thread, final VmObject target, final List<Object> args) {
-
-        // todo: configuration
-        Locale displayLocale = Locale.getDefault();
-        Locale formatLocale = Locale.getDefault();
-        Charset fileEncoding = StandardCharsets.UTF_8;
-        Platform platform = ctxt.getPlatform();
-        String tempDir = "/tmp";
-        Charset jnuEncoding = StandardCharsets.UTF_8;
-        Charset stderrEncoding = StandardCharsets.UTF_8;
-        Charset stdoutEncoding = StandardCharsets.UTF_8;
-
-        return fromStringList(List.of(
-            //        @Native private static final int _display_country_NDX = 0;
-            displayLocale.getCountry(),
-            //        @Native private static final int _display_language_NDX = 1 + _display_country_NDX;
-            displayLocale.getLanguage(),
-            //        @Native private static final int _display_script_NDX = 1 + _display_language_NDX;
-            displayLocale.getScript(),
-            //        @Native private static final int _display_variant_NDX = 1 + _display_script_NDX;
-            displayLocale.getVariant(),
-            //        @Native private static final int _file_encoding_NDX = 1 + _display_variant_NDX;
-            fileEncoding.name(),
-            //        @Native private static final int _file_separator_NDX = 1 + _file_encoding_NDX;
-            platform.getOs().getFileSeparator(),
-            //        @Native private static final int _format_country_NDX = 1 + _file_separator_NDX;
-            formatLocale.getCountry(),
-            //        @Native private static final int _format_language_NDX = 1 + _format_country_NDX;
-            formatLocale.getLanguage(),
-            //        @Native private static final int _format_script_NDX = 1 + _format_language_NDX;
-            formatLocale.getScript(),
-            //        @Native private static final int _format_variant_NDX = 1 + _format_script_NDX;
-            formatLocale.getVariant(),
-            //        @Native private static final int _ftp_nonProxyHosts_NDX = 1 + _format_variant_NDX;
-            "",
-            //        @Native private static final int _ftp_proxyHost_NDX = 1 + _ftp_nonProxyHosts_NDX;
-            "",
-            //        @Native private static final int _ftp_proxyPort_NDX = 1 + _ftp_proxyHost_NDX;
-            "",
-            //        @Native private static final int _http_nonProxyHosts_NDX = 1 + _ftp_proxyPort_NDX;
-            "",
-            //        @Native private static final int _http_proxyHost_NDX = 1 + _http_nonProxyHosts_NDX;
-            "",
-            //        @Native private static final int _http_proxyPort_NDX = 1 + _http_proxyHost_NDX;
-            "",
-            //        @Native private static final int _https_proxyHost_NDX = 1 + _http_proxyPort_NDX;
-            "",
-            //        @Native private static final int _https_proxyPort_NDX = 1 + _https_proxyHost_NDX;
-            "",
-            //        @Native private static final int _java_io_tmpdir_NDX = 1 + _https_proxyPort_NDX;
-            tempDir,
-            //        @Native private static final int _line_separator_NDX = 1 + _java_io_tmpdir_NDX;
-            platform.getOs().getLineSeparator(),
-            //        @Native private static final int _os_arch_NDX = 1 + _line_separator_NDX;
-            platform.getCpu().getName(),
-            //        @Native private static final int _os_name_NDX = 1 + _os_arch_NDX;
-            platform.getOs().getName(),
-            //        @Native private static final int _os_version_NDX = 1 + _os_name_NDX;
-            "generic version",
-            //        @Native private static final int _path_separator_NDX = 1 + _os_version_NDX;
-            platform.getOs().getPathSeparator(),
-            //        @Native private static final int _socksNonProxyHosts_NDX = 1 + _path_separator_NDX;
-            "",
-            //        @Native private static final int _socksProxyHost_NDX = 1 + _socksNonProxyHosts_NDX;
-            "",
-            //        @Native private static final int _socksProxyPort_NDX = 1 + _socksProxyHost_NDX;
-            "",
-            //        @Native private static final int _sun_arch_abi_NDX = 1 + _socksProxyPort_NDX;
-            platform.getAbi().getName(),
-            //        @Native private static final int _sun_arch_data_model_NDX = 1 + _sun_arch_abi_NDX;
-            String.valueOf(platform.getCpu().getCpuWordSize() << 3),
-            //        @Native private static final int _sun_cpu_endian_NDX = 1 + _sun_arch_data_model_NDX;
-            ctxt.getTypeSystem().getEndianness() == ByteOrder.BIG_ENDIAN ? "big" : "little",
-            //        @Native private static final int _sun_cpu_isalist_NDX = 1 + _sun_cpu_endian_NDX;
-            "",
-            //        @Native private static final int _sun_io_unicode_encoding_NDX = 1 + _sun_cpu_isalist_NDX;
-            ctxt.getTypeSystem().getEndianness() == ByteOrder.BIG_ENDIAN ? "UnicodeBig" : "UnicodeLittle",
-            //        @Native private static final int _sun_jnu_encoding_NDX = 1 + _sun_io_unicode_encoding_NDX;
-            jnuEncoding.name(),
-            //        @Native private static final int _sun_os_patch_level_NDX = 1 + _sun_jnu_encoding_NDX;
-            "",
-            //        @Native private static final int _sun_stderr_encoding_NDX = 1 + _sun_os_patch_level_NDX;
-            stderrEncoding.name(),
-            //        @Native private static final int _sun_stdout_encoding_NDX = 1 + _sun_stderr_encoding_NDX;
-            stdoutEncoding.name(),
-            //        @Native private static final int _user_dir_NDX = 1 + _sun_stdout_encoding_NDX;
-            "/qbicc/build",
-            //        @Native private static final int _user_home_NDX = 1 + _user_dir_NDX;
-            "/qbicc/build/home",
-            //        @Native private static final int _user_name_NDX = 1 + _user_home_NDX;
-            "nobody")
-            //        @Native private static final int FIXED_LENGTH = 1 + _user_name_NDX;
-        );
-    }
-
-    private VmArray vmProperties(final VmThread thread, final VmObject target, final List<Object> args) {
-        // TODO: assemble `-D` options from command line
-        return fromStringList(List.of(
-            "java.home",    "/qbicc/java.home",
-            "user.timezone", ZoneId.systemDefault().getId()
-        ));
-    }
-
-    private VmArray fromStringList(List<String> list) {
-        int size = list.size();
-        VmReferenceArray array = newArrayOf(stringClass, size);
-        VmObject[] arrayArray = array.getArray();
-        for (int i = 0; i < size; i ++) {
-            arrayArray[i] = intern(list.get(i));
-        }
-        return array;
     }
 
     public VmThread newThread(final String threadName, final VmObject threadGroup, final boolean daemon, int priority) {
@@ -1293,6 +642,161 @@ public final class VmImpl implements Vm {
         VmClassLoaderImpl loader = getClassLoaderForContext(classContext);
         VmClassImpl vmClass = loader.getOrDefineClass(enclosingType.load());
         vmClass.registerInvokable(element, invokable);
+    }
+
+    private static final MethodHandle listToArray;
+    private static final MethodHandle toPointerConversionRaw;
+    private static final MethodHandle toLongConversion;
+
+    static {
+        final MethodHandle lta;
+        final MethodHandle tpc;
+        final MethodHandle tlc;
+        try {
+            lta = lookup().unreflect(List.class.getMethod("toArray"));
+            tpc = lookup().unreflect(VmImpl.class.getDeclaredMethod("toPointerConversion", PointerType.class, Object.class));
+            tlc = lookup().unreflect(VmImpl.class.getDeclaredMethod("toLongConversion", Object.class));
+        } catch (IllegalAccessException | NoSuchMethodException e) {
+            throw new Error("Cannot initialize " + VmImpl.class, e);
+        }
+        listToArray = lta;
+        toPointerConversionRaw = tpc;
+        toLongConversion = tlc;
+    }
+
+    @Override
+    public void registerHooks(VmClass clazz, Class<?> hookClass, MethodHandles.Lookup lookup) throws IllegalArgumentException {
+        final LoadedTypeDefinition def = clazz.getTypeDefinition();
+        final Constructor<?>[] ctors = hookClass.getDeclaredConstructors();
+        if (ctors.length != 1) {
+            throw new IllegalArgumentException("Expected exactly one constructor");
+        }
+        final Constructor<?> ctor = ctors[0];
+        final List<Object> ctorArgs = new ArrayList<>(1);
+        for (Class<?> parameterType : ctor.getParameterTypes()) {
+            if (parameterType == Vm.class || parameterType == VmImpl.class) {
+                ctorArgs.add(this);
+            } else {
+                throw new IllegalArgumentException("Invalid argument of " + parameterType + " on constructor of " + hookClass);
+            }
+        }
+        final Method[] methods = hookClass.getDeclaredMethods();
+        final Object instance;
+        try {
+            instance = ctor.newInstance(ctorArgs.toArray());
+        } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
+            throw new IllegalArgumentException("Unable to instantiate hook object", e);
+        }
+        for (Method method : methods) {
+            final Hook hook = method.getAnnotation(Hook.class);
+            if (hook != null) {
+                String name = hook.name();
+                String finalName = name.isEmpty() ? method.getName() : name;
+                String descStr = hook.descriptor();
+                final InvokableElement me;
+                if (descStr.isEmpty()) {
+                    if (name.equals("<init>")) {
+                        me = def.requireSingleConstructor(ce -> true);
+                    } else {
+                        me = def.requireSingleMethod(finalName);
+                    }
+                } else {
+                    MethodDescriptor md = MethodDescriptor.parse(def.getContext(), ByteBuffer.wrap(descStr.getBytes(StandardCharsets.UTF_8)));
+                    if (name.equals("<init>")) {
+                        me = def.requireSingleConstructor(ce -> ce.getDescriptor().equals(md));
+                    } else {
+                        me = def.requireSingleMethod(m -> m.nameEquals(finalName) && m.getDescriptor().equals(md));
+                    }
+                }
+                try {
+                    final boolean hookIsStatic = Modifier.isStatic(method.getModifiers());
+                    final MethodHandle handle = lookup.unreflect(method);
+                    // adapt to VmInvokable; in the future we won't do this anymore (we'll call directly instead)
+                    // we can't use the lambda metafactory unfortunately because we bind arguments
+                    MethodHandle mappedHandle = mapHandleToInvokableForm(me.isStatic(), hookIsStatic, handle);
+                    MethodHandle finalMappedHandle = hookIsStatic ? mappedHandle : mappedHandle.bindTo(instance);
+                    VmInvokable inv = (thread, target, args) -> {
+                        try {
+                            return finalMappedHandle.invokeExact(thread, target, args);
+                        } catch (Thrown t) {
+                            throw t;
+                        } catch (Throwable e) {
+                            throw new Thrown(errorClass.newInstance("Internal error in interpreter hook: " + e));
+                        }
+                    };
+                    registerInvokable(me, inv);
+                } catch (Error e) {
+                    throw e;
+                } catch (Throwable e) {
+                    throw new IllegalArgumentException("Unable to register hook method " + method, e);
+                }
+            }
+        }
+    }
+
+    private MethodHandle mapHandleToInvokableForm(boolean targetIsStatic, boolean hookIsStatic, MethodHandle hookHandle) {
+        // Four forms:
+        // static xxx hook(thread, args...)
+        // static xxx hook(thread, this, args...)
+        // xxx hook(<instance>, thread, args...)
+        // xxx hook(<instance>, thread, this, args...)
+        int pos = hookIsStatic ? 2 : 3;
+        hookHandle = hookHandle.asType(hookHandle.type().changeParameterType(pos - 2, VmThread.class));
+        if (targetIsStatic) {
+            // insert a {@code null} receiver
+            hookHandle = MethodHandles.dropArguments(hookHandle, pos - 1, VmObject.class);
+        } else {
+            hookHandle = hookHandle.asType(hookHandle.type().changeParameterType(pos - 1, VmObject.class));
+        }
+        // we have to go backwards step by step from the user hook type towards VmInvokable
+        // transform any pointer or long-typed arguments
+        hookHandle = fixUpArguments(hookHandle, hookHandle.type(), pos);
+        // this covers the array->positional arguments part
+        hookHandle = hookHandle.asSpreader(pos, Object[].class, hookHandle.type().parameterCount() - pos);
+        // this covers the list->array part
+        hookHandle = MethodHandles.filterArguments(hookHandle, pos, listToArray);
+        // transform the return type
+        hookHandle = hookHandle.asType(hookHandle.type().changeReturnType(Object.class));
+        // and that's it
+        return hookHandle;
+    }
+
+    private MethodHandle fixUpArguments(MethodHandle handle, MethodType type, int idx) {
+        if (idx == type.parameterCount()) {
+            return handle;
+        }
+        final Class<?> pType = type.parameterType(idx);
+        if (pType == long.class) {
+            // input may be a Pointer or a Long, so narrow it if needed
+            handle = MethodHandles.filterArguments(handle, idx, toLongConversion);
+        } else if (pType == Pointer.class) {
+            handle = MethodHandles.filterArguments(handle, idx, toPointerConversion);
+        }
+        return fixUpArguments(handle, type, idx + 1);
+    }
+
+    private static long toLongConversion(Object obj) {
+        if (obj instanceof Long l) {
+            return l.longValue();
+        } else if (obj instanceof IntegerAsPointer p) {
+            return p.getValue();
+        } else if (obj == null) {
+            throw new NullPointerException("Attempted conversion of a null pointer to " + Long.class.getName());
+        } else {
+            throw new ClassCastException("Cannot cast " + obj.getClass().getName() + " to " + Long.class.getName());
+        }
+    }
+
+    private static Pointer toPointerConversion(PointerType type, Object obj) {
+        if (obj instanceof Long l) {
+            return new IntegerAsPointer(type, l.longValue());
+        } else if (obj instanceof Pointer p) {
+            return p;
+        } else if (obj == null) {
+            return null;
+        } else {
+            throw new ClassCastException("Cannot cast " + obj.getClass().getName() + " to " + Pointer.class.getName());
+        }
     }
 
     @Override
