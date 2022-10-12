@@ -532,6 +532,14 @@ public interface BasicBlockBuilder extends Locatable {
      */
     Node begin(BlockLabel blockLabel);
 
+    /**
+     * Establish that the given value is reachable at this point.
+     *
+     * @param value the reachable value (must not be {@code null})
+     * @return the node representing the reachability fence
+     */
+    Node reachable(Value value);
+
     // control flow - terminalBlock is updated to point to this terminator
 
     /**

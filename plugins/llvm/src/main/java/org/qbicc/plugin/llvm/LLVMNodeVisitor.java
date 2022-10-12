@@ -64,6 +64,7 @@ import org.qbicc.graph.Or;
 import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
+import org.qbicc.graph.Reachable;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Return;
@@ -309,6 +310,13 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         } else {
             return builder.fence(OrderingConstraint.seq_cst);
         }
+    }
+
+    public Instruction visit(final Void unused, final Reachable node) {
+        map(node.getDependency());
+        map(node.getReachableValue());
+        // nothing actually emitted
+        return null;
     }
 
     // terminators

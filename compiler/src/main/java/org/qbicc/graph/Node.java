@@ -375,6 +375,11 @@ public interface Node {
                 return param.getBlockBuilder().monitorExit(param.copyValue(node.getInstance()));
             }
 
+            public Node visit(Copier copier, Reachable node) {
+                copier.copyNode(node.getDependency());
+                return copier.getBlockBuilder().reachable(copier.copyValue(node.getReachableValue()));
+            }
+
             public Node visit(Copier param, InitCheck node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().initCheck(node.getInitializerElement(), param.copyValue(node.getInitThunk()));

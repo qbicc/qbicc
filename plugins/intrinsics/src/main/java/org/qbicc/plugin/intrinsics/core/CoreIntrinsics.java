@@ -1042,6 +1042,7 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor phantomReferenceDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ref/PhantomReference");
 
         MethodDescriptor objToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc));
+        MethodDescriptor objToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(objDesc));
 
         InstanceIntrinsic refersTo0 = (builder, instance, target, arguments) ->
             builder.isEq(
@@ -1051,6 +1052,16 @@ public final class CoreIntrinsics {
 
         intrinsics.registerIntrinsic(Phase.ADD, referenceDesc, "refersTo0", objToBool, refersTo0);
         intrinsics.registerIntrinsic(Phase.ADD, phantomReferenceDesc, "refersTo0", objToBool, refersTo0);
+
+        StaticIntrinsic reachabilityFence = (builder, target, arguments) -> {
+            builder.reachable(arguments.get(0));
+            final ClassContext context = builder.getCurrentElement().getEnclosingType().getContext();
+            final TypeSystem ts = context.getTypeSystem();
+            final LiteralFactory lf = context.getLiteralFactory();
+            return lf.zeroInitializerLiteralOfType(ts.getVoidType());
+        };
+
+        intrinsics.registerIntrinsic(Phase.ADD, referenceDesc, "reachabilityFence", objToVoid, reachabilityFence);
     }
 
     private static Value traverseLoads(Value value) {

@@ -36,6 +36,10 @@ public interface ActionVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, Reachable node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, Store node) {
         return visitUnknown(t, node);
     }
@@ -72,6 +76,10 @@ public interface ActionVisitor<T, R> {
         }
 
         default R visit(T t, MonitorExit node) {
+            return getDelegateActionVisitor().visit(t, node);
+        }
+
+        default R visit(T t, Reachable node) {
             return getDelegateActionVisitor().visit(t, node);
         }
 
