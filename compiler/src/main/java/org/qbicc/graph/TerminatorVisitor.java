@@ -56,10 +56,6 @@ public interface TerminatorVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
-    default R visit(T t, ValueReturn node) {
-        return visitUnknown(t, node);
-    }
-
     default R visit(T t, Unreachable node) { return visitUnknown(t, node); }
 
     // Errors
@@ -120,10 +116,6 @@ public interface TerminatorVisitor<T, R> {
         }
 
         default R visit(T t, Throw node) {
-            return getDelegateTerminatorVisitor().visit(t, node);
-        }
-
-        default R visit(T t, ValueReturn node) {
             return getDelegateTerminatorVisitor().visit(t, node);
         }
 

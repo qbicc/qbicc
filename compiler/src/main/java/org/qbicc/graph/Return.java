@@ -6,20 +6,27 @@ import java.util.Objects;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
- *
+ * A return from an invokable program element.
  */
 public final class Return extends AbstractTerminator implements Terminator {
     private final Node dependency;
+    private final Value returnValue;
+
     private final BasicBlock terminatedBlock;
 
-    Return(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, Node dependency, Map<Slot, BlockParameter> parameters) {
+    Return(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value returnValue, Map<Slot, BlockParameter> parameters) {
         super(callSite, element, line, bci);
-        this.dependency = dependency;
         terminatedBlock = new BasicBlock(blockEntry, this, parameters);
+        this.dependency = dependency;
+        this.returnValue = returnValue;
     }
 
     public BasicBlock getTerminatedBlock() {
         return terminatedBlock;
+    }
+
+    public Value getReturnValue() {
+        return returnValue;
     }
 
     @Override
@@ -27,12 +34,20 @@ public final class Return extends AbstractTerminator implements Terminator {
         return dependency;
     }
 
+    public int getValueDependencyCount() {
+        return 1;
+    }
+
+    public Value getValueDependency(int index) throws IndexOutOfBoundsException {
+        return index == 0 ? getReturnValue() : Util.throwIndexOutOfBounds(index);
+    }
+
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
 
     int calcHashCode() {
-        return Objects.hash(Return.class, dependency);
+        return Objects.hash(Return.class, dependency, returnValue);
     }
 
     @Override
@@ -44,8 +59,18 @@ public final class Return extends AbstractTerminator implements Terminator {
         return other instanceof Return && equals((Return) other);
     }
 
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        super.toString(b);
+        b.append('(');
+        returnValue.toString(b);
+        b.append(')');
+        return b;
+    }
+
     public boolean equals(final Return other) {
         return this == other || other != null
-            && dependency.equals(other.dependency);
+            && dependency.equals(other.dependency)
+            && returnValue.equals(other.returnValue);
     }
 }

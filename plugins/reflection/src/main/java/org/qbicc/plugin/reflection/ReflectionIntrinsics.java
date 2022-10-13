@@ -551,11 +551,7 @@ public final class ReflectionIntrinsics {
                 if (retVal == null) {
                     throw new IllegalStateException("Failed to emit method body");
                 }
-                if (type.getReturnType() instanceof VoidType) {
-                    bbb.return_();
-                } else {
-                    bbb.return_(retVal);
-                }
+                bbb.return_(retVal);
             } catch (BlockEarlyTermination ignored) {}
             bbb.finish();
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
@@ -600,11 +596,7 @@ public final class ReflectionIntrinsics {
                 if (retVal == null) {
                     throw new IllegalStateException("Failed to emit method body");
                 }
-                if (type.getReturnType() instanceof VoidType) {
-                    bbb.return_();
-                } else {
-                    bbb.return_(retVal);
-                }
+                bbb.return_(retVal);
             } catch (BlockEarlyTermination ignored) {}
             bbb.finish();
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);

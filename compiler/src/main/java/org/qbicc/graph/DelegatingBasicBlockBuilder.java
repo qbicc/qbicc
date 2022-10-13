@@ -407,10 +407,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().if_(condition, trueTarget, falseTarget, targetArguments);
     }
 
-    public BasicBlock return_() {
-        return getDelegate().return_();
-    }
-
     public BasicBlock return_(final Value value) {
         return getDelegate().return_(value);
     }

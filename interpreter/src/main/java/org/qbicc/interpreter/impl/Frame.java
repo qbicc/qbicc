@@ -88,7 +88,6 @@ import org.qbicc.graph.Reachable;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Ret;
-import org.qbicc.graph.Return;
 import org.qbicc.graph.Rol;
 import org.qbicc.graph.Ror;
 import org.qbicc.graph.Select;
@@ -112,7 +111,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.ValueHandleVisitorLong;
-import org.qbicc.graph.ValueReturn;
+import org.qbicc.graph.Return;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.Xor;
@@ -2106,11 +2105,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
-    public BasicBlock visit(VmThreadImpl thread, Return node) {
-        return null;
-    }
-
-    @Override
     public BasicBlock visit(VmThreadImpl thread, Throw node) {
         VmThrowable throwable = (VmThrowable) require(node.getThrownValue());
         thread.setThrown(throwable);
@@ -2118,8 +2112,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
-    public BasicBlock visit(VmThreadImpl thread, ValueReturn node) {
-        output = require(node.getReturnValue());
+    public BasicBlock visit(VmThreadImpl thread, Return node) {
+        if (!(node.getReturnValue().getType() instanceof VoidType)) {
+            output = require(node.getReturnValue());
+        }
         return null;
     }
 
