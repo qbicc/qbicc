@@ -235,9 +235,11 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
                     (StaticMethodElementHandle) target,
                     arguments);
-                ImmutableMap<Slot, Value> immutableMap = Maps.immutable.ofMap(targetArguments);
-                goto_(resumeLabel, immutableMap.newWithKeyValue(Slot.result(), result).castToMap());
-                return result;
+                if (result != null) {
+                    ImmutableMap<Slot, Value> immutableMap = Maps.immutable.ofMap(targetArguments);
+                    goto_(resumeLabel, immutableMap.newWithKeyValue(Slot.result(), result).castToMap());
+                    return result;
+                }
             }
         } else if (target instanceof InstanceMethodElementHandle) {
             InstanceMethodElementHandle decodedTarget = (InstanceMethodElementHandle) target;
@@ -249,9 +251,11 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
                     instance,
                     (InstanceMethodElementHandle) target,
                     arguments);
-                ImmutableMap<Slot, Value> immutableMap = Maps.immutable.ofMap(targetArguments);
-                goto_(resumeLabel, immutableMap.newWithKeyValue(Slot.result(), result).castToMap());
-                return result;
+                if (result != null) {
+                    ImmutableMap<Slot, Value> immutableMap = Maps.immutable.ofMap(targetArguments);
+                    goto_(resumeLabel, immutableMap.newWithKeyValue(Slot.result(), result).castToMap());
+                    return result;
+                }
             }
         }
         return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
