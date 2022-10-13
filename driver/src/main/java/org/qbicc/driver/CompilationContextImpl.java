@@ -348,6 +348,9 @@ final class CompilationContextImpl implements CompilationContext {
 
     public Path getOutputDirectory(final DefinedTypeDefinition type) {
         Path base = outputDir;
+        VmClassLoader classLoader = type.getContext().getClassLoader();
+        final String name = classLoader == null ? "boot" : classLoader.getName();
+        base = base.resolve(name);
         String internalName = type.getInternalName();
         if (type.isHidden()) {
             internalName += "~" + type.getHiddenClassIndex();
