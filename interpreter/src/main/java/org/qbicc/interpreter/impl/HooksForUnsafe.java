@@ -83,7 +83,7 @@ final class HooksForUnsafe {
     }
 
     @Hook
-    static VmObject staticFieldBase0(VmThread thread, VmObject theUnsafe) {
+    static VmObject staticFieldBase0(VmThread thread, VmObject theUnsafe, VmObjectImpl fieldObj) {
         return null;
     }
 
