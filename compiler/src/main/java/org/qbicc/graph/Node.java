@@ -11,7 +11,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-import org.eclipse.collections.api.factory.Maps;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
@@ -450,11 +449,6 @@ public interface Node {
                 return param.getBlockBuilder().ret(param.copyValue(node.getReturnAddressValue()), param.copyArguments(node));
             }
 
-            public BasicBlock visit(Copier param, Return node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().return_();
-            }
-
             public BasicBlock visit(Copier param, Switch node) {
                 param.copyNode(node.getDependency());
                 int cnt = node.getNumberOfValues();
@@ -485,7 +479,7 @@ public interface Node {
                 return param.getBlockBuilder().unreachable();
             }
 
-            public BasicBlock visit(Copier param, ValueReturn node) {
+            public BasicBlock visit(Copier param, Return node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().return_(param.copyValue(node.getReturnValue()));
             }

@@ -830,15 +830,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return terminate(requireCurrentBlock(), new If(callSite, element, line, bci, blockEntry, dependency, condition, trueTarget, falseTarget, parameters.castToMap(), targetArguments));
     }
 
-    public BasicBlock return_() {
-        return terminate(requireCurrentBlock(), new Return(callSite, element, line, bci, blockEntry, dependency, parameters.castToMap()));
-    }
-
     public BasicBlock return_(final Value value) {
-        if (value == null || value.getType() instanceof VoidType) {
-            return return_();
+        if (value == null) {
+            return return_(emptyVoid());
         }
-        return terminate(requireCurrentBlock(), new ValueReturn(callSite, element, line, bci, blockEntry, dependency, value, parameters.castToMap()));
+        return terminate(requireCurrentBlock(), new Return(callSite, element, line, bci, blockEntry, dependency, value, parameters.castToMap()));
     }
 
     public BasicBlock unreachable() {

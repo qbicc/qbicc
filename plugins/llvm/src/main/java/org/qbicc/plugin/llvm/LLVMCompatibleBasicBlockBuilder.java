@@ -442,12 +442,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             return super.tailCall(target, arguments);
         }
         // break tail call
-        Value retVal = super.call(target, arguments);
-        if (isVoidFunction(target)) {
-            return super.return_();
-        } else {
-            return super.return_(retVal);
-        }
+        return super.return_(super.call(target, arguments));
     }
 
     @Override
@@ -482,11 +477,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         Value retVal = super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
         begin(resumeLabel);
         //BlockParameter retVal = addParam(Slot.result(), ((InvokableType) target.getPointeeType()).getReturnType(), true);
-        if (isVoidFunction(target)) {
-            return super.return_();
-        } else {
-            return super.return_(retVal);
-        }
+        return super.return_(retVal);
     }
 
     private boolean isTailCallSafe() {
