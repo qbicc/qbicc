@@ -39,7 +39,6 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.PhiValue;
-import org.qbicc.graph.Return;
 import org.qbicc.graph.Rol;
 import org.qbicc.graph.Ror;
 import org.qbicc.graph.Shl;
@@ -55,7 +54,7 @@ import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
-import org.qbicc.graph.ValueReturn;
+import org.qbicc.graph.Return;
 import org.qbicc.graph.Xor;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Declaration;
@@ -319,11 +318,6 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
         // Value substitutions
 
         public BasicBlock visit(final Node.Copier param, final Return node) {
-            param.copyNode(node.getDependency());
-            return onReturn.apply(null);
-        }
-
-        public BasicBlock visit(final Node.Copier param, final ValueReturn node) {
             try {
                 param.copyNode(node.getDependency());
                 return onReturn.apply(param.copyValue(node.getReturnValue()));

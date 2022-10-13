@@ -102,7 +102,6 @@ import org.qbicc.graph.ReadModifyWriteValue;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.ReferenceTo;
 import org.qbicc.graph.Ret;
-import org.qbicc.graph.Return;
 import org.qbicc.graph.Rol;
 import org.qbicc.graph.Ror;
 import org.qbicc.graph.Select;
@@ -126,8 +125,7 @@ import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.VaArg;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.ValueReturn;
-import org.qbicc.graph.ValueVisitor;
+import org.qbicc.graph.Return;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.literal.ArrayLiteral;
@@ -154,6 +152,7 @@ import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ValueType;
+import org.qbicc.type.VoidType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.generic.BaseTypeSignature;
 
@@ -1379,7 +1378,8 @@ public final class Disassembler {
         @Override
         public Void visit(Disassembler param, Return node) {
             final String id = param.nextId();
-            final String description = "return";
+            final boolean isVoid = node.getReturnValue().getType() instanceof VoidType;
+            final String description = isVoid ? "return" : "return " + show(node.getReturnValue());
             param.addLine(description, node);
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
@@ -1429,15 +1429,6 @@ public final class Disassembler {
         public Void visit(Disassembler param, Unreachable node) {
             final String id = param.nextId();
             final String description = "unreachable";
-            param.addLine(description, node);
-            param.nodeInfo.put(node, new NodeInfo(id, description));
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, ValueReturn node) {
-            final String id = param.nextId();
-            final String description = "return " + show(node.getReturnValue());
             param.addLine(description, node);
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);

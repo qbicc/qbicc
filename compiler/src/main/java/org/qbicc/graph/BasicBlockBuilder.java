@@ -741,7 +741,9 @@ public interface BasicBlockBuilder extends Locatable {
      */
     BasicBlock if_(Value condition, BlockLabel trueTarget, BlockLabel falseTarget, Map<Slot, Value> targetArguments);
 
-    BasicBlock return_();
+    default BasicBlock return_() {
+        return return_(emptyVoid());
+    }
 
     BasicBlock return_(Value value);
 

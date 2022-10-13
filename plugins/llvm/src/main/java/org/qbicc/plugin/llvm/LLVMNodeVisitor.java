@@ -67,7 +67,6 @@ import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Reachable;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.ReferenceHandle;
-import org.qbicc.graph.Return;
 import org.qbicc.graph.Select;
 import org.qbicc.graph.Shl;
 import org.qbicc.graph.Shr;
@@ -85,7 +84,7 @@ import org.qbicc.graph.VaArg;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
-import org.qbicc.graph.ValueReturn;
+import org.qbicc.graph.Return;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.atomic.GlobalAccessMode;
@@ -331,11 +330,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         return builder.br(map(node.getCondition()), map(node.getTrueBranch()), map(node.getFalseBranch()));
     }
 
-    public Instruction visit(final Void param, final Return node) {
-        map(node.getDependency());
-        return builder.ret();
-    }
-
     public Instruction visit(final Void param, final Unreachable node) {
         map(node.getDependency());
         return builder.unreachable();
@@ -351,9 +345,14 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         return switchInst;
     }
 
-    public Instruction visit(final Void param, final ValueReturn node) {
+    public Instruction visit(final Void param, final Return node) {
         map(node.getDependency());
-        return builder.ret(map(node.getReturnValue().getType()), map(node.getReturnValue()));
+        final ValueType retType = node.getReturnValue().getType();
+        if (retType instanceof VoidType) {
+            return builder.ret();
+        } else {
+            return builder.ret(map(retType), map(node.getReturnValue()));
+        }
     }
 
     // values

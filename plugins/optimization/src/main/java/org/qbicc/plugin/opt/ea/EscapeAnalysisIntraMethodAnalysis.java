@@ -40,7 +40,6 @@ import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.ReferenceHandle;
-import org.qbicc.graph.Return;
 import org.qbicc.graph.Select;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
@@ -51,7 +50,7 @@ import org.qbicc.graph.Throw;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.ValueReturn;
+import org.qbicc.graph.Return;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.type.BooleanType;
@@ -163,7 +162,7 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
         }
 
         @Override
-        public Void visit(AnalysisContext param, ValueReturn node) {
+        public Void visit(AnalysisContext param, Return node) {
             if (visitKnown(param, node)) {
                 final Value value = node.getReturnValue();
                 if (value instanceof New || value instanceof PhiValue) {
@@ -349,12 +348,6 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
                 node.getResumeTarget().getTerminator().accept(this, param);
             }
 
-            return null;
-        }
-
-        @Override
-        public Void visit(AnalysisContext param, Return node) {
-            visitKnown(param, node);
             return null;
         }
 

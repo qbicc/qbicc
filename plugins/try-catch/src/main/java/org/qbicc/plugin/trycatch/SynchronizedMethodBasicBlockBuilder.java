@@ -104,11 +104,6 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
         return node;
     }
 
-    public BasicBlock return_() {
-        monitorExit(monitor);
-        return super.return_();
-    }
-
     public BasicBlock return_(final Value value) {
         monitorExit(monitor);
         return super.return_(value);
