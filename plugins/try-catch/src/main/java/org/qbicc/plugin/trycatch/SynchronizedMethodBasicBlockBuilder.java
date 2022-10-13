@@ -2,6 +2,7 @@ package org.qbicc.plugin.trycatch;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
@@ -102,6 +103,20 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
             return monitorEnter;
         }
         return node;
+    }
+
+    @Override
+    public <T> BasicBlock begin(BlockLabel blockLabel, T arg, BiConsumer<T, BasicBlockBuilder> maker) {
+        if (! started) {
+            // method start
+            return super.begin(blockLabel, bbb -> {
+                started = true;
+                monitorEnter(monitor);
+                getDelegate().setExceptionHandlerPolicy(this);
+            });
+        } else {
+            return super.begin(blockLabel, arg, maker);
+        }
     }
 
     public BasicBlock return_(final Value value) {

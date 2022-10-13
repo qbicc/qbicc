@@ -5,6 +5,8 @@ import static org.qbicc.graph.atomic.AccessModes.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
@@ -618,6 +620,31 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the node representing the block entry
      */
     Node begin(BlockLabel blockLabel);
+
+    /**
+     * Begin a new block, suspending the current block until it is complete.
+     * If the maker throws a {@link BlockEarlyTermination}, then it will be caught before this method returns.
+     * If the maker does not terminate the block, an error will be raised and the block will be
+     * terminated as if by {@link #unreachable()}.
+     *
+     * @param blockLabel the label of the new block (must not be {@code null} or resolved)
+     * @param arg the argument to the maker
+     * @param maker the callback which builds the block (must not be {@code null})
+     * @return the resolved target of {@code blockLabel} (not {@code null})
+     * @param <T> the type of the argument to the maker
+     */
+    <T> BasicBlock begin(BlockLabel blockLabel, T arg, BiConsumer<T, BasicBlockBuilder> maker);
+
+    /**
+     * Begin a new block, suspending the current block until it is complete.
+     *
+     * @param blockLabel the label of the new block (must not be {@code null} or resolved)
+     * @param maker the callback which builds the block (must not be {@code null})
+     * @return the completed block (not {@code null})
+     */
+    default BasicBlock begin(BlockLabel blockLabel, Consumer<BasicBlockBuilder> maker) {
+        return begin(blockLabel, maker, Consumer::accept);
+    }
 
     /**
      * Establish that the given value is reachable at this point.

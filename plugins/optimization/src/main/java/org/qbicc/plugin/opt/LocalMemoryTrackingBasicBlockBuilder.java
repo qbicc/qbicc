@@ -5,6 +5,7 @@ import static org.qbicc.graph.atomic.AccessModes.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
@@ -30,7 +31,7 @@ import org.qbicc.graph.atomic.WriteAccessMode;
  */
 public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<AccessMode, Value> {
     private final CompilationContext ctxt;
-    private final Map<ValueHandle, Value> knownValues = new HashMap<>();
+    private Map<ValueHandle, Value> knownValues = new HashMap<>();
 
     public LocalMemoryTrackingBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
@@ -42,6 +43,17 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
         // other incoming edges might have loads which invalidate our local cache
         knownValues.clear();
         return super.begin(blockLabel);
+    }
+
+    @Override
+    public <T> BasicBlock begin(BlockLabel blockLabel, T arg, BiConsumer<T, BasicBlockBuilder> maker) {
+        final Map<ValueHandle, Value> oldKnownValues = knownValues;
+        knownValues = new HashMap<>();
+        try {
+            return super.begin(blockLabel, arg, maker);
+        } finally {
+            knownValues = oldKnownValues;
+        }
     }
 
     @Override

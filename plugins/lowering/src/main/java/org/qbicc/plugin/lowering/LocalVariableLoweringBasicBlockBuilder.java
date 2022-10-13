@@ -4,8 +4,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.function.BiConsumer;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
@@ -38,30 +40,46 @@ public final class LocalVariableLoweringBasicBlockBuilder extends DelegatingBasi
     public Node begin(BlockLabel blockLabel) {
         final Node node = super.begin(blockLabel);
         if (! started) {
-            started = true;
-            final UnsignedIntegerType unsignedInteger8Type = ctxt.getTypeSystem().getUnsignedInteger8Type();
-            final LiteralFactory lf = ctxt.getLiteralFactory();
-            final IntegerLiteral one = lf.literalOf(1);
-            // todo: allocate local variables closer to where they are used
-            for (LocalVariableElement lve : usedVariables) {
-                ValueType varType = lve.getType();
-                if (varType instanceof BooleanType) {
-                    // widen booleans to 8 bits
-                    varType = unsignedInteger8Type;
-                }
-                int oldLine = setLineNumber(lve.getLine());
-                int oldBci = setBytecodeIndex(lve.getBci());
-                try {
-                    Value address = stackAllocate(varType, one, lf.literalOf(varType.getAlign()));
-                    allocatedVariables.put(lve, address);
-                    declareDebugAddress(lve, address);
-                } finally {
-                    setLineNumber(oldLine);
-                    setBytecodeIndex(oldBci);
-                }
-            }
+            setUp();
         }
         return node;
+    }
+
+    @Override
+    public <T> BasicBlock begin(BlockLabel blockLabel, T arg, BiConsumer<T, BasicBlockBuilder> maker) {
+        if (! started) {
+            return super.begin(blockLabel, bbb -> {
+                setUp();
+                maker.accept(arg, bbb);
+            });
+        } else {
+            return super.begin(blockLabel, arg, maker);
+        }
+    }
+
+    private void setUp() {
+        started = true;
+        final UnsignedIntegerType unsignedInteger8Type = ctxt.getTypeSystem().getUnsignedInteger8Type();
+        final LiteralFactory lf = ctxt.getLiteralFactory();
+        final IntegerLiteral one = lf.literalOf(1);
+        // todo: allocate local variables closer to where they are used
+        for (LocalVariableElement lve : usedVariables) {
+            ValueType varType = lve.getType();
+            if (varType instanceof BooleanType) {
+                // widen booleans to 8 bits
+                varType = unsignedInteger8Type;
+            }
+            int oldLine = setLineNumber(lve.getLine());
+            int oldBci = setBytecodeIndex(lve.getBci());
+            try {
+                Value address = stackAllocate(varType, one, lf.literalOf(varType.getAlign()));
+                allocatedVariables.put(lve, address);
+                declareDebugAddress(lve, address);
+            } finally {
+                setLineNumber(oldLine);
+                setBytecodeIndex(oldBci);
+            }
+        }
     }
 
     @Override
