@@ -3,6 +3,7 @@ package org.qbicc.graph;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 import org.qbicc.context.Location;
 import org.qbicc.graph.atomic.GlobalAccessMode;
@@ -368,6 +369,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Node begin(final BlockLabel blockLabel) {
         return getDelegate().begin(blockLabel);
+    }
+
+    public <T> BasicBlock begin(BlockLabel blockLabel, T arg, BiConsumer<T, BasicBlockBuilder> maker) {
+        return getDelegate().begin(blockLabel, arg, maker);
     }
 
     public Node reachable(final Value value) {

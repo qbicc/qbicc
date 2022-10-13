@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 import io.smallrye.common.constraint.Assert;
 import org.eclipse.collections.api.factory.SortedMaps;
@@ -764,6 +765,58 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             firstBlock = blockLabel;
         }
         return dependency = blockEntry = new BlockEntry(callSite, element, blockLabel);
+    }
+
+    @Override
+    public <T> BasicBlock begin(BlockLabel blockLabel, T arg, BiConsumer<T, BasicBlockBuilder> maker) {
+        if (!started) {
+            throw new IllegalStateException("begin() called before startMethod()");
+        }
+        Assert.checkNotNullParam("blockLabel", blockLabel);
+        Assert.checkNotNullParam("maker", maker);
+        if (blockLabel.hasTarget()) {
+            throw new IllegalStateException("Block already terminated");
+        }
+        // save all state on the stack
+        final ExceptionHandlerPolicy oldPolicy = policy;
+        final int oldLine = line;
+        final int oldBci = bci;
+        final Node oldDependency = dependency;
+        final BlockEntry oldBlockEntry = blockEntry;
+        final BlockLabel oldCurrentBlock = currentBlock;
+        final BasicBlock oldTerminatedBlock = terminatedBlock;
+        final ExecutableElement oldElement = element;
+        final Node oldCallSite = callSite;
+        final ImmutableSortedMap<Slot, BlockParameter> oldParameters = parameters;
+        try {
+            return doBegin(blockLabel, arg, maker);
+        } finally {
+            // restore all state
+            parameters = oldParameters;
+            callSite = oldCallSite;
+            element = oldElement;
+            terminatedBlock = oldTerminatedBlock;
+            currentBlock = oldCurrentBlock;
+            blockEntry = oldBlockEntry;
+            dependency = oldDependency;
+            bci = oldBci;
+            line = oldLine;
+            policy = oldPolicy;
+        }
+    }
+
+    private <T> BasicBlock doBegin(final BlockLabel blockLabel, final T arg, final BiConsumer<T, BasicBlockBuilder> maker) {
+        try {
+            dependency = blockEntry = new BlockEntry(callSite, element, blockLabel);
+            parameters = SortedMaps.immutable.empty();
+            maker.accept(arg, firstBuilder);
+            if (currentBlock != null) {
+                getContext().error(getLocation(), "Block not terminated");
+                firstBuilder.unreachable();
+            }
+        } catch (BlockEarlyTermination bet) {
+        }
+        return BlockLabel.getTargetOf(blockLabel);
     }
 
     public Node reachable(final Value value) {
