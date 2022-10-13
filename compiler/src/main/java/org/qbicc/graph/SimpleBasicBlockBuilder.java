@@ -807,6 +807,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
 
     private <T> BasicBlock doBegin(final BlockLabel blockLabel, final T arg, final BiConsumer<T, BasicBlockBuilder> maker) {
         try {
+            currentBlock = blockLabel;
+            if (firstBlock == null) {
+                firstBlock = blockLabel;
+            }
             dependency = blockEntry = new BlockEntry(callSite, element, blockLabel);
             parameters = SortedMaps.immutable.empty();
             maker.accept(arg, firstBuilder);

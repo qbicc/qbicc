@@ -341,11 +341,13 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                             bbb.startMethod(paramValues);
                                             // build the entry block
                                             BlockLabel entryLabel = new BlockLabel();
-                                            bbb.begin(entryLabel);
-                                            ClassContext bc = context.getCompilationContext().getBootstrapClassContext();
-                                            LoadedTypeDefinition vmHelpers = bc.findDefinedType("org/qbicc/runtime/main/VMHelpers").load();
-                                            MethodElement icce = vmHelpers.resolveMethodElementExact("raiseIncompatibleClassChangeError", MethodDescriptor.synthesize(bc, BaseTypeDescriptor.V, List.of()));
-                                            BasicBlock entryBlock = bbb.callNoReturn(bbb.staticMethod(icce), List.of());
+                                            BasicBlock entryBlock = bbb.begin(entryLabel, ib -> {
+                                                ClassContext bc = ib.getContext().getBootstrapClassContext();
+                                                LoadedTypeDefinition vmHelpers = bc.findDefinedType("org/qbicc/runtime/main/VMHelpers").load();
+                                                MethodElement icce = vmHelpers.resolveMethodElementExact("raiseIncompatibleClassChangeError", MethodDescriptor.synthesize(bc, BaseTypeDescriptor.V, List.of()));
+                                                ib.callNoReturn(ib.staticMethod(icce), List.of());
+                                            });
+                                            // that's all
                                             bbb.finish();
                                             Schedule schedule = Schedule.forMethod(entryBlock);
                                             return MethodBody.of(entryBlock, schedule, thisValue, paramValues);
@@ -387,10 +389,9 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                     bbb.startMethod(paramValues);
                                     // build the entry block
                                     BlockLabel entryLabel = new BlockLabel();
-                                    bbb.begin(entryLabel);
                                     // just cast the list because it's fine; todo: maybe this method should accept List<? extends Value>
                                     //noinspection unchecked,rawtypes
-                                    BasicBlock entryBlock = bbb.tailCall(bbb.exactMethodOf(thisValue, finalDefaultMethod), (List<Value>) (List) paramValues);
+                                    BasicBlock entryBlock = bbb.begin(entryLabel, ib -> ib.tailCall(ib.exactMethodOf(thisValue, finalDefaultMethod), (List<Value>) (List) paramValues));
                                     bbb.finish();
                                     Schedule schedule = Schedule.forMethod(entryBlock);
                                     return MethodBody.of(entryBlock, schedule, thisValue, paramValues);
