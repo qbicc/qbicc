@@ -4,21 +4,29 @@ import static org.qbicc.graph.atomic.AccessModes.SingleRelease;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.interpreter.Hook;
+import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
+
+import java.util.List;
 
 /**
  *
  */
 final class HooksForClassLoader {
     private final FieldElement classDataField;
+    private final VmClassImpl byteArrayInputStreamClass;
+    private final ConstructorElement byteArrayInputStreamConstructor;
 
     HooksForClassLoader(VmImpl vm) {
         this.classDataField = vm.classClass.getTypeDefinition().findField("classData");
+        this.byteArrayInputStreamClass = vm.getBootstrapClassLoader().loadClass("java/io/ByteArrayInputStream");
+        this.byteArrayInputStreamConstructor = byteArrayInputStreamClass.getTypeDefinition().requireSingleConstructor(ce -> ce.getParameters().size() == 1);
     }
 
     @Hook
@@ -67,5 +75,19 @@ final class HooksForClassLoader {
     @Hook
     static VmClass findLoadedClass0(VmThread thread, VmClassLoaderImpl classLoader, VmString name) {
         return classLoader.findLoadedClass(name.getContent());
+    }
+
+    @Hook
+    VmObject getResourceAsStream(VmThreadImpl thread, VmClassLoaderImpl classLoader, VmString name) throws Thrown {
+        if (name == null) {
+            throw new Thrown(thread.getVM().nullPointerException.newInstance("name"));
+        }
+        byte[] resource = classLoader.getClassContext().getResource(name.getContent());
+        if (resource != null) {
+            VmByteArrayImpl vmResource = thread.getVM().newByteArray(resource);
+            return thread.getVM().newInstance(byteArrayInputStreamClass, byteArrayInputStreamConstructor, List.of(vmResource));
+        } else {
+            return null;
+        }
     }
 }
