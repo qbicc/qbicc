@@ -45,12 +45,15 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
     private final HashMap<String, VmObjectImpl> modulesByPackage = new HashMap<>();
     private final HashMap<String, List<VmClassImpl>> classesWithoutModuleByPackage = new HashMap<>();
     // protected by lock ↑
+    private String name;
+    private static final AtomicInteger seq = new AtomicInteger(0);
 
     VmClassLoaderImpl(VmClassLoaderClassImpl clazz, VmImpl vm) {
         // bootstrap CL
         super(clazz);
         classContext = vm.getCompilationContext().getBootstrapClassContext();
         appCL = false;
+        name = "boot";
     }
 
     VmClassLoaderImpl(VmClassLoaderClassImpl clazz, CompilationContext ctxt) {
@@ -64,6 +67,20 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
             classContext = ctxt.constructClassContext(this);
             appCL = false;
         }
+    }
+
+    @Override
+    public String getName() {
+        String name = this.name;
+        if (name == null) {
+            final VmString vmString = (VmString) getMemory().loadRef(indexOf(clazz.getVm().classLoaderClass.getTypeDefinition().findField("name")), SinglePlain);
+            if (vmString == null) {
+                this.name = name = "Unnamed" + seq.getAndIncrement();
+            } else {
+                this.name = name = vmString.getContent();
+            }
+        }
+        return name;
     }
 
     @Override
