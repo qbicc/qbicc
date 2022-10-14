@@ -72,7 +72,6 @@ import org.qbicc.graph.IsGt;
 import org.qbicc.graph.IsLe;
 import org.qbicc.graph.IsLt;
 import org.qbicc.graph.IsNe;
-import org.qbicc.graph.Jsr;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.Max;
@@ -1352,17 +1351,6 @@ public final class Disassembler {
             param.addLine(id + " = " + description, node);
             param.nodeInfo.put(node, new NodeInfo(id, description));
             param.queueBlock(currentBlock, node.getCatchBlock(), "catch", EdgeType.CONTROL_FLOW);
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, Jsr node) {
-            final String id = param.nextId();
-            final String description = "jsr";
-            param.addLine(description, node);
-            param.nodeInfo.put(node, new NodeInfo(id, description));
-            param.queueBlock(currentBlock, node.getResumeTarget(), "ret", EdgeType.RET_RESUME_FLOW);
-            param.queueBlock(currentBlock, node.getJsrTarget(), "to", EdgeType.CONTROL_FLOW);
             return delegate.visit(param, node);
         }
 

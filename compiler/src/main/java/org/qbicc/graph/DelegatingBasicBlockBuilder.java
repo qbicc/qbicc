@@ -8,7 +8,6 @@ import org.qbicc.context.Location;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
-import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -569,10 +568,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value populationCount(final Value v) {
         return getDelegate().populationCount(v);
-    }
-
-    public BasicBlock jsr(final BlockLabel subLabel, final BlockLiteral returnAddress, Map<Slot, Value> targetArguments) {
-        return getDelegate().jsr(subLabel, returnAddress, targetArguments);
     }
 
     public BasicBlock ret(final Value address, Map<Slot, Value> targetArguments) {

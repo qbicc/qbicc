@@ -62,7 +62,6 @@ import org.qbicc.graph.IsGt;
 import org.qbicc.graph.IsLe;
 import org.qbicc.graph.IsLt;
 import org.qbicc.graph.IsNe;
-import org.qbicc.graph.Jsr;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.Max;
@@ -2092,11 +2091,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             }
         }
         return node.getDefaultTarget();
-    }
-
-    @Override
-    public BasicBlock visit(VmThreadImpl thread, Jsr node) {
-        return node.getJsrTarget();
     }
 
     @Override

@@ -13,7 +13,6 @@ import org.qbicc.context.Location;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
-import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.ArrayObjectType;
@@ -752,22 +751,6 @@ public interface BasicBlockBuilder extends Locatable {
     BasicBlock throw_(Value value);
 
     BasicBlock switch_(Value value, int[] checkValues, BlockLabel[] targets, BlockLabel defaultTarget, Map<Slot, Value> targetArguments);
-
-    /**
-     * Construct a {@code jsr} node which must be returned from.  Before lowering, {@code jsr} nodes are inlined,
-     * copying all of the nodes into new basic blocks.
-     * <p>
-     * Terminates the current block, which is returned.
-     * <p>
-     * The given arguments must provide an argument value for every parameter defined in the target block.
-     * Extra arguments are ignored.
-     *
-     * @param subLabel the subroutine call target (must not be {@code null})
-     * @param returnAddress the return address literal (must not be {@code null})
-     * @param targetArguments the block arguments to pass to the target block (must not be {@code null})
-     * @return the terminated block
-     */
-    BasicBlock jsr(BlockLabel subLabel, BlockLiteral returnAddress, Map<Slot, Value> targetArguments);
 
     /**
      * Return from a {@code jsr} subroutine call.
