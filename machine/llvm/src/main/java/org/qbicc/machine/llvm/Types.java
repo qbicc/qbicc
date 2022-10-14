@@ -29,6 +29,8 @@ public final class Types {
 
     public static final LLValue metadata = LLVM.metadata;
 
+    public static final LLValue label = LLVM.label;
+
     public static LLValue ptrTo(LLValue type) {
         return LLVM.ptrTo(type, 0);
     }

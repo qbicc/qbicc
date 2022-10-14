@@ -48,6 +48,7 @@ import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.ProgramObjectPointer;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
+import org.qbicc.type.BlockType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
@@ -190,6 +191,8 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue>, Pointe
             } else {
                 res = struct;
             }
+        } else if (type instanceof BlockType) {
+            res = label;
         } else {
             throw new IllegalStateException("Can't map Type("+ type.toString() + ")");
         }
