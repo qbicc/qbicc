@@ -528,11 +528,13 @@ public final class VmImpl implements Vm {
 
     public byte[] loadResource(final ClassContext classContext, final String name) throws Thrown {
         // todo: implement by calling getAllBytes() on the class loader resource stream
+        classContext.getCompilationContext().warning("Unimplemented loadResource: %s %s", getClassLoaderForContext(classContext).getName(), name);
         return null;
     }
 
     public List<byte[]> loadResources(final ClassContext classContext, final String name) throws Thrown {
         // todo: implement by calling getAllBytes() on the class loader resource streams
+        classContext.getCompilationContext().warning("Unimplemented loadResources: %s %s", getClassLoaderForContext(classContext).getName(), name);
         return List.of();
     }
 
