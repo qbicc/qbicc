@@ -28,10 +28,6 @@ public interface TerminatorVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
-    default R visit(T t, Jsr node) {
-        return visitUnknown(t, node);
-    }
-
     default R visit(T t, Ret node) {
         return visitUnknown(t, node);
     }
@@ -84,10 +80,6 @@ public interface TerminatorVisitor<T, R> {
         }
 
         default R visit(T t, InvokeNoReturn node) {
-            return getDelegateTerminatorVisitor().visit(t, node);
-        }
-
-        default R visit(T t, Jsr node) {
             return getDelegateTerminatorVisitor().visit(t, node);
         }
 

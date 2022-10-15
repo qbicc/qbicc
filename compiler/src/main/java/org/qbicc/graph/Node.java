@@ -439,11 +439,6 @@ public interface Node {
                 return param.getBlockBuilder().invokeNoReturn(param.copyValueHandle(node.getValueHandle()), param.copyValues(node.getArguments()), param.copyBlock(node.getCatchBlock()), param.copyArguments(node));
             }
 
-            public BasicBlock visit(Copier param, Jsr node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().jsr(param.copyBlock(node.getResumeTarget()), (BlockLiteral) param.copyValue(node.getReturnAddressValue()), param.copyArguments(node));
-            }
-
             public BasicBlock visit(Copier param, Ret node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().ret(param.copyValue(node.getReturnAddressValue()), param.copyArguments(node));

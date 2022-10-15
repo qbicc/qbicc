@@ -1417,13 +1417,13 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         if (dest == null) {
                             // only called from one site
                             dest = new BlockLabel();
-                            gf.jsr(dest, lf.literalOf(retBlock), Map.of());
+                            gf.goto_(dest, Map.of());
                             buffer.position(target);
                             gf.begin(dest);
                             processNewBlock();
                         } else {
                             // the jsr call
-                            BasicBlock termBlock = gf.jsr(dest, lf.literalOf(retBlock), Map.of());
+                            BasicBlock termBlock = gf.goto_(dest, Map.of());
                             // process the jsr call target block with our current stack
                             buffer.position(target);
                             processBlock(termBlock);

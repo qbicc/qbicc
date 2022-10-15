@@ -19,7 +19,6 @@ import org.qbicc.context.Location;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
-import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayObjectType;
@@ -843,10 +842,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
 
     public BasicBlock throw_(final Value value) {
         return terminate(requireCurrentBlock(), new Throw(callSite, element, line, bci, blockEntry, dependency, value, parameters.castToMap()));
-    }
-
-    public BasicBlock jsr(final BlockLabel subLabel, final BlockLiteral returnAddress, Map<Slot, Value> targetArguments) {
-        return terminate(requireCurrentBlock(), new Jsr(callSite, element, line, bci, blockEntry, dependency, subLabel, returnAddress, parameters.castToMap(), targetArguments));
     }
 
     public BasicBlock ret(final Value address, Map<Slot, Value> targetArguments) {
