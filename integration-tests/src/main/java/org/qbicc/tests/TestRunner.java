@@ -12,6 +12,7 @@ import org.qbicc.tests.snippets.MathMinMax;
 import org.qbicc.tests.snippets.MethodHandle;
 import org.qbicc.tests.snippets.Reflection;
 import org.qbicc.tests.snippets.ResourceLoading;
+import org.qbicc.tests.snippets.ServiceLoading;
 import org.qbicc.tests.snippets.Synchronized;
 import org.qbicc.tests.snippets.TryCatch;
 
@@ -41,6 +42,7 @@ public final class TestRunner {
             case "snippet-MethodHandle" -> MethodHandle.main(testArgs);
             case "snippet-Reflection" -> Reflection.main(testArgs);
             case "snippet-ResourceLoading" -> ResourceLoading.main(testArgs);
+            case "snippet-ServiceLoading" -> ServiceLoading.main(testArgs);
             case "snippet-TryCatch" -> TryCatch.main(testArgs);
             case "snippet-ClassLiteralTests" -> ClassLiteralTests.main(testArgs);
             case "snippet-Synchronized" -> Synchronized.main(testArgs);

@@ -150,6 +150,7 @@ import org.qbicc.plugin.reachability.ReachabilityAnnotationTypeBuilder;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
+import org.qbicc.plugin.reachability.ServiceLoaderAnalyzer;
 import org.qbicc.plugin.reflection.Reflection;
 import org.qbicc.plugin.reflection.ReflectionIntrinsics;
 import org.qbicc.plugin.reflection.ReflectiveMethodAccessorGenerator;
@@ -531,6 +532,12 @@ public class Main implements Callable<DiagnosticContext> {
                                     });
                                 });
                                 builder.addPostHook(Phase.ADD, ctxt -> Reflection.get(ctxt).transferToReflectionData());
+                                builder.addPostHook(Phase.ADD, ctxt -> {
+                                    Vm vm = ctxt.getVm();
+                                    vm.doAttached(vm.newThread("ServiceProvider Serialization", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> {
+                                        ServiceLoaderAnalyzer.get(ctxt).serializeProviderConfig();
+                                    });
+                                });
                                 builder.addPostHook(Phase.ADD, ReachabilityInfo::reportStats);
                                 builder.addPostHook(Phase.ADD, ReachabilityInfo::clear);
 

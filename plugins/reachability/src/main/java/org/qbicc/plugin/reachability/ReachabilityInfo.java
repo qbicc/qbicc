@@ -1,6 +1,7 @@
 package org.qbicc.plugin.reachability;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -9,13 +10,13 @@ import java.util.function.Consumer;
 import org.jboss.logging.Logger;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.interpreter.VmObject;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  * ReachabilityInfo records the types and methods that have been determined to be reachable
@@ -257,6 +258,24 @@ public class ReachabilityInfo {
         return analysis;
     }
 
+    void processAsService(LoadedTypeDefinition type) {
+        List<LoadedTypeDefinition> providers = ServiceLoaderAnalyzer.get(ctxt).getProviders(type);
+        if (!providers.isEmpty()) {
+            for (LoadedTypeDefinition pc:providers) {
+                LOGGER.debugf("ServiceLoader[%s] ==> %s", type.getInternalName(), pc.getInternalName());
+                analysis.processReachableType(pc, null);
+                if (!pc.isInterface()) {
+                    analysis.processInstantiatedClass(pc, true, null);
+                    int index = pc.findConstructorIndex(MethodDescriptor.VOID_METHOD_DESCRIPTOR);
+                    if (index != -1) {
+                        ConstructorElement ce = pc.getConstructor(index);
+                        ReachabilityRoots.get(ctxt).registerReflectiveConstructor(ce);
+                    }
+                }
+            }
+        }
+    }
+
     void addReachableInterface(LoadedTypeDefinition type) {
         if (isReachableInterface(type)) return;
         synchronized (this) {
@@ -284,6 +303,8 @@ public class ReachabilityInfo {
 
             // The Class object of a reachable type is a heap root.
             analysis.processReachableObject(type.getVmClass(), null);
+
+            processAsService(type);
         }
     }
 
@@ -332,6 +353,8 @@ public class ReachabilityInfo {
 
             // The Class object of a reachable type is a heap root.
             analysis.processReachableObject(type.getVmClass(), null);
+
+            processAsService(type);
         }
     }
 
