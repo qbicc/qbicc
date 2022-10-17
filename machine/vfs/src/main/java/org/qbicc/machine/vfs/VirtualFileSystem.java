@@ -2,6 +2,7 @@ package org.qbicc.machine.vfs;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -70,6 +71,10 @@ public abstract class VirtualFileSystem implements Closeable {
 
     public void bindZipEntry(final VirtualPath vp, final ZipFile zf, final ZipEntry ze, boolean replace) throws IOException {
         getRootNode(vp).bindZipEntry(this, vp.relativize(), 0, zf, ze, replace);
+    }
+
+    public void bindHostBytes(final VirtualPath vp, final byte[] bytes, boolean replace) throws IOException {
+        getRootNode(vp).bindHostBytes(this, vp.relativize(), 0, bytes, replace);
     }
 
     public void mkdirs(final VirtualPath vp, int mode) throws IOException {
