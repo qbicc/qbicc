@@ -240,10 +240,10 @@ public final class Reflection {
             return enc == null ? null : vm.intern(enc.getName());
         });
         vm.registerInvokable(classDef.requireSingleMethod(me -> me.nameEquals("getConstantPool")), (thread, target, args) -> {
-            // force the object to be created
+            // force the paired org.qbicc.type.definition.classfile.ConstantPool and VmObject(jdk/internal/reflect/ConstantPool) to be created
             getConstantPoolForClass((VmClass) target);
-            // return the CP object
-            return cpObjs.get(target);
+            // return the VmObject
+            return cpMap.get(target);
         });
         LoadedTypeDefinition fieldDef = classContext.findDefinedType("java/lang/reflect/Field").load();
         fieldClass = fieldDef.getVmClass();
@@ -544,7 +544,8 @@ public final class Reflection {
                 annotation.deparseTo(os, constantPool);
             }
         }
-        VmArray appearing = annotatedElements.putIfAbsent(element, vm.newByteArray(os.toByteArray()));
+        bytes = vm.newByteArray(os.toByteArray());
+        VmArray appearing = annotatedElements.putIfAbsent(element, bytes);
         if (appearing != null) {
             bytes = appearing;
         }
@@ -563,7 +564,7 @@ public final class Reflection {
         ConstantPool constantPool = cpObjs.get(vmObject);
         assert constantPool != null; // the method would not be reachable otherwise
         synchronized (constantPool) {
-            return Integer.valueOf(constantPool.getIntConstant(((Number) objects.get(0)).intValue()));
+            return Integer.valueOf(constantPool.getIntConstant(((Number) objects.get(1)).intValue()));
         }
     }
 
@@ -571,7 +572,7 @@ public final class Reflection {
         ConstantPool constantPool = cpObjs.get(vmObject);
         assert constantPool != null; // the method would not be reachable otherwise
         synchronized (constantPool) {
-            return Long.valueOf(constantPool.getLongConstant(((Number) objects.get(0)).intValue()));
+            return Long.valueOf(constantPool.getLongConstant(((Number) objects.get(1)).intValue()));
         }
     }
 
@@ -579,7 +580,7 @@ public final class Reflection {
         ConstantPool constantPool = cpObjs.get(vmObject);
         assert constantPool != null; // the method would not be reachable otherwise
         synchronized (constantPool) {
-            return Float.valueOf(Float.intBitsToFloat(constantPool.getIntConstant(((Number) objects.get(0)).intValue())));
+            return Float.valueOf(Float.intBitsToFloat(constantPool.getIntConstant(((Number) objects.get(1)).intValue())));
         }
     }
 
@@ -587,7 +588,7 @@ public final class Reflection {
         ConstantPool constantPool = cpObjs.get(vmObject);
         assert constantPool != null; // the method would not be reachable otherwise
         synchronized (constantPool) {
-            return Long.valueOf(constantPool.getLongConstant(((Number) objects.get(0)).intValue()));
+            return Long.valueOf(constantPool.getLongConstant(((Number) objects.get(1)).intValue()));
         }
     }
 
@@ -595,7 +596,7 @@ public final class Reflection {
         ConstantPool constantPool = cpObjs.get(vmObject);
         assert constantPool != null; // the method would not be reachable otherwise
         synchronized (constantPool) {
-            return vm.intern(constantPool.getUtf8Constant(((Number) objects.get(0)).intValue()));
+            return vm.intern(constantPool.getUtf8Constant(((Number) objects.get(1)).intValue()));
         }
     }
 
@@ -613,12 +614,17 @@ public final class Reflection {
         }
         ConstantPool constantPool = getConstantPoolForClass(vmClass);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
+        int cnt = annotations.size();
+        // big-endian
+        os.write(cnt >>> 8);
+        os.write(cnt);
         synchronized (constantPool) {
             for (Annotation annotation : annotations) {
                 annotation.deparseTo(os, constantPool);
             }
         }
-        VmArray appearing = annotatedTypes.putIfAbsent(def, vm.newByteArray(os.toByteArray()));
+        bytes = vm.newByteArray(os.toByteArray());
+        VmArray appearing = annotatedTypes.putIfAbsent(def, bytes);
         if (appearing != null) {
             bytes = appearing;
         }
