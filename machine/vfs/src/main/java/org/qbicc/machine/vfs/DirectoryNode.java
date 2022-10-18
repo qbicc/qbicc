@@ -3,6 +3,7 @@ package org.qbicc.machine.vfs;
 import static org.qbicc.machine.vfs.VFSUtils.*;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
@@ -296,6 +297,44 @@ final class DirectoryNode extends SingleParentNode {
                 } catch (IOException ignored) {}
             }
         }
+    }
+
+    void bindHostBytes(final VirtualFileSystem vfs, final RelativeVirtualPath rvp, final int idx, final byte[] bytes, final boolean replace) throws IOException {
+        int nc = rvp.getNameCount();
+        if (idx == nc) {
+            throw new IOException("Cannot overwrite directory");
+        } else if (idx == nc - 1) {
+            bindHostBytes(vfs, rvp.getNameString(idx), bytes, replace);
+            return;
+        } else {
+            Node node = get(rvp.getNameString(idx));
+            if (node instanceof DirectoryNode dn) {
+                dn.bindHostBytes(vfs, rvp, idx + 1, bytes, replace);
+                return;
+            } else {
+                throw nde(rvp, idx);
+            }
+        }
+    }
+
+    private void bindHostBytes(final VirtualFileSystem vfs, final String name, final byte[] bytes, final boolean replace) throws IOException {
+        synchronized (this) {
+            ImmutableSortedMap<String, Node> entries = this.entries;
+            Node node = get(entries, name);
+            if (node != null && ! replace) {
+                throw new FileAlreadyExistsException(name);
+            }
+            if (! isWritable()) {
+                throw new AccessDeniedException(name);
+            }
+            this.entries = entries.newWithKeyValue(name, new HostBytesNode(vfs, bytes));
+            if (node != null) {
+                try {
+                    node.removeLink();
+                } catch (IOException ignored) {}
+            }
+        }
+
     }
 
     void mkdirs(final VirtualFileSystem vfs, final RelativeVirtualPath rvp, final int idx, final int mode) throws IOException {

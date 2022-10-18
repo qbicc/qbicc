@@ -23,6 +23,10 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-apploader</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-core-classes</artifactId>
         </dependency>
         <dependency>
@@ -31,7 +35,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-plugin-apploader</artifactId>
+            <artifactId>qbicc-plugin-vfs</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
