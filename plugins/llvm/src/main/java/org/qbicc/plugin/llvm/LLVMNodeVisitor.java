@@ -139,7 +139,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     final CompilationContext ctxt;
     final Module module;
     final LLVMModuleDebugInfo debugInfo;
-    final LLVMPseudoIntrinsics pseudoIntrinsics;
     final LLValue topSubprogram;
     final LLVMModuleNodeVisitor moduleVisitor;
     final Function functionObj;
@@ -158,11 +157,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
     private boolean personalityAdded;
 
-    LLVMNodeVisitor(final CompilationContext ctxt, final Module module, final LLVMModuleDebugInfo debugInfo, final LLVMPseudoIntrinsics pseudoIntrinsics, final LLValue topSubprogram, final LLVMModuleNodeVisitor moduleVisitor, final Function functionObj, final FunctionDefinition func) {
+    LLVMNodeVisitor(final CompilationContext ctxt, final Module module, final LLVMModuleDebugInfo debugInfo, final LLValue topSubprogram, final LLVMModuleNodeVisitor moduleVisitor, final Function functionObj, final FunctionDefinition func) {
         this.ctxt = ctxt;
         this.module = module;
         this.debugInfo = debugInfo;
-        this.pseudoIntrinsics = pseudoIntrinsics;
         this.topSubprogram = topSubprogram;
         this.moduleVisitor = moduleVisitor;
         this.functionObj = functionObj;
@@ -726,36 +724,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
                       builder.urem(inputType, llvmLeft, llvmRight).setLValue(map(node));
     }
 
-    private LLValue createRefToPtrCast(Value node, final LLValue fromType, LLValue value, final LLValue toType) {
-        if (!pseudoIntrinsics.getCollectedPtrType().equals(fromType)) {
-            value = builder.bitcast(fromType, value, pseudoIntrinsics.getCollectedPtrType()).asLocal();
-        }
-
-        Call call = builder.call(pseudoIntrinsics.getCastRefToPtrType(), pseudoIntrinsics.getCastRefToPtr());
-        call.arg(pseudoIntrinsics.getCollectedPtrType(), value);
-
-        if (!pseudoIntrinsics.getRawPtrType().equals(toType)) {
-            return builder.bitcast(pseudoIntrinsics.getRawPtrType(), call.asLocal(), toType).setLValue(map(node));
-        } else {
-            return call.setLValue(map(node));
-        }
-    }
-
-    private LLValue createPtrToRefCast(Value node, final LLValue fromType, LLValue value, final LLValue toType) {
-        if (!pseudoIntrinsics.getRawPtrType().equals(fromType)) {
-            value = builder.bitcast(fromType, value, pseudoIntrinsics.getRawPtrType()).asLocal();
-        }
-
-        Call call = builder.call(pseudoIntrinsics.getCastPtrToRefType(), pseudoIntrinsics.getCastPtrToRef());
-        call.arg(pseudoIntrinsics.getRawPtrType(), value);
-
-        if (!pseudoIntrinsics.getCollectedPtrType().equals(toType)) {
-            return builder.bitcast(pseudoIntrinsics.getCollectedPtrType(), call.asLocal(), toType).setLValue(map(node));
-        } else {
-            return call.setLValue(map(node));
-        }
-    }
-
     public LLValue visit(final Void param, final BitCast node) {
         ValueType javaInputType = node.getInput().getType();
         ValueType javaOutputType = node.getType();
@@ -765,16 +733,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         if (inputType.equals(outputType)) {
             return null;
         }
-
-        if (isPointerLike(javaInputType) && isPointerLike(javaOutputType) && isReference(javaInputType) != isReference(javaOutputType)) {
-            if (isReference(javaInputType)) {
-                return createRefToPtrCast(node, inputType, llvmInput, outputType);
-            } else {
-                return createPtrToRefCast(node, inputType, llvmInput, outputType);
-            }
-        } else {
-            return builder.bitcast(inputType, llvmInput, outputType).setLValue(map(node));
-        }
+        return builder.bitcast(inputType, llvmInput, outputType).setLValue(map(node));
     }
 
     public LLValue visit(final Void param, final Convert node) {
@@ -789,27 +748,28 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
         if (javaInputType instanceof PointerType) {
             if (javaOutputType instanceof ReferenceType) {
-                return createPtrToRefCast(node, inputType, llvmInput, outputType);
+                return builder.addrspacecast(inputType, llvmInput, outputType).setLValue(map(node));
             } else if (javaOutputType instanceof IntegerType) {
                 return builder.ptrtoint(inputType, llvmInput, outputType).setLValue(map(node));
             }
+            // else invalid
+        } else if (javaInputType instanceof ReferenceType) {
+            if (javaOutputType instanceof PointerType) {
+                return builder.addrspacecast(inputType, llvmInput, outputType).setLValue(map(node));
+            } else if (javaOutputType instanceof IntegerType) {
+                return builder.ptrtoint(inputType, llvmInput, outputType).setLValue(map(node));
+            }
+            // else invalid
         } else if (javaInputType instanceof FloatType) {
             if (javaOutputType instanceof SignedIntegerType) {
                 return builder.fptosi(inputType, llvmInput, outputType).setLValue(map(node));
             } else if (javaOutputType instanceof UnsignedIntegerType) {
                 return builder.fptoui(inputType, llvmInput, outputType).setLValue(map(node));
             }
+            // else invalid
         } else if (javaInputType instanceof IntegerType) {
-            if (isPointerLike(javaOutputType)) {
-                if (isReference(javaOutputType)) {
-                    return createPtrToRefCast(
-                        node, pseudoIntrinsics.getRawPtrType(),
-                        builder.inttoptr(inputType, llvmInput, pseudoIntrinsics.getRawPtrType()).setLValue(map(node)),
-                        outputType
-                    );
-                } else {
-                    return builder.inttoptr(inputType, llvmInput, outputType).setLValue(map(node));
-                }
+            if (javaOutputType instanceof PointerType || javaOutputType instanceof ReferenceType) {
+                return builder.inttoptr(inputType, llvmInput, outputType).setLValue(map(node));
             } else if (javaInputType instanceof SignedIntegerType) {
                 if (javaOutputType instanceof FloatType) {
                     return builder.sitofp(inputType, llvmInput, outputType).setLValue(map(node));
@@ -819,6 +779,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
                     return builder.uitofp(inputType, llvmInput, outputType).setLValue(map(node));
                 }
             }
+            // else invalid
         }
 
         ctxt.error(functionObj.getOriginalElement(), node, "llvm: Unhandled conversion %s -> %s", javaInputType.toString(), javaOutputType.toString());
@@ -826,7 +787,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     }
 
     public LLValue visit(Void unused, DecodeReference node) {
-        return createRefToPtrCast(node, map(node.getInput().getType()), map(node.getInput()), map(node.getType()));
+        return builder.addrspacecast(map(node.getInput().getType()), map(node.getInput()), map(node.getType())).setLValue(map(node));
     }
 
     public LLValue visit(final Void param, final Extend node) {

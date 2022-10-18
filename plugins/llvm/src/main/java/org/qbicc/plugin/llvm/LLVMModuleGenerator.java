@@ -84,9 +84,8 @@ final class LLVMModuleGenerator {
             .float32Align(ts.getFloat32Type().getAlign() * 8)
             .float64Align(ts.getFloat64Type().getAlign() * 8)
             ;
-        final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(module, context, refFactory);
+        final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(this, module, context, refFactory);
         final LLVMModuleDebugInfo debugInfo = new LLVMModuleDebugInfo(programModule, module, context);
-        final LLVMPseudoIntrinsics pseudoIntrinsics = new LLVMPseudoIntrinsics(module, refFactory);
 
         if (picLevel != 0) {
             module.addFlag(ModuleFlagBehavior.Max, "PIC Level", Types.i32, Values.intConstant(picLevel));
@@ -176,7 +175,7 @@ final class LLVMModuleGenerator {
                         functionDefinition.attribute(FunctionAttributes.noreturn);
                     }
 
-                    LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(context, module, debugInfo, pseudoIntrinsics, topSubprogram, moduleVisitor, fn, functionDefinition);
+                    LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(context, module, debugInfo, topSubprogram, moduleVisitor, fn, functionDefinition);
                     if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                         functionDefinition.section(sectionName);
                     }
