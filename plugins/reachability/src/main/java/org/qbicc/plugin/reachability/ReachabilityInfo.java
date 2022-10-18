@@ -15,8 +15,10 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.definition.element.StaticMethodElement;
 
 /**
  * ReachabilityInfo records the types and methods that have been determined to be reachable
@@ -161,13 +163,11 @@ public class ReachabilityInfo {
     }
 
     public void processRootReachableElement(ExecutableElement elem) {
-        if (elem instanceof MethodElement me) {
-            if (me.isStatic()) {
-                analysis.processReachableType(me.getEnclosingType().load(), null);
-                analysis.processReachableExactInvocation(me, null);
-            } else {
-                analysis.processReachableDispatchedInvocation(me, null);
-            }
+        if (elem instanceof StaticMethodElement me) {
+            analysis.processReachableType(me.getEnclosingType().load(), null);
+            analysis.processReachableExactInvocation(me, null);
+        } else if (elem instanceof InstanceMethodElement me) {
+            analysis.processReachableDispatchedInvocation(me, null);
         } else if (elem instanceof ConstructorElement ce) {
             analysis.processInstantiatedClass(ce.getEnclosingType().load(), false, null);
             analysis.processReachableExactInvocation(ce, null);

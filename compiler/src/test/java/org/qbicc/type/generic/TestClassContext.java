@@ -71,6 +71,9 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
+        public <T> void submitTask(T item, Consumer<T> itemConsumer) {
+        }
+
         public ClassContext getBootstrapClassContext() {
             return null;
         }
@@ -96,10 +99,6 @@ public class TestClassContext implements ClassContext {
         }
 
         public NativeMethodConfigurator getNativeMethodConfigurator() {
-            return null;
-        }
-
-        public ExecutableElement dequeue() {
             return null;
         }
 

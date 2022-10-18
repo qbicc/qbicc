@@ -20,7 +20,6 @@ import java.util.function.UnaryOperator;
 import io.smallrye.common.constraint.Assert;
 import io.smallrye.common.function.Functions;
 import org.jboss.logging.Logger;
-import org.jboss.logging.MDC;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
@@ -66,21 +65,18 @@ public class Driver implements Closeable {
     final List<Consumer<CompilationContext>> preAddHooks;
     final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> addBuilderFactory;
-    final List<Consumer<ExecutableElement>> addElementHandlers;
     final List<Consumer<CompilationContext>> postAddHooks;
     // at this point, the phase is switched to ANALYZE
     final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> analyzeTaskWrapperFactories;
     final List<Consumer<CompilationContext>> preAnalyzeHooks;
     final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> addToAnalyzeCopiers;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> analyzeBuilderFactory;
-    final List<Consumer<ExecutableElement>> analyzeElementHandlers;
     final List<Consumer<CompilationContext>> postAnalyzeHooks;
     // at this point, the phase is switched to LOWER
     final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> lowerTaskWrapperFactories;
     final List<Consumer<CompilationContext>> preLowerHooks;
     final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> analyzeToLowerCopiers;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> lowerBuilderFactory;
-    final List<Consumer<ExecutableElement>> lowerElementHandlers;
     final List<Consumer<CompilationContext>> postLowerHooks;
     // at this point, the phase is switched to GENERATE
     final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> generateTaskWrapperFactories;
@@ -135,7 +131,6 @@ public class Driver implements Closeable {
         preAddHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.ADD, List.of()));
         // (no copiers)
         addBuilderFactory = constructFactory(builder, Phase.ADD);
-        addElementHandlers = List.copyOf(builder.elementHandlers.getOrDefault(Phase.ADD, List.of()));
         postAddHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.ADD, List.of()));
 
         // ANALYZE phase
@@ -143,7 +138,6 @@ public class Driver implements Closeable {
         preAnalyzeHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.ANALYZE, List.of()));
         addToAnalyzeCopiers = constructCopiers(builder, Phase.ANALYZE);
         analyzeBuilderFactory = constructFactory(builder, Phase.ANALYZE);
-        analyzeElementHandlers = List.copyOf(builder.elementHandlers.getOrDefault(Phase.ANALYZE, List.of()));
         postAnalyzeHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.ANALYZE, List.of()));
 
         // LOWER phase
@@ -151,7 +145,6 @@ public class Driver implements Closeable {
         preLowerHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.LOWER, List.of()));
         analyzeToLowerCopiers = constructCopiers(builder, Phase.LOWER);
         lowerBuilderFactory = constructFactory(builder, Phase.LOWER);
-        lowerElementHandlers = List.copyOf(builder.elementHandlers.getOrDefault(Phase.LOWER, List.of()));
         postLowerHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.LOWER, List.of()));
 
         // GENERATE phase
@@ -444,22 +437,12 @@ public class Driver implements Closeable {
             compilationContext.enqueue(entryPoint);
         }
 
-        compilationContext.processQueue(element -> {
-            MDC.put("phase", "ADD");
-            for (Consumer<ExecutableElement> handler : addElementHandlers) try {
-                handler.accept(element);
-            } catch (Exception e) {
-                log.error("An exception was thrown in an element handler", e);
-                compilationContext.error(element, "Element handler threw an exception: %s", e);
-            }
-        });
+        compilationContext.processQueue();
 
         if (compilationContext.errors() > 0) {
             // bail out
             return false;
         }
-
-        compilationContext.lockEnqueuedSet();
 
         for (Consumer<? super CompilationContext> hook : postAddHooks) {
             try {
@@ -479,7 +462,6 @@ public class Driver implements Closeable {
             return false;
         }
 
-        compilationContext.clearEnqueuedSet();
         compilationContext.cyclePhaseAttachments();
 
         // ANALYZE phase
@@ -515,22 +497,12 @@ public class Driver implements Closeable {
             compilationContext.enqueue(entryPoint);
         }
 
-        compilationContext.processQueue(element -> {
-            MDC.put("phase", "ANALYZE");
-            for (Consumer<ExecutableElement> handler : analyzeElementHandlers) try {
-                handler.accept(element);
-            } catch (Exception e) {
-                log.error("An exception was thrown in an element handler", e);
-                compilationContext.error(element, "Element handler threw an exception: %s", e);
-            }
-        });
+        compilationContext.processQueue();
 
         if (compilationContext.errors() > 0) {
             // bail out
             return false;
         }
-
-        compilationContext.lockEnqueuedSet();
 
         for (Consumer<? super CompilationContext> hook : postAnalyzeHooks) {
             try {
@@ -545,7 +517,6 @@ public class Driver implements Closeable {
             }
         }
 
-        compilationContext.clearEnqueuedSet();
         compilationContext.cyclePhaseAttachments();
 
         // LOWER phase
@@ -581,22 +552,12 @@ public class Driver implements Closeable {
             compilationContext.enqueue(entryPoint);
         }
 
-        compilationContext.processQueue(element -> {
-            MDC.put("phase", "LOWER");
-            for (Consumer<ExecutableElement> handler : lowerElementHandlers) try {
-                handler.accept(element);
-            } catch (Exception e) {
-                log.error("An exception was thrown in an element handler", e);
-                compilationContext.error(element, "Element handler threw an exception: %s", e);
-            }
-        });
+        compilationContext.processQueue();
 
         if (compilationContext.errors() > 0) {
             // bail out
             return false;
         }
-
-        compilationContext.lockEnqueuedSet();
 
         for (Consumer<? super CompilationContext> hook : postLowerHooks) {
             try {
@@ -689,7 +650,6 @@ public class Driver implements Closeable {
         final Map<Phase, List<Consumer<CompilationContext>>> preHooks = new EnumMap<>(Phase.class);
         final Map<Phase, List<Consumer<CompilationContext>>> postHooks = new EnumMap<>(Phase.class);
         final Map<Phase, List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>>> taskWrapperFactories = new EnumMap<>(Phase.class);
-        final Map<Phase, List<Consumer<ExecutableElement>>> elementHandlers = new EnumMap<>(Phase.class);
         final List<UnaryOperator<NativeMethodConfigurator>> nativeMethodConfiguratorFactories = new ArrayList<>();
 
         Path outputDirectory = Path.of(".");
@@ -799,12 +759,6 @@ public class Driver implements Closeable {
                 Assert.checkNotNullParam("phase", phase);
                 taskWrapperFactories.computeIfAbsent(phase, Builder::newArrayList).add(factory);
             }
-            return this;
-        }
-
-        public Builder addElementHandler(Phase phase, Consumer<ExecutableElement> handler) {
-            Assert.checkNotNullParam("handler", handler);
-            elementHandlers.computeIfAbsent(phase, Builder::newArrayList).add(handler);
             return this;
         }
 
