@@ -728,7 +728,7 @@ public final class Reflection {
             vm.intern(method.getSignature().toString()),
             getAnnotations(method),
             // TODO: param annotations
-            noAnnotations,
+            null,
             dv
         ));
         VmObject appearing = reflectionObjects.putIfAbsent(method, vmObject);
@@ -796,7 +796,7 @@ public final class Reflection {
             vm.intern(constructor.getSignature().toString()),
             getAnnotations(constructor),
             // TODO: param annotations
-            noAnnotations
+            null
         ));
         VmObject appearing = reflectionObjects.putIfAbsent(constructor, vmObject);
         return appearing != null ? appearing : vmObject;
