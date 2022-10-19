@@ -59,9 +59,16 @@ final class HooksForBuiltinClassLoader {
         VFS vfs = VFS.get(classLoader.getClassContext().getCompilationContext());
         VirtualFileSystem fileSystem = vfs.getFileSystem();
         try {
-            AbsoluteVirtualPath resourceDir = vfs.getQbiccPath().resolve("classpath/hostjvm/" + classLoader.getName()+"/"+index);
+            String rDirName = "classpath/hostjvm/" + classLoader.getName()+"/"+index;
+            String rFileName = resourceName.getContent();
+            int idx = rFileName.lastIndexOf('/');
+            if (idx > 0) {
+                rDirName += "/"+ rFileName.substring(0, idx);
+                rFileName = rFileName.substring(idx+1);
+            }
+            AbsoluteVirtualPath resourceDir = vfs.getQbiccPath().resolve(rDirName);
             fileSystem.mkdirs(resourceDir, 0777);
-            AbsoluteVirtualPath resourcePath = resourceDir.resolve(resourceName.getContent());
+            AbsoluteVirtualPath resourcePath = resourceDir.resolve(rFileName);
             fileSystem.bindHostBytes(resourcePath, resource, true);
             String fn = resourcePath.toString();
             String url = "file://"+fn;
