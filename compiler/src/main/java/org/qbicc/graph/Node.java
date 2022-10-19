@@ -199,7 +199,8 @@ public interface Node {
             Value copy = (Value) copiedNodes.get(original);
             if (copy == null) {
                 if (! (original instanceof Unschedulable) && schedule.getBlockForNode(original) == null) {
-                    throw new IllegalStateException("Missing schedule for node");
+                    blockBuilder.getContext().warning(blockBuilder.getCurrentElement(), "Converting unscheduled node %s to unreachable()", original.toString());
+                    throw new BlockEarlyTermination(blockBuilder.unreachable());
                 }
                 int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
                 int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
