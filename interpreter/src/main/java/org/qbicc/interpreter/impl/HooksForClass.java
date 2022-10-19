@@ -152,7 +152,7 @@ final class HooksForClass {
     @Hook
     static VmString getGenericSignature0(VmThread thread, VmClass clazz) {
         LoadedTypeDefinition ltd = clazz.getTypeDefinition();
-        Signature sig = ltd.getSignature();
-        return thread.getVM().intern(sig.toString());
+        String sig = ltd.getSignature().toString();
+        return sig.isEmpty() ? null : thread.getVM().intern(sig);
     }
 }

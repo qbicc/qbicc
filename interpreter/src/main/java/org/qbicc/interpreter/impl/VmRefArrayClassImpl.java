@@ -14,7 +14,7 @@ final class VmRefArrayClassImpl extends VmArrayClassImpl implements VmReferenceA
 
     VmRefArrayClassImpl(VmImpl vm, VmClassClassImpl classClass, LoadedTypeDefinition classDef, VmClassImpl elementType) {
         super(vm, classClass, classDef, elementType, null);
-        name = elementType instanceof VmArrayClassImpl ? "[" + elementType.getName() : "[" + elementType.getName() + ";";
+        name = elementType instanceof VmArrayClassImpl ? "[" + elementType.getName() : "[L" + elementType.getName() + ";";
     }
 
     @Override
