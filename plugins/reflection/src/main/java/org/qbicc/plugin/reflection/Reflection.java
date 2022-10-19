@@ -713,7 +713,7 @@ public final class Reflection {
         VmArray dv;
         AnnotationValue defaultValue = method.getDefaultValue();
         if (defaultValue == null) {
-            dv = noAnnotations;
+            dv = null;
         } else {
             ByteArrayOutputStream os = new ByteArrayOutputStream();
             ConstantPool cp = getConstantPoolForClass(declaringClass);
