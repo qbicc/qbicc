@@ -57,7 +57,6 @@ import org.qbicc.interpreter.impl.VmImpl;
 import org.qbicc.machine.arch.Cpu;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFileProvider;
-import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.tool.CToolChain;
 import org.qbicc.machine.vfs.AbsoluteVirtualPath;
 import org.qbicc.machine.vfs.VFSUtils;
@@ -80,7 +79,6 @@ import org.qbicc.plugin.gc.common.GcCommon;
 import org.qbicc.plugin.gc.common.MultiNewArrayExpansionBasicBlockBuilder;
 import org.qbicc.plugin.gc.nogc.NoGcBasicBlockBuilder;
 import org.qbicc.plugin.gc.nogc.NoGcSetupHook;
-import org.qbicc.plugin.gc.nogc.NoGcTypeSystemConfigurator;
 import org.qbicc.plugin.initializationcontrol.QbiccFeatureProcessor;
 import org.qbicc.plugin.instanceofcheckcast.InstanceOfCheckCastBasicBlockBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayBuilder;
@@ -173,7 +171,6 @@ import org.qbicc.plugin.vfs.VFS;
 import org.qbicc.plugin.vio.VIO;
 import org.qbicc.tool.llvm.LlvmToolChain;
 import org.qbicc.type.TypeSystem;
-import org.qbicc.type.definition.element.ExecutableElement;
 import picocli.CommandLine;
 import picocli.CommandLine.ParameterException;
 import picocli.CommandLine.ParseResult;
@@ -337,80 +334,15 @@ public class Main implements Callable<DiagnosticContext> {
                     CToolChain toolChain = toolChains.next();
                     builder.setToolChain(toolChain);
                     // probe the basic system sizes
-                    CProbe.Builder probeBuilder = CProbe.builder();
-                    probeBuilder.include("<stdint.h>");
-                    probeBuilder.include("<limits.h>");
-                    // size and signedness of char
-                    CProbe.Type char_t = CProbe.Type.builder().setName("char").build();
-                    probeBuilder.probeType(char_t);
-                    // int sizes
-                    CProbe.Type int8_t = CProbe.Type.builder().setName("int8_t").build();
-                    probeBuilder.probeType(int8_t);
-                    CProbe.Type int16_t = CProbe.Type.builder().setName("int16_t").build();
-                    probeBuilder.probeType(int16_t);
-                    CProbe.Type int32_t = CProbe.Type.builder().setName("int32_t").build();
-                    probeBuilder.probeType(int32_t);
-                    CProbe.Type int64_t = CProbe.Type.builder().setName("int64_t").build();
-                    probeBuilder.probeType(int64_t);
-                    // float sizes
-                    CProbe.Type float_t = CProbe.Type.builder().setName("float").build();
-                    probeBuilder.probeType(float_t);
-                    CProbe.Type double_t = CProbe.Type.builder().setName("double").build();
-                    probeBuilder.probeType(double_t);
-                    // bool
-                    CProbe.Type _Bool = CProbe.Type.builder().setName("_Bool").build();
-                    probeBuilder.probeType(_Bool);
-                    // pointer
-                    CProbe.Type void_p = CProbe.Type.builder().setName("void *").build();
-                    probeBuilder.probeType(void_p);
-                    // number of bits in char
-                    probeBuilder.probeConstant("CHAR_BIT");
-                    // max alignment
-                    CProbe.Type max_align_t = CProbe.Type.builder().setName("max_align_t").build();
-                    probeBuilder.probeType(max_align_t);
-                    // execute
-                    CProbe probe = probeBuilder.build();
                     try {
-                        CProbe.Result probeResult = probe.run(toolChain, objectFileProvider, initialContext);
-                        if (probeResult == null) {
-                            initialContext.error("Type system probe compiler execution failed");
-                        } else {
-                            long charSize = probeResult.getTypeInfo(char_t).getSize();
-                            if (charSize != 1) {
-                                initialContext.error("Unexpected size of `char`: %d", Long.valueOf(charSize));
-                            }
-                            TypeSystem.Builder tsBuilder = TypeSystem.builder();
-                            tsBuilder.setBoolSize((int) probeResult.getTypeInfo(_Bool).getSize());
-                            tsBuilder.setBoolAlignment((int) probeResult.getTypeInfo(_Bool).getAlign());
-                            tsBuilder.setByteBits(probeResult.getConstantInfo("CHAR_BIT").getValueAsInt());
-                            tsBuilder.setSignedChar(probeResult.getTypeInfo(char_t).isSigned());
-                            tsBuilder.setInt8Size((int) probeResult.getTypeInfo(int8_t).getSize());
-                            tsBuilder.setInt8Alignment((int) probeResult.getTypeInfo(int8_t).getAlign());
-                            tsBuilder.setInt16Size((int) probeResult.getTypeInfo(int16_t).getSize());
-                            tsBuilder.setInt16Alignment((int) probeResult.getTypeInfo(int16_t).getAlign());
-                            tsBuilder.setInt32Size((int) probeResult.getTypeInfo(int32_t).getSize());
-                            tsBuilder.setInt32Alignment((int) probeResult.getTypeInfo(int32_t).getAlign());
-                            tsBuilder.setInt64Size((int) probeResult.getTypeInfo(int64_t).getSize());
-                            tsBuilder.setInt64Alignment((int) probeResult.getTypeInfo(int64_t).getAlign());
-                            tsBuilder.setFloat32Size((int) probeResult.getTypeInfo(float_t).getSize());
-                            tsBuilder.setFloat32Alignment((int) probeResult.getTypeInfo(float_t).getAlign());
-                            tsBuilder.setFloat64Size((int) probeResult.getTypeInfo(double_t).getSize());
-                            tsBuilder.setFloat64Alignment((int) probeResult.getTypeInfo(double_t).getAlign());
-                            tsBuilder.setPointerSize((int) probeResult.getTypeInfo(void_p).getSize());
-                            tsBuilder.setPointerAlignment((int) probeResult.getTypeInfo(void_p).getAlign());
-                            tsBuilder.setMaxAlignment((int) probeResult.getTypeInfo(max_align_t).getAlign());
-                            // todo: function alignment probe
-                            // for now, references == pointers
-                            tsBuilder.setReferenceSize((int) probeResult.getTypeInfo(void_p).getSize());
-                            tsBuilder.setReferenceAlignment((int) probeResult.getTypeInfo(void_p).getAlign());
-                            CProbe.Type type_id_type = smallTypeIds ? int16_t : int32_t;
-                            tsBuilder.setTypeIdSize((int) probeResult.getTypeInfo(type_id_type).getSize());
-                            tsBuilder.setTypeIdAlignment((int) probeResult.getTypeInfo(type_id_type).getAlign());
-                            tsBuilder.setEndianness(probeResult.getByteOrder());
-                            if (nogc) {
-                                new NoGcTypeSystemConfigurator().accept(tsBuilder);
-                            }
-                            builder.setTypeSystem(tsBuilder.build());
+                        PlatformTypeSystemLoader platformTypeSystemLoader = new PlatformTypeSystemLoader(
+                            platform, toolChain, objectFileProvider, initialContext,
+                            PlatformTypeSystemLoader.ReferenceType.POINTER,
+                            smallTypeIds, nogc);
+                        TypeSystem typeSystem = platformTypeSystemLoader.load();
+
+                        {
+                            builder.setTypeSystem(typeSystem);
                             // add additional manual initializers by chaining `.andThen(...)`
                             builder.setVmFactory(cc -> {
                                 CoreClasses.init(cc);
