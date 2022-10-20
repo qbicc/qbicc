@@ -57,7 +57,6 @@ import org.qbicc.interpreter.impl.VmImpl;
 import org.qbicc.machine.arch.Cpu;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFileProvider;
-import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.tool.CToolChain;
 import org.qbicc.machine.vfs.AbsoluteVirtualPath;
 import org.qbicc.machine.vfs.VFSUtils;
@@ -80,7 +79,6 @@ import org.qbicc.plugin.gc.common.GcCommon;
 import org.qbicc.plugin.gc.common.MultiNewArrayExpansionBasicBlockBuilder;
 import org.qbicc.plugin.gc.nogc.NoGcBasicBlockBuilder;
 import org.qbicc.plugin.gc.nogc.NoGcSetupHook;
-import org.qbicc.plugin.gc.nogc.NoGcTypeSystemConfigurator;
 import org.qbicc.plugin.initializationcontrol.QbiccFeatureProcessor;
 import org.qbicc.plugin.instanceofcheckcast.InstanceOfCheckCastBasicBlockBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayBuilder;
@@ -173,7 +171,6 @@ import org.qbicc.plugin.vfs.VFS;
 import org.qbicc.plugin.vio.VIO;
 import org.qbicc.tool.llvm.LlvmToolChain;
 import org.qbicc.type.TypeSystem;
-import org.qbicc.type.definition.element.ExecutableElement;
 import picocli.CommandLine;
 import picocli.CommandLine.ParameterException;
 import picocli.CommandLine.ParseResult;
@@ -339,7 +336,9 @@ public class Main implements Callable<DiagnosticContext> {
                     // probe the basic system sizes
                     try {
                         PlatformTypeSystemLoader platformTypeSystemLoader = new PlatformTypeSystemLoader(
-                            platform, toolChain, objectFileProvider, initialContext, smallTypeIds, nogc);
+                            platform, toolChain, objectFileProvider, initialContext,
+                            PlatformTypeSystemLoader.ReferenceType.POINTER,
+                            smallTypeIds, nogc);
                         TypeSystem typeSystem = platformTypeSystemLoader.load();
 
                         {

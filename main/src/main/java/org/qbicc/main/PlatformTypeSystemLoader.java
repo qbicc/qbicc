@@ -18,6 +18,20 @@ import java.nio.ByteOrder;
 
 public class PlatformTypeSystemLoader {
 
+    public enum ReferenceType {
+        POINTER(void_p, "pointer"),
+        INT64(int64_t, "int64"),
+        INT32(int32_t, "int32");
+
+        private final CProbe.Type type;
+        private final String jsonField;
+
+        ReferenceType(CProbe.Type type, String jsonField) {
+            this.type = type;
+            this.jsonField = jsonField;
+        }
+    }
+
     private static final Logger log = Logger.getLogger("org.qbicc.main.PlatformTypeSystemLoader");
 
     private static final CProbe.Type char_t = CProbe.Type.builder().setName("char").build();
@@ -35,14 +49,17 @@ public class PlatformTypeSystemLoader {
     private final CToolChain toolChain;
     private final ObjectFileProvider objectFileProvider;
     private final DiagnosticContext initialContext;
+    private final ReferenceType referenceType;
     private final boolean smallTypeIds;
     private final boolean nogc;
+
 
     public PlatformTypeSystemLoader(
         Platform platform,
         CToolChain toolChain,
         ObjectFileProvider objectFileProvider,
         DiagnosticContext initialContext,
+        ReferenceType referenceType,
         boolean smallTypeIds,
         boolean nogc) {
         this.platform = platform;
@@ -51,6 +68,7 @@ public class PlatformTypeSystemLoader {
         this.initialContext = initialContext;
         this.smallTypeIds = smallTypeIds;
         this.nogc = nogc;
+        this.referenceType = referenceType;
     }
 
     private static CProbe makeProbe() {
@@ -120,9 +138,8 @@ public class PlatformTypeSystemLoader {
             tsBuilder.setPointerAlignment((int) probeResult.getTypeInfo(void_p).getAlign());
             tsBuilder.setMaxAlignment((int) probeResult.getTypeInfo(max_align_t).getAlign());
             // todo: function alignment probe
-            // for now, references == pointers
-            tsBuilder.setReferenceSize((int) probeResult.getTypeInfo(void_p).getSize());
-            tsBuilder.setReferenceAlignment((int) probeResult.getTypeInfo(void_p).getAlign());
+            tsBuilder.setReferenceSize((int) probeResult.getTypeInfo(referenceType.type).getSize());
+            tsBuilder.setReferenceAlignment((int) probeResult.getTypeInfo(referenceType.type).getAlign());
             CProbe.Type type_id_type = smallTypeIds ? int16_t : int32_t;
             tsBuilder.setTypeIdSize((int) probeResult.getTypeInfo(type_id_type).getSize());
             tsBuilder.setTypeIdAlignment((int) probeResult.getTypeInfo(type_id_type).getAlign());
@@ -182,10 +199,8 @@ public class PlatformTypeSystemLoader {
         tsBuilder.setPointerAlignment(pointer_t.get("align").asInt());
 
         tsBuilder.setMaxAlignment(platformTypeInfo.get("max-alignment").asInt());
-        // todo: function alignment probe
-        // for now, references == pointers
-        JsonNode reference_t = platformTypeInfo.get("reference");
 
+        JsonNode reference_t = platformTypeInfo.get(referenceType.jsonField);
         tsBuilder.setReferenceSize(reference_t.get("size").asInt());
         tsBuilder.setReferenceAlignment(reference_t.get("align").asInt());
 
