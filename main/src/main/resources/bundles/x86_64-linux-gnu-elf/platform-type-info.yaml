@@ -1,0 +1,33 @@
+platform-type-info:
+    byte-bits: 8
+    endian: little
+    signed-char: true
+    max-alignment: 16
+    pointer:
+        size: 8
+        align: 8
+    reference:
+        size: 8
+        align: 8
+    boolean:
+        size: 1
+        align: 1
+    int8:
+        size: 1
+        align: 1
+    int16:
+        size: 2
+        align: 2
+    int32:
+        size: 4
+        align: 4
+    int64:
+        size: 8
+        align: 8
+    float32:
+        size: 4
+        align: 4
+    float64:
+        size: 8
+        align: 8
+
