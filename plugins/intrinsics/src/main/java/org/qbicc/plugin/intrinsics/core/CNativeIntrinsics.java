@@ -34,9 +34,11 @@ import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
+import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.object.Data;
 import org.qbicc.object.ModuleSection;
+import org.qbicc.plugin.apploader.AppClassLoader;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.intrinsics.InstanceIntrinsic;
 import org.qbicc.plugin.intrinsics.Intrinsics;
@@ -192,6 +194,7 @@ final class CNativeIntrinsics {
             FieldElement groupFld = jltVal.findField("group");
             FieldElement threadStatusFld = jltVal.findField("threadStatus");
             FieldElement priorityFld = jltVal.findField("priority");
+            FieldElement contextClassLoaderFld = jltVal.findField("contextClassLoader");
 
             ValueHandle threadRef = builder.referenceHandle(thread);
             builder.store(builder.instanceFieldOf(threadRef, nameFld), arguments.get(0), SingleUnshared);
@@ -204,6 +207,11 @@ final class CNativeIntrinsics {
 
             // set thread to be running with JVMTI status for RUNNABLE and ALIVE
             builder.store(builder.instanceFieldOf(threadRef, threadStatusFld), ctxt.getLiteralFactory().literalOf(0x05), SingleUnshared);
+
+            // set contextClassLoader to the application classloader
+            VmClassLoader appCl = AppClassLoader.get(ctxt).getAppClassLoader();
+            builder.store(builder.instanceFieldOf(threadRef, contextClassLoaderFld), ctxt.getLiteralFactory().literalOf(appCl));
+
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
         };
 
