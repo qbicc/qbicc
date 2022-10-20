@@ -6,9 +6,6 @@ platform-type-info:
     pointer:
         size: 8
         align: 8
-    reference:
-        size: 8
-        align: 8
     boolean:
         size: 1
         align: 1
