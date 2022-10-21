@@ -92,6 +92,12 @@ public interface ClassFile extends FieldResolver,
      */
     int I_ACC_PRIMITIVE = 1 << 17;
     /**
+     * For methods which cannot be interrupted with a safepoint.
+     * Such methods should only call other methods that are not interruptible.
+     * Methods which are uninterruptible must be {@code final} or {@code static}.
+     */
+    int I_ACC_NO_SAFEPOINTS = 1 << 17;
+    /**
      * On methods, hide from stack traces.  On classes, defined as a JEP 371 "hidden class".
      */
     int I_ACC_HIDDEN = 1 << 18;

@@ -1,9 +1,18 @@
 package org.qbicc.plugin.correctness;
 
+import java.util.List;
+import java.util.Map;
+
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
+import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.FunctionElementHandle;
+import org.qbicc.graph.InstanceMethodElementHandle;
+import org.qbicc.graph.Slot;
+import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.type.ArrayObjectType;
@@ -14,6 +23,7 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.WordType;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -101,5 +111,60 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
             // cannot work out a safe conversion
             return null;
         }
+    }
+
+    @Override
+    public Value call(ValueHandle target, List<Value> arguments) {
+        return super.call(check(target), arguments);
+    }
+
+    @Override
+    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+        return super.callNoSideEffects(check(target), arguments);
+    }
+
+    @Override
+    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+        return super.callNoReturn(check(target), arguments);
+    }
+
+    @Override
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return super.invokeNoReturn(check(target), arguments, catchLabel, targetArguments);
+    }
+
+    @Override
+    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+        return super.tailCall(check(target), arguments);
+    }
+
+    @Override
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return super.tailInvoke(check(target), arguments, catchLabel, targetArguments);
+    }
+
+    @Override
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        return super.invoke(check(target), arguments, catchLabel, resumeLabel, targetArguments);
+    }
+
+    private ValueHandle check(ValueHandle handle) {
+        if (getCurrentElement().hasAllModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS)) {
+            ExecutableElement target;
+            // not an exhaustive check but good enough for detecting common errors
+            if (handle instanceof InstanceMethodElementHandle h) {
+                target = h.getElement();
+            } else if (handle instanceof StaticMethodElementHandle h) {
+                target = h.getElement();
+            } else if (handle instanceof FunctionElementHandle h) {
+                target = h.getElement();
+            } else {
+                return handle;
+            }
+            if (target.hasNoModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS)) {
+                getContext().error(getLocation(), "This method may not call methods or functions that are not marked as no-safepoint");
+            }
+        }
+        return handle;
     }
 }
