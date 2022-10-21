@@ -50,6 +50,7 @@ import org.qbicc.driver.ElementVisitorAdapter;
 import org.qbicc.driver.GraphGenConfig;
 import org.qbicc.driver.Phase;
 import org.qbicc.driver.plugin.DriverPlugin;
+import org.qbicc.plugin.initializationcontrol.RuntimeResourceManager;
 import org.qbicc.plugin.reachability.ReachabilityFactsSetup;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmThread;
@@ -492,6 +493,12 @@ public class Main implements Callable<DiagnosticContext> {
                                     Vm vm = ctxt.getVm();
                                     vm.doAttached(vm.newThread("ServiceProvider Serialization", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> {
                                         ServiceLoaderAnalyzer.get(ctxt).serializeProviderConfig();
+                                    });
+                                });
+                                builder.addPostHook(Phase.ADD, ctxt -> {
+                                    Vm vm = ctxt.getVm();
+                                    vm.doAttached(vm.newThread("Resource Serialization", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> {
+                                        RuntimeResourceManager.get(ctxt).findAndSerializeResources();
                                     });
                                 });
                                 builder.addPostHook(Phase.ADD, ReachabilityInfo::reportStats);

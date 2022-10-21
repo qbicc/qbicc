@@ -19,11 +19,14 @@ public class QbiccFeatureProcessor {
         if (features.isEmpty()) {
             return;
         }
+        FeaturePatcher fp = FeaturePatcher.get(ctxt);
+        RuntimeResourceManager rm = RuntimeResourceManager.get(ctxt);
 
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.NONE);
         mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
 
         for (Path feature: features) {
             QbiccFeature qf;
@@ -39,9 +42,21 @@ public class QbiccFeatureProcessor {
             }
 
             ctxt.info("Processing build feature %s", feature);
-            for (String className: qf.initializeAtRuntime) {
-                String internalName = className.replace('.', '/');
-                FeaturePatcher.get(ctxt).addRuntimeInitializedClass(internalName);
+            if (qf.initializeAtRuntime != null) {
+                for (String className : qf.initializeAtRuntime) {
+                    String internalName = className.replace('.', '/');
+                    fp.addRuntimeInitializedClass(internalName);
+                }
+            }
+            if (qf.runtimeResource != null) {
+                for (String name : qf.runtimeResource) {
+                    rm.addResource(name);
+                }
+            }
+            if (qf.runtimeResources != null) {
+                for (String name : qf.runtimeResources) {
+                    rm.addResources(name);
+                }
             }
         }
     }
