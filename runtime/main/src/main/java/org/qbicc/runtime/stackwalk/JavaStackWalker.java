@@ -2,6 +2,8 @@ package org.qbicc.runtime.stackwalk;
 
 import org.qbicc.runtime.AutoQueued;
 import org.qbicc.runtime.Hidden;
+import org.qbicc.runtime.NoSafePoint;
+import org.qbicc.runtime.NoThrow;
 import org.qbicc.runtime.StackObject;
 
 public final class JavaStackWalker extends StackObject {
@@ -12,10 +14,14 @@ public final class JavaStackWalker extends StackObject {
     private int sourceIndex = -1;
     private int methodInfoIdx = -1;
 
+    @NoSafePoint
+    @NoThrow
     public JavaStackWalker(boolean skipHidden) {
         this.skipHidden = skipHidden;
     }
 
+    @NoSafePoint
+    @NoThrow
     public JavaStackWalker(JavaStackWalker original) {
         skipHidden = original.skipHidden;
         index = original.index;
@@ -23,6 +29,8 @@ public final class JavaStackWalker extends StackObject {
         methodInfoIdx = original.methodInfoIdx;
     }
 
+    @NoSafePoint
+    @NoThrow
     public boolean next(StackWalker stackWalker) {
         for (;;) {
             for (;;) {
@@ -55,6 +63,8 @@ public final class JavaStackWalker extends StackObject {
 
     @Hidden
     @AutoQueued
+    @NoSafePoint
+    @NoThrow
     public static int getFrameCount(Throwable exceptionObject) {
         StackWalker sw = new StackWalker();
         JavaStackWalker javaStackWalker = new JavaStackWalker(true);
@@ -74,6 +84,8 @@ public final class JavaStackWalker extends StackObject {
      * @return the number of matching frames
      */
     @Hidden
+    @NoSafePoint
+    @NoThrow
     public static int getFrameCount(int skipRawFrames, int skipJavaFrames, boolean skipHidden) {
         StackWalker sw = new StackWalker();
         for (int i = 0; i < skipRawFrames; i ++) {
@@ -100,6 +112,8 @@ public final class JavaStackWalker extends StackObject {
         }
     }
 
+    @NoSafePoint
+    @NoThrow
     public int getIndex() {
         return index;
     }
@@ -134,14 +148,20 @@ public final class JavaStackWalker extends StackObject {
         return MethodData.getBytecodeIndex(sourceIndex);
     }
 
+    @NoSafePoint
+    @NoThrow
     public int getSourceIndex() {
         return sourceIndex;
     }
 
+    @NoSafePoint
+    @NoThrow
     public int getMethodInfoIdx() {
         return methodInfoIdx;
     }
 
+    @NoSafePoint
+    @NoThrow
     public void reset() {
         methodInfoIdx = -1;
         sourceIndex = -1;

@@ -78,6 +78,8 @@ import org.qbicc.plugin.dispatch.DispatchTableEmitter;
 import org.qbicc.plugin.dot.DotGenerator;
 import org.qbicc.plugin.gc.common.GcCommon;
 import org.qbicc.plugin.gc.common.MultiNewArrayExpansionBasicBlockBuilder;
+import org.qbicc.plugin.gc.common.safepoint.SafePointPlacementBasicBlockBuilder;
+import org.qbicc.plugin.gc.common.safepoint.SafePoints;
 import org.qbicc.plugin.gc.nogc.NoGcBasicBlockBuilder;
 import org.qbicc.plugin.gc.nogc.NoGcSetupHook;
 import org.qbicc.plugin.initializationcontrol.QbiccFeatureProcessor;
@@ -412,9 +414,11 @@ public class Main implements Callable<DiagnosticContext> {
                                     vm.doAttached(vm.newThread(Thread.currentThread().getName(), vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> wrapper.accept(ctxt));
                                 });
                                 builder.addPreHook(Phase.ADD, ReachabilityFactsSetup::setupAdd);
+                                builder.addPreHook(Phase.ADD, ctxt -> SafePoints.selectStrategy(ctxt, SafePoints.Strategy.GLOBAL_FLAG));
                                 if (llvm) {
                                     builder.addPreHook(Phase.ADD, LLVMIntrinsics::register);
                                 }
+                                builder.addPreHook(Phase.ADD, SafePoints::enqueueMethods);
                                 builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
                                 builder.addPreHook(Phase.ADD, CoreClasses::get);
                                 builder.addPreHook(Phase.ADD, ReflectionIntrinsics::register);
@@ -505,6 +509,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.ADD, ReachabilityInfo::clear);
 
                                 builder.addPreHook(Phase.ANALYZE, ReachabilityFactsSetup::setupAnalyze);
+                                builder.addPreHook(Phase.ANALYZE, SafePoints::enqueueMethods);
                                 builder.addPreHook(Phase.ANALYZE, new VMHelpersSetupHook());
                                 builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::forceCoreClassesReachable);
                                 builder.addPreHook(Phase.ANALYZE, ReachabilityRoots::processRootsForAnalyze);
@@ -548,6 +553,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
 
                                 builder.addPreHook(Phase.LOWER, ReachabilityFactsSetup::setupLower);
+                                builder.addPreHook(Phase.LOWER, SafePoints::enqueueMethods);
                                 builder.addPreHook(Phase.LOWER, ReachabilityRoots::processRootsForLower);
                                 builder.addPreHook(Phase.LOWER, new ClassObjectSerializer());
                                 if (optEscapeAnalysis) {
@@ -565,6 +571,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addCopyFactory(Phase.LOWER, MemberPointerCopier::new);
                                 builder.addCopyFactory(Phase.LOWER, ObjectLiteralSerializingVisitor::new);
 
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, SafePointPlacementBasicBlockBuilder::createIfNeeded);
                                 if (isWasm) {
                                     builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, AbortingThrowLoweringBasicBlockBuilder::new);
                                 } else {
@@ -585,13 +592,14 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (llvm) {
                                     builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LLVMCompatibleBasicBlockBuilder::new);
                                 }
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 if (optMemoryTracking) {
                                     builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
                                 }
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, SafePoints::createBasicBlockBuilder);
                                 // To avoid serializing Strings we won't need, MethodDataStringsSerializer should be the last "real" BBB
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, MethodDataStringsSerializer::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
                                 builder.addPostHook(Phase.LOWER, NativeXtorLoweringHook::process);
                                 builder.addPostHook(Phase.LOWER, BuildtimeHeap::reportStats);
