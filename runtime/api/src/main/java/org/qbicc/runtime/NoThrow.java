@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 /**
  * Indicate that a method does not throw any exception - not even {@link StackOverflowError} or {@link OutOfMemoryError}.
  */
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
 @Retention(RetentionPolicy.CLASS)
 public @interface NoThrow {
 }

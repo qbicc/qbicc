@@ -1,6 +1,8 @@
 package org.qbicc.runtime.stackwalk;
 
 import org.qbicc.runtime.Build;
+import org.qbicc.runtime.NoSafePoint;
+import org.qbicc.runtime.NoThrow;
 import org.qbicc.runtime.StackObject;
 import org.qbicc.runtime.stdc.Stdint.uint64_t_ptr;
 
@@ -16,6 +18,8 @@ public final class StackWalker extends StackObject {
     int index = -1;
     boolean ready;
 
+    @NoSafePoint
+    @NoThrow
     public StackWalker() {
         unw_context_t_ptr context_ptr = addr_of(refToPtr(this).sel().context);
         if (Build.Target.isAarch64() && ! Build.Target.isMacOs()) {
@@ -47,12 +51,17 @@ public final class StackWalker extends StackObject {
         unw_init_local(addr_of(refToPtr(this).sel().cursor), context_ptr);
     }
 
+    @NoSafePoint
+    @NoThrow
     public StackWalker(StackWalker orig) {
+        memcpy(addr_of(refToPtr(this).sel().context).cast(), addr_of(refToPtr(orig).sel().context).cast(), sizeof(unw_context_t.class));
         memcpy(addr_of(refToPtr(this).sel().cursor).cast(), addr_of(refToPtr(orig).sel().cursor).cast(), sizeof(unw_cursor_t.class));
         index = orig.index;
         ready = orig.ready;
     }
 
+    @NoSafePoint
+    @NoThrow
     public boolean next() {
         if (unw_step(addr_of(refToPtr(this).sel().cursor)).isGt(zero())) {
             index++;
@@ -61,8 +70,10 @@ public final class StackWalker extends StackObject {
         return ready = false;
     }
 
+    @NoSafePoint
+    @NoThrow
     public void_ptr getIp() {
-        if (! ready) throw new IllegalStateException();
+        if (! ready) return zero();
         unw_word_t ip = auto();
         unw_get_reg(addr_of(refToPtr(this).sel().cursor), UNW_REG_IP, addr_of(ip));
         if (Build.Target.isAarch64() && Build.Target.isMacOs()) {
@@ -73,8 +84,10 @@ public final class StackWalker extends StackObject {
         return ip.cast();
     }
 
+    @NoSafePoint
+    @NoThrow
     public void_ptr getSp() {
-        if (! ready) throw new IllegalStateException();
+        if (! ready) return zero();
         unw_word_t sp = auto();
         unw_get_reg(addr_of(refToPtr(this).sel().cursor), UNW_REG_SP, addr_of(sp));
         return sp.cast();
@@ -86,6 +99,8 @@ public final class StackWalker extends StackObject {
      *
      * @param ptr a pointer to the new cursor value (must not be {@code null})
      */
+    @NoSafePoint
+    @NoThrow
     public void setCursor(ptr<@c_const unw_cursor_t> ptr) {
         memcpy(addr_of(refToPtr(this).sel().cursor).cast(), ptr.cast(), sizeof(unw_cursor_t.class));
     }
@@ -96,10 +111,14 @@ public final class StackWalker extends StackObject {
      *
      * @param ptr a pointer to memory into which the copy should be stored (must not be {@code null})
      */
+    @NoSafePoint
+    @NoThrow
     public void getCursor(ptr<unw_cursor_t> ptr) {
         memcpy(ptr.cast(), addr_of(refToPtr(this).sel().cursor).cast(), sizeof(unw_cursor_t.class));
     }
 
+    @NoSafePoint
+    @NoThrow
     public int getIndex() {
         return index;
     }

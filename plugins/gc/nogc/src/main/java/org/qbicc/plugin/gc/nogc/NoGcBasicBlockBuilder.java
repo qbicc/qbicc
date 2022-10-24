@@ -82,11 +82,6 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return oop;
     }
 
-    public Node safePoint() {
-        // No safepoints in NoGC
-        return nop();
-    }
-
     private Value allocateArray(CompoundType compoundType, Value size, long elementSize) {
         NoGc noGc = NoGc.get(ctxt);
         LiteralFactory lf = ctxt.getLiteralFactory();
