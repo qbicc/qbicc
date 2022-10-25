@@ -451,7 +451,6 @@ public class Main implements Callable<DiagnosticContext> {
                                     new ElementBodyCreator()
                                     .andThen(new BuildTimeOnlyElementHandler())
                                     .andThen(new ElementInitializer())));
-                                // In the add phase, elements may be enqueued via multiple paths.  This makes sure Reachability Analysis sees them.
                                 builder.addPreHook(Phase.ADD, new ElementReachableAdapter(ReachabilityInfo::processReachableElement));
                                 builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new ReflectiveMethodAccessorGenerator()));
                                 builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig))));
@@ -508,6 +507,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ANALYZE, new VMHelpersSetupHook());
                                 builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::forceCoreClassesReachable);
                                 builder.addPreHook(Phase.ANALYZE, ReachabilityRoots::processRootsForAnalyze);
+                                builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(ReachabilityInfo::processReachableElement));
                                 builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementBodyCopier()));
                                 if (optEscapeAnalysis) {
                                     builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementVisitorAdapter(new EscapeAnalysisIntraMethodAnalysis())));
