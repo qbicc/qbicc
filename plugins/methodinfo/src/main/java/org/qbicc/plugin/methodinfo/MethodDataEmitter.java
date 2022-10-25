@@ -73,10 +73,14 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         }
         String fileName = element.getSourceFileName();
         String methodDesc = element.getDescriptor().toString();
-        int typeId = element.getEnclosingType().load().getTypeId();
-        if (typeId == -1) {
-            // todo: we should use 0 always as the invalid type ID value
+        int typeId;
+        if (element instanceof FunctionElement) {
             typeId = 0;
+        } else {
+            typeId = element.getEnclosingType().load().getTypeId();
+            if (typeId == -1) {
+                ctxt.error("MethodDataEmitter: enclosing type of %s does not have typeId", element.toString());
+            }
         }
 
         Vm vm = ctxt.getVm();
