@@ -25,6 +25,7 @@ import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmClass;
+import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmReferenceArrayClass;
@@ -37,7 +38,6 @@ import org.qbicc.object.Linkage;
 import org.qbicc.object.ModuleSection;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ProgramObject;
-import org.qbicc.object.Section;
 import org.qbicc.plugin.constants.Constants;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
@@ -179,36 +179,73 @@ public class BuildtimeHeap {
         d.setLinkage(Linkage.EXTERNAL);
     }
 
-    void emitRootClassDictionaries(ArrayList<VmClass> rootClasses) {
+    void emitRootClassDictionaries(ArrayList<VmClass> reachableClasses) {
         LoadedTypeDefinition ih = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap").load();
         ModuleSection section = ctxt.getImplicitSection(ih);
         LoadedTypeDefinition jls_td = ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load();
         LoadedTypeDefinition jlc_td = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
+        LoadedTypeDefinition jlcl_td = ctxt.getBootstrapClassContext().findDefinedType("java/lang/ClassLoader").load();
         VmClass jls = jls_td.getVmClass();
         VmClass jlc = jlc_td.getVmClass();
-        int nameIdx= jlc.indexOf(jlc_td.findField("name"));
+        VmClass jlcl = jlcl_td.getVmClass();
+        VmClassLoader bootLoader = ctxt.getBootstrapClassContext().getClassLoader();
 
-        rootClasses.sort(Comparator.comparing(x -> x.getTypeDefinition().getInternalName()));
-
-        // Construct and serialize the sorted VmReferenceArray of Strings that are class names
-        VmObject[] names = new VmObject[rootClasses.size()];
-        for (int i=0; i<rootClasses.size(); i++) {
-            names[i] = rootClasses.get(i).getMemory().loadRef(nameIdx, SinglePlain);
+        // Group the reachable classes by their defining loader.
+        HashMap<VmClassLoader, ArrayList<VmClass>> clMap = new HashMap<>();
+        for (VmClass c: reachableClasses) {
+            VmClassLoader cl = c.getClassLoader();
+            if (cl == null) {
+                cl = bootLoader;
+            }
+            clMap.computeIfAbsent(cl, k -> new ArrayList<>()).add(c);
         }
-        VmReferenceArray nameArray = ctxt.getVm().newArrayOf(jls, names);
-        serializeVmObject(nameArray, false);
-        String name1 = ih.getInternalName().replace('/', '.') + "." + ih.findField("bootstrapClassNames").getName();
-        Data d1 = section.addData(null, name1,  referToSerializedVmObject(nameArray, nameArray.getObjectType().getReference(), section.getProgramModule()));
-        d1.setLinkage(Linkage.EXTERNAL);
-        d1.setDsoLocal();
 
-        // Construct and serialize the sorted VmReferenceArray of Class instances
-        VmReferenceArray classArray = ctxt.getVm().newArrayOf(jlc, rootClasses.toArray(new VmObject[rootClasses.size()]));
-        serializeVmObject(classArray, false);
-        String name2 = ih.getInternalName().replace('/', '.') + "." + ih.findField("bootstrapClasses").getName();
-        Data d2 = section.addData(null, name2,  referToSerializedVmObject(classArray, classArray.getObjectType().getReference(), section.getProgramModule()));
-        d2.setLinkage(Linkage.EXTERNAL);
-        d2.setDsoLocal();
+        // Build the dictionaries.
+        int numClassLoaders = clMap.size();
+        VmClassLoader[] classLoaders = new VmClassLoader[numClassLoaders];
+        VmReferenceArray[] names = new VmReferenceArray[numClassLoaders];
+        VmReferenceArray[] classes = new VmReferenceArray[numClassLoaders];
+        classLoaders[0] = bootLoader;
+        int nextSlot = 1;
+        for (VmClassLoader cl: clMap.keySet()) {
+            if (cl != bootLoader) {
+                classLoaders[nextSlot++] = cl;
+            }
+        }
+        int nameIdx= jlc.indexOf(jlc_td.findField("name"));
+        for (int clIndex = 0; clIndex<numClassLoaders; clIndex++) {
+            ArrayList<VmClass> myDefines = clMap.get(classLoaders[clIndex]);
+            myDefines.sort(Comparator.comparing(x -> x.getTypeDefinition().getInternalName()));
+            VmObject[] myNames = new VmObject[myDefines.size()];
+            VmObject[] myClasses = new VmObject[myDefines.size()];
+            for (int i=0; i<myDefines.size(); i++) {
+                myClasses[i] = myDefines.get(i);
+                myNames[i] = myClasses[i].getMemory().loadRef(nameIdx, SinglePlain);
+            }
+            classes[clIndex] = ctxt.getVm().newArrayOf(jlc, myClasses);
+            names[clIndex] = ctxt.getVm().newArrayOf(jls, myNames);
+        }
+        VmReferenceArray loaders = ctxt.getVm().newArrayOf(jlcl, classLoaders);
+        VmReferenceArray nameSpine = ctxt.getVm().newArrayOf(jls.getArrayClass(), names);
+        VmReferenceArray classSpine = ctxt.getVm().newArrayOf(jlc.getArrayClass(), classes);
+
+        // Serialize them
+        serializeVmObject(loaders, false);
+        serializeVmObject(nameSpine, false);
+        serializeVmObject(classSpine, false);
+
+        String fn = ih.getInternalName().replace('/', '.') + "." + ih.findField("classLoaders").getName();
+        Data d = section.addData(null, fn,  referToSerializedVmObject(loaders, loaders.getObjectType().getReference(), section.getProgramModule()));
+        d.setLinkage(Linkage.EXTERNAL);
+        d.setDsoLocal();
+        fn = ih.getInternalName().replace('/', '.') + "." + ih.findField("classNames").getName();
+        d = section.addData(null, fn,  referToSerializedVmObject(nameSpine, nameSpine.getObjectType().getReference(), section.getProgramModule()));
+        d.setLinkage(Linkage.EXTERNAL);
+        d.setDsoLocal();
+        fn = ih.getInternalName().replace('/', '.') + "." + ih.findField("classes").getName();
+        d = section.addData(null, fn,  referToSerializedVmObject(classSpine, classSpine.getObjectType().getReference(), section.getProgramModule()));
+        d.setLinkage(Linkage.EXTERNAL);
+        d.setDsoLocal();
     }
 
     public ProgramObject getAndRegisterGlobalClassArray(ExecutableElement originalElement) {

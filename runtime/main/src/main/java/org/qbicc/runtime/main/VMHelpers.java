@@ -198,11 +198,21 @@ public final class VMHelpers {
      * @return The requested Class instance or <code>null</code> if it is not found
      */
     public static Class<?> findLoadedClass(String name, ClassLoader loader) {
+        int loaderIndex = -1;
         if (loader == null) {
-            int idx = Arrays.binarySearch(InitialHeap.bootstrapClassNames, name);
-            return idx >= 0 ? InitialHeap.bootstrapClasses[idx] : null;
+            loaderIndex = 0;
+        } else {
+            for (int i=0; i<InitialHeap.classLoaders.length; i++) {
+                if (InitialHeap.classLoaders[i] == loader) {
+                    loaderIndex = i;
+                    break;
+                }
+            }
         }
-        // TODO: Extend lookup structures to support additional classloaders
-        return null;
+        if (loaderIndex == -1) {
+            return null;
+        }
+        int idx = Arrays.binarySearch(InitialHeap.classNames[loaderIndex], name);
+        return idx >= 0 ? InitialHeap.classes[loaderIndex][idx] : null;
     }
 }
