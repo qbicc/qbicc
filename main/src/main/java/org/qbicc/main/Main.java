@@ -154,6 +154,7 @@ import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.plugin.reachability.ServiceLoaderAnalyzer;
 import org.qbicc.plugin.reflection.Reflection;
+import org.qbicc.plugin.reflection.ReflectionFactsSetup;
 import org.qbicc.plugin.reflection.ReflectionIntrinsics;
 import org.qbicc.plugin.reflection.ReflectiveMethodAccessorGenerator;
 import org.qbicc.plugin.reflection.VarHandleResolvingBasicBlockBuilder;
@@ -414,6 +415,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     vm.doAttached(vm.newThread(Thread.currentThread().getName(), vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> wrapper.accept(ctxt));
                                 });
                                 builder.addPreHook(Phase.ADD, ReachabilityFactsSetup::setupAdd);
+                                builder.addPreHook(Phase.ADD, ReflectionFactsSetup::setupAdd);
                                 builder.addPreHook(Phase.ADD, ctxt -> SafePoints.selectStrategy(ctxt, SafePoints.Strategy.GLOBAL_FLAG));
                                 if (llvm) {
                                     builder.addPreHook(Phase.ADD, LLVMIntrinsics::register);
