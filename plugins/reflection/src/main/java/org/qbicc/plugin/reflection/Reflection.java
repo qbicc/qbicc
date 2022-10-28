@@ -390,10 +390,6 @@ public final class Reflection {
         return hasInheritedAnnotations(ltd.getSuperClass());
     }
 
-    public void makeAvailableForRuntimeReflection(LoadedTypeDefinition ltd) {
-        ReachabilityRoots.get(ctxt).registerReflectiveClass(ltd);
-    }
-
     /**
      * This method must be called during the ADD phase by an attached thread
      * after the Vm is fully booted
@@ -409,6 +405,9 @@ public final class Reflection {
         VmObject accessor = (VmObject)vm.invokeExact(newConstructorAccessorMethod, null, List.of(ctor));
         MethodElement sca = constructorClass.getTypeDefinition().requireSingleMethod("setConstructorAccessor", 1);
         vm.invokeExact(sca, ctor, List.of(accessor));
+        // Create the declaredAnnotation Map
+        MethodElement da = constructorClass.getTypeDefinition().getSuperClass().requireSingleMethod("declaredAnnotations");
+        vm.invokeExact(da, ctor, List.of());
     }
 
     /**
@@ -426,6 +425,9 @@ public final class Reflection {
         VmObject accessor = (VmObject)vm.invokeExact(newMethodAccessorMethod, null, List.of(method, Boolean.FALSE));
         MethodElement sma = methodClass.getTypeDefinition().requireSingleMethod("setMethodAccessor", 1);
         vm.invokeExact(sma, method, List.of(accessor));
+        // Create the declaredAnnotation Map
+        MethodElement da = methodClass.getTypeDefinition().getSuperClass().requireSingleMethod("declaredAnnotations");
+        vm.invokeExact(da, method, List.of());
     }
 
     /**
