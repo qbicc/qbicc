@@ -130,7 +130,7 @@ import org.qbicc.plugin.native_.PointerBasicBlockBuilder;
 import org.qbicc.plugin.native_.PointerTypeResolver;
 import org.qbicc.plugin.native_.StructMemberAccessBasicBlockBuilder;
 import org.qbicc.plugin.nativeimage.GraalFeatureProcessor;
-import org.qbicc.plugin.initializationcontrol.RuntimeInitializingTypeBuilder;
+import org.qbicc.plugin.initializationcontrol.QbiccFeatureTypeBuilder;
 import org.qbicc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
 import org.qbicc.plugin.opt.FinalFieldLoadOptimizer;
 import org.qbicc.plugin.opt.GotoRemovingVisitor;
@@ -395,7 +395,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addTypeBuilderFactory(CoreAnnotationTypeBuilder::new);
                                 builder.addTypeBuilderFactory(ReachabilityAnnotationTypeBuilder::new);
                                 builder.addTypeBuilderFactory(Patcher::getTypeBuilder);
-                                builder.addTypeBuilderFactory(RuntimeInitializingTypeBuilder::new);
+                                builder.addTypeBuilderFactory(QbiccFeatureTypeBuilder::new);
                                 builder.addTypeBuilderFactory(AccessorTypeBuilder::new);
 
                                 builder.setClassContextListener(Patcher::initialize);
@@ -426,6 +426,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);
                                 builder.addPreHook(Phase.ADD, GcCommon::registerIntrinsics);
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
+                                    QbiccFeatureProcessor.process(compilationContext, qbiccFeatures);
+                                });
+                                builder.addPreHook(Phase.ADD, compilationContext -> {
                                     Vm vm = compilationContext.getVm();
                                     VmThread initThread = vm.newThread("initialization", vm.getMainThreadGroup(), false,  Thread.currentThread().getPriority());
                                     vm.doAttached(initThread, vm::initialize);
@@ -445,9 +448,6 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
                                 }
                                 builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachable);
-                                builder.addPreHook(Phase.ADD, compilationContext -> {
-                                    QbiccFeatureProcessor.process(compilationContext, qbiccFeatures);
-                                });
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
                                     GraalFeatureProcessor.process(compilationContext, graalFeatures, hostAppClassLoader);
                                 });
