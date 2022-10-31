@@ -2,22 +2,29 @@ package org.qbicc.plugin.initializationcontrol;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.plugin.patcher.OnceRunTimeInitializerResolver;
+import org.qbicc.plugin.reachability.ReachabilityRoots;
+import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.InitializerResolver;
+import org.qbicc.type.definition.MethodResolver;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
-public class RuntimeInitializingTypeBuilder implements DefinedTypeDefinition.Builder.Delegating {
+public class QbiccFeatureTypeBuilder implements DefinedTypeDefinition.Builder.Delegating {
     private final DefinedTypeDefinition.Builder delegate;
     private final ClassContext classContext;
     private boolean runtimeInitialized;
+    private boolean reflectiveMethods;
+    private boolean reflectiveFields;
     private InitializerResolver initResolver;
     private int initIndex;
 
-    public RuntimeInitializingTypeBuilder(final ClassContext classCtxt, DefinedTypeDefinition.Builder delegate) {
+    public QbiccFeatureTypeBuilder(final ClassContext classCtxt, DefinedTypeDefinition.Builder delegate) {
         this.delegate = delegate;
         this.classContext = classCtxt;
     }
@@ -32,6 +39,12 @@ public class RuntimeInitializingTypeBuilder implements DefinedTypeDefinition.Bui
         FeaturePatcher fp = FeaturePatcher.get(classContext.getCompilationContext());
         if (fp.isRuntimeInitializedClass(internalName)) {
             runtimeInitialized = true;
+        }
+        if (fp.hasReflectiveMethods(internalName)) {
+            reflectiveMethods = true;
+        }
+        if (fp.hasReflectiveFields(internalName)) {
+            reflectiveFields = true;
         }
         delegate.setName(internalName);
     }
@@ -48,11 +61,47 @@ public class RuntimeInitializingTypeBuilder implements DefinedTypeDefinition.Bui
     }
 
     @Override
+    public void addMethod(MethodResolver resolver, int index, String name, MethodDescriptor descriptor) {
+        if (reflectiveMethods) {
+            Delegating.super.addMethod(new MethodResolver() {
+                @Override
+                public MethodElement resolveMethod(int index, DefinedTypeDefinition enclosing, MethodElement.Builder builder) {
+                    MethodElement methodElement = resolver.resolveMethod(index, enclosing, builder);
+                    FeaturePatcher fp = FeaturePatcher.get(classContext.getCompilationContext());
+                    String className = methodElement.getEnclosingType().getInternalName();
+                    if (fp.isReflectiveMethod(className, methodElement.getName(), methodElement.getDescriptor())) {
+                        ReachabilityRoots.get(classContext.getCompilationContext()).registerReflectiveMethod(methodElement);
+                    }
+                    return methodElement;
+                }
+            }, index, name, descriptor);
+        } else {
+            delegate.addMethod(resolver, index, name, descriptor);
+        }
+    }
+
+    @Override
     public void addField(FieldResolver resolver, int index, String name, TypeDescriptor descriptor) {
         if (runtimeInitialized) {
             resolver = new RuntimeInitFieldResolver(initResolver, initIndex, resolver);
         }
-        delegate.addField(resolver, index, name, descriptor);
+        if (reflectiveFields) {
+            final FieldResolver fr = resolver;
+            Delegating.super.addField(new FieldResolver() {
+                @Override
+                public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
+                    FieldElement fieldElement = fr.resolveField(index, enclosing, builder);
+                    FeaturePatcher fp = FeaturePatcher.get(classContext.getCompilationContext());
+                    String className = fieldElement.getEnclosingType().getInternalName();
+                    if (fp.isReflectiveField(className, fieldElement.getName())) {
+                        ReachabilityRoots.get(classContext.getCompilationContext()).registerReflectiveField(fieldElement);
+                    }
+                    return fieldElement;
+                }
+            }, index, name, descriptor);
+        } else {
+            delegate.addField(resolver, index, name, descriptor);
+        }
     }
 
     static class RuntimeInitFieldResolver implements FieldResolver {
