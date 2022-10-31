@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.AttachmentKey;
@@ -38,6 +39,7 @@ import org.qbicc.interpreter.VmThrowableClass;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.patcher.Patcher;
+import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.StaticFieldPointer;
@@ -271,6 +273,8 @@ public final class Reflection {
         vm.registerInvokable(nativeCtorAccImplDef.requireSingleMethod(me -> me.nameEquals("newInstance0")), this::nativeConstructorAccessorImplNewInstance0);
         LoadedTypeDefinition nativeMethodAccImplDef = classContext.findDefinedType("jdk/internal/reflect/NativeMethodAccessorImpl").load();
         vm.registerInvokable(nativeMethodAccImplDef.requireSingleMethod(me -> me.nameEquals("invoke0")), this::nativeMethodAccessorImplInvoke0);
+        LoadedTypeDefinition reflectionFactoryDef = classContext.findDefinedType("jdk/internal/reflect/ReflectionFactory").load();
+        vm.registerInvokable(reflectionFactoryDef.requireSingleMethod("inflationThreshold"), (thread, target, args) -> Integer.MAX_VALUE); // disable constructor/method inflation
         // MemberName
         LoadedTypeDefinition memberNameDef = classContext.findDefinedType("java/lang/invoke/MemberName").load();
         vm.registerInvokable(memberNameDef.requireSingleMethod(me -> me.nameEquals("vminfoIsConsistent")), (thread, target, args) -> Boolean.TRUE);
@@ -371,8 +375,19 @@ public final class Reflection {
         return instance;
     }
 
-    public void makeAvailableForRuntimeReflection(LoadedTypeDefinition ltd) {
-        ReachabilityRoots.get(ctxt).registerReflectiveClass(ltd);
+    public void generateAnnotationData(LoadedTypeDefinition ltd) {
+        if (!ltd.getVisibleAnnotations().isEmpty() || (!ltd.isInterface() && hasInheritedAnnotations(ltd))) {
+            MethodElement annotationData = classClass.getTypeDefinition().requireSingleMethod("annotationData");
+            vm.invokeExact(annotationData, ltd.getVmClass(), List.of());
+        }
+    }
+
+    private boolean hasInheritedAnnotations(LoadedTypeDefinition ltd) {
+        if (!ltd.hasSuperClass()) return false; // No inherited annotations on java.lang.Object
+        if (!ltd.getVisibleAnnotations().isEmpty()) {
+            return true; // Too annoying to figure out the right answer (is one of these annotations itself annotated @inherited); just interpret things
+        }
+        return hasInheritedAnnotations(ltd.getSuperClass());
     }
 
     /**
@@ -390,6 +405,9 @@ public final class Reflection {
         VmObject accessor = (VmObject)vm.invokeExact(newConstructorAccessorMethod, null, List.of(ctor));
         MethodElement sca = constructorClass.getTypeDefinition().requireSingleMethod("setConstructorAccessor", 1);
         vm.invokeExact(sca, ctor, List.of(accessor));
+        // Create the declaredAnnotation Map
+        MethodElement da = constructorClass.getTypeDefinition().getSuperClass().requireSingleMethod("declaredAnnotations");
+        vm.invokeExact(da, ctor, List.of());
     }
 
     /**
@@ -407,6 +425,9 @@ public final class Reflection {
         VmObject accessor = (VmObject)vm.invokeExact(newMethodAccessorMethod, null, List.of(method, Boolean.FALSE));
         MethodElement sma = methodClass.getTypeDefinition().requireSingleMethod("setMethodAccessor", 1);
         vm.invokeExact(sma, method, List.of(accessor));
+        // Create the declaredAnnotation Map
+        MethodElement da = methodClass.getTypeDefinition().getSuperClass().requireSingleMethod("declaredAnnotations");
+        vm.invokeExact(da, method, List.of());
     }
 
     /**
