@@ -7,7 +7,7 @@
     <groupId>org.qbicc</groupId>
     <artifactId>qbicc-parent</artifactId>
     <!-- When updating this, also update docs/README.adoc -->
-    <version>0.48.0-SNAPSHOT</version>
+    <version>0.49.0-SNAPSHOT</version>
 
     <parent>
         <groupId>org.jboss</groupId>
