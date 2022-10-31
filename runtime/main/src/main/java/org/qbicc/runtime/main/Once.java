@@ -1,6 +1,7 @@
 package org.qbicc.runtime.main;
 
 import org.qbicc.runtime.AutoQueued;
+import org.qbicc.runtime.Hidden;
 
 import java.util.Objects;
 
@@ -38,6 +39,7 @@ public final class Once {
      */
     @SuppressWarnings("unused")
     @AutoQueued
+    @Hidden
     public void run() throws Throwable {
         boolean done = this.done;
         if (! done) {

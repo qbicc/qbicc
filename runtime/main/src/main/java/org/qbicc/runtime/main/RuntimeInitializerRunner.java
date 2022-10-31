@@ -1,6 +1,7 @@
 package org.qbicc.runtime.main;
 
 import org.qbicc.runtime.AutoQueued;
+import org.qbicc.runtime.Hidden;
 
 /**
  * Effectively a lambda that will execute a specific runtime initializer.
@@ -25,6 +26,7 @@ public final class RuntimeInitializerRunner implements Runnable {
 
     @Override
     @AutoQueued
+    @Hidden
     public void run() {
         CompilerIntrinsics.callRuntimeInitializer(initID);
     }
