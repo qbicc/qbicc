@@ -416,7 +416,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 });
                                 builder.addPreHook(Phase.ADD, ReachabilityFactsSetup::setupAdd);
                                 builder.addPreHook(Phase.ADD, ReflectionFactsSetup::setupAdd);
-                                builder.addPreHook(Phase.ADD, ctxt -> SafePoints.selectStrategy(ctxt, SafePoints.Strategy.GLOBAL_FLAG));
+                                builder.addPreHook(Phase.ADD, ctxt -> SafePoints.selectStrategy(ctxt, nogc ? SafePoints.Strategy.NONE : SafePoints.Strategy.GLOBAL_FLAG));
                                 if (llvm) {
                                     builder.addPreHook(Phase.ADD, LLVMIntrinsics::register);
                                 }
