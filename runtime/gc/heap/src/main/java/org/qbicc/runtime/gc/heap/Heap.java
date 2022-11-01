@@ -115,6 +115,13 @@ public final class Heap {
     }
 
     /**
+     * Get the max size of the heap in bytes (for Runtime.maxMemory())
+     */
+    public static long getMaxHeapSize() {
+        return limit;
+    }
+
+    /**
      * Get the detected page size.
      *
      * @return the page size
