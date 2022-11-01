@@ -2,6 +2,7 @@ package org.qbicc.plugin.gc.common.safepoint;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockLabel;
 
 /**
  * A safepoint strategy where no safepoints may be entered.
@@ -25,10 +26,14 @@ public final class NoSafePointStrategy extends AbstractSafePointStrategy {
     @Override
     public void implementRequestGlobalSafePoint(BasicBlockBuilder bbb) {
         // no operation
+        bbb.begin(new BlockLabel());
+        bbb.return_();
     }
 
     @Override
     public void implementClearGlobalSafePoint(BasicBlockBuilder bbb) {
         // no operation
+        bbb.begin(new BlockLabel());
+        bbb.return_();
     }
 }
