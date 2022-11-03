@@ -399,9 +399,10 @@ public final class Reflection {
         VmClass c = ce.getEnclosingType().load().getVmClass();
         getClassDeclaredConstructors(c, true);
         getClassDeclaredConstructors(c, false);
+    }
 
-        // Create a DirectConstructorHandleAccessor and store it in the Constructor.
-        VmObject ctor = getConstructor(ce);
+    // Create a DirectConstructorHandleAccessor and store it in the Constructor.
+    private void generateConstructorAccessor(VmObject ctor) {
         VmObject accessor = (VmObject)vm.invokeExact(newConstructorAccessorMethod, null, List.of(ctor));
         MethodElement sca = constructorClass.getTypeDefinition().requireSingleMethod("setConstructorAccessor", 1);
         vm.invokeExact(sca, ctor, List.of(accessor));
@@ -420,8 +421,10 @@ public final class Reflection {
         getClassDeclaredMethods(c, true);
         getClassDeclaredMethods(c, false);
 
-        // Create a DirectMethodHandleAccessor and store it in the Method.
-        VmObject method = getMethod(me);
+    }
+
+    // Create a DirectMethodHandleAccessor and store it in the Method.
+    private void generateMethodAccessor(VmObject method) {
         VmObject accessor = (VmObject)vm.invokeExact(newMethodAccessorMethod, null, List.of(method, Boolean.FALSE));
         MethodElement sma = methodClass.getTypeDefinition().requireSingleMethod("setMethodAccessor", 1);
         vm.invokeExact(sma, method, List.of(accessor));
@@ -759,6 +762,9 @@ public final class Reflection {
             dv
         ));
         VmObject appearing = reflectionObjects.putIfAbsent(method, vmObject);
+        if (appearing == null && !method.isNative()) {
+            ctxt.submitTask(vmObject, m -> this.generateMethodAccessor(m));
+        }
         return appearing != null ? appearing : vmObject;
     }
 
@@ -826,6 +832,9 @@ public final class Reflection {
             null
         ));
         VmObject appearing = reflectionObjects.putIfAbsent(constructor, vmObject);
+        if (appearing == null) {
+            ctxt.submitTask(vmObject, c -> this.generateConstructorAccessor(c));
+        }
         return appearing != null ? appearing : vmObject;
     }
 
