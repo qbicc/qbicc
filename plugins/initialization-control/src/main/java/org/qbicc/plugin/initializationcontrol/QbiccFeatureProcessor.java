@@ -58,14 +58,19 @@ public class QbiccFeatureProcessor {
                     rm.addResources(name);
                 }
             }
-            if (qf.reflectiveMethods != null) {
-                for (QbiccFeature.Method meth : qf.reflectiveMethods) {
-                    fp.addReflectiveMethod(meth.declaringClass, meth.name, meth.descriptor);
+            if (qf.reflectiveConstructors != null) {
+                for (QbiccFeature.Constructor c : qf.reflectiveConstructors) {
+                    fp.addReflectiveConstructor(c.declaringClass, c.descriptor);
                 }
             }
             if (qf.reflectiveFields != null) {
                 for (QbiccFeature.Field f : qf.reflectiveFields) {
                     fp.addReflectiveField(f.declaringClass, f.name);
+                }
+            }
+            if (qf.reflectiveMethods != null) {
+                for (QbiccFeature.Method meth : qf.reflectiveMethods) {
+                    fp.addReflectiveMethod(meth.declaringClass, meth.name, meth.descriptor);
                 }
             }
         }

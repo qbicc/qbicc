@@ -3,12 +3,13 @@ package org.qbicc.plugin.initializationcontrol;
 import org.qbicc.context.ClassContext;
 import org.qbicc.plugin.patcher.OnceRunTimeInitializerResolver;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
-import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.definition.ConstructorResolver;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.InitializerResolver;
 import org.qbicc.type.definition.MethodResolver;
 import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -19,8 +20,9 @@ public class QbiccFeatureTypeBuilder implements DefinedTypeDefinition.Builder.De
     private final DefinedTypeDefinition.Builder delegate;
     private final ClassContext classContext;
     private boolean runtimeInitialized;
-    private boolean reflectiveMethods;
     private boolean reflectiveFields;
+    private boolean reflectiveConstructors;
+    private boolean reflectiveMethods;
     private InitializerResolver initResolver;
     private int initIndex;
 
@@ -40,11 +42,14 @@ public class QbiccFeatureTypeBuilder implements DefinedTypeDefinition.Builder.De
         if (fp.isRuntimeInitializedClass(internalName)) {
             runtimeInitialized = true;
         }
-        if (fp.hasReflectiveMethods(internalName)) {
-            reflectiveMethods = true;
+        if (fp.hasReflectiveConstructors(internalName)) {
+            reflectiveConstructors = true;
         }
         if (fp.hasReflectiveFields(internalName)) {
             reflectiveFields = true;
+        }
+        if (fp.hasReflectiveMethods(internalName)) {
+            reflectiveMethods = true;
         }
         delegate.setName(internalName);
     }
@@ -57,6 +62,26 @@ public class QbiccFeatureTypeBuilder implements DefinedTypeDefinition.Builder.De
             delegate.setInitializer(resolver, -1);
         } else {
             delegate.setInitializer(resolver, index);
+        }
+    }
+
+    @Override
+    public void addConstructor(ConstructorResolver resolver, int index, MethodDescriptor descriptor) {
+        if (reflectiveConstructors) {
+            Delegating.super.addConstructor(new ConstructorResolver() {
+                @Override
+                public ConstructorElement resolveConstructor(int index, DefinedTypeDefinition enclosing, ConstructorElement.Builder builder) {
+                    ConstructorElement constructorElement = resolver.resolveConstructor(index, enclosing, builder);
+                    FeaturePatcher fp = FeaturePatcher.get(classContext.getCompilationContext());
+                    String className = constructorElement.getEnclosingType().getInternalName();
+                    if (fp.isReflectiveConstructor(className, constructorElement.getDescriptor())) {
+                        ReachabilityRoots.get(classContext.getCompilationContext()).registerReflectiveConstructor(constructorElement);
+                    }
+                    return constructorElement;
+                }
+            }, index, descriptor);
+        } else {
+            delegate.addConstructor(resolver, index, descriptor);
         }
     }
 
