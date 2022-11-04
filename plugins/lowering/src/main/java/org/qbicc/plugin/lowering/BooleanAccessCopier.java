@@ -8,13 +8,17 @@ import org.qbicc.graph.Load;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.ReadModifyWrite;
+import org.qbicc.graph.Return;
 import org.qbicc.graph.Store;
+import org.qbicc.graph.TerminatorVisitor;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.VoidType;
 
 /**
  *
@@ -97,6 +101,19 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
             return b.truncate(b.readModifyWrite(copyHandle, op, b.extend(copiedUpdate, it), node.getReadAccessMode(), node.getWriteAccessMode()), bt);
         } else {
             return b.readModifyWrite(copyHandle, op, copiedUpdate, node.getReadAccessMode(), node.getWriteAccessMode());
+        }
+    }
+
+    @Override
+    public BasicBlock visit(Node.Copier param, Return node) {
+        BasicBlockBuilder b = param.getBlockBuilder();
+        param.copyNode(node.getDependency());
+        Value copiedReturnValue = param.copyValue(node.getReturnValue());
+
+        if (node.getElement().getType().getReturnType() instanceof BooleanType bt   && copiedReturnValue.getType() instanceof IntegerType) {
+            return b.return_(b.truncate(copiedReturnValue, bt));
+        } else {
+            return b.return_(copiedReturnValue);
         }
     }
 }
