@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.AttachmentKey;
@@ -20,10 +19,6 @@ import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
-import org.qbicc.graph.literal.BooleanLiteral;
-import org.qbicc.graph.literal.ByteArrayLiteral;
-import org.qbicc.graph.literal.FloatLiteral;
-import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
@@ -39,16 +34,12 @@ import org.qbicc.interpreter.VmThrowableClass;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.patcher.Patcher;
-import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.FloatType;
-import org.qbicc.type.IntegerType;
 import org.qbicc.type.InvokableType;
-import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -375,10 +366,14 @@ public final class Reflection {
         return instance;
     }
 
-    public void generateAnnotationData(LoadedTypeDefinition ltd) {
+    public void generateReflectiveData(LoadedTypeDefinition ltd) {
         if (!ltd.getVisibleAnnotations().isEmpty() || (!ltd.isInterface() && hasInheritedAnnotations(ltd))) {
             MethodElement annotationData = classClass.getTypeDefinition().requireSingleMethod("annotationData");
             vm.invokeExact(annotationData, ltd.getVmClass(), List.of());
+        }
+        if (ltd.isEnum()) {
+            MethodElement getEC = classClass.getTypeDefinition().requireSingleMethod("getEnumConstantsShared");
+            vm.invokeExact(getEC, ltd.getVmClass(), List.of());
         }
     }
 
