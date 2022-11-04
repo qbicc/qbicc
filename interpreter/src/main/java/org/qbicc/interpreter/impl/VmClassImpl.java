@@ -373,7 +373,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 memory.store32(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceSizeField()).getOffset(), layoutInfo.getCompoundType().getSize(), SinglePlain);
                 memory.store8(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceAlignField()).getOffset(), layoutInfo.getCompoundType().getAlign(), SinglePlain);
             }
-            memory.store32(getVmClass().getLayoutInfo().getMember(classDef.findField("modifiers")).getOffset(), classDef.getModifiers(), SinglePlain);
+            memory.store32(getVmClass().getLayoutInfo().getMember(classDef.findField("modifiers")).getOffset(), typeDefinition.getModifiers(), SinglePlain);
             setPointerField(classDef, "referenceBitMap", computeBitMap());
         } catch (Exception e) {
             // for breakpoints
