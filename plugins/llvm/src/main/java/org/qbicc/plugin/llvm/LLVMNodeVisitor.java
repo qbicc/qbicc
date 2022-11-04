@@ -1384,6 +1384,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         WriteAccessMode writeMode = node.getWriteAccessMode();
         OrderingConstraint successOrdering = getOC(readMode.combinedWith(writeMode));
         OrderingConstraint failureOrdering = getOC(readMode);
+        if (failureOrdering == OrderingConstraint.unordered) {
+            failureOrdering = OrderingConstraint.monotonic; // LLVM requires failure mode to be at least monotonic
+        }
         org.qbicc.machine.llvm.op.CmpAndSwap cmpAndSwapBuilder = builder.cmpAndSwap(
             ptrType, type, ptr, expect, update, successOrdering, failureOrdering);
         if (node.getStrength() == CmpAndSwap.Strength.WEAK) {
