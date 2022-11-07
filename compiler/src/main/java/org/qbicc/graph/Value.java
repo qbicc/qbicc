@@ -3,6 +3,7 @@ package org.qbicc.graph;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
+import org.qbicc.type.NullableType;
 import org.qbicc.type.ValueType;
 
 public interface Value extends Node {
@@ -121,7 +122,7 @@ public interface Value extends Node {
      * @return {@code true} if the value may be {@code null}, or {@code false} if it can never be {@code null}
      */
     default boolean isNullable() {
-        return true;
+        return getType() instanceof NullableType;
     }
 
     /**
