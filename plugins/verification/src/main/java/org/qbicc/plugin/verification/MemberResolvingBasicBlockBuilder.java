@@ -173,6 +173,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         ClassContext cc = getClassContext();
         // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
         ValueType castType = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc));
+        ValueType valueType = value.getType();
         if (value instanceof ConstantLiteral) {
             // it may be something we can't really cast.
             return ctxt.getLiteralFactory().constantLiteralOfType(castType);
@@ -189,7 +190,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             return checkcast(value, cc.getLiteralFactory().literalOfType(toType), cc.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), toDimensions), CheckCast.CastType.Cast, originalToType);
         } else if (castType instanceof WordType toType) {
             // A checkcast in the bytecodes, but it is actually a WordType coming from some native magic.
-            WordType fromType = (WordType) value.getType();
+            WordType fromType = (WordType) valueType;
             // Zeros are always convertible to any word type.
             if (value.isDefEq(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fromType))) {
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(toType);
@@ -220,15 +221,15 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // we can't just bitcast it really, in fact it's an error unless the actual value is zero
             if (value instanceof Literal && ((Literal) value).isZero()) {
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(castType);
-            } else if (castType.equals(value.getType())) {
+            } else if (castType.equals(valueType)) {
                 return value;
             } else if (value instanceof MemberSelector){
                 return value;
             } else {
-                ctxt.error(getLocation(), "Disallowed cast of value from %s to %s", value.getType(), castType);
+                ctxt.error(getLocation(), "Disallowed cast of value from %s to %s", valueType, castType);
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(castType);
             }
-        } else if (value.getType() instanceof PointerType && castType instanceof ArrayType) {
+        } else if (valueType instanceof PointerType && castType instanceof ArrayType) {
             // narrowing a pointer to an array is actually an array view of a pointer
             return value;
         }
