@@ -57,7 +57,6 @@ import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
 final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
-    private final TypeSystem typeSystem;
     private BlockLabel firstBlock;
     private int line;
     private int bci;
@@ -73,9 +72,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     private boolean started;
     private ImmutableSortedMap<Slot, BlockParameter> parameters;
 
-    SimpleBasicBlockBuilder(final ExecutableElement element, final TypeSystem typeSystem) {
+    SimpleBasicBlockBuilder(final ExecutableElement element) {
         this.element = element;
-        this.typeSystem = typeSystem;
         this.rootElement = element;
         bci = - 1;
         parameters = SortedMaps.immutable.empty();
@@ -261,11 +259,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Value isEq(final Value v1, final Value v2) {
-        return new IsEq(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+        return new IsEq(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
     }
 
     public Value isNe(final Value v1, final Value v2) {
-        return new IsNe(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+        return new IsNe(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
     }
 
     public Value shr(final Value v1, final Value v2) {
@@ -297,19 +295,19 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Value isLt(final Value v1, final Value v2) {
-        return new IsLt(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+        return new IsLt(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
     }
 
     public Value isGt(final Value v1, final Value v2) {
-        return new IsGt(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+        return new IsGt(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
     }
 
     public Value isLe(final Value v1, final Value v2) {
-        return new IsLe(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+        return new IsLe(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
     }
 
     public Value isGe(final Value v1, final Value v2) {
-        return new IsGe(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+        return new IsGe(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
     }
 
     public Value rol(final Value v1, final Value v2) {
@@ -321,15 +319,15 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Value cmp(Value v1, Value v2) {
-        return new Cmp(callSite, element, line, bci, v1, v2, typeSystem.getSignedInteger32Type());
+        return new Cmp(callSite, element, line, bci, v1, v2, getTypeSystem().getSignedInteger32Type());
     }
 
     public Value cmpG(Value v1, Value v2) {
-        return new CmpG(callSite, element, line, bci, v1, v2, typeSystem.getSignedInteger32Type());
+        return new CmpG(callSite, element, line, bci, v1, v2, getTypeSystem().getSignedInteger32Type());
     }
 
     public Value cmpL(Value v1, Value v2) {
-        return new CmpL(callSite, element, line, bci, v1, v2, typeSystem.getSignedInteger32Type());
+        return new CmpL(callSite, element, line, bci, v1, v2, getTypeSystem().getSignedInteger32Type());
     }
 
     public Value notNull(Value v) {
@@ -357,11 +355,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Value countLeadingZeros(final Value v) {
-        return new CountLeadingZeros(callSite, element, line, bci, v, typeSystem.getSignedInteger32Type());
+        return new CountLeadingZeros(callSite, element, line, bci, v, getTypeSystem().getSignedInteger32Type());
     }
 
     public Value countTrailingZeros(final Value v) {
-        return new CountTrailingZeros(callSite, element, line, bci, v, typeSystem.getSignedInteger32Type());
+        return new CountTrailingZeros(callSite, element, line, bci, v, getTypeSystem().getSignedInteger32Type());
     }
 
     public Value populationCount(final Value v) {
@@ -394,7 +392,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         for (int i=0; i<expectedDimensions; i++) {
             ifTrueExpectedType = ifTrueExpectedType.getReferenceArrayObject();
         }
-        return asDependency(new InstanceOf(callSite, element, line, bci, requireDependency(), input, fb.notNull(fb.bitCast(input, ((ReferenceType)input.getType()).narrow(ifTrueExpectedType))), expectedType, expectedDimensions, typeSystem.getBooleanType()));
+        return asDependency(new InstanceOf(callSite, element, line, bci, requireDependency(), input, fb.notNull(fb.bitCast(input, ((ReferenceType)input.getType()).narrow(ifTrueExpectedType))), expectedType, expectedDimensions, getTypeSystem().getBooleanType()));
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {
@@ -547,7 +545,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Value offsetOfField(FieldElement fieldElement) {
-        return new OffsetOfField(callSite, element, line, bci, fieldElement, typeSystem.getSignedInteger32Type());
+        return new OffsetOfField(callSite, element, line, bci, fieldElement, getTypeSystem().getSignedInteger32Type());
     }
 
     public Value extractElement(Value array, Value index) {
