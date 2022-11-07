@@ -174,6 +174,15 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         throw new IllegalStateException("First block not yet terminated");
     }
 
+    @Override
+    public BlockLabel getEntryLabel() throws IllegalStateException {
+        BlockLabel firstBlock = this.firstBlock;
+        if (firstBlock != null) {
+            return firstBlock;
+        }
+        throw new IllegalStateException("First block not yet started");
+    }
+
     private void mark(BasicBlock block, BasicBlock from) {
         if (block.setReachableFrom(from)) {
             Terminator terminator = block.getTerminator();

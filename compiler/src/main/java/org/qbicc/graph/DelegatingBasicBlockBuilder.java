@@ -111,6 +111,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().getFirstBlock();
     }
 
+    public BlockLabel getEntryLabel() throws IllegalStateException {
+        return getDelegate().getEntryLabel();
+    }
+
     public BasicBlockBuilder getDelegate() {
         return delegate;
     }

@@ -204,6 +204,8 @@ public interface BasicBlockBuilder extends Locatable {
      */
     BasicBlock getFirstBlock() throws IllegalStateException;
 
+    BlockLabel getEntryLabel() throws IllegalStateException;
+
     // values
 
     /**
