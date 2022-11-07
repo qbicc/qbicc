@@ -95,14 +95,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().setBytecodeIndex(newBytecodeIndex);
     }
 
-    public final ExceptionHandler getExceptionHandler() {
-        return last.getExceptionHandler();
-    }
-
-    public void setExceptionHandlerPolicy(final ExceptionHandlerPolicy policy) {
-        getDelegate().setExceptionHandlerPolicy(policy);
-    }
-
     public void startMethod(List<ParameterValue> arguments) {
         getDelegate().startMethod(arguments);
     }

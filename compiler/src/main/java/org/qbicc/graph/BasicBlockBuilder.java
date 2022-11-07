@@ -176,25 +176,6 @@ public interface BasicBlockBuilder extends Locatable {
      */
     int setBytecodeIndex(int newBytecodeIndex);
 
-    /**
-     * Get or compute the currently active exception handler.  Returns {@code null} if no exception handler is
-     * active (i.e. exceptions should be propagated to the caller).
-     * <p>
-     * This method generally should not be overridden (overriding this method does not change the exception handler
-     * selected in most cases because the exception handler is selected by the last builder in the chain).  Its purpose
-     * is to provide a means for builders to locate the exception handler for their own purposes.
-     *
-     * @return the currently active exception handler, or {@code null} if exceptions should propagate to the caller
-     */
-    ExceptionHandler getExceptionHandler();
-
-    /**
-     * Set the exception handler policy.  The set policy will determine the exception handler that is returned from
-     * {@link #getExceptionHandler()}.
-     *
-     * @param policy the exception handler policy (must not be {@code null})
-     */
-    void setExceptionHandlerPolicy(ExceptionHandlerPolicy policy);
 
     /**
      * Signal method entry with the given arguments.
@@ -808,45 +789,4 @@ public interface BasicBlockBuilder extends Locatable {
      */
     BasicBlock getTerminatedBlock();
 
-    /**
-     * The policy which is used to acquire the exception handler for the current instruction.
-     */
-    interface ExceptionHandlerPolicy {
-        /**
-         * Get the currently active exception handler, if any.
-         *
-         * @param delegate the next-lower-priority exception handler to delegate to when the returned handler does not
-         *                 handle the exception
-         * @return the exception handler to use
-         */
-        ExceptionHandler computeCurrentExceptionHandler(ExceptionHandler delegate);
-    }
-
-    /**
-     * An exception handler definition.
-     */
-    interface ExceptionHandler {
-        /**
-         * Get the block label of this handler.
-         *
-         * @return the block label (must not be {@code null})
-         */
-        BlockLabel getHandler();
-
-        /**
-         * Enter the handler from the given source block, which may be a {@code try} operation or may be a regular
-         * control flow operation like {@code goto} or {@code if}. This method is always called from outside of a
-         * block, thus the implementation of this method is allowed to generate instructions but any generated
-         * block must be terminated before the method returns.
-         *
-         * @param from the source block of the {@code throw} or {@code invoke} (must not be {@code null})
-         * @param landingPad the landing pad block, or {@code null} if the value was thrown directly
-         * @param exceptionValue the exception value to register (must not be {@code null})
-         */
-        void enterHandler(BasicBlock from, BasicBlock landingPad, Value exceptionValue);
-    }
-
-    static BasicBlockBuilder simpleBuilder(final TypeSystem typeSystem, final ExecutableElement element) {
-        return new SimpleBasicBlockBuilder(element, typeSystem);
-    }
 }

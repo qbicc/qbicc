@@ -21,13 +21,11 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * A basic block builder which adds a monitor acquire to the start of the subprogram and adds a monitor release
  * to all possible exit paths.
  */
-public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBuilder implements BasicBlockBuilder.ExceptionHandlerPolicy {
+public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
     private final Value monitor;
     private boolean started;
     private final ReferenceType throwable;
-    private ExceptionHandlerPolicy outerPolicy;
-    private final Map<ExceptionHandler, ExceptionHandler> handlers = new HashMap<>();
 
     private SynchronizedMethodBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
@@ -42,63 +40,11 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
         throwable = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Throwable").load().getClassType().getReference();
     }
 
-    public void setExceptionHandlerPolicy(final ExceptionHandlerPolicy policy) {
-        outerPolicy = policy;
-    }
-
-    public ExceptionHandler computeCurrentExceptionHandler(final ExceptionHandler delegate) {
-        ExceptionHandler handler = handlers.get(delegate);
-        if (handler == null) {
-            handlers.put(delegate, handler = new ExceptionHandlerImpl(delegate));
-        }
-        // our handler comes *after* any outer policy's (i.e. class file) handler
-        if (outerPolicy != null) {
-            handler = outerPolicy.computeCurrentExceptionHandler(handler);
-        }
-        return handler;
-    }
-
-    final class ExceptionHandlerImpl implements ExceptionHandler {
-        private final PhiValue phi;
-        private final ExceptionHandler delegate;
-
-        ExceptionHandlerImpl(final ExceptionHandler delegate) {
-            this.delegate = delegate;
-            phi = phi(throwable, new BlockLabel(), PhiValue.Flag.NOT_NULL);
-        }
-
-        public BlockLabel getHandler() {
-            return phi.getPinnedBlockLabel();
-        }
-
-        public void enterHandler(final BasicBlock from, final BasicBlock landingPad, final Value exceptionValue) {
-            if (landingPad != null) {
-                phi.setValueForBlock(ctxt, getCurrentElement(), landingPad, exceptionValue);
-            } else {
-                // direct (local) throw
-                phi.setValueForBlock(ctxt, getCurrentElement(), from, exceptionValue);
-            }
-            BlockLabel label = phi.getPinnedBlockLabel();
-            if (! label.hasTarget()) {
-                // generate the new handler body
-                begin(label);
-                // release the lock
-                monitorExit(monitor);
-                // hopefully the delegate simply rethrows
-                BasicBlock ourFrom = goto_(delegate.getHandler(), Map.of(Slot.thrown(), exceptionValue));
-                // direct goto next block (no landing pad)
-                delegate.enterHandler(ourFrom, null, phi);
-            }
-        }
-    }
-
     public Node begin(final BlockLabel blockLabel) {
         Node node = super.begin(blockLabel);
         if (! started) {
-            // method start
             started = true;
             Node monitorEnter = monitorEnter(monitor);
-            getDelegate().setExceptionHandlerPolicy(this);
             return monitorEnter;
         }
         return node;
@@ -111,7 +57,6 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
             return super.begin(blockLabel, bbb -> {
                 started = true;
                 monitorEnter(monitor);
-                getDelegate().setExceptionHandlerPolicy(this);
             });
         } else {
             return super.begin(blockLabel, arg, maker);

@@ -56,10 +56,9 @@ import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
-final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuilder.ExceptionHandler {
+final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     private final TypeSystem typeSystem;
     private BlockLabel firstBlock;
-    private ExceptionHandlerPolicy policy;
     private int line;
     private int bci;
     private Node dependency;
@@ -150,10 +149,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         }
     }
 
-    public void setExceptionHandlerPolicy(final ExceptionHandlerPolicy policy) {
-        this.policy = policy;
-    }
-
     public void startMethod(List<ParameterValue> arguments) {
         started = true;
     }
@@ -238,15 +233,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             E[] array = set.toArray((E[]) new Object[size + 1]);
             array[size] = item;
             return Set.of(array);
-        }
-    }
-
-    public ExceptionHandler getExceptionHandler() {
-        if (policy == null) {
-            return null;
-        } else {
-            ExceptionHandler handler = policy.computeCurrentExceptionHandler(this);
-            return handler == this ? null : handler;
         }
     }
 
@@ -670,74 +656,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value call(ValueHandle target, List<Value> arguments) {
-        // todo: this should be done in a separate BBB
-        ExceptionHandler exceptionHandler = getExceptionHandler();
-        if (exceptionHandler != null && canThrow(target)) {
-            // promote to invoke
-            return promoteToInvoke(target, arguments, exceptionHandler);
-        }
         return asDependency(new Call(callSite, element, line, bci, requireDependency(), target, arguments));
     }
 
     public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
-        // todo: this should be done in a separate BBB
-        ExceptionHandler exceptionHandler = getExceptionHandler();
-        if (exceptionHandler != null && canThrow(target)) {
-            // promote to invoke
-            return promoteToInvoke(target, arguments, exceptionHandler);
-        }
         return new CallNoSideEffects(callSite, element, line, bci, target, arguments);
-    }
-
-    private Value promoteToInvoke(final ValueHandle target, final List<Value> arguments, final ExceptionHandler exceptionHandler) {
-        BlockLabel resume = new BlockLabel();
-        BlockLabel setupHandler = new BlockLabel();
-        BlockLabel currentBlock = requireCurrentBlock();
-        Value result = invoke(target, arguments, setupHandler, resume, Map.of());
-        BasicBlock from;
-        if (result instanceof Invoke.ReturnValue) {
-            from = ((Invoke.ReturnValue) result).getInvoke().getTerminatedBlock();
-        } else {
-            // invoke was rewritten or transformed
-            from = BlockLabel.getTargetOf(currentBlock);
-        }
-        // this is the entry point for the stack unwinder
-        setUpHandler(exceptionHandler, setupHandler, from);
-        begin(resume);
-        return result;
-    }
-
-    private void setUpHandler(final ExceptionHandler exceptionHandler, final BlockLabel setupHandler, BasicBlock from) {
-        begin(setupHandler);
-        ClassContext classContext = element.getEnclosingType().getContext();
-        CompilationContext ctxt = classContext.getCompilationContext();
-        BasicBlockBuilder fb = getFirstBuilder();
-        Value thr = fb.load(fb.currentThread(), SingleUnshared);
-        FieldElement exceptionField = ctxt.getExceptionField();
-        ValueHandle handle = instanceFieldOf(referenceHandle(fb.notNull(thr)), exceptionField);
-        LiteralFactory lf = ctxt.getLiteralFactory();
-        Value exceptionValue = notNull(readModifyWrite(handle, ReadModifyWrite.Op.SET, lf.zeroInitializerLiteralOfType(handle.getPointeeType()), SingleUnshared, SingleUnshared));
-        BasicBlock sourceBlock = goto_(exceptionHandler.getHandler(), Map.of());
-        exceptionHandler.enterHandler(from, sourceBlock, exceptionValue);
-    }
-
-    public BlockLabel getHandler() {
-        PhiValue exceptionPhi = this.exceptionPhi;
-        if (exceptionPhi == null) {
-            // first time called
-            ClassObjectType typeId = getCurrentElement().getEnclosingType().getContext().findDefinedType("java/lang/Throwable").load().getClassType();
-            exceptionPhi = this.exceptionPhi = phi(typeId.getReference(), new BlockLabel(), PhiValue.Flag.NOT_NULL);
-        }
-        return exceptionPhi.getPinnedBlockLabel();
-    }
-
-    public void enterHandler(final BasicBlock from, BasicBlock landingPad, final Value exceptionValue) {
-        exceptionPhi.setValueForBlock(element.getEnclosingType().getContext().getCompilationContext(), element, from, exceptionValue);
-        BlockLabel handler = getHandler();
-        if (! handler.hasTarget()) {
-            begin(handler);
-            throw_(exceptionPhi);
-        }
     }
 
     public Node nop() {
@@ -778,7 +701,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             throw new IllegalStateException("Block already terminated");
         }
         // save all state on the stack
-        final ExceptionHandlerPolicy oldPolicy = policy;
         final int oldLine = line;
         final int oldBci = bci;
         final Node oldDependency = dependency;
@@ -801,7 +723,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             dependency = oldDependency;
             bci = oldBci;
             line = oldLine;
-            policy = oldPolicy;
         }
     }
 
@@ -832,16 +753,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
-        // todo: this should be done in a separate BBB
-        ExceptionHandler exceptionHandler = getExceptionHandler();
-        if (exceptionHandler != null && canThrow(target)) {
-            // promote to invoke
-            BlockLabel setupHandler = new BlockLabel();
-            BasicBlock result = invokeNoReturn(target, arguments, setupHandler, Map.of());
-            // this is the entry point for the stack unwinder
-            setUpHandler(exceptionHandler, setupHandler, result);
-            return result;
-        }
         return terminate(requireCurrentBlock(), new CallNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments, parameters.castToMap()));
     }
 
@@ -850,16 +761,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
-        // todo: this should be done in a separate BBB
-        ExceptionHandler exceptionHandler = getExceptionHandler();
-        if (exceptionHandler != null && canThrow(target)) {
-            // promote to invoke
-            BlockLabel setupHandler = new BlockLabel();
-            BasicBlock result = tailInvoke(target, arguments, setupHandler, Map.of());
-            // this is the entry point for the stack unwinder
-            setUpHandler(exceptionHandler, setupHandler, result);
-            return result;
-        }
         return terminate(requireCurrentBlock(), new TailCall(callSite, element, line, bci, blockEntry, dependency, target, arguments, parameters.castToMap()));
     }
 
@@ -872,10 +773,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         Invoke invoke = new Invoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, resumeLabel, parameters.castToMap(), targetArguments);
         terminate(currentBlock, invoke);
         return invoke.getReturnValue();
-    }
-
-    private boolean canThrow(ValueHandle target) {
-        return ! (target instanceof Executable ex && ex.getExecutable().hasAllModifiersOf(ClassFile.I_ACC_NO_THROW));
     }
 
     public BasicBlock goto_(final BlockLabel resumeLabel, final Map<Slot, Value> targetArguments) {
