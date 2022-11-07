@@ -112,6 +112,10 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
         return hasAllModifiersOf(ClassFile.ACC_INTERFACE);
     }
 
+    default boolean isEnum() {
+        return hasAllModifiersOf(ClassFile.ACC_ENUM);
+    }
+
     default boolean isPrimitive() {
         return hasAllModifiersOf(ClassFile.I_ACC_PRIMITIVE);
     }

@@ -11,6 +11,6 @@ public class ReflectionFactsSetup {
 
     public static void setupAdd(CompilationContext ctxt) {
         Facts facts = Facts.get(ctxt);
-        facts.registerAction(Condition.when(TypeReachabilityFacts.HAS_CLASS), (ltd, f) -> Reflection.get(ctxt).generateAnnotationData(ltd));
+        facts.registerAction(Condition.when(TypeReachabilityFacts.HAS_CLASS), (ltd, f) -> Reflection.get(ctxt).generateReflectiveData(ltd));
     }
 }

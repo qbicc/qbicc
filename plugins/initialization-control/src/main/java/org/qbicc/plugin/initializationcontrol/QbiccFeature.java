@@ -4,17 +4,23 @@ final class QbiccFeature {
     String[] initializeAtRuntime;
     String[] runtimeResource;  // ClassLoader.findResource
     String[] runtimeResources; // ClassLoader.findResources
-    Method[] reflectiveMethods;
+    Constructor[] reflectiveConstructors;
     Field[] reflectiveFields;
+    Method[] reflectiveMethods;
 
-    static final class Method {
+    static final class Constructor {
         String declaringClass;
-        String name;
         String descriptor;
     }
 
     static final class Field {
         String declaringClass;
         String name;
+    }
+
+    static final class Method {
+        String declaringClass;
+        String name;
+        String descriptor;
     }
 }

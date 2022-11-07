@@ -477,8 +477,10 @@ public final class VmImpl implements Vm {
             registerHooks(bootstrapClassLoader.loadClass("sun/invoke/util/VerifyAccess"), HooksForVerifyAccess.class, lookup());
             // MethodHandles$Lookup
             registerHooks(bootstrapClassLoader.loadClass("java/lang/invoke/MethodHandles$Lookup"), HooksForMethodHandlesLookup.class, lookup());
-            // Instance
+            // Instant
             registerHooks(bootstrapClassLoader.loadClass("java/time/Instant"), HooksForInstant.class, lookup());
+            // Bits
+            registerHooks(bootstrapClassLoader.loadClass("java/nio/Bits"), HooksForBits.class, lookup());
 
             // Now execute system initialization
             LoadedTypeDefinition systemType = systemClass.getTypeDefinition();

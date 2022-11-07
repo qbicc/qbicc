@@ -14,8 +14,9 @@ public class FeaturePatcher {
 
     private final CompilationContext ctxt;
     private final Set<String> runtimeInitializedClasses = ConcurrentHashMap.newKeySet();
-    private final Map<String, Set<String>> reflectiveMethods = new ConcurrentHashMap<>();
+    private final Map<String, Set<String>> reflectiveConstructors = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> reflectiveFields = new ConcurrentHashMap<>();
+    private final Map<String, Set<String>> reflectiveMethods = new ConcurrentHashMap<>();
 
     private FeaturePatcher(CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -41,18 +42,18 @@ public class FeaturePatcher {
         return runtimeInitializedClasses.contains(internalName);
     }
 
-    public void addReflectiveMethod(String className, String methodName, String descriptor) {
-        String encodedMethod = methodName+":"+descriptor;
-        reflectiveMethods.computeIfAbsent(className, k -> ConcurrentHashMap.newKeySet()).add(encodedMethod);
+
+    public void addReflectiveConstructor(String className, String descriptor) {
+        reflectiveConstructors.computeIfAbsent(className, k -> ConcurrentHashMap.newKeySet()).add(descriptor);
     }
 
-    public boolean hasReflectiveMethods(String className) {
-        return reflectiveMethods.containsKey(className);
+    public boolean hasReflectiveConstructors(String className) {
+        return reflectiveConstructors.containsKey(className);
     }
 
-    public boolean isReflectiveMethod(String className, String methodName, MethodDescriptor descriptor) {
-        Set<String> encodedMethods = reflectiveMethods.get(className);
-        return encodedMethods != null && encodedMethods.contains(methodName+":"+descriptor);
+    public boolean isReflectiveConstructor(String className, MethodDescriptor descriptor) {
+        Set<String> constructors = reflectiveConstructors.get(className);
+        return constructors != null && constructors.contains(descriptor.toString());
     }
 
     public void addReflectiveField(String className, String fieldName) {
@@ -66,5 +67,19 @@ public class FeaturePatcher {
     public boolean isReflectiveField(String className, String fieldName) {
         Set<String> fields = reflectiveFields.get(className);
         return fields != null && fields.contains(fieldName);
+    }
+
+    public void addReflectiveMethod(String className, String methodName, String descriptor) {
+        String encodedMethod = methodName+":"+descriptor;
+        reflectiveMethods.computeIfAbsent(className, k -> ConcurrentHashMap.newKeySet()).add(encodedMethod);
+    }
+
+    public boolean hasReflectiveMethods(String className) {
+        return reflectiveMethods.containsKey(className);
+    }
+
+    public boolean isReflectiveMethod(String className, String methodName, MethodDescriptor descriptor) {
+        Set<String> encodedMethods = reflectiveMethods.get(className);
+        return encodedMethods != null && encodedMethods.contains(methodName+":"+descriptor);
     }
 }

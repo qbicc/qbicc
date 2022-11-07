@@ -187,6 +187,14 @@ public final class VMHelpers {
     @NoReturn
     @Inline(InlineCondition.NEVER)
     @AutoQueued
+    static void raiseUnsatisfiedLinkErrorDispatchStub() {
+        throw new UnsatisfiedLinkError();
+    }
+
+    @Hidden
+    @NoReturn
+    @Inline(InlineCondition.NEVER)
+    @AutoQueued
     static void raiseUnreachableCodeError(String target) {
         throw new NotReachableException(target);
     }

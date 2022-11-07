@@ -351,12 +351,12 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     void postConstruct(final String name, VmImpl vm) {
         // todo: Base JDK equivalent core classes with appropriate manual initializer
         CoreClasses coreClasses = CoreClasses.get(vm.getCompilationContext());
-        LoadedTypeDefinition classDef = getVmClass().getTypeDefinition();
+        LoadedTypeDefinition jlcDef = getVmClass().getTypeDefinition();
         try {
-            memory.storeRef(getVmClass().getLayoutInfo().getMember(classDef.findField("name")).getOffset(), vm.intern(name), SinglePlain);
-            memory.storeRef(getVmClass().getLayoutInfo().getMember(classDef.findField("classLoader")).getOffset(), classLoader, SinglePlain);
+            memory.storeRef(getVmClass().getLayoutInfo().getMember(jlcDef.findField("name")).getOffset(), vm.intern(name), SinglePlain);
+            memory.storeRef(getVmClass().getLayoutInfo().getMember(jlcDef.findField("classLoader")).getOffset(), classLoader, SinglePlain);
             VmObject rd = vm.manuallyInitialize(vm.reflectionDataClass.newInstance());
-            memory.storeRef(getVmClass().getLayoutInfo().getMember(classDef.findField("qbiccReflectionData")).getOffset(), rd, SinglePlain);
+            memory.storeRef(getVmClass().getLayoutInfo().getMember(jlcDef.findField("qbiccReflectionData")).getOffset(), rd, SinglePlain);
 
             // typeId and dimensions
             FieldElement instanceTypeIdField = coreClasses.getClassTypeIdField();
@@ -373,8 +373,8 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 memory.store32(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceSizeField()).getOffset(), layoutInfo.getCompoundType().getSize(), SinglePlain);
                 memory.store8(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceAlignField()).getOffset(), layoutInfo.getCompoundType().getAlign(), SinglePlain);
             }
-            memory.store32(getVmClass().getLayoutInfo().getMember(classDef.findField("modifiers")).getOffset(), classDef.getModifiers(), SinglePlain);
-            setPointerField(classDef, "referenceBitMap", computeBitMap());
+            memory.store32(getVmClass().getLayoutInfo().getMember(jlcDef.findField("modifiers")).getOffset(), typeDefinition.getModifiers(), SinglePlain);
+            setPointerField(jlcDef, "referenceBitMap", computeBitMap());
         } catch (Exception e) {
             // for breakpoints
             throw e;
