@@ -13,9 +13,9 @@ public final class Ret extends AbstractTerminator implements Terminator {
     private final Value returnAddressValue;
     private final BasicBlock terminatedBlock;
 
-    Ret(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value returnAddressValue, Map<Slot, BlockParameter> parameters, Map<Slot, Value> targetArguments) {
+    Ret(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value returnAddressValue, Map<Slot, Value> targetArguments) {
         super(callSite, element, line, bci, targetArguments);
-        terminatedBlock = new BasicBlock(blockEntry, this, parameters);
+        terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.returnAddressValue = returnAddressValue;
     }

@@ -26,10 +26,10 @@ public final class TailInvoke extends AbstractTerminator {
     private final InvokableType calleeType;
     private final BlockLabel catchLabel;
 
-    TailInvoke(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, BlockParameter> parameters, Map<Slot, Value> targetArguments) {
+    TailInvoke(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         super(callSite, element, line, bci, targetArguments);
         this.dependency = dependency;
-        this.terminatedBlock = new BasicBlock(blockEntry, this, parameters);
+        this.terminatedBlock = new BasicBlock(blockEntry, this);
         this.target = target;
         this.arguments = arguments;
         this.catchLabel = catchLabel;

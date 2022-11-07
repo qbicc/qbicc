@@ -17,9 +17,9 @@ public final class Switch extends AbstractTerminator implements Terminator {
     private final Value switchValue;
     private final BasicBlock terminatedBlock;
 
-    Switch(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final BlockLabel defaultTargetLabel, final int[] values, final BlockLabel[] targetLabels, final Value switchValue, Map<Slot, BlockParameter> parameters, Map<Slot, Value> targetArguments) {
+    Switch(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final BlockLabel defaultTargetLabel, final int[] values, final BlockLabel[] targetLabels, final Value switchValue, Map<Slot, Value> targetArguments) {
         super(callSite, element, line, bci, targetArguments);
-        terminatedBlock = new BasicBlock(blockEntry, this, parameters);
+        terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.defaultTargetLabel = defaultTargetLabel;
         // check values to make sure they're in order

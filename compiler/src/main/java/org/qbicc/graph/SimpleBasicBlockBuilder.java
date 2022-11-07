@@ -757,53 +757,53 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
-        return terminate(requireCurrentBlock(), new CallNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments, parameters.castToMap()));
+        return terminate(requireCurrentBlock(), new CallNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments));
     }
 
     public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        return terminate(requireCurrentBlock(), new InvokeNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, parameters.castToMap(), targetArguments));
+        return terminate(requireCurrentBlock(), new InvokeNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, targetArguments));
     }
 
     public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
-        return terminate(requireCurrentBlock(), new TailCall(callSite, element, line, bci, blockEntry, dependency, target, arguments, parameters.castToMap()));
+        return terminate(requireCurrentBlock(), new TailCall(callSite, element, line, bci, blockEntry, dependency, target, arguments));
     }
 
     public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        return terminate(requireCurrentBlock(), new TailInvoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, parameters.castToMap(), targetArguments));
+        return terminate(requireCurrentBlock(), new TailInvoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, targetArguments));
     }
 
     public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         final BlockLabel currentBlock = requireCurrentBlock();
-        Invoke invoke = new Invoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, resumeLabel, parameters.castToMap(), targetArguments);
+        Invoke invoke = new Invoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, resumeLabel, targetArguments);
         terminate(currentBlock, invoke);
         return invoke.getReturnValue();
     }
 
     public BasicBlock goto_(final BlockLabel resumeLabel, final Map<Slot, Value> targetArguments) {
-        return terminate(requireCurrentBlock(), new Goto(callSite, element, line, bci, blockEntry, dependency, resumeLabel, parameters.castToMap(), targetArguments));
+        return terminate(requireCurrentBlock(), new Goto(callSite, element, line, bci, blockEntry, dependency, resumeLabel, targetArguments));
     }
 
     public BasicBlock if_(final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget, final Map<Slot, Value> targetArguments) {
-        return terminate(requireCurrentBlock(), new If(callSite, element, line, bci, blockEntry, dependency, condition, trueTarget, falseTarget, parameters.castToMap(), targetArguments));
+        return terminate(requireCurrentBlock(), new If(callSite, element, line, bci, blockEntry, dependency, condition, trueTarget, falseTarget, targetArguments));
     }
 
     public BasicBlock return_(final Value value) {
         if (value == null) {
             return return_(emptyVoid());
         }
-        return terminate(requireCurrentBlock(), new Return(callSite, element, line, bci, blockEntry, dependency, value, parameters.castToMap()));
+        return terminate(requireCurrentBlock(), new Return(callSite, element, line, bci, blockEntry, dependency, value));
     }
 
     public BasicBlock unreachable() {
-        return terminate(requireCurrentBlock(), new Unreachable(callSite, element, line, bci, blockEntry, dependency, parameters.castToMap()));
+        return terminate(requireCurrentBlock(), new Unreachable(callSite, element, line, bci, blockEntry, dependency));
     }
 
     public BasicBlock throw_(final Value value) {
-        return terminate(requireCurrentBlock(), new Throw(callSite, element, line, bci, blockEntry, dependency, value, parameters.castToMap()));
+        return terminate(requireCurrentBlock(), new Throw(callSite, element, line, bci, blockEntry, dependency, value));
     }
 
     public BasicBlock ret(final Value address, Map<Slot, Value> targetArguments) {
-        return terminate(requireCurrentBlock(), new Ret(callSite, element, line, bci, blockEntry, dependency, address, parameters.castToMap(), targetArguments));
+        return terminate(requireCurrentBlock(), new Ret(callSite, element, line, bci, blockEntry, dependency, address, targetArguments));
     }
 
     public BlockEntry getBlockEntry() {
@@ -820,7 +820,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public BasicBlock switch_(final Value value, final int[] checkValues, final BlockLabel[] targets, final BlockLabel defaultTarget, final Map<Slot, Value> targetArguments) {
-        return terminate(requireCurrentBlock(), new Switch(callSite, element, line, bci, blockEntry, dependency, defaultTarget, checkValues, targets, value, parameters.castToMap(), targetArguments));
+        return terminate(requireCurrentBlock(), new Switch(callSite, element, line, bci, blockEntry, dependency, defaultTarget, checkValues, targets, value, targetArguments));
     }
 
     private BasicBlock terminate(final BlockLabel block, final Terminator op) {

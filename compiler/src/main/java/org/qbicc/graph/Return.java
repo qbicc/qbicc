@@ -1,6 +1,5 @@
 package org.qbicc.graph;
 
-import java.util.Map;
 import java.util.Objects;
 
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -14,9 +13,9 @@ public final class Return extends AbstractTerminator implements Terminator {
 
     private final BasicBlock terminatedBlock;
 
-    Return(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value returnValue, Map<Slot, BlockParameter> parameters) {
+    Return(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value returnValue) {
         super(callSite, element, line, bci);
-        terminatedBlock = new BasicBlock(blockEntry, this, parameters);
+        terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.returnValue = returnValue;
     }
