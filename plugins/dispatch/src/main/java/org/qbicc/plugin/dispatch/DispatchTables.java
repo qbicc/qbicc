@@ -257,7 +257,7 @@ public class DispatchTables {
         for (int i = 0; i < vtable.length; i++) {
             FunctionType funType = ctxt.getFunctionTypeForElement(vtable[i]);
             if (vtable[i].isAbstract() || (vtable[i].hasAllModifiersOf(ClassFile.ACC_NATIVE) && ctxt.getExactFunctionIfExists(vtable[i]) == null)) {
-                MethodElement stub = methodFinder.getMethod(vtable[i].isAbstract() ? "raiseAbstractMethodError" : "raiseUnsatisfiedLinkError");
+                MethodElement stub = methodFinder.getMethod(vtable[i].isAbstract() ? "raiseAbstractMethodError" : "raiseUnsatisfiedLinkErrorDispatchStub");
                 Function stubImpl = ctxt.getExactFunction(stub);
                 FunctionDeclaration decl = programModule.declareFunction(stub, stubImpl.getName(), stubImpl.getValueType());
                 PointerLiteral literal = ctxt.getLiteralFactory().literalOf(decl.getPointer());
@@ -352,7 +352,7 @@ public class DispatchTables {
                     PointerLiteral ameLiteral = lf.literalOf(programModule.declareFunction(ameImpl).getPointer());
                     valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(ameLiteral, implType.getPointer()));
                 } else if (methImpl.isNative()) {
-                    MethodElement uleStub = methodFinder.getMethod("raiseUnsatisfiedLinkError");
+                    MethodElement uleStub = methodFinder.getMethod("raiseUnsatisfiedLinkErrorDispatchStub");
                     Function uleImpl = ctxt.getExactFunction(uleStub);
                     PointerLiteral uleLiteral = lf.literalOf(programModule.declareFunction(uleImpl).getPointer());
                     valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(uleLiteral, implType.getPointer()));
