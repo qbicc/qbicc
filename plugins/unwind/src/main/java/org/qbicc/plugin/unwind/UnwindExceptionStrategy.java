@@ -1,4 +1,4 @@
-package org.qbicc.plugin.lowering;
+package org.qbicc.plugin.unwind;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
@@ -16,20 +16,19 @@ import org.qbicc.type.generic.TypeSignature;
 
 import java.util.List;
 
-public class ThrowExceptionHelper {
-    private static final AttachmentKey<ThrowExceptionHelper> KEY = new AttachmentKey<>();
+public class UnwindExceptionStrategy {
+    private static final AttachmentKey<UnwindExceptionStrategy> KEY = new AttachmentKey<>();
 
-    private final CompilationContext ctxt;
     private final FieldElement unwindExceptionField;
     private final MethodElement raiseExceptionMethod;
+    private final MethodElement personalityMethod;
 
-    private ThrowExceptionHelper(final CompilationContext ctxt) {
-        this.ctxt = ctxt;
-
+    private UnwindExceptionStrategy(final CompilationContext ctxt) {
         /* Inject a field "unwindException" of type Unwind$_Unwind_Exception in j.l.Thread */
         ClassContext classContext = ctxt.getBootstrapClassContext();
         ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/unwind/Unwind$struct__Unwind_Exception");
-        unwindExceptionField = ctxt.getExceptionField().getEnclosingType().load().resolveField(desc, "unwindException", true);
+        DefinedTypeDefinition threadDef = classContext.findDefinedType("java/lang/Thread");
+        unwindExceptionField = threadDef.load().resolveField(desc, "unwindException", true);
 
         /* Get the symbol to Unwind#_Unwind_RaiseException */
         String unwindClass = "org/qbicc/runtime/unwind/Unwind";
@@ -38,17 +37,20 @@ public class ThrowExceptionHelper {
             LoadedTypeDefinition unwindValidated = unwindDefined.load();
             int index = unwindValidated.findMethodIndex(e -> e.getName().equals("_Unwind_RaiseException"));
             raiseExceptionMethod = unwindValidated.getMethod(index);
+            index = unwindValidated.findMethodIndex(e -> e.getName().equals("personality"));
+            personalityMethod = unwindValidated.getMethod(index);
         } else {
             raiseExceptionMethod = null;
+            personalityMethod = null;
             ctxt.error("Required class \"%s\" is not found on boot classpath", unwindClass);
         }
     }
 
-    public static ThrowExceptionHelper get(CompilationContext ctxt) {
-        ThrowExceptionHelper helper = ctxt.getAttachment(KEY);
+    public static UnwindExceptionStrategy get(CompilationContext ctxt) {
+        UnwindExceptionStrategy helper = ctxt.getAttachment(KEY);
         if (helper == null) {
-            helper = new ThrowExceptionHelper(ctxt);
-            ThrowExceptionHelper appearing = ctxt.putAttachmentIfAbsent(KEY, helper);
+            helper = new UnwindExceptionStrategy(ctxt);
+            UnwindExceptionStrategy appearing = ctxt.putAttachmentIfAbsent(KEY, helper);
             if (appearing != null) {
                 helper = appearing;
             }
@@ -79,5 +81,9 @@ public class ThrowExceptionHelper {
 
     public MethodElement getRaiseExceptionMethod() {
         return this.raiseExceptionMethod;
+    }
+
+    public MethodElement getPersonalityMethod() {
+        return personalityMethod;
     }
 }

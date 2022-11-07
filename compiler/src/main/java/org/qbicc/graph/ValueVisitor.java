@@ -272,14 +272,6 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
-    default R visit(T t, ParameterValue node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, PhiValue node) {
-        return visitUnknown(t, node);
-    }
-
     default R visit(T t, PointerLiteral node) {
         return visitUnknown(t, node);
     }
@@ -604,14 +596,6 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T t, Or node) {
-            return getDelegateValueVisitor().visit(t, node);
-        }
-
-        default R visit(T t, ParameterValue node) {
-            return getDelegateValueVisitor().visit(t, node);
-        }
-
-        default R visit(T t, PhiValue node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

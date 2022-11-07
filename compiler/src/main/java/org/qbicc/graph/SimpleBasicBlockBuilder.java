@@ -1,26 +1,22 @@
 package org.qbicc.graph;
 
-import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
 import io.smallrye.common.constraint.Assert;
-import org.eclipse.collections.api.factory.SortedMaps;
-import org.eclipse.collections.api.map.sorted.ImmutableSortedMap;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
-import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
@@ -40,7 +36,6 @@ import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -63,33 +58,44 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     private Node dependency;
     private BlockEntry blockEntry;
     private BlockLabel currentBlock;
-    private PhiValue exceptionPhi;
     private BasicBlockBuilder firstBuilder;
     private ExecutableElement element;
     private final ExecutableElement rootElement;
     private Node callSite;
     private BasicBlock terminatedBlock;
-    private boolean started;
-    private ImmutableSortedMap<Slot, BlockParameter> parameters;
+    private Map<BlockLabel, Map<Slot, BlockParameter>> parameters;
 
     SimpleBasicBlockBuilder(final ExecutableElement element) {
         this.element = element;
         this.rootElement = element;
         bci = - 1;
-        parameters = SortedMaps.immutable.empty();
+        parameters = new HashMap<>();
     }
 
     @Override
-    public BlockParameter addParam(Slot slot, ValueType type, boolean nullable) {
-        BlockParameter parameter = parameters.get(slot);
+    public BlockParameter addParam(BlockLabel owner, Slot slot, ValueType type, boolean nullable) {
+        Map<Slot, BlockParameter> subMap = parameters.computeIfAbsent(owner, SimpleBasicBlockBuilder::newMap);
+        BlockParameter parameter = subMap.get(slot);
         if (parameter != null) {
-            throw new IllegalArgumentException("Parameter " + slot + " already defined");
+            if (parameter.getSlot().equals(slot) && parameter.getType().equals(type) && parameter.isNullable() == nullable) {
+                return parameter;
+            }
+            throw new IllegalArgumentException("Parameter " + slot + " already defined to " + owner);
         }
         if (nullable && ! (type instanceof NullableType)) {
             throw new IllegalArgumentException("Parameter can only be nullable if its type is nullable");
         }
-        parameter = new BlockParameter(callSite, element, type, nullable, currentBlock, slot);
-        parameters = parameters.newWithKeyValue(slot, parameter);
+        parameter = new BlockParameter(callSite, element, type, nullable, owner, slot);
+        subMap.put(slot, parameter);
+        return parameter;
+    }
+
+    @Override
+    public BlockParameter getParam(BlockLabel owner, Slot slot) throws NoSuchElementException {
+        BlockParameter parameter = parameters.getOrDefault(owner, Map.of()).get(slot);
+        if (parameter == null) {
+            throw new NoSuchElementException("No parameter for slot " + slot + " in " + owner);
+        }
         return parameter;
     }
 
@@ -145,10 +151,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         } finally {
             bci = newBytecodeIndex;
         }
-    }
-
-    public void startMethod(List<ParameterValue> arguments) {
-        started = true;
     }
 
     public int getBytecodeIndex() {
@@ -549,10 +551,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return asDependency(new StackAllocation(callSite, element, line, bci, requireDependency(), type, count, align));
     }
 
-    public ParameterValue parameter(final ValueType type, String label, final int index) {
-        return new ParameterValue(callSite, element, type, label, index);
-    }
-
     public Value offsetOfField(FieldElement fieldElement) {
         return new OffsetOfField(callSite, element, line, bci, fieldElement, getTypeSystem().getSignedInteger32Type());
     }
@@ -587,11 +585,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
 
     public Node setDebugValue(LocalVariableElement variable, Value value) {
         return asDependency(new DebugValueDeclaration(callSite, element, line, bci, requireDependency(), variable, value));
-    }
-
-    public PhiValue phi(final ValueType type, final BlockLabel owner, PhiValue.Flag... flags) {
-        boolean nullable = (flags.length == 0 || flags[0] != PhiValue.Flag.NOT_NULL);
-        return new PhiValue(callSite, element, line, bci, type, owner, nullable);
     }
 
     public Value select(final Value condition, final Value trueValue, final Value falseValue) {
@@ -684,9 +677,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Node begin(final BlockLabel blockLabel) {
-        if (!started) {
-            throw new IllegalStateException("begin() called before startMethod()");
-        }
         Assert.checkNotNullParam("blockLabel", blockLabel);
         if (blockLabel.hasTarget()) {
             throw new IllegalStateException("Block already terminated");
@@ -703,9 +693,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
 
     @Override
     public <T> BasicBlock begin(BlockLabel blockLabel, T arg, BiConsumer<T, BasicBlockBuilder> maker) {
-        if (!started) {
-            throw new IllegalStateException("begin() called before startMethod()");
-        }
         Assert.checkNotNullParam("blockLabel", blockLabel);
         Assert.checkNotNullParam("maker", maker);
         if (blockLabel.hasTarget()) {
@@ -720,7 +707,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         final BasicBlock oldTerminatedBlock = terminatedBlock;
         final ExecutableElement oldElement = element;
         final Node oldCallSite = callSite;
-        final ImmutableSortedMap<Slot, BlockParameter> oldParameters = parameters;
+        final Map<BlockLabel, Map<Slot, BlockParameter>> oldParameters = new HashMap<>(parameters);
         try {
             return doBegin(blockLabel, arg, maker);
         } finally {
@@ -744,13 +731,13 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
                 firstBlock = blockLabel;
             }
             dependency = blockEntry = new BlockEntry(callSite, element, blockLabel);
-            parameters = SortedMaps.immutable.empty();
+            parameters = new HashMap<>();
             maker.accept(arg, firstBuilder);
             if (currentBlock != null) {
                 getContext().error(getLocation(), "Block not terminated");
                 firstBuilder.unreachable();
             }
-        } catch (BlockEarlyTermination bet) {
+        } catch (BlockEarlyTermination ignored) {
         }
         return BlockLabel.getTargetOf(blockLabel);
     }
@@ -837,7 +824,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         blockEntry = null;
         currentBlock = null;
         dependency = null;
-        parameters = SortedMaps.immutable.empty();
         return realBlock;
     }
 

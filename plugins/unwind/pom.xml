@@ -20,6 +20,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-compiler</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-patcher</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

@@ -75,6 +75,14 @@ public final class BlockParameter extends AbstractValue implements PinnedNode {
         return possibleValues;
     }
 
+    public boolean isEntryParameter() {
+        return getPinnedBlock() == getElement().getMethodBody().getEntryBlock();
+    }
+
+    public int getIndex() {
+        return slot.getIndex();
+    }
+
     private void getPossibleValues(Set<Value> current, Set<BlockParameter> visited, boolean includeParams) {
         if (visited.add(this)) {
             BasicBlock pinnedBlock = getPinnedBlock();
@@ -84,12 +92,20 @@ public final class BlockParameter extends AbstractValue implements PinnedNode {
                 current.add(this);
             } else for (BasicBlock basicBlock : incoming) {
                 if (basicBlock.isReachable()) {
-                    Value value = basicBlock.getTerminator().getOutboundArgument(slot);
-                    if (includeParams) {
-                        current.add(value);
-                    }
-                    if (value instanceof BlockParameter bp) {
-                        bp.getPossibleValues(current, visited, includeParams);
+                    Terminator t = basicBlock.getTerminator();
+                    if (t.isImplicitOutboundArgument(slot, pinnedBlock)) {
+                        // we don't know the possible range of thrown values
+                        current.add(this);
+                    } else {
+                        Value value = t.getOutboundArgument(slot);
+                        if (value instanceof BlockParameter bp) {
+                            if (includeParams) {
+                                current.add(value);
+                            }
+                            bp.getPossibleValues(current, visited, includeParams);
+                        } else {
+                            current.add(value);
+                        }
                     }
                 }
             }
@@ -113,7 +129,12 @@ public final class BlockParameter extends AbstractValue implements PinnedNode {
                 return true;
             } else for (BasicBlock basicBlock : incoming) {
                 if (basicBlock.isReachable()) {
-                    Value value = basicBlock.getTerminator().getOutboundArgument(slot);
+                    Terminator t = basicBlock.getTerminator();
+                    if (t.isImplicitOutboundArgument(slot, pinnedBlock)) {
+                        // unknown method return value
+                        return true;
+                    }
+                    Value value = t.getOutboundArgument(slot);
                     if (value instanceof BlockParameter bp) {
                         if (bp.possibleValuesAreNullable(visited)) {
                             return true;
@@ -131,7 +152,10 @@ public final class BlockParameter extends AbstractValue implements PinnedNode {
 
     public StringBuilder appendQualifiedName(StringBuilder b) {
         BasicBlock pinnedBlock = getPinnedBlock();
-        if (pinnedBlock.getIndex() != 0) {
+        if (pinnedBlock == null) {
+            // not yet assigned
+            b.append("??").append('.');
+        } else if (pinnedBlock.getIndex() != 0) {
             // block zero doesn't need a qualifier, really
             pinnedBlock.toString(b).append('.');
         }

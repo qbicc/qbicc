@@ -2,6 +2,7 @@ package org.qbicc.graph;
 
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
@@ -51,8 +52,12 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         setFirstBuilder(this);
     }
 
-    public BlockParameter addParam(Slot slot, ValueType type, boolean nullable) {
-        return delegate.addParam(slot, type, nullable);
+    public BlockParameter addParam(BlockLabel owner, Slot slot, ValueType type, boolean nullable) {
+        return delegate.addParam(owner, slot, type, nullable);
+    }
+
+    public BlockParameter getParam(BlockLabel owner, Slot slot) throws NoSuchElementException {
+        return delegate.getParam(owner, slot);
     }
 
     public BasicBlockBuilder getFirstBuilder() {
@@ -93,10 +98,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public int setBytecodeIndex(final int newBytecodeIndex) {
         return getDelegate().setBytecodeIndex(newBytecodeIndex);
-    }
-
-    public void startMethod(List<ParameterValue> arguments) {
-        getDelegate().startMethod(arguments);
     }
 
     public int getBytecodeIndex() {
@@ -247,10 +248,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().getTerminatedBlock();
     }
 
-    public ParameterValue parameter(final ValueType type, String label, final int index) {
-        return getDelegate().parameter(type, label, index);
-    }
-
     public Value offsetOfField(final FieldElement fieldElement) {
         return getDelegate().offsetOfField(fieldElement);
     }
@@ -285,10 +282,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Node setDebugValue(final LocalVariableElement variable, final Value value) {
         return getDelegate().setDebugValue(variable, value);
-    }
-
-    public PhiValue phi(final ValueType type, final BlockLabel owner, PhiValue.Flag... flags) {
-        return getDelegate().phi(type, owner, flags);
     }
 
     public Value select(final Value condition, final Value trueValue, final Value falseValue) {

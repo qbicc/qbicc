@@ -51,13 +51,12 @@ public final class TestSimpleOptBasicBlockBuilderBooleanLogic extends AbstractCo
         builder.setModifiers(ClassFile.ACC_STATIC);
         builder.setParameters(List.of());
         builder.setMethodBodyFactory((index, e) -> {
-            final BasicBlockBuilder bbb = BasicBlockBuilder.simpleBuilder(ts, e);
+            final BasicBlockBuilder bbb = BasicBlockBuilder.simpleBuilder(e);
             BasicBlock emptyBlock = bbb.unreachable();
             bbb.finish();
             return MethodBody.of(
                 emptyBlock,
                 Schedule.forMethod(emptyBlock),
-                null,
                 List.of()
             );
         }, 0);
@@ -114,8 +113,7 @@ public final class TestSimpleOptBasicBlockBuilderBooleanLogic extends AbstractCo
     }
 
     private BasicBlockBuilder makeBlockBuilder() {
-        final BasicBlockBuilder bbb = new SimpleOptBasicBlockBuilder(ctxt, BasicBlockBuilder.simpleBuilder(ts, element));
-        bbb.startMethod(List.of());
+        final BasicBlockBuilder bbb = new SimpleOptBasicBlockBuilder(BasicBlockBuilder.FactoryContext.EMPTY, BasicBlockBuilder.simpleBuilder(element));
         bbb.begin(new BlockLabel());
         return bbb;
     }

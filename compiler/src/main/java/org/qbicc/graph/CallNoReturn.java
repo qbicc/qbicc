@@ -107,9 +107,4 @@ public final class CallNoReturn extends AbstractTerminator {
     public <T, R> R accept(TerminatorVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
-
-    @Override
-    public boolean registerValue(PhiValue phi, Value val) {
-        throw new IllegalStateException("No outbound values may be registered for a no-return call");
-    }
 }

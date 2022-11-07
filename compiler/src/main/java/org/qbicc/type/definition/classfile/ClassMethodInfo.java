@@ -239,7 +239,6 @@ final class ClassMethodInfo {
         short[][] localVariables = new short[maxLocals][];
         int[] lvtLengths = new int[maxLocals];
         Arrays.fill(localVariables, NO_SHORTS);
-        int localVariablesLen = 0;
         boolean lvt;
         LineNumberTable.Builder lineNumberTable = new LineNumberTable.Builder();
         for (int i = 0; i < attrCnt; i ++) {

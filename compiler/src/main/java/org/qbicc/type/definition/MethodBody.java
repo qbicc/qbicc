@@ -3,7 +3,7 @@ package org.qbicc.type.definition;
 import java.util.List;
 
 import org.qbicc.graph.BasicBlock;
-import org.qbicc.graph.ParameterValue;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.schedule.Schedule;
 
 /**
@@ -11,34 +11,48 @@ import org.qbicc.graph.schedule.Schedule;
  */
 public interface MethodBody {
 
+    /**
+     * Get the number of positional parameters.
+     *
+     * @return the number of positional parameters
+     */
     int getParameterCount();
 
-    ParameterValue getParameterValue(int index) throws IndexOutOfBoundsException;
+    /**
+     * Get the slot for a positional parameter.
+     *
+     * @param index the parameter position
+     * @return the slot (not {@code null})
+     * @throws IndexOutOfBoundsException if {@code index} is less than zero or is greater than or equal to the number of positional parameters
+     */
+    Slot getParameterSlot(int index) throws IndexOutOfBoundsException;
 
-    List<ParameterValue> getParameterValues();
+    /**
+     * Get the list of positional parameter slots in order.
+     * The slot determines how positional parameters are mapped to block arguments.
+     *
+     * @return the slots list
+     */
+    List<Slot> getParameterSlots();
 
     BasicBlock getEntryBlock();
 
     Schedule getSchedule();
 
-    ParameterValue getThisValue();
-
-    static MethodBody of(BasicBlock entryBlock, Schedule schedule, ParameterValue thisValue, ParameterValue... parameterValues) {
-        return of(entryBlock, schedule, thisValue, List.of(parameterValues));
-    }
-
-    static MethodBody of(BasicBlock entryBlock, Schedule schedule, ParameterValue thisValue, List<ParameterValue> paramValues) {
+    static MethodBody of(BasicBlock entryBlock, Schedule schedule, List<Slot> paramSlots) {
         return new MethodBody() {
             public int getParameterCount() {
-                return paramValues.size();
+                return paramSlots.size();
             }
 
-            public ParameterValue getParameterValue(final int index) throws IndexOutOfBoundsException {
-                return paramValues.get(index);
+            @Override
+            public Slot getParameterSlot(int index) throws IndexOutOfBoundsException {
+                return paramSlots.get(index);
             }
 
-            public List<ParameterValue> getParameterValues() {
-                return paramValues;
+            @Override
+            public List<Slot> getParameterSlots() {
+                return paramSlots;
             }
 
             public BasicBlock getEntryBlock() {
@@ -49,9 +63,6 @@ public interface MethodBody {
                 return schedule;
             }
 
-            public ParameterValue getThisValue() {
-                return thisValue;
-            }
         };
     }
 }

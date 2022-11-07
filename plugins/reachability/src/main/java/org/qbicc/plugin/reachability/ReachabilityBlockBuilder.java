@@ -24,6 +24,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.ReadModifyWrite;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Store;
@@ -41,7 +42,6 @@ import org.qbicc.pointer.ReferenceAsPointer;
 import org.qbicc.pointer.RootPointer;
 import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
-import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
@@ -70,9 +70,10 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
 
     @Override
     public void finish() {
+        // finish first so that all blocks are populated
+        super.finish();
         BasicBlock entryBlock = getFirstBlock();
         entryBlock.getTerminator().accept(new ReachabilityVisitor(), new ReachabilityContext(ctxt, getDelegate().getCurrentElement()));
-        super.finish();
     }
 
     static final class ReachabilityContext {
@@ -115,8 +116,8 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
                 for (int i = 0; i < cnt; i ++) {
                     node.getSuccessor(i).getTerminator().accept(this, param);
                 }
-                for (Value v: node.getOutboundValues().values()) {
-                    v.accept(this, param);
+                for (Slot slot : node.getOutboundArgumentNames()) {
+                    node.getOutboundArgument(slot).accept(this, param);
                 }
             }
             return null;

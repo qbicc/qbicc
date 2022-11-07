@@ -4,12 +4,11 @@ import java.util.Collection;
 import java.util.Objects;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.New;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
-import org.qbicc.graph.ParameterValue;
-import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.ValueHandle;
@@ -47,13 +46,7 @@ public final class EscapeAnalysisDotVisitor implements NodeVisitor.Delegating<Di
     }
 
     @Override
-    public Void visit(Disassembler param, ParameterValue node) {
-        decorate(param, node);
-        return delegate.visit(param, node);
-    }
-
-    @Override
-    public Void visit(Disassembler param, PhiValue node) {
+    public Void visit(Disassembler param, BlockParameter node) {
         decorate(param, node);
         return delegate.visit(param, node);
     }

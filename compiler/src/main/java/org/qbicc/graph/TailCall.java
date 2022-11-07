@@ -111,8 +111,4 @@ public final class TailCall extends AbstractTerminator {
         return visitor.visit(param, this);
     }
 
-    @Override
-    public boolean registerValue(PhiValue phi, Value val) {
-        throw new IllegalStateException("No outbound values may be registered for a tail call");
-    }
 }

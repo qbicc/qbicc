@@ -10,6 +10,7 @@ import org.qbicc.machine.llvm.AsmFlag;
 import org.qbicc.machine.llvm.LLBasicBlock;
 import org.qbicc.machine.llvm.LLBuilder;
 import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.LazyLLValue;
 import org.qbicc.machine.llvm.Module;
 import org.qbicc.machine.llvm.Struct;
 import org.qbicc.machine.llvm.StructType;
@@ -188,5 +189,9 @@ public final class LLVM {
             return true;
         }
         return false;
+    }
+
+    public static LazyLLValue newLazyValue() {
+        return new LazyValueImpl();
     }
 }

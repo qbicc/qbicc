@@ -9,7 +9,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -81,7 +80,6 @@ final class CompilationContextImpl implements CompilationContext {
     private final ConcurrentMap<ExecutableElement, FunctionElement> establishedFunctions = new ConcurrentHashMap<>();
     private final Path outputDir;
     final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories;
-    private final AtomicReference<FieldElement> exceptionFieldHolder = new AtomicReference<>();
     private volatile DefinedTypeDefinition defaultTypeDefinition;
     private final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories;
 
@@ -458,24 +456,6 @@ final class CompilationContextImpl implements CompilationContext {
     @Override
     public Section getImplicitSection() {
         return implicitSection;
-    }
-
-    public FieldElement getExceptionField() {
-        AtomicReference<FieldElement> exceptionFieldHolder = this.exceptionFieldHolder;
-        FieldElement fieldElement = exceptionFieldHolder.get();
-        if (fieldElement == null) {
-            synchronized (exceptionFieldHolder) {
-                fieldElement = exceptionFieldHolder.get();
-                if (fieldElement == null) {
-                    ClassContext classContext = this.bootstrapClassContext;
-                    ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Throwable");
-                    DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
-                    fieldElement = jlt.load().resolveField(desc, "thrown", true);
-                    exceptionFieldHolder.set(fieldElement);
-                }
-            }
-        }
-        return fieldElement;
     }
 
     @Override

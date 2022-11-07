@@ -3,21 +3,20 @@ package org.qbicc.interpreter.impl;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.qbicc.graph.Action;
 import org.qbicc.graph.BasicBlock;
-import org.qbicc.graph.LocalVariable;
+import org.qbicc.graph.BlockParameter;
+import org.qbicc.graph.Invoke;
+import org.qbicc.graph.InvokeNoReturn;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.OrderedNode;
-import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.Slot;
+import org.qbicc.graph.TailInvoke;
 import org.qbicc.graph.Terminator;
-import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.interpreter.Memory;
@@ -41,7 +40,6 @@ final class VmInvokableImpl implements VmInvokable {
     private static final VarHandle countHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "count", VarHandle.class, VmInvokableImpl.class, long.class);
 
     private final ExecutableElement element;
-    private final Map<BasicBlock, List<Node>> scheduled;
     private final ValueType frameMemoryType;
     private final Schedule schedule;
     @SuppressWarnings("unused") // VarHandle
@@ -49,69 +47,19 @@ final class VmInvokableImpl implements VmInvokable {
 
     VmInvokableImpl(ExecutableElement element) {
         this.element = element;
+        schedule = element.getMethodBody().getSchedule();
         TypeSystem ts = element.getEnclosingType().getContext().getTypeSystem();
         final CompoundType.Builder builder = CompoundType.builder(ts);
-        scheduled = buildScheduled(element, builder);
+        for (LocalVariableElement lve : schedule.getReferencedLocalVariables()) {
+            ValueType lveType = lve.getType();
+            builder.addNextMember(lve.getName(), lveType);
+            lve.setOffset(builder.getLastAddedMember().getOffset());
+        }
         if (builder.getMemberCountSoFar() == 0) {
             frameMemoryType = ts.getVoidType();
         } else {
             frameMemoryType = builder.build();
         }
-        schedule = element.getMethodBody().getSchedule();
-    }
-
-    private static Map<BasicBlock, List<Node>> buildScheduled(final ExecutableElement element, CompoundType.Builder localVarLocations) {
-        if (! element.tryCreateMethodBody()) {
-            throw new IllegalStateException("No method body for " + element);
-        }
-        MethodBody body = element.getMethodBody();
-        Map<BasicBlock, List<Node>> scheduled = new HashMap<>();
-        buildScheduled(body, new HashSet<>(), scheduled, body.getEntryBlock().getTerminator(), localVarLocations);
-        return scheduled;
-    }
-
-    private static void buildScheduled(final MethodBody body, final Set<Node> visited, final Map<BasicBlock, List<Node>> scheduled, Node node, CompoundType.Builder builder) {
-        if (! visited.add(node)) {
-            // already scheduled
-            return;
-        }
-        if (node.hasValueHandleDependency()) {
-            buildScheduled(body, visited, scheduled, node.getValueHandle(), builder);
-        }
-        if (node instanceof OrderedNode) {
-            buildScheduled(body, visited, scheduled, ((OrderedNode) node).getDependency(), builder);
-        }
-        int cnt = node.getValueDependencyCount();
-        for (int i = 0; i < cnt; i ++) {
-            buildScheduled(body, visited, scheduled, node.getValueDependency(i), builder);
-        }
-        if (node instanceof Terminator terminator) {
-            // add outbound values
-            Map<PhiValue, Value> outboundValues = terminator.getOutboundValues();
-            for (PhiValue phiValue : outboundValues.keySet()) {
-                buildScheduled(body, visited, scheduled, terminator.getOutboundValue(phiValue), builder);
-            }
-            // recurse to successors
-            int sc = terminator.getSuccessorCount();
-            for (int i = 0; i < sc; i ++) {
-                BasicBlock successor = terminator.getSuccessor(i);
-                buildScheduled(body, visited, scheduled, successor.getTerminator(), builder);
-            }
-        }
-        if (node instanceof LocalVariable lvn) {
-            // reserve memory space
-            LocalVariableElement varElem = lvn.getVariableElement();
-            builder.addNextMember(varElem.getName(), varElem.getType());
-            varElem.setOffset(builder.getLastAddedMember().getOffset());
-        }
-        if (! (node instanceof Terminator || node instanceof Unschedulable)) {
-            // no need to explicitly add terminator since they're trivially findable and always last
-            scheduled.computeIfAbsent(body.getSchedule().getBlockForNode(node), VmInvokableImpl::newList).add(node);
-        }
-    }
-
-    private static List<Node> newList(final BasicBlock ignored) {
-        return new ArrayList<>();
     }
 
     @Override
@@ -144,7 +92,10 @@ final class VmInvokableImpl implements VmInvokable {
         // bind inputs
         MethodBody body = element.getMethodBody();
         if (! element.isStatic()) {
-            frame.values.put(body.getThisValue(), target);
+            BlockParameter bp = body.getEntryBlock().getBlockParameter(Slot.this_());
+            if (bp != null) {
+                frame.values.put(bp, target);
+            }
         }
         if (element instanceof InvokableElement) {
             for (int i = 0; i < args.size(); i++) {
@@ -153,26 +104,33 @@ final class VmInvokableImpl implements VmInvokable {
                 if (arg instanceof String) {
                     arg = thread.getVM().manuallyInitialize(new VmStringImpl(thread.getVM(), thread.vm.stringClass, (String) arg));
                 }
-                try {
-                    frame.values.put(body.getParameterValue(i), arg);
-                } catch (ArrayIndexOutOfBoundsException e) {
-                    // for breakpoints
-                    throw e;
+                BlockParameter bp = body.getEntryBlock().getBlockParameter(body.getParameterSlot(i));
+                if (bp != null) {
+                    frame.values.put(bp, arg);
                 }
             }
         }
         try {
             frame.block = body.getEntryBlock();
+            ArrayDeque<BasicBlock> prev = new ArrayDeque<>(20) {
+                @Override
+                public void addLast(BasicBlock basicBlock) {
+                    if (size() == 20) {
+                        removeFirst();
+                    }
+                    super.addLast(basicBlock);
+                }
+            };
             for (;;) {
-                List<Node> nodes = scheduled.getOrDefault(frame.block, List.of());
+                prev.addLast(frame.block); // for debugging
+                List<Node> nodes = frame.block.getInstructions();
                 for (Node node : nodes) {
                     frame.ip = node;
-                    if (frame.ip instanceof Value) {
-                        Value value = (Value) frame.ip;
+                    // only execute values and actions; terminators are handled below
+                    if (frame.ip instanceof Value value) {
                         frame.values.put(value, value.accept(frame, thread));
-                    } else {
-                        assert frame.ip instanceof Action;
-                        ((Action) frame.ip).accept(frame, thread);
+                    } else if (frame.ip instanceof Action action) {
+                        action.accept(frame, thread);
                     }
                 }
                 Terminator t = frame.block.getTerminator();
@@ -183,18 +141,44 @@ final class VmInvokableImpl implements VmInvokable {
                     // we're returning
                     return frame.output;
                 }
-                // register outbound phi values
-                for (PhiValue phiValue : t.getOutboundValues().keySet()) {
-                    // only register outbound values that will be used by the target
-                    if (phiValue.getPinnedBlock() == next) {
-                        if (schedule.getBlockForNode(phiValue) != null) {
-                            // reachable value
-                            Value value = t.getOutboundValue(phiValue);
-                            Object realValue = frame.require(value);
-                            frame.values.put(value, realValue);
-                            frame.values.put(phiValue, realValue);
-                        }
+                // register outbound values
+                for (Slot slot : t.getOutboundArgumentNames()) {
+                    BlockParameter param = next.getBlockParameter(slot);
+                    if (param != null) {
+                        Value value = t.getOutboundArgument(slot);
+                        frame.values.put(param, frame.require(value));
                     }
+                }
+                // special: Invoke
+                if (t instanceof Invoke inv) {
+                    if (next == inv.getResumeTarget()) {
+                        BlockParameter bp = next.getBlockParameter(Slot.result());
+                        if (bp != null) {
+                            // todo: frame.returnVal maybe
+                            frame.values.put(bp, frame.require(inv.getReturnValue()));
+                        }
+                    } else {
+                        assert next == inv.getCatchBlock();
+                        BlockParameter bp = next.getBlockParameter(Slot.thrown());
+                        if (bp != null) {
+                            frame.values.put(bp, frame.exception);
+                        }
+                        frame.exception = null;
+                    }
+                } else if (t instanceof InvokeNoReturn inv) {
+                    assert next == inv.getCatchBlock();
+                    BlockParameter bp = next.getBlockParameter(Slot.thrown());
+                    if (bp != null) {
+                        frame.values.put(bp, frame.exception);
+                    }
+                    frame.exception = null;
+                } else if (t instanceof TailInvoke inv) {
+                    assert next == inv.getCatchBlock();
+                    BlockParameter bp = next.getBlockParameter(Slot.thrown());
+                    if (bp != null) {
+                        frame.values.put(bp, frame.exception);
+                    }
+                    frame.exception = null;
                 }
                 frame.block = next;
             }

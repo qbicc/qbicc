@@ -127,6 +127,10 @@ public final class TailInvoke extends AbstractTerminator {
         return index == 0 ? getCatchBlock() : Util.throwIndexOutOfBounds(index);
     }
 
+    public boolean isImplicitOutboundArgument(final Slot slot, final BasicBlock block) {
+        return slot == Slot.thrown() && block == getCatchBlock();
+    }
+
     @Override
     public <T, R> R accept(TerminatorVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);

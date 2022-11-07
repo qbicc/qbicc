@@ -37,8 +37,7 @@ import org.qbicc.graph.Neg;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Or;
-import org.qbicc.graph.ParameterValue;
-import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.Return;
 import org.qbicc.graph.Rol;
 import org.qbicc.graph.Ror;
 import org.qbicc.graph.Shl;
@@ -54,7 +53,6 @@ import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
-import org.qbicc.graph.Return;
 import org.qbicc.graph.Xor;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Declaration;
@@ -84,14 +82,12 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
         ExecutableElement toInline = getInlinedElement(target);
         if (toInline != null) {
             BlockLabel resumeLabel = new BlockLabel();
-            PhiValue returnVal = phi(toInline.getType().getReturnType(), resumeLabel);
-            BasicBlock inlined = doInline(target, toInline, arguments, null, val -> {
-                BasicBlock basicBlock = goto_(resumeLabel, Map.of());
-                returnVal.setValueForBlock(ctxt, toInline, basicBlock, val);
-                return basicBlock;
-            }, () -> begin(resumeLabel));
+            BasicBlock inlined = doInline(target, toInline, arguments, null, val -> goto_(resumeLabel, Slot.result(), val), () -> {
+                begin(resumeLabel);
+                addParam(resumeLabel, Slot.result(), toInline.getType().getReturnType());
+            }, Map.of());
             if (inlined != null) {
-                return returnVal;
+                return null; // todo: Slot.result()
             }
         }
         return super.call(target, arguments);
@@ -102,14 +98,12 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
         ExecutableElement toInline = getInlinedElement(target);
         if (toInline != null) {
             BlockLabel resumeLabel = new BlockLabel();
-            PhiValue returnVal = phi(toInline.getType().getReturnType(), resumeLabel);
-            BasicBlock inlined = doInline(target, toInline, arguments, null, val -> {
-                BasicBlock basicBlock = goto_(resumeLabel, Map.of());
-                returnVal.setValueForBlock(ctxt, toInline, basicBlock, val);
-                return basicBlock;
-            }, () -> begin(resumeLabel));
+            BasicBlock inlined = doInline(target, toInline, arguments, null, val -> goto_(resumeLabel, Map.of(Slot.result(), val)), () -> {
+                begin(resumeLabel);
+                addParam(resumeLabel, Slot.result(), toInline.getType().getReturnType());
+            }, Map.of());
             if (inlined != null) {
-                return returnVal;
+                return null; // todo: Slot.result()
             }
         }
         return super.callNoSideEffects(target, arguments);
@@ -122,7 +116,7 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
             BasicBlock inlined = doInline(target, toInline, arguments, null, val -> {
                 ctxt.error(getLocation(), "Invalid return from noreturn method");
                 throw new BlockEarlyTermination(unreachable());
-            }, () -> {});
+            }, () -> {}, Map.of());
             if (inlined != null) {
                 return inlined;
             }
@@ -137,7 +131,7 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
             BasicBlock inlined = doInline(target, toInline, arguments, catchLabel, val -> {
                 ctxt.error(getLocation(), "Invalid return from noreturn method");
                 throw new BlockEarlyTermination(unreachable());
-            }, () -> {});
+            }, () -> {}, targetArguments);
             if (inlined != null) {
                 return inlined;
             }
@@ -149,7 +143,7 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
     public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
         ExecutableElement toInline = getInlinedElement(target);
         if (toInline != null) {
-            BasicBlock inlined = doInline(target, toInline, arguments, null, this::return_, () -> {});
+            BasicBlock inlined = doInline(target, toInline, arguments, null, this::return_, () -> {}, Map.of());
             if (inlined != null) {
                 return inlined;
             }
@@ -161,7 +155,7 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
     public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         ExecutableElement toInline = getInlinedElement(target);
         if (toInline != null) {
-            BasicBlock inlined = doInline(target, toInline, arguments, catchLabel, this::return_, () -> {});
+            BasicBlock inlined = doInline(target, toInline, arguments, catchLabel, this::return_, () -> {}, targetArguments);
             if (inlined != null) {
                 return inlined;
             }
@@ -173,14 +167,14 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
     public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         ExecutableElement toInline = getInlinedElement(target);
         if (toInline != null) {
-            PhiValue returnVal = phi(toInline.getType().getReturnType(), resumeLabel);
+            // todo: temporary...
+            Value[] valueHolder = new Value[1];
             BasicBlock inlined = doInline(target, toInline, arguments, catchLabel, val -> {
-                BasicBlock basicBlock = goto_(resumeLabel, Map.of());
-                returnVal.setValueForBlock(ctxt, toInline, basicBlock, val);
-                return basicBlock;
-            }, () -> {});
+                valueHolder[0] = val;
+                return goto_(resumeLabel, Slot.result(), val);
+            }, () -> {}, targetArguments);
             if (inlined != null) {
-                return returnVal;
+                return valueHolder[0];
             }
         }
         return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
@@ -223,7 +217,7 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
         return getCurrentElement() instanceof FunctionElement ? null : node.getExecutable();
     }
 
-    private BasicBlock doInline(ValueHandle target, ExecutableElement element, List<Value> arguments, BlockLabel catchLabel, Function<Value, BasicBlock> onReturn, Runnable andThen) {
+    private BasicBlock doInline(ValueHandle target, ExecutableElement element, List<Value> arguments, BlockLabel catchLabel, Function<Value, BasicBlock> onReturn, Runnable andThen, Map<Slot, Value> targetArguments) {
         MethodBody body = element.getPreviousMethodBody();
         if (body != null) {
             float savedCost = this.cost;
@@ -290,12 +284,8 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
         private final BlockLabel catchLabel;
         private final boolean alwaysInline;
 
-        Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate, final BlockLabel resume, final PhiValue returnValue, final List<Value> arguments, final Value this_, final boolean alwaysInline) {
-            this(delegate, arguments, this_, val -> {
-                BasicBlock basicBlock = goto_(resume, Map.of());
-                returnValue.setValueForBlock(ctxt, getCurrentElement(), basicBlock, val);
-                return basicBlock;
-            }, null, alwaysInline);
+        Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate, final BlockLabel resume, final List<Value> arguments, final Value this_, final boolean alwaysInline) {
+            this(delegate, arguments, this_, val -> goto_(resume, Slot.result(), val), null, alwaysInline);
         }
 
         Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate, final List<Value> arguments, final ValueHandle target, final Function<Value, BasicBlock> onReturn, final BlockLabel catchLabel, final boolean alwaysInline) {
@@ -323,14 +313,6 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
                 return onReturn.apply(param.copyValue(node.getReturnValue()));
             } catch (BlockEarlyTermination e) {
                 return e.getTerminatedBlock();
-            }
-        }
-
-        public Value visit(final Node.Copier param, final ParameterValue node) {
-            if (node.getLabel().equals("this")) {
-                return this_;
-            } else {
-                return arguments.get(node.getIndex());
             }
         }
 
@@ -505,7 +487,7 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
             if (catchLabel != null) {
                 // transform to invoke
                 param.copyNode(node.getDependency());
-                return invokeNoReturn(param.copyValueHandle(node.getValueHandle()), param.copyValues(arguments), catchLabel, param.copyArguments(node));
+                return invokeNoReturn(param.copyValueHandle(node.getValueHandle()), param.copyValues(arguments), catchLabel, Map.of());
             } else {
                 return delegate.visit(param, node);
             }
@@ -518,7 +500,7 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
             if (catchLabel != null) {
                 // transform to invoke
                 param.copyNode(node.getDependency());
-                return tailInvoke(param.copyValueHandle(node.getValueHandle()), param.copyValues(arguments), catchLabel, param.copyArguments(node));
+                return tailInvoke(param.copyValueHandle(node.getValueHandle()), param.copyValues(arguments), catchLabel, Map.of());
             } else {
                 return delegate.visit(param, node);
             }

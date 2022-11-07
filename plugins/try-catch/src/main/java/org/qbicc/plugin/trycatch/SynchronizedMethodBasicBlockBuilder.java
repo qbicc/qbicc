@@ -1,6 +1,6 @@
 package org.qbicc.plugin.trycatch;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
@@ -11,6 +11,7 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -21,28 +22,29 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * to all possible exit paths.
  */
 public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBuilder {
-    private final Value monitor;
-    private boolean started;
+    private static final Slot THROWN = Slot.thrown();
+    private Value monitor;
     private final ReferenceType throwable;
+    private boolean started;
 
     private SynchronizedMethodBasicBlockBuilder(final BasicBlockBuilder delegate) {
         super(delegate);
-        ExecutableElement element = getCurrentElement();
-        DefinedTypeDefinition enclosing = element.getEnclosingType();
-        if (element.isStatic()) {
-            monitor = classOf(getLiteralFactory().literalOfType(enclosing.load().getObjectType()), getLiteralFactory().zeroInitializerLiteralOfType(getTypeSystem().getUnsignedInteger8Type()));
-        } else {
-            monitor = notNull(parameter(enclosing.load().getObjectType().getReference(), "this", 0));
-        }
         throwable = getContext().getBootstrapClassContext().findDefinedType("java/lang/Throwable").load().getClassType().getReference();
     }
 
-    public Node begin(final BlockLabel blockLabel) {
+    @Override
+    public Node begin(BlockLabel blockLabel) {
         Node node = super.begin(blockLabel);
         if (! started) {
             started = true;
-            Node monitorEnter = monitorEnter(monitor);
-            return monitorEnter;
+            ExecutableElement element = getCurrentElement();
+            DefinedTypeDefinition enclosing = element.getEnclosingType();
+            if (element.isStatic()) {
+                monitor = classOf(enclosing.load().getObjectType());
+            } else {
+                monitor = addParam(blockLabel, Slot.this_(), enclosing.load().getObjectType().getReference(), false);
+            }
+            monitorEnter(monitor);
         }
         return node;
     }
@@ -50,10 +52,18 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
     @Override
     public <T> BasicBlock begin(BlockLabel blockLabel, T arg, BiConsumer<T, BasicBlockBuilder> maker) {
         if (! started) {
+            ExecutableElement element = getCurrentElement();
+            DefinedTypeDefinition enclosing = element.getEnclosingType();
+            if (element.isStatic()) {
+                monitor = classOf(enclosing.load().getObjectType());
+            } else {
+                monitor = addParam(blockLabel, Slot.this_(), enclosing.load().getObjectType().getReference(), false);
+            }
             // method start
             return super.begin(blockLabel, bbb -> {
                 started = true;
                 monitorEnter(monitor);
+                maker.accept(arg, bbb);
             });
         } else {
             return super.begin(blockLabel, arg, maker);
@@ -66,10 +76,40 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     public BasicBlock throw_(final Value value) {
-        // note: this must come *after* the local throw handling builder otherwise problems will result;
-        // local throw will transform `throw` to `goto`, resulting in extra monitor releases
         monitorExit(monitor);
         return super.throw_(value);
+    }
+
+    @Override
+    public Value call(ValueHandle target, List<Value> arguments) {
+        BlockLabel resumeLabel = new BlockLabel();
+        BlockLabel handlerLabel = new BlockLabel();
+        Value rv = invoke(target, arguments, BlockLabel.of(begin(handlerLabel, ignored -> throw_(addParam(handlerLabel, THROWN, throwable, false)))), resumeLabel, Map.of());
+        begin(resumeLabel);
+        return addParam(resumeLabel, Slot.result(), rv.getType());
+    }
+
+    @Override
+    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+        BlockLabel handlerLabel = new BlockLabel();
+        return invokeNoReturn(target, arguments, BlockLabel.of(begin(handlerLabel, ignored -> throw_(addParam(handlerLabel, THROWN, throwable, false)))), Map.of());
+    }
+
+    @Override
+    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+        // tail calls don't work with synchronized
+        BasicBlockBuilder fb = getFirstBuilder();
+        return fb.return_(fb.call(target, arguments));
+    }
+
+    @Override
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        // tail calls don't work with synchronized
+        BasicBlockBuilder fb = getFirstBuilder();
+        BlockLabel resumeLabel = new BlockLabel();
+        fb.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
+        fb.begin(resumeLabel);
+        return fb.return_(fb.addParam(resumeLabel, Slot.result(), target.getReturnType()));
     }
 
     public static BasicBlockBuilder createIfNeeded(FactoryContext fc, BasicBlockBuilder delegate) {

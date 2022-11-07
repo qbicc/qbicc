@@ -4,14 +4,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.type.SignedIntegerType;
+import org.qbicc.type.TypeSystem;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.Descriptor;
 
@@ -20,6 +22,7 @@ import org.qbicc.type.descriptor.Descriptor;
  * connects all of the constituent one dimensional arrays.
  */
 public class MultiNewArrayExpansionBasicBlockBuilder extends DelegatingBasicBlockBuilder {
+    private static final Slot TEMP0 = Slot.temp(0);
 
     public MultiNewArrayExpansionBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
@@ -42,20 +45,20 @@ public class MultiNewArrayExpansionBasicBlockBuilder extends DelegatingBasicBloc
         }
         // create a loop to create and fill each nested array
         LiteralFactory lf = getLiteralFactory();
+        TypeSystem ts = getTypeSystem();
+        SignedIntegerType s32 = ts.getSignedInteger32Type();
         BlockLabel loop = new BlockLabel();
-        BasicBlock initial = goto_(loop, Map.of());
-        begin(loop);
-        PhiValue phi = phi(dimension.getType(), loop);
         BlockLabel exit = new BlockLabel();
         BlockLabel resume = new BlockLabel();
-        if_(isEq(phi, dimension), exit, resume, Map.of());
+        goto_(loop, TEMP0, lf.literalOf(s32, 0));
+        begin(loop);
+        BlockParameter bp = addParam(loop, TEMP0, s32);
+        if_(isEq(bp, dimension), exit, resume, Map.of());
         try {
             begin(resume);
-            phi.setValueForBlock(ctxt, getCurrentElement(), initial, lf.literalOf(0));
             Value innerArray = multiNewArray((ArrayTypeDescriptor) elementDesc, dimensions);
-            store(elementOf(referenceHandle(newArray), phi), innerArray);
-            BasicBlock loopExit = goto_(loop, Map.of());
-            phi.setValueForBlock(ctxt, getCurrentElement(), loopExit, add(phi, lf.literalOf(1)));
+            store(elementOf(referenceHandle(newArray), bp), innerArray);
+            goto_(loop, TEMP0, add(bp, lf.literalOf(s32, 1)));
         } catch (BlockEarlyTermination ignored) {
             // continue
         }

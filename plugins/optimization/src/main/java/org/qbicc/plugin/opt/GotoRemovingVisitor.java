@@ -56,7 +56,6 @@ public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, 
         //          \          /
         //         c: BlockEntry
         //              [...]
-        //       [c] Phi(a: x, b: y)
         //
         // ...and replace them inline with:
         //
@@ -65,11 +64,15 @@ public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, 
         // ...by treating the If as a Goto to be deleted.
 
         // determine if the shape matches.
-        if (node.getTrueBranch().getTerminator() instanceof Goto g1
+        // TODO:
+        //   Temporarily disabled for correctness until we have an easy way to probe the schedule.
+        //   This is necessary because there might be non-movable constraint nodes scheduled to the branch blocks and we currently have no way to detect them.
+        //noinspection PointlessBooleanExpression,ConstantConditions
+        if (false && node.getTrueBranch().getTerminator() instanceof Goto g1
             && node.getFalseBranch().getTerminator() instanceof Goto g2
             && g1.getResumeTarget() == g2.getResumeTarget()
-            && g1.getDependency() instanceof BlockEntry
-            && g2.getDependency() instanceof BlockEntry
+            && g1.getDependency() instanceof BlockEntry // TODO: replace with e.g. g1.getBlockSchedule().getValueCount() == 0
+            && g2.getDependency() instanceof BlockEntry // TODO: replace with e.g. g2.getBlockSchedule().getValueCount() == 0
             && node.getTrueBranch().getIncoming().size() == 1
             && node.getFalseBranch().getIncoming().size() == 1
             && g1.getResumeTarget().getIncoming().size() == 2
@@ -78,6 +81,9 @@ public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, 
         ) {
             // either branch works, because we want the successor's successor
             final BasicBlock tb = node.getTrueBranch();
+            // delete the two branches and fold them into the current block
+            deleted.add(node.getTrueBranch());
+            deleted.add(node.getFalseBranch());
             // delete the if's successor's successor and fold it into the current block
             final BasicBlock successor = tb.getTerminator().getSuccessor(0);
             deleted.add(successor);
@@ -88,22 +94,35 @@ public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, 
         }
     }
 
-    public Value visit(final Node.Copier param, final PhiValue node) {
-        final BasicBlock pinnedBlock = node.getPinnedBlock();
-        final Set<BasicBlock> incoming = pinnedBlock.getIncoming();
-        final boolean delete = deleted.contains(pinnedBlock);
-        if (incoming.size() == 2 && delete) {
-            // This is the `phi` part of a diamond.  This `If` is the sole predecessor of either of the predecessors of the pinned block.
-            final If if_ = (If) incoming.iterator().next().getIncoming().iterator().next().getTerminator();
-            Value trueValue = param.copyValue(node.getValueForInput(if_.getTrueBranch().getTerminator()));
-            Value falseValue = param.copyValue(node.getValueForInput(if_.getFalseBranch().getTerminator()));
-            return param.getBlockBuilder().select(param.copyValue(if_.getCondition()), trueValue, falseValue);
-        } else if (delete) {
-            assert incoming.size() == 1;
-            // the deleted block only has one incoming block, so the phi must also have only one valid incoming value
-            return param.copyValue(node.getValueForInput(incoming.iterator().next().getTerminator()));
+    @Override
+    public Value visit(Node.Copier copier, BlockParameter node) {
+        BasicBlock block = node.getPinnedBlock();
+        if (deleted.contains(block)) {
+            Slot slot = node.getSlot();
+            Set<BasicBlock> incoming = block.getIncoming();
+            if (incoming.size() == 1) {
+                // it was the result of a deleted `goto`; replace with literal incoming value
+                BasicBlock gotoBlock = incoming.iterator().next();
+                Goto goto_ = (Goto) gotoBlock.getTerminator();
+                return copier.copyValue(goto_.getOutboundArgument(slot));
+            } else if (incoming.size() == 2) {
+                // it was the result of a deleted `if`; replace with a select
+                BasicBlock ifBlock = incoming.iterator().next().getIncoming().iterator().next();
+                If if_ = (If) ifBlock.getTerminator();
+                Value copiedCond = copier.copyValue(if_.getCondition());
+                BasicBlock tb = if_.getTrueBranch();
+                BasicBlock fb = if_.getFalseBranch();
+                return copier.getBlockBuilder().select(
+                    copiedCond,
+                    copier.copyValue(tb.getTerminator().getOutboundArgument(slot)),
+                    copier.copyValue(fb.getTerminator().getOutboundArgument(slot))
+                );
+            } else {
+                // breakpoint
+                throw new IllegalStateException();
+            }
         } else {
-            return getDelegateValueVisitor().visit(param, node);
+            return getDelegateValueVisitor().visit(copier, node);
         }
     }
 

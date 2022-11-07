@@ -35,10 +35,9 @@ public final class ElementBodyCopier implements Consumer<ExecutableElement> {
             MethodBody original = element.getMethodBody();
             BasicBlock entryBlock = original.getEntryBlock();
             BasicBlockBuilder builder = classContext.newBasicBlockBuilder(element);
-            builder.startMethod(original.getParameterValues());
             BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, copier);
             builder.finish();
-            element.replaceMethodBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), original.getThisValue(), original.getParameterValues()));
+            element.replaceMethodBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), original.getParameterSlots()));
         }
     }
 }

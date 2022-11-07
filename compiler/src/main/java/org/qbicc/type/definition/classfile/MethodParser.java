@@ -6,34 +6,27 @@ import static org.qbicc.type.definition.classfile.ClassFile.*;
 import static org.qbicc.type.definition.classfile.ClassMethodInfo.align;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import io.smallrye.common.constraint.Assert;
+import org.eclipse.collections.api.map.MutableMap;
+import org.eclipse.collections.impl.factory.Maps;
 import org.jboss.logging.Logger;
 import org.qbicc.context.ClassContext;
-import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.Action;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.Invoke;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.MemberSelector;
-import org.qbicc.graph.Node;
-import org.qbicc.graph.NodeVisitor;
-import org.qbicc.graph.OrderedNode;
-import org.qbicc.graph.PhiValue;
-import org.qbicc.graph.Ret;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticMethodElementHandle;
-import org.qbicc.graph.Terminator;
-import org.qbicc.graph.TerminatorVisitor;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.Literal;
@@ -72,14 +65,14 @@ import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
-import org.qbicc.type.methodhandle.ExecutableMethodHandleConstant;
-import org.qbicc.type.methodhandle.MethodHandleConstant;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
+import org.qbicc.type.methodhandle.ExecutableMethodHandleConstant;
+import org.qbicc.type.methodhandle.MethodHandleConstant;
 import org.qbicc.type.methodhandle.MethodMethodHandleConstant;
 
-final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
+final class MethodParser {
     private static final Logger interpLog = Logger.getLogger("org.qbicc.interpreter");
 
     final ClassMethodInfo info;
@@ -87,25 +80,17 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     final Value[] locals;
     final BlockLabel[] blockHandles;
     final ByteBuffer buffer;
-    private Map<BasicBlock, Value[]> retStacks;
-    private Map<BasicBlock, Value[]> retLocals;
     private final BasicBlockBuilder gf;
     private final ClassContext ctxt;
     private final LiteralFactory lf;
     private final TypeSystem ts;
     private final DefinedTypeDefinition jlo;
-    private final DefinedTypeDefinition throwable;
     private final LocalVariableElement[][] varsByTableEntry;
-    private int currentbci;
-    /**
-     * Exception handlers by index, then by delegate.
-     */
-    private final List<Map<BasicBlockBuilder.ExceptionHandler, ExceptionHandlerImpl>> exceptionHandlers;
     int sp;
     private ValueType[][] varTypesByEntryPoint;
     private ValueType[][] stackTypesByEntryPoint;
 
-    MethodParser(final ClassContext ctxt, final ClassMethodInfo info, final ByteBuffer buffer, final BasicBlockBuilder graphFactory) {
+    MethodParser(final ClassContext ctxt, final ClassMethodInfo info, final ByteBuffer buffer, final ExecutableElement element) {
         this.ctxt = ctxt;
         lf = ctxt.getLiteralFactory();
         ts = ctxt.getTypeSystem();
@@ -114,7 +99,6 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         int maxLocals = info.getMaxLocals();
         locals = new Value[maxLocals];
         this.buffer = buffer;
-        currentbci = buffer.position();
         int cnt = info.getEntryPointCount();
         BlockLabel[] blockHandles = new BlockLabel[cnt];
         // make a "canonical" node handle for each block
@@ -123,15 +107,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         }
         this.blockHandles = blockHandles;
         // it's not an entry point
-        gf = graphFactory;
-        // catch mapper is sensitive to buffer index
-        gf.setExceptionHandlerPolicy(this);
-        int exCnt = info.getExTableLen();
-        exceptionHandlers = exCnt == 0 ? List.of() : new ArrayList<>(Collections.nCopies(exCnt, null));
         jlo = ctxt.findDefinedType("java/lang/Object");
-        throwable = ctxt.findDefinedType("java/lang/Throwable");
         List<ParameterElement> parameters;
-        if (graphFactory.getCurrentElement() instanceof InvokableElement ie) {
+        if (element instanceof InvokableElement ie) {
             parameters = ie.getParameters();
         } else {
             parameters = List.of();
@@ -159,7 +137,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 int startPc = info.getLocalVarStartPc(slot, entry);
                 if (startPc == 0) {
                     int offset = 0;
-                    if (! graphFactory.getCurrentElement().isStatic()) {
+                    if (! element.isStatic()) {
                         offset = 1;
                     }
                     if (slot >= offset) {
@@ -179,8 +157,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 }
                 builder.setBci(startPc);
                 builder.setLine(info.getLineNumber(startPc));
-                builder.setEnclosingType(gf.getCurrentElement().getEnclosingType());
-                builder.setTypeParameterContext(gf.getCurrentElement().getTypeParameterContext());
+                builder.setEnclosingType(element.getEnclosingType());
+                builder.setTypeParameterContext(element.getTypeParameterContext());
                 cons = info.getLocalVarSignatureIndex(slot, entry);
                 if (cons == 0) {
                     builder.setSignature(TypeSignature.synthesize(ctxt, typeDescriptor));
@@ -201,32 +179,42 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 varsByTableEntry[slot][entry] = cand;
             }
         }
+        BasicBlockBuilder.FactoryContext fc = BasicBlockBuilder.FactoryContext.withInfo(BasicBlockBuilder.FactoryContext.EMPTY, MethodParser.class, this);
+        BasicBlockBuilder graphFactory = element.getEnclosingType().getContext().newBasicBlockBuilder(fc, element);
+        gf = new DelegatingBasicBlockBuilder(graphFactory) {
+            @Override
+            public <T> BasicBlock begin(BlockLabel blockLabel, T arg, BiConsumer<T, BasicBlockBuilder> maker) {
+                int pos = buffer.position();
+                int sp = MethodParser.this.sp;
+                Value[] outerLocals = MethodParser.this.locals;
+                Value[] outerStack = MethodParser.this.stack;
+                Value[] stack = sp == 0 ? Value.NO_VALUES : Arrays.copyOf(outerStack, sp);
+                Value[] locals = outerLocals.clone();
+                try {
+                    return super.begin(blockLabel, arg, maker);
+                } finally {
+                    System.arraycopy(locals, 0, outerLocals, 0, locals.length);
+                    System.arraycopy(stack, 0, outerStack, 0, sp);
+                    int oldSp = MethodParser.this.sp;
+                    if (oldSp > sp) {
+                        Arrays.fill(outerStack, sp, oldSp, null);
+                    }
+                    MethodParser.this.sp = sp;
+                    buffer.position(pos);
+                }
+            }
+
+            @Override
+            public int setBytecodeIndex(int bci) {
+                setLineNumber(info.getLineNumber(bci));
+                return super.setBytecodeIndex(bci);
+            }
+        };
         this.varsByTableEntry = varsByTableEntry;
     }
 
-    // exception handler policy
-
-    public BasicBlockBuilder.ExceptionHandler computeCurrentExceptionHandler(BasicBlockBuilder.ExceptionHandler delegate) {
-        int etl = info.getExTableLen();
-        if (etl > 0) {
-            ExceptionHandlerImpl handler;
-            for (int i = etl - 1; i >= 0; i --) {
-                if (info.getExTableEntryStartPc(i) <= currentbci && currentbci < info.getExTableEntryEndPc(i)) {
-                    // in range...
-                    Map<BasicBlockBuilder.ExceptionHandler, ExceptionHandlerImpl> handlerMap = exceptionHandlers.get(i);
-                    if (handlerMap == null) {
-                        exceptionHandlers.set(i, handlerMap = new HashMap<>(1));
-                    }
-                    handler = handlerMap.get(delegate);
-                    if (handler == null) {
-                        // we also need to create the handler for this index...
-                        handlerMap.put(delegate, handler = new ExceptionHandlerImpl(i, delegate));
-                    }
-                    delegate = handler;
-                }
-            }
-        }
-        return delegate;
+    public BasicBlockBuilder getBlockBuilder() {
+        return gf;
     }
 
     void setTypeInformation(final ValueType[][] varTypesByEntryPoint, final ValueType[][] stackTypesByEntryPoint) {
@@ -234,155 +222,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         this.stackTypesByEntryPoint = stackTypesByEntryPoint;
     }
 
-    class ExceptionHandlerImpl implements BasicBlockBuilder.ExceptionHandler {
-        private final int index;
-        private final BasicBlockBuilder.ExceptionHandler delegate;
-        private final PhiValue phi;
-
-        ExceptionHandlerImpl(final int index, final BasicBlockBuilder.ExceptionHandler delegate) {
-            this.index = index;
-            this.delegate = delegate;
-            this.phi = gf.phi(throwable.load().getObjectType().getReference(), new BlockLabel(), PhiValue.Flag.NOT_NULL);
-        }
-
-        public BlockLabel getHandler() {
-            return phi.getPinnedBlockLabel();
-        }
-
-        public void enterHandler(final BasicBlock from, final BasicBlock landingPad, final Value exceptionValue) {
-            Value[] savedStack = saveStack();
-            Value[] savedLocals = saveLocals();
-            // the PC of the actual exception handler
-            int pc = info.getExTableEntryHandlerPc(index);
-            // just like entering a new block except we synthesize this one
-            if (landingPad != null) {
-                // if we have a landing pad, then that's where we've actually entered from
-                saveExitValues(landingPad);
-            } else {
-                // no landing pad means a throw directly transferred control here
-                saveExitValues(from);
-            }
-            clearStack();
-            // lock in the thrown exception value
-            phi.setValueForBlock(ctxt.getCompilationContext(), gf.getCurrentElement(), landingPad != null ? landingPad : from, gf.notNull(exceptionValue));
-            // the phi is the exception value input to our stage of the `if` tree;
-            // its label is the entry to our synthetic block
-            BlockLabel label = phi.getPinnedBlockLabel();
-            if (visited.add(label)) {
-                // not yet entered
-                setUpNewBlock(pc, label);
-                int oldPos = buffer.position();
-                int oldPc = gf.setBytecodeIndex(pc);
-                gf.setLineNumber(info.getLineNumber(pc));
-                // preserve stack and locals so the caller doesn't get mixed up
-                // get the block for the exception handler
-                BlockLabel block = getBlockForIndexIfExists(pc);
-                boolean single = block == null;
-                if (single) {
-                    // the exception handler is only entered once, so there's no EP registered for it
-                    block = new BlockLabel();
-                } else {
-                    // configure the stack map items for our block with the same types of locals as the target handler
-                    int epIdx = info.getEntryPointIndex(pc);
-                    if (epIdx < 0) {
-                        throw new IllegalStateException("No entry point for block at bci " + pc);
-                    }
-                    ValueType[] varTypes = varTypesByEntryPoint[epIdx];
-                    for (int i = 0; i < locals.length && i < varTypes.length; i ++) {
-                        if (varTypes[i] != null) {
-                            PhiValue phiValue = gf.phi(varTypes[i], label);
-                            locals[i] = phiValue;
-                            phiValueSlots.put(phiValue, getVarSlot(i));
-                        } else {
-                            locals[i] = null;
-                        }
-                    }
-                    // clear remaining slots
-                    Arrays.fill(locals, varTypes.length, locals.length, null);
-                }
-                clearStack();
-                // get the exception reference type
-                int exTypeIdx = info.getExTableEntryTypeIdx(index);
-                boolean catchAll = exTypeIdx == 0;
-                boolean ncdfe = false;
-                ReferenceType exType;
-                if (exTypeIdx == 0) {
-                    exType = null;
-                } else {
-                    ValueType exTypeConstant =  getClassFile().getTypeConstant(exTypeIdx, TypeParameterContext.of(gf.getCurrentElement()));
-                    if (exTypeConstant instanceof ObjectType objType) {
-                        if (objType.equals(throwable.load().getObjectType())) {
-                            catchAll = true;
-                            exType = null;
-                        } else {
-                            exType = objType.getReference();
-                        }
-                    } else {
-                        Assert.assertTrue(exTypeConstant instanceof UnresolvedType);
-                        ncdfe = true;
-                        catchAll = true;
-                        exType = null;
-                    }
-                }
-                // start up our block
-                clearStack();
-                gf.begin(label);
-                // Safe to pass the upperBound as the classFileType to the instanceOf node here as catch blocks can
-                // only catch subclasses of Throwable as enforced by the verifier
-                BasicBlock innerFrom;
-                Value outboundExValue;
-                int previousbci = currentbci;
-                if (ncdfe) {
-                    DefinedTypeDefinition type = ctxt.findDefinedType("java/lang/NoClassDefFoundError");
-                    // todo: add class name to exception string
-                    Value toThrow = gf.new_((ClassTypeDescriptor) type.getDescriptor());
-                    gf.call(gf.constructorOf(toThrow, (ClassTypeDescriptor) type.getDescriptor(), MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
-                    gf.throw_(toThrow);
-                } else {
-                    if (catchAll) {
-                        outboundExValue = phi;
-                        innerFrom = gf.goto_(block, Map.of());
-                        // make sure the phi is correctly registered even though we don't really use a stack here
-                        push1(outboundExValue);
-                        saveExitValues(innerFrom);
-                        pop1();
-                    } else {
-                        Value[] ourLocals = saveLocals();
-                        outboundExValue = gf.bitCast(phi, exType);
-                        innerFrom = gf.if_(gf.instanceOf(phi, exType.getUpperBound(), 0), block, delegate.getHandler(), Map.of());
-                        // enter the delegate handler if the exception type didn't match
-                        // make sure the phi is correctly registered even though we don't really use a stack here
-                        push1(outboundExValue);
-                        saveExitValues(innerFrom);
-                        pop1();
-                        delegate.enterHandler(innerFrom, null, phi);
-                        clearStack();
-                        restoreLocals(ourLocals);
-                    }
-                    // enter our handler if the exception type did match
-                    buffer.position(pc);
-                    if (single) {
-                        gf.begin(block);
-                        // the handler expects the thrown exception on the stack
-                        push1(outboundExValue);
-                        // only entered from one place, so there's no need to create another layer of phis
-                        processNewBlock();
-                    } else {
-                        // the handler expects the thrown exception on the stack
-                        push1(outboundExValue);
-                        // entered from multiple possible places, so formally process the target block
-                        processBlock(innerFrom);
-                    }
-                }
-                // restore everything like nothing happened...
-                buffer.position(oldPos);
-                gf.setBytecodeIndex(oldPc);
-                gf.setLineNumber(info.getLineNumber(oldPc));
-                currentbci = previousbci;
-                restoreLocals(savedLocals);
-            }
-            restoreStack(savedStack);
-        }
+    ClassMethodInfo getClassMethodInfo() {
+        return info;
     }
 
     // stack manipulation
@@ -537,6 +378,18 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         }
     }
 
+    BlockLabel getOrCreateBlockForIndex(int target) {
+        BlockLabel block = getBlockForIndex(target);
+        if (! block.hasTarget()) {
+            gf.begin(block, this, (mp, gf) -> {
+                mp.buffer.position(target);
+                setUpNewBlock(target, block);
+                processNewBlock();
+            });
+        }
+        return block;
+    }
+
     BlockLabel getBlockForIndex(int target) {
         BlockLabel block = getBlockForIndexIfExists(target);
         if (block == null) {
@@ -566,125 +419,69 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         }
     }
 
-    Value[] saveStack() {
-        return Arrays.copyOfRange(stack, 0, sp);
+    public Map<Slot, Value> captureOutbound() {
+        Value[] stack = this.stack;
+        Value[] locals = this.locals;
+        int sp = this.sp;
+        int localsCnt = locals.length;
+        MutableMap<Slot, Value> map = Maps.mutable.ofInitialCapacity(sp + localsCnt);
+        Value value;
+        for (int i = 0; i < sp; i ++) {
+            value = stack[i];
+            if (value != null) {
+                map.put(Slot.stack(i), value);
+            }
+        }
+        for (int i = 0; i < localsCnt; i ++) {
+            value = locals[i];
+            if (value != null) {
+                map.put(Slot.variable(i), value);
+            }
+        }
+        return map.toImmutable().castToMap();
     }
 
-    void restoreStack(Value[] stack) {
-        if (sp > stack.length) {
-            Arrays.fill(this.stack, sp, this.stack.length, null);
-        }
-        System.arraycopy(stack, 0, this.stack, 0, stack.length);
-        sp = stack.length;
+    void doSaved(Runnable task) {
+        doSaved(Runnable::run, task);
     }
 
-    Value[] saveLocals() {
-        return locals.clone();
+    <T> void doSaved(Consumer<T> task, T param) {
+        doSaved(Consumer::accept, task, param);
     }
-
-    void restoreLocals(Value[] locals) {
-        assert locals.length == this.locals.length;
-        System.arraycopy(locals, 0, this.locals, 0, locals.length);
-    }
-
-    static final class OldSlot {
-        private final boolean stack;
-        private final int index;
-
-        OldSlot(boolean stack, int index) {
-            this.stack = stack;
-            this.index = index;
-        }
-
-        public boolean isStack() {
-            return stack;
-        }
-
-        public int getIndex() {
-            return index;
-        }
-
-        @Override
-        public int hashCode() {
-            return Integer.hashCode(index) * Boolean.hashCode(stack);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            return obj instanceof OldSlot && equals((OldSlot) obj);
-        }
-
-        public boolean equals(OldSlot obj) {
-            return obj == this || obj != null && obj.stack == stack && obj.index == index;
-        }
-
-        @Override
-        public String toString() {
-            return (stack ? "stack" : "var") + '[' + index + ']';
-        }
-    }
-
-    final List<OldSlot> stackSlotCache = new ArrayList<>(4);
-    final List<OldSlot> varSlotCache = new ArrayList<>(8);
 
     /**
-     * Each phi value exists only in one logical slot when it is created.  This map records the slot for each
-     * phi value.
+     * Perform an action and restore the stack & locals state after it completes.
+     *
+     * @param task the task to run (must not be {@code null})
+     * @param param1 the first parameter
+     * @param param2 the second parameter
+     * @param <T> the first parameter type
+     * @param <U> the second parameter type
      */
-    final Map<PhiValue, OldSlot> phiValueSlots = new HashMap<>();
-    /**
-     * The values that are <em>available</em> at the end of each block. Successor blocks may choose
-     * not to consume these values.
-     */
-    final Map<BasicBlock, Map<OldSlot, Value>> blockExitValues = new HashMap<>();
+    <T, U> void doSaved(BiConsumer<T, U> task, T param1, U param2) {
+        Value[] stack = Arrays.copyOf(this.stack, sp);
+        Value[] locals = this.locals.clone();
+        try {
+            task.accept(param1, param2);
+        } finally {
+            if (sp > stack.length) {
+                Arrays.fill(this.stack, sp, this.stack.length, null);
+            }
+            System.arraycopy(stack, 0, this.stack, 0, stack.length);
+            sp = stack.length;
+            System.arraycopy(locals, 0, this.locals, 0, locals.length);
+        }
+    }
+
     /**
      * The set of blocks whose bytecode has been processed.
      */
     final Set<BlockLabel> visited = new HashSet<>();
 
-    OldSlot getStackSlot(int idx) {
-        int size = stackSlotCache.size();
-        OldSlot slot;
-        if (idx >= size) {
-            stackSlotCache.addAll(Collections.nCopies(idx - size + 1, null));
-            slot = null;
-        } else {
-            slot = stackSlotCache.get(idx);
-        }
-        if (slot == null) {
-            slot = new OldSlot(true, idx);
-            stackSlotCache.set(idx, slot);
-        }
-        return slot;
-    }
-
-    OldSlot getVarSlot(int idx) {
-        int size = varSlotCache.size();
-        OldSlot slot;
-        if (idx >= size) {
-            varSlotCache.addAll(Collections.nCopies(idx - size + 1, null));
-            slot = null;
-        } else {
-            slot = varSlotCache.get(idx);
-        }
-        if (slot == null)  {
-            slot = new OldSlot(false, idx);
-            varSlotCache.set(idx, slot);
-        }
-        return slot;
-    }
-
     /**
-     * Process a single block.  The current stack and locals are used as a template for the phi value types within
-     * the block.  At exit the stack and locals are in an indeterminate state.
-     *
-     * @param from the source (exiting) block
+     * Process a single block.
      */
-    void processBlock(BasicBlock from) {
-        if (from != null) {
-            // save exit values so we can match them later
-            saveExitValues(from);
-        }
+    void processBlock() {
         ByteBuffer buffer = this.buffer;
         // this is the canonical map key handle
         int bci = buffer.position();
@@ -692,9 +489,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         if (visited.add(block)) {
             // not registered yet; process new block first
             gf.setBytecodeIndex(bci);
-            gf.setLineNumber(info.getLineNumber(bci));
-            setUpNewBlock(bci, block);
             gf.begin(block);
+            setUpNewBlock(bci, block);
             processNewBlock();
         }
     }
@@ -705,32 +501,33 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         if (!setUpBlocks.add(block)) {
             throw new IllegalStateException("Set up twice");
         }
-        PhiValue[] entryStack;
-        PhiValue[] entryLocalsArray;
-        entryLocalsArray = new PhiValue[locals.length];
-        entryStack = new PhiValue[sp];
         int epIdx = info.getEntryPointIndex(bci);
         if (epIdx < 0) {
             throw new IllegalStateException("No entry point for block at bci " + bci);
         }
         ValueType[] varTypes = varTypesByEntryPoint[epIdx];
-        for (int i = 0; i < locals.length && i < varTypes.length; i ++) {
-            if (varTypes[i] != null) {
-                phiValueSlots.put(entryLocalsArray[i] = gf.phi(varTypes[i], block), getVarSlot(i));
+        for (int i = 0; i < locals.length && i < varTypes.length; i++) {
+            ValueType varType = varTypes[i];
+            if (varType != null) {
+                locals[i] = gf.addParam(block, Slot.variable(i), varType);
+            } else {
+                locals[i] = null;
             }
         }
         ValueType[] stackTypes = stackTypesByEntryPoint[epIdx];
-        for (int i = 0; i < sp; i ++) {
-            if (stackTypes[i] != null) {
-                phiValueSlots.put(entryStack[i] = gf.phi(stackTypes[i], block), getStackSlot(i));
+        clearStack();
+        for (int i = 0; i < stackTypes.length; i++) {
+            ValueType stackType = stackTypes[i];
+            if (stackType != null) {
+                stack[i] = gf.addParam(block, Slot.stack(i), stackType);
             }
         }
-        restoreStack(entryStack);
-        restoreLocals(entryLocalsArray);
+        sp = stackTypes.length;
     }
 
     void processNewBlock() {
         ByteBuffer buffer = this.buffer;
+        BasicBlockBuilder gf = this.gf;
         Value v1, v2, v3, v4;
         int opcode;
         int src;
@@ -738,9 +535,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         ClassMethodInfo info = this.info;
         try {
             while (buffer.hasRemaining()) {
-                currentbci = src = buffer.position();
+                src = buffer.position();
                 gf.setBytecodeIndex(src);
-                gf.setLineNumber(info.getLineNumber(src));
                 opcode = buffer.get() & 0xff;
                 wide = opcode == OP_WIDE;
                 if (wide) {
@@ -1411,31 +1207,31 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         int ret = buffer.position();
                         // jsr destination
                         BlockLabel dest = getBlockForIndexIfExists(target);
-                        // ret point is always registered as a multiple return point
+                        // push return address
                         BlockLabel retBlock = getBlockForIndex(ret);
                         push1(lf.literalOf(retBlock));
                         if (dest == null) {
                             // only called from one site
                             dest = new BlockLabel();
-                            gf.goto_(dest, Map.of());
+                            gf.goto_(dest, captureOutbound());
                             buffer.position(target);
                             gf.begin(dest);
                             processNewBlock();
                         } else {
                             // the jsr call
-                            BasicBlock termBlock = gf.goto_(dest, Map.of());
-                            // process the jsr call target block with our current stack
+                            gf.goto_(dest, captureOutbound());
+                            // recursively process subroutine
                             buffer.position(target);
-                            processBlock(termBlock);
+                            processBlock();
                         }
-                        // now process the return block once for each returning path (as if the ret is a goto);
-                        // the ret visitor will continue parsing if the jsr returns (as opposed to throwing)
-                        new RetVisitor(buffer, ret).handleBlock(BlockLabel.getTargetOf(dest));
+                        // continue on from return point
+                        gf.begin(retBlock);
+                        processBlock();
                         return;
                     }
                     case OP_RET:
-                        // each ret records the output stack and locals at the point of the ret, and then exits.
-                        setJsrExitState(gf.ret(pop1(), Map.of()), saveStack(), saveLocals());
+                        // return address is on stack
+                        gf.ret(pop1(), captureOutbound());
                         // exit one level of recursion
                         return;
                     case OP_TABLESWITCH: {
@@ -1468,26 +1264,22 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             defaultSingle = false;
                         }
                         seen.add(defaultBlock);
-                        BasicBlock exited = gf.switch_(pop1(), vals, handles, defaultBlock, Map.of());
-                        Value[] stackSnap = saveStack();
-                        Value[] varSnap = saveLocals();
+                        gf.switch_(pop1(), vals, handles, defaultBlock, captureOutbound());
                         buffer.position(db + src);
                         if (defaultSingle) {
                             gf.begin(defaultBlock);
-                            processNewBlock();
+                            doSaved(MethodParser::processNewBlock, this);
                         } else {
-                            processBlock(exited);
+                            doSaved(MethodParser::processBlock, this);
                         }
                         for (int i = 0; i < handles.length; i++) {
                             if (seen.add(handles[i])) {
-                                restoreStack(stackSnap);
-                                restoreLocals(varSnap);
                                 buffer.position(dests[i]);
                                 if (singles[i]) {
                                     gf.begin(handles[i]);
-                                    processNewBlock();
+                                    doSaved(MethodParser::processNewBlock, this);
                                 } else {
-                                    processBlock(exited);
+                                    doSaved(MethodParser::processBlock, this);
                                 }
                             }
                         }
@@ -1522,26 +1314,22 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             defaultSingle = false;
                         }
                         seen.add(defaultBlock);
-                        BasicBlock exited = gf.switch_(pop1(), vals, handles, defaultBlock, Map.of());
-                        Value[] stackSnap = saveStack();
-                        Value[] varSnap = saveLocals();
+                        gf.switch_(pop1(), vals, handles, defaultBlock, captureOutbound());
                         buffer.position(db + src);
                         if (defaultSingle) {
                             gf.begin(defaultBlock);
-                            processNewBlock();
+                            doSaved(MethodParser::processNewBlock, this);
                         } else {
-                            processBlock(exited);
+                            doSaved(MethodParser::processBlock, this);
                         }
                         for (int i = 0; i < handles.length; i++) {
                             if (seen.add(handles[i])) {
-                                restoreStack(stackSnap);
-                                restoreLocals(varSnap);
                                 buffer.position(dests[i]);
                                 if (singles[i]) {
                                     gf.begin(handles[i]);
-                                    processNewBlock();
+                                    doSaved(MethodParser::processNewBlock, this);
                                 } else {
-                                    processBlock(exited);
+                                    doSaved(MethodParser::processBlock, this);
                                 }
                             }
                         }
@@ -1930,7 +1718,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 int epIdx = info.getEntryPointIndex(buffer.position());
                 if (epIdx >= 0) {
                     // two or more blocks enter here; start a new block via goto
-                    processBlock(gf.goto_(blockHandles[epIdx], Map.of()));
+                    gf.goto_(blockHandles[epIdx], captureOutbound());
+                    processBlock();
                     return;
                 }
             }
@@ -1940,176 +1729,21 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         }
     }
 
-    private void saveExitValues(final BasicBlock ours) {
-        if (blockExitValues.containsKey(ours)) {
-            // already recorded the exit values
-            return;
-        }
-        Map<OldSlot, Value> exitValues = new HashMap<>();
-        for (int i = 0; i < sp; i++) {
-            Value value = stack[i];
-            if (value != null) {
-                exitValues.put(getStackSlot(i), value);
-            }
-        }
-        for (int i = 0; i < locals.length; i++) {
-            Value value = locals[i];
-            if (value != null) {
-                exitValues.put(getVarSlot(i), value);
-            }
-        }
-        blockExitValues.put(ours, exitValues);
-    }
-
-    void finish() {
-        BasicBlock entryBlock = gf.getFirstBlock();
-        entryBlock.getTerminator().accept(new PhiPopulator(), new PhiPopulationContext(ctxt.getCompilationContext(), phiValueSlots, blockExitValues));
-    }
-
-    static final class PhiPopulationContext {
-        final CompilationContext ctxt;
-        final HashSet<Node> visited = new HashSet<>();
-        final Map<PhiValue, OldSlot> phiValueSlots;
-        final Map<BasicBlock, Map<OldSlot, Value>> blockExitValues;
-
-        PhiPopulationContext(CompilationContext ctxt, Map<PhiValue, OldSlot> phiValueSlots, Map<BasicBlock, Map<OldSlot, Value>> blockExitValues) {
-            this.ctxt = ctxt;
-            this.phiValueSlots = phiValueSlots;
-            this.blockExitValues = blockExitValues;
-        }
-    }
-
-    static final class PhiPopulator implements NodeVisitor<PhiPopulationContext, Void, Void, Void, Void> {
-        @Override
-        public Void visitUnknown(PhiPopulationContext param, Action node) {
-            visitUnknown(param, (Node) node);
-            return null;
-        }
-
-        @Override
-        public Void visitUnknown(PhiPopulationContext param, Value node) {
-            visitUnknown(param, (Node) node);
-            return null;
-        }
-
-        @Override
-        public Void visitUnknown(PhiPopulationContext param, ValueHandle node) {
-            visitUnknown(param, (Node) node);
-            return null;
-        }
-
-        @Override
-        public Void visitUnknown(PhiPopulationContext param, Terminator node) {
-            if (visitUnknown(param, (Node) node)) {
-                // process reachable successors
-                int cnt = node.getSuccessorCount();
-                for (int i = 0; i < cnt; i ++) {
-                    node.getSuccessor(i).getTerminator().accept(this, param);
-                }
-            }
-            return null;
-        }
-
-        boolean visitUnknown(PhiPopulationContext param, Node node) {
-            if (param.visited.add(node)) {
-                if (node.hasValueHandleDependency()) {
-                    node.getValueHandle().accept(this, param);
-                }
-                int cnt = node.getValueDependencyCount();
-                for (int i = 0; i < cnt; i ++) {
-                    node.getValueDependency(i).accept(this,param);
-                }
-                if (node instanceof OrderedNode) {
-                    Node dependency = ((OrderedNode) node).getDependency();
-                    if (dependency instanceof Action) {
-                        ((Action) dependency).accept(this, param);
-                    } else if (dependency instanceof Value) {
-                        ((Value) dependency).accept(this, param);
-                    } else if (dependency instanceof Terminator) {
-                        ((Terminator) dependency).accept(this, param);
-                    } else if (dependency instanceof ValueHandle) {
-                        ((ValueHandle) dependency).accept(this, param);
-                    }
-                }
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        public Void visit(PhiPopulationContext param, Invoke.ReturnValue node) {
-            visitUnknown(param, node.getInvoke());
-            return NodeVisitor.super.visit(param, node);
-        }
-
-        @Override
-        public Void visit(PhiPopulationContext param, PhiValue node) {
-            // phi nodes have no dependencies other than their incoming value
-            if (param.visited.add(node)) {
-                // make sure everything is transitively reachable
-                BasicBlock block = node.getPinnedBlock();
-                OldSlot slot = param.phiValueSlots.get(node);
-                if (slot == null) {
-                    // this is an already-populated phi
-                    for (BasicBlock incomingBlock : block.getIncoming()) {
-                        if (incomingBlock.isReachable()) {
-                            Value value = incomingBlock.getTerminator().getOutboundValue(node);
-                            value.accept(this, param);
-                        }
-                    }
-                } else {
-                    for (BasicBlock incomingBlock : block.getIncoming()) {
-                        if (incomingBlock.isReachable()) {
-                            Map<OldSlot, Value> exitValues = param.blockExitValues.get(incomingBlock);
-                            if (exitValues == null) {
-                                param.ctxt.error(node.getElement().getLocation(), "No exit values from reachable block");
-                            } else {
-                                Value value = exitValues.get(slot);
-                                if (value == null) {
-                                    param.ctxt.error(node.getElement().getLocation(), "Missing outbound value on reachable phi");
-                                } else {
-                                    node.setValueForBlock(param.ctxt, node.getElement(), incomingBlock, value);
-                                    Terminator terminator = incomingBlock.getTerminator();
-                                    terminator.getOutboundValue(node).accept(this, param);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            return null;
-        }
-    }
-
-    private void setJsrExitState(final BasicBlock retBlock, final Value[] saveStack, final Value[] saveLocals) {
-        Map<BasicBlock, Value[]> retStacks = this.retStacks;
-        if (retStacks == null) {
-            retStacks = this.retStacks = new HashMap<>();
-        }
-        retStacks.put(retBlock, saveStack);
-        Map<BasicBlock, Value[]> retLocals = this.retLocals;
-        if (retLocals == null) {
-            retLocals = this.retLocals = new HashMap<>();
-        }
-        retLocals.put(retBlock, saveLocals);
-    }
-
     private void processGoto(final ByteBuffer buffer, final int target) {
         BlockLabel block = getBlockForIndexIfExists(target);
-        BasicBlock from;
         if (block == null) {
             // only one entry point
             block = new BlockLabel();
-            gf.goto_(block, Map.of());
+            gf.goto_(block, Map.of()); // keep current stack & locals
             // set the position after, so that the bci for the instruction is correct
             buffer.position(target);
             gf.begin(block);
             processNewBlock();
         } else {
-            from = gf.goto_(block, Map.of());
+            gf.goto_(block, captureOutbound());
             // set the position after, so that the bci for the instruction is correct
             buffer.position(target);
-            processBlock(from);
+            processBlock();
         }
     }
 
@@ -2132,24 +1766,22 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         if (b2s) {
             b2 = new BlockLabel();
         }
-        BasicBlock from = gf.if_(cond, b1, b2, Map.of());
-        Value[] varSnap = saveLocals();
-        Value[] stackSnap = saveStack();
+        // only capture if we need to
+        gf.if_(cond, b1, b2, b1s && b2s ? Map.of() : captureOutbound());
         buffer.position(dest1);
         if (b1s) {
             gf.begin(b1);
-            processNewBlock();
+            doSaved(MethodParser::processNewBlock, this);
         } else {
-            processBlock(from);
+            doSaved(MethodParser::processBlock, this);
         }
-        restoreStack(stackSnap);
-        restoreLocals(varSnap);
+        // stack & vars are restored as they were before processing b1
         buffer.position(dest2);
         if (b2s) {
             gf.begin(b2);
             processNewBlock();
         } else {
-            processBlock(from);
+            processBlock();
         }
     }
 
@@ -2242,38 +1874,5 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
 
     private static int getWidenableValueSigned(final ByteBuffer buffer, final boolean wide) {
         return wide ? buffer.getShort() : buffer.get();
-    }
-
-    class RetVisitor implements TerminatorVisitor<Void, Void> {
-        private final Set<BasicBlock> visited = new HashSet<>();
-        private final ByteBuffer buffer;
-        private final int ret;
-
-        RetVisitor(final ByteBuffer buffer, final int ret) {
-            this.buffer = buffer;
-            this.ret = ret;
-        }
-
-        void handleBlock(final BasicBlock block) {
-            if (visited.add(block)) {
-                if (block.getTerminator() instanceof Ret) {
-                    // goto the return block
-                    restoreLocals(retLocals.get(block));
-                    restoreStack(retStacks.get(block));
-                    buffer.position(ret);
-                    processBlock(block);
-                } else {
-                    block.getTerminator().accept(this, null);
-                }
-            }
-        }
-
-        public Void visitUnknown(final Void param, final Terminator node) {
-            int s = node.getSuccessorCount();
-            for (int i = 0; i < s; i ++) {
-                handleBlock(node.getSuccessor(i));
-            }
-            return null;
-        }
     }
 }

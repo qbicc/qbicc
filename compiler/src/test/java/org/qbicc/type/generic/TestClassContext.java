@@ -43,7 +43,6 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.NativeMethodConfigurator;
 import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.ExecutableElement;
-import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.MemberElement;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -180,10 +179,6 @@ public class TestClassContext implements ClassContext {
 
         public FunctionDeclaration declareForeignFunction(ExecutableElement target, Function function, ExecutableElement current) {
             return null;  // TODO: Customise this generated block
-        }
-
-        public FieldElement getExceptionField() {
-            return null;
         }
 
         public Vm getVm() {

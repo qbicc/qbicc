@@ -13,8 +13,9 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.InstanceMethodElementHandle;
-import org.qbicc.graph.ParameterValue;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -536,15 +537,14 @@ public final class ReflectionIntrinsics {
             DefinedTypeDefinition enclosingType = element.getEnclosingType();
             ClassContext classContext = enclosingType.getContext();
             BasicBlockBuilder bbb = classContext.newBasicBlockBuilder(element);
-            List<ParameterValue> paramValues = new ArrayList<>(type.getParameterCount());
-            int cnt = type.getParameterCount();
-            for (int i = 0; i < cnt; i ++) {
-                paramValues.add(bbb.parameter(type.getParameterType(i), "p", i));
-            }
-            bbb.startMethod(paramValues);
             // build the entry block
             BlockLabel entryLabel = new BlockLabel();
             bbb.begin(entryLabel);
+            List<BlockParameter> paramValues = new ArrayList<>(type.getParameterCount());
+            int cnt = type.getParameterCount();
+            for (int i = 0; i < cnt; i ++) {
+                paramValues.add(bbb.addParam(entryLabel, Slot.funcParam(i), type.getParameterType(i)));
+            }
             // expand the "intrinsic"
             try {
                 Value retVal = methodBodyIntrinsic.emitIntrinsic(bbb, (StaticMethodElementHandle) bbb.staticMethod((MethodElement) element), (List<Value>) (List) paramValues);
@@ -556,7 +556,7 @@ public final class ReflectionIntrinsics {
             bbb.finish();
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
             Schedule schedule = Schedule.forMethod(entryBlock);
-            return MethodBody.of(entryBlock, schedule, null, paramValues);
+            return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(cnt));
         }
     }
 
@@ -580,16 +580,15 @@ public final class ReflectionIntrinsics {
             DefinedTypeDefinition enclosingType = element.getEnclosingType();
             ClassContext classContext = enclosingType.getContext();
             BasicBlockBuilder bbb = classContext.newBasicBlockBuilder(element);
-            ParameterValue this_ = bbb.parameter(element.getEnclosingType().load().getObjectType().getReference(), "this", 0);
-            List<ParameterValue> paramValues = new ArrayList<>(type.getParameterCount());
-            int cnt = type.getParameterCount();
-            for (int i = 0; i < cnt; i ++) {
-                paramValues.add(bbb.parameter(type.getParameterType(i), "p", i));
-            }
-            bbb.startMethod(paramValues);
             // build the entry block
             BlockLabel entryLabel = new BlockLabel();
             bbb.begin(entryLabel);
+            BlockParameter this_ = bbb.addParam(entryLabel, Slot.this_(), element.getEnclosingType().load().getObjectType().getReference(), false);
+            List<BlockParameter> paramValues = new ArrayList<>(type.getParameterCount());
+            int cnt = type.getParameterCount();
+            for (int i = 0; i < cnt; i ++) {
+                paramValues.add(bbb.addParam(entryLabel, Slot.funcParam(i), type.getParameterType(i)));
+            }
             // expand the "intrinsic"
             try {
                 Value retVal = methodBodyIntrinsic.emitIntrinsic(bbb, this_, (InstanceMethodElementHandle) bbb.exactMethodOf(this_, (MethodElement) element), (List<Value>) (List) paramValues);
@@ -601,7 +600,7 @@ public final class ReflectionIntrinsics {
             bbb.finish();
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
             Schedule schedule = Schedule.forMethod(entryBlock);
-            return MethodBody.of(entryBlock, schedule, this_, paramValues);
+            return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(cnt));
         }
     }
 }

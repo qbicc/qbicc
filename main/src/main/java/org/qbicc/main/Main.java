@@ -110,8 +110,6 @@ import org.qbicc.plugin.lowering.LocalVariableFindingBasicBlockBuilder;
 import org.qbicc.plugin.lowering.LocalVariableLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.MemberPointerCopier;
 import org.qbicc.plugin.lowering.StaticFieldLoweringBasicBlockBuilder;
-import org.qbicc.plugin.lowering.ThrowExceptionHelper;
-import org.qbicc.plugin.lowering.ThrowLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.VMHelpersSetupHook;
 import org.qbicc.plugin.main_method.AddMainClassHook;
 import org.qbicc.plugin.main_method.MainMethod;
@@ -132,11 +130,11 @@ import org.qbicc.plugin.native_.StructMemberAccessBasicBlockBuilder;
 import org.qbicc.plugin.nativeimage.GraalFeatureProcessor;
 import org.qbicc.plugin.initializationcontrol.QbiccFeatureTypeBuilder;
 import org.qbicc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
+import org.qbicc.plugin.opt.BlockParameterOptimizingVisitor;
 import org.qbicc.plugin.opt.FinalFieldLoadOptimizer;
 import org.qbicc.plugin.opt.GotoRemovingVisitor;
 import org.qbicc.plugin.opt.InliningBasicBlockBuilder;
 import org.qbicc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
-import org.qbicc.plugin.opt.PhiOptimizerVisitor;
 import org.qbicc.plugin.opt.SimpleOptBasicBlockBuilder;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisDotGenerator;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisDotVisitor;
@@ -165,8 +163,10 @@ import org.qbicc.plugin.serialization.ObjectLiteralSerializingVisitor;
 import org.qbicc.plugin.serialization.StringInternTableEmitter;
 import org.qbicc.plugin.threadlocal.ThreadLocalBasicBlockBuilder;
 import org.qbicc.plugin.threadlocal.ThreadLocalTypeBuilder;
-import org.qbicc.plugin.trycatch.LocalThrowHandlingBasicBlockBuilder;
+import org.qbicc.plugin.trycatch.ExceptionOnThreadStrategy;
 import org.qbicc.plugin.trycatch.SynchronizedMethodBasicBlockBuilder;
+import org.qbicc.plugin.unwind.UnwindExceptionStrategy;
+import org.qbicc.plugin.unwind.UnwindThrowBasicBlockBuilder;
 import org.qbicc.plugin.verification.ClassInitializingBasicBlockBuilder;
 import org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder;
 import org.qbicc.plugin.verification.LowerVerificationBasicBlockBuilder;
@@ -175,6 +175,7 @@ import org.qbicc.plugin.vfs.VFS;
 import org.qbicc.plugin.vio.VIO;
 import org.qbicc.tool.llvm.LlvmToolChain;
 import org.qbicc.type.TypeSystem;
+import org.qbicc.type.definition.classfile.BciRangeExceptionHandlerBasicBlockBuilder;
 import picocli.CommandLine;
 import picocli.CommandLine.ParameterException;
 import picocli.CommandLine.ParseResult;
@@ -350,7 +351,8 @@ public class Main implements Callable<DiagnosticContext> {
                             // add additional manual initializers by chaining `.andThen(...)`
                             builder.setVmFactory(cc -> {
                                 CoreClasses.init(cc);
-                                ThrowExceptionHelper.init(cc);
+                                ExceptionOnThreadStrategy.initialize(cc);
+                                UnwindExceptionStrategy.init(cc);
                                 return VmImpl.create(cc,
                                     new BasicHeaderManualInitializer(cc)
                                 );
@@ -425,7 +427,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, CoreClasses::get);
                                 builder.addPreHook(Phase.ADD, ReflectionIntrinsics::register);
                                 builder.addPreHook(Phase.ADD, Reflection::get);
-                                builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);
+                                builder.addPreHook(Phase.ADD, UnwindExceptionStrategy::get);
                                 builder.addPreHook(Phase.ADD, GcCommon::registerIntrinsics);
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
                                     QbiccFeatureProcessor.process(compilationContext, qbiccFeatures);
@@ -477,13 +479,13 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ArrayLengthBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, BciRangeExceptionHandlerBasicBlockBuilder::createIfNeeded);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
                                 if (optMemoryTracking) {
                                     // TODO: breaks addr_of; should only be done in ANALYZE and then only if addr_of wasn't taken (alias)
                                     // builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
                                 }
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, RuntimeChecksBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, LocalThrowHandlingBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
@@ -528,7 +530,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
                                 }
                                 if (optPhis) {
-                                    builder.addCopyFactory(Phase.ANALYZE, PhiOptimizerVisitor::new);
+                                    builder.addCopyFactory(Phase.ANALYZE, BlockParameterOptimizingVisitor::new);
                                 }
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAnalyzePhase);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, FinalFieldLoadOptimizer::new);
@@ -537,6 +539,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (optMemoryTracking) {
                                     builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
                                 }
+//                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, ConstraintMaterializingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 if (optInlining) {
@@ -567,7 +570,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
                                 }
                                 if (optPhis) {
-                                    builder.addCopyFactory(Phase.LOWER, PhiOptimizerVisitor::new);
+                                    builder.addCopyFactory(Phase.LOWER, BlockParameterOptimizingVisitor::new);
                                 }
                                 builder.addCopyFactory(Phase.LOWER, BooleanAccessCopier::new);
                                 builder.addCopyFactory(Phase.LOWER, MemberPointerCopier::new);
@@ -577,7 +580,8 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (isWasm) {
                                     builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, AbortingThrowLoweringBasicBlockBuilder::new);
                                 } else {
-                                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ThrowLoweringBasicBlockBuilder::new);
+                                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ExceptionOnThreadStrategy::loweringBuilder);
+                                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, UnwindThrowBasicBlockBuilder::new);
                                 }
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
                                 if (nogc) {

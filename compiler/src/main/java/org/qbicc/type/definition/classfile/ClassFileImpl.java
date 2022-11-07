@@ -7,7 +7,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import io.smallrye.common.constraint.Assert;
 import org.objectweb.asm.ClassReader;
@@ -18,8 +17,10 @@ import org.qbicc.context.ClassContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.ParameterValue;
+import org.qbicc.graph.BlockParameter;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -79,6 +80,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
     private static final VarHandle annotationArrayHandle = MethodHandles.arrayElementVarHandle(Annotation[].class);
     private static final VarHandle annotationArrayArrayHandle = MethodHandles.arrayElementVarHandle(Annotation[][].class);
     private static final VarHandle descriptorArrayHandle = MethodHandles.arrayElementVarHandle(Descriptor[].class);
+    private static final BlockParameter[] NO_PARAMETERS = new BlockParameter[0];
 
     private final int[] cpOffsets;
     private final String[] strings;
@@ -1262,7 +1264,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         int modifiers = element.getModifiers();
         ClassMethodInfo classMethodInfo = new ClassMethodInfo(this, element, modifiers, index, codeAttr);
         DefinedTypeDefinition enclosing = element.getEnclosingType();
-        BasicBlockBuilder gf = enclosing.getContext().newBasicBlockBuilder(element);
         int offs = classMethodInfo.getCodeOffs();
         int pos = codeAttr.position();
         int lim = codeAttr.limit();
@@ -1271,14 +1272,29 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         ByteBuffer byteCode = codeAttr.slice();
         codeAttr.position(pos);
         codeAttr.limit(lim);
-        MethodParser methodParser = new MethodParser(enclosing.getContext(), classMethodInfo, byteCode, gf);
-        ParameterValue thisValue;
-        ParameterValue[] parameters;
+        MethodParser methodParser = new MethodParser(enclosing.getContext(), classMethodInfo, byteCode, element);
+        BasicBlockBuilder gf = methodParser.getBlockBuilder();
+        BlockParameter thisValue;
+        BlockParameter[] parameters;
         boolean nonStatic = (modifiers & ClassFile.ACC_STATIC) == 0;
         ValueType[][] varTypesByEntryPoint;
         ValueType[][] stackTypesByEntryPoint;
         ValueType[] currentVarTypes;
         int[] currentVarSlotSizes;
+
+        // set up method for initial values
+        BlockLabel entryBlockHandle = methodParser.getBlockForIndexIfExists(0);
+        boolean noLoop = entryBlockHandle == null;
+        BlockLabel newLabel = null;
+        if (noLoop) {
+            // no loop to start block; just process it as a new block
+            entryBlockHandle = new BlockLabel();
+            gf.begin(entryBlockHandle);
+        } else {
+            newLabel = new BlockLabel();
+            gf.begin(newLabel);
+        }
+
         if (element instanceof InvokableElement) {
             int initialLocals = 0;
             if (nonStatic) {
@@ -1286,7 +1302,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             }
             List<ParameterElement> elementParameters = ((InvokableElement) element).getParameters();
             int paramCount = elementParameters.size();
-            parameters = new ParameterValue[paramCount];
+            parameters = new BlockParameter[paramCount];
             for (int i = 0; i < paramCount; i ++) {
                 boolean class2 = elementParameters.get(i).hasClass2Type();
                 initialLocals += class2 ? 2 : 1;
@@ -1294,9 +1310,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             currentVarTypes = new ValueType[initialLocals];
             currentVarSlotSizes = new int[(nonStatic ? 1 : 0) + paramCount];
             int j = 0, k = 0;
+            BlockEntry be = gf.getBlockEntry();
             if (nonStatic) {
                 // instance method or constructor
-                thisValue = gf.parameter(enclosing.load().getObjectType().getReference(), "this", 0);
+                thisValue = gf.addParam(be.getPinnedBlockLabel(), Slot.this_(), enclosing.load().getObjectType().getReference(), false);
                 currentVarTypes[j++] = thisValue.getType();
                 currentVarSlotSizes[k++] = 1;
             } else {
@@ -1304,7 +1321,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             }
             for (int i = 0; i < paramCount; i ++) {
                 ValueType type = elementParameters.get(i).getType();
-                parameters[i] = gf.parameter(type, "p", i);
+                parameters[i] = gf.addParam(be.getPinnedBlockLabel(), Slot.funcParam(i), type);
                 boolean class2 = elementParameters.get(i).hasClass2Type();
                 Value promoted = methodParser.promote(parameters[i], elementParameters.get(i).getTypeDescriptor());
                 currentVarTypes[j] = promoted.getType();
@@ -1313,12 +1330,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             }
         } else {
             thisValue = null;
-            parameters = ParameterValue.NO_PARAMETER_VALUES;
+            parameters = NO_PARAMETERS;
             currentVarTypes = NO_TYPES;
             currentVarSlotSizes = NO_INTS;
         }
-
-        gf.startMethod(List.of(parameters));
 
         // create type information for phi generation
         int smtOff = classMethodInfo.getStackMapTableOffs();
@@ -1464,20 +1479,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             }
         }
         methodParser.setTypeInformation(varTypesByEntryPoint, stackTypesByEntryPoint);
-        // set up method for initial values
-        BlockLabel entryBlockHandle = methodParser.getBlockForIndexIfExists(0);
-        boolean noLoop = entryBlockHandle == null;
         byteCode.position(0);
-        BlockLabel newLabel = null;
-        if (noLoop) {
-            // no loop to start block; just process it as a new block
-            entryBlockHandle = new BlockLabel();
-            gf.begin(entryBlockHandle);
-        } else {
-            byteCode.position(0);
-            newLabel = new BlockLabel();
-            gf.begin(newLabel);
-        }
         // set initial values
         if (element instanceof InvokableElement) {
             List<ParameterElement> elementParameters = ((InvokableElement) element).getParameters();
@@ -1500,14 +1502,14 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             methodParser.processNewBlock();
         } else {
             // we have to jump into it because there is a loop that includes index 0
-            methodParser.processBlock(gf.goto_(entryBlockHandle, Map.of()));
+            gf.goto_(entryBlockHandle, methodParser.captureOutbound());
+            methodParser.processBlock();
             entryBlockHandle = newLabel;
         }
         gf.finish();
-        methodParser.finish();
         BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
         Schedule schedule = Schedule.forMethod(entryBlock);
-        return MethodBody.of(entryBlock, schedule, thisValue, parameters);
+        return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(parameters.length));
     }
 
     int getSlotSize(int viTag) {

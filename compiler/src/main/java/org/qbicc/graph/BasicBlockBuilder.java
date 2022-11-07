@@ -25,6 +25,7 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.InterfaceObjectType;
+import org.qbicc.type.NullableType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PrimitiveArrayObjectType;
@@ -55,16 +56,41 @@ public interface BasicBlockBuilder extends Locatable {
     // parameters
 
     /**
-     * Add an input parameter to the block being built.
+     * Add an input parameter to the given block.
      * Any control flow transfer to this block <em>must</em> provide an argument value for each parameter.
      *
+     * @param owner the label of the block to which the parameter should belong (must not be {@code null})
      * @param slot the parameter name (must not be {@code null})
      * @param type the parameter type (must not be {@code null})
      * @param nullable {@code true} if the reference- or pointer-typed parameter can be {@code null}, or {@code false} otherwise
      * @return the parameter value (not {@code null})
-     * @throws IllegalArgumentException if the parameter is already defined or {@code type} is not nullable but {@code nullable} was set
+     * @throws IllegalArgumentException if the parameter already has a different definition, or {@code type} is not nullable but {@code nullable} was set
      */
-    BlockParameter addParam(Slot slot, ValueType type, boolean nullable);
+    BlockParameter addParam(BlockLabel owner, Slot slot, ValueType type, boolean nullable);
+
+    /**
+     * Add a nullable input parameter to the given block.
+     * Any control flow transfer to this block <em>must</em> provide an argument value for each parameter.
+     *
+     * @param owner the label of the block to which the parameter should belong (must not be {@code null})
+     * @param slot the parameter name (must not be {@code null})
+     * @param type the parameter type (must not be {@code null})
+     * @return the parameter value (not {@code null})
+     * @throws IllegalArgumentException if the parameter already has a different definition
+     */
+    default BlockParameter addParam(BlockLabel owner, Slot slot, ValueType type) {
+        return addParam(owner, slot, type, type instanceof NullableType);
+    }
+
+    /**
+     * Get the pre-established block parameter for the given slot.
+     *
+     * @param owner the owning block label (must not be {@code null})
+     * @param slot the slot (must not be {@code null})
+     * @return the parameter value (not {@code null})
+     * @throws NoSuchElementException if no parameter was established for the given slot
+     */
+    BlockParameter getParam(BlockLabel owner, Slot slot) throws NoSuchElementException;
 
     // context
 
@@ -186,11 +212,6 @@ public interface BasicBlockBuilder extends Locatable {
     int getBytecodeIndex();
 
     /**
-     * Signal method entry with the given arguments.
-     */
-    void startMethod(List<ParameterValue> arguments);
-
-    /**
      * Indicate that all construction is complete.
      */
     void finish();
@@ -217,8 +238,6 @@ public interface BasicBlockBuilder extends Locatable {
         return getLiteralFactory().zeroInitializerLiteralOfType(getTypeSystem().getVoidType());
     }
 
-    ParameterValue parameter(ValueType type, String label, int index);
-
     Value offsetOfField(FieldElement fieldElement);
 
     // sub-value extraction
@@ -240,10 +259,6 @@ public interface BasicBlockBuilder extends Locatable {
     Node declareDebugAddress(LocalVariableElement variable, Value address);
 
     Node setDebugValue(LocalVariableElement variable, Value value);
-
-    // phi
-
-    PhiValue phi(ValueType type, BlockLabel owner, PhiValue.Flag... flags);
 
     // ternary
 
@@ -771,7 +786,7 @@ public interface BasicBlockBuilder extends Locatable {
     BasicBlock switch_(Value value, int[] checkValues, BlockLabel[] targets, BlockLabel defaultTarget, Map<Slot, Value> targetArguments);
 
     /**
-     * Return from a {@code jsr} subroutine call.
+     * Return from a subroutine call.
      * <p>
      * Terminates the current block.
      * <p>

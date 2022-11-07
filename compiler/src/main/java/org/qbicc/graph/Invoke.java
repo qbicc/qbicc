@@ -137,6 +137,11 @@ public final class Invoke extends AbstractTerminator implements Resume {
     }
 
     @Override
+    public boolean isImplicitOutboundArgument(Slot slot, BasicBlock block) {
+        return slot == Slot.thrown() && block == getCatchBlock() || slot == Slot.result() && block == getResumeTarget();
+    }
+
+    @Override
     public <T, R> R accept(TerminatorVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }

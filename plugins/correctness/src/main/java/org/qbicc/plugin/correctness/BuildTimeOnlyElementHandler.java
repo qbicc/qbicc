@@ -35,7 +35,6 @@ public class BuildTimeOnlyElementHandler implements Consumer<ExecutableElement> 
             BasicBlockBuilder builder = classContext.newBasicBlockBuilder(element);
             MethodBody original = element.getMethodBody();
 
-            builder.startMethod(original.getParameterValues());
             BlockLabel entryLabel = new BlockLabel();
             builder.begin(entryLabel);
             try {
@@ -45,7 +44,7 @@ public class BuildTimeOnlyElementHandler implements Consumer<ExecutableElement> 
             } catch (BlockEarlyTermination ignored) {}
             builder.finish();
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
-            element.replaceMethodBody(MethodBody.of(entryBlock, Schedule.forMethod(entryBlock), original.getThisValue(), original.getParameterValues()));
+            element.replaceMethodBody(MethodBody.of(entryBlock, Schedule.forMethod(entryBlock), original.getParameterSlots()));
         }
     }
 }

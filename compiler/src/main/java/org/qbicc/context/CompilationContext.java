@@ -146,8 +146,6 @@ public interface CompilationContext extends DiagnosticContext {
 
     FunctionType getFunctionTypeForInitializer();
 
-    FieldElement getExceptionField();
-
     Vm getVm();
 
     /**

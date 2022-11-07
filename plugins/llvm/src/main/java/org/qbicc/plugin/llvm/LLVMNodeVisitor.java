@@ -62,12 +62,12 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NotNull;
 import org.qbicc.graph.Or;
-import org.qbicc.graph.ParameterValue;
-import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Reachable;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.ReferenceHandle;
+import org.qbicc.graph.Ret;
+import org.qbicc.graph.Return;
 import org.qbicc.graph.Select;
 import org.qbicc.graph.Shl;
 import org.qbicc.graph.Shr;
@@ -86,7 +86,6 @@ import org.qbicc.graph.VaArg;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
-import org.qbicc.graph.Return;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.atomic.GlobalAccessMode;
@@ -103,6 +102,7 @@ import org.qbicc.machine.llvm.IntCondition;
 import org.qbicc.machine.llvm.LLBasicBlock;
 import org.qbicc.machine.llvm.LLBuilder;
 import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.LazyLLValue;
 import org.qbicc.machine.llvm.Module;
 import org.qbicc.machine.llvm.ParameterAttributes;
 import org.qbicc.machine.llvm.Values;
@@ -113,13 +113,14 @@ import org.qbicc.machine.llvm.impl.LLVM;
 import org.qbicc.machine.llvm.op.AtomicRmw;
 import org.qbicc.machine.llvm.op.Call;
 import org.qbicc.machine.llvm.op.GetElementPtr;
+import org.qbicc.machine.llvm.op.IndirectBranch;
 import org.qbicc.machine.llvm.op.Instruction;
 import org.qbicc.machine.llvm.op.OrderingConstraint;
 import org.qbicc.machine.llvm.op.Phi;
 import org.qbicc.machine.llvm.op.YieldingInstruction;
 import org.qbicc.object.Function;
 import org.qbicc.plugin.methodinfo.CallSiteInfo;
-import org.qbicc.plugin.unwind.UnwindHelper;
+import org.qbicc.plugin.unwind.UnwindExceptionStrategy;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
@@ -153,6 +154,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     final BasicBlock entryBlock;
     final Set<Action> visitedActions = new HashSet<>();
     final Map<Value, LLValue> mappedValues = new HashMap<>();
+    final Map<Invoke, LLValue> invokeResults = new HashMap<>();
+    final Map<BasicBlock, Map<Slot, Phi>> mappedBlockParamPhis = new HashMap<>();
+    final Map<BasicBlock, Map<Slot, LLValue>> mappedBlockParams = new HashMap<>();
     final Map<BasicBlock, LLBasicBlock> mappedBlocks = new HashMap<>();
     final Map<BasicBlock, LLBasicBlock> mappedCatchBlocks = new HashMap<>();
     final MethodBody methodBody;
@@ -186,10 +190,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         if (cnt != funcType.getParameterCount()) {
             throw new IllegalStateException("Mismatch between method body and function type parameter counts");
         }
+        MethodBody methodBody = functionObj.getBody();
         for (int i = 0; i < cnt; i ++) {
-            ParameterValue value = functionObj.getBody().getParameterValue(i);
-            ValueType      type = value.getType();
-            org.qbicc.machine.llvm.Function.Parameter param = func.param(map(type)).name(value.getLabel() + value.getIndex());
+            Slot slot = methodBody.getParameterSlot(i);
+            ValueType type = funcType.getParameterType(i);
+            org.qbicc.machine.llvm.Function.Parameter param = func.param(map(type)).name(slot.toString());
             if (type instanceof IntegerType && ((IntegerType)type).getMinBits() < 32) {
                 if (type instanceof SignedIntegerType) {
                     param.attribute(ParameterAttributes.signext);
@@ -199,11 +204,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             } else if (type instanceof BooleanType) {
                 param.attribute(ParameterAttributes.zeroext);
             }
-            mappedValues.put(value, param.asValue());
+            mappedBlockParams.computeIfAbsent(entryBlock, LLVMNodeVisitor::newMap).put(slot, param.asValue());
         }
         ValueType retType = funcType.getReturnType();
         org.qbicc.machine.llvm.Function.Returns ret = func.returns(map(retType));
-        if (retType instanceof IntegerType && ((IntegerType)retType).getMinBits() < 32) {
+        if (retType instanceof IntegerType it && it.getMinBits() < 32) {
             if (retType instanceof SignedIntegerType) {
                 ret.attribute(ParameterAttributes.signext);
             } else {
@@ -213,43 +218,45 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             ret.attribute(ParameterAttributes.zeroext);
         }
         map(entryBlock);
+        // fill in phi values
+        for (Map.Entry<BasicBlock, Map<Slot, Phi>> entry : mappedBlockParamPhis.entrySet()) {
+            BasicBlock block = entry.getKey();
+            LLBasicBlock mappedBlock = checkMap(block);
+            if (mappedBlock != null) {
+                Map<Slot, Phi> valuesBySlot = entry.getValue();
+                for (Map.Entry<Slot, Phi> subEntry : valuesBySlot.entrySet()) {
+                    Slot slot = subEntry.getKey();
+                    Phi phi = subEntry.getValue();
+                    LLBasicBlock oldBlock = builder.moveToBlock(mappedBlock);
+                    try {
+                        // populate possible incoming values
+                        for (BasicBlock incoming : block.getIncoming()) {
+                            Terminator t = incoming.getTerminator();
+                            cnt = t.getSuccessorCount();
+                            LLBasicBlock mappedIncoming = checkMap(incoming);
+                            // make sure there is one item per path from the predecessor
+                            for (int i = 0; i < cnt; i ++) {
+                                if (t.getSuccessor(i) == block) {
+                                    if (slot == Slot.result() && t instanceof Invoke inv) {
+                                        phi.item(invokeResults.get(inv), mappedIncoming);
+                                    } else {
+                                        phi.item(map(t.getOutboundArgument(slot)), mappedIncoming);
+                                    }
+                                }
+                            }
+                        }
+                    } finally {
+                        builder.moveToBlock(oldBlock);
+                    }
+                }
+            }
+        }
     }
 
     // actions
 
     public Instruction visit(final Void param, final BlockEntry node) {
-        // extract phis from the block input parameters
-        BasicBlock block = node.getPinnedBlock();
-        if (block.getIndex() == 0) {
-            // initial block cannot have phis (its parameters are actually function parameters)
-            return null;
-        }
-        Map<Slot, Phi> phis = new HashMap<>(block.getParameters().size());
-        // create all phis before recursing to predecessors
-        for (Slot slot : block.getParameters()) {
-            BlockParameter blockParameter = block.getParameterValue(slot);
-            Phi phi = builder.phi(map(blockParameter.getType()));
-            phis.put(slot, phi);
-            LLValue result = phi.asLocal(blockParameter.appendQualifiedName(new StringBuilder()).toString());
-            mappedValues.put(blockParameter, result);
-        }
-        for (BasicBlock incomingBlock : block.getIncoming()) {
-            Terminator terminator = incomingBlock.getTerminator();
-            for (Slot slot : block.getParameters()) {
-                Phi phi = phis.get(slot);
-                Value v = terminator.getOutboundArgument(slot);
-                // process dependencies
-                LLBasicBlock incoming = map(incomingBlock);
-                LLValue data = map(v);
-                // we have to list the phi as many times as the predecessor enters this block
-                int cnt = terminator.getSuccessorCount();
-                for (int i = 0; i < cnt; i ++) {
-                    if (terminator.getSuccessor(i) == block) {
-                        phi.item(data, incoming);
-                    }
-                }
-            }
-        }
+        // no operation
         return null;
     }
 
@@ -363,6 +370,19 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         return builder.br(map(node.getCondition()), map(node.getTrueBranch()), map(node.getFalseBranch()));
     }
 
+    public Instruction visit(final Void param, final Ret node) {
+        map(node.getDependency());
+        List<BasicBlock> successors = node.getSuccessors();
+        if (successors.size() == 1) {
+            return builder.br(map(successors.get(0)));
+        }
+        IndirectBranch ibr = builder.indirectbr(map(node.getReturnAddressValue()));
+        for (BasicBlock successor : successors) {
+            ibr.possibleTarget(map(successor));
+        }
+        return ibr;
+    }
+
     public Instruction visit(final Void param, final Unreachable node) {
         map(node.getDependency());
         return builder.unreachable();
@@ -428,6 +448,35 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
         return builder.and(map(node.getType()), llvmLeft, llvmRight).asLocal();
+    }
+
+    @Override
+    public LLValue visit(Void unused, BlockParameter node) {
+        BasicBlock block = node.getPinnedBlock();
+        Map<Slot, LLValue> subMap = mappedBlockParams.computeIfAbsent(block, LLVMNodeVisitor::newMap);
+        Slot slot = node.getSlot();
+        LLValue llValue = subMap.get(slot);
+        if (llValue == null) {
+            LLBasicBlock oldBlock = builder.moveToBlock(map(block));
+            Phi phi = builder.phi(map(node.getType()));
+            mappedBlockParamPhis.computeIfAbsent(block, LLVMNodeVisitor::newMap).put(slot, phi);
+            builder.moveToBlock(oldBlock);
+            llValue = phi.asLocal(node.appendQualifiedName(new StringBuilder()).toString());
+            // pre-seed
+            mappedValues.put(node, llValue);
+            subMap.put(slot, llValue);
+            for (BasicBlock incoming : block.getIncoming()) {
+                Terminator t = incoming.getTerminator();
+                int cnt = t.getSuccessorCount();
+                for (int i = 0; i < cnt; i ++) {
+                    if (t.getSuccessor(i) == block && ! t.isImplicitOutboundArgument(slot, block)) {
+                        // make sure it's mapped for post-processing
+                        map(t.getOutboundArgument(slot));
+                    }
+                }
+            }
+        }
+        return llValue;
     }
 
     @Override
@@ -615,30 +664,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue inputType = map(trueValue.getType());
         Value falseValue = node.getFalseValue();
         return builder.select(map(node.getCondition().getType()), map(node.getCondition()), inputType, map(trueValue), map(falseValue)).asLocal();
-    }
-
-    public LLValue visit(final Void param, final PhiValue node) {
-        Phi phi = builder.phi(map(node.getType()));
-        LLValue result = phi.asLocal();
-        mappedValues.put(node, result);
-        BasicBlock ourBlock = node.getPinnedBlock();
-        for (BasicBlock incomingBlock : ourBlock.getIncoming()) {
-            Terminator terminator = incomingBlock.getTerminator();
-            Value v = node.getValueForInput(terminator);
-            if (v != null) {
-                // process dependencies
-                LLBasicBlock incoming = map(incomingBlock);
-                LLValue data = map(v);
-                // we have to list the phi as many times as the predecessor enters this block
-                int cnt = terminator.getSuccessorCount();
-                for (int i = 0; i < cnt; i ++) {
-                    if (terminator.getSuccessor(i) == ourBlock) {
-                        phi.item(data, incoming);
-                    }
-                }
-            }
-        }
-        return result;
     }
 
     public LLValue visit(final Void param, final Load node) {
@@ -913,7 +938,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         map(node.getDependency());
         LLBasicBlock invokeBlock = map(node.getInvoke().getTerminatedBlock());
         // should already be registered by now in most cases
-        LLValue llValue = mappedValues.get(node);
+        LLValue llValue = invokeResults.get(node.getInvoke());
         if (llValue == null) {
             // map late
             postMap(node.getInvoke().getTerminatedBlock(), invokeBlock);
@@ -956,6 +981,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     // calls
 
     public LLValue visit(Void param, org.qbicc.graph.Call node) {
+        LazyLLValue lazyValue = newLazyValue();
+        mappedValues.put(node, lazyValue);
         map(node.getDependency());
         FunctionType functionType = (FunctionType) node.getCalleeType();
         List<Value> arguments = node.getArguments();
@@ -965,6 +992,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
         Call call = builder.call(llType, llTarget).noTail();
+        LLValue llValue = call.asLocal(schedule.getBlockForNode(node).toString() + '.' + node.getScheduleIndex());
+        lazyValue.resolveTo(llValue);
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
         if (functionType.isVariadic() || valueHandle instanceof AsmHandle) {
@@ -972,11 +1001,13 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         } else {
             addStatepointId(call, node);
         }
-        return call.asLocal();
+        return llValue;
     }
 
     @Override
     public LLValue visit(Void param, CallNoSideEffects node) {
+        LazyLLValue lazyValue = newLazyValue();
+        mappedValues.put(node, lazyValue);
         FunctionType functionType = (FunctionType) node.getCalleeType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
@@ -986,6 +1017,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
         Call call = builder.call(llType, llTarget).noTail();
+        LLValue llValue = call.asLocal(schedule.getBlockForNode(node).toString() + '.' + node.getScheduleIndex());
+        lazyValue.resolveTo(llValue);
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
         if (functionType.isVariadic() || valueHandle instanceof AsmHandle) {
@@ -993,7 +1026,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         } else {
             addStatepointId(call, node);
         }
-        return call.asLocal();
+        return llValue;
     }
 
     @Override
@@ -1054,9 +1087,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue llType = map(functionType);
         ValueHandle valueHandle = node.getValueHandle();
         LLValue llTarget = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        // two scans - once to populate the maps, and then once to emit the call in the right order
-        preMapArgumentList(arguments);
-        if (mappedValues.containsKey(node.getReturnValue())) {
+        if (invokeResults.containsKey(node)) {
             // already done
             return null;
         }
@@ -1070,8 +1101,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         if (postMapCatch) {
             catch_ = preMap(node.getCatchBlock());
         }
+        // two scans - once to populate the maps, and then once to emit the call in the right order
+        preMapArgumentList(arguments);
         Call call = builder.invoke(llType, llTarget, resume, mapCatch(node.getCatchBlock()));
-        mappedValues.put(node.getReturnValue(), call.asLocal());
+        invokeResults.put(node, call.asLocal());
         if (postMapResume) {
             postMap(node.getResumeTarget(), resume);
         }
@@ -1197,7 +1230,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
     private void addPersonalityIfNeeded() {
         if (!personalityAdded) {
-            MethodElement personalityFunction = UnwindHelper.get(ctxt).getPersonalityMethod();
+            MethodElement personalityFunction = UnwindExceptionStrategy.get(ctxt).getPersonalityMethod();
 
             Function personality = ctxt.getExactFunction(personalityFunction);
             PointerLiteral literal = ctxt.getLiteralFactory().literalOf(personality.getPointer());
@@ -1351,9 +1384,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         WriteAccessMode writeMode = node.getWriteAccessMode();
         OrderingConstraint successOrdering = getOC(readMode.combinedWith(writeMode));
         OrderingConstraint failureOrdering = getOC(readMode);
-        if (failureOrdering == OrderingConstraint.unordered) {
-            failureOrdering = OrderingConstraint.monotonic; // LLVM requires failure mode to be at least montonic
-        }
         org.qbicc.machine.llvm.op.CmpAndSwap cmpAndSwapBuilder = builder.cmpAndSwap(
             ptrType, type, ptr, expect, update, successOrdering, failureOrdering);
         if (node.getStrength() == CmpAndSwap.Strength.WEAK) {
@@ -1422,6 +1452,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     }
 
     private LLBasicBlock map(BasicBlock block) {
+        if (block == null) {
+            // breakpoint
+            throw new NullPointerException();
+        }
         LLBasicBlock mapped = checkMap(block);
         if (mapped != null) {
             return mapped;
@@ -1435,6 +1469,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
     private LLBasicBlock preMap(final BasicBlock block) {
         LLBasicBlock mapped = func.createBlock();
+        mapped.name(block.toString());
         mappedBlocks.put(block, mapped);
         return mapped;
     }
@@ -1466,6 +1501,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
         builder.landingpad(token).cleanup();
         LLBasicBlock handler = map(block);
+        mapped.name(block + ".catch");
         builder.br(handler);
 
         builder.moveToBlock(oldBuilderBlock);
@@ -1506,8 +1542,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             LLValue oldBuilderDebugLocation = builder.setDebugLocation(dbg(value));
             mapped = value.accept(this, null);
             YieldingInstruction instruction = mapped.getInstruction();
-            addLineComment(value, instruction);
-            mappedValues.put(value, mapped);
+            if (instruction != null) {
+                addLineComment(value, instruction);
+            }
+            mappedValues.putIfAbsent(value, mapped);
             builder.setDebugLocation(oldBuilderDebugLocation);
         }
 
@@ -1533,5 +1571,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
     private LLValue map(CompoundType compoundType, CompoundType.Member member) {
         return moduleVisitor.map(compoundType, member);
+    }
+
+    private static <K, V> Map<K, V> newMap(final Object ignored) {
+        return new HashMap<>();
     }
 }
