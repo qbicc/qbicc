@@ -153,6 +153,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         started = true;
     }
 
+    public int getBytecodeIndex() {
+        return bci;
+    }
+
     public void finish() {
         if (currentBlock != null) {
             throw new IllegalStateException("Current block not terminated");

@@ -178,6 +178,12 @@ public interface BasicBlockBuilder extends Locatable {
      */
     int setBytecodeIndex(int newBytecodeIndex);
 
+    /**
+     * Get the current bytecode index.
+     *
+     * @return the current bytecode index
+     */
+    int getBytecodeIndex();
 
     /**
      * Signal method entry with the given arguments.

@@ -99,6 +99,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         getDelegate().startMethod(arguments);
     }
 
+    public int getBytecodeIndex() {
+        return getDelegate().getBytecodeIndex();
+    }
+
     public void finish() {
         getDelegate().finish();
     }
