@@ -81,4 +81,6 @@ public final class SysStat {
     public static native c_int lstat(const_char_ptr pathName, struct_stat_ptr statBuf);
     @name(value = "fstatat$INODE64", when = { Build.Target.IsMacOs.class, Build.Target.IsAmd64.class })
     public static native c_int fstatat(c_int dirFd, const_char_ptr pathName, struct_stat_ptr statBuf, c_int flags);
+
+    public static native c_int mkdir(const_char_ptr pathname, mode_t mode);
 }
