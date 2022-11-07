@@ -8,6 +8,7 @@ abstract class AbstractNode implements Node {
     private final int line;
     private final int bci;
     private int hashCode;
+    private int scheduleIndex = -1;
 
     AbstractNode(final Node callSite, final ExecutableElement element, final int line, final int bci) {
         this.callSite = callSite;
@@ -30,6 +31,14 @@ abstract class AbstractNode implements Node {
 
     public int getBytecodeIndex() {
         return bci;
+    }
+
+    public int getScheduleIndex() {
+        return scheduleIndex;
+    }
+
+    public void setScheduleIndex(int index) {
+        this.scheduleIndex = index;
     }
 
     abstract int calcHashCode();
