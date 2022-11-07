@@ -14,15 +14,14 @@ public final class IsNe extends AbstractBooleanCompare implements CommutativeBin
     }
 
     @Override
-    public Value getValueIfTrue(Value input) {
+    public Value getValueIfTrue(BasicBlockBuilder bbb, Value input) {
         if (input.getType() instanceof NullableType) {
             if (input.equals(getLeftInput()) && getRightInput() instanceof Literal ll && ll.isZero() ||
                 input.equals(getRightInput()) && getLeftInput() instanceof Literal rl && rl.isZero()) {
-                // todo: maybe require a BBB input instead
-                return new NotNull(input.getCallSite(), input.getElement(), input.getSourceLine(), input.getBytecodeIndex(), input);
+                return bbb.notNull(input);
             }
         }
-        return super.getValueIfTrue(input);
+        return super.getValueIfTrue(bbb, input);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

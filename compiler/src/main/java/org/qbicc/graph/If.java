@@ -25,17 +25,6 @@ public final class If extends AbstractTerminator implements Terminator {
         this.falseBranchLabel = falseBranchLabel;
     }
 
-    @Override
-    public Value getOutboundValue(PhiValue phi) {
-        Value outboundValue = super.getOutboundValue(phi);
-        if (phi.getPinnedBlock().equals(getTrueBranch())) {
-            return condition.getValueIfTrue(outboundValue);
-        } else if (phi.getPinnedBlock().equals(getFalseBranch())) {
-            return condition.getValueIfFalse(outboundValue);
-        }
-        return outboundValue;
-    }
-
     public BasicBlock getTerminatedBlock() {
         return terminatedBlock;
     }

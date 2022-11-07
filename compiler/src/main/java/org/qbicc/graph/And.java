@@ -20,11 +20,11 @@ public final class And extends AbstractBinaryValue implements CommutativeBinaryV
     }
 
     @Override
-    public Value getValueIfTrue(Value input) {
+    public Value getValueIfTrue(BasicBlockBuilder bbb, Value input) {
         assert getType() instanceof BooleanType;
         // both inputs must be true
         // TODO: merge values algorithm
-        return getLeftInput().getValueIfTrue(getRightInput().getValueIfTrue(input));
+        return getLeftInput().getValueIfTrue(bbb, getRightInput().getValueIfTrue(bbb, input));
     }
 
     @Override
