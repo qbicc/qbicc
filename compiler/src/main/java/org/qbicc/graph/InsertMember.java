@@ -9,7 +9,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 /**
  * A compound (structure) value with an inserted member.
  */
-public final class InsertMember extends AbstractValue implements Unschedulable {
+public final class InsertMember extends AbstractValue {
     private final Value compoundValue;
     private final Value insertedValue;
     private final CompoundType compoundType;
