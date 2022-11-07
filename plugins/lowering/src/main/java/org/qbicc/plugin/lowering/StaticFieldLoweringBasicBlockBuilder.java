@@ -18,9 +18,9 @@ public class StaticFieldLoweringBasicBlockBuilder extends DelegatingBasicBlockBu
     private final CompilationContext ctxt;
     private final DefinedTypeDefinition ourHolder;
 
-    public StaticFieldLoweringBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public StaticFieldLoweringBasicBlockBuilder(final FactoryContext fc, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
         ourHolder = getCurrentElement().getEnclosingType();
     }
 

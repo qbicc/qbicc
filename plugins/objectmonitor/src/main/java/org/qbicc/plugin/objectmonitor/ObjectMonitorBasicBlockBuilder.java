@@ -2,7 +2,6 @@ package org.qbicc.plugin.objectmonitor;
 
 import java.util.List;
 
-import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
@@ -18,9 +17,9 @@ public class ObjectMonitorBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     private final MethodElement monitorEnterMethod;
     private final MethodElement monitorExitMethod;
 
-    public ObjectMonitorBasicBlockBuilder(CompilationContext ctxt, BasicBlockBuilder delegate) {
+    public ObjectMonitorBasicBlockBuilder(FactoryContext fc, BasicBlockBuilder delegate) {
         super(delegate);
-        LoadedTypeDefinition jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load();
+        LoadedTypeDefinition jlo = getContext().getBootstrapClassContext().findDefinedType("java/lang/Object").load();
         int idx = jlo.findSingleMethodIndex(me -> me.nameEquals("monitorEnter"));
         if (idx == -1) {
             throw new IllegalStateException();

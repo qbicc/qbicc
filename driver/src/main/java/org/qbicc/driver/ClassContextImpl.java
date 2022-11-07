@@ -116,8 +116,8 @@ final class ClassContextImpl implements ClassContext {
         return compilationContext.getLiteralFactory();
     }
 
-    public BasicBlockBuilder newBasicBlockBuilder(final ExecutableElement element) {
-        return compilationContext.getBlockFactory().apply(compilationContext, element);
+    public BasicBlockBuilder newBasicBlockBuilder(final BasicBlockBuilder.FactoryContext factoryContext, final ExecutableElement element) {
+        return compilationContext.getBlockFactory().apply(factoryContext, element);
     }
 
     public void defineClass(final String name, final DefinedTypeDefinition definition) {

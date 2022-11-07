@@ -366,7 +366,7 @@ public class TestClassContext implements ClassContext {
         return null;
     }
 
-    public BasicBlockBuilder newBasicBlockBuilder(final ExecutableElement element) {
+    public BasicBlockBuilder newBasicBlockBuilder(final BasicBlockBuilder.FactoryContext fc, final ExecutableElement element) {
         return null;
     }
 

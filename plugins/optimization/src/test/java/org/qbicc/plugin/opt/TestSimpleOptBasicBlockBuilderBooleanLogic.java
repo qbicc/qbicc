@@ -37,6 +37,7 @@ public final class TestSimpleOptBasicBlockBuilderBooleanLogic extends AbstractCo
     @BeforeEach
     public void setUpEach() {
         final DefinedTypeDefinition.Builder typeBuilder = DefinedTypeDefinition.Builder.basic();
+        typeBuilder.setContext(bootClassContext);
         typeBuilder.setName("TestClass");
         typeBuilder.setDescriptor(ClassTypeDescriptor.synthesize(bootClassContext, "TestClass"));
         typeBuilder.setModifiers(ClassFile.ACC_SUPER | ClassFile.ACC_PUBLIC);

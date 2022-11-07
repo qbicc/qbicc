@@ -25,9 +25,9 @@ import java.util.Map;
 public final class MethodDataStringsSerializer extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public MethodDataStringsSerializer(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public MethodDataStringsSerializer(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     private void createMethodDataStrings() {

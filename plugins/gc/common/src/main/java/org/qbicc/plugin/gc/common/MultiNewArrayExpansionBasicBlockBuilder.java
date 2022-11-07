@@ -4,7 +4,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
@@ -21,11 +20,9 @@ import org.qbicc.type.descriptor.Descriptor;
  * connects all of the constituent one dimensional arrays.
  */
 public class MultiNewArrayExpansionBasicBlockBuilder extends DelegatingBasicBlockBuilder {
-    private final CompilationContext ctxt;
 
-    public MultiNewArrayExpansionBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public MultiNewArrayExpansionBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
     }
 
     public Value multiNewArray(final ArrayTypeDescriptor desc, final List<Value> dimensions) {
@@ -40,17 +37,17 @@ public class MultiNewArrayExpansionBasicBlockBuilder extends DelegatingBasicBloc
         }
         Descriptor elementDesc = desc.getElementTypeDescriptor();
         if (!(elementDesc instanceof ArrayTypeDescriptor)) {
-            ctxt.error(getLocation(), "Unexpected array descriptor: %s", elementDesc);
+            getContext().error(getLocation(), "Unexpected array descriptor: %s", elementDesc);
             throw new BlockEarlyTermination(unreachable());
         }
         // create a loop to create and fill each nested array
+        LiteralFactory lf = getLiteralFactory();
         BlockLabel loop = new BlockLabel();
         BasicBlock initial = goto_(loop, Map.of());
         begin(loop);
         PhiValue phi = phi(dimension.getType(), loop);
         BlockLabel exit = new BlockLabel();
         BlockLabel resume = new BlockLabel();
-        LiteralFactory lf = ctxt.getLiteralFactory();
         if_(isEq(phi, dimension), exit, resume, Map.of());
         try {
             begin(resume);

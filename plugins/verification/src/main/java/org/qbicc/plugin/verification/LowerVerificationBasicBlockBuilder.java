@@ -23,9 +23,9 @@ import org.qbicc.type.definition.element.InitializerElement;
 public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public LowerVerificationBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public LowerVerificationBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     public BasicBlock throw_(final Value value) {

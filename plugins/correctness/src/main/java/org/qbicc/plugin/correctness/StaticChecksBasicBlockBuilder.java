@@ -33,9 +33,9 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
     private final CompilationContext ctxt;
     private final ExecutableElement originalElement;
 
-    public StaticChecksBasicBlockBuilder(CompilationContext ctxt, BasicBlockBuilder delegate) {
+    public StaticChecksBasicBlockBuilder(FactoryContext ctxt, BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
         this.originalElement = delegate.getCurrentElement();
     }
 

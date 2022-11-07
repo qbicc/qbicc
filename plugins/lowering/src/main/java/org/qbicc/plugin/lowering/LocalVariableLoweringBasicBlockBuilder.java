@@ -30,8 +30,9 @@ public final class LocalVariableLoweringBasicBlockBuilder extends DelegatingBasi
     private final Map<LocalVariableElement, Value> allocatedVariables = new HashMap<>();
     private boolean started;
 
-    public LocalVariableLoweringBasicBlockBuilder(CompilationContext ctxt, BasicBlockBuilder delegate) {
+    public LocalVariableLoweringBasicBlockBuilder(FactoryContext fc, BasicBlockBuilder delegate) {
         super(delegate);
+        CompilationContext ctxt = getContext();
         this.ctxt = ctxt;
         this.usedVariables = Lowering.get(ctxt).removeUsedVariableSet(getCurrentElement());
     }

@@ -28,9 +28,9 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public NumericalConversionBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public NumericalConversionBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     public Value truncate(final Value from, final WordType toType) {

@@ -28,12 +28,12 @@ public final class SafePoints {
     /**
      * Create the basic block builder for the selected strategy.
      *
-     * @param ctxt the compilation context (must not be {@code null})
+     * @param fc the factory context (must not be {@code null})
      * @param delegate the delegate basic block builder (must not be {@code null})
      * @return the basic block builder (not {@code null})
      */
-    public static BasicBlockBuilder createBasicBlockBuilder(CompilationContext ctxt, BasicBlockBuilder delegate) {
-        final AbstractSafePointStrategy strategy = ctxt.getAttachment(IMPL_KEY);
+    public static BasicBlockBuilder createBasicBlockBuilder(BasicBlockBuilder.FactoryContext fc, BasicBlockBuilder delegate) {
+        final AbstractSafePointStrategy strategy = delegate.getContext().getAttachment(IMPL_KEY);
         return new DelegatingBasicBlockBuilder(delegate) {
             @Override
             public Node safePoint() {

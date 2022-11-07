@@ -74,9 +74,9 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
     private final float costThreshold = 80.0f;
     private float cost;
 
-    public InliningBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public InliningBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     @Override

@@ -29,9 +29,9 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private final CompilationContext ctxt;
 
-    public ClassLoadingBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public ClassLoadingBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {

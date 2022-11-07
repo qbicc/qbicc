@@ -10,9 +10,9 @@ import org.qbicc.type.ValueType;
 public class ArrayLengthBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public ArrayLengthBasicBlockBuilder(CompilationContext ctxt, BasicBlockBuilder delegate) {
+    public ArrayLengthBasicBlockBuilder(FactoryContext ctxt, BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     @Override

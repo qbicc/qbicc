@@ -3,7 +3,6 @@ package org.qbicc.plugin.patcher;
 import java.util.List;
 
 import org.qbicc.context.ClassContext;
-import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
@@ -25,9 +24,9 @@ public final class PatcherResolverBasicBlockBuilder extends DelegatingBasicBlock
         this.info = info;
     }
 
-    public static BasicBlockBuilder createIfNeeded(CompilationContext ctxt, BasicBlockBuilder delegate) {
-        ClassContext classContext = delegate.getCurrentElement().getEnclosingType().getContext();
-        ClassContextPatchInfo info = Patcher.get(ctxt).get(classContext);
+    public static BasicBlockBuilder createIfNeeded(FactoryContext ctxt, BasicBlockBuilder delegate) {
+        ClassContext classContext = delegate.getCurrentClassContext();
+        ClassContextPatchInfo info = Patcher.get(classContext.getCompilationContext()).get(classContext);
         if (info == null) {
             return delegate;
         }

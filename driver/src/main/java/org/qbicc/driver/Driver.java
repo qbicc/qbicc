@@ -64,19 +64,19 @@ public class Driver implements Closeable {
     final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> addTaskWrapperFactories;
     final List<Consumer<CompilationContext>> preAddHooks;
     final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories;
-    final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> addBuilderFactory;
+    final BiFunction<BasicBlockBuilder.FactoryContext, ExecutableElement, BasicBlockBuilder> addBuilderFactory;
     final List<Consumer<CompilationContext>> postAddHooks;
     // at this point, the phase is switched to ANALYZE
     final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> analyzeTaskWrapperFactories;
     final List<Consumer<CompilationContext>> preAnalyzeHooks;
     final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> addToAnalyzeCopiers;
-    final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> analyzeBuilderFactory;
+    final BiFunction<BasicBlockBuilder.FactoryContext, ExecutableElement, BasicBlockBuilder> analyzeBuilderFactory;
     final List<Consumer<CompilationContext>> postAnalyzeHooks;
     // at this point, the phase is switched to LOWER
     final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> lowerTaskWrapperFactories;
     final List<Consumer<CompilationContext>> preLowerHooks;
     final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> analyzeToLowerCopiers;
-    final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> lowerBuilderFactory;
+    final BiFunction<BasicBlockBuilder.FactoryContext, ExecutableElement, BasicBlockBuilder> lowerBuilderFactory;
     final List<Consumer<CompilationContext>> postLowerHooks;
     // at this point, the phase is switched to GENERATE
     final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> generateTaskWrapperFactories;
@@ -218,12 +218,12 @@ public class Driver implements Closeable {
         };
     }
 
-    private static BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> constructFactory(final Builder builder, final Phase phase) {
-        BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> addWrapper = assembleFactories(builder.builderFactories.getOrDefault(phase, Map.of()));
-        return (ctxt, executableElement) -> addWrapper.apply(ctxt, BasicBlockBuilder.simpleBuilder(ctxt.getTypeSystem(), executableElement));
+    private static BiFunction<BasicBlockBuilder.FactoryContext, ExecutableElement, BasicBlockBuilder> constructFactory(final Builder builder, final Phase phase) {
+        BiFunction<? super BasicBlockBuilder.FactoryContext, BasicBlockBuilder, BasicBlockBuilder> addWrapper = assembleFactories(builder.builderFactories.getOrDefault(phase, Map.of()));
+        return (ctxt, executableElement) -> addWrapper.apply(ctxt, BasicBlockBuilder.simpleBuilder(executableElement));
     }
 
-    private static BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> assembleFactories(Map<BuilderStage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>> map) {
+    private static BiFunction<? super BasicBlockBuilder.FactoryContext, BasicBlockBuilder, BasicBlockBuilder> assembleFactories(Map<BuilderStage, List<BiFunction<? super BasicBlockBuilder.FactoryContext, BasicBlockBuilder, BasicBlockBuilder>>> map) {
         return assembleFactories(List.of(
             assembleFactories(map.getOrDefault(BuilderStage.TRANSFORM, List.of())),
             assembleFactories(map.getOrDefault(BuilderStage.CORRECT, List.of())),
@@ -232,17 +232,17 @@ public class Driver implements Closeable {
         ));
     }
 
-    private static BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> assembleFactories(List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> list) {
+    private static BiFunction<? super BasicBlockBuilder.FactoryContext, BasicBlockBuilder, BasicBlockBuilder> assembleFactories(List<BiFunction<? super BasicBlockBuilder.FactoryContext, BasicBlockBuilder, BasicBlockBuilder>> list) {
         if (list.isEmpty()) {
             return (c, b) -> b;
         }
         if (list.size() == 1) {
             return list.get(0);
         }
-        List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> copy = new ArrayList<>(list);
+        List<BiFunction<? super BasicBlockBuilder.FactoryContext, BasicBlockBuilder, BasicBlockBuilder>> copy = new ArrayList<>(list);
         Collections.reverse(copy);
         return (c, builder) -> {
-            for (BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> fn : copy) {
+            for (BiFunction<? super BasicBlockBuilder.FactoryContext , BasicBlockBuilder, BasicBlockBuilder> fn : copy) {
                 builder = fn.apply(c, builder);
             }
             return builder;
@@ -643,7 +643,7 @@ public class Driver implements Closeable {
         final List<ClassPathItem> bootClassPath = new ArrayList<>();
         final List<ClassPathItem> appClassPath = new ArrayList<>();
         final List<ClassPathItem> appModulePath = new ArrayList<>();
-        final Map<Phase, Map<BuilderStage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>>> builderFactories = new EnumMap<>(Phase.class);
+        final Map<Phase, Map<BuilderStage, List<BiFunction<? super BasicBlockBuilder.FactoryContext, BasicBlockBuilder, BasicBlockBuilder>>>> builderFactories = new EnumMap<>(Phase.class);
         final Map<Phase, List<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>>>> copyFactories = new EnumMap<>(Phase.class);
         final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories = new ArrayList<>();
         final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories = new ArrayList<>();
@@ -718,7 +718,7 @@ public class Driver implements Closeable {
             return new ArrayList<>();
         }
 
-        public Builder addBuilderFactory(Phase phase, BuilderStage stage, BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> factory) {
+        public Builder addBuilderFactory(Phase phase, BuilderStage stage, BiFunction<? super BasicBlockBuilder.FactoryContext, BasicBlockBuilder, BasicBlockBuilder> factory) {
             Assert.checkNotNullParam("phase", phase);
             Assert.checkNotNullParam("stage", stage);
             Assert.checkNotNullParam("factory", factory);

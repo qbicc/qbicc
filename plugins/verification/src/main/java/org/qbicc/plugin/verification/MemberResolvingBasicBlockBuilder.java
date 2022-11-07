@@ -52,12 +52,10 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     private static final AttachmentKey<Info> KEY = new AttachmentKey<>();
 
     private final CompilationContext ctxt;
-    private final ClassContext classContext;
 
-    public MemberResolvingBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public MemberResolvingBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
-        this.classContext = getRootElement().getEnclosingType().getContext();
+        this.ctxt = getContext();
     }
 
     public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {

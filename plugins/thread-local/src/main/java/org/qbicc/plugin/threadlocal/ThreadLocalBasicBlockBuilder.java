@@ -16,9 +16,9 @@ import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 public class ThreadLocalBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public ThreadLocalBasicBlockBuilder(CompilationContext ctxt, BasicBlockBuilder delegate) {
+    public ThreadLocalBasicBlockBuilder(FactoryContext ctxt, BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     @Override

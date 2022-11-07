@@ -4,10 +4,12 @@ import static org.qbicc.graph.atomic.AccessModes.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Locatable;
@@ -789,4 +791,67 @@ public interface BasicBlockBuilder extends Locatable {
      */
     BasicBlock getTerminatedBlock();
 
+    static BasicBlockBuilder simpleBuilder(final ExecutableElement element) {
+        return new SimpleBasicBlockBuilder(element);
+    }
+
+    /**
+     * An object used to provide additional context to basic block builder construction.
+     */
+    interface FactoryContext {
+        /**
+         * Get a piece of context information, if available.
+         *
+         * @param clazz the class of the context information (must not be {@code null})
+         * @return the context information (not {@code null})
+         * @param <T> the context information type
+         */
+        <T> T get(Class<T> clazz);
+
+        boolean has(Class<?> clazz);
+
+        /**
+         * An empty factory context.
+         */
+        FactoryContext EMPTY = new FactoryContext() {
+            @Override
+            public <T> T get(Class<T> clazz) {
+                throw new NoSuchElementException();
+            }
+
+            @Override
+            public boolean has(Class<?> clazz) {
+                return false;
+            }
+        };
+
+        /**
+         * Get a factory context which holds a piece of context information.
+         *
+         * @param delegate the delegate factory context (must not be {@code null})
+         * @param info the context information (must not be {@code null})
+         * @return the factory context (not {@code null})
+         * @param <T> the context information type
+         */
+        static <T> FactoryContext withInfo(FactoryContext delegate, Class<T> clazz, T info) {
+            Assert.checkNotNullParam("delegate", delegate);
+            Assert.checkNotNullParam("clazz", clazz);
+            Assert.checkNotNullParam("info", info);
+            return new FactoryContext() {
+                @Override
+                public <T> T get(Class<T> clazz0) {
+                    if (clazz0 == clazz) {
+                        return clazz0.cast(info);
+                    } else {
+                        return delegate.get(clazz0);
+                    }
+                }
+
+                @Override
+                public boolean has(Class<?> clazz0) {
+                    return clazz == clazz0 || delegate.has(clazz0);
+                }
+            };
+        }
+    }
 }

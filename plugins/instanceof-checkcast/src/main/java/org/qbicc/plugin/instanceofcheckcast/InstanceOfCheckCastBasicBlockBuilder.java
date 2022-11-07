@@ -40,9 +40,9 @@ import org.qbicc.type.definition.element.MethodElement;
 public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public InstanceOfCheckCastBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public InstanceOfCheckCastBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     public Value checkcast(Value input, Value toType, Value toDimensions, CheckCast.CastType kind, ObjectType expectedType) {

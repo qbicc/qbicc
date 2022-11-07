@@ -57,8 +57,9 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     private final CompilationContext ctxt;
     private final ExecutableElement originalElement;
 
-    public InvocationLoweringBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public InvocationLoweringBasicBlockBuilder(final FactoryContext fc, final BasicBlockBuilder delegate) {
         super(delegate);
+        CompilationContext ctxt = getContext();
         this.ctxt = ctxt;
         originalElement = delegate.getCurrentElement();
     }

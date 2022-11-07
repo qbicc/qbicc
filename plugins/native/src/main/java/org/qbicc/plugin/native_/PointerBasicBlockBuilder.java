@@ -31,9 +31,9 @@ import org.qbicc.type.VoidType;
 public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public PointerBasicBlockBuilder(CompilationContext ctxt, BasicBlockBuilder delegate) {
+    public PointerBasicBlockBuilder(FactoryContext ctxt, BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     @Override

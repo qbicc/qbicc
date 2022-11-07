@@ -1,6 +1,5 @@
 package org.qbicc.plugin.gc.common.safepoint;
 
-import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
@@ -15,7 +14,7 @@ public final class SafePointPlacementBasicBlockBuilder extends DelegatingBasicBl
         super(delegate);
     }
 
-    public static BasicBlockBuilder createIfNeeded(CompilationContext ctxt, BasicBlockBuilder delegate) {
+    public static BasicBlockBuilder createIfNeeded(FactoryContext ctxt, BasicBlockBuilder delegate) {
         final boolean noSafePoints = delegate.getCurrentElement().hasAllModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS);
         return noSafePoints ? delegate : new SafePointPlacementBasicBlockBuilder(delegate);
     }

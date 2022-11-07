@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
@@ -22,22 +21,20 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * to all possible exit paths.
  */
 public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBuilder {
-    private final CompilationContext ctxt;
     private final Value monitor;
     private boolean started;
     private final ReferenceType throwable;
 
-    private SynchronizedMethodBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    private SynchronizedMethodBasicBlockBuilder(final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
         ExecutableElement element = getCurrentElement();
         DefinedTypeDefinition enclosing = element.getEnclosingType();
         if (element.isStatic()) {
-            monitor = classOf(ctxt.getLiteralFactory().literalOfType(enclosing.load().getObjectType()), ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getUnsignedInteger8Type()));
+            monitor = classOf(getLiteralFactory().literalOfType(enclosing.load().getObjectType()), getLiteralFactory().zeroInitializerLiteralOfType(getTypeSystem().getUnsignedInteger8Type()));
         } else {
             monitor = notNull(parameter(enclosing.load().getObjectType().getReference(), "this", 0));
         }
-        throwable = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Throwable").load().getClassType().getReference();
+        throwable = getContext().getBootstrapClassContext().findDefinedType("java/lang/Throwable").load().getClassType().getReference();
     }
 
     public Node begin(final BlockLabel blockLabel) {
@@ -75,9 +72,9 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
         return super.throw_(value);
     }
 
-    public static BasicBlockBuilder createIfNeeded(CompilationContext ctxt, BasicBlockBuilder delegate) {
+    public static BasicBlockBuilder createIfNeeded(FactoryContext fc, BasicBlockBuilder delegate) {
         if (delegate.getCurrentElement().hasAllModifiersOf(ClassFile.ACC_SYNCHRONIZED)) {
-            return new SynchronizedMethodBasicBlockBuilder(ctxt, delegate);
+            return new SynchronizedMethodBasicBlockBuilder(delegate);
         } else {
             return delegate;
         }

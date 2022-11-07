@@ -86,7 +86,7 @@ final class CompilationContextImpl implements CompilationContext {
     private final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories;
 
     // mutable state
-    private volatile BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
+    private volatile BiFunction<BasicBlockBuilder.FactoryContext, ExecutableElement, BasicBlockBuilder> blockFactory;
     private volatile BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> copier;
     private final Vm vm;
     private final NativeMethodConfigurator nativeMethodConfigurator;
@@ -599,11 +599,11 @@ final class CompilationContextImpl implements CompilationContext {
         return entryPoints;
     }
 
-    BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> getBlockFactory() {
+    BiFunction<BasicBlockBuilder.FactoryContext, ExecutableElement, BasicBlockBuilder> getBlockFactory() {
         return blockFactory;
     }
 
-    void setBlockFactory(final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory) {
+    void setBlockFactory(final BiFunction<BasicBlockBuilder.FactoryContext, ExecutableElement, BasicBlockBuilder> blockFactory) {
         this.blockFactory = blockFactory;
     }
 
