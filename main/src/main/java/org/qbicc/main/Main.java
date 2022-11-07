@@ -50,6 +50,7 @@ import org.qbicc.driver.ElementVisitorAdapter;
 import org.qbicc.driver.GraphGenConfig;
 import org.qbicc.driver.Phase;
 import org.qbicc.driver.plugin.DriverPlugin;
+import org.qbicc.plugin.correctness.ConstraintMaterializingBasicBlockBuilder;
 import org.qbicc.plugin.initializationcontrol.RuntimeResourceManager;
 import org.qbicc.plugin.reachability.ReachabilityFactsSetup;
 import org.qbicc.interpreter.Vm;
@@ -539,7 +540,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (optMemoryTracking) {
                                     builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
                                 }
-//                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, ConstraintMaterializingBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, ConstraintMaterializingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 if (optInlining) {
