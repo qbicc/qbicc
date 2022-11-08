@@ -84,4 +84,7 @@ public final class Values {
         return LLVM.asm(instruction, constraints, flags);
     }
 
+    public static LazyLLValue newLazyValue() {
+        return LLVM.newLazyValue();
+    }
 }

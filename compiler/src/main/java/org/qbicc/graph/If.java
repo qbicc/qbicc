@@ -2,7 +2,6 @@ package org.qbicc.graph;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.SortedMap;
 
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -16,24 +15,13 @@ public final class If extends AbstractTerminator implements Terminator {
     private final BlockLabel falseBranchLabel;
     private final BasicBlock terminatedBlock;
 
-    If(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value condition, final BlockLabel trueBranchLabel, final BlockLabel falseBranchLabel, SortedMap<Slot, BlockParameter> parameters, Map<Slot, Value> blockArgs) {
+    If(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value condition, final BlockLabel trueBranchLabel, final BlockLabel falseBranchLabel, Map<Slot, Value> blockArgs) {
         super(callSite, element, line, bci, blockArgs);
-        terminatedBlock = new BasicBlock(blockEntry, this, parameters);
+        terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.condition = condition;
         this.trueBranchLabel = trueBranchLabel;
         this.falseBranchLabel = falseBranchLabel;
-    }
-
-    @Override
-    public Value getOutboundValue(PhiValue phi) {
-        Value outboundValue = super.getOutboundValue(phi);
-        if (phi.getPinnedBlock().equals(getTrueBranch())) {
-            return condition.getValueIfTrue(outboundValue);
-        } else if (phi.getPinnedBlock().equals(getFalseBranch())) {
-            return condition.getValueIfFalse(outboundValue);
-        }
-        return outboundValue;
     }
 
     public BasicBlock getTerminatedBlock() {

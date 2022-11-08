@@ -29,8 +29,9 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
     private final CoreClasses coreClasses;
 
-    public NoGcBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public NoGcBasicBlockBuilder(final FactoryContext fc, final BasicBlockBuilder delegate) {
         super(delegate);
+        CompilationContext ctxt = getContext();
         this.ctxt = ctxt;
         this.coreClasses = CoreClasses.get(ctxt);
     }

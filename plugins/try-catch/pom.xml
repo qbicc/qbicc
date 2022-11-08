@@ -24,6 +24,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-layout</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.qbicc</groupId>
+            <artifactId>qbicc-plugin-correctness</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

@@ -9,7 +9,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 /**
  * An array value with an inserted element.
  */
-public final class InsertElement extends AbstractValue implements Unschedulable {
+public final class InsertElement extends AbstractValue {
     private final Value arrayValue;
     private final ArrayType arrayType;
     private final Value index;

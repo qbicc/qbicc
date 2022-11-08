@@ -1,6 +1,7 @@
 package org.qbicc.graph;
 
 import org.qbicc.graph.atomic.AccessMode;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
 
@@ -22,6 +23,15 @@ public interface ValueHandle extends Unschedulable {
      */
     default ValueType getPointeeType() {
         return getType().getPointeeType();
+    }
+
+    /**
+     * Get the return type of this value handle. If it is not a pointer to something invokable, an exception is thrown.
+     *
+     * @return the return type
+     */
+    default ValueType getReturnType() {
+        return getType().getPointeeType(InvokableType.class).getReturnType();
     }
 
     /**

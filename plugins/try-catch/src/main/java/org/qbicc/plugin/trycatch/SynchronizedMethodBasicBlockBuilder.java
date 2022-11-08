@@ -1,17 +1,17 @@
 package org.qbicc.plugin.trycatch;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
-import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -21,87 +21,53 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * A basic block builder which adds a monitor acquire to the start of the subprogram and adds a monitor release
  * to all possible exit paths.
  */
-public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBuilder implements BasicBlockBuilder.ExceptionHandlerPolicy {
-    private final CompilationContext ctxt;
-    private final Value monitor;
-    private boolean started;
+public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBuilder {
+    private static final Slot THROWN = Slot.thrown();
+    private Value monitor;
     private final ReferenceType throwable;
-    private ExceptionHandlerPolicy outerPolicy;
-    private final Map<ExceptionHandler, ExceptionHandler> handlers = new HashMap<>();
+    private boolean started;
 
-    private SynchronizedMethodBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    private SynchronizedMethodBasicBlockBuilder(final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
-        ExecutableElement element = getCurrentElement();
-        DefinedTypeDefinition enclosing = element.getEnclosingType();
-        if (element.isStatic()) {
-            monitor = classOf(ctxt.getLiteralFactory().literalOfType(enclosing.load().getObjectType()), ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getUnsignedInteger8Type()));
-        } else {
-            monitor = notNull(parameter(enclosing.load().getObjectType().getReference(), "this", 0));
-        }
-        throwable = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Throwable").load().getClassType().getReference();
+        throwable = getContext().getBootstrapClassContext().findDefinedType("java/lang/Throwable").load().getClassType().getReference();
     }
 
-    public void setExceptionHandlerPolicy(final ExceptionHandlerPolicy policy) {
-        outerPolicy = policy;
-    }
-
-    public ExceptionHandler computeCurrentExceptionHandler(final ExceptionHandler delegate) {
-        ExceptionHandler handler = handlers.get(delegate);
-        if (handler == null) {
-            handlers.put(delegate, handler = new ExceptionHandlerImpl(delegate));
-        }
-        // our handler comes *after* any outer policy's (i.e. class file) handler
-        if (outerPolicy != null) {
-            handler = outerPolicy.computeCurrentExceptionHandler(handler);
-        }
-        return handler;
-    }
-
-    final class ExceptionHandlerImpl implements ExceptionHandler {
-        private final PhiValue phi;
-        private final ExceptionHandler delegate;
-
-        ExceptionHandlerImpl(final ExceptionHandler delegate) {
-            this.delegate = delegate;
-            phi = phi(throwable, new BlockLabel(), PhiValue.Flag.NOT_NULL);
-        }
-
-        public BlockLabel getHandler() {
-            return phi.getPinnedBlockLabel();
-        }
-
-        public void enterHandler(final BasicBlock from, final BasicBlock landingPad, final Value exceptionValue) {
-            if (landingPad != null) {
-                phi.setValueForBlock(ctxt, getCurrentElement(), landingPad, exceptionValue);
-            } else {
-                // direct (local) throw
-                phi.setValueForBlock(ctxt, getCurrentElement(), from, exceptionValue);
-            }
-            BlockLabel label = phi.getPinnedBlockLabel();
-            if (! label.hasTarget()) {
-                // generate the new handler body
-                begin(label);
-                // release the lock
-                monitorExit(monitor);
-                // hopefully the delegate simply rethrows
-                BasicBlock ourFrom = goto_(delegate.getHandler(), Map.of(Slot.thrown(), exceptionValue));
-                // direct goto next block (no landing pad)
-                delegate.enterHandler(ourFrom, null, phi);
-            }
-        }
-    }
-
-    public Node begin(final BlockLabel blockLabel) {
+    @Override
+    public Node begin(BlockLabel blockLabel) {
         Node node = super.begin(blockLabel);
         if (! started) {
-            // method start
             started = true;
-            Node monitorEnter = monitorEnter(monitor);
-            getDelegate().setExceptionHandlerPolicy(this);
-            return monitorEnter;
+            ExecutableElement element = getCurrentElement();
+            DefinedTypeDefinition enclosing = element.getEnclosingType();
+            if (element.isStatic()) {
+                monitor = classOf(enclosing.load().getObjectType());
+            } else {
+                monitor = addParam(blockLabel, Slot.this_(), enclosing.load().getObjectType().getReference(), false);
+            }
+            monitorEnter(monitor);
         }
         return node;
+    }
+
+    @Override
+    public <T> BasicBlock begin(BlockLabel blockLabel, T arg, BiConsumer<T, BasicBlockBuilder> maker) {
+        if (! started) {
+            ExecutableElement element = getCurrentElement();
+            DefinedTypeDefinition enclosing = element.getEnclosingType();
+            if (element.isStatic()) {
+                monitor = classOf(enclosing.load().getObjectType());
+            } else {
+                monitor = addParam(blockLabel, Slot.this_(), enclosing.load().getObjectType().getReference(), false);
+            }
+            // method start
+            return super.begin(blockLabel, bbb -> {
+                started = true;
+                monitorEnter(monitor);
+                maker.accept(arg, bbb);
+            });
+        } else {
+            return super.begin(blockLabel, arg, maker);
+        }
     }
 
     public BasicBlock return_(final Value value) {
@@ -110,15 +76,45 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     public BasicBlock throw_(final Value value) {
-        // note: this must come *after* the local throw handling builder otherwise problems will result;
-        // local throw will transform `throw` to `goto`, resulting in extra monitor releases
         monitorExit(monitor);
         return super.throw_(value);
     }
 
-    public static BasicBlockBuilder createIfNeeded(CompilationContext ctxt, BasicBlockBuilder delegate) {
+    @Override
+    public Value call(ValueHandle target, List<Value> arguments) {
+        BlockLabel resumeLabel = new BlockLabel();
+        BlockLabel handlerLabel = new BlockLabel();
+        Value rv = invoke(target, arguments, BlockLabel.of(begin(handlerLabel, ignored -> throw_(addParam(handlerLabel, THROWN, throwable, false)))), resumeLabel, Map.of());
+        begin(resumeLabel);
+        return addParam(resumeLabel, Slot.result(), rv.getType());
+    }
+
+    @Override
+    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+        BlockLabel handlerLabel = new BlockLabel();
+        return invokeNoReturn(target, arguments, BlockLabel.of(begin(handlerLabel, ignored -> throw_(addParam(handlerLabel, THROWN, throwable, false)))), Map.of());
+    }
+
+    @Override
+    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+        // tail calls don't work with synchronized
+        BasicBlockBuilder fb = getFirstBuilder();
+        return fb.return_(fb.call(target, arguments));
+    }
+
+    @Override
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        // tail calls don't work with synchronized
+        BasicBlockBuilder fb = getFirstBuilder();
+        BlockLabel resumeLabel = new BlockLabel();
+        fb.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
+        fb.begin(resumeLabel);
+        return fb.return_(fb.addParam(resumeLabel, Slot.result(), target.getReturnType()));
+    }
+
+    public static BasicBlockBuilder createIfNeeded(FactoryContext fc, BasicBlockBuilder delegate) {
         if (delegate.getCurrentElement().hasAllModifiersOf(ClassFile.ACC_SYNCHRONIZED)) {
-            return new SynchronizedMethodBasicBlockBuilder(ctxt, delegate);
+            return new SynchronizedMethodBasicBlockBuilder(delegate);
         } else {
             return delegate;
         }

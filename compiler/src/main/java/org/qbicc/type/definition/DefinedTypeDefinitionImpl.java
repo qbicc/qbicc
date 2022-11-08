@@ -17,7 +17,8 @@ import org.qbicc.context.Location;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.ParameterValue;
+import org.qbicc.graph.BlockParameter;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.type.InstanceMethodType;
@@ -328,27 +329,21 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                         // synthesize parameter objects
                                         builder.setParameters(copyParametersFrom(element));
                                         builder.setMethodBodyFactory((index, e) -> {
-                                            LoadedTypeDefinition ltd = e.getEnclosingType().load();
                                             BasicBlockBuilder bbb = context.newBasicBlockBuilder(e);
-                                            ReferenceType thisType = ltd.getObjectType().getReference();
-                                            ParameterValue thisValue = bbb.parameter(thisType, "this", 0);
                                             InvokableType type = e.getType();
                                             int pcnt = type.getParameterCount();
-                                            List<ParameterValue> paramValues = new ArrayList<>(pcnt);
-                                            for (int i = 0; i < pcnt; i ++) {
-                                                paramValues.add(bbb.parameter(type.getParameterType(i), "p", i));
-                                            }
-                                            bbb.startMethod(paramValues);
                                             // build the entry block
                                             BlockLabel entryLabel = new BlockLabel();
-                                            bbb.begin(entryLabel);
-                                            ClassContext bc = context.getCompilationContext().getBootstrapClassContext();
-                                            LoadedTypeDefinition vmHelpers = bc.findDefinedType("org/qbicc/runtime/main/VMHelpers").load();
-                                            MethodElement icce = vmHelpers.resolveMethodElementExact("raiseIncompatibleClassChangeError", MethodDescriptor.synthesize(bc, BaseTypeDescriptor.V, List.of()));
-                                            BasicBlock entryBlock = bbb.callNoReturn(bbb.staticMethod(icce), List.of());
+                                            BasicBlock entryBlock = bbb.begin(entryLabel, ib -> {
+                                                ClassContext bc = ib.getContext().getBootstrapClassContext();
+                                                LoadedTypeDefinition vmHelpers = bc.findDefinedType("org/qbicc/runtime/main/VMHelpers").load();
+                                                MethodElement icce = vmHelpers.resolveMethodElementExact("raiseIncompatibleClassChangeError", MethodDescriptor.synthesize(bc, BaseTypeDescriptor.V, List.of()));
+                                                ib.callNoReturn(ib.staticMethod(icce), List.of());
+                                            });
+                                            // that's all
                                             bbb.finish();
                                             Schedule schedule = Schedule.forMethod(entryBlock);
-                                            return MethodBody.of(entryBlock, schedule, thisValue, paramValues);
+                                            return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(pcnt));
                                         }, 0);
                                         methodsList.add(builder.build());
                                         continue nextMethod;
@@ -377,23 +372,19 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                     LoadedTypeDefinition ltd = e.getEnclosingType().load();
                                     BasicBlockBuilder bbb = context.newBasicBlockBuilder(e);
                                     ReferenceType thisType = ltd.getObjectType().getReference();
-                                    ParameterValue thisValue = bbb.parameter(thisType, "this", 0);
-                                    InstanceMethodType type = (InstanceMethodType) e.getType();
-                                    int pcnt = type.getParameterCount();
-                                    List<ParameterValue> paramValues = new ArrayList<>(pcnt);
-                                    for (int i = 0; i < pcnt; i ++) {
-                                        paramValues.add(bbb.parameter(type.getParameterType(i), "p", i));
-                                    }
-                                    bbb.startMethod(paramValues);
                                     // build the entry block
                                     BlockLabel entryLabel = new BlockLabel();
-                                    bbb.begin(entryLabel);
-                                    // just cast the list because it's fine; todo: maybe this method should accept List<? extends Value>
-                                    //noinspection unchecked,rawtypes
-                                    BasicBlock entryBlock = bbb.tailCall(bbb.exactMethodOf(thisValue, finalDefaultMethod), (List<Value>) (List) paramValues);
+                                    BlockParameter thisValue = bbb.addParam(entryLabel, Slot.this_(), thisType, false);
+                                    InstanceMethodType type = (InstanceMethodType) e.getType();
+                                    int pcnt = type.getParameterCount();
+                                    List<Value> paramValues = new ArrayList<>(pcnt);
+                                    for (int i = 0; i < pcnt; i ++) {
+                                        paramValues.add(bbb.addParam(entryLabel, Slot.funcParam(i), type.getParameterType(i)));
+                                    }
+                                    BasicBlock entryBlock = bbb.begin(entryLabel, ib -> ib.tailCall(ib.exactMethodOf(thisValue, finalDefaultMethod), paramValues));
                                     bbb.finish();
                                     Schedule schedule = Schedule.forMethod(entryBlock);
-                                    return MethodBody.of(entryBlock, schedule, thisValue, paramValues);
+                                    return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(pcnt));
                                 }, 0);
                             }
                             methodsList.add(builder.build());

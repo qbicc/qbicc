@@ -31,22 +31,22 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
     private final CompilationContext ctxt;
     private final Phase phase;
 
-    private IntrinsicBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate, Phase phase) {
+    private IntrinsicBasicBlockBuilder(final BasicBlockBuilder delegate, Phase phase) {
         super(delegate);
         this.phase = phase;
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
-    public static IntrinsicBasicBlockBuilder createForAddPhase(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
-        return new IntrinsicBasicBlockBuilder(ctxt, delegate, Phase.ADD);
+    public static IntrinsicBasicBlockBuilder createForAddPhase(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
+        return new IntrinsicBasicBlockBuilder(delegate, Phase.ADD);
     }
 
-    public static IntrinsicBasicBlockBuilder createForAnalyzePhase(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
-        return new IntrinsicBasicBlockBuilder(ctxt, delegate, Phase.ANALYZE);
+    public static IntrinsicBasicBlockBuilder createForAnalyzePhase(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
+        return new IntrinsicBasicBlockBuilder(delegate, Phase.ANALYZE);
     }
 
-    public static IntrinsicBasicBlockBuilder createForLowerPhase(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
-        return new IntrinsicBasicBlockBuilder(ctxt, delegate, Phase.LOWER);
+    public static IntrinsicBasicBlockBuilder createForLowerPhase(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
+        return new IntrinsicBasicBlockBuilder(delegate, Phase.LOWER);
     }
 
     @Override

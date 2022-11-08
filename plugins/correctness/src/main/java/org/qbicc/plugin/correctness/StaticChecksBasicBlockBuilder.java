@@ -31,12 +31,10 @@ import org.qbicc.type.definition.element.ExecutableElement;
  */
 public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
-    private final ExecutableElement originalElement;
 
-    public StaticChecksBasicBlockBuilder(CompilationContext ctxt, BasicBlockBuilder delegate) {
+    public StaticChecksBasicBlockBuilder(FactoryContext ctxt, BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
-        this.originalElement = delegate.getCurrentElement();
+        this.ctxt = getContext();
     }
 
     @Override

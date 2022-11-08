@@ -25,9 +25,9 @@ import org.qbicc.type.definition.element.FieldElement;
 public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<Void, ValueHandle> {
     private final CompilationContext ctxt;
 
-    public ObjectAccessLoweringBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public ObjectAccessLoweringBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     @Override

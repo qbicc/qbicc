@@ -22,9 +22,9 @@ import org.qbicc.type.descriptor.TypeDescriptor;
 public final class VarHandleResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public VarHandleResolvingBasicBlockBuilder(CompilationContext ctxt, BasicBlockBuilder delegate) {
+    public VarHandleResolvingBasicBlockBuilder(FactoryContext ctxt, BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     @Override

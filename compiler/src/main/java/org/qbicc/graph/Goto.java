@@ -13,9 +13,9 @@ public final class Goto extends AbstractTerminator implements Resume {
     private final BlockLabel targetLabel;
     private final BasicBlock terminatedBlock;
 
-    Goto(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, Node dependency, BlockLabel targetLabel, Map<Slot, BlockParameter> parameters, Map<Slot, Value> targetArguments) {
+    Goto(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, Node dependency, BlockLabel targetLabel, Map<Slot, Value> targetArguments) {
         super(callSite, element, line, bci, targetArguments);
-        terminatedBlock = new BasicBlock(blockEntry, this, parameters);
+        terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.targetLabel = targetLabel;
     }

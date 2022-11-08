@@ -31,9 +31,9 @@ import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 public class FinalFieldLoadOptimizer extends DelegatingBasicBlockBuilder {
     final CompilationContext ctxt;
 
-    public FinalFieldLoadOptimizer(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public FinalFieldLoadOptimizer(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     @Override

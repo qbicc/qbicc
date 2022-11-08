@@ -5,12 +5,12 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 import io.smallrye.common.constraint.Assert;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.type.ReferenceType;
 
 /**
@@ -21,20 +21,21 @@ public final class BasicBlock {
 
     private final BlockEntry blockEntry;
     private final Terminator terminator;
-    private final Map<Slot, BlockParameter> parameters;
     private BlockLabel myLabel;
     private boolean reachable;
+    // set by scheduler
     private Set<BasicBlock> incoming = Set.of();
     private Set<Loop> loops = Set.of();
     private int index;
     @SuppressWarnings("unused") // localLiveInsHandle
     private volatile Set<Value> locallyUsedRefs;
     private volatile Set<Value> liveOuts;
+    private List<Node> instructions;
+    private Map<Slot, BlockParameter> usedParameters;
 
-    BasicBlock(final BlockEntry blockEntry, final Terminator terminator, Map<Slot, BlockParameter> parameters) {
+    BasicBlock(final BlockEntry blockEntry, final Terminator terminator) {
         this.blockEntry = blockEntry;
         this.terminator = terminator;
-        this.parameters = parameters;
     }
 
     public BlockEntry getBlockEntry() {
@@ -65,29 +66,49 @@ public final class BasicBlock {
     }
 
     /**
+     * Get the sequence of instructions for this block.
+     *
+     * @return the instruction list (not {@code null})
+     */
+    public List<Node> getInstructions() {
+        List<Node> instructions = this.instructions;
+        if (instructions == null) {
+            throw new IllegalStateException("Scheduling is not yet complete");
+        }
+        return instructions;
+    }
+
+    public void setInstructions(List<Node> instructions) {
+        // only call from scheduler...
+        this.instructions = instructions;
+    }
+
+    /**
+     * Get the block parameter for the given slot, if any.
+     *
+     * @param slot the slot (must not be {@code null})
+     * @return the block parameter, or {@code null} if there is none for {@code slot} or there is but it was never used
+     */
+    public BlockParameter getBlockParameter(Slot slot) {
+        Map<Slot, BlockParameter> usedParameters = this.usedParameters;
+        if (usedParameters == null) {
+            throw new IllegalStateException("Scheduling is not yet complete");
+        }
+        return usedParameters.get(slot);
+    }
+
+    public void setUsedParameters(Map<Slot, BlockParameter> usedParameters) {
+        // only call from scheduler...
+        this.usedParameters = usedParameters;
+    }
+
+    /**
      * Get the set of loops that this block is a part of.
      *
      * @return the set of loops that this block is a part of
      */
     public Set<Loop> getLoops() {
         return loops;
-    }
-
-    /**
-     * Get the set of parameters that this block accepts.
-     *
-     * @return the parameter set
-     */
-    public Set<Slot> getParameters() {
-        return parameters.keySet();
-    }
-
-    public BlockParameter getParameterValue(Slot slot) {
-        BlockParameter value = parameters.get(slot);
-        if (value == null) {
-            throw new IllegalArgumentException("No parameter named " + slot + " on " + this);
-        }
-        return value;
     }
 
     void setLoops(Set<Loop> loops) {
@@ -159,14 +180,13 @@ public final class BasicBlock {
     /**
      * Get the set of reference-typed values that are used locally within this block.
      *
-     * @param schedule the schedule to use (must not be {@code null})
      * @return the (possibly empty) set of locally-used values
      */
-    public Set<Value> getLocallyUsedReferenceValues(Schedule schedule) {
+    public Set<Value> getLocallyUsedReferenceValues() {
         Set<Value> locallyUsedRefs = this.locallyUsedRefs;
         if (locallyUsedRefs == null) {
             HashSet<Value> live = new HashSet<>();
-            for (Node node : schedule.getNodesForBlock(this)) {
+            for (Node node : getInstructions()) {
                 final int cnt = node.getValueDependencyCount();
                 for (int i = 0; i < cnt; i ++) {
                     final Value value = node.getValueDependency(i);
@@ -188,10 +208,9 @@ public final class BasicBlock {
     /**
      * Get the set of reference-typed values that must be alive when this block exits.
      *
-     * @param schedule the schedule to use (must not be {@code null})
      * @return the (possibly empty) set of live values
      */
-    public Set<Value> getLiveOuts(Schedule schedule) {
+    public Set<Value> getLiveOuts() {
         Set<Value> liveOuts = this.liveOuts;
         if (liveOuts == null) {
             synchronized (this) {
@@ -202,7 +221,7 @@ public final class BasicBlock {
                     if (cnt == 0) {
                         this.liveOuts = liveOuts = Set.of();
                     } else {
-                        this.liveOuts = liveOuts = Set.copyOf(visitForLiveOuts(schedule, this, new HashSet<>(), new HashSet<>()));
+                        this.liveOuts = liveOuts = Set.copyOf(visitForLiveOuts(this, new HashSet<>(), new HashSet<>()));
                     }
                 }
             }
@@ -210,14 +229,14 @@ public final class BasicBlock {
         return liveOuts;
     }
 
-    private HashSet<Value> visitForLiveOuts(Schedule schedule, BasicBlock block, HashSet<BasicBlock> visited, HashSet<Value> live) {
+    private HashSet<Value> visitForLiveOuts(BasicBlock block, HashSet<BasicBlock> visited, HashSet<Value> live) {
         final Terminator t = block.getTerminator();
         final int cnt = t.getSuccessorCount();
         for (int i = 0; i < cnt; i ++) {
             final BasicBlock successor = t.getSuccessor(i);
             if (visited.add(successor)){
-                live.addAll(successor.getLocallyUsedReferenceValues(schedule));
-                visitForLiveOuts(schedule, successor, visited, live);
+                live.addAll(successor.getLocallyUsedReferenceValues());
+                visitForLiveOuts(successor, visited, live);
             }
         }
         return live;

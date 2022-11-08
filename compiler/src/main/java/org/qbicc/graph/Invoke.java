@@ -29,10 +29,10 @@ public final class Invoke extends AbstractTerminator implements Resume {
     private final BlockLabel resumeLabel;
     private final ReturnValue returnValue;
 
-    Invoke(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, BlockParameter> parameters, Map<Slot, Value> targetArguments) {
+    Invoke(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         super(callSite, element, line, bci, targetArguments);
         this.dependency = dependency;
-        this.terminatedBlock = new BasicBlock(blockEntry, this, parameters);
+        this.terminatedBlock = new BasicBlock(blockEntry, this);
         this.target = target;
         this.arguments = arguments;
         this.catchLabel = catchLabel;
@@ -134,6 +134,11 @@ public final class Invoke extends AbstractTerminator implements Resume {
     @Override
     public BasicBlock getSuccessor(int index) {
         return index == 0 ? getResumeTarget() : index == 1 ? getCatchBlock() : Util.throwIndexOutOfBounds(index);
+    }
+
+    @Override
+    public boolean isImplicitOutboundArgument(Slot slot, BasicBlock block) {
+        return slot == Slot.thrown() && block == getCatchBlock() || slot == Slot.result() && block == getResumeTarget();
     }
 
     @Override

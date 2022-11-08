@@ -7,7 +7,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import io.smallrye.common.constraint.Assert;
 import org.objectweb.asm.ClassReader;
@@ -18,8 +17,10 @@ import org.qbicc.context.ClassContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.ParameterValue;
+import org.qbicc.graph.BlockParameter;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -79,6 +80,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
     private static final VarHandle annotationArrayHandle = MethodHandles.arrayElementVarHandle(Annotation[].class);
     private static final VarHandle annotationArrayArrayHandle = MethodHandles.arrayElementVarHandle(Annotation[][].class);
     private static final VarHandle descriptorArrayHandle = MethodHandles.arrayElementVarHandle(Descriptor[].class);
+    private static final BlockParameter[] NO_PARAMETERS = new BlockParameter[0];
 
     private final int[] cpOffsets;
     private final String[] strings;
@@ -1262,7 +1264,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         int modifiers = element.getModifiers();
         ClassMethodInfo classMethodInfo = new ClassMethodInfo(this, element, modifiers, index, codeAttr);
         DefinedTypeDefinition enclosing = element.getEnclosingType();
-        BasicBlockBuilder gf = enclosing.getContext().newBasicBlockBuilder(element);
         int offs = classMethodInfo.getCodeOffs();
         int pos = codeAttr.position();
         int lim = codeAttr.limit();
@@ -1271,13 +1272,29 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         ByteBuffer byteCode = codeAttr.slice();
         codeAttr.position(pos);
         codeAttr.limit(lim);
-        MethodParser methodParser = new MethodParser(enclosing.getContext(), classMethodInfo, byteCode, gf);
-        ParameterValue thisValue;
-        ParameterValue[] parameters;
+        MethodParser methodParser = new MethodParser(enclosing.getContext(), classMethodInfo, byteCode, element);
+        BasicBlockBuilder gf = methodParser.getBlockBuilder();
+        BlockParameter thisValue;
+        BlockParameter[] parameters;
         boolean nonStatic = (modifiers & ClassFile.ACC_STATIC) == 0;
         ValueType[][] varTypesByEntryPoint;
         ValueType[][] stackTypesByEntryPoint;
         ValueType[] currentVarTypes;
+        int[] currentVarSlotSizes;
+
+        // set up method for initial values
+        BlockLabel entryBlockHandle = methodParser.getBlockForIndexIfExists(0);
+        boolean noLoop = entryBlockHandle == null;
+        BlockLabel newLabel = null;
+        if (noLoop) {
+            // no loop to start block; just process it as a new block
+            entryBlockHandle = new BlockLabel();
+            gf.begin(entryBlockHandle);
+        } else {
+            newLabel = new BlockLabel();
+            gf.begin(newLabel);
+        }
+
         if (element instanceof InvokableElement) {
             int initialLocals = 0;
             if (nonStatic) {
@@ -1285,44 +1302,47 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             }
             List<ParameterElement> elementParameters = ((InvokableElement) element).getParameters();
             int paramCount = elementParameters.size();
-            parameters = new ParameterValue[paramCount];
+            parameters = new BlockParameter[paramCount];
             for (int i = 0; i < paramCount; i ++) {
                 boolean class2 = elementParameters.get(i).hasClass2Type();
                 initialLocals += class2 ? 2 : 1;
             }
             currentVarTypes = new ValueType[initialLocals];
-            int j = 0;
+            currentVarSlotSizes = new int[(nonStatic ? 1 : 0) + paramCount];
+            int j = 0, k = 0;
+            BlockEntry be = gf.getBlockEntry();
             if (nonStatic) {
                 // instance method or constructor
-                thisValue = gf.parameter(enclosing.load().getObjectType().getReference(), "this", 0);
+                thisValue = gf.addParam(be.getPinnedBlockLabel(), Slot.this_(), enclosing.load().getObjectType().getReference(), false);
                 currentVarTypes[j++] = thisValue.getType();
+                currentVarSlotSizes[k++] = 1;
             } else {
                 thisValue = null;
             }
             for (int i = 0; i < paramCount; i ++) {
                 ValueType type = elementParameters.get(i).getType();
-                parameters[i] = gf.parameter(type, "p", i);
+                parameters[i] = gf.addParam(be.getPinnedBlockLabel(), Slot.funcParam(i), type);
                 boolean class2 = elementParameters.get(i).hasClass2Type();
                 Value promoted = methodParser.promote(parameters[i], elementParameters.get(i).getTypeDescriptor());
                 currentVarTypes[j] = promoted.getType();
                 j += class2 ? 2 : 1;
+                currentVarSlotSizes[k++] = class2 ? 2 : 1;
             }
         } else {
             thisValue = null;
-            parameters = ParameterValue.NO_PARAMETER_VALUES;
+            parameters = NO_PARAMETERS;
             currentVarTypes = NO_TYPES;
+            currentVarSlotSizes = NO_INTS;
         }
-
-        gf.startMethod(List.of(parameters));
 
         // create type information for phi generation
         int smtOff = classMethodInfo.getStackMapTableOffs();
         int smtLen = smtOff == -1 ? 0 : classMethodInfo.getStackMapTableLen();
-        ValueType[] currentStackTypes = NO_TYPES;
+        ValueType[] currentStackTypes;
         int epCnt = classMethodInfo.getEntryPointCount();
         if (smtLen > 0) {
-            varTypesByEntryPoint = new ValueType[smtLen][];
-            stackTypesByEntryPoint = new ValueType[smtLen][];
+            varTypesByEntryPoint = new ValueType[epCnt][];
+            stackTypesByEntryPoint = new ValueType[epCnt][];
             ByteBuffer sm = codeAttr.duplicate();
             int epIdx = 0;
             int bcIdx = 0;
@@ -1332,6 +1352,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 tag = sm.get() & 0xff;
                 if (tag <= 63) { // SAME
                     delta = tag;
+                    currentStackTypes = NO_TYPES;
                 } else if (tag <= 127) { // SAME_LOCALS_1_STACK_ITEM
                     delta = tag - 64;
                     int viTag = sm.get() & 0xff;
@@ -1349,25 +1370,31 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                     int chop = 251 - tag;
                     int total = 0;
                     for (int j = 0; j < chop; j ++) {
-                        if (currentVarTypes[currentVarTypes.length - 1 - total] == null) {
+                        if (currentVarSlotSizes[currentVarSlotSizes.length - 1 - j] == 2) {
                             total += 2;
                         } else {
                             total++;
                         }
                     }
                     currentVarTypes = Arrays.copyOf(currentVarTypes, currentVarTypes.length - total);
+                    currentVarSlotSizes = Arrays.copyOf(currentVarSlotSizes, currentVarSlotSizes.length - chop);
+                    currentStackTypes = NO_TYPES;
                 } else if (tag == 251) { // SAME_FRAME_EXTENDED
                     delta = sm.getShort() & 0xffff;
+                    currentStackTypes = NO_TYPES;
                 } else if (tag < 255) { // APPEND
                     delta = sm.getShort() & 0xffff;
                     int append = tag - 251;
                     int total = 0;
                     int save = sm.position();
+                    currentVarSlotSizes = Arrays.copyOf(currentVarSlotSizes, currentVarSlotSizes.length + append);
                     for (int j = 0; j < append; j ++) {
                         int viTag = sm.get() & 0xff;
                         // consume
                         getTypeOfVerificationInfo(viTag, element, sm, byteCode);
-                        total += getSlotSize(viTag);
+                        int slotSize = getSlotSize(viTag);
+                        currentVarSlotSizes[currentVarSlotSizes.length - append + j] = slotSize;
+                        total += slotSize;
                     }
                     sm.position(save);
                     int oldLen = currentVarTypes.length;
@@ -1378,19 +1405,23 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                         currentVarTypes[k] = getTypeOfVerificationInfo(viTag, element, sm, byteCode);
                         k += getSlotSize(viTag);
                     }
+                    currentStackTypes = NO_TYPES;
                 } else {
                     assert tag == 255; // FULL_FRAME
                     delta = sm.getShort() & 0xffff;
                     int localCnt = sm.getShort() & 0xffff;
                     int save = sm.position();
                     int arraySize = 0;
+                    currentVarSlotSizes = new int[localCnt];
                     for (int j = 0; j < localCnt; j ++) {
                         int viTag = sm.get() & 0xff;
                         // consume
                         getTypeOfVerificationInfo(viTag, element, sm, byteCode);
-                        arraySize += getSlotSize(viTag);
+                        int slotSize = getSlotSize(viTag);
+                        currentVarSlotSizes[j] = slotSize;
+                        arraySize += slotSize;
                     }
-                    currentVarTypes = new ValueType[arraySize];
+                    currentVarTypes = arraySize == 0 ? NO_TYPES : new ValueType[arraySize];
                     sm.position(save);
                     for (int j = 0, k = 0; j < localCnt; j ++) {
                         int viTag = sm.get() & 0xff;
@@ -1408,7 +1439,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                         getTypeOfVerificationInfo(viTag, element, sm, byteCode);
                         arraySize += getSlotSize(viTag);
                     }
-                    currentStackTypes = new ValueType[arraySize];
+                    currentStackTypes = arraySize == 0 ? NO_TYPES : new ValueType[arraySize];
                     sm.position(save);
                     for (int j = 0, k = 0; j < stackCnt; j ++) {
                         int viTag = sm.get() & 0xff;
@@ -1448,20 +1479,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             }
         }
         methodParser.setTypeInformation(varTypesByEntryPoint, stackTypesByEntryPoint);
-        // set up method for initial values
-        BlockLabel entryBlockHandle = methodParser.getBlockForIndexIfExists(0);
-        boolean noLoop = entryBlockHandle == null;
         byteCode.position(0);
-        BlockLabel newLabel = null;
-        if (noLoop) {
-            // no loop to start block; just process it as a new block
-            entryBlockHandle = new BlockLabel();
-            gf.begin(entryBlockHandle);
-        } else {
-            byteCode.position(0);
-            newLabel = new BlockLabel();
-            gf.begin(newLabel);
-        }
         // set initial values
         if (element instanceof InvokableElement) {
             List<ParameterElement> elementParameters = ((InvokableElement) element).getParameters();
@@ -1484,14 +1502,14 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             methodParser.processNewBlock();
         } else {
             // we have to jump into it because there is a loop that includes index 0
-            methodParser.processBlock(gf.goto_(entryBlockHandle, Map.of()));
+            gf.goto_(entryBlockHandle, methodParser.captureOutbound());
+            methodParser.processBlock();
             entryBlockHandle = newLabel;
         }
         gf.finish();
-        methodParser.finish();
         BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
         Schedule schedule = Schedule.forMethod(entryBlock);
-        return MethodBody.of(entryBlock, schedule, thisValue, parameters);
+        return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(parameters.length));
     }
 
     int getSlotSize(int viTag) {
@@ -1500,8 +1518,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
 
     ValueType getTypeOfVerificationInfo(int viTag, ExecutableElement element, ByteBuffer sm, ByteBuffer byteCode) {
         TypeSystem ts = ctxt.getTypeSystem();
-        if (viTag == 0) { // top
-            return ts.getPoisonType();
+        if (viTag == 0) { // top (hole)
+            return null;
         } else if (viTag == 1) { // int
             return ts.getSignedInteger32Type();
         } else if (viTag == 2) { // float

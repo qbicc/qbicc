@@ -1,5 +1,7 @@
 package org.qbicc.plugin.opt.ea;
 
+import static java.util.stream.Collectors.groupingBy;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -9,18 +11,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.Call;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.New;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.ParameterValue;
-import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.type.definition.element.ExecutableElement;
-
-import static java.util.stream.Collectors.groupingBy;
 
 final class ConnectionGraph {
 
@@ -32,7 +31,7 @@ final class ConnectionGraph {
      * The references can be {@link ValueHandle} instances, e.g. {@link InstanceFieldOf}, {@link StaticField}...etc,
      * but they can also be {@link Value} instanaces like {@link org.qbicc.graph.CheckCast}.
      * Referenced objects are {@link Value} instances.
-     * Normally they are {@link New} instances, but they can also be {@link ParameterValue} or {@link Call}.
+     * Normally they are {@link New} instances, but they can also be {@link BlockParameter} or {@link Call}.
      * <p>
      * Each method's connection graph tracks this during intra method analysis:
      * <p><ul>
@@ -57,7 +56,7 @@ final class ConnectionGraph {
      * Track fields associated with incoming parameter values.
      * This is necessary to propagate escape value information from fields within a method to the caller.
      */
-    private final Map<ParameterValue, Collection<InstanceFieldOf>> fieldEdges = new HashMap<>(); // solid (F) edges
+    private final Map<BlockParameter, Collection<InstanceFieldOf>> fieldEdges = new HashMap<>(); // solid (F) edges
 
     /**
      * Tracks escape value of graph nodes.
@@ -93,7 +92,7 @@ final class ConnectionGraph {
         return pointsToEdges.get(from);
     }
 
-    void addFieldEdge(ParameterValue node, InstanceFieldOf instanceField) {
+    void addFieldEdge(BlockParameter node, InstanceFieldOf instanceField) {
         addFieldEdgeIfAbsent(node, instanceField);
     }
 
@@ -102,7 +101,7 @@ final class ConnectionGraph {
      * If the node is not found, an empty collection is returned.
      */
     Collection<InstanceFieldOf> getFieldEdges(Node node) {
-        if (node instanceof ParameterValue pv) {
+        if (node instanceof BlockParameter pv && pv.isEntryParameter()) {
             final Collection<InstanceFieldOf> found = this.fieldEdges.get(pv);
             return found == null ? Collections.emptyList() : found;
         }
@@ -126,7 +125,7 @@ final class ConnectionGraph {
         setEscapeValue(new_, escapeValue);
     }
 
-    boolean addParameter(ParameterValue param) {
+    boolean addParameter(BlockParameter param) {
         return parameters.addIfAbsent(param);
     }
 
@@ -146,7 +145,7 @@ final class ConnectionGraph {
         final List<Value> arguments = callee.getArguments();
         for (int i = 0; i < arguments.size(); i++) {
             final Value outsideArg = arguments.get(i);
-            final ParameterValue insideArg = calleeCG.parameters.get(i);
+            final BlockParameter insideArg = calleeCG.parameters.get(i);
             final Collection<Node> mapsToObj = new ArrayList<>();
             // First check parameter value and associated object outside the method
             updateCallerNode(insideArg, calleeCG, mapsToObj, outsideArg);
@@ -206,15 +205,15 @@ final class ConnectionGraph {
         // Propagate global escape for all parameter values with same index
         // To do that, group all parameter values by index
         // (there can be multiple when interacting with interface or abstract/overridden methods)
-        final Map<Integer, List<ParameterValue>> indexedParameterValues = escapeValues.keySet().stream()
-            .filter(key -> key instanceof ParameterValue)
-            .map(key -> (ParameterValue) key)
-            .collect(groupingBy(ParameterValue::getIndex));
+        final Map<Integer, List<BlockParameter>> indexedParameterValues = escapeValues.keySet().stream()
+            .filter(key -> key instanceof BlockParameter)
+            .map(key -> (BlockParameter) key)
+            .collect(groupingBy(BlockParameter::getIndex));
         // Then, find those global parameter values,
         // and use its index to propagate escape value to other parameters values with same index
         globalEscape.stream()
-            .filter(n -> n instanceof ParameterValue)
-            .map(key -> (ParameterValue) key)
+            .filter(n -> n instanceof BlockParameter)
+            .map(key -> (BlockParameter) key)
             .flatMap(pv ->  indexedParameterValues.get(pv.getIndex()).stream())
             .forEach(pv -> setEscapeValue(pv, EscapeValue.GLOBAL_ESCAPE));
     }
@@ -279,8 +278,8 @@ final class ConnectionGraph {
 
     void resolveReturnedPhiValues() {
         final List<Value> possibleNewValues = this.escapeValues.entrySet().stream()
-            .filter(entry -> entry.getKey() instanceof PhiValue && entry.getValue().isArgEscape())
-            .flatMap(entry -> ((PhiValue) entry.getKey()).getPossibleValues().stream())
+            .filter(entry -> entry.getKey() instanceof BlockParameter && entry.getValue().isArgEscape())
+            .flatMap(entry -> ((BlockParameter) entry.getKey()).getPossibleValues().stream())
             .filter(value -> value instanceof New && getEscapeValue(value).isMoreThanArgEscape())
             .toList();
 
@@ -319,7 +318,7 @@ final class ConnectionGraph {
         return result;
     }
 
-    private boolean addFieldEdgeIfAbsent(ParameterValue from, InstanceFieldOf to) {
+    private boolean addFieldEdgeIfAbsent(BlockParameter from, InstanceFieldOf to) {
         return fieldEdges
             .computeIfAbsent(from, obj -> new ArrayList<>())
             .add(to);
@@ -340,13 +339,13 @@ final class ConnectionGraph {
     }
 
     private static final class ParameterArray {
-        private final ParameterValue[] elements;
+        private final BlockParameter[] elements;
 
         public ParameterArray(int size) {
-            this.elements = new ParameterValue[size];
+            this.elements = new BlockParameter[size];
         }
 
-        boolean addIfAbsent(ParameterValue elem) {
+        boolean addIfAbsent(BlockParameter elem) {
             if (elements[elem.getIndex()] != null) {
                 return false;
             }
@@ -355,7 +354,7 @@ final class ConnectionGraph {
             return true;
         }
 
-        ParameterValue get(int index) {
+        BlockParameter get(int index) {
             return elements[index];
         }
 

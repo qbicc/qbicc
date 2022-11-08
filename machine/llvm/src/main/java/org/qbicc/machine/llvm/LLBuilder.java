@@ -14,6 +14,7 @@ import org.qbicc.machine.llvm.op.FastMathBinary;
 import org.qbicc.machine.llvm.op.FastMathUnary;
 import org.qbicc.machine.llvm.op.Fence;
 import org.qbicc.machine.llvm.op.GetElementPtr;
+import org.qbicc.machine.llvm.op.IndirectBranch;
 import org.qbicc.machine.llvm.op.Instruction;
 import org.qbicc.machine.llvm.op.LandingPad;
 import org.qbicc.machine.llvm.op.Load;
@@ -42,6 +43,8 @@ public interface LLBuilder {
     Branch br(LLBasicBlock dest);
 
     Branch br(LLValue cond, LLBasicBlock ifTrue, LLBasicBlock ifFalse);
+
+    IndirectBranch indirectbr(LLValue address);
 
     Return ret();
 

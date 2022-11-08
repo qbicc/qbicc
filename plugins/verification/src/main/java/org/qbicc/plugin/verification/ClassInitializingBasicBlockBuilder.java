@@ -23,9 +23,9 @@ public class ClassInitializingBasicBlockBuilder extends DelegatingBasicBlockBuil
 
     private final CompilationContext ctxt;
 
-    public ClassInitializingBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public ClassInitializingBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     @Override

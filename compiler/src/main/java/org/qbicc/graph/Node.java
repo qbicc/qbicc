@@ -3,7 +3,6 @@ package org.qbicc.graph;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -11,6 +10,8 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.function.BiFunction;
 
+import org.eclipse.collections.api.factory.Maps;
+import org.eclipse.collections.api.map.ImmutableMap;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
@@ -59,6 +60,10 @@ public interface Node {
 
     int getBytecodeIndex();
 
+    int getScheduleIndex();
+
+    void setScheduleIndex(int index);
+
     default int getValueDependencyCount() {
         return 0;
     }
@@ -88,7 +93,6 @@ public interface Node {
         private final Map<BasicBlock, BlockLabel> copiedBlocks = new HashMap<>();
         private final HashMap<Node, Node> copiedNodes = new HashMap<>();
         private final HashMap<Terminator, BasicBlock> copiedTerminators = new HashMap<>();
-        private final Queue<PhiValue> phiQueue = new ArrayDeque<>();
         private final Queue<BasicBlock> blockQueue = new ArrayDeque<>();
         private final Terminus terminus = new Terminus();
         private final CompilationContext ctxt;
@@ -123,29 +127,9 @@ public interface Node {
             BlockLabel entryCopy = copyBlock(entryBlock);
             BasicBlock block;
             while ((block = blockQueue.poll()) != null) {
-                // process and map all queued blocks - might enqueue more blocks or phis
+                // process and map all queued blocks - might enqueue more blocks
                 blockBuilder.begin(copiedBlocks.get(block));
                 copyScheduledNodes(block);
-            }
-            // now process all phis (all blocks will have been enqueued)
-            PhiValue orig;
-            while ((orig = phiQueue.poll()) != null) {
-                PhiValue copy = (PhiValue) copiedNodes.get(orig);
-                BasicBlock ourBlock = copy.getPinnedBlock();
-                // process and map all incoming values - might enqueue more blocks or phis
-                for (BasicBlock incomingBlock : orig.getPinnedBlock().getIncoming()) {
-                    Terminator incomingTerminator = incomingBlock.getTerminator();
-                    if (incomingBlock.isReachable()) {
-                        Value val = orig.getValueForInput(incomingTerminator);
-                        if (val != null) {
-                            BasicBlock copiedIncomingBlock = copiedTerminators.get(incomingTerminator);
-                            // if this block is null, that means that the copied block can no longer flow into this block due to transformation
-                            if (copiedIncomingBlock != null && copiedIncomingBlock.isSucceededBy(ourBlock)) {
-                                copy.setValueForBlock(ctxt, blockBuilder.getCurrentElement(), copiedIncomingBlock, copyValue(val));
-                            }
-                        }
-                    }
-                }
             }
             return BlockLabel.getTargetOf(entryCopy);
         }
@@ -169,13 +153,9 @@ public interface Node {
 
         public void copyScheduledNodes(BasicBlock block) {
             try {
-                // copy all nodes except the terminator which should be the last one to be copied
-                for (Node node: schedule.getNodesForBlock(block)) {
-                    if (!(node instanceof Terminator)) {
-                        copyNode(node);
-                    }
+                for (Node node : block.getInstructions()) {
+                    copyNode(node);
                 }
-                copyTerminator(block.getTerminator());
             } catch (BlockEarlyTermination term) {
                 copiedTerminators.put(block.getTerminator(), term.getTerminatedBlock());
             }
@@ -258,32 +238,18 @@ public interface Node {
             if (names.isEmpty()) {
                 return Map.of();
             }
-            Iterator<Slot> iterator = names.iterator();
-            Slot s0 = iterator.next();
-            Value v0 = copyValue(terminator.getOutboundArgument(s0));
-            if (! iterator.hasNext()) {
-                return Map.of(s0, v0);
+            ImmutableMap<Slot, Value> copy = Maps.immutable.empty();
+            for (Slot slot : names) {
+                int cnt = terminator.getSuccessorCount();
+                for (int i = 0; i < cnt; i ++) {
+                    if (terminator.getSuccessor(i).getBlockParameter(slot) != null) {
+                        // value is used; copy it
+                        copy = copy.newWithKeyValue(slot, copyValue(terminator.getOutboundArgument(slot)));
+                        break;
+                    }
+                }
             }
-            Slot s1 = iterator.next();
-            Value v1 = copyValue(terminator.getOutboundArgument(s1));
-            if (! iterator.hasNext()) {
-                return Map.of(s0, v0, s1, v1);
-            }
-            Slot s2 = iterator.next();
-            Value v2 = copyValue(terminator.getOutboundArgument(s2));
-            if (! iterator.hasNext()) {
-                return Map.of(s0, v0, s1, v1, s2, v2);
-            }
-            // too many
-            HashMap<Slot, Value> map = new HashMap<>(names.size());
-            map.put(s0, v0);
-            map.put(s1, v1);
-            map.put(s2, v2);
-            while (iterator.hasNext()) {
-                Slot sn = iterator.next();
-                map.put(sn, copyValue(terminator.getOutboundArgument(sn)));
-            }
-            return Map.copyOf(map);
+            return copy.castToMap();
         }
 
         public Node copyAction(Action original) {
@@ -337,11 +303,6 @@ public interface Node {
                 return block;
             }
             return basicBlock;
-        }
-
-        public PhiValue enqueue(PhiValue originalPhi) {
-            phiQueue.add(Assert.checkNotNullParam("originalPhi", originalPhi));
-            return originalPhi;
         }
 
         static class Terminus implements NodeVisitor<Copier, Value, Node, BasicBlock, ValueHandle> {
@@ -510,6 +471,10 @@ public interface Node {
 
             public Value visit(final Copier param, final BlockLiteral node) {
                 return param.ctxt.getLiteralFactory().literalOf(param.copyBlock(BlockLabel.getTargetOf(node.getBlockLabel())));
+            }
+
+            public Value visit(final Copier copier, final BlockParameter node) {
+                return copier.getBlockBuilder().addParam(copier.copyBlock(node.getPinnedBlock()), node.getSlot(), node.getType(), node.possibleValuesAreNullable());
             }
 
             public Value visit(final Copier param, final BooleanLiteral node) {
@@ -774,18 +739,6 @@ public interface Node {
 
             public Value visit(final Copier param, final Or node) {
                 return param.getBlockBuilder().or(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
-            }
-
-            public Value visit(final Copier param, final ParameterValue node) {
-                return node;
-            }
-
-            static final PhiValue.Flag[] NO_FLAGS = new PhiValue.Flag[0];
-            static final PhiValue.Flag[] NOT_NULL_FLAGS = new PhiValue.Flag[] { PhiValue.Flag.NOT_NULL };
-
-            public Value visit(final Copier param, final PhiValue node) {
-                param.enqueue(node);
-                return param.getBlockBuilder().phi(node.getType(), param.copyBlock(node.getPinnedBlock()), node.possibleValuesAreNullable() ? NO_FLAGS : NOT_NULL_FLAGS);
             }
 
             public Value visit(final Copier param, final PointerLiteral node) {

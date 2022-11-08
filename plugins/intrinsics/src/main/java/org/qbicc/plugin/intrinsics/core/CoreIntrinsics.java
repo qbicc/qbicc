@@ -11,7 +11,6 @@ import org.jboss.logging.Logger;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Phase;
-import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockEntry;
@@ -22,7 +21,7 @@ import org.qbicc.graph.Load;
 import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.OrderedNode;
-import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -860,17 +859,14 @@ public final class CoreIntrinsics {
             ValueHandle elem = builder.elementOf(builder.pointerHandle(base) ,arguments.get(0));
             Value componentClass = builder.valueConvert(builder.addressOf(elem), jlcRef);
             Value result = componentClass;
-            PhiValue phi = builder.phi(result.getType(), fallThrough);
 
-            BasicBlock from = builder.if_(builder.isGt(dims, ctxt.getLiteralFactory().literalOf(0)), trueBranch, fallThrough, Map.of()); // if (dimensions > 0)
-            phi.setValueForBlock(ctxt, builder.getCurrentElement(), from, result);
+            builder.if_(builder.isGt(dims, ctxt.getLiteralFactory().literalOf(0)), trueBranch, fallThrough, Map.of(Slot.temp(0), result)); // if (dimensions > 0)
 
             builder.begin(trueBranch); // true; create Class for array reference
             result = builder.getFirstBuilder().call(builder.staticMethod(getOrCreateArrayClass), List.of(componentClass, dims));
-            from = builder.goto_(fallThrough, Map.of());
-            phi.setValueForBlock(ctxt, builder.getCurrentElement(), from, result);
+            builder.goto_(fallThrough, Slot.temp(0), result);
             builder.begin(fallThrough);
-            return phi;
+            return builder.addParam(fallThrough, Slot.temp(0), result.getType());
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getClassFromTypeId", typeIdClsDesc, getClassFromTypeId);
 

@@ -26,6 +26,7 @@ import org.qbicc.graph.BinaryValue;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BitReverse;
 import org.qbicc.graph.BlockEntry;
+import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.ByteSwap;
 import org.qbicc.graph.Call;
 import org.qbicc.graph.CallNoReturn;
@@ -92,8 +93,6 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.Or;
-import org.qbicc.graph.ParameterValue;
-import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
 import org.qbicc.graph.ReadModifyWrite;
@@ -165,7 +164,6 @@ public final class Disassembler {
     private final Queue<BasicBlock> blockQueue = new ArrayDeque<>();
     private final List<BlockEdge> blockEdges = new ArrayList<>();
     private final List<CellEdge> cellEdges = new ArrayList<>();
-    private final Queue<PhiValue> phiQueue = new ArrayDeque<>();
     private final Map<Node, CellId> cellIds = new HashMap<>();
     private BasicBlock currentBlock;
     private int currentNodeId;
@@ -201,8 +199,7 @@ public final class Disassembler {
         // until there's nothing else in the queues.
         do {
             processBlockQueue();
-            processPhiQueue();
-        } while (!blockQueue.isEmpty() || !phiQueue.isEmpty());
+        } while (!blockQueue.isEmpty());
     }
 
     private void processBlockQueue() {
@@ -211,27 +208,12 @@ public final class Disassembler {
         } while (!blockQueue.isEmpty());
     }
 
-    private void processPhiQueue() {
-        while (!phiQueue.isEmpty()) {
-            final PhiValue phi = phiQueue.poll();
-            final BlockData blockInfo = blocks.get(phi.getPinnedBlock());
-            // Block info for pinned block might be temporary null if not yet visited, but it will eventually be visited
-            if (Objects.nonNull(blockInfo)) {
-                final Integer phiIndex = blockInfo.phiIndexes.get(phi);
-                final String phiValues = phi.getPinnedBlock().getIncoming().stream()
-                    .map(block -> "b" + block.getIndex() + " " + visitor.show(phi.getValueForInput(block.getTerminator())))
-                    .collect(Collectors.joining(", ", " ", ""));
-                blockInfo.lines.set(phiIndex, blockInfo.lines.get(phiIndex) + phiValues);
-            }
-        }
-    }
-
     void disassemble(BasicBlock block) {
-        final List<Node> nodes = schedule.getNodesForBlock(block);
+        final List<Node> nodes = block.getInstructions();
 
         currentNodeId = 0;
         currentBlock = block;
-        blocks.put(block, new BlockData(new ArrayList<>(), new HashMap<>(), new HashMap<>()));
+        blocks.put(block, new BlockData(new ArrayList<>(), new HashMap<>()));
 
         for (Node node : nodes) {
             if (!(node instanceof Terminator)) {
@@ -263,10 +245,6 @@ public final class Disassembler {
         }
     }
 
-    private void queuePhi(PhiValue node) {
-        phiQueue.add(node);
-    }
-
     private int addLine(String line, Node... nodes) {
         final List<String> lines = blocks.get(currentBlock).lines;
         lines.add(line);
@@ -275,11 +253,6 @@ public final class Disassembler {
             cellIds.put(node, new CellId(currentBlock.getIndex(), lineIndex));
         }
         return lineIndex;
-    }
-
-    private void addPhiLine(PhiValue node, String line) {
-        final int index = addLine(line, node);
-        blocks.get(currentBlock).phiIndexes.put(node, index);
     }
 
     private String nextId() {
@@ -322,7 +295,7 @@ public final class Disassembler {
 
     // The vast majority of lines will have the same color.
     // Hence, keep just a small collection for those lines that have a different color.
-    record BlockData(List<String> lines, Map<Integer, String> lineColors, Map<PhiValue, Integer> phiIndexes) {}
+    record BlockData(List<String> lines, Map<Integer, String> lineColors) {}
 
     record BlockEdge(BasicBlock from, BasicBlock to, String label, DotAttributes edgeType) {}
 
@@ -457,6 +430,14 @@ public final class Disassembler {
             final String description = "address-of " + show(node.getValueHandle());
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
+        }
+
+        @Override
+        public Void visit(Disassembler disassembler, BlockParameter node) {
+            final String id = disassembler.nextId();
+            final String description = "parameter " + node.getSlot();
+            disassembler.nodeInfo.put(node, new NodeInfo(id, description));
+            return delegate.visit(disassembler, node);
         }
 
         @Override
@@ -685,25 +666,6 @@ public final class Disassembler {
             final String id = param.nextId();
             final String description = "offset-of " + node.getFieldElement().toString();
             param.nodeInfo.put(node, new NodeInfo(id, description));
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, ParameterValue node) {
-            final String id = param.nextId();
-            final String description = node.getLabel() + node.getIndex();
-            param.addLine(id + " = " + description, node);
-            param.nodeInfo.put(node, new NodeInfo(id, description));
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, PhiValue node) {
-            final String id = param.nextId();
-            final String description = "phi";
-            param.addPhiLine(node, id + " = " + description);
-            param.nodeInfo.put(node, new NodeInfo(id, description));
-            param.queuePhi(node);
             return delegate.visit(param, node);
         }
 

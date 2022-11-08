@@ -30,13 +30,13 @@ public final class Comp extends AbstractUnaryValue {
     }
 
     @Override
-    public Value getValueIfTrue(Value input) {
-        return getInput().getValueIfFalse(input);
+    public Value getValueIfTrue(BasicBlockBuilder bbb, Value input) {
+        return getInput().getValueIfFalse(bbb, input);
     }
 
     @Override
-    public Value getValueIfFalse(Value input) {
-        return getInput().getValueIfTrue(input);
+    public Value getValueIfFalse(BasicBlockBuilder bbb, Value input) {
+        return getInput().getValueIfTrue(bbb, input);
     }
 
     @Override

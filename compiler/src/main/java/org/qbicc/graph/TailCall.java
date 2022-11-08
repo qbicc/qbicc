@@ -2,7 +2,6 @@ package org.qbicc.graph;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import org.qbicc.type.InvokableType;
@@ -25,10 +24,10 @@ public final class TailCall extends AbstractTerminator {
     private final List<Value> arguments;
     private final InvokableType calleeType;
 
-    TailCall(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments, Map<Slot, BlockParameter> parameters) {
+    TailCall(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
-        this.terminatedBlock = new BasicBlock(blockEntry, this, parameters);
+        this.terminatedBlock = new BasicBlock(blockEntry, this);
         this.target = target;
         this.arguments = arguments;
         calleeType = (InvokableType) target.getPointeeType();
@@ -112,8 +111,4 @@ public final class TailCall extends AbstractTerminator {
         return visitor.visit(param, this);
     }
 
-    @Override
-    public boolean registerValue(PhiValue phi, Value val) {
-        throw new IllegalStateException("No outbound values may be registered for a tail call");
-    }
 }

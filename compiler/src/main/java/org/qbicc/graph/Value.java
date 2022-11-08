@@ -3,6 +3,7 @@ package org.qbicc.graph;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
+import org.qbicc.type.NullableType;
 import org.qbicc.type.ValueType;
 
 public interface Value extends Node {
@@ -62,10 +63,11 @@ public interface Value extends Node {
      * Get the actual value of the given input if this value evaluates to {@code true}.
      * If the input is equal to this value, then the result must be the {@code true} literal.
      *
+     * @param bbb the basic block builder to use to build constraint nodes (must not be {@code null})
      * @param input the input value (must not be {@code null})
      * @return the value if {@code true} (not {@code null})
      */
-    default Value getValueIfTrue(Value input) {
+    default Value getValueIfTrue(BasicBlockBuilder bbb, Value input) {
         if (equals(input)) {
             return this;
         }
@@ -76,10 +78,11 @@ public interface Value extends Node {
      * Get the actual value of the given input if this value evaluates to {@code false}.
      * If the input is equal to this value, then the result must be the {@code false} literal.
      *
+     * @param bbb the basic block builder to use to build constraint nodes (must not be {@code null})
      * @param input the input value (must not be {@code null})
      * @return the value if {@code false} (not {@code null})
      */
-    default Value getValueIfFalse(Value input) {
+    default Value getValueIfFalse(BasicBlockBuilder bbb, Value input) {
         if (equals(input)) {
             return this;
         }
@@ -119,7 +122,7 @@ public interface Value extends Node {
      * @return {@code true} if the value may be {@code null}, or {@code false} if it can never be {@code null}
      */
     default boolean isNullable() {
-        return true;
+        return getType() instanceof NullableType;
     }
 
     /**

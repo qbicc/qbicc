@@ -3,6 +3,7 @@ package org.qbicc.tests;
 import org.qbicc.tests.snippets.ArithmeticCompare;
 import org.qbicc.tests.snippets.ArithmeticNegation;
 import org.qbicc.tests.snippets.Arrays;
+import org.qbicc.tests.snippets.BadHashCode;
 import org.qbicc.tests.snippets.ClassInit;
 import org.qbicc.tests.snippets.ClassLiteralTests;
 import org.qbicc.tests.snippets.DynamicTypeTests;
@@ -34,6 +35,7 @@ public final class TestRunner {
             case "snippet-ArithmeticCompare" -> ArithmeticCompare.main(testArgs);
             case "snippet-ArithmeticNegation" -> ArithmeticNegation.main(testArgs);
             case "snippet-Arrays" -> Arrays.main(testArgs);
+            case "snippet-BadHashCode" -> BadHashCode.main(testArgs);
             case "snippet-ClassInit" -> ClassInit.main(testArgs);
             case "snippet-DynamicTypeTests" -> DynamicTypeTests.main(testArgs);
             case "snippet-InvokeInterface" -> InvokeInterface.main(testArgs);

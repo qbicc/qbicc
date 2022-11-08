@@ -33,9 +33,9 @@ import org.qbicc.type.descriptor.TypeDescriptor;
 public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public NativeBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public NativeBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     @Override

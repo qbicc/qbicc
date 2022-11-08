@@ -9,7 +9,7 @@ import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
@@ -26,6 +26,8 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -40,9 +42,9 @@ import org.qbicc.type.definition.element.MethodElement;
 public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public InstanceOfCheckCastBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public InstanceOfCheckCastBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     public Value checkcast(Value input, Value toType, Value toDimensions, CheckCast.CastType kind, ObjectType expectedType) {
@@ -196,8 +198,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         // first, handle null
         if_(isEq(input, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType())), fail, notNull, Map.of());
 
-        Value passResult = null;
-        BlockLabel passLabel = null;
+        TypeSystem ts = getTypeSystem();
         try {
             begin(notNull);
             // invariant: passInline label is only used by generateTypeTest when it returns true;
@@ -205,29 +206,23 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             boolean inlinedTest = generateTypeTest(input, expectedType, expectedDimensions, passInline, fail);
             if (!inlinedTest) {
                 MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("instanceofTypeId");
-                passResult = getFirstBuilder().call(getFirstBuilder().staticMethod(helper),
-                    List.of(input, lf.literalOfType(expectedType), lf.literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), expectedDimensions)));
-                passLabel = notNull;
-                goto_(allDone, Map.of());
+                BasicBlockBuilder fb = getFirstBuilder();
+                UnsignedIntegerType u8 = ts.getUnsignedInteger8Type();
+                Value passResult = fb.call(fb.staticMethod(helper),
+                    List.of(input, lf.literalOfType(expectedType), lf.literalOf(u8, expectedDimensions)));
+                goto_(allDone, Slot.temp(0), passResult);
             } else {
                 begin(passInline);
-                goto_(allDone, Map.of());
-                passLabel = passInline;
-                passResult = lf.literalOf(true);
+                goto_(allDone, Slot.temp(0), lf.literalOf(true));
             }
         } catch (BlockEarlyTermination ignored) {
             // continue
         }
         begin(fail);
-        goto_(allDone, Map.of());
+        goto_(allDone, Slot.temp(0), lf.literalOf(false));
 
         begin(allDone);
-        PhiValue phi = phi(ctxt.getTypeSystem().getBooleanType(), allDone);
-        phi.setValueForBlock(ctxt, getCurrentElement(), fail, lf.literalOf(false));
-        if (passLabel != null) {
-            phi.setValueForBlock(ctxt, getCurrentElement(), passLabel, passResult);
-        }
-        return phi;
+        return addParam(allDone, Slot.temp(0), ts.getBooleanType());
     }
 
     public Value classOf(final Value typeId, final Value dimensions) {

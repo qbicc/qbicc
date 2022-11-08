@@ -41,7 +41,11 @@ public interface ClassContext extends DescriptorTypeResolver {
 
     LiteralFactory getLiteralFactory();
 
-    BasicBlockBuilder newBasicBlockBuilder(ExecutableElement element);
+    BasicBlockBuilder newBasicBlockBuilder(BasicBlockBuilder.FactoryContext fc, ExecutableElement element);
+
+    default BasicBlockBuilder newBasicBlockBuilder(ExecutableElement element) {
+        return newBasicBlockBuilder(BasicBlockBuilder.FactoryContext.EMPTY, element);
+    }
 
     void defineClass(String name, DefinedTypeDefinition definition);
 

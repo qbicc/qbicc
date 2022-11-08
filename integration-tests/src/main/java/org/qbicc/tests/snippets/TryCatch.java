@@ -127,9 +127,7 @@ public class TryCatch {
         reportResult(rc);
         rc = test5();
         reportResult(rc);
-        /* test6() current results in crash.
         rc = test6();
         reportResult(rc);
-         */
     }
 }

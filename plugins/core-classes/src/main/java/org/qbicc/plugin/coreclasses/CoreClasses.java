@@ -388,18 +388,6 @@ public final class CoreClasses {
                 return builder.build();
             }
         }, 0, 0);
-
-        // inject the thrown exception field
-        ClassTypeDescriptor throwableDesc = ClassTypeDescriptor.synthesize(classContext, THROWABLE_INT_NAME);
-        patcher.addField(classContext, THREAD_INT_NAME, "thrown", throwableDesc, new FieldResolver() {
-            @Override
-            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
-                builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
-                builder.setEnclosingType(enclosing);
-                builder.setSignature(TypeSignature.synthesize(classContext, throwableDesc));
-                return builder.build();
-            }
-        }, 0, 0);
     }
 
     public static CoreClasses get(CompilationContext ctxt) {

@@ -13,13 +13,13 @@ public final class IsEq extends AbstractBooleanCompare implements CommutativeBin
     }
 
     @Override
-    public Value getValueIfTrue(Value input) {
+    public Value getValueIfTrue(BasicBlockBuilder bbb, Value input) {
         if (input.equals(getLeftInput()) && getRightInput() instanceof Literal) {
             return getRightInput();
         } else if (input.equals(getRightInput()) && getLeftInput() instanceof Literal) {
             return getLeftInput();
         } else {
-            return super.getValueIfTrue(input);
+            return super.getValueIfTrue(bbb, input);
         }
     }
 

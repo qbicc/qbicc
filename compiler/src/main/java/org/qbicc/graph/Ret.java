@@ -1,21 +1,26 @@
 package org.qbicc.graph;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
+import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
- *
+ * An indirect branch node, used for implementing the legacy {@code ret} bytecode and also useful for outlining.
  */
 public final class Ret extends AbstractTerminator implements Terminator {
     private final Node dependency;
     private final Value returnAddressValue;
     private final BasicBlock terminatedBlock;
+    private List<BasicBlock> successors;
 
-    Ret(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value returnAddressValue, Map<Slot, BlockParameter> parameters, Map<Slot, Value> targetArguments) {
+    Ret(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value returnAddressValue, Map<Slot, Value> targetArguments) {
         super(callSite, element, line, bci, targetArguments);
-        terminatedBlock = new BasicBlock(blockEntry, this, parameters);
+        terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.returnAddressValue = returnAddressValue;
     }
@@ -47,6 +52,47 @@ public final class Ret extends AbstractTerminator implements Terminator {
 
     int calcHashCode() {
         return Objects.hash(dependency, returnAddressValue);
+    }
+
+    @Override
+    public int getSuccessorCount() {
+        return getSuccessors().size();
+    }
+
+    @Override
+    public BasicBlock getSuccessor(int index) {
+        return getSuccessors().get(index);
+    }
+
+    public List<BasicBlock> getSuccessors() {
+        List<BasicBlock> successors = this.successors;
+        if (successors == null) {
+            // calculate once
+            if (returnAddressValue instanceof BlockLiteral bl) {
+                return this.successors = List.of(bl.getBlock());
+            } else {
+                if (returnAddressValue instanceof BlockParameter bp) {
+                    Set<Value> possibleValues = bp.getPossibleValues();
+                    successors = new ArrayList<>(possibleValues.size());
+                    for (Value possibleValue : possibleValues) {
+                        if (possibleValue instanceof BlockLiteral bl) {
+                            successors.add(bl.getBlock());
+                        } else {
+                            throw invalidSuccessor();
+                        }
+                    }
+                    return this.successors = List.copyOf(successors);
+                } else {
+                    throw invalidSuccessor();
+                }
+            }
+        } else {
+            return successors;
+        }
+    }
+
+    private static IllegalArgumentException invalidSuccessor() {
+        return new IllegalArgumentException("Invalid successor for `Ret` node");
     }
 
     @Override

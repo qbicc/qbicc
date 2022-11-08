@@ -24,6 +24,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-core-classes</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-layout</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

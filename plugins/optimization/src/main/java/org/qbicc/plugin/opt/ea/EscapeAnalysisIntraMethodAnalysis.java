@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import org.qbicc.context.ClassContext;
@@ -16,6 +15,7 @@ import org.qbicc.graph.Add;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEntry;
+import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.Call;
 import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.ConstructorElementHandle;
@@ -37,10 +37,9 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OrderedNode;
-import org.qbicc.graph.ParameterValue;
-import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Select;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Store;
@@ -102,18 +101,6 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
         }
 
         @Override
-        public Void visit(AnalysisContext param, ParameterValue node) {
-            if (visitKnown(param, node) && !Objects.equals("this", node.getLabel())) {
-                // ParameterValue servers as an anchor for the summary information,
-                //   that will be generated when we finish analyzing the current method.
-                param.connectionGraph.addParameter(node);
-                param.connectionGraph.setArgEscape(node);
-            }
-
-            return null;
-        }
-
-        @Override
         public Void visit(AnalysisContext param, Store node) {
             if (visitKnown(param, node)) {
                 final ValueHandle handle = node.getValueHandle();
@@ -126,7 +113,7 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
                             param.connectionGraph.setArgEscape(value);
                         } else {
                             // p.f = new T();
-                            if (ref.getReferenceValue() instanceof ParameterValue pv) {
+                            if (ref.getReferenceValue() instanceof BlockParameter pv && pv.isEntryParameter()) {
                                 // Object that `p` points to was created outside this method (e.g. `p` is a formal parameter)
                                 // Set link from object in caller's context, via field, to the new value.
                                 param.connectionGraph.addFieldEdge(pv, fieldOf);
@@ -148,8 +135,8 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
         }
 
         private boolean isThisRef(ReferenceHandle ref) {
-            return ref.getReferenceValue() instanceof ParameterValue param
-                && "this".equals(param.getLabel());
+            return ref.getReferenceValue() instanceof BlockParameter param
+                && param.isEntryParameter() && param.getSlot() == Slot.this_();
         }
 
         @Override
@@ -165,7 +152,7 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
         public Void visit(AnalysisContext param, Return node) {
             if (visitKnown(param, node)) {
                 final Value value = node.getReturnValue();
-                if (value instanceof New || value instanceof PhiValue) {
+                if (value instanceof New || value instanceof BlockParameter) {
                     param.connectionGraph.setArgEscape(value);
                 } else if (value instanceof Call call && !isPrimitive(call.getType())) {
                     for (Value argument : call.getArguments()) {
@@ -214,9 +201,17 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
         }
 
         @Override
-        public Void visit(AnalysisContext param, PhiValue node) {
-            if (visitKnown(param, node)) {
-                param.connectionGraph.setNoEscape(node);
+        public Void visit(AnalysisContext param, BlockParameter node) {
+            boolean known = visitKnown(param, node);
+            if (known) {
+                if (node.isEntryParameter() && Slot.this_() != node.getSlot()) {
+                    // ParameterValue servers as an anchor for the summary information,
+                    //   that will be generated when we finish analyzing the current method.
+                    param.connectionGraph.addParameter(node);
+                    param.connectionGraph.setArgEscape(node);
+                } else {
+                    param.connectionGraph.setNoEscape(node);
+                }
             }
 
             return null;
@@ -486,7 +481,7 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
             this.connectionGraph = connectionGraph;
             this.bootstrapClassContext = bootstrapClassContext;
             this.knownTypes.add(BlockEntry.class);
-            this.knownTypes.add(ParameterValue.class);
+            this.knownTypes.add(BlockParameter.class);
         }
 
         void addKnownType(Class<?> type) {

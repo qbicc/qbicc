@@ -1,25 +1,22 @@
 package org.qbicc.graph;
 
-import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 import io.smallrye.common.constraint.Assert;
-import org.eclipse.collections.api.factory.SortedMaps;
-import org.eclipse.collections.api.map.sorted.ImmutableSortedMap;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
-import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
@@ -39,7 +36,6 @@ import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -55,43 +51,51 @@ import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
-final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuilder.ExceptionHandler {
-    private final TypeSystem typeSystem;
+final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     private BlockLabel firstBlock;
-    private ExceptionHandlerPolicy policy;
     private int line;
     private int bci;
     private Node dependency;
     private BlockEntry blockEntry;
     private BlockLabel currentBlock;
-    private PhiValue exceptionPhi;
     private BasicBlockBuilder firstBuilder;
     private ExecutableElement element;
     private final ExecutableElement rootElement;
     private Node callSite;
     private BasicBlock terminatedBlock;
-    private boolean started;
-    private ImmutableSortedMap<Slot, BlockParameter> parameters;
+    private Map<BlockLabel, Map<Slot, BlockParameter>> parameters;
 
-    SimpleBasicBlockBuilder(final ExecutableElement element, final TypeSystem typeSystem) {
+    SimpleBasicBlockBuilder(final ExecutableElement element) {
         this.element = element;
-        this.typeSystem = typeSystem;
         this.rootElement = element;
         bci = - 1;
-        parameters = SortedMaps.immutable.empty();
+        parameters = new HashMap<>();
     }
 
     @Override
-    public BlockParameter addParam(Slot slot, ValueType type, boolean nullable) {
-        BlockParameter parameter = parameters.get(slot);
+    public BlockParameter addParam(BlockLabel owner, Slot slot, ValueType type, boolean nullable) {
+        Map<Slot, BlockParameter> subMap = parameters.computeIfAbsent(owner, SimpleBasicBlockBuilder::newMap);
+        BlockParameter parameter = subMap.get(slot);
         if (parameter != null) {
-            throw new IllegalArgumentException("Parameter " + slot + " already defined");
+            if (parameter.getSlot().equals(slot) && parameter.getType().equals(type) && parameter.isNullable() == nullable) {
+                return parameter;
+            }
+            throw new IllegalArgumentException("Parameter " + slot + " already defined to " + owner);
         }
         if (nullable && ! (type instanceof NullableType)) {
             throw new IllegalArgumentException("Parameter can only be nullable if its type is nullable");
         }
-        parameter = new BlockParameter(callSite, element, type, nullable, currentBlock, slot);
-        parameters = parameters.newWithKeyValue(slot, parameter);
+        parameter = new BlockParameter(callSite, element, type, nullable, owner, slot);
+        subMap.put(slot, parameter);
+        return parameter;
+    }
+
+    @Override
+    public BlockParameter getParam(BlockLabel owner, Slot slot) throws NoSuchElementException {
+        BlockParameter parameter = parameters.getOrDefault(owner, Map.of()).get(slot);
+        if (parameter == null) {
+            throw new NoSuchElementException("No parameter for slot " + slot + " in " + owner);
+        }
         return parameter;
     }
 
@@ -149,12 +153,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         }
     }
 
-    public void setExceptionHandlerPolicy(final ExceptionHandlerPolicy policy) {
-        this.policy = policy;
-    }
-
-    public void startMethod(List<ParameterValue> arguments) {
-        started = true;
+    public int getBytecodeIndex() {
+        return bci;
     }
 
     public void finish() {
@@ -174,6 +174,15 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             return BlockLabel.getTargetOf(firstBlock);
         }
         throw new IllegalStateException("First block not yet terminated");
+    }
+
+    @Override
+    public BlockLabel getEntryLabel() throws IllegalStateException {
+        BlockLabel firstBlock = this.firstBlock;
+        if (firstBlock != null) {
+            return firstBlock;
+        }
+        throw new IllegalStateException("First block not yet started");
     }
 
     private void mark(BasicBlock block, BasicBlock from) {
@@ -240,15 +249,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         }
     }
 
-    public ExceptionHandler getExceptionHandler() {
-        if (policy == null) {
-            return null;
-        } else {
-            ExceptionHandler handler = policy.computeCurrentExceptionHandler(this);
-            return handler == this ? null : handler;
-        }
-    }
-
     public Value add(final Value v1, final Value v2) {
         return new Add(callSite, element, line, bci, v1, v2);
     }
@@ -270,11 +270,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value isEq(final Value v1, final Value v2) {
-        return new IsEq(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+        return new IsEq(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
     }
 
     public Value isNe(final Value v1, final Value v2) {
-        return new IsNe(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+        return new IsNe(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
     }
 
     public Value shr(final Value v1, final Value v2) {
@@ -306,19 +306,19 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value isLt(final Value v1, final Value v2) {
-        return new IsLt(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+        return new IsLt(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
     }
 
     public Value isGt(final Value v1, final Value v2) {
-        return new IsGt(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+        return new IsGt(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
     }
 
     public Value isLe(final Value v1, final Value v2) {
-        return new IsLe(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+        return new IsLe(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
     }
 
     public Value isGe(final Value v1, final Value v2) {
-        return new IsGe(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+        return new IsGe(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
     }
 
     public Value rol(final Value v1, final Value v2) {
@@ -330,15 +330,15 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value cmp(Value v1, Value v2) {
-        return new Cmp(callSite, element, line, bci, v1, v2, typeSystem.getSignedInteger32Type());
+        return new Cmp(callSite, element, line, bci, v1, v2, getTypeSystem().getSignedInteger32Type());
     }
 
     public Value cmpG(Value v1, Value v2) {
-        return new CmpG(callSite, element, line, bci, v1, v2, typeSystem.getSignedInteger32Type());
+        return new CmpG(callSite, element, line, bci, v1, v2, getTypeSystem().getSignedInteger32Type());
     }
 
     public Value cmpL(Value v1, Value v2) {
-        return new CmpL(callSite, element, line, bci, v1, v2, typeSystem.getSignedInteger32Type());
+        return new CmpL(callSite, element, line, bci, v1, v2, getTypeSystem().getSignedInteger32Type());
     }
 
     public Value notNull(Value v) {
@@ -366,11 +366,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value countLeadingZeros(final Value v) {
-        return new CountLeadingZeros(callSite, element, line, bci, v, typeSystem.getSignedInteger32Type());
+        return new CountLeadingZeros(callSite, element, line, bci, v, getTypeSystem().getSignedInteger32Type());
     }
 
     public Value countTrailingZeros(final Value v) {
-        return new CountTrailingZeros(callSite, element, line, bci, v, typeSystem.getSignedInteger32Type());
+        return new CountTrailingZeros(callSite, element, line, bci, v, getTypeSystem().getSignedInteger32Type());
     }
 
     public Value populationCount(final Value v) {
@@ -403,7 +403,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         for (int i=0; i<expectedDimensions; i++) {
             ifTrueExpectedType = ifTrueExpectedType.getReferenceArrayObject();
         }
-        return asDependency(new InstanceOf(callSite, element, line, bci, requireDependency(), input, fb.notNull(fb.bitCast(input, ((ReferenceType)input.getType()).narrow(ifTrueExpectedType))), expectedType, expectedDimensions, typeSystem.getBooleanType()));
+        return asDependency(new InstanceOf(callSite, element, line, bci, requireDependency(), input, fb.notNull(fb.bitCast(input, ((ReferenceType)input.getType()).narrow(ifTrueExpectedType))), expectedType, expectedDimensions, getTypeSystem().getBooleanType()));
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {
@@ -551,12 +551,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new StackAllocation(callSite, element, line, bci, requireDependency(), type, count, align));
     }
 
-    public ParameterValue parameter(final ValueType type, String label, final int index) {
-        return new ParameterValue(callSite, element, type, label, index);
-    }
-
     public Value offsetOfField(FieldElement fieldElement) {
-        return new OffsetOfField(callSite, element, line, bci, fieldElement, typeSystem.getSignedInteger32Type());
+        return new OffsetOfField(callSite, element, line, bci, fieldElement, getTypeSystem().getSignedInteger32Type());
     }
 
     public Value extractElement(Value array, Value index) {
@@ -589,11 +585,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
 
     public Node setDebugValue(LocalVariableElement variable, Value value) {
         return asDependency(new DebugValueDeclaration(callSite, element, line, bci, requireDependency(), variable, value));
-    }
-
-    public PhiValue phi(final ValueType type, final BlockLabel owner, PhiValue.Flag... flags) {
-        boolean nullable = (flags.length == 0 || flags[0] != PhiValue.Flag.NOT_NULL);
-        return new PhiValue(callSite, element, line, bci, type, owner, nullable);
     }
 
     public Value select(final Value condition, final Value trueValue, final Value falseValue) {
@@ -669,74 +660,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value call(ValueHandle target, List<Value> arguments) {
-        // todo: this should be done in a separate BBB
-        ExceptionHandler exceptionHandler = getExceptionHandler();
-        if (exceptionHandler != null && canThrow(target)) {
-            // promote to invoke
-            return promoteToInvoke(target, arguments, exceptionHandler);
-        }
         return asDependency(new Call(callSite, element, line, bci, requireDependency(), target, arguments));
     }
 
     public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
-        // todo: this should be done in a separate BBB
-        ExceptionHandler exceptionHandler = getExceptionHandler();
-        if (exceptionHandler != null && canThrow(target)) {
-            // promote to invoke
-            return promoteToInvoke(target, arguments, exceptionHandler);
-        }
         return new CallNoSideEffects(callSite, element, line, bci, target, arguments);
-    }
-
-    private Value promoteToInvoke(final ValueHandle target, final List<Value> arguments, final ExceptionHandler exceptionHandler) {
-        BlockLabel resume = new BlockLabel();
-        BlockLabel setupHandler = new BlockLabel();
-        BlockLabel currentBlock = requireCurrentBlock();
-        Value result = invoke(target, arguments, setupHandler, resume, Map.of());
-        BasicBlock from;
-        if (result instanceof Invoke.ReturnValue) {
-            from = ((Invoke.ReturnValue) result).getInvoke().getTerminatedBlock();
-        } else {
-            // invoke was rewritten or transformed
-            from = BlockLabel.getTargetOf(currentBlock);
-        }
-        // this is the entry point for the stack unwinder
-        setUpHandler(exceptionHandler, setupHandler, from);
-        begin(resume);
-        return result;
-    }
-
-    private void setUpHandler(final ExceptionHandler exceptionHandler, final BlockLabel setupHandler, BasicBlock from) {
-        begin(setupHandler);
-        ClassContext classContext = element.getEnclosingType().getContext();
-        CompilationContext ctxt = classContext.getCompilationContext();
-        BasicBlockBuilder fb = getFirstBuilder();
-        Value thr = fb.load(fb.currentThread(), SingleUnshared);
-        FieldElement exceptionField = ctxt.getExceptionField();
-        ValueHandle handle = instanceFieldOf(referenceHandle(fb.notNull(thr)), exceptionField);
-        LiteralFactory lf = ctxt.getLiteralFactory();
-        Value exceptionValue = notNull(readModifyWrite(handle, ReadModifyWrite.Op.SET, lf.zeroInitializerLiteralOfType(handle.getPointeeType()), SingleUnshared, SingleUnshared));
-        BasicBlock sourceBlock = goto_(exceptionHandler.getHandler(), Map.of());
-        exceptionHandler.enterHandler(from, sourceBlock, exceptionValue);
-    }
-
-    public BlockLabel getHandler() {
-        PhiValue exceptionPhi = this.exceptionPhi;
-        if (exceptionPhi == null) {
-            // first time called
-            ClassObjectType typeId = getCurrentElement().getEnclosingType().getContext().findDefinedType("java/lang/Throwable").load().getClassType();
-            exceptionPhi = this.exceptionPhi = phi(typeId.getReference(), new BlockLabel(), PhiValue.Flag.NOT_NULL);
-        }
-        return exceptionPhi.getPinnedBlockLabel();
-    }
-
-    public void enterHandler(final BasicBlock from, BasicBlock landingPad, final Value exceptionValue) {
-        exceptionPhi.setValueForBlock(element.getEnclosingType().getContext().getCompilationContext(), element, from, exceptionValue);
-        BlockLabel handler = getHandler();
-        if (! handler.hasTarget()) {
-            begin(handler);
-            throw_(exceptionPhi);
-        }
     }
 
     public Node nop() {
@@ -749,9 +677,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Node begin(final BlockLabel blockLabel) {
-        if (!started) {
-            throw new IllegalStateException("begin() called before startMethod()");
-        }
         Assert.checkNotNullParam("blockLabel", blockLabel);
         if (blockLabel.hasTarget()) {
             throw new IllegalStateException("Block already terminated");
@@ -766,6 +691,57 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return dependency = blockEntry = new BlockEntry(callSite, element, blockLabel);
     }
 
+    @Override
+    public <T> BasicBlock begin(BlockLabel blockLabel, T arg, BiConsumer<T, BasicBlockBuilder> maker) {
+        Assert.checkNotNullParam("blockLabel", blockLabel);
+        Assert.checkNotNullParam("maker", maker);
+        if (blockLabel.hasTarget()) {
+            throw new IllegalStateException("Block already terminated");
+        }
+        // save all state on the stack
+        final int oldLine = line;
+        final int oldBci = bci;
+        final Node oldDependency = dependency;
+        final BlockEntry oldBlockEntry = blockEntry;
+        final BlockLabel oldCurrentBlock = currentBlock;
+        final BasicBlock oldTerminatedBlock = terminatedBlock;
+        final ExecutableElement oldElement = element;
+        final Node oldCallSite = callSite;
+        final Map<BlockLabel, Map<Slot, BlockParameter>> oldParameters = new HashMap<>(parameters);
+        try {
+            return doBegin(blockLabel, arg, maker);
+        } finally {
+            // restore all state
+            parameters = oldParameters;
+            callSite = oldCallSite;
+            element = oldElement;
+            terminatedBlock = oldTerminatedBlock;
+            currentBlock = oldCurrentBlock;
+            blockEntry = oldBlockEntry;
+            dependency = oldDependency;
+            bci = oldBci;
+            line = oldLine;
+        }
+    }
+
+    private <T> BasicBlock doBegin(final BlockLabel blockLabel, final T arg, final BiConsumer<T, BasicBlockBuilder> maker) {
+        try {
+            currentBlock = blockLabel;
+            if (firstBlock == null) {
+                firstBlock = blockLabel;
+            }
+            dependency = blockEntry = new BlockEntry(callSite, element, blockLabel);
+            parameters = new HashMap<>();
+            maker.accept(arg, firstBuilder);
+            if (currentBlock != null) {
+                getContext().error(getLocation(), "Block not terminated");
+                firstBuilder.unreachable();
+            }
+        } catch (BlockEarlyTermination ignored) {
+        }
+        return BlockLabel.getTargetOf(blockLabel);
+    }
+
     public Node reachable(final Value value) {
         return asDependency(new Reachable(callSite, element, line, bci, requireDependency(), value));
     }
@@ -775,77 +751,53 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
-        // todo: this should be done in a separate BBB
-        ExceptionHandler exceptionHandler = getExceptionHandler();
-        if (exceptionHandler != null && canThrow(target)) {
-            // promote to invoke
-            BlockLabel setupHandler = new BlockLabel();
-            BasicBlock result = invokeNoReturn(target, arguments, setupHandler, Map.of());
-            // this is the entry point for the stack unwinder
-            setUpHandler(exceptionHandler, setupHandler, result);
-            return result;
-        }
-        return terminate(requireCurrentBlock(), new CallNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments, parameters.castToMap()));
+        return terminate(requireCurrentBlock(), new CallNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments));
     }
 
     public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        return terminate(requireCurrentBlock(), new InvokeNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, parameters.castToMap(), targetArguments));
+        return terminate(requireCurrentBlock(), new InvokeNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, targetArguments));
     }
 
     public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
-        // todo: this should be done in a separate BBB
-        ExceptionHandler exceptionHandler = getExceptionHandler();
-        if (exceptionHandler != null && canThrow(target)) {
-            // promote to invoke
-            BlockLabel setupHandler = new BlockLabel();
-            BasicBlock result = tailInvoke(target, arguments, setupHandler, Map.of());
-            // this is the entry point for the stack unwinder
-            setUpHandler(exceptionHandler, setupHandler, result);
-            return result;
-        }
-        return terminate(requireCurrentBlock(), new TailCall(callSite, element, line, bci, blockEntry, dependency, target, arguments, parameters.castToMap()));
+        return terminate(requireCurrentBlock(), new TailCall(callSite, element, line, bci, blockEntry, dependency, target, arguments));
     }
 
     public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        return terminate(requireCurrentBlock(), new TailInvoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, parameters.castToMap(), targetArguments));
+        return terminate(requireCurrentBlock(), new TailInvoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, targetArguments));
     }
 
     public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         final BlockLabel currentBlock = requireCurrentBlock();
-        Invoke invoke = new Invoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, resumeLabel, parameters.castToMap(), targetArguments);
+        Invoke invoke = new Invoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, resumeLabel, targetArguments);
         terminate(currentBlock, invoke);
         return invoke.getReturnValue();
     }
 
-    private boolean canThrow(ValueHandle target) {
-        return ! (target instanceof Executable ex && ex.getExecutable().hasAllModifiersOf(ClassFile.I_ACC_NO_THROW));
-    }
-
     public BasicBlock goto_(final BlockLabel resumeLabel, final Map<Slot, Value> targetArguments) {
-        return terminate(requireCurrentBlock(), new Goto(callSite, element, line, bci, blockEntry, dependency, resumeLabel, parameters.castToMap(), targetArguments));
+        return terminate(requireCurrentBlock(), new Goto(callSite, element, line, bci, blockEntry, dependency, resumeLabel, targetArguments));
     }
 
     public BasicBlock if_(final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget, final Map<Slot, Value> targetArguments) {
-        return terminate(requireCurrentBlock(), new If(callSite, element, line, bci, blockEntry, dependency, condition, trueTarget, falseTarget, parameters.castToMap(), targetArguments));
+        return terminate(requireCurrentBlock(), new If(callSite, element, line, bci, blockEntry, dependency, condition, trueTarget, falseTarget, targetArguments));
     }
 
     public BasicBlock return_(final Value value) {
         if (value == null) {
             return return_(emptyVoid());
         }
-        return terminate(requireCurrentBlock(), new Return(callSite, element, line, bci, blockEntry, dependency, value, parameters.castToMap()));
+        return terminate(requireCurrentBlock(), new Return(callSite, element, line, bci, blockEntry, dependency, value));
     }
 
     public BasicBlock unreachable() {
-        return terminate(requireCurrentBlock(), new Unreachable(callSite, element, line, bci, blockEntry, dependency, parameters.castToMap()));
+        return terminate(requireCurrentBlock(), new Unreachable(callSite, element, line, bci, blockEntry, dependency));
     }
 
     public BasicBlock throw_(final Value value) {
-        return terminate(requireCurrentBlock(), new Throw(callSite, element, line, bci, blockEntry, dependency, value, parameters.castToMap()));
+        return terminate(requireCurrentBlock(), new Throw(callSite, element, line, bci, blockEntry, dependency, value));
     }
 
     public BasicBlock ret(final Value address, Map<Slot, Value> targetArguments) {
-        return terminate(requireCurrentBlock(), new Ret(callSite, element, line, bci, blockEntry, dependency, address, parameters.castToMap(), targetArguments));
+        return terminate(requireCurrentBlock(), new Ret(callSite, element, line, bci, blockEntry, dependency, address, targetArguments));
     }
 
     public BlockEntry getBlockEntry() {
@@ -862,7 +814,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public BasicBlock switch_(final Value value, final int[] checkValues, final BlockLabel[] targets, final BlockLabel defaultTarget, final Map<Slot, Value> targetArguments) {
-        return terminate(requireCurrentBlock(), new Switch(callSite, element, line, bci, blockEntry, dependency, defaultTarget, checkValues, targets, value, parameters.castToMap(), targetArguments));
+        return terminate(requireCurrentBlock(), new Switch(callSite, element, line, bci, blockEntry, dependency, defaultTarget, checkValues, targets, value, targetArguments));
     }
 
     private BasicBlock terminate(final BlockLabel block, final Terminator op) {
@@ -872,7 +824,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         blockEntry = null;
         currentBlock = null;
         dependency = null;
-        parameters = SortedMaps.immutable.empty();
         return realBlock;
     }
 

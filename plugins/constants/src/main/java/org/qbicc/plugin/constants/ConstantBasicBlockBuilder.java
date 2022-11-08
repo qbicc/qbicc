@@ -11,7 +11,6 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.Node;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
@@ -38,9 +37,6 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
 
-import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
-import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
-
 /**
  * A basic block builder which substitutes reads from trivially constant static fields,
  * CNative#constants and invocations of @Fold annotated methods with their constant values.
@@ -53,9 +49,9 @@ import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public ConstantBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public ConstantBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     @Override
@@ -81,7 +77,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (target.isFold()) try {
             return fold(target, arguments);
         } catch (Thrown t) {
-            throw new BlockEarlyTermination(throw_(ctxt.getLiteralFactory().literalOf(t.getThrowable())));
+            throw new BlockEarlyTermination(throw_(getLiteralFactory().literalOf(t.getThrowable())));
         }
         return super.call(target, arguments);
     }
@@ -96,7 +92,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (target.isFold()) try {
             return return_(fold(target, arguments));
         } catch (Thrown t) {
-            return throw_(ctxt.getLiteralFactory().literalOf(t.getThrowable()));
+            return throw_(getLiteralFactory().literalOf(t.getThrowable()));
         }
         return super.tailCall(target, arguments);
     }
@@ -106,8 +102,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (target.isFold()) try {
             return return_(fold(target, arguments));
         } catch (Thrown t) {
-            ObjectLiteral val = storeException(t);
-            return goto_(catchLabel, Slot.thrown(), val);
+            return goto_(catchLabel, Slot.thrown(), getLiteralFactory().literalOf(t.getThrowable()));
         }
         return super.tailInvoke(target, arguments, catchLabel, targetArguments);
     }
@@ -121,8 +116,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 goto_(resumeLabel, immutableMap.newWithKeyValue(Slot.result(), result).castToMap());
                 return result;
             } catch (Thrown t) {
-                ObjectLiteral val = storeException(t);
-                goto_(catchLabel, immutableMap.newWithKeyValue(Slot.thrown(), val).castToMap());
+                goto_(catchLabel, immutableMap.newWithKeyValue(Slot.thrown(), getLiteralFactory().literalOf(t.getThrowable())).castToMap());
             }
         }
         return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
@@ -212,10 +206,4 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(unreachable());
     }
 
-    private ObjectLiteral storeException(final Thrown t) {
-        // todo: rework when landing pads are done
-        ObjectLiteral value = ctxt.getLiteralFactory().literalOf(t.getThrowable());
-        store(instanceFieldOf(referenceHandle(load(currentThread(), SingleUnshared)), ctxt.getExceptionField()), value, SinglePlain);
-        return value;
-    }
 }

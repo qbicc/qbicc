@@ -9,7 +9,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -81,12 +80,11 @@ final class CompilationContextImpl implements CompilationContext {
     private final ConcurrentMap<ExecutableElement, FunctionElement> establishedFunctions = new ConcurrentHashMap<>();
     private final Path outputDir;
     final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories;
-    private final AtomicReference<FieldElement> exceptionFieldHolder = new AtomicReference<>();
     private volatile DefinedTypeDefinition defaultTypeDefinition;
     private final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories;
 
     // mutable state
-    private volatile BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
+    private volatile BiFunction<BasicBlockBuilder.FactoryContext, ExecutableElement, BasicBlockBuilder> blockFactory;
     private volatile BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> copier;
     private final Vm vm;
     private final NativeMethodConfigurator nativeMethodConfigurator;
@@ -460,24 +458,6 @@ final class CompilationContextImpl implements CompilationContext {
         return implicitSection;
     }
 
-    public FieldElement getExceptionField() {
-        AtomicReference<FieldElement> exceptionFieldHolder = this.exceptionFieldHolder;
-        FieldElement fieldElement = exceptionFieldHolder.get();
-        if (fieldElement == null) {
-            synchronized (exceptionFieldHolder) {
-                fieldElement = exceptionFieldHolder.get();
-                if (fieldElement == null) {
-                    ClassContext classContext = this.bootstrapClassContext;
-                    ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Throwable");
-                    DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
-                    fieldElement = jlt.load().resolveField(desc, "thrown", true);
-                    exceptionFieldHolder.set(fieldElement);
-                }
-            }
-        }
-        return fieldElement;
-    }
-
     @Override
     public Vm getVm() {
         return vm;
@@ -599,11 +579,11 @@ final class CompilationContextImpl implements CompilationContext {
         return entryPoints;
     }
 
-    BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> getBlockFactory() {
+    BiFunction<BasicBlockBuilder.FactoryContext, ExecutableElement, BasicBlockBuilder> getBlockFactory() {
         return blockFactory;
     }
 
-    void setBlockFactory(final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory) {
+    void setBlockFactory(final BiFunction<BasicBlockBuilder.FactoryContext, ExecutableElement, BasicBlockBuilder> blockFactory) {
         this.blockFactory = blockFactory;
     }
 

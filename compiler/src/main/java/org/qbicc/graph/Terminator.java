@@ -1,6 +1,5 @@
 package org.qbicc.graph;
 
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
@@ -20,15 +19,6 @@ public interface Terminator extends OrderedNode {
         throw new IndexOutOfBoundsException(index);
     }
 
-    @Deprecated
-    Value getOutboundValue(PhiValue phi);
-
-    @Deprecated
-    boolean registerValue(PhiValue phi, Value val);
-
-    @Deprecated
-    Map<PhiValue, Value> getOutboundValues();
-
     /**
      * Get the outbound argument for the given block parameter slot, to be passed into any successor block.
      * Terminators which do not pass control flow to a successor block should return an empty map.
@@ -40,6 +30,17 @@ public interface Terminator extends OrderedNode {
      */
     default Value getOutboundArgument(Slot slot) throws NoSuchElementException {
         throw new NoSuchElementException();
+    }
+
+    /**
+     * Determine whether this terminator node creates an implicit value for the given slot.
+     *
+     * @param slot the slot (must not be {@code null})
+     * @param block the block receiving the outbound argument (must not be {@code null})
+     * @return {@code true} if the slot corresponds to an implicit outbound argument, or {@code false} otherwise
+     */
+    default boolean isImplicitOutboundArgument(Slot slot, BasicBlock block) {
+        return false;
     }
 
     /**

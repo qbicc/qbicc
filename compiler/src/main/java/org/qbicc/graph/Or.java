@@ -20,11 +20,11 @@ public final class Or extends AbstractBinaryValue implements CommutativeBinaryVa
     }
 
     @Override
-    public Value getValueIfFalse(Value input) {
+    public Value getValueIfFalse(BasicBlockBuilder bbb, Value input) {
         assert getType() instanceof BooleanType;
         // both inputs must be false
         // TODO: merge values algorithm
-        return getLeftInput().getValueIfFalse(getRightInput().getValueIfFalse(input));
+        return getLeftInput().getValueIfFalse(bbb, getRightInput().getValueIfFalse(bbb, input));
     }
 
     @Override

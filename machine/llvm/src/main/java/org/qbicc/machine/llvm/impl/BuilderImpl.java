@@ -22,6 +22,7 @@ import org.qbicc.machine.llvm.op.FastMathBinary;
 import org.qbicc.machine.llvm.op.FastMathUnary;
 import org.qbicc.machine.llvm.op.Fence;
 import org.qbicc.machine.llvm.op.GetElementPtr;
+import org.qbicc.machine.llvm.op.IndirectBranch;
 import org.qbicc.machine.llvm.op.Instruction;
 import org.qbicc.machine.llvm.op.LandingPad;
 import org.qbicc.machine.llvm.op.Load;
@@ -108,6 +109,11 @@ final class BuilderImpl implements LLBuilder {
         Assert.checkNotNullParam("ifTrue", ifTrue);
         Assert.checkNotNullParam("ifFalse", ifFalse);
         return appendTerminator(new ConditionalBranchImpl((AbstractValue) cond, (BasicBlockImpl) ifTrue, (BasicBlockImpl) ifFalse));
+    }
+
+    public IndirectBranch indirectbr(final LLValue address) {
+        Assert.checkNotNullParam("address", address);
+        return appendTerminator(new IndirectBranchImpl((AbstractValue) address));
     }
 
     public Return ret() {

@@ -1,6 +1,5 @@
 package org.qbicc.plugin.dispatch;
 
-import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.*;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InstanceMethodType;
@@ -15,11 +14,8 @@ import org.qbicc.type.descriptor.MethodDescriptor;
 public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private static final Logger log = Logger.getLogger("org.qbicc.plugin.dispatch.devirt");
 
-    private final CompilationContext ctxt;
-
-    public DevirtualizingBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public DevirtualizingBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
     }
 
     @Override

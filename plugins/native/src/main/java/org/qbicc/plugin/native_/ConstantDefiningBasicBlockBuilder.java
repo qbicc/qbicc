@@ -35,18 +35,18 @@ import org.qbicc.type.descriptor.ClassTypeDescriptor;
 public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    private ConstantDefiningBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    private ConstantDefiningBasicBlockBuilder(final BasicBlockBuilder delegate) {
         super(delegate);
         ExecutableElement element = getCurrentElement();
         if (element instanceof InitializerElement) {
-            NativeInfo.get(ctxt).registerInitializer((InitializerElement) element);
+            NativeInfo.get(getContext()).registerInitializer((InitializerElement) element);
         }
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
-    public static BasicBlockBuilder createIfNeeded(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public static BasicBlockBuilder createIfNeeded(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         if (delegate.getCurrentElement() instanceof InitializerElement) {
-            return new ConstantDefiningBasicBlockBuilder(ctxt, delegate);
+            return new ConstantDefiningBasicBlockBuilder(delegate);
         } else {
             return delegate;
         }

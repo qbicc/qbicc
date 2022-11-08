@@ -40,9 +40,9 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private final CompilationContext ctxt;
 
-    public AccessorBasicBlockBuilder(CompilationContext ctxt, BasicBlockBuilder delegate) {
+    public AccessorBasicBlockBuilder(FactoryContext ctxt, BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     @Override

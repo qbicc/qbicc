@@ -120,7 +120,6 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
             VmImpl vm = VmImpl.require();
             VmThrowable throwable = vm.noClassDefFoundErrorClass.newInstance("Class definition not found", thrown.getThrowable());
             VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
-            thread.setThrown(throwable);
             throw new Thrown(throwable);
         }
     }
@@ -164,7 +163,6 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         } catch (VerifyFailedException e) {
             VmThrowable throwable = vm.verifyErrorClass.newInstance(e.getMessage());
             VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
-            thread.setThrown(throwable);
             throw new Thrown(throwable);
         }
         VmClassImpl vmClass = createVmClass(vm, loaded, hidden);
@@ -172,7 +170,6 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         if (! hidden && this.defined.putIfAbsent(internalName, vmClass) != null) {
             VmThrowable throwable = vm.noClassDefFoundErrorClass.newInstance("Class already defined");
             VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
-            thread.setThrown(throwable);
             throw new Thrown(throwable);
         }
         initNestHost(loaded, vmClass);
@@ -289,7 +286,6 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
     private Thrown duplicateClass(final VmImpl vm) {
         VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
         VmThrowable throwable = vm.linkageErrorClass.newInstance("Attempted duplicate class definition");
-        thread.setThrown(throwable);
         return new Thrown(throwable);
     }
 
@@ -305,14 +301,12 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
             DefinedTypeDefinition definedType = classContext.findDefinedType(intName.getContent());
             if (definedType == null) {
                 VmThrowable throwable = thread.getVM().classNotFoundExceptionClass.newInstance("Class not found: " + intName.getContent());
-                thread.setThrown(throwable);
                 throw new Thrown(throwable);
             }
             try {
                 return (VmClassImpl) definedType.load().getVmClass();
             } catch (Exception e) {
                 VmThrowable throwable = thread.getVM().noClassDefFoundErrorClass.newInstance("Class load failed: " + intName.getContent());
-                thread.setThrown(throwable);
                 throw new Thrown(throwable);
             }
         }

@@ -9,10 +9,10 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
@@ -28,7 +28,7 @@ import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
-import org.qbicc.plugin.unwind.UnwindHelper;
+import org.qbicc.plugin.unwind.UnwindExceptionStrategy;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
@@ -48,9 +48,9 @@ import org.qbicc.type.definition.element.MethodElement;
 public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public LLVMCompatibleBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public LLVMCompatibleBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     @Override
@@ -266,18 +266,15 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 BlockLabel top = new BlockLabel();
                 BlockLabel exit = new BlockLabel();
                 SignedIntegerType idxType = ctxt.getTypeSystem().getSignedInteger64Type();
-                BasicBlock entry = goto_(top, Map.of());
-                PhiValue idx = phi(idxType, top);
-                PhiValue val = phi(at, top);
+                goto_(top, Map.of(Slot.temp(0), lf.literalOf(idxType, 0), Slot.temp(1), lf.zeroInitializerLiteralOfType(at)));
                 begin(top);
+                BlockParameter idx = addParam(top, Slot.temp(0), idxType);
+                BlockParameter val = addParam(top, Slot.temp(1), at);
                 Value modVal = insertElement(val, idx, load(elementOf(handle, idx), accessMode));
-                BasicBlock loop = if_(isLt(idx, lf.literalOf(idxType, ec)), top, exit, Map.of());
-                idx.setValueForBlock(ctxt, getCurrentElement(), entry, lf.literalOf(idxType, 0));
-                val.setValueForBlock(ctxt, getCurrentElement(), entry, lf.zeroInitializerLiteralOfType(at));
-                idx.setValueForBlock(ctxt, getCurrentElement(), loop, add(idx, lf.literalOf(idxType, 1)));
-                val.setValueForBlock(ctxt, getCurrentElement(), loop, modVal);
+                if_(isLt(idx, lf.literalOf(idxType, ec)), top, exit, Map.of(Slot.temp(0), add(idx, lf.literalOf(idxType, 1)), Slot.temp(1), modVal));
                 begin(exit);
-                return val;
+                // be sure to return the final modified value
+                return addParam(exit, Slot.temp(1), at);
             }
         }
         return super.load(handle, accessMode);
@@ -328,13 +325,11 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 BlockLabel top = new BlockLabel();
                 BlockLabel exit = new BlockLabel();
                 SignedIntegerType idxType = ctxt.getTypeSystem().getSignedInteger64Type();
-                BasicBlock entry = goto_(top, Map.of());
-                PhiValue idx = phi(idxType, top);
+                goto_(top, Slot.temp(0), lf.literalOf(idxType, 0));
                 begin(top);
+                BlockParameter idx = addParam(top, Slot.temp(0), idxType);
                 store(elementOf(handle, idx), extractElement(value, idx));
-                BasicBlock loop = if_(isLt(idx, lf.literalOf(idxType, ec)), top, exit, Map.of());
-                idx.setValueForBlock(ctxt, getCurrentElement(), entry, lf.literalOf(idxType, 0));
-                idx.setValueForBlock(ctxt, getCurrentElement(), loop, add(idx, lf.literalOf(idxType, 1)));
+                if_(isLt(idx, lf.literalOf(idxType, ec)), top, exit, Map.of(Slot.temp(0), add(idx, lf.literalOf(idxType, 1))));
                 begin(exit);
             }
             return nop();
@@ -448,7 +443,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     @Override
     public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         // declare personality function
-        MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
+        MethodElement personalityMethod = UnwindExceptionStrategy.get(ctxt).getPersonalityMethod();
         Function function = ctxt.getExactFunction(personalityMethod);
         ctxt.getOrAddProgramModule(getRootElement()).declareFunction(function);
         return super.invokeNoReturn(target, arguments, catchLabel, targetArguments);
@@ -457,7 +452,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     @Override
     public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         // declare personality function
-        MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
+        MethodElement personalityMethod = UnwindExceptionStrategy.get(ctxt).getPersonalityMethod();
         Function function = ctxt.getExactFunction(personalityMethod);
         ctxt.getOrAddProgramModule(getRootElement()).declareFunction(function);
         return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
@@ -466,7 +461,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     @Override
     public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         // declare personality function
-        MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
+        MethodElement personalityMethod = UnwindExceptionStrategy.get(ctxt).getPersonalityMethod();
         Function function = ctxt.getExactFunction(personalityMethod);
         ctxt.getOrAddProgramModule(getRootElement()).declareFunction(function);
         if (isTailCallSafe()) {

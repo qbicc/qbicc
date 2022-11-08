@@ -15,7 +15,8 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.ParameterValue;
+import org.qbicc.graph.BlockParameter;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
@@ -1196,20 +1197,13 @@ public final class Reflection {
             @Override
             public MethodBody createMethodBody(int index, ExecutableElement e) {
                 BasicBlockBuilder bbb = classContext.newBasicBlockBuilder(e);
-                List<ParameterValue> paramValues;
-                if (element.isStatic()) {
-                    paramValues = List.of();
-                } else {
-                    paramValues = List.of(bbb.parameter(e.getEnclosingType().load().getObjectType().getReference(), "p", 0));
-                }
-                bbb.startMethod(paramValues);
                 // build the entry block
                 BlockLabel entryLabel = new BlockLabel();
                 bbb.begin(entryLabel);
                 Value value;
                 if (kind == MethodHandleKind.GET_FIELD) {
                     // instance field; dispatcher arg 0 is the instance
-                    Value instance = paramValues.get(0);
+                    Value instance = bbb.addParam(entryLabel, Slot.funcParam(0), e.getEnclosingType().load().getObjectType().getReference());
                     // load the field value
                     ReadAccessMode mode = element.isVolatile() ? GlobalSeqCst : SinglePlain;
                     value = bbb.load(bbb.instanceFieldOf(bbb.referenceHandle(instance), element), mode);
@@ -1224,7 +1218,7 @@ public final class Reflection {
                 bbb.finish();
                 BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
                 Schedule schedule = Schedule.forMethod(entryBlock);
-                return MethodBody.of(entryBlock, schedule, null, paramValues);
+                return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(element.isStatic() ? 0 : 1));
             }
         }, 0);
         StaticMethodElement dispatcher = (StaticMethodElement) builder.build();
@@ -1267,24 +1261,16 @@ public final class Reflection {
             @Override
             public MethodBody createMethodBody(int index, ExecutableElement e) {
                 BasicBlockBuilder bbb = classContext.newBasicBlockBuilder(e);
-                List<ParameterValue> paramValues;
-                if (element.isStatic()) {
-                    paramValues = List.of(bbb.parameter(element.getType(), "p", 0));
-                } else {
-                    paramValues = List.of(bbb.parameter(element.getEnclosingType().load().getObjectType().getReference(), "p", 0), bbb.parameter(element.getType(), "p", 1));
-                }
-                bbb.startMethod(paramValues);
                 // build the entry block
                 BlockLabel entryLabel = new BlockLabel();
                 bbb.begin(entryLabel);
+                BlockParameter value = bbb.addParam(entryLabel, Slot.funcParam(element.isStatic() ? 0 : 1), element.getType());
                 if (kind == MethodHandleKind.PUT_FIELD) {
-                    Value instance = paramValues.get(0);
-                    Value value = paramValues.get(1);
+                    Value instance = bbb.addParam(entryLabel, Slot.funcParam(0), element.getEnclosingType().load().getObjectType().getReference());
                     WriteAccessMode mode = element.isVolatile() ? GlobalSeqCst : SinglePlain;
                     bbb.store(bbb.instanceFieldOf(bbb.referenceHandle(instance), element), value, mode);
                 } else {
                     assert kind == MethodHandleKind.PUT_STATIC;
-                    Value value = paramValues.get(0);
                     WriteAccessMode mode = element.isVolatile() ? GlobalSeqCst : SinglePlain;
                     bbb.store(bbb.staticField(element), value, mode);
                 }
@@ -1292,7 +1278,7 @@ public final class Reflection {
                 bbb.finish();
                 BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
                 Schedule schedule = Schedule.forMethod(entryBlock);
-                return MethodBody.of(entryBlock, schedule, null, paramValues);
+                return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(element.isStatic() ? 1 : 2));
             }
         }, 0);
         StaticMethodElement dispatcher = (StaticMethodElement) builder.build();
@@ -1358,16 +1344,15 @@ public final class Reflection {
             @Override
             public MethodBody createMethodBody(int index, ExecutableElement e) {
                 BasicBlockBuilder bbb = classContext.newBasicBlockBuilder(e);
-                InvokableType type = e.getType();
-                int pcnt = type.getParameterCount();
-                List<ParameterValue> paramValues = new ArrayList<>(pcnt);
-                for (int i = 0; i < pcnt; i ++) {
-                    paramValues.add(bbb.parameter(type.getParameterType(i), "p", i));
-                }
-                bbb.startMethod(paramValues);
                 // build the entry block
                 BlockLabel entryLabel = new BlockLabel();
                 bbb.begin(entryLabel);
+                InvokableType type = e.getType();
+                int pcnt = type.getParameterCount();
+                List<BlockParameter> paramValues = new ArrayList<>(pcnt);
+                for (int i = 0; i < pcnt; i ++) {
+                    paramValues.add(bbb.addParam(entryLabel, Slot.funcParam(i), type.getParameterType(i)));
+                }
                 List<Value> values = (List) paramValues.subList(1, paramValues.size());
                 switch (resolvedKind) {
                     case INVOKE_VIRTUAL -> bbb.tailCall(bbb.virtualMethodOf(paramValues.get(0), element), values);
@@ -1378,7 +1363,7 @@ public final class Reflection {
                 bbb.finish();
                 BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
                 Schedule schedule = Schedule.forMethod(entryBlock);
-                return MethodBody.of(entryBlock, schedule, null, paramValues);
+                return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(pcnt));
             }
         }, 0);
         StaticMethodElement dispatcher = (StaticMethodElement) builder.build();
@@ -1425,22 +1410,21 @@ public final class Reflection {
             @Override
             public MethodBody createMethodBody(int index, ExecutableElement e) {
                 BasicBlockBuilder bbb = classContext.newBasicBlockBuilder(e);
-                InvokableType type = e.getType();
-                int pcnt = type.getParameterCount();
-                List<ParameterValue> paramValues = new ArrayList<>(pcnt);
-                for (int i = 0; i < pcnt; i ++) {
-                    paramValues.add(bbb.parameter(type.getParameterType(i), "p", i));
-                }
-                bbb.startMethod(paramValues);
                 // build the entry block
                 BlockLabel entryLabel = new BlockLabel();
                 bbb.begin(entryLabel);
+                InvokableType type = e.getType();
+                int pcnt = type.getParameterCount();
+                List<BlockParameter> paramValues = new ArrayList<>(pcnt);
+                for (int i = 0; i < pcnt; i ++) {
+                    paramValues.add(bbb.addParam(entryLabel, Slot.funcParam(i), type.getParameterType(i)));
+                }
                 List<Value> values = (List) paramValues.subList(1, paramValues.size());
                 bbb.tailCall(bbb.constructorOf(paramValues.get(0), element), values);
                 bbb.finish();
                 BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
                 Schedule schedule = Schedule.forMethod(entryBlock);
-                return MethodBody.of(entryBlock, schedule, null, paramValues);
+                return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(pcnt));
             }
         }, 0);
         StaticMethodElement dispatcher = (StaticMethodElement) builder.build();

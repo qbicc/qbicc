@@ -272,14 +272,6 @@ public interface ValueVisitorLong<T> {
         return visitUnknown(param, node);
     }
 
-    default long visit(T param, ParameterValue node) {
-        return visitUnknown(param, node);
-    }
-
-    default long visit(T param, PhiValue node) {
-        return visitUnknown(param, node);
-    }
-
     default long visit(T param, PointerLiteral node) {
         return visitUnknown(param, node);
     }
@@ -604,14 +596,6 @@ public interface ValueVisitorLong<T> {
         }
 
         default long visit(T param, Or node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default long visit(T param, ParameterValue node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default long visit(T param, PhiValue node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

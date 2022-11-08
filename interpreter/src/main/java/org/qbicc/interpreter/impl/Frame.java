@@ -24,6 +24,7 @@ import org.qbicc.graph.BinaryValue;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BitReverse;
 import org.qbicc.graph.BlockEntry;
+import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.ByteSwap;
 import org.qbicc.graph.Call;
 import org.qbicc.graph.CallNoReturn;
@@ -80,7 +81,6 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.Or;
-import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
 import org.qbicc.graph.Reachable;
@@ -181,7 +181,7 @@ import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 
 final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVisitor<VmThreadImpl, Object>, TerminatorVisitor<VmThreadImpl, BasicBlock> {
-    private static final Object MISSING = new Object();
+    static final Object MISSING = new Object();
 
     /**
      * The calling frame.
@@ -227,6 +227,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
      * The set of currently-held locks.
      */
     Set<Lock> heldLocks;
+
+    /**
+     * The caught exception.
+     */
+    VmThrowable exception;
 
     Frame(Frame enclosing, ExecutableElement element, Memory memory) {
         this.enclosing = enclosing;
@@ -460,7 +465,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         exType = exDefined.getClassType();
         VmThrowable obj = (VmThrowable) vm.allocateObject(exType);
         vm.invokeExact(exDefined.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), obj, List.of());
-        thread.setThrown(obj);
         return new Thrown(obj);
     }
 
@@ -1420,11 +1424,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     ///////////////////////////
-    // Phi
+    // Block parameter
     ///////////////////////////
 
     @Override
-    public Object visit(VmThreadImpl param, PhiValue node) {
+    public Object visit(VmThreadImpl vmThread, BlockParameter node) {
         return require(node);
     }
 
@@ -1472,7 +1476,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             values.put(node.getReturnValue(), call(thread, node.getValueHandle(), require(node.getArguments())));
             return node.getResumeTarget();
         } catch (Thrown t) {
-            thread.setThrown(t.getThrowable());
+            this.exception = t.getThrowable();
             return node.getCatchBlock();
         }
     }
@@ -1488,7 +1492,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             call(thread, node.getValueHandle(), require(node.getArguments()));
             throw Assert.unreachableCode();
         } catch (Thrown t) {
-            thread.setThrown(t.getThrowable());
+            this.exception = t.getThrowable();
             return node.getCatchBlock();
         }
     }
@@ -1505,7 +1509,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             output = call(thread, node.getValueHandle(), require(node.getArguments()));
             return null; // return
         } catch (Thrown t) {
-            thread.setThrown(t.getThrowable());
+            this.exception = t.getThrowable();
             return node.getCatchBlock();
         }
     }
@@ -2100,9 +2104,12 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public BasicBlock visit(VmThreadImpl thread, Throw node) {
-        VmThrowable throwable = (VmThrowable) require(node.getThrownValue());
-        thread.setThrown(throwable);
-        throw new Thrown(throwable);
+        Object raw = require(node.getThrownValue());
+        if (raw instanceof VmThrowable throwable) {
+            throw new Thrown(throwable);
+        }
+        // breakpoint
+        throw new IllegalStateException();
     }
 
     @Override
@@ -2190,7 +2197,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                     VmClassImpl nsme = vm.noSuchMethodErrorClass;
                     VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
                     VmThrowable throwable = vm.manuallyInitialize((VmThrowable) nsme.newInstance());
-                    thread.setThrown(throwable);
                     throw new Thrown(throwable);
                 }
                 return result;
@@ -2211,7 +2217,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                     VmClassImpl nsme = vm.noSuchMethodErrorClass;
                     VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
                     VmThrowable throwable = vm.manuallyInitialize((VmThrowable) nsme.newInstance());
-                    thread.setThrown(throwable);
                     throw new Thrown(throwable);
                 }
                 return result;
@@ -2253,7 +2258,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             VmClassImpl ule = vm.getBootstrapClassLoader().loadClass("java/lang/UnsatisfiedLinkError");
             VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
             VmThrowable throwable = vm.manuallyInitialize((VmThrowable) ule.newInstance());
-            thread.setThrown(throwable);
             return new Thrown(throwable);
         }
 
@@ -2725,14 +2729,22 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     Object require(Value value) {
+        Object v = getOrMissing(value);
+        if (v == MISSING) {
+            throw missingRequired();
+        }
+        return v;
+    }
+
+    Object getOrMissing(Value value) {
         if (value instanceof Literal) {
             return value.accept(this, null);
         }
-        Object v = values.getOrDefault(value, MISSING);
-        if (v == MISSING) {
-            throw new IllegalStateException("Missing required value");
-        }
-        return v;
+        return values.getOrDefault(value, MISSING);
+    }
+
+    private static IllegalStateException missingRequired() {
+        return new IllegalStateException("Missing required value");
     }
 
     ValueType unboxType(Value value) {

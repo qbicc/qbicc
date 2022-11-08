@@ -4,8 +4,12 @@ import static org.qbicc.graph.atomic.AccessModes.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Locatable;
@@ -21,6 +25,7 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.InterfaceObjectType;
+import org.qbicc.type.NullableType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PrimitiveArrayObjectType;
@@ -51,16 +56,41 @@ public interface BasicBlockBuilder extends Locatable {
     // parameters
 
     /**
-     * Add an input parameter to the block being built.
+     * Add an input parameter to the given block.
      * Any control flow transfer to this block <em>must</em> provide an argument value for each parameter.
      *
+     * @param owner the label of the block to which the parameter should belong (must not be {@code null})
      * @param slot the parameter name (must not be {@code null})
      * @param type the parameter type (must not be {@code null})
      * @param nullable {@code true} if the reference- or pointer-typed parameter can be {@code null}, or {@code false} otherwise
      * @return the parameter value (not {@code null})
-     * @throws IllegalArgumentException if the parameter is already defined or {@code type} is not nullable but {@code nullable} was set
+     * @throws IllegalArgumentException if the parameter already has a different definition, or {@code type} is not nullable but {@code nullable} was set
      */
-    BlockParameter addParam(Slot slot, ValueType type, boolean nullable);
+    BlockParameter addParam(BlockLabel owner, Slot slot, ValueType type, boolean nullable);
+
+    /**
+     * Add a nullable input parameter to the given block.
+     * Any control flow transfer to this block <em>must</em> provide an argument value for each parameter.
+     *
+     * @param owner the label of the block to which the parameter should belong (must not be {@code null})
+     * @param slot the parameter name (must not be {@code null})
+     * @param type the parameter type (must not be {@code null})
+     * @return the parameter value (not {@code null})
+     * @throws IllegalArgumentException if the parameter already has a different definition
+     */
+    default BlockParameter addParam(BlockLabel owner, Slot slot, ValueType type) {
+        return addParam(owner, slot, type, type instanceof NullableType);
+    }
+
+    /**
+     * Get the pre-established block parameter for the given slot.
+     *
+     * @param owner the owning block label (must not be {@code null})
+     * @param slot the slot (must not be {@code null})
+     * @return the parameter value (not {@code null})
+     * @throws NoSuchElementException if no parameter was established for the given slot
+     */
+    BlockParameter getParam(BlockLabel owner, Slot slot) throws NoSuchElementException;
 
     // context
 
@@ -175,29 +205,11 @@ public interface BasicBlockBuilder extends Locatable {
     int setBytecodeIndex(int newBytecodeIndex);
 
     /**
-     * Get or compute the currently active exception handler.  Returns {@code null} if no exception handler is
-     * active (i.e. exceptions should be propagated to the caller).
-     * <p>
-     * This method generally should not be overridden (overriding this method does not change the exception handler
-     * selected in most cases because the exception handler is selected by the last builder in the chain).  Its purpose
-     * is to provide a means for builders to locate the exception handler for their own purposes.
+     * Get the current bytecode index.
      *
-     * @return the currently active exception handler, or {@code null} if exceptions should propagate to the caller
+     * @return the current bytecode index
      */
-    ExceptionHandler getExceptionHandler();
-
-    /**
-     * Set the exception handler policy.  The set policy will determine the exception handler that is returned from
-     * {@link #getExceptionHandler()}.
-     *
-     * @param policy the exception handler policy (must not be {@code null})
-     */
-    void setExceptionHandlerPolicy(ExceptionHandlerPolicy policy);
-
-    /**
-     * Signal method entry with the given arguments.
-     */
-    void startMethod(List<ParameterValue> arguments);
+    int getBytecodeIndex();
 
     /**
      * Indicate that all construction is complete.
@@ -213,6 +225,8 @@ public interface BasicBlockBuilder extends Locatable {
      */
     BasicBlock getFirstBlock() throws IllegalStateException;
 
+    BlockLabel getEntryLabel() throws IllegalStateException;
+
     // values
 
     /**
@@ -223,8 +237,6 @@ public interface BasicBlockBuilder extends Locatable {
     default Literal emptyVoid() {
         return getLiteralFactory().zeroInitializerLiteralOfType(getTypeSystem().getVoidType());
     }
-
-    ParameterValue parameter(ValueType type, String label, int index);
 
     Value offsetOfField(FieldElement fieldElement);
 
@@ -247,10 +259,6 @@ public interface BasicBlockBuilder extends Locatable {
     Node declareDebugAddress(LocalVariableElement variable, Value address);
 
     Node setDebugValue(LocalVariableElement variable, Value value);
-
-    // phi
-
-    PhiValue phi(ValueType type, BlockLabel owner, PhiValue.Flag... flags);
 
     // ternary
 
@@ -619,6 +627,31 @@ public interface BasicBlockBuilder extends Locatable {
     Node begin(BlockLabel blockLabel);
 
     /**
+     * Begin a new block, suspending the current block until it is complete.
+     * If the maker throws a {@link BlockEarlyTermination}, then it will be caught before this method returns.
+     * If the maker does not terminate the block, an error will be raised and the block will be
+     * terminated as if by {@link #unreachable()}.
+     *
+     * @param blockLabel the label of the new block (must not be {@code null} or resolved)
+     * @param arg the argument to the maker
+     * @param maker the callback which builds the block (must not be {@code null})
+     * @return the resolved target of {@code blockLabel} (not {@code null})
+     * @param <T> the type of the argument to the maker
+     */
+    <T> BasicBlock begin(BlockLabel blockLabel, T arg, BiConsumer<T, BasicBlockBuilder> maker);
+
+    /**
+     * Begin a new block, suspending the current block until it is complete.
+     *
+     * @param blockLabel the label of the new block (must not be {@code null} or resolved)
+     * @param maker the callback which builds the block (must not be {@code null})
+     * @return the completed block (not {@code null})
+     */
+    default BasicBlock begin(BlockLabel blockLabel, Consumer<BasicBlockBuilder> maker) {
+        return begin(blockLabel, maker, Consumer::accept);
+    }
+
+    /**
      * Establish that the given value is reachable at this point.
      *
      * @param value the reachable value (must not be {@code null})
@@ -753,7 +786,7 @@ public interface BasicBlockBuilder extends Locatable {
     BasicBlock switch_(Value value, int[] checkValues, BlockLabel[] targets, BlockLabel defaultTarget, Map<Slot, Value> targetArguments);
 
     /**
-     * Return from a {@code jsr} subroutine call.
+     * Return from a subroutine call.
      * <p>
      * Terminates the current block.
      * <p>
@@ -781,45 +814,67 @@ public interface BasicBlockBuilder extends Locatable {
      */
     BasicBlock getTerminatedBlock();
 
-    /**
-     * The policy which is used to acquire the exception handler for the current instruction.
-     */
-    interface ExceptionHandlerPolicy {
-        /**
-         * Get the currently active exception handler, if any.
-         *
-         * @param delegate the next-lower-priority exception handler to delegate to when the returned handler does not
-         *                 handle the exception
-         * @return the exception handler to use
-         */
-        ExceptionHandler computeCurrentExceptionHandler(ExceptionHandler delegate);
+    static BasicBlockBuilder simpleBuilder(final ExecutableElement element) {
+        return new SimpleBasicBlockBuilder(element);
     }
 
     /**
-     * An exception handler definition.
+     * An object used to provide additional context to basic block builder construction.
      */
-    interface ExceptionHandler {
+    interface FactoryContext {
         /**
-         * Get the block label of this handler.
+         * Get a piece of context information, if available.
          *
-         * @return the block label (must not be {@code null})
+         * @param clazz the class of the context information (must not be {@code null})
+         * @return the context information (not {@code null})
+         * @param <T> the context information type
          */
-        BlockLabel getHandler();
+        <T> T get(Class<T> clazz);
+
+        boolean has(Class<?> clazz);
 
         /**
-         * Enter the handler from the given source block, which may be a {@code try} operation or may be a regular
-         * control flow operation like {@code goto} or {@code if}. This method is always called from outside of a
-         * block, thus the implementation of this method is allowed to generate instructions but any generated
-         * block must be terminated before the method returns.
-         *
-         * @param from the source block of the {@code throw} or {@code invoke} (must not be {@code null})
-         * @param landingPad the landing pad block, or {@code null} if the value was thrown directly
-         * @param exceptionValue the exception value to register (must not be {@code null})
+         * An empty factory context.
          */
-        void enterHandler(BasicBlock from, BasicBlock landingPad, Value exceptionValue);
-    }
+        FactoryContext EMPTY = new FactoryContext() {
+            @Override
+            public <T> T get(Class<T> clazz) {
+                throw new NoSuchElementException();
+            }
 
-    static BasicBlockBuilder simpleBuilder(final TypeSystem typeSystem, final ExecutableElement element) {
-        return new SimpleBasicBlockBuilder(element, typeSystem);
+            @Override
+            public boolean has(Class<?> clazz) {
+                return false;
+            }
+        };
+
+        /**
+         * Get a factory context which holds a piece of context information.
+         *
+         * @param delegate the delegate factory context (must not be {@code null})
+         * @param info the context information (must not be {@code null})
+         * @return the factory context (not {@code null})
+         * @param <T> the context information type
+         */
+        static <T> FactoryContext withInfo(FactoryContext delegate, Class<T> clazz, T info) {
+            Assert.checkNotNullParam("delegate", delegate);
+            Assert.checkNotNullParam("clazz", clazz);
+            Assert.checkNotNullParam("info", info);
+            return new FactoryContext() {
+                @Override
+                public <T> T get(Class<T> clazz0) {
+                    if (clazz0 == clazz) {
+                        return clazz0.cast(info);
+                    } else {
+                        return delegate.get(clazz0);
+                    }
+                }
+
+                @Override
+                public boolean has(Class<?> clazz0) {
+                    return clazz == clazz0 || delegate.has(clazz0);
+                }
+            };
+        }
     }
 }

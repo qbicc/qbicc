@@ -21,9 +21,9 @@ import static org.qbicc.graph.atomic.AccessModes.GlobalAcquire;
 public class InitCheckLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public InitCheckLoweringBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public InitCheckLoweringBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.ctxt = ctxt;
+        this.ctxt = getContext();
     }
 
     @Override

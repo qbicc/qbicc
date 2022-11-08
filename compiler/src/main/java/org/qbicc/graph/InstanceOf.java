@@ -83,12 +83,12 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
     }
 
     @Override
-    public Value getValueIfTrue(Value input) {
-        return input.equals(this.input) ? valueIfTrue : super.getValueIfTrue(input);
+    public Value getValueIfTrue(BasicBlockBuilder bbb, Value input) {
+        return input.equals(this.input) ? valueIfTrue : super.getValueIfTrue(bbb, input);
     }
 
     @Override
-    public Value getValueIfFalse(Value input) {
+    public Value getValueIfFalse(BasicBlockBuilder bbb, Value input) {
         return input;
     }
 

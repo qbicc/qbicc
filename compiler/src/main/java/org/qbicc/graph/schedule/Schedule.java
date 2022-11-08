@@ -3,22 +3,26 @@ package org.qbicc.graph.schedule;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import org.qbicc.context.CompilationContext;
-import org.qbicc.context.Location;
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.graph.BasicBlock;
-import org.qbicc.graph.OrderedNode;
-import org.qbicc.graph.Unschedulable;
+import org.qbicc.graph.BlockEntry;
+import org.qbicc.graph.BlockParameter;
+import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.PinnedNode;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Terminator;
+import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
-import io.smallrye.common.constraint.Assert;
+import org.qbicc.type.definition.element.LocalVariableElement;
 
 /**
  * A linear schedule for basic block instructions.
@@ -34,12 +38,11 @@ public interface Schedule {
     BasicBlock getBlockForNode(Node node);
 
     /**
-     * Get the list of Nodes scheduled to the given basic block.
+     * Convenience method returning the set of local variables referenced by the final schedule.
      *
-     * @param block the basic block to look up (must not be {@code null})
-     * @return list of nodes which are scheduled to the basic block
+     * @return the set of local variables
      */
-    List<Node> getNodesForBlock(BasicBlock block);
+    Set<LocalVariableElement> getReferencedLocalVariables();
 
     /**
      * Create a schedule for the method whose entry block is the given block.
@@ -75,24 +78,103 @@ public interface Schedule {
         Map<Node, BlockInfo> scheduledNodes = new LinkedHashMap<>();
         scheduleEarly(root, blockInfos, scheduledNodes, entryBlock);
         Map<Node, BasicBlock> finalMapping = new HashMap<>(scheduledNodes.size());
-        Map<BasicBlock, List<Node>> blockToNodesMap = new HashMap<>(allBlocks.length);
         for (Map.Entry<Node, BlockInfo> entry : scheduledNodes.entrySet()) {
             finalMapping.put(entry.getKey(), entry.getValue().block);
-            blockToNodesMap.computeIfAbsent(entry.getValue().block, k -> new ArrayList<>()).add(entry.getKey());
         }
+        // now build the final sequence of instructions with entry at the top and terminator at the bottom
+        Map<BasicBlock, List<Node>> blockToNodesMap = new HashMap<>(allBlocks.length);
+        Map<BasicBlock, Map<Slot, BlockParameter>> blockParameters = new HashMap<>(allBlocks.length);
+        Set<LocalVariableElement> locals = new HashSet<>();
+        Set<Node> visited = new HashSet<>();
+        for (BlockInfo bi : allBlocks) {
+            BlockEntry blockEntry = bi.block.getBlockEntry();
+            ArrayList<Node> list = new ArrayList<>();
+            list.add(blockEntry);
+            visited.add(blockEntry);
+            blockToNodesMap.put(bi.block, list);
+        }
+        buildSequence(entryBlock.getTerminator(), finalMapping, visited, blockToNodesMap, blockParameters, locals);
+        for (BlockInfo bi : allBlocks) {
+            BasicBlock block = bi.block;
+            List<Node> list = blockToNodesMap.get(block);
+            list.add(block.getTerminator());
+            block.setInstructions(list);
+            block.setUsedParameters(Map.copyOf(blockParameters.getOrDefault(block, Map.of())));
+        }
+
         return new Schedule() {
             public BasicBlock getBlockForNode(final Node node) {
                 Assert.assertFalse(node instanceof Unschedulable);
                 return finalMapping.get(Assert.checkNotNullParam("node", node));
             }
-            public List<Node> getNodesForBlock(final BasicBlock block) {
-                List<Node> nodes = blockToNodesMap.get(block);
-                if (nodes == null) {
-                    return List.of();
-                }
-                return Collections.unmodifiableList(blockToNodesMap.get(block));
+
+            public Set<LocalVariableElement> getReferencedLocalVariables() {
+                return locals;
             }
         };
+    }
+
+    /**
+     * Build the instruction sequence.
+     * This is a DFS of all non-visited and non-terminator nodes, using the scheduler algorithm output to assign blocks.
+     * This causes the actual sequencing of instructions to be independent of the scheduling algorithm or policy.
+     * Note that entry nodes are all marked as visited already, being at the start of each block's list.
+     *
+     * @param node the node to register
+     * @param mapping the schedule's final block mapping
+     * @param visited the set of visited nodes
+     * @param sequences the outbound sequence of instructions for each block which is being built
+     * @param blockParameters the outbound map of reachable block parameters
+     * @param locals the outbound set of discovered local variables
+     */
+    static void buildSequence(Node node, Map<Node, BasicBlock> mapping, Set<Node> visited, Map<BasicBlock, List<Node>> sequences, Map<BasicBlock, Map<Slot, BlockParameter>> blockParameters, Set<LocalVariableElement> locals) {
+        if (visited.add(node)) {
+            if (node instanceof LocalVariable lv) {
+                locals.add(lv.getVariableElement());
+            }
+            if (node instanceof OrderedNode on) {
+                buildSequence(on.getDependency(), mapping, visited, sequences, blockParameters, locals);
+            }
+            if (node instanceof BlockParameter bp) {
+                BasicBlock bpBlock = bp.getPinnedBlock();
+                blockParameters.computeIfAbsent(bpBlock, Schedule::newMap).put(bp.getSlot(), bp);
+                // ensure all incoming are in the schedule, at the bottom if nowhere else
+                for (BasicBlock incoming : bpBlock.getIncoming()) {
+                    Terminator t = incoming.getTerminator();
+                    Slot slot = bp.getSlot();
+                    // skip all implicit/"magical" slot names like `result` or `thrown` on invoke
+                    if (t.getOutboundArgumentNames().contains(slot)) {
+                        buildSequence(t.getOutboundArgument(slot), mapping, visited, sequences, blockParameters, locals);
+                    }
+                }
+            }
+            if (node.hasValueHandleDependency()) {
+                buildSequence(node.getValueHandle(), mapping, visited, sequences, blockParameters, locals);
+            }
+            int cnt = node.getValueDependencyCount();
+            for (int i = 0; i < cnt; i ++) {
+                buildSequence(node.getValueDependency(i), mapping, visited, sequences, blockParameters, locals);
+            }
+            if (node instanceof Terminator t) {
+                cnt = t.getSuccessorCount();
+                for (int i = 0; i < cnt; i ++) {
+                    buildSequence(t.getSuccessor(i).getTerminator(), mapping, visited, sequences, blockParameters, locals);
+                }
+            } else if (! (node instanceof Unschedulable)) {
+                BasicBlock targetBlock = mapping.get(node);
+                if (targetBlock == null) {
+                    // breakpoint
+                    throw new IllegalStateException();
+                }
+                List<Node> list = sequences.get(targetBlock);
+                if (list == null) {
+                    // breakpoint
+                    throw new IllegalStateException();
+                }
+                node.setScheduleIndex(list.size());
+                list.add(node);
+            }
+        }
     }
 
     private static void scheduleEarly(BlockInfo root, Map<BasicBlock, BlockInfo> blockInfos, Map<Node, BlockInfo> scheduledNodes, BasicBlock block) {
@@ -164,32 +246,17 @@ public interface Schedule {
         }
         scheduledNodes.put(node, selected);
         scheduleDependenciesEarly(root, blockInfos, scheduledNodes, node);
-        if (node instanceof PhiValue) {
-            // make sure phi entries were scheduled
-            PhiValue phiValue = (PhiValue) node;
-            if (phiValue.getPossibleValues().isEmpty()) {
-                CompilationContext ctxt = root.block.getTerminator().getElement().getEnclosingType().getContext().getCompilationContext();
-                ctxt.error(Location.builder().setNode(node).build(), "Found phi with no possible values");
-                return selected;
-            }
-            for (BasicBlock terminatedBlock : phiValue.getPinnedBlock().getIncoming()) {
-                // skip unreachable inputs
-                Terminator terminator = terminatedBlock.getTerminator();
-                if (blockInfos.containsKey(terminatedBlock)) {
-                    Value value = phiValue.getValueForInput(terminator);
-                    if (value instanceof PinnedNode && ! blockInfos.containsKey(((PinnedNode) value).getPinnedBlock())) {
-                        // the node is reachable even though its block is not!
-                        CompilationContext ctxt = root.block.getTerminator().getElement().getEnclosingType().getContext().getCompilationContext();
-                        ctxt.error(Location.builder().setNode(node).build(), "Found reachable node in unreachable block");
-                        continue;
-                    }
-                    if (value != null) {
-                        scheduleEarly(root, blockInfos, scheduledNodes, value);
-                    }
-                }
+        if (node instanceof Terminator t) {
+            // schedule all outbound values to blocks; we reduce the set when we build the sequence
+            for (Slot slot : t.getOutboundArgumentNames()) {
+                scheduleEarly(root, blockInfos, scheduledNodes, t.getOutboundArgument(slot));
             }
         }
         // all dependencies have been scheduled
         return selected;
+    }
+
+    static <K, V> Map<K, V> newMap(Object ignored) {
+        return new HashMap<>();
     }
 }

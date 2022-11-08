@@ -10,13 +10,14 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.CurrentThread;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.InterfaceMethodElementHandle;
-import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.Node;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticMethodElementHandle;
@@ -41,6 +42,9 @@ import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.type.MethodType;
 import org.qbicc.type.ReferenceType;
+import org.qbicc.type.SignedIntegerType;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -56,17 +60,32 @@ import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<ArrayList<Value>, ValueHandle> {
     private final CompilationContext ctxt;
     private final ExecutableElement originalElement;
+    private final ReferenceType threadType;
+    private boolean started;
+    private BlockParameter thrParam;
 
-    public InvocationLoweringBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public InvocationLoweringBasicBlockBuilder(final FactoryContext fc, final BasicBlockBuilder delegate) {
         super(delegate);
+        CompilationContext ctxt = getContext();
         this.ctxt = ctxt;
         originalElement = delegate.getCurrentElement();
+        threadType = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread").load().getClassType().getReference();
+    }
+
+    @Override
+    public Node begin(BlockLabel blockLabel) {
+        Node node = super.begin(blockLabel);
+        if (! started) {
+            started = true;
+            thrParam = addParam(blockLabel, Slot.thread(), threadType, false);
+        }
+        return node;
     }
 
     @Override
     public Value load(ValueHandle handle, ReadAccessMode accessMode) {
-        if (handle instanceof CurrentThread ct) {
-            return parameter(ct.getPointeeType(), "thr", 0);
+        if (handle instanceof CurrentThread) {
+            return getCurrentThreadRef();
         }
         return super.load(handle, accessMode);
     }
@@ -75,12 +94,12 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     public ValueHandle currentThread() {
         if (originalElement instanceof FunctionElement fe) {
             ProgramModule programModule = ctxt.getOrAddProgramModule(fe.getEnclosingType());
-            ReferenceType type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread").load().getClassType().getReference();
-            DataDeclaration decl = programModule.declareData(null, "_qbicc_bound_java_thread", type);
+            DataDeclaration decl = programModule.declareData(null, "_qbicc_bound_java_thread", threadType);
             decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
             final LiteralFactory lf = ctxt.getLiteralFactory();
             return pointerHandle(lf.literalOf(decl));
         }
+        // todo: replace this with addressOf(%thread) node after https://github.com/qbicc/qbicc/pull/1433
         return super.currentThread();
     }
 
@@ -237,17 +256,19 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         BlockLabel exitMatched = new BlockLabel();
         BlockLabel loop = new BlockLabel();
 
-        BasicBlock initial = goto_(loop, Map.of());
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        TypeSystem ts = ctxt.getTypeSystem();
+        SignedIntegerType u32 = ts.getSignedInteger32Type();
+        IntegerLiteral zero = lf.literalOf(u32, 0);
+        goto_(loop, Slot.temp(0), zero);
         begin(loop);
-        PhiValue phi = phi(ctxt.getTypeSystem().getSignedInteger32Type(), loop);
-        IntegerLiteral zero = ctxt.getLiteralFactory().literalOf(0);
-        phi.setValueForBlock(ctxt, getCurrentElement(), initial, zero);
-        Value candidateId = fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, phi), dt.getItableDictType().getMember("typeId")));
-        if_(isEq(candidateId, ctxt.getLiteralFactory().literalOf(info.getInterface().getTypeId())), exitMatched, checkForICCE, Map.of());
+        BlockParameter bp = addParam(loop, Slot.temp(0), u32);
+        Value candidateId = fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, bp), dt.getItableDictType().getMember("typeId")));
+        if_(isEq(candidateId, lf.literalOf(info.getInterface().getTypeId())), exitMatched, checkForICCE, Map.of());
         try {
             begin(checkForICCE);
-            BasicBlock body = if_(isEq(candidateId, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(info.getInterface().getObjectType().getTypeType())), failLabel, loop, Map.of());
-            phi.setValueForBlock(ctxt, getCurrentElement(), body, fb.add(phi, ctxt.getLiteralFactory().literalOf(1)));
+            TypeType typeType = info.getInterface().getObjectType().getTypeType();
+            if_(isEq(candidateId, lf.zeroInitializerLiteralOfType(typeType)), failLabel, loop, Map.of(Slot.temp(0), fb.add(bp, lf.literalOf(u32, 1))));
 
             begin(failLabel);
             MethodElement method = RuntimeMethodFinder.get(ctxt).getMethod("raiseIncompatibleClassChangeError");
@@ -256,7 +277,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             // ignore; continue to generate validEntry block
         }
         begin(exitMatched);
-        Value itable = fb.bitCast(fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, phi), dt.getItableDictType().getMember("itable"))), info.getType().getPointer());
+        Value itable = fb.bitCast(fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, bp), dt.getItableDictType().getMember("itable"))), info.getType().getPointer());
         final Value ptr = fb.load(memberOf(fb.pointerHandle(itable), info.getType().getMember(dt.getITableIndex(target))));
         return pointerHandle(ptr);
     }
@@ -267,9 +288,8 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             // Convert native method that wasn't intercepted by an intrinsic to a runtime link error
             throw new BlockEarlyTermination(raiseLinkError(node.getExecutable()));
         }
-        final BasicBlockBuilder fb = getFirstBuilder();
         // insert current thread only
-        args.add(0, fb.load(fb.currentThread(), SingleUnshared));
+        args.add(0, getCurrentThreadRef());
         ctxt.enqueue(node.getExecutable());
         Function function = ctxt.getExactFunction(node.getExecutable());
         FunctionDeclaration decl = ctxt.getOrAddProgramModule(originalElement).declareFunction(function);
@@ -284,8 +304,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         ValueType valueType = node.getPointeeType();
         if (valueType instanceof MethodType mt) {
             // we have to bitcast it, and also transform the arguments accordingly
-            final BasicBlockBuilder fb = getFirstBuilder();
-            args.add(0, fb.load(fb.currentThread(), SingleUnshared));
+            args.add(0, getCurrentThreadRef());
             // NOTE: calls to pointers to instance methods MUST already have the receiver set in the arg list by this point
             // todo: this is inconsistent with how instance method handles work
             //   - option 1: add a receiver argument to all call nodes, let backend decide what reg to use
@@ -293,6 +312,21 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             return pointerHandle(bitCast(pointerValue, ctxt.getFunctionTypeForInvokableType(mt).getPointer()));
         }
         return node;
+    }
+
+    private Value getCurrentThreadRef() {
+        BasicBlockBuilder fb = getFirstBuilder();
+        if (originalElement instanceof FunctionElement fe) {
+            ProgramModule programModule = ctxt.getOrAddProgramModule(fe.getEnclosingType());
+            DataDeclaration decl = programModule.declareData(null, "_qbicc_bound_java_thread", threadType);
+            decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
+            final LiteralFactory lf = ctxt.getLiteralFactory();
+            // load the ref from the TL
+            return fb.load(fb.pointerHandle(lf.literalOf(decl)), SingleUnshared);
+        } else {
+            // it is a literal
+            return thrParam;
+        }
     }
 
     @Override
