@@ -40,9 +40,12 @@ abstract class AbstractYieldingInstruction extends AbstractInstruction implement
         return setLValue(new NamedLocalValueOf(this, name));
     }
 
-    AbstractValue setLValue(AbstractValue value) {
+    @Override
+    public LLValue setLValue(LLValue value) {
         checkTarget();
-        return lvalue = value;
+        AbstractValue abstractValue = (AbstractValue) value;
+        abstractValue.setInstruction(this);
+        return lvalue = abstractValue;
     }
 
     public YieldingInstruction comment(final String comment) {

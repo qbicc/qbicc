@@ -10,7 +10,6 @@ import org.qbicc.machine.llvm.AsmFlag;
 import org.qbicc.machine.llvm.LLBasicBlock;
 import org.qbicc.machine.llvm.LLBuilder;
 import org.qbicc.machine.llvm.LLValue;
-import org.qbicc.machine.llvm.LazyLLValue;
 import org.qbicc.machine.llvm.Module;
 import org.qbicc.machine.llvm.Struct;
 import org.qbicc.machine.llvm.StructType;
@@ -121,6 +120,10 @@ public final class LLVM {
         return new NamedGlobalValueOf(name);
     }
 
+    public static LLValue local(final String name) {
+        return new NamedLocalValueOf(null, name);
+    }
+
     public static LLValue function(final LLValue returnType, final List<LLValue> argTypes, boolean variadic) {
         return new FunctionType(returnType, argTypes, variadic);
     }
@@ -189,9 +192,5 @@ public final class LLVM {
             return true;
         }
         return false;
-    }
-
-    public static LazyLLValue newLazyValue() {
-        return new LazyValueImpl();
     }
 }

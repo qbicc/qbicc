@@ -18,6 +18,8 @@ public interface YieldingInstruction extends Instruction {
 
     LLValue asLocal(String name);
 
+    LLValue setLValue(LLValue value);
+
     default LLValue asMetadata() {
         throw new UnsupportedOperationException();
     }
