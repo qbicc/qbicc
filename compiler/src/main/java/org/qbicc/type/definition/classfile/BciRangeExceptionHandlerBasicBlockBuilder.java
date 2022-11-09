@@ -103,8 +103,11 @@ public final class BciRangeExceptionHandlerBasicBlockBuilder extends DelegatingB
     private BasicBlock enterHandler(final Value ex, final BlockLabel handler, final Map<Slot, Value> args) {
         BasicBlockBuilder fb = getFirstBuilder();
         int oldBci = fb.setBytecodeIndex(handlerBci);
+        // todo: temporarily manually narrow the value until we can materialize constraints reliably
+        ReferenceType narrowedType = ex.getType(ReferenceType.class).narrow(exType);
+        Value narrowed = narrowedType == null ? null : fb.bitCast(ex, narrowedType);
         // user handlers always expect it in stack slot 0
-        Map<Slot, Value> adjustedArgs = Maps.immutable.ofMap(args).newWithKeyValue(STACK0, ex).castToMap();
+        Map<Slot, Value> adjustedArgs = narrowed == null ? args : Maps.immutable.ofMap(args).newWithKeyValue(STACK0, narrowed).castToMap();
         ReferenceType actualType = ex.getType(ReferenceType.class);
         if (actualType.instanceOf(exType)) {
             // it always matches
@@ -116,6 +119,7 @@ public final class BciRangeExceptionHandlerBasicBlockBuilder extends DelegatingB
                 super.throw_(ex);
             })), adjustedArgs);
         } else {
+            assert narrowed == null;
             // it will never match; propagate
             fb.setBytecodeIndex(oldBci);
             return super.throw_(ex);
