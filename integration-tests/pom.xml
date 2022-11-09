@@ -17,10 +17,9 @@
     <description>Qbicc integration tests</description>
 
     <properties>
-        <includeTags>simple-apps,snippets</includeTags>
-        <excludeTags>none</excludeTags>
-        <skip.integration.tests>false</skip.integration.tests>
-        <qbicc.test.clean-target>false</qbicc.test.clean-target>
+        <failsafeTags>snippets</failsafeTags>
+        <surefireTags>none</surefireTags>
+        <skipTests>false</skipTests>
     </properties>
     <dependencies>
         <dependency>
@@ -86,11 +85,10 @@
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <groups>${includeTags}</groups>
-                    <excludedGroups>${excludeTags}</excludedGroups>
+                    <groups>${surefireTags}</groups>
+                    <excludedGroups>${failsafeTags}</excludedGroups>
                     <systemProperties>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                        <qbicc.test.clean-target>${qbicc.test.clean-target}</qbicc.test.clean-target>
                     </systemProperties>
                     <redirectTestOutputToFile>false</redirectTestOutputToFile>
                 </configuration>
@@ -104,28 +102,15 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
+                            <groups>${failsafeTags}</groups>
+                            <excludedGroups>${surefireTags}</excludedGroups>
                             <systemProperties>
                                 <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                             </systemProperties>
+                            <includes>
+                                <include>**/*Test.java</include>
+                            </includes>
                             <redirectTestOutputToFile>false</redirectTestOutputToFile>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>add-integration-test-source-as-test-sources</id>
-                        <phase>generate-test-sources</phase>
-                        <goals>
-                            <goal>add-test-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>src/it/java</source>
-                            </sources>
                         </configuration>
                     </execution>
                 </executions>
