@@ -671,7 +671,7 @@ final class CompilationContextImpl implements CompilationContext {
                     taskRunner.accept(task, lock);
                 } catch (Throwable t) {
                     log.error("An exception was thrown from a parallel task", t);
-                    error(t, "A task threw an uncaught exception");
+                    error(t, "A task threw an uncaught exception: %s", t);
                 }
             }
         }
