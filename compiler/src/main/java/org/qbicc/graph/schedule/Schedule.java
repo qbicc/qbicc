@@ -1,7 +1,7 @@
 package org.qbicc.graph.schedule;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -93,11 +93,26 @@ public interface Schedule {
             visited.add(blockEntry);
             blockToNodesMap.put(bi.block, list);
         }
-        buildSequence(entryBlock.getTerminator(), finalMapping, visited, blockToNodesMap, blockParameters, locals);
+        ArrayDeque<BlockParameter> cleanups = new ArrayDeque<>();
+        buildSequence(entryBlock.getTerminator(), finalMapping, visited, blockToNodesMap, blockParameters, locals, cleanups);
+        for (BlockParameter bp = cleanups.pollFirst(); bp != null; bp = cleanups.pollFirst()) {
+            BasicBlock bpBlock = bp.getPinnedBlock();
+            // ensure all incoming are in the schedule, at the bottom if nowhere else
+            for (BasicBlock incoming : bpBlock.getIncoming()) {
+                Terminator t = incoming.getTerminator();
+                Slot slot = bp.getSlot();
+                // skip all implicit/"magical" slot names like `result` or `thrown` on invoke
+                if (t.getOutboundArgumentNames().contains(slot)) {
+                    buildSequence(t.getOutboundArgument(slot), finalMapping, visited, blockToNodesMap, blockParameters, locals, cleanups);
+                }
+            }
+        }
         for (BlockInfo bi : allBlocks) {
             BasicBlock block = bi.block;
             List<Node> list = blockToNodesMap.get(block);
-            list.add(block.getTerminator());
+            Terminator t = block.getTerminator();
+            t.setScheduleIndex(list.size());
+            list.add(t);
             block.setInstructions(list);
             block.setUsedParameters(Map.copyOf(blockParameters.getOrDefault(block, Map.of())));
         }
@@ -126,39 +141,32 @@ public interface Schedule {
      * @param sequences the outbound sequence of instructions for each block which is being built
      * @param blockParameters the outbound map of reachable block parameters
      * @param locals the outbound set of discovered local variables
+     * @param cleanups the queue of block parameters to clean up after the rest of the sequence is built
      */
-    static void buildSequence(Node node, Map<Node, BasicBlock> mapping, Set<Node> visited, Map<BasicBlock, List<Node>> sequences, Map<BasicBlock, Map<Slot, BlockParameter>> blockParameters, Set<LocalVariableElement> locals) {
+    static void buildSequence(Node node, Map<Node, BasicBlock> mapping, Set<Node> visited, Map<BasicBlock, List<Node>> sequences, Map<BasicBlock, Map<Slot, BlockParameter>> blockParameters, Set<LocalVariableElement> locals, ArrayDeque<BlockParameter> cleanups) {
         if (visited.add(node)) {
             if (node instanceof LocalVariable lv) {
                 locals.add(lv.getVariableElement());
             }
             if (node instanceof OrderedNode on) {
-                buildSequence(on.getDependency(), mapping, visited, sequences, blockParameters, locals);
+                buildSequence(on.getDependency(), mapping, visited, sequences, blockParameters, locals, cleanups);
             }
             if (node instanceof BlockParameter bp) {
                 BasicBlock bpBlock = bp.getPinnedBlock();
                 blockParameters.computeIfAbsent(bpBlock, Schedule::newMap).put(bp.getSlot(), bp);
-                // ensure all incoming are in the schedule, at the bottom if nowhere else
-                for (BasicBlock incoming : bpBlock.getIncoming()) {
-                    Terminator t = incoming.getTerminator();
-                    Slot slot = bp.getSlot();
-                    // skip all implicit/"magical" slot names like `result` or `thrown` on invoke
-                    if (t.getOutboundArgumentNames().contains(slot)) {
-                        buildSequence(t.getOutboundArgument(slot), mapping, visited, sequences, blockParameters, locals);
-                    }
-                }
+                cleanups.addLast(bp);
             }
             if (node.hasValueHandleDependency()) {
-                buildSequence(node.getValueHandle(), mapping, visited, sequences, blockParameters, locals);
+                buildSequence(node.getValueHandle(), mapping, visited, sequences, blockParameters, locals, cleanups);
             }
             int cnt = node.getValueDependencyCount();
             for (int i = 0; i < cnt; i ++) {
-                buildSequence(node.getValueDependency(i), mapping, visited, sequences, blockParameters, locals);
+                buildSequence(node.getValueDependency(i), mapping, visited, sequences, blockParameters, locals, cleanups);
             }
             if (node instanceof Terminator t) {
                 cnt = t.getSuccessorCount();
                 for (int i = 0; i < cnt; i ++) {
-                    buildSequence(t.getSuccessor(i).getTerminator(), mapping, visited, sequences, blockParameters, locals);
+                    buildSequence(t.getSuccessor(i).getTerminator(), mapping, visited, sequences, blockParameters, locals, cleanups);
                 }
             } else if (! (node instanceof Unschedulable)) {
                 BasicBlock targetBlock = mapping.get(node);
