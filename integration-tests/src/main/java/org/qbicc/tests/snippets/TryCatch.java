@@ -13,6 +13,13 @@ public class TryCatch {
     private static class SubException2 extends DummyException {
     }
 
+    private static class ExceptionWithValue extends Exception {
+        int value;
+        ExceptionWithValue(int x) {
+            value = x;
+        }
+    }
+
     @extern
     public static native int putchar(int arg);
 
@@ -39,6 +46,10 @@ public class TryCatch {
         } else {
             throw new SubException2();
         }
+    }
+
+    public static void throwWithValue(int v) throws ExceptionWithValue {
+        throw new ExceptionWithValue(v);
     }
 
     public static void throwUncheckedException() {
@@ -116,6 +127,15 @@ public class TryCatch {
         }
     }
 
+    public static int test7() {
+        try {
+            throwWithValue(10);
+        } catch (ExceptionWithValue e) {
+            return e.value == 10 ? 0 : 1;
+        }
+        return 1;
+    }
+
     public static void main(String[] args) {
         int rc = test1();
         reportResult(rc);
@@ -128,6 +148,8 @@ public class TryCatch {
         rc = test5();
         reportResult(rc);
         rc = test6();
+        reportResult(rc);
+        rc = test7();
         reportResult(rc);
     }
 }
