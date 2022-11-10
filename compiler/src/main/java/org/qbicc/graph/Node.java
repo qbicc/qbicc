@@ -425,11 +425,6 @@ public interface Node {
                 return param.getBlockBuilder().tailCall(param.copyValueHandle(node.getValueHandle()), param.copyValues(node.getArguments()));
             }
 
-            public BasicBlock visit(Copier param, TailInvoke node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().tailInvoke(param.copyValueHandle(node.getValueHandle()), param.copyValues(node.getArguments()), param.copyBlock(node.getCatchBlock()), param.copyArguments(node));
-            }
-
             public BasicBlock visit(Copier param, Throw node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().throw_(param.copyValue(node.getThrownValue()));

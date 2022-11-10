@@ -705,23 +705,6 @@ public interface BasicBlockBuilder extends Locatable {
     BasicBlock tailCall(ValueHandle target, List<Value> arguments);
 
     /**
-     * Tail-call an invocation target that returns the same type as this method - thus terminating the block - and catch
-     * the thrown exception.  The backend can optimize such calls into tail calls if the calling element is
-     * {@linkplain ClassFile#I_ACC_HIDDEN hidden}.
-     * The given arguments must provide an argument value for every parameter defined in the target block.
-     * Extra arguments are ignored.
-     * An implicit argument for the thrown exception is provided to the catch block (see {@link Slot#thrown()}.
-     *
-     * @param target the invocation target handle (must not be {@code null})
-     * @param arguments the invocation arguments (must not be {@code null})
-     * @param catchLabel the exception handler label (must not be {@code null})
-     * @param targetArguments the block arguments to pass to the target blocks (must not be {@code null})
-     * @return the terminated block (not {@code null}
-     * @see TailInvoke
-     */
-    BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments);
-
-    /**
      * Call an invocation target and catch the thrown exception, terminating the block.
      * <b>Note</b>: the terminated block is not returned.
      * The return value of this method is the return value of the invocation,

@@ -88,9 +88,4 @@ public final class MethodDataStringsSerializer extends DelegatingBasicBlockBuild
         createMethodDataStrings();
         return super.tailCall(target, arguments);
     }
-
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        createMethodDataStrings();
-        return super.tailInvoke(target, arguments, catchLabel, targetArguments);
-    }
 }

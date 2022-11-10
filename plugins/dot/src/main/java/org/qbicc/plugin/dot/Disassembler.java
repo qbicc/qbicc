@@ -112,7 +112,6 @@ import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
 import org.qbicc.graph.Switch;
 import org.qbicc.graph.TailCall;
-import org.qbicc.graph.TailInvoke;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Throw;
 import org.qbicc.graph.Truncate;
@@ -1353,16 +1352,6 @@ public final class Disassembler {
             final String description = showWithArguments("tail-call", node.getValueHandle(), node.getArguments());
             param.addLine(id + " = " + description, node);
             param.nodeInfo.put(node, new NodeInfo(id, description));
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, TailInvoke node) {
-            final String id = param.nextId();
-            final String description = showWithArguments("tail-invoke", node.getValueHandle(), node.getArguments());
-            param.addLine(id + " = " + description, node);
-            param.nodeInfo.put(node, new NodeInfo(id, description));
-            param.queueBlock(currentBlock, node.getCatchBlock(), "catch", EdgeType.CONTROL_FLOW);
             return delegate.visit(param, node);
         }
 

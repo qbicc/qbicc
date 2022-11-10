@@ -77,7 +77,6 @@ import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
 import org.qbicc.graph.Switch;
 import org.qbicc.graph.TailCall;
-import org.qbicc.graph.TailInvoke;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Unreachable;
@@ -1084,42 +1083,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         }
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        addPersonalityIfNeeded();
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle) {
-            call.attribute(FunctionAttributes.gcLeafFunction);
-        } else {
-            addStatepointId(call, node);
-        }
-        return call;
-    }
-
-    @Override
-    public Instruction visit(Void param, TailInvoke node) {
-        FunctionType functionType = (FunctionType) node.getCalleeType();
-        List<Value> arguments = node.getArguments();
-        LLValue llType = map(functionType);
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue llTarget = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        // two scans - once to populate the maps, and then once to emit the call in the right order
-        preMapArgumentList(arguments);
-        LLBasicBlock catch_ = checkMap(node.getCatchBlock());
-        boolean postMapCatch = catch_ == null;
-        if (postMapCatch) {
-            catch_ = preMap(node.getCatchBlock());
-        }
-        LLBasicBlock tailTarget = func.createBlock();
-        Call call = builder.invoke(llType, llTarget, tailTarget, mapCatch(node.getCatchBlock()));
-        if (postMapCatch) {
-            postMap(node.getCatchBlock(), catch_);
-        }
-        setCallArguments(call, arguments);
-        setCallReturnValue(call, functionType);
-        ValueType returnType = node.getCalleeType().getReturnType();
-        if (returnType instanceof VoidType) {
-            LLVM.newBuilder(tailTarget).ret();
-        } else {
-            LLVM.newBuilder(tailTarget).ret(map(returnType), call.asLocal());
-        }
         addPersonalityIfNeeded();
         if (functionType.isVariadic() || valueHandle instanceof AsmHandle) {
             call.attribute(FunctionAttributes.gcLeafFunction);

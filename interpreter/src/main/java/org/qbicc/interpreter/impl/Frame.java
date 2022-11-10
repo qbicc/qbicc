@@ -99,7 +99,6 @@ import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
 import org.qbicc.graph.Switch;
 import org.qbicc.graph.TailCall;
-import org.qbicc.graph.TailInvoke;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.TerminatorVisitor;
 import org.qbicc.graph.Throw;
@@ -1501,17 +1500,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     public BasicBlock visit(VmThreadImpl thread, TailCall node) {
         output = call(thread, node.getValueHandle(), require(node.getArguments()));
         return null;
-    }
-
-    @Override
-    public BasicBlock visit(VmThreadImpl thread, TailInvoke node) {
-        try {
-            output = call(thread, node.getValueHandle(), require(node.getArguments()));
-            return null; // return
-        } catch (Thrown t) {
-            this.exception = t.getThrowable();
-            return node.getCatchBlock();
-        }
     }
 
     // Other

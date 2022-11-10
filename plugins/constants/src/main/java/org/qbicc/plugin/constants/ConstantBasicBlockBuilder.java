@@ -98,16 +98,6 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        if (target.isFold()) try {
-            return return_(fold(target, arguments));
-        } catch (Thrown t) {
-            return goto_(catchLabel, Slot.thrown(), getLiteralFactory().literalOf(t.getThrowable()));
-        }
-        return super.tailInvoke(target, arguments, catchLabel, targetArguments);
-    }
-
-    @Override
     public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         if (target.isFold()) {
             ImmutableMap<Slot, Value> immutableMap = Maps.immutable.ofMap(targetArguments);

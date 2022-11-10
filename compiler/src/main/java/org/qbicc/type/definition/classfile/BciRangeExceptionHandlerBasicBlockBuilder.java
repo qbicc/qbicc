@@ -89,9 +89,7 @@ public final class BciRangeExceptionHandlerBasicBlockBuilder extends DelegatingB
     @Override
     public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
         if (inRange() && ! target.isNoThrow()) {
-            Map<Slot, Value> capture = mp.captureOutbound();
-            BlockLabel handlerLabel = new BlockLabel();
-            return tailInvoke(target, arguments, BlockLabel.of(begin(handlerLabel, this, (bbb, fb) -> bbb.beginHandler(handlerLabel, capture))), Map.of());
+            return_(call(target, arguments));
         }
         return super.tailCall(target, arguments);
     }

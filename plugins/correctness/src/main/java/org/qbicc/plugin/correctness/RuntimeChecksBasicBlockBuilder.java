@@ -138,12 +138,6 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        check(target);
-        return super.tailInvoke(target, arguments, catchLabel, targetArguments);
-    }
-
-    @Override
     public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         check(target);
         return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);

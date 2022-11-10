@@ -83,11 +83,6 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        return super.tailInvoke(target, mapArguments(target, arguments), catchLabel, targetArguments);
-    }
-
-    @Override
     public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         return super.invoke(target, mapArguments(target, arguments), catchLabel, resumeLabel, targetArguments);
     }

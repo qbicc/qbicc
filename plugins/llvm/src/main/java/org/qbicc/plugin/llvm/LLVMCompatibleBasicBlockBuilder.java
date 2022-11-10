@@ -458,23 +458,6 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
-    @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        // declare personality function
-        MethodElement personalityMethod = UnwindExceptionStrategy.get(ctxt).getPersonalityMethod();
-        Function function = ctxt.getExactFunction(personalityMethod);
-        ctxt.getOrAddProgramModule(getRootElement()).declareFunction(function);
-        if (isTailCallSafe()) {
-            return super.tailInvoke(target, arguments, catchLabel, targetArguments);
-        }
-        // break tail invoke
-        BlockLabel resumeLabel = new BlockLabel();
-        Value retVal = super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
-        begin(resumeLabel);
-        //BlockParameter retVal = addParam(Slot.result(), ((InvokableType) target.getPointeeType()).getReturnType(), true);
-        return super.return_(retVal);
-    }
-
     private boolean isTailCallSafe() {
         if (getCurrentElement().hasAllModifiersOf(ClassFile.I_ACC_HIDDEN)) {
             Node callSite = getCallSite();

@@ -196,37 +196,6 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        if (target instanceof StaticMethodElementHandle) {
-            StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
-            StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());
-            if (intrinsic != null) {
-                Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
-                    decodedTarget,
-                    arguments);
-                if (result != null) {
-                    return return_(result);
-                }
-            }
-        } else if (target instanceof InstanceMethodElementHandle) {
-            InstanceMethodElementHandle decodedTarget = (InstanceMethodElementHandle) target;
-            // instance
-            InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, decodedTarget.getExecutable());
-            if (intrinsic != null) {
-                Value instance = decodedTarget.getInstance();
-                Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
-                    instance,
-                    decodedTarget,
-                    arguments);
-                if (result != null) {
-                    return return_(result);
-                }
-            }
-        }
-        return super.tailInvoke(target, arguments, catchLabel, targetArguments);
-    }
-
-    @Override
     public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         if (target instanceof StaticMethodElementHandle) {
             StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;

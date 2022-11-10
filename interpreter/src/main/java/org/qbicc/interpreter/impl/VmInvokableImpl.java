@@ -4,9 +4,7 @@ import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayDeque;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.qbicc.graph.Action;
 import org.qbicc.graph.BasicBlock;
@@ -15,7 +13,6 @@ import org.qbicc.graph.Invoke;
 import org.qbicc.graph.InvokeNoReturn;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Slot;
-import org.qbicc.graph.TailInvoke;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.schedule.Schedule;
@@ -166,13 +163,6 @@ final class VmInvokableImpl implements VmInvokable {
                         frame.exception = null;
                     }
                 } else if (t instanceof InvokeNoReturn inv) {
-                    assert next == inv.getCatchBlock();
-                    BlockParameter bp = next.getBlockParameter(Slot.thrown());
-                    if (bp != null) {
-                        frame.values.put(bp, frame.exception);
-                    }
-                    frame.exception = null;
-                } else if (t instanceof TailInvoke inv) {
                     assert next == inv.getCatchBlock();
                     BlockParameter bp = next.getBlockParameter(Slot.thrown());
                     if (bp != null) {

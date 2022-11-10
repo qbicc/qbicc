@@ -125,9 +125,4 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
         return super.tailCall(target, castVoidPointers(arguments, target));
     }
-
-    @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        return super.tailInvoke(target, castVoidPointers(arguments, target), catchLabel, targetArguments);
-    }
 }
