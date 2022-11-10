@@ -34,6 +34,10 @@ public final class NewReferenceArray extends AbstractValue implements OrderedNod
         return dependency;
     }
 
+    public boolean maySafePoint() {
+        return true;
+    }
+
     public ReferenceType getType() {
         return type.getReference();
     }

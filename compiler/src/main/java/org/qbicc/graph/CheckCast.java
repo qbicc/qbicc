@@ -64,6 +64,10 @@ public final class CheckCast extends AbstractValue implements CastValue, Ordered
         return dependency;
     }
 
+    public boolean maySafePoint() {
+        return true;
+    }
+
     public Value getInput() {
         return input;
     }

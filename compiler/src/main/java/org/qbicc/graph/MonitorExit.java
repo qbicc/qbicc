@@ -26,6 +26,10 @@ public class MonitorExit extends AbstractNode implements Action, InstanceOperati
         return dependency;
     }
 
+    public boolean maySafePoint() {
+        return true;
+    }
+
     public <T, R> R accept(final ActionVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }

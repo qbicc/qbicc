@@ -47,6 +47,11 @@ public class InitCheck extends AbstractNode implements Action, OrderedNode {
         return dependency;
     }
 
+    @Override
+    public boolean maySafePoint() {
+        return true;
+    }
+
     public boolean equals(Object other) {
         return other instanceof InitCheck ic && equals(ic);
     }

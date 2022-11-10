@@ -12,4 +12,13 @@ public interface OrderedNode extends Node {
      * @return the predecessor (must not be {@code null})
      */
     Node getDependency();
+
+    /**
+     * Determine whether this node may safepoint.
+     *
+     * @return {@code true} if the node may safepoint, or {@code false} if the node <em>will not</em> safepoint
+     */
+    default boolean maySafePoint() {
+        return false;
+    }
 }

@@ -57,6 +57,11 @@ public abstract class Executable extends AbstractValueHandle {
     }
 
     @Override
+    public boolean isNoSafepoint() {
+        return executable.hasAllModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS);
+    }
+
+    @Override
     public boolean isNoReturn() {
         return executable.hasAllModifiersOf(ClassFile.I_ACC_NO_RETURN);
     }

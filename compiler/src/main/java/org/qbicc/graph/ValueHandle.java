@@ -63,6 +63,15 @@ public interface ValueHandle extends Unschedulable {
     }
 
     /**
+     * Determine whether this handle refers to a function or method that cannot safepoint.
+     *
+     * @return {@code true} if the handle referee can never safepoint, or {@code false} otherwise
+     */
+    default boolean isNoSafepoint() {
+        return false;
+    }
+
+    /**
      * Determine whether this handle refers to a function or method that definitely never returns.
      *
      * @return {@code true} if the handle referee can definitely never return, {@code false} otherwise
