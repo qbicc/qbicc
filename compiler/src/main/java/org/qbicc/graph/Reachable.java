@@ -51,7 +51,7 @@ public final class Reachable extends AbstractNode implements Action, OrderedNode
 
     @Override
     public StringBuilder toString(StringBuilder b) {
-        return reachableValue.toString(super.toString(b).append('(')).append(')');
+        return reachableValue.toReferenceString(super.toString(b).append('(')).append(')');
     }
 
     @Override

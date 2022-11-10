@@ -39,7 +39,7 @@ abstract class AbstractWordCastValue extends AbstractValue implements WordCastVa
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        getInput().toString(b);
+        getInput().toReferenceString(b);
         b.append(')');
         b.append(" to ");
         toType.toString(b);

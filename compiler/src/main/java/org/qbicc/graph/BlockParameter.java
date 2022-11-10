@@ -155,16 +155,31 @@ public final class BlockParameter extends AbstractValue implements PinnedNode {
         if (pinnedBlock == null) {
             // not yet assigned
             b.append("??").append('.');
-        } else if (pinnedBlock.getIndex() != 0) {
-            // block zero doesn't need a qualifier, really
+        } else if (pinnedBlock.getIndex() != 1) {
+            // block one doesn't need a qualifier, really
             pinnedBlock.toString(b).append('.');
         }
         return b.append(slot);
     }
 
     @Override
-    public StringBuilder toString(StringBuilder b) {
+    public StringBuilder toReferenceString(StringBuilder b) {
+        return toLValueString(b);
+    }
+
+    @Override
+    StringBuilder toLValueString(StringBuilder b) {
         return appendQualifiedName(b.append('%'));
+    }
+
+    @Override
+    StringBuilder toRValueString(StringBuilder b) {
+        if (nullable) {
+            b.append("nullable ");
+        }
+        b.append("parameter ");
+        type.toString(b);
+        return b;
     }
 
     @Override

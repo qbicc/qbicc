@@ -48,9 +48,9 @@ abstract class AbstractBinaryValue extends AbstractValue implements BinaryValue 
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        getLeftInput().toString(b);
+        getLeftInput().toReferenceString(b);
         b.append(',');
-        getRightInput().toString(b);
+        getRightInput().toReferenceString(b);
         b.append(')');
         return b;
     }

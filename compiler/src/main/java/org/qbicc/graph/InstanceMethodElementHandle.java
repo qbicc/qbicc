@@ -54,7 +54,7 @@ public abstract class InstanceMethodElementHandle extends Executable {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        instance.toString(b);
+        instance.toReferenceString(b);
         b.append(')');
         return b;
     }

@@ -40,9 +40,9 @@ public final class ExtractElement extends AbstractValue {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        arrayValue.toString(b);
+        arrayValue.toReferenceString(b);
         b.append(',');
-        index.toString(b);
+        index.toReferenceString(b);
         b.append(')');
         return b;
     }

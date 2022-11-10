@@ -41,9 +41,9 @@ public final class StackAllocation extends AbstractValue implements OrderedNode 
         b.append('(');
         type.toString(b);
         b.append(',');
-        count.toString(b);
+        count.toReferenceString(b);
         b.append(',');
-        align.toString(b);
+        align.toReferenceString(b);
         b.append(')');
         return b;
     }

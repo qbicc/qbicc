@@ -42,11 +42,11 @@ public final class InsertElement extends AbstractValue {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        arrayValue.toString(b);
+        arrayValue.toReferenceString(b);
         b.append(',');
-        index.toString(b);
+        index.toReferenceString(b);
         b.append(',');
-        insertedValue.toString(b);
+        insertedValue.toReferenceString(b);
         b.append(')');
         return b;
     }

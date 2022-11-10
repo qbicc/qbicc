@@ -98,11 +98,11 @@ public final class NewReferenceArray extends AbstractValue implements OrderedNod
         b.append('(');
         type.toString(b);
         b.append(',');
-        b.append(elemTypeId);
+        elemTypeId.toReferenceString(b);
         b.append(',');
-        b.append(dimensions);
+        dimensions.toReferenceString(b);
         b.append(',');
-        b.append(size);
+        size.toReferenceString(b);
         b.append(')');
         return b;
     }

@@ -43,7 +43,7 @@ public final class ExtractInstanceField extends AbstractValue {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        objectValue.toString(b);
+        objectValue.toReferenceString(b);
         b.append(',');
         // todo: fieldElement.toString(b)
         b.append(fieldElement);

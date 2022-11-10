@@ -53,7 +53,7 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        input.toString(b);
+        input.toReferenceString(b);
         b.append(',');
         checkType.toString(b);
         b.append(',');

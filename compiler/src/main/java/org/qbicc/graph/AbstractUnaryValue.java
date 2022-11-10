@@ -32,7 +32,7 @@ abstract class AbstractUnaryValue extends AbstractValue implements UnaryValue {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        getInput().toString(b);
+        getInput().toReferenceString(b);
         b.append(')');
         return b;
     }

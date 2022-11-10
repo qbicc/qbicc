@@ -54,10 +54,10 @@ public final class TailCall extends AbstractTerminator {
         b.append('(');
         Iterator<Value> itr = arguments.iterator();
         if (itr.hasNext()) {
-            itr.next().toString(b);
+            itr.next().toReferenceString(b);
             while (itr.hasNext()) {
                 b.append(',');
-                itr.next().toString(b);
+                itr.next().toReferenceString(b);
             }
         }
         b.append(')');

@@ -134,4 +134,6 @@ public interface Value extends Node {
     default boolean isConstant() {
         return false;
     }
+
+    StringBuilder toReferenceString(StringBuilder b);
 }

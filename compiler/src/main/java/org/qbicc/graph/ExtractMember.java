@@ -40,7 +40,7 @@ public final class ExtractMember extends AbstractValue {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        b.append(compoundValue);
+        compoundValue.toReferenceString(b);
         b.append(',');
         member.toString(b);
         b.append(')');

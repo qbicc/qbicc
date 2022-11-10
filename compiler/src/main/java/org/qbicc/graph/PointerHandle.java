@@ -107,9 +107,9 @@ public final class PointerHandle extends AbstractValueHandle {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        pointerValue.toString(b);
+        pointerValue.toReferenceString(b);
         b.append('[');
-        offsetValue.toString(b);
+        offsetValue.toReferenceString(b);
         b.append(']');
         b.append(')');
         return b;

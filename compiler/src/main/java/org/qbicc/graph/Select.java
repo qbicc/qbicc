@@ -77,11 +77,11 @@ public final class Select extends AbstractValue {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        condition.toString(b);
-        b.append(',');
-        trueValue.toString(b);
-        b.append(',');
-        falseValue.toString(b);
+        condition.toReferenceString(b);
+        b.append('?');
+        trueValue.toReferenceString(b);
+        b.append(':');
+        falseValue.toReferenceString(b);
         b.append(')');
         return b;
     }

@@ -110,9 +110,9 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        b.append(expectedValue);
+        expectedValue.toReferenceString(b);
         b.append(',');
-        b.append(updateValue);
+        updateValue.toReferenceString(b);
         b.append(',');
         b.append(strength);
         b.append(',');

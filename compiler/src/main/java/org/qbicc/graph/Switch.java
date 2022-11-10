@@ -139,7 +139,7 @@ public final class Switch extends AbstractTerminator implements Terminator {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        switchValue.toString(b);
+        switchValue.toReferenceString(b);
         b.append(')');
         return b;
     }

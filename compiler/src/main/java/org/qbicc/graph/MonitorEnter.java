@@ -47,7 +47,7 @@ public class MonitorEnter extends AbstractNode implements Action, InstanceOperat
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        instance.toString(b);
+        instance.toReferenceString(b);
         b.append(')');
         return b;
     }

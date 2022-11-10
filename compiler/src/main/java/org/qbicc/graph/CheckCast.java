@@ -133,7 +133,7 @@ public final class CheckCast extends AbstractValue implements CastValue, Ordered
         b.append(':');
         b.append(kind);
         b.append('(');
-        getInput().toString(b);
+        getInput().toReferenceString(b);
         b.append(')');
         b.append(" to ");
         toType.toString(b);
