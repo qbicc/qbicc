@@ -39,7 +39,7 @@ public class Store extends AbstractNode implements Action, OrderedNode {
     }
 
     int calcHashCode() {
-        return Objects.hash(dependency, handle, mode);
+        return Objects.hash(dependency, handle, value, mode);
     }
 
     @Override
