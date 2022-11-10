@@ -75,7 +75,7 @@ public final class NewArray extends AbstractValue implements OrderedNode {
         b.append('(');
         type.toString(b);
         b.append(',');
-        b.append(size);
+        size.toReferenceString(b);
         b.append(')');
         return b;
     }

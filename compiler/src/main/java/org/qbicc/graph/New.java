@@ -95,11 +95,11 @@ public final class New extends AbstractValue implements OrderedNode {
         b.append('(');
         type.toString(b);
         b.append(',');
-        typeId.toString(b);
+        typeId.toReferenceString(b);
         b.append(',');
-        size.toString(b);
+        size.toReferenceString(b);
         b.append(',');
-        align.toString(b);
+        align.toReferenceString(b);
         b.append(')');
         return b;
     }

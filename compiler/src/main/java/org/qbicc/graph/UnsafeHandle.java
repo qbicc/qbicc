@@ -91,7 +91,7 @@ public class UnsafeHandle extends AbstractValueHandle {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        offset.toString(b);
+        offset.toReferenceString(b);
         b.append(')');
         return b;
     }

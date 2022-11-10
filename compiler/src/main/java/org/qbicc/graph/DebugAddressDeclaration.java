@@ -67,7 +67,7 @@ public final class DebugAddressDeclaration extends AbstractNode implements Actio
         b.append(variable.getName());
         b.append(')');
         b.append('@');
-        b.append(address);
+        address.toReferenceString(b);
         return b;
     }
 

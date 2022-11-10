@@ -62,7 +62,7 @@ public final class Throw extends AbstractTerminator implements Terminator {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        thrownValue.toString(b);
+        thrownValue.toReferenceString(b);
         b.append(')');
         return b;
     }

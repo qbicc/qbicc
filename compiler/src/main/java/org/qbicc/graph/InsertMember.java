@@ -42,11 +42,11 @@ public final class InsertMember extends AbstractValue {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        compoundValue.toString(b);
+        compoundValue.toReferenceString(b);
         b.append(',');
         member.toString(b);
         b.append(',');
-        insertedValue.toString(b);
+        insertedValue.toReferenceString(b);
         b.append(')');
         return b;
     }

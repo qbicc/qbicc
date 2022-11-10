@@ -195,6 +195,16 @@ public final class Invoke extends AbstractTerminator implements Resume {
         }
 
         @Override
+        public int getScheduleIndex() {
+            return Invoke.this.getScheduleIndex();
+        }
+
+        @Override
+        public BasicBlock getScheduledBlock() {
+            return Invoke.this.getScheduledBlock();
+        }
+
+        @Override
         public StringBuilder toString(StringBuilder b) {
             super.toString(b);
             b.append(" of ");

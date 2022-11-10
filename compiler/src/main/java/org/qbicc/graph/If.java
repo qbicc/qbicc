@@ -90,8 +90,18 @@ public final class If extends AbstractTerminator implements Terminator {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        condition.toString(b);
+        condition.toReferenceString(b);
         b.append(')');
+        if (trueBranchLabel.hasTarget() && falseBranchLabel.hasTarget()) {
+            b.append(' ');
+            b.append("then");
+            b.append(' ');
+            getTrueBranch().toString(b);
+            b.append(' ');
+            b.append("else");
+            b.append(' ');
+            getFalseBranch().toString(b);
+        }
         return b;
     }
 

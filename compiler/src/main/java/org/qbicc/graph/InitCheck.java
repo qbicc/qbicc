@@ -64,7 +64,7 @@ public class InitCheck extends AbstractNode implements Action, OrderedNode {
         b.append('(');
         b.append(initializerElement);
         b.append(',');
-        b.append(initThunk);
+        initThunk.toReferenceString(b);
         b.append(')');
         return b;
     }

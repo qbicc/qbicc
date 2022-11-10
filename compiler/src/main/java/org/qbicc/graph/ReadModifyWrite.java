@@ -85,7 +85,7 @@ public final class ReadModifyWrite extends AbstractValue implements ReadModifyWr
         b.append('.');
         b.append(op);
         b.append('(');
-        b.append(updateValue);
+        updateValue.toReferenceString(b);
         b.append(',');
         b.append(readMode);
         b.append(',');

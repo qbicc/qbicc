@@ -69,7 +69,7 @@ public final class ReferenceHandle extends AbstractValueHandle {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        referenceValue.toString(b);
+        referenceValue.toReferenceString(b);
         b.append(')');
         return b;
     }

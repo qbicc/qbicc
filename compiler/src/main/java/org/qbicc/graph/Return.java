@@ -62,7 +62,7 @@ public final class Return extends AbstractTerminator implements Terminator {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        returnValue.toString(b);
+        returnValue.toReferenceString(b);
         b.append(')');
         return b;
     }

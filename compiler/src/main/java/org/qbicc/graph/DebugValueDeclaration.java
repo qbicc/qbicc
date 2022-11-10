@@ -67,7 +67,7 @@ public final class DebugValueDeclaration extends AbstractNode implements Action,
         b.append(variable.getName());
         b.append(')');
         b.append('@');
-        b.append(value);
+        value.toReferenceString(b);
         return b;
     }
 

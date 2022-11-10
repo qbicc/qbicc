@@ -83,7 +83,7 @@ public final class MultiNewArray extends AbstractValue implements OrderedNode {
         type.toString(b);
         for (Value dimension : dimensions) {
             b.append(',');
-            dimension.toString(b);
+            dimension.toReferenceString(b);
         }
         b.append(')');
         return b;

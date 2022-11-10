@@ -70,7 +70,7 @@ public final class VaArg extends AbstractValue implements OrderedNode {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        vaList.toString(b);
+        vaList.toReferenceString(b);
         b.append(',');
         type.toString(b);
         b.append(')');

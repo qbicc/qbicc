@@ -60,9 +60,9 @@ public final class ClassOf extends AbstractValue implements UnaryValue {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        b.append(input);
+        input.toReferenceString(b);
         b.append(',');
-        b.append(dimensions);
+        dimensions.toReferenceString(b);
         b.append(')');
         return b;
     }

@@ -96,7 +96,7 @@ public final class ElementOf extends AbstractValueHandle {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        index.toString(b);
+        index.toReferenceString(b);
         b.append(')');
         return b;
     }

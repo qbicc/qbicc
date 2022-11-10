@@ -54,6 +54,11 @@ public abstract class Literal implements Unschedulable, Value {
     }
 
     @Override
+    public StringBuilder toReferenceString(StringBuilder b) {
+        return toString(b);
+    }
+
+    @Override
     public String toString() {
         return toString(new StringBuilder()).toString();
     }
