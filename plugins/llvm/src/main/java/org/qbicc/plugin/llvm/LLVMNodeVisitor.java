@@ -66,7 +66,6 @@ import org.qbicc.graph.Or;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Reachable;
 import org.qbicc.graph.ReadModifyWrite;
-import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Ret;
 import org.qbicc.graph.Return;
 import org.qbicc.graph.Select;
@@ -1191,11 +1190,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             LLValue offset = param.map(node.getOffsetValue());
             LLValue offsetType = param.map(node.getOffsetValue().getType());
             return param.gep(param.map(node.getPointerValue()), node).arg(false, offsetType, offset);
-        }
-
-        @Override
-        public GetElementPtr visit(LLVMNodeVisitor param, ReferenceHandle node) {
-            return param.gep(param.map(node.getReferenceValue()), node).arg(false, i32, ZERO);
         }
     };
 

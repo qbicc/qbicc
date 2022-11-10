@@ -456,7 +456,16 @@ public interface BasicBlockBuilder extends Locatable {
         return pointerHandle(pointer, getCurrentElement().getEnclosingType().getContext().getLiteralFactory().literalOf(0));
     }
 
-    ValueHandle referenceHandle(Value reference);
+    /**
+     * Convenience method to construct a pointer handle to a decoded reference pointer.
+     *
+     * @param reference the reference value (must not be {@code null})
+     * @return the pointer handle
+     */
+    @Deprecated
+    default ValueHandle referenceHandle(Value reference) {
+        return pointerHandle(decodeReference(reference));
+    }
 
     ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field);
 

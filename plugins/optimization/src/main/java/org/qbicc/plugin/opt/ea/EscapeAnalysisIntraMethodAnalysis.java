@@ -19,6 +19,7 @@ import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.Call;
 import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.ConstructorElementHandle;
+import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.Executable;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.Goto;
@@ -37,7 +38,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OrderedNode;
-import org.qbicc.graph.ReferenceHandle;
+import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Select;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticField;
@@ -106,19 +107,18 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
                 final ValueHandle handle = node.getValueHandle();
                 final Value value = node.getValue();
 
-                if (handle instanceof InstanceFieldOf fieldOf && fieldOf.getValueHandle() instanceof ReferenceHandle ref) {
-                    if (value instanceof New) {
-                        if (isThisRef(ref)) {
+                if (handle instanceof InstanceFieldOf fieldOf && fieldOf.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr) {
+                    Value ref = dr.getInput();
+                    if (value instanceof New && ref instanceof BlockParameter bp && bp.isEntryParameter()) {
+                        if (bp.getSlot() == Slot.this_()) {
                             // this.f = new T();
                             param.connectionGraph.setArgEscape(value);
                         } else {
                             // p.f = new T();
-                            if (ref.getReferenceValue() instanceof BlockParameter pv && pv.isEntryParameter()) {
-                                // Object that `p` points to was created outside this method (e.g. `p` is a formal parameter)
-                                // Set link from object in caller's context, via field, to the new value.
-                                param.connectionGraph.addFieldEdge(pv, fieldOf);
-                                param.connectionGraph.addPointsToEdge(fieldOf, value);
-                            }
+                            // Object that `p` points to was created outside this method (e.g. `p` is a formal parameter)
+                            // Set link from object in caller's context, via field, to the new value.
+                            param.connectionGraph.addFieldEdge(bp, fieldOf);
+                            param.connectionGraph.addPointsToEdge(fieldOf, value);
                         }
                     }
                 } else if (handle instanceof StaticField) {
@@ -132,11 +132,6 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
             }
 
             return null;
-        }
-
-        private boolean isThisRef(ReferenceHandle ref) {
-            return ref.getReferenceValue() instanceof BlockParameter param
-                && param.isEntryParameter() && param.getSlot() == Slot.this_();
         }
 
         @Override
@@ -218,8 +213,10 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
         }
 
         @Override
-        public Void visit(AnalysisContext param, ReferenceHandle node) {
-            visitKnown(param, node);
+        public Void visit(AnalysisContext param, PointerHandle node) {
+            if (node.getPointerValue() instanceof DecodeReference) {
+                visitKnown(param, node);
+            }
             return null;
         }
 

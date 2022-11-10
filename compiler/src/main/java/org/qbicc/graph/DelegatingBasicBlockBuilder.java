@@ -153,10 +153,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().pointerHandle(pointer, offsetValue);
     }
 
-    public ValueHandle referenceHandle(Value reference) {
-        return getDelegate().referenceHandle(reference);
-    }
-
     public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
         return getDelegate().instanceFieldOf(instance, field);
     }

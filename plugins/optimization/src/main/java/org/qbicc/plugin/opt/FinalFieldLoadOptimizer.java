@@ -2,9 +2,10 @@ package org.qbicc.plugin.opt;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Field;
-import org.qbicc.graph.ReferenceHandle;
+import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
@@ -46,7 +47,7 @@ public class FinalFieldLoadOptimizer extends DelegatingBasicBlockBuilder {
                     // ctxt.info("Replacing getstatic of "+fieldElement+" in "+getDelegate().getCurrentElement());
                     return contents;
                 }
-            } else if (fh.getValueHandle() instanceof ReferenceHandle rh && rh.getReferenceValue() instanceof ObjectLiteral ol) {
+            } else if (fh.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr && dr.getInput() instanceof ObjectLiteral ol) {
                 VmClass vmClass = ol.getValue().getVmClass();
                 int offset = vmClass.indexOf(fieldElement);
                 Memory mem = ol.getValue().getMemory();

@@ -11,14 +11,17 @@ import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.ConstructorElementHandle;
+import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.InstanceMethodElementHandle;
 import org.qbicc.graph.InterfaceMethodElementHandle;
+import org.qbicc.graph.MultiNewArray;
+import org.qbicc.graph.NewReferenceArray;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.ReferenceHandle;
+import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
@@ -30,6 +33,7 @@ import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
@@ -95,6 +99,14 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                 if (isNoThrow()) {
                     return bitCast(value, outputType);
                 }
+            }
+            if (toType instanceof TypeLiteral tl
+                && tl.getValue() instanceof ObjectType ot
+                && toDimensions instanceof IntegerLiteral il && il.intValue() == 0
+                && refType.instanceOf(ot)
+            ) {
+                // statically pass the test
+                return value;
             }
         }
         return super.checkcast(value, toType, toDimensions, kind, expectedType);
@@ -291,8 +303,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             }
 
             @Override
-            public Value visit(Void param, ReferenceHandle node) {
-                nullCheck(node.getReferenceValue());
+            public Value visit(Void param, PointerHandle node) {
+                if (node.getPointerValue() instanceof DecodeReference dr) {
+                    nullCheck(dr.getInput());
+                }
                 return null;
             }
 
@@ -394,6 +408,19 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         if (isNoThrow()) {
             return;
         }
+        if (array instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr && index.isDefGe(getLiteralFactory().zeroInitializerLiteralOfType(index.getType()))) {
+            if (dr.getInput() instanceof NewReferenceArray nra && index.isDefLt(nra.getSize())) {
+                // no check needed; statically OK
+                return;
+            } else if (dr.getInput() instanceof MultiNewArray mna) {
+                List<Value> dims = mna.getDimensions();
+                if (index.isDefLt(dims.get(dims.size() - 1))) {
+                    // no check needed; statically OK
+                    return;
+                }
+            }
+        }
+
         final BlockLabel notNegative = new BlockLabel();
         final BlockLabel throwIt = new BlockLabel();
         final BlockLabel goAhead = new BlockLabel();

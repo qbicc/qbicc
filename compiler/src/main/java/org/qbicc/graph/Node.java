@@ -772,10 +772,6 @@ public interface Node {
                 return param.getBlockBuilder().pointerHandle(param.copyValue(node.getPointerValue()), param.copyValue(node.getOffsetValue()));
             }
 
-            public ValueHandle visit(Copier param, ReferenceHandle node) {
-                return param.getBlockBuilder().referenceHandle(param.copyValue(node.getReferenceValue()));
-            }
-
             public Value visit(final Copier param, final Select node) {
                 return param.getBlockBuilder().select(param.copyValue(node.getCondition()), param.copyValue(node.getTrueValue()), param.copyValue(node.getFalseValue()));
             }

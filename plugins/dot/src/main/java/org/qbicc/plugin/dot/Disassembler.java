@@ -98,7 +98,6 @@ import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.ReadModifyWriteValue;
-import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.ReferenceTo;
 import org.qbicc.graph.Ret;
 import org.qbicc.graph.Rol;
@@ -1186,8 +1185,8 @@ public final class Disassembler {
         @Override
         public Void visit(Disassembler param, InstanceFieldOf node) {
             final String id = param.nextId();
-            String description = node.getValueHandle() instanceof ReferenceHandle ref
-                ? show(ref.getReferenceValue()) + " " + node.getVariableElement().getName()
+            String description = node.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr
+                ? show(dr.getInput()) + " " + node.getVariableElement().getName()
                 : "?";
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
@@ -1221,14 +1220,6 @@ public final class Disassembler {
         public Void visit(Disassembler param, PointerHandle node) {
             final String id = param.nextId();
             final String description = "prt " + show(node.getPointerValue());
-            param.nodeInfo.put(node, new NodeInfo(id, description));
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, ReferenceHandle node) {
-            final String id = param.nextId();
-            final String description = "ref " + show(node.getReferenceValue());
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }

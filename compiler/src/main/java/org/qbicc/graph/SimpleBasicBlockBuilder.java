@@ -470,10 +470,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return new PointerHandle(callSite, element, line, bci, pointer, offsetValue);
     }
 
-    public ValueHandle referenceHandle(Value reference) {
-        return new ReferenceHandle(callSite, element, line, bci, reference);
-    }
-
     public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
         return new InstanceFieldOf(element, line, bci, (InstanceFieldElement) field, field.getType(), instance);
     }

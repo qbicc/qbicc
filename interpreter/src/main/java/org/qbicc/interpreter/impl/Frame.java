@@ -86,7 +86,6 @@ import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
 import org.qbicc.graph.Reachable;
 import org.qbicc.graph.ReadModifyWrite;
-import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Ret;
 import org.qbicc.graph.Rol;
 import org.qbicc.graph.Ror;
@@ -2349,16 +2348,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
 
         @Override
-        public Memory visit(Frame frame, ReferenceHandle node) {
-            Value referenceValue = node.getReferenceValue();
-            VmObject refVal = (VmObject) frame.require(referenceValue);
-            if (refVal == null) {
-                return null;
-            }
-            return refVal.getMemory();
-        }
-
-        @Override
         public Memory visit(Frame frame, UnsafeHandle node) {
             Object rawVal = frame.require(node.getOffset());
             if (rawVal instanceof Pointer p) {
@@ -2386,43 +2375,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
     };
 
-    static final ValueHandleVisitor<Frame, VmObjectImpl> GET_OBJECT = new ValueHandleVisitor<Frame, VmObjectImpl>() {
-        @Override
-        public VmObjectImpl visitUnknown(Frame frame, ValueHandle node) {
-            throw invalidHandleTypeForOp();
-        }
-
-        public VmObjectImpl visit(Frame param, CurrentThread node) {
-            return (VmObjectImpl) Vm.requireCurrentThread();
-        }
-
-        @Override
-        public VmObjectImpl visit(Frame frame, ElementOf node) {
-            return node.getValueHandle().accept(this, frame);
-        }
-
-        @Override
-        public VmObjectImpl visit(Frame frame, InstanceFieldOf node) {
-            return node.getValueHandle().accept(this, frame);
-        }
-
-        @Override
-        public VmObjectImpl visit(Frame frame, MemberOf node) {
-            return node.getValueHandle().accept(this, frame);
-        }
-
-        @Override
-        public VmObjectImpl visit(Frame frame, ReferenceHandle node) {
-            Value referenceValue = node.getReferenceValue();
-            return (VmObjectImpl) frame.require(referenceValue);
-        }
-
-        @Override
-        public VmObjectImpl visit(Frame frame, UnsafeHandle node) {
-            return node.getValueHandle().accept(this, frame);
-        }
-    };
-
     private static IllegalArgumentException invalidHandleTypeForOp() {
         return new IllegalArgumentException("Invalid handle type for operation");
     }
@@ -2438,10 +2390,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             int index = frame.unboxInt(node.getIndex());
             ValueHandle delegate = node.getValueHandle();
             ValueType delegateValueType = delegate.getPointeeType();
-            if (delegate instanceof ReferenceHandle) {
+            if (delegate instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr && dr.getInput().getType() instanceof ReferenceType referenceType) {
                 // array object access?
-                Value referenceValue = ((ReferenceHandle) delegate).getReferenceValue();
-                ReferenceType referenceType = (ReferenceType) referenceValue.getType();
                 PhysicalObjectType physicalBound = referenceType.getUpperBound();
                 if (physicalBound instanceof ArrayObjectType) {
                     CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
@@ -2505,17 +2455,19 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 }
             }
             long offset = frame.unboxLong(node.getOffsetValue());
+            if (offset == 0) {
+                return pointer.getRootByteOffset();
+            }
             // get the number of *bytes* to offset by, because the pointer's type might differ from the handle type
             PointerType pointerType = node.getType();
             ValueType pointeeType = pointerType.getPointeeType();
+            if (pointeeType instanceof ObjectType ot) {
+                CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
+                pointeeType = Layout.get(ctxt).getInstanceLayoutInfo(ot.getDefinition()).getCompoundType();
+            }
             long byteOffset = offset * pointeeType.getSize();
             Pointer targetPointer = pointer.offsetInBytes(byteOffset, true);
             return targetPointer == null ? 0 : targetPointer.getRootByteOffset();
-        }
-
-        @Override
-        public long visit(Frame frame, ReferenceHandle node) {
-            return 0;
         }
 
         @Override
@@ -2546,10 +2498,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     private Memory getMemory(final ValueHandle valueHandle) {
         return valueHandle.accept(GET_MEMORY, this);
-    }
-
-    private VmObjectImpl getObject(final ValueHandle valueHandle) {
-        return valueHandle.accept(GET_OBJECT, this);
     }
 
     /////////////

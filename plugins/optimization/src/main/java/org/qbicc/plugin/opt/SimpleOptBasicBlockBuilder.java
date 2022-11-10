@@ -14,15 +14,20 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.Cmp;
 import org.qbicc.graph.Comp;
 import org.qbicc.graph.Convert;
+import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Extend;
+import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.Neg;
+import org.qbicc.graph.NewArray;
+import org.qbicc.graph.NewReferenceArray;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.WordCastValue;
+import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.CompoundLiteral;
@@ -31,6 +36,7 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.NullLiteral;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
@@ -41,6 +47,8 @@ import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
+import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 
 /**
  * A graph factory which performs simple optimizations opportunistically.
@@ -121,6 +129,38 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             }
         }
         return null;
+    }
+
+    @Override
+    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
+        if (handle instanceof InstanceFieldOf ifo) {
+            CoreClasses coreClasses = CoreClasses.get(getContext());
+            // it might be an array length...
+            InstanceFieldElement ve = ifo.getVariableElement();
+            if (ve == coreClasses.getArrayLengthField()) {
+                // see if it's constant; extract the array size directly if so
+                if (ifo.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr) {
+                    if (dr.getInput() instanceof NewReferenceArray nra) {
+                        return nra.getSize();
+                    } else if (dr.getInput() instanceof NewArray na) {
+                        return na.getSize();
+                    }
+                }
+            } else if (ve == coreClasses.getRefArrayDimensionsField()) {
+                if (ifo.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr) {
+                    if (dr.getInput() instanceof NewReferenceArray nra) {
+                        return nra.getDimensions();
+                    }
+                }
+            } else if (ve == coreClasses.getRefArrayElementTypeIdField()) {
+                if (ifo.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr) {
+                    if (dr.getInput() instanceof NewReferenceArray nra) {
+                        return nra.getElemTypeId();
+                    }
+                }
+            }
+        }
+        return super.load(handle, accessMode);
     }
 
     @Override
@@ -591,7 +631,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value add(Value v1, Value v2) {
-        if (v1.getType() instanceof IntegerType) {
+        if (v1.getType() instanceof IntegerType it) {
             // integer opts
             assert v2.getType() instanceof IntegerType;
             if (isZero(v1)) {
@@ -602,6 +642,8 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 return sub(v2, n1.getInput());
             } else if (v2 instanceof Neg n2) {
                 return sub(v1, n2.getInput());
+            } else if (v1 instanceof IntegerLiteral i1 && v2 instanceof IntegerLiteral i2) {
+                return getLiteralFactory().literalOf(it, i1.longValue() + i2.longValue());
             }
         }
         return super.add(v1, v2);
@@ -609,7 +651,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value sub(Value v1, Value v2) {
-        if (v1.getType() instanceof IntegerType) {
+        if (v1.getType() instanceof IntegerType it) {
             // integer opts
             assert v2.getType() instanceof IntegerType;
             if (isZero(v1)) {
@@ -618,6 +660,10 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 return v1;
             } else if (v2 instanceof Neg n2) {
                 return add(v1, n2.getInput());
+            } else if (v1.isDefEq(v2) || v2.isDefEq(v1)) {
+                return getLiteralFactory().literalOf(it, 0);
+            } else if (v1 instanceof IntegerLiteral i1 && v2 instanceof IntegerLiteral i2) {
+                return getLiteralFactory().literalOf(it, i1.longValue() - i2.longValue());
             }
         }
         return super.sub(v1, v2);
