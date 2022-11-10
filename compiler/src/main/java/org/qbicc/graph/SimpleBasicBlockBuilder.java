@@ -64,6 +64,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     private Node callSite;
     private BasicBlock terminatedBlock;
     private Map<BlockLabel, Map<Slot, BlockParameter>> parameters;
+    private final Map<Value, Value> unique = new HashMap<>();
 
     SimpleBasicBlockBuilder(final ExecutableElement element) {
         this.element = element;
@@ -250,103 +251,103 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Value add(final Value v1, final Value v2) {
-        return new Add(callSite, element, line, bci, v1, v2);
+        return unique(new Add(callSite, element, line, bci, v1, v2));
     }
 
     public Value multiply(final Value v1, final Value v2) {
-        return new Multiply(callSite, element, line, bci, v1, v2);
+        return unique(new Multiply(callSite, element, line, bci, v1, v2));
     }
 
     public Value and(final Value v1, final Value v2) {
-        return new And(callSite, element, line, bci, v1, v2);
+        return unique(new And(callSite, element, line, bci, v1, v2));
     }
 
     public Value or(final Value v1, final Value v2) {
-        return new Or(callSite, element, line, bci, v1, v2);
+        return unique(new Or(callSite, element, line, bci, v1, v2));
     }
 
     public Value xor(final Value v1, final Value v2) {
-        return new Xor(callSite, element, line, bci, v1, v2);
+        return unique(new Xor(callSite, element, line, bci, v1, v2));
     }
 
     public Value isEq(final Value v1, final Value v2) {
-        return new IsEq(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
+        return unique(new IsEq(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType()));
     }
 
     public Value isNe(final Value v1, final Value v2) {
-        return new IsNe(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
+        return unique(new IsNe(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType()));
     }
 
     public Value shr(final Value v1, final Value v2) {
-        return new Shr(callSite, element, line, bci, v1, v2);
+        return unique(new Shr(callSite, element, line, bci, v1, v2));
     }
 
     public Value shl(final Value v1, final Value v2) {
-        return new Shl(callSite, element, line, bci, v1, v2);
+        return unique(new Shl(callSite, element, line, bci, v1, v2));
     }
 
     public Value sub(final Value v1, final Value v2) {
-        return new Sub(callSite, element, line, bci, v1, v2);
+        return unique(new Sub(callSite, element, line, bci, v1, v2));
     }
 
     public Value divide(final Value v1, final Value v2) {
-        return new Div(callSite, element, line, bci, v1, v2);
+        return unique(new Div(callSite, element, line, bci, v1, v2));
     }
 
     public Value remainder(final Value v1, final Value v2) {
-        return new Mod(callSite, element, line, bci, v1, v2);
+        return unique(new Mod(callSite, element, line, bci, v1, v2));
     }
 
     public Value min(final Value v1, final Value v2) {
-        return new Min(callSite, element, line, bci, v1, v2);
+        return unique(new Min(callSite, element, line, bci, v1, v2));
     }
 
     public Value max(final Value v1, final Value v2) {
-        return new Max(callSite, element, line, bci, v1, v2);
+        return unique(new Max(callSite, element, line, bci, v1, v2));
     }
 
     public Value isLt(final Value v1, final Value v2) {
-        return new IsLt(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
+        return unique(new IsLt(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType()));
     }
 
     public Value isGt(final Value v1, final Value v2) {
-        return new IsGt(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
+        return unique(new IsGt(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType()));
     }
 
     public Value isLe(final Value v1, final Value v2) {
-        return new IsLe(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
+        return unique(new IsLe(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType()));
     }
 
     public Value isGe(final Value v1, final Value v2) {
-        return new IsGe(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType());
+        return unique(new IsGe(callSite, element, line, bci, v1, v2, getTypeSystem().getBooleanType()));
     }
 
     public Value rol(final Value v1, final Value v2) {
-        return new Rol(callSite, element, line, bci, v1, v2);
+        return unique(new Rol(callSite, element, line, bci, v1, v2));
     }
 
     public Value ror(final Value v1, final Value v2) {
-        return new Ror(callSite, element, line, bci, v1, v2);
+        return unique(new Ror(callSite, element, line, bci, v1, v2));
     }
 
     public Value cmp(Value v1, Value v2) {
-        return new Cmp(callSite, element, line, bci, v1, v2, getTypeSystem().getSignedInteger32Type());
+        return unique(new Cmp(callSite, element, line, bci, v1, v2, getTypeSystem().getSignedInteger32Type()));
     }
 
     public Value cmpG(Value v1, Value v2) {
-        return new CmpG(callSite, element, line, bci, v1, v2, getTypeSystem().getSignedInteger32Type());
+        return unique(new CmpG(callSite, element, line, bci, v1, v2, getTypeSystem().getSignedInteger32Type()));
     }
 
     public Value cmpL(Value v1, Value v2) {
-        return new CmpL(callSite, element, line, bci, v1, v2, getTypeSystem().getSignedInteger32Type());
+        return unique(new CmpL(callSite, element, line, bci, v1, v2, getTypeSystem().getSignedInteger32Type()));
     }
 
     public Value notNull(Value v) {
-        return v.isNullable() ? new NotNull(callSite, element, line, bci, v) : v;
+        return v.isNullable() ? unique(new NotNull(callSite, element, line, bci, v)) : v;
     }
 
     public Value negate(final Value v) {
-        return new Neg(callSite, element, line, bci, v);
+        return unique(new Neg(callSite, element, line, bci, v));
     }
 
     public Value complement(Value v) {
@@ -354,23 +355,23 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         if (! (v.getType() instanceof IntegerType || v.getType() instanceof BooleanType)) {
             throw new IllegalArgumentException("Invalid input type");
         }
-        return new Comp(callSite, element, line, bci, v);
+        return unique(new Comp(callSite, element, line, bci, v));
     }
 
     public Value byteSwap(final Value v) {
-        return new ByteSwap(callSite, element, line, bci, v);
+        return unique(new ByteSwap(callSite, element, line, bci, v));
     }
 
     public Value bitReverse(final Value v) {
-        return new BitReverse(callSite, element, line, bci, v);
+        return unique(new BitReverse(callSite, element, line, bci, v));
     }
 
     public Value countLeadingZeros(final Value v) {
-        return new CountLeadingZeros(callSite, element, line, bci, v, getTypeSystem().getSignedInteger32Type());
+        return unique(new CountLeadingZeros(callSite, element, line, bci, v, getTypeSystem().getSignedInteger32Type()));
     }
 
     public Value countTrailingZeros(final Value v) {
-        return new CountTrailingZeros(callSite, element, line, bci, v, getTypeSystem().getSignedInteger32Type());
+        return unique(new CountTrailingZeros(callSite, element, line, bci, v, getTypeSystem().getSignedInteger32Type()));
     }
 
     public Value populationCount(final Value v) {
@@ -382,19 +383,19 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Value truncate(final Value value, final WordType toType) {
-        return new Truncate(callSite, element, line, bci, value, toType);
+        return unique(new Truncate(callSite, element, line, bci, value, toType));
     }
 
     public Value extend(final Value value, final WordType toType) {
-        return new Extend(callSite, element, line, bci, value, toType);
+        return unique(new Extend(callSite, element, line, bci, value, toType));
     }
 
     public Value bitCast(final Value value, final WordType toType) {
-        return new BitCast(callSite, element, line, bci, value, toType);
+        return unique(new BitCast(callSite, element, line, bci, value, toType));
     }
 
     public Value valueConvert(final Value value, final WordType toType) {
-        return new Convert(callSite, element, line, bci, value, toType);
+        return unique(new Convert(callSite, element, line, bci, value, toType));
     }
 
     public Value instanceOf(final Value input, final ObjectType expectedType, final int expectedDimensions) {
@@ -435,7 +436,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value selectMember(ValueHandle handle) {
         TypeSystem ts = element.getEnclosingType().getContext().getTypeSystem();
-        return new MemberSelector(callSite, element, line, bci, handle, ts.getVoidType());
+        return unique(new MemberSelector(callSite, element, line, bci, handle, ts.getVoidType()));
     }
 
     public ValueHandle currentThread() {
@@ -540,11 +541,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Value addressOf(ValueHandle handle) {
-        return new AddressOf(callSite, element, line, bci, handle);
+        return unique(new AddressOf(callSite, element, line, bci, handle));
     }
 
     public Value referenceTo(ValueHandle handle) throws IllegalArgumentException {
-        return new ReferenceTo(callSite, element, line, bci, handle);
+        return unique(new ReferenceTo(callSite, element, line, bci, handle));
     }
 
     public Value stackAllocate(final ValueType type, final Value count, final Value align) {
@@ -552,15 +553,15 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Value offsetOfField(FieldElement fieldElement) {
-        return new OffsetOfField(callSite, element, line, bci, fieldElement, getTypeSystem().getSignedInteger32Type());
+        return unique(new OffsetOfField(callSite, element, line, bci, fieldElement, getTypeSystem().getSignedInteger32Type()));
     }
 
     public Value extractElement(Value array, Value index) {
-        return new ExtractElement(callSite, element, line, bci, array, index);
+        return unique(new ExtractElement(callSite, element, line, bci, array, index));
     }
 
     public Value extractMember(Value compound, CompoundType.Member member) {
-        return new ExtractMember(callSite, element, line, bci, compound, member);
+        return unique(new ExtractMember(callSite, element, line, bci, compound, member));
     }
 
     public Value extractInstanceField(Value valueObj, TypeDescriptor owner, String name, TypeDescriptor type) {
@@ -572,11 +573,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Value insertElement(Value array, Value index, Value value) {
-        return new InsertElement(callSite, element, line, bci, array, index, value);
+        return unique(new InsertElement(callSite, element, line, bci, array, index, value));
     }
 
     public Value insertMember(Value compound, CompoundType.Member member, Value value) {
-        return new InsertMember(callSite, element, line, bci, compound, value, member);
+        return unique(new InsertMember(callSite, element, line, bci, compound, value, member));
     }
 
     public Node declareDebugAddress(LocalVariableElement variable, Value address) {
@@ -588,14 +589,14 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Value select(final Value condition, final Value trueValue, final Value falseValue) {
-        return new Select(callSite, element, line, bci, condition, trueValue, falseValue);
+        return unique(new Select(callSite, element, line, bci, condition, trueValue, falseValue));
     }
 
     public Value classOf(Value typeId, Value dimensions) {
         Assert.assertTrue(typeId instanceof TypeLiteral);
         ClassContext classContext = element.getEnclosingType().getContext();
         ClassObjectType type = classContext.findDefinedType("java/lang/Class").load().getClassType();
-        return new ClassOf(callSite, element, line, bci, typeId, dimensions, type.getReference());
+        return unique(new ClassOf(callSite, element, line, bci, typeId, dimensions, type.getReference()));
     }
 
     public Value new_(final ClassObjectType type, final Value typeId, final Value size, final Value align) {
@@ -664,7 +665,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
-        return new CallNoSideEffects(callSite, element, line, bci, target, arguments);
+        return unique(new CallNoSideEffects(callSite, element, line, bci, target, arguments));
     }
 
     public Node nop() {
@@ -674,6 +675,12 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     private <N extends Node> N asDependency(N node) {
         this.dependency = node;
         return node;
+    }
+
+    private <V extends Value> V unique(V value) {
+        Value existing = unique.putIfAbsent(value, value);
+        //noinspection unchecked
+        return existing != null ? (V) existing : value;
     }
 
     public Node begin(final BlockLabel blockLabel) {

@@ -9,6 +9,7 @@ import org.qbicc.tests.snippets.ClassLiteralTests;
 import org.qbicc.tests.snippets.DynamicTypeTests;
 import org.qbicc.tests.snippets.InvokeInterface;
 import org.qbicc.tests.snippets.InvokeVirtual;
+import org.qbicc.tests.snippets.LoopTests;
 import org.qbicc.tests.snippets.MathMinMax;
 import org.qbicc.tests.snippets.MethodHandle;
 import org.qbicc.tests.snippets.Reflection;
@@ -40,6 +41,7 @@ public final class TestRunner {
             case "snippet-DynamicTypeTests" -> DynamicTypeTests.main(testArgs);
             case "snippet-InvokeInterface" -> InvokeInterface.main(testArgs);
             case "snippet-InvokeVirtual" -> InvokeVirtual.main(testArgs);
+            case "snippet-LoopTests" -> LoopTests.main(testArgs);
             case "snippet-MathMinMax" -> MathMinMax.main(testArgs);
             case "snippet-MethodHandle" -> MethodHandle.main(testArgs);
             case "snippet-Reflection" -> Reflection.main(testArgs);

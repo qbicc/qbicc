@@ -64,6 +64,10 @@ public final class Values {
         return LLVM.global(name);
     }
 
+    public static LLValue local(final String name) {
+        return LLVM.local(name);
+    }
+
     public static Array array(LLValue elementType) {
         return LLVM.array(elementType);
     }
@@ -82,9 +86,5 @@ public final class Values {
 
     public static LLValue asm(final String instruction, final String constraints, final Set<AsmFlag> flags) {
         return LLVM.asm(instruction, constraints, flags);
-    }
-
-    public static LazyLLValue newLazyValue() {
-        return LLVM.newLazyValue();
     }
 }

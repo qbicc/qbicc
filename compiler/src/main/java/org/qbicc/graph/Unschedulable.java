@@ -13,4 +13,14 @@ public interface Unschedulable extends Node {
     default void setScheduleIndex(int index) {
         throw new UnsupportedOperationException("Cannot schedule unschedulable node");
     }
+
+    @Override
+    default BasicBlock getScheduledBlock() {
+        return null;
+    }
+
+    @Override
+    default void setScheduledBlock(BasicBlock block) {
+        throw new UnsupportedOperationException("Cannot schedule unschedulable node");
+    }
 }
