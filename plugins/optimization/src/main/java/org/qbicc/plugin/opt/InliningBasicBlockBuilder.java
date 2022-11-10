@@ -47,7 +47,6 @@ import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Sub;
 import org.qbicc.graph.Switch;
 import org.qbicc.graph.TailCall;
-import org.qbicc.graph.TailInvoke;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
@@ -149,18 +148,6 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
             }
         }
         return super.tailCall(target, arguments);
-    }
-
-    @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        ExecutableElement toInline = getInlinedElement(target);
-        if (toInline != null) {
-            BasicBlock inlined = doInline(target, toInline, arguments, catchLabel, this::return_, () -> {}, targetArguments);
-            if (inlined != null) {
-                return inlined;
-            }
-        }
-        return super.tailInvoke(target, arguments, catchLabel, targetArguments);
     }
 
     @Override
@@ -500,7 +487,10 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
             if (catchLabel != null) {
                 // transform to invoke
                 param.copyNode(node.getDependency());
-                return tailInvoke(param.copyValueHandle(node.getValueHandle()), param.copyValues(arguments), catchLabel, Map.of());
+                BlockLabel resume = new BlockLabel();
+                Value result = invoke(param.copyValueHandle(node.getValueHandle()), param.copyValues(arguments), catchLabel, resume, Map.of());
+                begin(resume);
+                return return_(result);
             } else {
                 return delegate.visit(param, node);
             }
@@ -514,12 +504,6 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
 
         @Override
         public BasicBlock visit(Node.Copier param, InvokeNoReturn node) {
-            addCost(param, 10);
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public BasicBlock visit(Node.Copier param, TailInvoke node) {
             addCost(param, 10);
             return delegate.visit(param, node);
         }

@@ -145,11 +145,6 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         return super.tailCall(target.accept(this, argList), argList);
     }
 
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        ArrayList<Value> argList = new ArrayList<>(arguments);
-        return super.tailInvoke(target.accept(this, argList), argList, catchLabel, targetArguments);
-    }
-
     public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         ArrayList<Value> argList = new ArrayList<>(arguments);
         return super.invoke(target.accept(this, argList), argList, catchLabel, resumeLabel, targetArguments);

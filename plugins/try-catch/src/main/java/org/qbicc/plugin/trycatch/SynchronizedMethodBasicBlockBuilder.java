@@ -102,16 +102,6 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
         return fb.return_(fb.call(target, arguments));
     }
 
-    @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        // tail calls don't work with synchronized
-        BasicBlockBuilder fb = getFirstBuilder();
-        BlockLabel resumeLabel = new BlockLabel();
-        fb.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
-        fb.begin(resumeLabel);
-        return fb.return_(fb.addParam(resumeLabel, Slot.result(), target.getReturnType()));
-    }
-
     public static BasicBlockBuilder createIfNeeded(FactoryContext fc, BasicBlockBuilder delegate) {
         if (delegate.getCurrentElement().hasAllModifiersOf(ClassFile.ACC_SYNCHRONIZED)) {
             return new SynchronizedMethodBasicBlockBuilder(delegate);

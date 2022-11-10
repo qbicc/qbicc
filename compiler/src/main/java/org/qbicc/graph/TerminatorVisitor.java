@@ -44,10 +44,6 @@ public interface TerminatorVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
-    default R visit(T t, TailInvoke node) {
-        return visitUnknown(t, node);
-    }
-
     default R visit(T t, Throw node) {
         return visitUnknown(t, node);
     }
@@ -100,10 +96,6 @@ public interface TerminatorVisitor<T, R> {
         }
 
         default R visit(T t, TailCall node) {
-            return getDelegateTerminatorVisitor().visit(t, node);
-        }
-
-        default R visit(T t, TailInvoke node) {
             return getDelegateTerminatorVisitor().visit(t, node);
         }
 

@@ -388,10 +388,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().tailCall(target, arguments);
     }
 
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        return getDelegate().tailInvoke(target, arguments, catchLabel, targetArguments);
-    }
-
     public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         return getDelegate().invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
     }

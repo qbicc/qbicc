@@ -137,11 +137,6 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
-    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        return super.tailInvoke(check(target), arguments, catchLabel, targetArguments);
-    }
-
-    @Override
     public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         return super.invoke(check(target), arguments, catchLabel, resumeLabel, targetArguments);
     }
