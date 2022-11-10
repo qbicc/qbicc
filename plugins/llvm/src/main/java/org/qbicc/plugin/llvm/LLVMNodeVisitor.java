@@ -34,6 +34,7 @@ import org.qbicc.graph.Comp;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.DebugAddressDeclaration;
 import org.qbicc.graph.DebugValueDeclaration;
+import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.Extend;
@@ -839,6 +840,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
         ctxt.error(functionObj.getOriginalElement(), node, "llvm: Unhandled conversion %s -> %s", javaInputType.toString(), javaOutputType.toString());
         return llvmInput;
+    }
+
+    public LLValue visit(Void unused, DecodeReference node) {
+        return createRefToPtrCast(node, map(node.getInput().getType()), map(node.getInput()), map(node.getType()));
     }
 
     public LLValue visit(final Void param, final Extend node) {

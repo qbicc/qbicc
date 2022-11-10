@@ -30,6 +30,7 @@ import org.qbicc.graph.Call;
 import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.CheckCast;
+import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.InitCheck;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Cmp;
@@ -795,6 +796,12 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return box(Integer.numberOfTrailingZeros(unboxInt(input) | 0xffffff00), node.getType());
         }
         throw badInputType();
+    }
+
+    @Override
+    public Object visit(VmThreadImpl vmThread, DecodeReference node) {
+        Object obj = require(node.getInput());
+        return obj == null ? null : new ReferenceAsPointer((VmObject) obj);
     }
 
     @Override

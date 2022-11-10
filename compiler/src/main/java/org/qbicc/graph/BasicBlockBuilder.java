@@ -28,8 +28,10 @@ import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.NullableType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PhysicalObjectType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
@@ -379,6 +381,28 @@ public interface BasicBlockBuilder extends Locatable {
     Value bitCast(Value value, WordType toType);
 
     Value valueConvert(Value value, WordType toType);
+
+    /**
+     * Decode a reference into a pointer of the given type.
+     *
+     * @param refVal the reference value (must not be {@code null})
+     * @param pointerType the resultant pointer type (must not be {@code null})
+     * @return the decoded pointer value (not {@code null})
+     */
+    Value decodeReference(Value refVal, PointerType pointerType);
+
+    /**
+     * A convenience method which decodes a value to a reference using the reference type
+     * to infer the pointer type.
+     * Do not override.
+     *
+     * @param refVal the reference value (must not be {@code null})
+     * @return the decoded pointer value (not {@code null})
+     */
+    default Value decodeReference(Value refVal) {
+        ValueType valType = refVal.getType();
+        return decodeReference(refVal, valType instanceof ReferenceType rt ? rt.getUpperBound().getPointer() : valType instanceof PointerType pt ? pt : getTypeSystem().getVoidType().getPointer());
+    }
 
     Value instanceOf(Value input, ObjectType expectedType, int expectedDimensions);
 

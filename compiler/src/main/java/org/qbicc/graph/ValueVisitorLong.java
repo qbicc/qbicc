@@ -156,6 +156,10 @@ public interface ValueVisitorLong<T> {
         return visitUnknown(t, node);
     }
 
+    default long visit(T t, DecodeReference node) {
+        return visitUnknown(t, node);
+    }
+
     default long visit(T t, Div node) {
         return visitUnknown(t, node);
     }
@@ -456,6 +460,10 @@ public interface ValueVisitorLong<T> {
         }
 
         default long visit(T t, Convert node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default long visit(T t, DecodeReference node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

@@ -46,6 +46,7 @@ import org.qbicc.graph.CountTrailingZeros;
 import org.qbicc.graph.CurrentThread;
 import org.qbicc.graph.DebugAddressDeclaration;
 import org.qbicc.graph.DebugValueDeclaration;
+import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.ExactMethodElementHandle;
@@ -891,6 +892,14 @@ public final class Disassembler {
         public Void visit(Disassembler param, Convert node) {
             final String id = param.nextId();
             final String description = "convert " + show(node.getInput());
+            param.nodeInfo.put(node, new NodeInfo(id, description));
+            return delegate.visit(param, node);
+        }
+
+        @Override
+        public Void visit(Disassembler param, DecodeReference node) {
+            final String id = param.nextId();
+            final String description = "decode " + show(node.getInput());
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }

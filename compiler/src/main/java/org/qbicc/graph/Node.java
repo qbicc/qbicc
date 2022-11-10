@@ -557,6 +557,10 @@ public interface Node {
                 return param.getBlockBuilder().valueConvert(param.copyValue(node.getInput()), node.getType());
             }
 
+            public Value visit(Copier copier, DecodeReference node) {
+                return copier.getBlockBuilder().decodeReference(copier.copyValue(node.getInput()), node.getType());
+            }
+
             public Value visit(final Copier param, final Div node) {
                 return param.getBlockBuilder().divide(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
