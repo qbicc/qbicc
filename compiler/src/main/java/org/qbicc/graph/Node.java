@@ -64,6 +64,10 @@ public interface Node {
 
     void setScheduleIndex(int index);
 
+    BasicBlock getScheduledBlock();
+
+    void setScheduledBlock(BasicBlock block);
+
     default int getValueDependencyCount() {
         return 0;
     }
