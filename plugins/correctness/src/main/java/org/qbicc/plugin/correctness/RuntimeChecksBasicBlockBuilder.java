@@ -43,6 +43,7 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -79,12 +80,21 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     @Override
     public Value checkcast(Value value, Value toType, Value toDimensions, CheckCast.CastType kind, ObjectType expectedType) {
         ValueType rawValueType = value.getType();
-        if (rawValueType instanceof ReferenceType) {
-            ReferenceType outputType = ((ReferenceType) rawValueType).narrow(expectedType);
+        if (rawValueType instanceof ReferenceType refType) {
+            ReferenceType outputType = refType.narrow(expectedType);
             if (outputType == null) {
                 // impossible cast
-                ctxt.warning("Narrowing %s to %s will always fail", rawValueType, expectedType);
-                throwClassCastException();
+                if (isNoThrow()) {
+                    ctxt.error(getLocation(), "Narrowing %s to %s will always fail in no-throw element", rawValueType, expectedType);
+                    throw new BlockEarlyTermination(unreachable());
+                } else {
+                    ctxt.warning(getLocation(), "Narrowing %s to %s will always fail", rawValueType, expectedType);
+                    throwClassCastException();
+                }
+            } else {
+                if (isNoThrow()) {
+                    return bitCast(value, outputType);
+                }
             }
         }
         return super.checkcast(value, toType, toDimensions, kind, expectedType);
@@ -175,6 +185,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     @Override
     public BasicBlock throw_(Value value) {
+        if (isNoThrow()) {
+            ctxt.error(getLocation(), "Throw in no-throw element");
+            return unreachable();
+        }
         nullCheck(value);
         return super.throw_(value);
     }
@@ -191,6 +205,14 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     @Override
     public Value divide(Value v1, Value v2) {
+        if (isNoThrow()) {
+            if (v2.isDefEq(getLiteralFactory().zeroInitializerLiteralOfType(v2.getType()))) {
+                ctxt.error(getLocation(), "Division by zero in no-throw element");
+                throw new BlockEarlyTermination(unreachable());
+            } else {
+                return super.divide(v1, v2);
+            }
+        }
         ValueType v1Type = v1.getType();
         ValueType v2Type = v2.getType();
         if (v1Type instanceof IntegerType && v2Type instanceof IntegerType) {
@@ -344,8 +366,19 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         }, null);
     }
 
+    /**
+     * Determine whether the current element was declared "no throw".
+     * Throwing an exception from a no-throw element will cause undefined behavior.
+     * Therefore, any checks to avoid undefined behavior which rely on throwing exceptions are redundant in this situation.
+     *
+     * @return {@code true} if the current element is no-throw; {@code false} otherwise
+     */
+    private boolean isNoThrow() {
+        return getCurrentElement().hasAllModifiersOf(ClassFile.I_ACC_NO_THROW);
+    }
+
     private void nullCheck(Value value) {
-        if (! (value.getType() instanceof ReferenceType) || ! value.isNullable()) {
+        if (! (value.getType() instanceof ReferenceType) || ! value.isNullable() || isNoThrow()) {
             return;
         }
 
@@ -364,6 +397,9 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     private void indexOutOfBoundsCheck(ValueHandle array, Value index) {
+        if (isNoThrow()) {
+            return;
+        }
         final BlockLabel notNegative = new BlockLabel();
         final BlockLabel throwIt = new BlockLabel();
         final BlockLabel goAhead = new BlockLabel();
@@ -389,6 +425,9 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     private void arraySizeCheck(Value size) {
+        if (isNoThrow()) {
+            return;
+        }
         final BlockLabel throwIt = new BlockLabel();
         final BlockLabel goAhead = new BlockLabel();
         final IntegerLiteral zero = ctxt.getLiteralFactory().literalOf(0);
