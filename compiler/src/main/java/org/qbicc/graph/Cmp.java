@@ -3,7 +3,7 @@ package org.qbicc.graph;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
-public final class Cmp extends AbstractBinaryValue implements CommutativeBinaryValue {
+public final class Cmp extends AbstractBinaryValue implements NonCommutativeBinaryValue {
     private final SignedIntegerType integerType;
 
     Cmp(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value v1, final Value v2, SignedIntegerType integerType) {
