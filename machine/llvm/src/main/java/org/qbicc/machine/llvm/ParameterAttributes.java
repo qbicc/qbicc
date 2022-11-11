@@ -11,4 +11,8 @@ public final class ParameterAttributes {
     public static final LLValue signext = LLVM.flagAttribute("signext");
     public static final LLValue zeroext = LLVM.flagAttribute("zeroext");
     public static final LLValue inreg = LLVM.flagAttribute("inreg");
+
+    public static LLValue elementtype(LLValue type) {
+        return LLVM.argumentAttribute("elementtype", type);
+    }
 }

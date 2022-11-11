@@ -10,7 +10,7 @@ import org.qbicc.machine.llvm.LLValue;
 /**
  *
  */
-public interface Call extends YieldingInstruction, Attributable {
+public interface Call extends YieldingInstruction, Attributable, HasArguments {
     Call withFlags(Set<FastMathFlag> flags);
 
     Call tail();
@@ -31,15 +31,10 @@ public interface Call extends YieldingInstruction, Attributable {
 
     Call attribute(LLValue attribute);
 
-    Argument arg(LLValue type, LLValue value);
+    HasArguments operandBundle(String bundleName);
 
     interface Returns {
         Returns attribute(LLValue attribute);
     }
 
-    interface Argument {
-        Argument attribute(LLValue attribute);
-
-        Argument arg(LLValue type, LLValue value);
-    }
 }

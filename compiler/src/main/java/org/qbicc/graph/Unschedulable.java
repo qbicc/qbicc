@@ -20,6 +20,11 @@ public interface Unschedulable extends Node {
     }
 
     @Override
+    default int getBlockIndex() {
+        return -1;
+    }
+
+    @Override
     default void setScheduledBlock(BasicBlock block) {
         throw new UnsupportedOperationException("Cannot schedule unschedulable node");
     }

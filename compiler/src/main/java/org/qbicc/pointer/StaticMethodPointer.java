@@ -1,5 +1,6 @@
 package org.qbicc.pointer;
 
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.StaticMethodElement;
 
 /**
@@ -44,6 +45,25 @@ public final class StaticMethodPointer extends RootPointer implements Executable
     @Override
     public StringBuilder toString(StringBuilder b) {
         return b.append('&').append(staticMethod.getEnclosingType().getInternalName()).append('#').append(staticMethod.getName()).append(staticMethod.getDescriptor());
+    }
+
+    public boolean isNoThrow() {
+        return getExecutableElement().hasNoModifiersOf(ClassFile.I_ACC_NO_THROW);
+    }
+
+    @Override
+    public boolean isNoSafePoints() {
+        return getExecutableElement().hasNoModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS);
+    }
+
+    @Override
+    public boolean isNoReturn() {
+        return getExecutableElement().hasNoModifiersOf(ClassFile.I_ACC_NO_RETURN);
+    }
+
+    @Override
+    public boolean isNoSideEffect() {
+        return getExecutableElement().hasNoModifiersOf(ClassFile.I_ACC_NO_SIDE_EFFECTS);
     }
 
     public <T, R> R accept(final Visitor<T, R> visitor, final T t) {

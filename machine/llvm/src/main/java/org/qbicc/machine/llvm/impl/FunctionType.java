@@ -7,14 +7,18 @@ import java.util.List;
 import org.qbicc.machine.llvm.LLValue;
 
 final class FunctionType extends AbstractValue {
-    final LLValue returnType;
+    final AbstractValue returnType;
     private final List<LLValue> argTypes;
     private final boolean variadic;
 
     FunctionType(final LLValue returnType, final List<LLValue> argTypes, boolean variadic) {
-        this.returnType = returnType;
+        this.returnType = (AbstractValue) returnType;
         this.argTypes = argTypes;
         this.variadic = variadic;
+    }
+
+    boolean isVariadic() {
+        return variadic;
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {

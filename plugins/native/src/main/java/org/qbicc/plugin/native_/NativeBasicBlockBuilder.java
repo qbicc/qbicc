@@ -19,6 +19,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.object.Function;
 import org.qbicc.pointer.ProgramObjectPointer;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.FunctionType;
@@ -228,7 +229,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             }
             // declare it
             return ctxt.getLiteralFactory().literalOf(ctxt.getOrAddProgramModule(getRootElement())
-                .declareFunction(null, functionInfo.getName(), functionInfo.getType()));
+                .declareFunction(null, functionInfo.getName(), functionInfo.getType(), Function.FN_NO_SAFEPOINTS));
         }
         return super.resolveStaticMethod(owner, name, deNative(descriptor));
     }

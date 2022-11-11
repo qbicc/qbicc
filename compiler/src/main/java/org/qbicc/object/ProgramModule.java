@@ -3,7 +3,6 @@ package org.qbicc.object;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -195,30 +194,34 @@ public final class ProgramModule {
     }
 
     public FunctionDeclaration declareFunction(ExecutableElement originalElement, String name, FunctionType type) {
+        return declareFunction(originalElement, name, type, originalElement == null ? 0 : Function.getFunctionFlags(originalElement));
+    }
+
+    public FunctionDeclaration declareFunction(ExecutableElement originalElement, String name, FunctionType type, int flags) {
         Assert.checkNotNullParam("name", name);
         Map<String, ProgramObject> definedObjects = this.moduleObjects;
         synchronized (this) {
             ProgramObject existing = definedObjects.get(name);
             if (existing == null) {
-                FunctionDeclaration decl = new FunctionDeclaration(originalElement, this, name, type);
+                FunctionDeclaration decl = new FunctionDeclaration(originalElement, this, name, type, flags);
                 definedObjects.put(name, decl);
                 return decl;
             } else {
                 if (existing instanceof FunctionDeclaration decl) {
                     if (! type.equals(decl.getValueType())) {
                         clash(originalElement, name);
-                        return new FunctionDeclaration(originalElement, this, name, type);
+                        return new FunctionDeclaration(originalElement, this, name, type, flags);
                     }
                     return decl;
                 } else if (existing instanceof Function fn) {
                     if (! type.equals(fn.getValueType())) {
                         clash(originalElement, name);
-                        return new FunctionDeclaration(originalElement, this, name, type);
+                        return new FunctionDeclaration(originalElement, this, name, type, flags);
                     }
                     return fn.getDeclaration();
                 } else {
                     clash(originalElement, name);
-                    return new FunctionDeclaration(originalElement, this, name, type);
+                    return new FunctionDeclaration(originalElement, this, name, type, flags);
                 }
             }
         }

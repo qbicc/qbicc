@@ -219,6 +219,7 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         final AbstractFunction function;
         final AbstractValue type;
         final List<AbstractValue> attributes = new ArrayList<>();
+        boolean immarg;
 
         ParameterImpl(final ParameterImpl prev, final AbstractFunction function, final AbstractValue type) {
             this.prev = prev;
@@ -240,6 +241,12 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
             return this;
         }
 
+        @Override
+        public Parameter immarg() {
+            immarg = true;
+            return this;
+        }
+
         public LLValue type() {
             return type;
         }
@@ -258,6 +265,10 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
                 target.append(',').append(' ');
             }
             type.appendTo(target);
+            if (immarg) {
+                target.append(' ');
+                target.append("immarg");
+            }
             for (AbstractValue attribute : attributes) {
                 target.append(' ');
                 attribute.appendTo(target);

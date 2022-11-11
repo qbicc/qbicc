@@ -19,7 +19,8 @@ import org.qbicc.graph.Slot;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.Value;
-import org.qbicc.type.definition.element.LocalVariableElement;
+import org.qbicc.graph.literal.Literal;
+import org.qbicc.type.ReferenceType;
 
 /**
  * The scheduler.
@@ -52,6 +53,7 @@ public final class Scheduler {
         private final Map<Node, BlockInfo> earliestMapping = new HashMap<>();
         private final Map<Node, BlockInfo> lateMapping = new HashMap<>();
         private final Map<Node, Set<Node>> dependents = new HashMap<>();
+        private final Map<Set<Value>, Set<Value>> valueSetCache = new HashMap<>();
 
         Context(final BasicBlock entryBlock) {
             this.entryBlock = entryBlock;
@@ -289,7 +291,6 @@ public final class Scheduler {
             // build the final sequence of instructions with entry at the top and terminator at the bottom
             Map<BasicBlock, List<Node>> blockToNodesMap = new HashMap<>(allBlocks.length);
             Map<BasicBlock, Map<Slot, BlockParameter>> blockParameters = new HashMap<>(allBlocks.length);
-            Set<LocalVariableElement> locals = new HashSet<>();
             Set<Node> visited = new HashSet<>();
             for (BlockInfo bi : allBlocks) {
                 BlockEntry blockEntry = bi.block.getBlockEntry();
@@ -308,7 +309,8 @@ public final class Scheduler {
                     Slot slot = bp.getSlot();
                     // skip all implicit/"magical" slot names like `result` or `thrown` on invoke
                     if (t.getOutboundArgumentNames().contains(slot)) {
-                        buildSequence(t.getOutboundArgument(slot), visited, blockToNodesMap, blockParameters, cleanups);
+                        final Value outboundArgument = t.getOutboundArgument(slot);
+                        buildSequence(outboundArgument, visited, blockToNodesMap, blockParameters, cleanups);
                     }
                 }
             }
@@ -320,6 +322,12 @@ public final class Scheduler {
                 list.add(t);
                 block.setInstructions(list);
                 block.setUsedParameters(Map.copyOf(blockParameters.getOrDefault(block, Map.of())));
+            }
+            // finally, go back and build the live-out sets
+            computeLiveSetsByUse();
+            for (BlockInfo bi : allBlocks) {
+                BasicBlock block = bi.block;
+                block.setLiveOuts(Util.getCachedSet(valueSetCache, bi.liveOut));
             }
         }
 
@@ -356,6 +364,65 @@ public final class Scheduler {
                     node.setScheduleIndex(list.size());
                     list.add(node);
                 }
+            }
+        }
+
+        private void upAndMark(int blockIdx, Value value) {
+            final BlockInfo bi = allBlocks[blockIdx - 1];
+            final BasicBlock b = bi.block;
+            if (value.getScheduledBlock() == b && ! (value instanceof BlockParameter)) {
+                // killed in the block
+                return;
+            }
+            if (bi.liveIn.contains(value)) {
+                // propagation already done
+                return;
+            }
+            bi.liveIn.add(value);
+            if (value instanceof BlockParameter bp && bp.getPinnedBlock() == b) {
+                // do not propagate ϕ defs
+                return;
+            }
+            for (BasicBlock incoming : b.getIncoming()) {
+                final int pi = incoming.getIndex();
+                BlockInfo p = allBlocks[pi - 1];
+                p.liveOut.add(value);
+                upAndMark(pi, value);
+            }
+        }
+
+        private void computeLiveSetsByUse() {
+            Set<Value> used = new HashSet<>();
+            for (BlockInfo bi : allBlocks) {
+                final BasicBlock b = bi.block;
+                // find all outbound arguments that are used in successor blocks
+                final Terminator t = b.getTerminator();
+                int cnt = t.getSuccessorCount();
+                for (int i = 0; i < cnt; i ++) {
+                    final BasicBlock successor = t.getSuccessor(i);
+                    for (Slot slot : successor.getUsedParameterSlots()) {
+                        if (! t.isImplicitOutboundArgument(slot, successor)) {
+                            final Value out = t.getOutboundArgument(slot);
+                            if (out.getType() instanceof ReferenceType  && ! (out instanceof Literal)) {
+                                if (bi.liveOut.add(out)) {
+                                    upAndMark(b.getIndex(), out);
+                                }
+                            }
+                        }
+                    }
+                }
+                for (Node node : b.getInstructions()) {
+                    cnt = node.getValueDependencyCount();
+                    for (int i = 0; i < cnt; i ++) {
+                        final Value dep = node.getValueDependency(i);
+                        if (dep.getType() instanceof ReferenceType  && ! (dep instanceof Literal)) {
+                            if (! (dep instanceof BlockParameter) && used.add(dep)) {
+                                upAndMark(b.getIndex(), dep);
+                            }
+                        }
+                    }
+                }
+                used.clear();
             }
         }
 

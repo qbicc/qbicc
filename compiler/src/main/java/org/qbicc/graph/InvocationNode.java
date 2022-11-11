@@ -28,6 +28,15 @@ public interface InvocationNode extends Node {
     Value getReceiver();
 
     /**
+     * Determine whether this node is invoking on a target which returns {@code void}.
+     *
+     * @return {@code true} if the target returns {@code void}, {@code false} otherwise
+     */
+    default boolean isVoidCall() {
+        return getTarget().getReturnType() instanceof VoidType;
+    }
+
+    /**
      * Get the invocation arguments.
      *
      * @return the invocation arguments (not {@code null})

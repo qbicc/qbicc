@@ -30,10 +30,6 @@ public final class FunctionType extends InvokableType {
         return super.equals(other);
     }
 
-    public boolean isVariadic() {
-        return getParameterCount() > 0 && getLastParameterType(0) instanceof VariadicType;
-    }
-
     public FunctionType withFirstParameterType(final ValueType type) {
         return (FunctionType) super.withFirstParameterType(type);
     }

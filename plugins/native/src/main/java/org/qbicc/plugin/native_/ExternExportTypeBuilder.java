@@ -275,6 +275,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 } else {
                     type = ts.getFunctionType(origType.getReturnType(), origType.getParameterTypes());
                 }
+                origMethod.setModifierFlags(ClassFile.I_ACC_NO_SAFEPOINTS);
                 nativeInfo.registerFunctionInfo(
                     origMethod.getEnclosingType().getDescriptor(),
                     origMethod.getName(),

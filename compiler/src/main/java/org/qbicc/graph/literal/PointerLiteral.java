@@ -63,4 +63,24 @@ public final class PointerLiteral extends WordLiteral {
     public int hashCode() {
         return pointer.hashCode();
     }
+
+    @Override
+    public boolean isNoThrow() {
+        return pointer.isNoThrow();
+    }
+
+    @Override
+    public boolean isNoSafePoints() {
+        return pointer.isNoSafePoints();
+    }
+
+    @Override
+    public boolean isNoReturn() {
+        return pointer.isNoReturn();
+    }
+
+    @Override
+    public boolean isNoSideEffect() {
+        return pointer.isNoSideEffect();
+    }
 }

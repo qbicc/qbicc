@@ -1,5 +1,7 @@
 package org.qbicc.pointer;
 
+import org.qbicc.object.Function;
+import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramObject;
 
 /**
@@ -43,6 +45,26 @@ public final class ProgramObjectPointer extends RootPointer {
     @Override
     public StringBuilder toString(StringBuilder b) {
         return b.append('&').append(programObject.getName());
+    }
+
+    @Override
+    public boolean isNoThrow() {
+        return programObject instanceof FunctionDeclaration fd && fd.isNoThrow() || programObject instanceof Function fn && fn.isNoThrow();
+    }
+
+    @Override
+    public boolean isNoSafePoints() {
+        return programObject instanceof FunctionDeclaration fd && fd.isNoSafePoints() || programObject instanceof Function fn && fn.isNoSafePoints();
+    }
+
+    @Override
+    public boolean isNoReturn() {
+        return programObject instanceof FunctionDeclaration fd && fd.isNoReturn() || programObject instanceof Function fn && fn.isNoReturn();
+    }
+
+    @Override
+    public boolean isNoSideEffect() {
+        return programObject instanceof FunctionDeclaration fd && fd.isNoSideEffects() || programObject instanceof Function fn && fn.isNoSideEffects();
     }
 
     public <T, R> R accept(final Visitor<T, R> visitor, final T t) {

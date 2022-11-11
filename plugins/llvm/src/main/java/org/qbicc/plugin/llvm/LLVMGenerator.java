@@ -14,12 +14,14 @@ import org.qbicc.object.ProgramModule;
  *
  */
 public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor<CompilationContext, LLValue> {
+    private final int llvmMajor;
     private final int picLevel;
     private final int pieLevel;
     private final LLVMReferencePointerFactory refFactory;
     private final boolean gcSupport;
 
-    public LLVMGenerator(final int picLevel, final int pieLevel, final boolean gcSupport, final LLVMReferencePointerFactory refFactory) {
+    public LLVMGenerator(int llvmMajor, final int picLevel, final int pieLevel, final boolean gcSupport, final LLVMReferencePointerFactory refFactory) {
+        this.llvmMajor = llvmMajor;
         this.picLevel = picLevel;
         this.pieLevel = pieLevel;
         this.gcSupport = gcSupport;
@@ -27,7 +29,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
     }
 
     public void accept(final CompilationContext compilationContext) {
-        LLVMModuleGenerator generator = new LLVMModuleGenerator(compilationContext, picLevel, pieLevel, gcSupport, refFactory);
+        LLVMModuleGenerator generator = new LLVMModuleGenerator(compilationContext, llvmMajor, picLevel, pieLevel, gcSupport, refFactory);
         List<ProgramModule> allProgramModules = compilationContext.getAllProgramModules();
         Iterator<ProgramModule> iterator = allProgramModules.iterator();
         compilationContext.runParallelTask(ctxt -> {
@@ -40,9 +42,13 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                     programModule = iterator.next();
                 }
                 Path outputFile = generator.processProgramModule(programModule);
-                LLVMState llvmState = ctxt.computeAttachmentIfAbsent(LLVMState.KEY, LLVMState::new);
+                LLVMState llvmState = LLVMState.get(ctxt);
                 llvmState.addModulePath(programModule.getTypeDefinition().load(), outputFile);
             }
         });
+    }
+
+    public int getLlvmMajor() {
+        return llvmMajor;
     }
 }

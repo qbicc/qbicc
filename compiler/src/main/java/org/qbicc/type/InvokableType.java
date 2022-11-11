@@ -98,4 +98,8 @@ public abstract class InvokableType extends ValueType {
     public abstract InvokableType withReturnType(ValueType returnType);
 
     public abstract InvokableType withParameterTypes(List<ValueType> parameterTypes);
+
+    public boolean isVariadic() {
+        return getParameterCount() > 0 && getLastParameterType(0) instanceof VariadicType;
+    }
 }

@@ -176,6 +176,22 @@ public abstract class Pointer {
 
     public abstract <T, R> R accept(Visitor<T, R> visitor, T t);
 
+    public boolean isNoThrow() {
+        return false;
+    }
+
+    public boolean isNoSafePoints() {
+        return false;
+    }
+
+    public boolean isNoReturn() {
+        return false;
+    }
+
+    public boolean isNoSideEffect() {
+        return false;
+    }
+
     public interface Visitor<T, R> extends RootPointer.Visitor<T, R> {
         default R visitAny(T t, Pointer pointer) {
             return null;

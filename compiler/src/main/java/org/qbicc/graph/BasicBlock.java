@@ -1,9 +1,5 @@
 package org.qbicc.graph;
 
-import java.lang.invoke.ConstantBootstraps;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -11,14 +7,11 @@ import java.util.Objects;
 import java.util.Set;
 
 import io.smallrye.common.constraint.Assert;
-import org.qbicc.type.ReferenceType;
 
 /**
  *
  */
 public final class BasicBlock {
-    private static final VarHandle locallyUsedRefsHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "locallyUsedRefs", VarHandle.class, BasicBlock.class, Set.class);
-
     private final BlockEntry blockEntry;
     private final Terminator terminator;
     private BlockLabel myLabel;
@@ -27,9 +20,7 @@ public final class BasicBlock {
     private Set<BasicBlock> incoming = Set.of();
     private Set<Loop> loops = Set.of();
     private int index;
-    @SuppressWarnings("unused") // localLiveInsHandle
-    private volatile Set<Value> locallyUsedRefs;
-    private volatile Set<Value> liveOuts;
+    private Set<Value> liveOuts;
     private List<Node> instructions;
     private Map<Slot, BlockParameter> usedParameters;
 
@@ -95,6 +86,14 @@ public final class BasicBlock {
             throw new IllegalStateException("Scheduling is not yet complete");
         }
         return usedParameters.get(slot);
+    }
+
+    public Set<Slot> getUsedParameterSlots() {
+        Map<Slot, BlockParameter> usedParameters = this.usedParameters;
+        if (usedParameters == null) {
+            throw new IllegalStateException("Scheduling is not yet complete");
+        }
+        return usedParameters.keySet();
     }
 
     public void setUsedParameters(Map<Slot, BlockParameter> usedParameters) {
@@ -164,86 +163,22 @@ public final class BasicBlock {
         return index;
     }
 
-    /*
-       Algorithm explanation:
-
-       Calculating locally-used values only considers values which are local to the block.
-       Naively, one might consider using the double-checked locking idiom to avoid the
-       redundant calculation; however, trouble begins when considering the live-out set, which
-       must visit all successor blocks in a recursive manner. Because blocks can loop,
-       if the locally-used computation used locks, the algorithm would expose a risk of deadlock.
-
-       Since the local-use calculation is fairly simple, the risk of duplicate computation seems less than
-       the risk of deadlock.
-     */
-
-    /**
-     * Get the set of reference-typed values that are used locally within this block.
-     *
-     * @return the (possibly empty) set of locally-used values
-     */
-    public Set<Value> getLocallyUsedReferenceValues() {
-        Set<Value> locallyUsedRefs = this.locallyUsedRefs;
-        if (locallyUsedRefs == null) {
-            HashSet<Value> live = new HashSet<>();
-            for (Node node : getInstructions()) {
-                addLocallyUsedValues(node, live);
-            }
-            locallyUsedRefs = Set.copyOf(live);
-            @SuppressWarnings("unchecked")
-            final Set<Value> appearing = (Set<Value>) locallyUsedRefsHandle.compareAndExchange(this, null, locallyUsedRefs);
-            if (appearing != null) {
-                locallyUsedRefs = appearing;
-            }
-        }
-        return locallyUsedRefs;
-    }
-
-    private void addLocallyUsedValues(final Node node, final HashSet<Value> live) {
-        final int cnt = node.getValueDependencyCount();
-        for (int i = 0; i < cnt; i ++) {
-            final Value value = node.getValueDependency(i);
-            if (value.getType() instanceof ReferenceType) {
-                live.add(value);
-            }
-        }
-    }
-
     /**
      * Get the set of reference-typed values that must be alive when this block exits.
      *
      * @return the (possibly empty) set of live values
      */
     public Set<Value> getLiveOuts() {
-        Set<Value> liveOuts = this.liveOuts;
-        if (liveOuts == null) {
-            synchronized (this) {
-                liveOuts = this.liveOuts;
-                if (liveOuts == null) {
-                    final Terminator t = getTerminator();
-                    final int cnt = t.getSuccessorCount();
-                    if (cnt == 0) {
-                        this.liveOuts = liveOuts = Set.of();
-                    } else {
-                        this.liveOuts = liveOuts = Set.copyOf(visitForLiveOuts(this, new HashSet<>(), new HashSet<>()));
-                    }
-                }
-            }
-        }
         return liveOuts;
     }
 
-    private HashSet<Value> visitForLiveOuts(BasicBlock block, HashSet<BasicBlock> visited, HashSet<Value> live) {
-        final Terminator t = block.getTerminator();
-        final int cnt = t.getSuccessorCount();
-        for (int i = 0; i < cnt; i ++) {
-            final BasicBlock successor = t.getSuccessor(i);
-            if (visited.add(successor)){
-                live.addAll(successor.getLocallyUsedReferenceValues());
-                visitForLiveOuts(successor, visited, live);
-            }
-        }
-        return live;
+    /**
+     * For use by the scheduler.
+     *
+     * @param liveOuts the live outs to add
+     */
+    public void setLiveOuts(Set<Value> liveOuts) {
+        this.liveOuts = liveOuts;
     }
 
     public StringBuilder toString(StringBuilder b) {
