@@ -187,13 +187,7 @@ public final class BasicBlock {
         if (locallyUsedRefs == null) {
             HashSet<Value> live = new HashSet<>();
             for (Node node : getInstructions()) {
-                final int cnt = node.getValueDependencyCount();
-                for (int i = 0; i < cnt; i ++) {
-                    final Value value = node.getValueDependency(i);
-                    if (value.getType() instanceof ReferenceType) {
-                        live.add(value);
-                    }
-                }
+                addLocallyUsedValues(node, live);
             }
             locallyUsedRefs = Set.copyOf(live);
             @SuppressWarnings("unchecked")
@@ -203,6 +197,20 @@ public final class BasicBlock {
             }
         }
         return locallyUsedRefs;
+    }
+
+    private void addLocallyUsedValues(final Node node, final HashSet<Value> live) {
+        final int cnt = node.getValueDependencyCount();
+        for (int i = 0; i < cnt; i ++) {
+            final Value value = node.getValueDependency(i);
+            if (value.getType() instanceof ReferenceType) {
+                live.add(value);
+            }
+        }
+        // value handles are replicated at each use site, so their dependencies are our dependencies
+        if (node.hasValueHandleDependency()) {
+            addLocallyUsedValues(node.getValueHandle(), live);
+        }
     }
 
     /**
