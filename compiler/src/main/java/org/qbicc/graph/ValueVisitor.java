@@ -164,6 +164,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, ElementOf node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, ElementOfLiteral node) {
         return visitUnknown(t, node);
     }
@@ -472,6 +476,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T t, Div node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default R visit(T t, ElementOf node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

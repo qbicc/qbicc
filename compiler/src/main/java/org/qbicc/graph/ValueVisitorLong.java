@@ -164,6 +164,10 @@ public interface ValueVisitorLong<T> {
         return visitUnknown(t, node);
     }
 
+    default long visit(T t, ElementOf node) {
+        return visitUnknown(t, node);
+    }
+
     default long visit(T t, ElementOfLiteral node) {
         return visitUnknown(t, node);
     }
@@ -472,6 +476,10 @@ public interface ValueVisitorLong<T> {
         }
 
         default long visit(T t, Div node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default long visit(T t, ElementOf node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

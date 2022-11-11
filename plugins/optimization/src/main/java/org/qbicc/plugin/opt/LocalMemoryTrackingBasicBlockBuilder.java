@@ -12,7 +12,6 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
@@ -101,6 +100,16 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
+    public Value elementOf(Value arrayPointer, Value index) {
+        Value value = knownValues.get(arrayPointer);
+        if (value != null) {
+            return extractElement(value, index);
+        } else {
+            return super.elementOf(arrayPointer, index);
+        }
+    }
+
+    @Override
     public Node fence(GlobalAccessMode fenceType) {
         knownValues.clear();
         return super.fence(fenceType);
@@ -149,7 +158,7 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     private static ValueHandle findRoot(ValueHandle handle) {
-        return handle instanceof ElementOf || ! handle.hasValueHandleDependency() ? handle : findRoot(handle.getValueHandle());
+        return ! handle.hasValueHandleDependency() ? handle : findRoot(handle.getValueHandle());
     }
 
     private static boolean hasSameRoot(ValueHandle handle, ValueHandle root) {
@@ -159,20 +168,5 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     @Override
     public Value visitUnknown(AccessMode param, ValueHandle node) {
         return knownValues.get(node);
-    }
-
-    @Override
-    public Value visit(AccessMode param, ElementOf node) {
-        Value value = knownValues.get(node);
-        if (value != null) {
-            return value;
-        } else {
-            value = node.getValueHandle().accept(this, param);
-            if (value != null) {
-                return extractElement(value, node.getIndex());
-            } else {
-                return null;
-            }
-        }
     }
 }

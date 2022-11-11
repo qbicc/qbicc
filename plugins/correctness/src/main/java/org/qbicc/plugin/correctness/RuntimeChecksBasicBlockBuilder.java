@@ -257,29 +257,6 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     private Value check(ValueHandle handle, Value storedValue) {
         return handle.accept(new ValueHandleVisitor<Void, Value>() {
             @Override
-            public Value visit(Void param, ElementOf node) {
-                ValueHandle arrayHandle = node.getValueHandle();
-                arrayHandle.accept(this, param);
-                ValueType arrayType = arrayHandle.getPointeeType();
-                if (arrayType instanceof ArrayObjectType) {
-                    indexOutOfBoundsCheck(arrayHandle, node.getIndex());
-                    if (arrayType instanceof ReferenceArrayObjectType referenceArrayType && storedValue != null) {
-                        Value toTypeId = load(instanceFieldOf(arrayHandle, CoreClasses.get(ctxt).getRefArrayElementTypeIdField()));
-                        Value toDimensions;
-                        ObjectType jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load().getObjectType();
-                        if (referenceArrayType.getLeafElementType().equals(jlo)) {
-                            // All arrays are subtypes of Object, so if the leafElementType is Object, we won't know the real dimension count until runtime!
-                            toDimensions = sub(load(instanceFieldOf(arrayHandle, CoreClasses.get(ctxt).getRefArrayDimensionsField())), ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), 1));
-                        } else {
-                            toDimensions = ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), referenceArrayType.getDimensionCount() - 1);
-                        }
-                        return checkcast(storedValue, toTypeId, toDimensions, CheckCast.CastType.ArrayStore, referenceArrayType.getElementObjectType());
-                    }
-                }
-                return null;
-            }
-
-            @Override
             public Value visit(Void param, InstanceFieldOf node) {
                 if (node.getVariableElement().isStatic()) {
                     throwIncompatibleClassChangeError();
@@ -306,6 +283,22 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             public Value visit(Void param, PointerHandle node) {
                 if (node.getPointerValue() instanceof DecodeReference dr) {
                     nullCheck(dr.getInput());
+                } else if (node.getPointerValue() instanceof ElementOf eo &&
+                    eo.getArrayPointer() instanceof DecodeReference dr &&
+                    dr.getPointeeType() instanceof ArrayObjectType arrayType) {
+                    indexOutOfBoundsCheck(dr, eo.getIndex());
+                    if (arrayType instanceof ReferenceArrayObjectType referenceArrayType && storedValue != null) {
+                        Value toTypeId = load(instanceFieldOf(pointerHandle(dr), CoreClasses.get(ctxt).getRefArrayElementTypeIdField()));
+                        Value toDimensions;
+                        ObjectType jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load().getObjectType();
+                        if (referenceArrayType.getLeafElementType().equals(jlo)) {
+                            // All arrays are subtypes of Object, so if the leafElementType is Object, we won't know the real dimension count until runtime!
+                            toDimensions = sub(load(instanceFieldOf(pointerHandle(dr), CoreClasses.get(ctxt).getRefArrayDimensionsField())), ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), 1));
+                        } else {
+                            toDimensions = ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), referenceArrayType.getDimensionCount() - 1);
+                        }
+                        return checkcast(storedValue, toTypeId, toDimensions, CheckCast.CastType.ArrayStore, referenceArrayType.getElementObjectType());
+                    }
                 }
                 return null;
             }
@@ -404,11 +397,29 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         begin(goAhead);
     }
 
-    private void indexOutOfBoundsCheck(ValueHandle array, Value index) {
+    private void arraySizeCheck(Value size) {
         if (isNoThrow()) {
             return;
         }
-        if (array instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr && index.isDefGe(getLiteralFactory().zeroInitializerLiteralOfType(index.getType()))) {
+        final BlockLabel throwIt = new BlockLabel();
+        final BlockLabel goAhead = new BlockLabel();
+        final IntegerLiteral zero = ctxt.getLiteralFactory().literalOf(0);
+        if_(isLt(size, zero), throwIt, goAhead, Map.of());
+        try {
+            begin(throwIt);
+            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseNegativeArraySizeException");
+            callNoReturn(staticMethod(helper), List.of());
+        } catch (BlockEarlyTermination ignored) {
+            // continue
+        }
+        begin(goAhead);
+    }
+
+    private void indexOutOfBoundsCheck(DecodeReference dr, Value index) {
+        if (isNoThrow()) {
+            return;
+        }
+        if (index.isDefGe(getLiteralFactory().zeroInitializerLiteralOfType(index.getType()))) {
             if (dr.getInput() instanceof NewReferenceArray nra && index.isDefLt(nra.getSize())) {
                 // no check needed; statically OK
                 return;
@@ -430,7 +441,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         if_(isLt(index, zero), throwIt, notNegative, Map.of());
         try {
             begin(notNegative);
-            final Value length = load(instanceFieldOf(array, CoreClasses.get(ctxt).getArrayLengthField()));
+            final Value length = load(instanceFieldOf(pointerHandle(dr), CoreClasses.get(ctxt).getArrayLengthField()));
             if_(isGe(index, length), throwIt, goAhead, Map.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
@@ -438,24 +449,6 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         try {
             begin(throwIt);
             MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseArrayIndexOutOfBoundsException");
-            callNoReturn(staticMethod(helper), List.of());
-        } catch (BlockEarlyTermination ignored) {
-            // continue
-        }
-        begin(goAhead);
-    }
-
-    private void arraySizeCheck(Value size) {
-        if (isNoThrow()) {
-            return;
-        }
-        final BlockLabel throwIt = new BlockLabel();
-        final BlockLabel goAhead = new BlockLabel();
-        final IntegerLiteral zero = ctxt.getLiteralFactory().literalOf(0);
-        if_(isLt(size, zero), throwIt, goAhead, Map.of());
-        try {
-            begin(throwIt);
-            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseNegativeArraySizeException");
             callNoReturn(staticMethod(helper), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue

@@ -141,8 +141,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().memberOf(structPointer, member);
     }
 
-    public ValueHandle elementOf(final ValueHandle array, final Value index) {
-        return getDelegate().elementOf(array, index);
+    public Value elementOf(final Value arrayPointer, final Value index) {
+        return getDelegate().elementOf(arrayPointer, index);
     }
 
     public ValueHandle unsafeHandle(final ValueHandle base, final Value offset, final ValueType outputType) {

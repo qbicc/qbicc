@@ -1151,7 +1151,7 @@ public final class Disassembler {
             final String id = param.nextId();
             final String description = String.format(
                 "element-of %s %s"
-                , show(node.getValueHandle())
+                , show(node.getArrayPointer())
                 , show(node.getIndex())
             );
             param.nodeInfo.put(node, new NodeInfo(id, description));

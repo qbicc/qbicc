@@ -47,8 +47,8 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
-    public ValueHandle elementOf(ValueHandle array, Value index) {
-        if (array.getPointeeType() instanceof ArrayType || array.getPointeeType() instanceof ArrayObjectType) {
+    public Value elementOf(Value arrayPointer, Value index) {
+        if (arrayPointer.getPointeeType() instanceof ArrayType || arrayPointer.getPointeeType() instanceof ArrayObjectType) {
             if (index.getType() instanceof UnsignedIntegerType uit) {
                 // try to extend it
                 Value extended = tryExtend(index, uit);
@@ -59,7 +59,7 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
                 }
                 // recoverable
             }
-            return super.elementOf(array, index);
+            return super.elementOf(arrayPointer, index);
         }
         ctxt.error(getLocation(), "`elementOf` handle must have array type");
         throw new BlockEarlyTermination(unreachable());

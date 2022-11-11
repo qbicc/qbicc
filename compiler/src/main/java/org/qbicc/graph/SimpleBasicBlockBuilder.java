@@ -458,8 +458,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return unique(new MemberOf(callSite, element, line, bci, structPointer, member));
     }
 
-    public ValueHandle elementOf(ValueHandle array, Value index) {
-        return new ElementOf(callSite, element, line, bci, array, index);
+    public Value elementOf(final Value arrayPointer, final Value index) {
+        return unique(new ElementOf(callSite, element, line, bci, arrayPointer, index));
     }
 
     public ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType) {

@@ -10,19 +10,19 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
- * A handle for an array element.  The input handle must be a handle to an array or pointer.
+ * A pointer to an array element.
  */
-public final class ElementOf extends AbstractValueHandle {
-    private final ValueHandle inputHandle;
+public final class ElementOf extends AbstractValue {
+    private final Value arrayPointer;
     private final Value index;
     private final PointerType pointerType;
 
-    ElementOf(Node callSite, ExecutableElement element, int line, int bci, ValueHandle inputHandle, Value index) {
+    ElementOf(Node callSite, ExecutableElement element, int line, int bci, Value arrayPointer, Value index) {
         super(callSite, element, line, bci);
-        this.inputHandle = inputHandle;
+        this.arrayPointer = arrayPointer;
         this.index = index;
 
-        ValueType inputType = inputHandle.getPointeeType();
+        ValueType inputType = arrayPointer.getPointeeType();
         PointerType pointerType;
 
         if (inputType instanceof ArrayType) {
@@ -33,7 +33,7 @@ public final class ElementOf extends AbstractValueHandle {
             throw new IllegalArgumentException("Invalid input type: " + inputType);
         }
 
-        this.pointerType = pointerType.withQualifiersFrom(inputHandle.getType());
+        this.pointerType = pointerType.withQualifiersFrom(arrayPointer.getType(PointerType.class));
     }
 
     @Override
@@ -41,13 +41,18 @@ public final class ElementOf extends AbstractValueHandle {
         return pointerType;
     }
 
-    public boolean isConstantLocation() {
-        return index.isConstant() && inputHandle.isConstantLocation();
+    @Override
+    public boolean isConstant() {
+        return index.isConstant() && arrayPointer.isConstant();
     }
 
     @Override
-    public boolean isValueConstant() {
-        return index.isConstant() && inputHandle.isValueConstant();
+    public boolean isPointeeConstant() {
+        return index.isConstant() && arrayPointer.isPointeeConstant();
+    }
+
+    public Value getArrayPointer() {
+        return arrayPointer;
     }
 
     public Value getIndex() {
@@ -55,32 +60,26 @@ public final class ElementOf extends AbstractValueHandle {
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
-        return true;
-    }
-
-    @Override
-    public ValueHandle getValueHandle() {
-        return inputHandle;
-    }
-
-    @Override
     public AccessMode getDetectedMode() {
-        return inputHandle.getDetectedMode();
+        return arrayPointer.getDetectedMode();
     }
 
     @Override
     public int getValueDependencyCount() {
-        return 1;
+        return 2;
     }
 
     @Override
-    public Value getValueDependency(int index) throws IndexOutOfBoundsException {
-        return index == 0 ? this.index : Util.throwIndexOutOfBounds(index);
+    public Value getValueDependency(int idx) throws IndexOutOfBoundsException {
+        return switch (idx) {
+            case 0 -> arrayPointer;
+            case 1 -> index;
+            default -> throw new IndexOutOfBoundsException(idx);
+        };
     }
 
     int calcHashCode() {
-        return Objects.hash(inputHandle, index);
+        return Objects.hash(arrayPointer, index);
     }
 
     @Override
@@ -93,23 +92,24 @@ public final class ElementOf extends AbstractValueHandle {
     }
 
     @Override
-    public StringBuilder toString(StringBuilder b) {
-        super.toString(b);
-        b.append('(');
-        index.toReferenceString(b);
-        b.append(')');
+    StringBuilder toRValueString(StringBuilder b) {
+        b.append("element pointer ");
+        arrayPointer.toReferenceString(b);
+        b.append('[');
+        index.toString(b);
+        b.append(']');
         return b;
     }
 
     public boolean equals(final ElementOf other) {
-        return this == other || other != null && inputHandle.equals(other.inputHandle) && index.equals(other.index);
+        return this == other || other != null && arrayPointer.equals(other.arrayPointer) && index.equals(other.index);
     }
 
-    public <T, R> R accept(final ValueHandleVisitor<T, R> visitor, final T param) {
+    public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
 
-    public <T> long accept(final ValueHandleVisitorLong<T> visitor, final T param) {
+    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
         return visitor.visit(param, this);
     }
 }
