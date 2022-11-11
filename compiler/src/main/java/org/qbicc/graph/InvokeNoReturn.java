@@ -75,7 +75,7 @@ public final class InvokeNoReturn extends AbstractTerminator {
 
     @Override
     public boolean maySafePoint() {
-        return ! target.isNoSafepoint();
+        return ! target.isNoSafePoints();
     }
 
     public InvokableType getCalleeType() {

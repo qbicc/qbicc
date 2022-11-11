@@ -11,6 +11,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public final class Function extends SectionObject {
     public static final int FN_NO_RETURN = 1 << 0;
     public static final int FN_NO_SIDE_EFFECTS = 1 << 1;
+    public static final int FN_NO_SAFEPOINTS = 1 << 2;
 
     private final int fnFlags;
     private volatile MethodBody body;
@@ -49,6 +50,10 @@ public final class Function extends SectionObject {
         return (fnFlags & FN_NO_SIDE_EFFECTS) != 0;
     }
 
+    public boolean isNoSafePoints() {
+        return (fnFlags & FN_NO_SAFEPOINTS) != 0;
+    }
+
     public FunctionDeclaration getDeclaration() {
         FunctionDeclaration declaration = this.declaration;
         if (declaration == null) {
@@ -72,6 +77,8 @@ public final class Function extends SectionObject {
             flags |= Function.FN_NO_SIDE_EFFECTS;
         } else if (element.hasAllModifiersOf(ClassFile.I_ACC_NO_RETURN)) {
             flags |= Function.FN_NO_RETURN;
+        } else if (element.hasAllModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS)) {
+            flags |= Function.FN_NO_SAFEPOINTS;
         }
         return flags;
     }

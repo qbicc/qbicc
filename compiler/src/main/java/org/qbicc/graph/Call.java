@@ -71,7 +71,7 @@ public final class Call extends AbstractValue implements OrderedNode {
 
     @Override
     public boolean maySafePoint() {
-        return ! target.isNoSafepoint();
+        return ! target.isNoSafePoints();
     }
 
     public InvokableType getCalleeType() {

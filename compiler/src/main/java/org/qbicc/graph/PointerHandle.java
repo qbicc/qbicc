@@ -62,6 +62,15 @@ public final class PointerHandle extends AbstractValueHandle {
     }
 
     @Override
+    public boolean isNoSafePoints() {
+        return pointerValue instanceof PointerLiteral pl
+            && pl.getPointer() instanceof ProgramObjectPointer pop
+            && pop.getProgramObject() instanceof Function fn
+            && fn.isNoSafePoints()
+            || super.isNoSafePoints();
+    }
+
+    @Override
     public boolean isConstantLocation() {
         return pointerValue.isConstant() && offsetValue.isConstant();
     }
