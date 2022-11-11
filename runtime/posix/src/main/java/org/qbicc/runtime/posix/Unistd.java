@@ -48,6 +48,8 @@ public final class Unistd {
 
     public static native ssize_t readlink(const_char_ptr pathName, char_ptr buf, size_t bufSize);
 
+    public static native c_int rmdir(const_char_ptr path);
+
     public static native c_int unlink(const_char_ptr pathname);
 
     public static native ssize_t write(c_int fd, const_void_ptr buf, size_t count);
