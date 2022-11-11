@@ -138,6 +138,7 @@ import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.pointer.GlobalPointer;
 import org.qbicc.pointer.IntegerAsPointer;
+import org.qbicc.pointer.MemberPointer;
 import org.qbicc.pointer.MemoryPointer;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -1038,6 +1039,16 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Boolean.valueOf(unboxInt(left) < unboxInt(right));
         }
         throw new IllegalStateException("Invalid is*");
+    }
+
+    @Override
+    public Object visit(VmThreadImpl thread, MemberOf node) {
+        Pointer structPointer = unboxPointer(node.getStructurePointer());
+        if (structPointer == null) {
+            return null;
+        } else {
+            return new MemberPointer(structPointer, node.getMember());
+        }
     }
 
     @Override
@@ -2332,11 +2343,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
 
         @Override
-        public Memory visit(Frame frame, MemberOf node) {
-            return node.getValueHandle().accept(this, frame);
-        }
-
-        @Override
         public Memory visit(Frame frame, StaticField node) {
             StaticFieldElement variableElement = node.getVariableElement();
             if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
@@ -2433,11 +2439,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public long visit(Frame frame, LocalVariable node) {
             return node.getVariableElement().getOffset();
-        }
-
-        @Override
-        public long visit(Frame frame, MemberOf node) {
-            return node.getValueHandle().accept(this, frame) + node.getMember().getOffset();
         }
 
         @Override

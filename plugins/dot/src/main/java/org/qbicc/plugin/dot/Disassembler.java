@@ -1211,7 +1211,7 @@ public final class Disassembler {
         @Override
         public Void visit(Disassembler param, MemberOf node) {
             final String id = param.nextId();
-            final String description = "member-of " + show(node.getValueHandle());
+            final String description = "member-of " + show(node.getStructurePointer());
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }

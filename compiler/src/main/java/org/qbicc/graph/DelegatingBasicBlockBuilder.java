@@ -137,8 +137,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().currentThread();
     }
 
-    public ValueHandle memberOf(final ValueHandle structHandle, final CompoundType.Member member) {
-        return getDelegate().memberOf(structHandle, member);
+    public Value memberOf(final Value structPointer, final CompoundType.Member member) {
+        return getDelegate().memberOf(structPointer, member);
     }
 
     public ValueHandle elementOf(final ValueHandle array, final Value index) {

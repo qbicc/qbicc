@@ -216,6 +216,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, MemberOf node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, MemberSelector node) {
         return visitUnknown(t, node);
     }
@@ -544,6 +548,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T t, Max node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default R visit(T t, MemberOf node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

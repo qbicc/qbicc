@@ -671,8 +671,8 @@ public interface Node {
                 return param.getBlockBuilder().localVariable(node.getVariableElement());
             }
 
-            public ValueHandle visit(Copier param, MemberOf node) {
-                return param.getBlockBuilder().memberOf(param.copyValueHandle(node.getValueHandle()), node.getMember());
+            public Value visit(Copier param, MemberOf node) {
+                return param.getBlockBuilder().memberOf(param.copyValue(node.getStructurePointer()), node.getMember());
             }
 
             public Value visit(final Copier param, final MethodHandleLiteral node) {

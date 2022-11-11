@@ -38,9 +38,9 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
-    public ValueHandle memberOf(ValueHandle structHandle, CompoundType.Member member) {
-        if (structHandle.getPointeeType() instanceof CompoundType) {
-            return super.memberOf(structHandle, member);
+    public Value memberOf(Value structPointer, CompoundType.Member member) {
+        if (structPointer.getType(PointerType.class).getPointeeType() instanceof CompoundType) {
+            return super.memberOf(structPointer, member);
         }
         ctxt.error(getLocation(), "`memberOf` handle must have structure type");
         throw new BlockEarlyTermination(unreachable());

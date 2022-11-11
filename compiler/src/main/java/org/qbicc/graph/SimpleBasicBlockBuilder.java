@@ -454,8 +454,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return asDependency(new VaArg(callSite, element, line, bci, requireDependency(), vaList, type));
     }
 
-    public ValueHandle memberOf(final ValueHandle structHandle, final CompoundType.Member member) {
-        return new MemberOf(callSite, element, line, bci, structHandle, member);
+    public Value memberOf(final Value structPointer, final CompoundType.Member member) {
+        return unique(new MemberOf(callSite, element, line, bci, structPointer, member));
     }
 
     public ValueHandle elementOf(ValueHandle array, Value index) {
