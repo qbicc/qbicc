@@ -787,27 +787,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             return null;
         }
 
-        if (isPointerLike(javaInputType)) {
-            if (isPointerLike(javaOutputType)) {
-                if (isReference(javaInputType) != isReference(javaOutputType)) {
-                    if (isReference(javaInputType)) {
-                        return createRefToPtrCast(node, inputType, llvmInput, outputType);
-                    } else {
-                        return createPtrToRefCast(node, inputType, llvmInput, outputType);
-                    }
-                } else {
-                    return builder.bitcast(inputType, llvmInput, outputType).setLValue(map(node));
-                }
+        if (javaInputType instanceof PointerType) {
+            if (javaOutputType instanceof ReferenceType) {
+                return createPtrToRefCast(node, inputType, llvmInput, outputType);
             } else if (javaOutputType instanceof IntegerType) {
-                if (isReference(javaInputType)) {
-                    return builder.ptrtoint(
-                        pseudoIntrinsics.getRawPtrType(),
-                        createRefToPtrCast(node, inputType, llvmInput, pseudoIntrinsics.getRawPtrType()),
-                        outputType
-                    ).setLValue(map(node));
-                } else {
-                    return builder.ptrtoint(inputType, llvmInput, outputType).setLValue(map(node));
-                }
+                return builder.ptrtoint(inputType, llvmInput, outputType).setLValue(map(node));
             }
         } else if (javaInputType instanceof FloatType) {
             if (javaOutputType instanceof SignedIntegerType) {
