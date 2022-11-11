@@ -81,6 +81,11 @@ public final class Invoke extends AbstractTerminator implements Resume {
         return dependency;
     }
 
+    @Override
+    public boolean maySafePoint() {
+        return ! target.isNoSafepoint();
+    }
+
     public InvokableType getCalleeType() {
         return calleeType;
     }

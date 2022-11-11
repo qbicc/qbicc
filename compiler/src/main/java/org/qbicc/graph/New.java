@@ -34,6 +34,10 @@ public final class New extends AbstractValue implements OrderedNode {
         return dependency;
     }
 
+    public boolean maySafePoint() {
+        return true;
+    }
+
     public int getValueDependencyCount() {
         return 3;
     }

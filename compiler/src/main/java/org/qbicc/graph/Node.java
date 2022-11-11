@@ -557,6 +557,10 @@ public interface Node {
                 return param.getBlockBuilder().valueConvert(param.copyValue(node.getInput()), node.getType());
             }
 
+            public Value visit(Copier copier, DecodeReference node) {
+                return copier.getBlockBuilder().decodeReference(copier.copyValue(node.getInput()), node.getType());
+            }
+
             public Value visit(final Copier param, final Div node) {
                 return param.getBlockBuilder().divide(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
@@ -766,10 +770,6 @@ public interface Node {
 
             public ValueHandle visit(Copier param, PointerHandle node) {
                 return param.getBlockBuilder().pointerHandle(param.copyValue(node.getPointerValue()), param.copyValue(node.getOffsetValue()));
-            }
-
-            public ValueHandle visit(Copier param, ReferenceHandle node) {
-                return param.getBlockBuilder().referenceHandle(param.copyValue(node.getReferenceValue()));
             }
 
             public Value visit(final Copier param, final Select node) {

@@ -37,14 +37,14 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public ValueHandle referenceHandle(Value reference) {
-        if (reference.getType() instanceof PointerType) {
-            return pointerHandle(reference);
+    public Value decodeReference(Value reference, PointerType pointerType) {
+        if (reference.getType() instanceof PointerType pt) {
+            return pt.equals(pointerType) ? reference : getFirstBuilder().bitCast(reference, pointerType);
         } else if (reference.getType() instanceof ArrayType) {
             ctxt.error(getLocation(), "Cannot directly reference an array");
             throw new BlockEarlyTermination(unreachable());
         } else {
-            return super.referenceHandle(reference);
+            return super.decodeReference(reference, pointerType);
         }
     }
 

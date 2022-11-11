@@ -72,10 +72,6 @@ public interface ValueHandleVisitorLong<T> {
         return visitUnknown(t, node);
     }
 
-    default long visit(T t, ReferenceHandle node) {
-        return visitUnknown(t, node);
-    }
-
     interface Delegating<T> extends ValueHandleVisitorLong<T> {
         ValueHandleVisitorLong<T> getDelegateValueHandleVisitor();
 
@@ -164,9 +160,5 @@ public interface ValueHandleVisitorLong<T> {
             return getDelegateValueHandleVisitor().visit(t, node);
         }
 
-        @Override
-        default long visit(T t, ReferenceHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
     }
 }

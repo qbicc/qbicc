@@ -41,6 +41,10 @@ public final class Throw extends AbstractTerminator implements Terminator {
         return dependency;
     }
 
+    public boolean maySafePoint() {
+        return false;
+    }
+
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }

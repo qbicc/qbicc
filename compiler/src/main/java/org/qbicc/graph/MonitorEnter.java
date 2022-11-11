@@ -26,6 +26,10 @@ public class MonitorEnter extends AbstractNode implements Action, InstanceOperat
         return dependency;
     }
 
+    public boolean maySafePoint() {
+        return true;
+    }
+
     public <T, R> R accept(final ActionVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }

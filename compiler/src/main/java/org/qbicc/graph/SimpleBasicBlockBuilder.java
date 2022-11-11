@@ -27,6 +27,7 @@ import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NullableType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
@@ -398,6 +399,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return unique(new Convert(callSite, element, line, bci, value, toType));
     }
 
+    public Value decodeReference(Value refVal, PointerType pointerType) {
+        // not asDependency() because the dependency may precede the required dependency
+        return unique(new DecodeReference(callSite, element, line, bci, requireDependency(), refVal, pointerType));
+    }
+
     public Value instanceOf(final Value input, final ObjectType expectedType, final int expectedDimensions) {
         final BasicBlockBuilder fb = getFirstBuilder();
         ObjectType ifTrueExpectedType = expectedType;
@@ -462,10 +468,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
 
     public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
         return new PointerHandle(callSite, element, line, bci, pointer, offsetValue);
-    }
-
-    public ValueHandle referenceHandle(Value reference) {
-        return new ReferenceHandle(callSite, element, line, bci, reference);
     }
 
     public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {

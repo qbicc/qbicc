@@ -83,9 +83,8 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     }
 
     @Override
-    public ValueHandle referenceHandle(Value reference) {
-        BasicBlockBuilder fb = getFirstBuilder();
-        // convert reference to pointer
+    public Value decodeReference(Value reference, PointerType pointerType) {
+        // convert reference to pointer with lower type
         Layout layout = Layout.get(ctxt);
         ReferenceType referenceType = (ReferenceType) reference.getType();
         ObjectType upperBound = referenceType.getUpperBound();
@@ -97,7 +96,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
         } else {
             info = layout.getInstanceLayoutInfo(upperBound.getDefinition());
         }
-        return fb.pointerHandle(fb.valueConvert(reference, info.getCompoundType().getPointer()));
+        return super.decodeReference(reference, info.getCompoundType().getPointer());
     }
 
     @Override

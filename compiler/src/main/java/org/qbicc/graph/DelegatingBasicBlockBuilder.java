@@ -16,6 +16,7 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.StaticMethodType;
@@ -150,10 +151,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
         return getDelegate().pointerHandle(pointer, offsetValue);
-    }
-
-    public ValueHandle referenceHandle(Value reference) {
-        return getDelegate().referenceHandle(reference);
     }
 
     public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
@@ -550,6 +547,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value valueConvert(final Value value, final WordType toType) {
         return getDelegate().valueConvert(value, toType);
+    }
+
+    public Value decodeReference(Value refVal, PointerType pointerType) {
+        return getDelegate().decodeReference(refVal, pointerType);
     }
 
     public Value instanceOf(final Value input, final ObjectType expectedType, final int expectedDimensions) {

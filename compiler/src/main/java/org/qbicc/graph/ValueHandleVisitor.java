@@ -72,10 +72,6 @@ public interface ValueHandleVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
-    default R visit(T t, ReferenceHandle node) {
-        return visitUnknown(t, node);
-    }
-
     interface Delegating<T, R> extends ValueHandleVisitor<T, R> {
         ValueHandleVisitor<T, R> getDelegateValueHandleVisitor();
 
@@ -164,9 +160,5 @@ public interface ValueHandleVisitor<T, R> {
             return getDelegateValueHandleVisitor().visit(t, node);
         }
 
-        @Override
-        default R visit(T t, ReferenceHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
     }
 }

@@ -46,6 +46,7 @@ import org.qbicc.graph.CountTrailingZeros;
 import org.qbicc.graph.CurrentThread;
 import org.qbicc.graph.DebugAddressDeclaration;
 import org.qbicc.graph.DebugValueDeclaration;
+import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.ExactMethodElementHandle;
@@ -97,7 +98,6 @@ import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.ReadModifyWriteValue;
-import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.ReferenceTo;
 import org.qbicc.graph.Ret;
 import org.qbicc.graph.Rol;
@@ -896,6 +896,14 @@ public final class Disassembler {
         }
 
         @Override
+        public Void visit(Disassembler param, DecodeReference node) {
+            final String id = param.nextId();
+            final String description = "decode " + show(node.getInput());
+            param.nodeInfo.put(node, new NodeInfo(id, description));
+            return delegate.visit(param, node);
+        }
+
+        @Override
         public Void visit(Disassembler param, Extend node) {
             final String id = param.nextId();
             final String description = String.format(
@@ -1177,8 +1185,8 @@ public final class Disassembler {
         @Override
         public Void visit(Disassembler param, InstanceFieldOf node) {
             final String id = param.nextId();
-            String description = node.getValueHandle() instanceof ReferenceHandle ref
-                ? show(ref.getReferenceValue()) + " " + node.getVariableElement().getName()
+            String description = node.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr
+                ? show(dr.getInput()) + " " + node.getVariableElement().getName()
                 : "?";
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
@@ -1212,14 +1220,6 @@ public final class Disassembler {
         public Void visit(Disassembler param, PointerHandle node) {
             final String id = param.nextId();
             final String description = "prt " + show(node.getPointerValue());
-            param.nodeInfo.put(node, new NodeInfo(id, description));
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, ReferenceHandle node) {
-            final String id = param.nextId();
-            final String description = "ref " + show(node.getReferenceValue());
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }

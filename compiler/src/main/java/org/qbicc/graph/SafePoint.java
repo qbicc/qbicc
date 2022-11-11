@@ -21,6 +21,11 @@ public final class SafePoint extends AbstractNode implements Action, OrderedNode
     }
 
     @Override
+    public boolean maySafePoint() {
+        return true;
+    }
+
+    @Override
     String getNodeName() {
         return "SafePoint";
     }

@@ -73,6 +73,10 @@ public final class TailCall extends AbstractTerminator {
         return dependency;
     }
 
+    public boolean maySafePoint() {
+        return ! target.isNoSafepoint();
+    }
+
     public InvokableType getCalleeType() {
         return calleeType;
     }

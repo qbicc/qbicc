@@ -34,6 +34,7 @@ import org.qbicc.graph.Comp;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.DebugAddressDeclaration;
 import org.qbicc.graph.DebugValueDeclaration;
+import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.Extend;
@@ -65,7 +66,6 @@ import org.qbicc.graph.Or;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Reachable;
 import org.qbicc.graph.ReadModifyWrite;
-import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Ret;
 import org.qbicc.graph.Return;
 import org.qbicc.graph.Select;
@@ -787,27 +787,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             return null;
         }
 
-        if (isPointerLike(javaInputType)) {
-            if (isPointerLike(javaOutputType)) {
-                if (isReference(javaInputType) != isReference(javaOutputType)) {
-                    if (isReference(javaInputType)) {
-                        return createRefToPtrCast(node, inputType, llvmInput, outputType);
-                    } else {
-                        return createPtrToRefCast(node, inputType, llvmInput, outputType);
-                    }
-                } else {
-                    return builder.bitcast(inputType, llvmInput, outputType).setLValue(map(node));
-                }
+        if (javaInputType instanceof PointerType) {
+            if (javaOutputType instanceof ReferenceType) {
+                return createPtrToRefCast(node, inputType, llvmInput, outputType);
             } else if (javaOutputType instanceof IntegerType) {
-                if (isReference(javaInputType)) {
-                    return builder.ptrtoint(
-                        pseudoIntrinsics.getRawPtrType(),
-                        createRefToPtrCast(node, inputType, llvmInput, pseudoIntrinsics.getRawPtrType()),
-                        outputType
-                    ).setLValue(map(node));
-                } else {
-                    return builder.ptrtoint(inputType, llvmInput, outputType).setLValue(map(node));
-                }
+                return builder.ptrtoint(inputType, llvmInput, outputType).setLValue(map(node));
             }
         } else if (javaInputType instanceof FloatType) {
             if (javaOutputType instanceof SignedIntegerType) {
@@ -839,6 +823,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
         ctxt.error(functionObj.getOriginalElement(), node, "llvm: Unhandled conversion %s -> %s", javaInputType.toString(), javaOutputType.toString());
         return llvmInput;
+    }
+
+    public LLValue visit(Void unused, DecodeReference node) {
+        return createRefToPtrCast(node, map(node.getInput().getType()), map(node.getInput()), map(node.getType()));
     }
 
     public LLValue visit(final Void param, final Extend node) {
@@ -942,7 +930,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail();
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle) {
+        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafepoint()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -963,7 +951,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail();
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle) {
+        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafepoint()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -984,7 +972,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail().attribute(FunctionAttributes.noreturn);
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle) {
+        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafepoint()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1006,7 +994,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).tail(); // hint only
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle) {
+        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafepoint()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1053,7 +1041,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
         addPersonalityIfNeeded();
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle) {
+        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafepoint()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1084,7 +1072,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
         addPersonalityIfNeeded();
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle) {
+        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafepoint()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1186,11 +1174,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             LLValue offset = param.map(node.getOffsetValue());
             LLValue offsetType = param.map(node.getOffsetValue().getType());
             return param.gep(param.map(node.getPointerValue()), node).arg(false, offsetType, offset);
-        }
-
-        @Override
-        public GetElementPtr visit(LLVMNodeVisitor param, ReferenceHandle node) {
-            return param.gep(param.map(node.getReferenceValue()), node).arg(false, i32, ZERO);
         }
     };
 
