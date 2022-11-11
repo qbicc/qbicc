@@ -425,6 +425,12 @@ public interface BasicBlockBuilder extends Locatable {
      */
     Value selectMember(ValueHandle handle);
 
+    // memory values
+
+    Value memberOf(Value structPointer, CompoundType.Member member);
+
+    Value elementOf(Value array, Value index);
+
     // memory handles
 
     /**
@@ -437,9 +443,15 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle lengthOf(ValueHandle arrayHandle);
 
-    ValueHandle memberOf(ValueHandle structHandle, CompoundType.Member member);
+    @Deprecated
+    default ValueHandle memberOf(ValueHandle structHandle, CompoundType.Member member) {
+        return pointerHandle(memberOf(addressOf(structHandle), member));
+    }
 
-    ValueHandle elementOf(ValueHandle array, Value index);
+    @Deprecated
+    default ValueHandle elementOf(ValueHandle array, Value index) {
+        return pointerHandle(elementOf(addressOf(array), index));
+    }
 
     ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType);
 

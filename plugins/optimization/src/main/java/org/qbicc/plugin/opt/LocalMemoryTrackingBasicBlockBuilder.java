@@ -12,8 +12,6 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.ElementOf;
-import org.qbicc.graph.MemberOf;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
@@ -24,12 +22,13 @@ import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
+import org.qbicc.type.CompoundType;
 
 /**
  *
  */
 public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<AccessMode, Value> {
-    private Map<ValueHandle, Value> knownValues = new HashMap<>();
+    private Map<Node, Value> knownValues = new HashMap<>();
 
     public LocalMemoryTrackingBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
@@ -44,7 +43,7 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
 
     @Override
     public <T> BasicBlock begin(BlockLabel blockLabel, T arg, BiConsumer<T, BasicBlockBuilder> maker) {
-        final Map<ValueHandle, Value> oldKnownValues = knownValues;
+        final Map<Node, Value> oldKnownValues = knownValues;
         knownValues = new HashMap<>();
         try {
             return super.begin(blockLabel, arg, maker);
@@ -72,7 +71,8 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     @Override
     public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
         ValueHandle root = findRoot(handle);
-        knownValues.keySet().removeIf(k -> ! hasSameRoot(k, root));
+        // todo: not completely correct but this class is temporarily disabled in any case
+        knownValues.keySet().removeIf(k -> k instanceof ValueHandle vh && ! hasSameRoot(vh, root));
         knownValues.put(handle, value);
         return super.store(handle, value, accessMode);
     }
@@ -87,6 +87,26 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         knownValues.clear();
         return super.cmpAndSwap(target, expect, update, readMode, writeMode, strength);
+    }
+
+    @Override
+    public Value memberOf(Value structPointer, CompoundType.Member member) {
+        Value value = knownValues.get(structPointer);
+        if (value != null) {
+            return extractMember(value, member);
+        } else {
+            return super.memberOf(structPointer, member);
+        }
+    }
+
+    @Override
+    public Value elementOf(Value arrayPointer, Value index) {
+        Value value = knownValues.get(arrayPointer);
+        if (value != null) {
+            return extractElement(value, index);
+        } else {
+            return super.elementOf(arrayPointer, index);
+        }
     }
 
     @Override
@@ -138,7 +158,7 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     private static ValueHandle findRoot(ValueHandle handle) {
-        return handle instanceof ElementOf || ! handle.hasValueHandleDependency() ? handle : findRoot(handle.getValueHandle());
+        return ! handle.hasValueHandleDependency() ? handle : findRoot(handle.getValueHandle());
     }
 
     private static boolean hasSameRoot(ValueHandle handle, ValueHandle root) {
@@ -148,35 +168,5 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     @Override
     public Value visitUnknown(AccessMode param, ValueHandle node) {
         return knownValues.get(node);
-    }
-
-    @Override
-    public Value visit(AccessMode param, ElementOf node) {
-        Value value = knownValues.get(node);
-        if (value != null) {
-            return value;
-        } else {
-            value = node.getValueHandle().accept(this, param);
-            if (value != null) {
-                return extractElement(value, node.getIndex());
-            } else {
-                return null;
-            }
-        }
-    }
-
-    @Override
-    public Value visit(AccessMode param, MemberOf node) {
-        Value value = knownValues.get(node);
-        if (value != null) {
-            return value;
-        } else {
-            value = node.getValueHandle().accept(this, param);
-            if (value != null) {
-                return extractMember(value, node.getMember());
-            } else {
-                return null;
-            }
-        }
     }
 }

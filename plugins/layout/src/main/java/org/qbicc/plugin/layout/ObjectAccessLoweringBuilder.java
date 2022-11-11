@@ -72,14 +72,14 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
         return super.stackAllocate(type, count, align);
     }
 
-    public ValueHandle elementOf(ValueHandle array, Value index) {
-        if (array.getPointeeType() instanceof CompoundType ct && ct.getMemberCount() > 0) {
+    public Value elementOf(Value arrayPointer, Value index) {
+        if (arrayPointer.getPointeeType() instanceof CompoundType ct && ct.getMemberCount() > 0) {
             // ElementOf a CompoundType -> ElementOf the last Member
             CompoundType.Member lastMember = ct.getMember(ct.getMemberCount() - 1);
             BasicBlockBuilder fb = getFirstBuilder();
-            return fb.elementOf(fb.memberOf(array, lastMember), index);
+            return fb.elementOf(fb.memberOf(arrayPointer, lastMember), index);
         }
-        return getDelegate().elementOf(array, index);
+        return getDelegate().elementOf(arrayPointer, index);
     }
 
     @Override

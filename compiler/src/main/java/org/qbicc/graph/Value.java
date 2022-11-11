@@ -1,9 +1,14 @@
 package org.qbicc.graph;
 
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
+
+import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.NullableType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
 
 public interface Value extends Node {
@@ -133,6 +138,115 @@ public interface Value extends Node {
      */
     default boolean isConstant() {
         return false;
+    }
+
+    /**
+     * Get the type that the referred value would have. Equivalent to {@code getPointerType(PointerType.class).getPointeeType()}.
+     *
+     * @return the referred value type
+     */
+    default ValueType getPointeeType() {
+        return getType(PointerType.class).getPointeeType();
+    }
+
+    /**
+     * Get the type that the referred value would have. Equivalent to {@code getPointerType(PointerType.class).getPointeeType(expected)}.
+     *
+     * @return the referred value type
+     */
+    default <T extends ValueType> T getPointeeType(Class<T> expected) {
+        return getType(PointerType.class).getPointeeType(expected);
+    }
+
+    /**
+     * Get the return type of this value handle. If it is not a pointer to something invokable, an exception is thrown.
+     *
+     * @return the return type
+     */
+    default ValueType getReturnType() {
+        return getPointeeType(InvokableType.class).getReturnType();
+    }
+
+    /**
+     * Determine whether this value points to an object which is writable.
+     *
+     * @return {@code true} if the target is writable, {@code false} otherwise
+     */
+    default boolean isWritable() {
+        return getType() instanceof PointerType;
+    }
+
+    /**
+     * Determine whether this value points to an object which is readable.
+     *
+     * @return {@code true} if the target is readable, {@code false} otherwise
+     */
+    default boolean isReadable() {
+        return getType() instanceof PointerType;
+    }
+
+    /**
+     * Determine whether this value points to a function or method that definitely does not throw any exception,
+     * not even {@link StackOverflowError} or {@link OutOfMemoryError}.
+     *
+     * @return {@code true} if the pointer referee can definitely never throw, {@code false} otherwise
+     */
+    default boolean isNoThrow() {
+        return false;
+    }
+
+    /**
+     * Determine whether this value points to a function or method that cannot safepoint.
+     *
+     * @return {@code true} if the pointer referee can never safepoint, or {@code false} otherwise
+     */
+    default boolean isNoSafePoints() {
+        return false;
+    }
+
+    /**
+     * Determine whether this value points to a function or method that definitely never returns.
+     *
+     * @return {@code true} if the pointer referee can definitely never return, {@code false} otherwise
+     */
+    default boolean isNoReturn() {
+        return false;
+    }
+
+    /**
+     * Determine whether this value points to a function or method that definitely has no side-effects.
+     *
+     * @return {@code true} if the pointer referee definitely has no side-effects, {@code false} otherwise
+     */
+    default boolean isNoSideEffect() {
+        return false;
+    }
+
+    /**
+     * Determine whether this value points to a value which is constant.
+     *
+     * @return {@code true} if the pointer is always in the same location, or {@code false} otherwise
+     */
+    default boolean isPointeeConstant() {
+        return false;
+    }
+
+    /**
+     * Determine whether this value points to a function or method that should be constant-folded.
+     *
+     * @return {@code true} to constant-fold the call result, or {@code false} otherwise
+     */
+    default boolean isFold() {
+        return false;
+    }
+
+    /**
+     * Get the detected access mode for a pointer value.
+     *
+     * @return the detected access mode for this handle (must not be {@code null})
+     */
+    default AccessMode getDetectedMode() {
+        return SingleUnshared;
     }
 
     StringBuilder toReferenceString(StringBuilder b);

@@ -569,8 +569,8 @@ public interface Node {
                 return param.getBlockBuilder().asm(node.getInstruction(), node.getConstraints(), node.getFlags(), node.getPointeeType());
             }
 
-            public ValueHandle visit(Copier param, ElementOf node) {
-                return param.getBlockBuilder().elementOf(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getIndex()));
+            public Value visit(Copier copier, ElementOf node) {
+                return copier.getBlockBuilder().elementOf(copier.copyValue(node.getArrayPointer()), copier.copyValue(node.getIndex()));
             }
 
             public Value visit(Copier param, ElementOfLiteral node) {
@@ -671,8 +671,8 @@ public interface Node {
                 return param.getBlockBuilder().localVariable(node.getVariableElement());
             }
 
-            public ValueHandle visit(Copier param, MemberOf node) {
-                return param.getBlockBuilder().memberOf(param.copyValueHandle(node.getValueHandle()), node.getMember());
+            public Value visit(Copier param, MemberOf node) {
+                return param.getBlockBuilder().memberOf(param.copyValue(node.getStructurePointer()), node.getMember());
             }
 
             public Value visit(final Copier param, final MethodHandleLiteral node) {

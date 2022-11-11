@@ -119,6 +119,7 @@ import org.qbicc.machine.llvm.op.Phi;
 import org.qbicc.object.Function;
 import org.qbicc.plugin.methodinfo.CallSiteInfo;
 import org.qbicc.plugin.unwind.UnwindExceptionStrategy;
+import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
@@ -893,6 +894,27 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         return map(node.getInput());
     }
 
+    public LLValue visit(final Void unused, final ElementOf node) {
+        Value arrayPointer = node.getArrayPointer();
+        ArrayType arrayType = arrayPointer.getPointeeType(ArrayType.class);
+        PointerType pointerType = arrayType.getPointer();
+        LLValue ptr = map(arrayPointer);
+        GetElementPtr gep = builder.getelementptr(map(arrayType), map(pointerType), ptr);
+        gep.arg(false, i32, ZERO).arg(false, map(node.getIndex().getType()), map(node.getIndex()));
+        return gep.setLValue(map(node));
+    }
+
+    public LLValue visit(final Void unused, final MemberOf node) {
+        CompoundType structType = node.getStructType();
+        PointerType pointerType = structType.getPointer();
+        LLValue ptr = map(node.getStructurePointer());
+        GetElementPtr gep = builder.getelementptr(map(structType), map(pointerType), ptr);
+        CompoundType.Member member = node.getMember();
+        gep.arg(false, i32, ZERO).arg(false, i32, map(structType, member));
+        gep.comment("member " + member.getName());
+        return gep.setLValue(map(node));
+    }
+
     public LLValue visit(final Void param, final Truncate node) {
         Type javaInputType = node.getInput().getType();
         Type javaOutputType = node.getType();
@@ -1148,25 +1170,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         }
 
         @Override
-        public GetElementPtr visit(LLVMNodeVisitor param, ElementOf node) {
-            ValueHandle nextHandle = node.getValueHandle();
-            LLValue index = param.map(node.getIndex());
-            LLValue indexType = param.map(node.getIndex().getType());
-            return nextHandle.accept(this, param).arg(false, indexType, index);
-        }
-
-        @Override
         public GetElementPtr visit(LLVMNodeVisitor param, GlobalVariable node) {
             GlobalVariableElement gv = node.getVariableElement();
             return param.gep(Values.global(gv.getName()), node).arg(false, i32, ZERO);
-        }
-
-        @Override
-        public GetElementPtr visit(LLVMNodeVisitor param, MemberOf node) {
-            LLValue index = param.map(node.getStructType(), node.getMember());
-            GetElementPtr gep = node.getValueHandle().accept(this, param);
-            gep.comment("member " + node.getMember().getName());
-            return gep.arg(false, i32, index);
         }
 
         @Override
@@ -1190,18 +1196,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         }
 
         @Override
-        public LLValue visit(LLVMNodeVisitor param, ElementOf node) {
-            return node.accept(GET_HANDLE_ELEMENT_POINTER, param).asLocal();
-        }
-
-        @Override
         public LLValue visit(LLVMNodeVisitor param, GlobalVariable node) {
             return Values.global(node.getVariableElement().getName());
-        }
-
-        @Override
-        public LLValue visit(LLVMNodeVisitor param, MemberOf node) {
-            return node.accept(GET_HANDLE_ELEMENT_POINTER, param).asLocal();
         }
 
         @Override

@@ -136,8 +136,11 @@ import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThrowable;
+import org.qbicc.pointer.ElementPointer;
 import org.qbicc.pointer.GlobalPointer;
+import org.qbicc.pointer.InstanceFieldPointer;
 import org.qbicc.pointer.IntegerAsPointer;
+import org.qbicc.pointer.MemberPointer;
 import org.qbicc.pointer.MemoryPointer;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -148,7 +151,6 @@ import org.qbicc.pointer.RootPointer;
 import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ArrayObjectType;
-import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -834,6 +836,31 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
+    public Object visit(VmThreadImpl thread, ElementOf node) {
+        int index = unboxInt(node.getIndex());
+        Value arrayPointerValue = node.getArrayPointer();
+        if (arrayPointerValue instanceof DecodeReference dr && dr.getInput().getType() instanceof ReferenceType referenceType) {
+            // array object access?
+            PhysicalObjectType physicalBound = referenceType.getUpperBound();
+            if (physicalBound instanceof ArrayObjectType aot) {
+                CompilationContext ctxt = element.getEnclosingType().getContext().getCompilationContext();
+                CoreClasses coreClasses = CoreClasses.get(ctxt);
+                InstanceFieldElement field = (InstanceFieldElement) coreClasses.getArrayContentField(aot);
+                return new ElementPointer(new InstanceFieldPointer(unboxPointer(dr), field), index);
+            } else {
+                throw unsupportedType();
+            }
+        } else {
+            Pointer arrayPointer = unboxPointer(arrayPointerValue);
+            if (arrayPointer == null) {
+                return null;
+            } else {
+                return new ElementPointer(arrayPointer, index);
+            }
+        }
+    }
+
+    @Override
     public Object visit(VmThreadImpl thread, Extend node) {
         Value input = node.getInput();
         WordType inputType = (WordType) input.getType();
@@ -1038,6 +1065,16 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Boolean.valueOf(unboxInt(left) < unboxInt(right));
         }
         throw new IllegalStateException("Invalid is*");
+    }
+
+    @Override
+    public Object visit(VmThreadImpl thread, MemberOf node) {
+        Pointer structPointer = unboxPointer(node.getStructurePointer());
+        if (structPointer == null) {
+            return null;
+        } else {
+            return new MemberPointer(structPointer, node.getMember());
+        }
     }
 
     @Override
@@ -2307,11 +2344,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
 
         @Override
-        public Memory visit(Frame frame, ElementOf node) {
-            return node.getValueHandle().accept(this, frame);
-        }
-
-        @Override
         public Memory visit(Frame frame, GlobalVariable node) {
             VmImpl vm = (VmImpl) Vm.current();
             return vm.getGlobal(node.getVariableElement());
@@ -2329,11 +2361,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public Memory visit(Frame frame, LocalVariable node) {
             return frame.memory;
-        }
-
-        @Override
-        public Memory visit(Frame frame, MemberOf node) {
-            return node.getValueHandle().accept(this, frame);
         }
 
         @Override
@@ -2386,33 +2413,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
 
         @Override
-        public long visit(Frame frame, ElementOf node) {
-            int index = frame.unboxInt(node.getIndex());
-            ValueHandle delegate = node.getValueHandle();
-            ValueType delegateValueType = delegate.getPointeeType();
-            if (delegate instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr && dr.getInput().getType() instanceof ReferenceType referenceType) {
-                // array object access?
-                PhysicalObjectType physicalBound = referenceType.getUpperBound();
-                if (physicalBound instanceof ArrayObjectType) {
-                    CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
-                    CoreClasses coreClasses = CoreClasses.get(ctxt);
-                    FieldElement field = coreClasses.getArrayContentField(physicalBound);
-                    Layout interpLayout = Layout.get(ctxt);
-                    int fieldOffset = interpLayout.getInstanceLayoutInfo(field.getEnclosingType()).getMember(field).getOffset();
-                    ArrayType contentType = (ArrayType)field.getType();
-                    return node.getValueHandle().accept(this, frame) + fieldOffset + index * contentType.getElementSize();
-                } else {
-                    throw unsupportedType();
-                }
-            } else if (delegateValueType instanceof ArrayType) {
-                // primitive array access
-                return node.getValueHandle().accept(this, frame) + index * ((ArrayType) delegateValueType).getElementSize();
-            } else {
-                throw unsupportedType();
-            }
-        }
-
-        @Override
         public long visit(Frame thread, GlobalVariable node) {
             return 0;
         }
@@ -2433,11 +2433,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public long visit(Frame frame, LocalVariable node) {
             return node.getVariableElement().getOffset();
-        }
-
-        @Override
-        public long visit(Frame frame, MemberOf node) {
-            return node.getValueHandle().accept(this, frame) + node.getMember().getOffset();
         }
 
         @Override

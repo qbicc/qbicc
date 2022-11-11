@@ -10,22 +10,20 @@ import org.qbicc.type.definition.element.ExecutableElement;
 /**
  * A handle for a structure member.  The input handle must have compound type.
  */
-public final class MemberOf extends AbstractValueHandle {
-    private final ValueHandle structureHandle;
+public final class MemberOf extends AbstractValue {
+    private final Value structurePointer;
     private final PointerType pointerType;
-    private final CompoundType structType;
     private final CompoundType.Member member;
 
-    MemberOf(Node callSite, ExecutableElement element, int line, int bci, ValueHandle structureHandle, CompoundType.Member member) {
+    MemberOf(Node callSite, ExecutableElement element, int line, int bci, Value structurePointer, CompoundType.Member member) {
         super(callSite, element, line, bci);
-        this.structureHandle = structureHandle;
+        this.structurePointer = structurePointer;
         this.member = member;
-        pointerType = member.getType().getPointer().withQualifiersFrom(structureHandle.getType());
-        structType = (CompoundType) structureHandle.getPointeeType();
+        pointerType = member.getType().getPointer().withQualifiersFrom(structurePointer.getType(PointerType.class));
     }
 
     public CompoundType getStructType() {
-        return structType;
+        return getStructurePointer().getType(PointerType.class).getPointeeType(CompoundType.class);
     }
 
     @Override
@@ -34,18 +32,18 @@ public final class MemberOf extends AbstractValueHandle {
     }
 
     @Override
-    public boolean isConstantLocation() {
-        return structureHandle.isConstantLocation();
+    public boolean isConstant() {
+        return structurePointer.isConstant();
     }
 
     @Override
-    public boolean isValueConstant() {
-        return structureHandle.isValueConstant();
+    public boolean isPointeeConstant() {
+        return structurePointer.isPointeeConstant();
     }
 
     @Override
     public AccessMode getDetectedMode() {
-        return structureHandle.getDetectedMode();
+        return structurePointer.getDetectedMode();
     }
 
     public CompoundType.Member getMember() {
@@ -53,17 +51,24 @@ public final class MemberOf extends AbstractValueHandle {
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
-        return true;
+    public int getValueDependencyCount() {
+        return 1;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
-        return structureHandle;
+    public Value getValueDependency(int index) throws IndexOutOfBoundsException {
+        return switch (index) {
+            case 0 -> structurePointer;
+            default -> throw new IndexOutOfBoundsException(index);
+        };
+    }
+
+    public Value getStructurePointer() {
+        return structurePointer;
     }
 
     int calcHashCode() {
-        return Objects.hash(structureHandle, member);
+        return Objects.hash(structurePointer, member);
     }
 
     @Override
@@ -76,22 +81,23 @@ public final class MemberOf extends AbstractValueHandle {
     }
 
     @Override
-    public StringBuilder toString(StringBuilder b) {
-        super.toString(b).append('(');
+    StringBuilder toRValueString(StringBuilder b) {
+        b.append("member pointer ");
+        structurePointer.toReferenceString(b);
+        b.append('.');
         member.toString(b);
-        b.append(')');
         return b;
     }
 
     public boolean equals(final MemberOf other) {
-        return this == other || other != null && structureHandle.equals(other.structureHandle) && member.equals(other.member);
+        return this == other || other != null && structurePointer.equals(other.structurePointer) && member.equals(other.member);
     }
 
-    public <T, R> R accept(final ValueHandleVisitor<T, R> visitor, final T param) {
+    public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
 
-    public <T> long accept(final ValueHandleVisitorLong<T> visitor, final T param) {
+    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
         return visitor.visit(param, this);
     }
 }

@@ -62,4 +62,9 @@ public final class AddressOf extends AbstractValue {
     public boolean isConstant() {
         return valueHandle.isConstantLocation();
     }
+
+    @Override
+    public boolean isPointeeConstant() {
+        return valueHandle.isValueConstant();
+    }
 }

@@ -12,11 +12,6 @@ public final class MemberPointer extends Pointer {
 
     public MemberPointer(Pointer structurePointer, CompoundType.Member member) {
         super(member.getType().getPointer());
-        CompoundType pointeeType = (CompoundType) structurePointer.getType().getPointeeType();
-        // todo: make it switchable if this makes things slow...
-        if (! pointeeType.getMembers().contains(member)) {
-            throw new IllegalArgumentException("Invalid pointer type");
-        }
         this.structurePointer = structurePointer;
         this.member = member;
     }
