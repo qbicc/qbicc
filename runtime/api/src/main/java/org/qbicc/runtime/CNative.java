@@ -137,12 +137,6 @@ public final class CNative {
     public static native <T, P extends ptr<T>> P addr_of(T obj);
 
     /**
-     * @hidden
-     */
-    @Deprecated
-    public static native <T extends object, P extends ptr<T>> P addr_of$$bridge(T obj);
-
-    /**
      * Get the address of the given value.  The value may be a local variable, or it may be a member or element of a
      * {@linkplain Pin pinned} heap object or array, or a {@linkplain StackObject stack object} or array.  The value
      * <em>must not</em> be a member or element of an unpinned heap object or array.
