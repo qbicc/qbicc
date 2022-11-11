@@ -930,7 +930,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail();
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafepoint()) {
+        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -951,7 +951,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail();
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafepoint()) {
+        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -972,7 +972,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail().attribute(FunctionAttributes.noreturn);
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafepoint()) {
+        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -994,7 +994,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).tail(); // hint only
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafepoint()) {
+        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1041,7 +1041,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
         addPersonalityIfNeeded();
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafepoint()) {
+        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1072,7 +1072,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
         addPersonalityIfNeeded();
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafepoint()) {
+        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);

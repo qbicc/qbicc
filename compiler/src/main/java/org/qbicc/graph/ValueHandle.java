@@ -67,7 +67,7 @@ public interface ValueHandle extends Unschedulable {
      *
      * @return {@code true} if the handle referee can never safepoint, or {@code false} otherwise
      */
-    default boolean isNoSafepoint() {
+    default boolean isNoSafePoints() {
         return false;
     }
 
