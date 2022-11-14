@@ -689,20 +689,21 @@ public final class Reflection {
         int total = 0;
         LoadedTypeDefinition def = vmClass.getTypeDefinition();
         for (int i = 0; i < def.getFieldCount(); i++) {
-            if (def.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
+            FieldElement field = def.getField(i);
+            if (field.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
                 continue;
             }
-            if (! publicOnly || def.getField(i).isPublic()) {
+            if (! publicOnly || field.isPublic()) {
                 total += 1;
             }
         }
         VmReferenceArray pubFields = vm.newArrayOf(fieldClass, total);
         int pubIdx = 0;
         for (int i = 0; i < def.getFieldCount(); i++) {
-            if (def.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
+            FieldElement field = def.getField(i);
+            if (field.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
                 continue;
             }
-            FieldElement field = def.getField(i);
             if (! publicOnly || field.isPublic()) {
                 pubFields.getArray()[pubIdx++] = getField(field);
             }
@@ -774,10 +775,11 @@ public final class Reflection {
         int total = 0;
         LoadedTypeDefinition def = vmClass.getTypeDefinition();
         for (int i = 0; i < def.getMethodCount(); i++) {
-            if (def.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
+            MethodElement method = def.getMethod(i);
+            if (method.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
                 continue;
             }
-            if (! publicOnly || def.getMethod(i).isPublic()) {
+            if (! publicOnly || method.isPublic()) {
                 total += 1;
             }
         }
@@ -785,10 +787,10 @@ public final class Reflection {
         int pubIdx = 0;
         VmObject[] pubMethodsArray = pubMethods.getArray();
         for (int i = 0; i < def.getMethodCount(); i++) {
-            if (def.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
+            MethodElement method = def.getMethod(i);
+            if (method.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
                 continue;
             }
-            MethodElement method = def.getMethod(i);
             if (! publicOnly || method.isPublic()) {
                 pubMethodsArray[pubIdx++] = getMethod(method);
             }
@@ -844,10 +846,11 @@ public final class Reflection {
         int total = 0;
         LoadedTypeDefinition def = vmClass.getTypeDefinition();
         for (int i = 0; i < def.getConstructorCount(); i++) {
-            if (def.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
+            ConstructorElement constructor = def.getConstructor(i);
+            if (constructor.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
                 continue;
             }
-            if (! publicOnly || def.getConstructor(i).isPublic()) {
+            if (! publicOnly || constructor.isPublic()) {
                 total += 1;
             }
         }
@@ -855,10 +858,10 @@ public final class Reflection {
         int pubIdx = 0;
         VmObject[] pubConstructorsArray = pubConstructors.getArray();
         for (int i = 0; i < def.getConstructorCount(); i++) {
-            if (def.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
+            ConstructorElement constructor = def.getConstructor(i);
+            if (constructor.hasAllModifiersOf(ClassFile.I_ACC_NO_REFLECT)) {
                 continue;
             }
-            ConstructorElement constructor = def.getConstructor(i);
             if (! publicOnly || constructor.isPublic()) {
                 pubConstructorsArray[pubIdx++] = getConstructor(constructor);
             }
