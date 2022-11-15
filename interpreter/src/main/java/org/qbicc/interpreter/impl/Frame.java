@@ -1006,7 +1006,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isFloat64(inputType)) {
             return Boolean.valueOf(unboxDouble(left) >= unboxDouble(right));
         } else if (isInt64(inputType)) {
-            return Boolean.valueOf(unboxLong(left) >= unboxLong(right));
+            return Boolean.valueOf(isSigned(inputType) ? compareLongSigned(left, right, -1) >= 0 : compareLongUnsigned(left, right, -1) >= 0);
         } else if (isInteger(inputType)) {
             return Boolean.valueOf(isSigned(inputType) ? unboxInt(left) >= unboxInt(right) : Integer.compareUnsigned(unboxInt(left), unboxInt(right)) >= 0);
         }
@@ -1024,7 +1024,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isFloat64(inputType)) {
             return Boolean.valueOf(unboxDouble(left) > unboxDouble(right));
         } else if (isInt64(inputType)) {
-            return Boolean.valueOf(unboxLong(left) > unboxLong(right));
+            return Boolean.valueOf(isSigned(inputType) ? compareLongSigned(left, right, -1) > 0 : compareLongUnsigned(left, right, -1) > 0);
         } else if (isInteger(inputType)) {
             return Boolean.valueOf(isSigned(inputType) ? unboxInt(left) > unboxInt(right) : Integer.compareUnsigned(unboxInt(left), unboxInt(right)) > 0);
         }
@@ -1042,7 +1042,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isFloat64(inputType)) {
             return Boolean.valueOf(unboxDouble(left) <= unboxDouble(right));
         } else if (isInt64(inputType)) {
-            return Boolean.valueOf(unboxLong(left) <= unboxLong(right));
+            return Boolean.valueOf(isSigned(inputType) ? compareLongSigned(left, right, 1) <= 0 : compareLongUnsigned(left, right, 1) <= 0);
         } else if (isInteger(inputType)) {
             return Boolean.valueOf(isSigned(inputType) ? unboxInt(left) <= unboxInt(right) : Integer.compareUnsigned(unboxInt(left), unboxInt(right)) <= 0);
         }
@@ -1060,11 +1060,127 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isFloat64(inputType)) {
             return Boolean.valueOf(unboxDouble(left) < unboxDouble(right));
         } else if (isInt64(inputType)) {
-            return Boolean.valueOf(unboxLong(left) < unboxLong(right));
+            return Boolean.valueOf(isSigned(inputType) ? compareLongSigned(left, right, 1) < 0 : compareLongUnsigned(left, right, 1) < 0);
         } else if (isInteger(inputType)) {
             return Boolean.valueOf(isSigned(inputType) ? unboxInt(left) < unboxInt(right) : Integer.compareUnsigned(unboxInt(left), unboxInt(right)) < 0);
         }
         throw new IllegalStateException("Invalid is*");
+    }
+
+    private int compareLongSigned(Value left, Value right, int undef) {
+        Object leftObj = require(left);
+        Object rightObj = require(right);
+        if (leftObj == rightObj) {
+            return 0;
+        } else if (leftObj == null) {
+            if (rightObj instanceof Number rightLong) {
+                return Long.compare(0, rightLong.longValue());
+            } else if (rightObj instanceof IntegerAsPointer rightPointer) {
+                return Long.compare(0, rightPointer.getValue());
+            } else if (rightObj instanceof Pointer) {
+                return -1; // null < pointer
+            } else {
+                // treat comparison as undefined
+                return undef;
+            }
+        } else if (leftObj instanceof Number leftLong) {
+            if (rightObj == null) {
+                return Long.compare(leftLong.longValue(), 0);
+            } else if (rightObj instanceof Number rightLong) {
+                return Long.compare(leftLong.longValue(), rightLong.longValue());
+            } else if (rightObj instanceof IntegerAsPointer rightPointer) {
+                return Long.compare(leftLong.longValue(), rightPointer.getValue());
+            } else {
+                // treat comparison as undefined
+                return undef;
+            }
+        } else if (leftObj instanceof IntegerAsPointer leftPointer) {
+            if (rightObj == null) {
+                return Long.compare(leftPointer.getValue(), 0);
+            } else if (rightObj instanceof Number rightLong) {
+                return Long.compare(leftPointer.getValue(), rightLong.longValue());
+            } else if (rightObj instanceof IntegerAsPointer rightPointer) {
+                return Long.compare(leftPointer.getValue(), rightPointer.getValue());
+            } else {
+                // treat comparison as undefined
+                return undef;
+            }
+        } else if (leftObj instanceof Pointer leftPointer) {
+            if (rightObj == null) {
+                return 1; // pointer > null
+            } else if (rightObj instanceof Pointer rightPointer) {
+                Memory leftMemory = leftPointer.getRootMemoryIfExists();
+                Memory rightMemory = rightPointer.getRootMemoryIfExists();
+                if (leftMemory != null && rightMemory == leftMemory) {
+                    return Long.compareUnsigned(leftPointer.getRootByteOffset(), rightPointer.getRootByteOffset());
+                } else {
+                    return undef;
+                }
+            } else {
+                return undef;
+            }
+        } else {
+            // treat comparison as undefined
+            return undef;
+        }
+    }
+
+    private int compareLongUnsigned(Value left, Value right, int undef) {
+        Object leftObj = require(left);
+        Object rightObj = require(right);
+        if (leftObj == rightObj) {
+            return 0;
+        } else if (leftObj == null) {
+            if (rightObj instanceof Number rightLong) {
+                return Long.compareUnsigned(0, rightLong.longValue());
+            } else if (rightObj instanceof IntegerAsPointer rightPointer) {
+                return Long.compareUnsigned(0, rightPointer.getValue());
+            } else if (rightObj instanceof Pointer) {
+                return -1; // null < pointer
+            } else {
+                // treat comparison as undefined
+                return undef;
+            }
+        } else if (leftObj instanceof Number leftLong) {
+            if (rightObj == null) {
+                return Long.compareUnsigned(leftLong.longValue(), 0);
+            } else if (rightObj instanceof Number rightLong) {
+                return Long.compareUnsigned(leftLong.longValue(), rightLong.longValue());
+            } else if (rightObj instanceof IntegerAsPointer rightPointer) {
+                return Long.compareUnsigned(leftLong.longValue(), rightPointer.getValue());
+            } else {
+                // treat comparison as undefined
+                return undef;
+            }
+        } else if (leftObj instanceof IntegerAsPointer leftPointer) {
+            if (rightObj == null) {
+                return Long.compareUnsigned(leftPointer.getValue(), 0);
+            } else if (rightObj instanceof Number rightLong) {
+                return Long.compareUnsigned(leftPointer.getValue(), rightLong.longValue());
+            } else if (rightObj instanceof IntegerAsPointer rightPointer) {
+                return Long.compareUnsigned(leftPointer.getValue(), rightPointer.getValue());
+            } else {
+                // treat comparison as undefined
+                return undef;
+            }
+        } else if (leftObj instanceof Pointer leftPointer) {
+            if (rightObj == null) {
+                return 1; // pointer > null
+            } else if (rightObj instanceof Pointer rightPointer) {
+                Memory leftMemory = leftPointer.getRootMemoryIfExists();
+                Memory rightMemory = rightPointer.getRootMemoryIfExists();
+                if (leftMemory != null && rightMemory == leftMemory) {
+                    return Long.compareUnsigned(leftPointer.getRootByteOffset(), rightPointer.getRootByteOffset());
+                } else {
+                    return undef;
+                }
+            } else {
+                return undef;
+            }
+        } else {
+            // treat comparison as undefined
+            return undef;
+        }
     }
 
     @Override
