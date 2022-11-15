@@ -108,7 +108,7 @@ public class ServiceLoaderAnalyzer {
                 accumulator.add(vm.newArrayOf(classClass, inner));
             }
         }
-        VmArray runtimeArray = vm.newArrayOf(classClass.getArrayClass().getVmClass(), accumulator.toArray(new VmObject[accumulator.size()]));
+        VmArray runtimeArray = vm.newArrayOf(classClass.getArrayClass(), accumulator.toArray(VmObject[]::new));
 
         // Now updated the static field with the final encoded provider map so that it will be serialized to the runtime heap.
         LoadedTypeDefinition supportType = ctxt.getBootstrapClassContext().findDefinedType("java/util/QbiccServiceLoaderSupport").load();
