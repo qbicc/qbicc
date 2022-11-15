@@ -22,7 +22,6 @@ import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NullableType;
@@ -41,12 +40,10 @@ import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
-import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
-import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -524,10 +521,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
 
     public ValueHandle functionOf(FunctionElement function) {
         return new FunctionElementHandle(element, line, bci, function);
-    }
-
-    public ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type) {
-        return new AsmHandle(callSite, element, line, bci, instruction, constraints, flags, type);
     }
 
     public Value auto(Value initializer) {

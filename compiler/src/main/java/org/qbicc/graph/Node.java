@@ -533,10 +533,6 @@ public interface Node {
                 return param.getBlockBuilder().divide(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
-            public ValueHandle visit(final Copier param, final AsmHandle node) {
-                return param.getBlockBuilder().asm(node.getInstruction(), node.getConstraints(), node.getFlags(), node.getPointeeType());
-            }
-
             public Value visit(Copier copier, ElementOf node) {
                 return copier.getBlockBuilder().elementOf(copier.copyValue(node.getArrayPointer()), copier.copyValue(node.getIndex()));
             }

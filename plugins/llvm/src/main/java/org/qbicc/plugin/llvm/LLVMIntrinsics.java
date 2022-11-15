@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.AsmHandle;
+import org.qbicc.graph.literal.AsmLiteral;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.ClassOf;
@@ -312,29 +312,29 @@ public final class LLVMIntrinsics {
             return lf.zeroInitializerLiteralOfType(ts.getVoidType());
         }
 
-        EnumSet<AsmHandle.Flag> flagSet = EnumSet.of(AsmHandle.Flag.NO_THROW);
+        EnumSet<AsmLiteral.Flag> flagSet = EnumSet.of(AsmLiteral.Flag.NO_THROW);
         boolean generalSideEffects = false;
         if ((flags & ASM_FLAG_SIDE_EFFECT) != 0) {
-            flagSet.add(AsmHandle.Flag.SIDE_EFFECT);
+            flagSet.add(AsmLiteral.Flag.SIDE_EFFECT);
             generalSideEffects = true;
         }
         if ((flags & ASM_FLAG_IMPLICIT_SIDE_EFFECT) != 0) {
-            flagSet.add(AsmHandle.Flag.IMPLICIT_SIDE_EFFECT);
+            flagSet.add(AsmLiteral.Flag.IMPLICIT_SIDE_EFFECT);
             generalSideEffects = true;
         }
         if ((flags & ASM_FLAG_ALIGN_STACK) != 0) {
-            flagSet.add(AsmHandle.Flag.ALIGN_STACK);
+            flagSet.add(AsmLiteral.Flag.ALIGN_STACK);
         }
         if ((flags & ASM_FLAG_INTEL_DIALECT) != 0) {
-            flagSet.add(AsmHandle.Flag.INTEL_DIALECT);
+            flagSet.add(AsmLiteral.Flag.INTEL_DIALECT);
         }
         if ((flags & ASM_FLAG_UNWIND) != 0) {
-            flagSet.remove(AsmHandle.Flag.NO_THROW);
+            flagSet.remove(AsmLiteral.Flag.NO_THROW);
             generalSideEffects = true;
         }
         boolean noReturn = (flags & ASM_FLAG_NO_RETURN) != 0;
 
-        ValueHandle asm = bb.asm(instruction, operands, flagSet, type);
+        ValueHandle asm = bb.pointerHandle(lf.literalOfAsm(instruction, operands, type, flagSet.toArray(AsmLiteral.Flag[]::new)));
 
         if (noReturn) {
             throw new BlockEarlyTermination(bb.callNoReturn(asm, args));

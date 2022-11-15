@@ -2,10 +2,12 @@ package org.qbicc.graph.literal;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.object.ProgramObject;
@@ -14,6 +16,7 @@ import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NullableType;
 import org.qbicc.type.PointerType;
@@ -21,9 +24,7 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.definition.element.GlobalVariableElement;
-import org.qbicc.type.definition.element.VariableElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.definition.element.VariableElement;
 import org.qbicc.type.methodhandle.MethodHandleConstant;
@@ -88,6 +89,8 @@ public interface LiteralFactory {
     GlobalVariableLiteral literalOf(GlobalVariableElement variableElement);
 
     StaticFieldLiteral literalOf(StaticFieldElement variableElement);
+
+    AsmLiteral literalOfAsm(String instructions, String constraints, FunctionType type, AsmLiteral.Flag... flags);
 
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
@@ -277,6 +280,14 @@ public interface LiteralFactory {
                 return (StaticFieldLiteral) varLiterals.computeIfAbsent(variableElement, StaticFieldLiteral::new);
             }
 
+            @Override
+            public AsmLiteral literalOfAsm(String instructions, String constraints, FunctionType type, AsmLiteral.Flag... flags) {
+                Assert.checkNotNullParam("instructions", instructions);
+                Assert.checkNotNullParam("constraints", constraints);
+                Assert.checkNotNullParam("type", type);
+                Set<AsmLiteral.Flag> flagSet = flags == null ? Set.of() : Set.of(flags);
+                return new AsmLiteral(instructions, constraints, flagSet, type);
+            }
         };
     }
 }

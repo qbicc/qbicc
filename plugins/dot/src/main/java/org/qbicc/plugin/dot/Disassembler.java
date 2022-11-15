@@ -20,7 +20,7 @@ import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.And;
-import org.qbicc.graph.AsmHandle;
+import org.qbicc.graph.literal.AsmLiteral;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BinaryValue;
 import org.qbicc.graph.BitCast;
@@ -1118,7 +1118,7 @@ public final class Disassembler {
         // START value handles
 
         @Override
-        public Void visit(Disassembler param, AsmHandle node) {
+        public Void visit(Disassembler param, AsmLiteral node) {
             final String id = param.nextId();
             final String description = String.format(
                 "asm %s %s"

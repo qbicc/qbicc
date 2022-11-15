@@ -12,6 +12,10 @@ public interface LiteralVisitor<T, R> {
         return visitAny(t, literal);
     }
 
+    default R visit(T t, AsmLiteral literal) {
+        return visitAny(t, literal);
+    }
+
     default R visit(T t, BitCastLiteral literal) {
         return visitAny(t, literal);
     }
@@ -96,6 +100,10 @@ public interface LiteralVisitor<T, R> {
         LiteralVisitor<T, R> getDelegateLiteralVisitor();
 
         default R visit(T t, ArrayLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, AsmLiteral literal) {
             return getDelegateLiteralVisitor().visit(t, literal);
         }
 

@@ -3,7 +3,6 @@ package org.qbicc.graph;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.function.BiConsumer;
 
 import org.qbicc.context.Location;
@@ -13,7 +12,6 @@ import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
@@ -26,7 +24,6 @@ import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
-import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
@@ -208,10 +205,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public ValueHandle functionOf(FunctionElement function) {
         return getDelegate().functionOf(function);
-    }
-
-    public ValueHandle asm(final String instruction, final String constraints, final Set<AsmHandle.Flag> flags, FunctionType type) {
-        return getDelegate().asm(instruction, constraints, flags, type);
     }
 
     public Value auto(Value initializer) {

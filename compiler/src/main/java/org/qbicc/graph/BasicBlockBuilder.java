@@ -5,7 +5,6 @@ import static org.qbicc.graph.atomic.AccessModes.*;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -22,7 +21,6 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.NullableType;
@@ -580,8 +578,6 @@ public interface BasicBlockBuilder extends Locatable {
     ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor);
 
     ValueHandle functionOf(FunctionElement function);
-
-    ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type);
 
     // memory
 

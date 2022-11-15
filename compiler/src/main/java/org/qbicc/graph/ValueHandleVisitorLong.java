@@ -8,10 +8,6 @@ public interface ValueHandleVisitorLong<T> {
         return 0;
     }
 
-    default long visit(T t, AsmHandle node) {
-        return visitUnknown(t, node);
-    }
-
     default long visit(T t, ConstructorElementHandle node) {
         return visitUnknown(t, node);
     }
@@ -54,11 +50,6 @@ public interface ValueHandleVisitorLong<T> {
         @Override
         default long visitUnknown(T t, ValueHandle node) {
             return node.accept(getDelegateValueHandleVisitor(), t);
-        }
-
-        @Override
-        default long visit(T t, AsmHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
         }
 
         @Override
