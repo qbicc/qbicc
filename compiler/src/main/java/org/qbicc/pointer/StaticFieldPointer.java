@@ -1,5 +1,6 @@
 package org.qbicc.pointer;
 
+import org.qbicc.interpreter.Memory;
 import org.qbicc.type.definition.element.StaticFieldElement;
 
 /**
@@ -24,6 +25,11 @@ public final class StaticFieldPointer extends RootPointer {
     @Override
     public long getRootByteOffset() {
         return staticField.getOffset();
+    }
+
+    @Override
+    public Memory getRootMemoryIfExists() {
+        return staticField.getEnclosingType().load().getVmClass().getStaticMemory();
     }
 
     @Override
