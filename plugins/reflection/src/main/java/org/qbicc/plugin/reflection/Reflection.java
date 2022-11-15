@@ -35,6 +35,7 @@ import org.qbicc.interpreter.VmThrowableClass;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.patcher.Patcher;
+import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.StaticFieldPointer;
@@ -489,6 +490,20 @@ public final class Reflection {
         long dpci = rdLayout.getMember(rdDef.findField("publicConstructors")).getOffset();
         declaredPublicConstructors.forEach((c, a) -> {
             c.getMemory().loadRef(rdIndex, SinglePlain).getMemory().storeRef(dpci, a, SinglePlain);
+        });
+
+        long ii = rdLayout.getMember(rdDef.findField("interfaces")).getOffset();
+        VmReferenceArray none = vm.newArrayOf(classClass, 0);
+        ReachabilityInfo.get(ctxt).visitReachableTypes(ltd -> {
+            VmReferenceArray impl = none;
+            LoadedTypeDefinition[] implemented = ltd.getInterfaces();
+            if (implemented.length > 0) {
+                impl = vm.newArrayOf(classClass, implemented.length);
+                for (int j=0; j<implemented.length; j++) {
+                    impl.store(j, implemented[j].getVmClass());
+                }
+            }
+            ltd.getVmClass().getMemory().loadRef(rdIndex, SinglePlain).getMemory().storeRef(ii, impl, SinglePlain);
         });
     }
 
