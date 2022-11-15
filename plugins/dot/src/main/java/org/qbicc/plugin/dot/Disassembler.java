@@ -74,7 +74,6 @@ import org.qbicc.graph.IsLe;
 import org.qbicc.graph.IsLt;
 import org.qbicc.graph.IsNe;
 import org.qbicc.graph.Load;
-import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.Max;
 import org.qbicc.graph.MemberOf;
 import org.qbicc.graph.MemberSelector;
@@ -1196,14 +1195,6 @@ public final class Disassembler {
         public Void visit(Disassembler param, InterfaceMethodElementHandle node) {
             final String id = param.nextId();
             final String description = node.getExecutable().toString();
-            param.nodeInfo.put(node, new NodeInfo(id, description));
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, LocalVariable node) {
-            final String id = param.nextId();
-            final String description = node.getVariableElement().getName();
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }

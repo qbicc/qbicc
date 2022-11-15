@@ -458,6 +458,10 @@ public interface Node {
                 return node;
             }
 
+            public Value visit(final Copier copier, final Auto node) {
+                return node;
+            }
+
             public Value visit(final Copier param, final BitCast node) {
                 return param.getBlockBuilder().bitCast(param.copyValue(node.getInput()), node.getType());
             }
@@ -667,10 +671,6 @@ public interface Node {
             public Value visit(final Copier param, final Load node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().load(param.copyValueHandle(node.getValueHandle()), node.getAccessMode());
-            }
-
-            public ValueHandle visit(Copier param, LocalVariable node) {
-                return param.getBlockBuilder().localVariable(node.getVariableElement());
             }
 
             public Value visit(Copier param, MemberOf node) {

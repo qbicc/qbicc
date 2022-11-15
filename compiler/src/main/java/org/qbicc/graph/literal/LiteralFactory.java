@@ -25,6 +25,7 @@ import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.VariableElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
+import org.qbicc.type.definition.element.VariableElement;
 import org.qbicc.type.methodhandle.MethodHandleConstant;
 
 /**

@@ -493,8 +493,6 @@ public interface BasicBlockBuilder extends Locatable {
         return pointerHandle(getLiteralFactory().literalOf(variable));
     }
 
-    ValueHandle localVariable(LocalVariableElement variable);
-
     ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
 
     /**
@@ -579,6 +577,8 @@ public interface BasicBlockBuilder extends Locatable {
     ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type);
 
     // memory
+
+    Value auto(Value initializer);
 
     Value memberOf(Value structPointer, CompoundType.Member member);
 

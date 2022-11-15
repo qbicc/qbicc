@@ -165,10 +165,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().resolveStaticField(owner, name, type);
     }
 
-    public ValueHandle localVariable(LocalVariableElement variable) {
-        return getDelegate().localVariable(variable);
-    }
-
     public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         return getDelegate().exactMethodOf(instance, method, callSiteDescriptor, callSiteType);
     }
@@ -215,6 +211,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public ValueHandle asm(final String instruction, final String constraints, final Set<AsmHandle.Flag> flags, FunctionType type) {
         return getDelegate().asm(instruction, constraints, flags, type);
+    }
+
+    public Value auto(Value initializer) {
+        return getDelegate().auto(initializer);
     }
 
     public Value addressOf(final ValueHandle handle) {

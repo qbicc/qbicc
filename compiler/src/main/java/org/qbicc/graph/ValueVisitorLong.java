@@ -46,6 +46,10 @@ public interface ValueVisitorLong<T> {
         return visitUnknown(t, node);
     }
 
+    default long visit(T t, Auto node) {
+        return visitUnknown(t, node);
+    }
+
     default long visit(T t, BitCast node) {
         return visitUnknown(t, node);
     }
@@ -390,6 +394,10 @@ public interface ValueVisitorLong<T> {
         }
 
         default long visit(T t, ArrayLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default long visit(T t, Auto node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

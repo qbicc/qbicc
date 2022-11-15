@@ -13,7 +13,8 @@ import io.smallrye.common.constraint.Assert;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.BlockParameter;
-import org.qbicc.graph.LocalVariable;
+import org.qbicc.graph.DebugAddressDeclaration;
+import org.qbicc.graph.DebugValueDeclaration;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.PinnedNode;
@@ -143,8 +144,10 @@ public interface Schedule {
      */
     static void buildSequence(Node node, Set<Node> visited, Map<BasicBlock, List<Node>> sequences, Map<BasicBlock, Map<Slot, BlockParameter>> blockParameters, Set<LocalVariableElement> locals, ArrayDeque<BlockParameter> cleanups) {
         if (visited.add(node)) {
-            if (node instanceof LocalVariable lv) {
-                locals.add(lv.getVariableElement());
+            if (node instanceof DebugAddressDeclaration lv) {
+                locals.add(lv.getVariable());
+            } else if (node instanceof DebugValueDeclaration lv) {
+                locals.add(lv.getVariable());
             }
             if (node instanceof OrderedNode on) {
                 buildSequence(on.getDependency(), visited, sequences, blockParameters, locals, cleanups);

@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.Auto;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
@@ -40,6 +41,9 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value checkcast(Value value, TypeDescriptor desc) {
+        if (value instanceof Auto auto) {
+            return auto;
+        }
         // delete casts to native base types preemptively
         if (desc instanceof ClassTypeDescriptor ctd) {
             if (ctd.packageAndClassNameEquals(Native.NATIVE_PKG, Native.WORD)) {

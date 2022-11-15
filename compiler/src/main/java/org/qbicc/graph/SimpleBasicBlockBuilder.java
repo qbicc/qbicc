@@ -482,10 +482,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         throw new IllegalStateException("Static field of unresolved type");
     }
 
-    public ValueHandle localVariable(LocalVariableElement variable) {
-        return new LocalVariable(element, line, bci, variable, variable.getType());
-    }
-
     public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
         return new ExactMethodElementHandle(element, line, bci, method, instance, callSiteDescriptor, callSiteType);
     }
@@ -532,6 +528,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
 
     public ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type) {
         return new AsmHandle(callSite, element, line, bci, instruction, constraints, flags, type);
+    }
+
+    public Value auto(Value initializer) {
+        return unique(new Auto(callSite, element, line, bci, requireDependency(), initializer));
     }
 
     public Value addressOf(ValueHandle handle) {

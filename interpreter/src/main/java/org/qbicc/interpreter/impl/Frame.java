@@ -66,7 +66,6 @@ import org.qbicc.graph.IsLe;
 import org.qbicc.graph.IsLt;
 import org.qbicc.graph.IsNe;
 import org.qbicc.graph.Load;
-import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.Max;
 import org.qbicc.graph.MemberOf;
 import org.qbicc.graph.Min;
@@ -2408,11 +2407,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
 
         @Override
-        public ExecutableElement visit(Frame param, LocalVariable node) {
-            throw unsatisfiedLink();
-        }
-
-        @Override
         public ExecutableElement visit(Frame param, PointerHandle node) {
             if (((PointerType)node.getPointerValue().getType()).getPointeeType() instanceof StaticMethodType) {
                 StaticMethodPointer pointer = (StaticMethodPointer) param.require(node.getPointerValue());
@@ -2494,11 +2488,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
 
         @Override
-        public Memory visit(Frame frame, LocalVariable node) {
-            return frame.memoryPointer.getMemory();
-        }
-
-        @Override
         public Memory visit(Frame frame, UnsafeHandle node) {
             Object rawVal = frame.require(node.getOffset());
             if (rawVal instanceof Pointer p) {
@@ -2547,11 +2536,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             } catch (NullPointerException e) {
                 throw e;
             }
-        }
-
-        @Override
-        public long visit(Frame frame, LocalVariable node) {
-            return node.getVariableElement().getOffset();
         }
 
         @Override
