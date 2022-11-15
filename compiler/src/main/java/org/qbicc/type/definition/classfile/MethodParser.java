@@ -383,6 +383,7 @@ final class MethodParser {
         if (! block.hasTarget()) {
             gf.begin(block, this, (mp, gf) -> {
                 mp.buffer.position(target);
+                gf.setBytecodeIndex(target);
                 setUpNewBlock(target, block);
                 processNewBlock();
             });
