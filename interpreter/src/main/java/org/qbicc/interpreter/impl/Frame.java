@@ -30,6 +30,8 @@ import org.qbicc.graph.Call;
 import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.CheckCast;
+import org.qbicc.graph.DebugAddressDeclaration;
+import org.qbicc.graph.DebugValueDeclaration;
 import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.InitCheck;
 import org.qbicc.graph.ClassOf;
@@ -177,6 +179,7 @@ import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
+import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -202,7 +205,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     /**
      * Local variable memory.
      */
-    final Memory memory;
+    final MemoryPointer memoryPointer;
 
     /**
      * Frame values.
@@ -234,11 +237,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
      */
     VmThrowable exception;
 
-    Frame(Frame enclosing, ExecutableElement element, Memory memory) {
+    Frame(Frame enclosing, ExecutableElement element, MemoryPointer memoryPointer) {
         this.enclosing = enclosing;
         this.depth = enclosing == null ? 0 : enclosing.depth + 1;
         this.element = element;
-        this.memory = memory;
+        this.memoryPointer = memoryPointer;
     }
 
     /////////////////////
@@ -2082,6 +2085,23 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
+    public Void visit(VmThreadImpl thread, DebugAddressDeclaration node) {
+        LocalVariableElement lve = node.getVariable();
+        Value address = node.getAddress();
+        // replace it
+        Pointer replacement = memoryPointer.offsetInBytes(lve.getOffset(), false);
+        values.put(address, replacement);
+        return null;
+    }
+
+    @Override
+    public Void visit(VmThreadImpl thread, DebugValueDeclaration node) {
+        LocalVariableElement lve = node.getVariable();
+        store(thread, memoryPointer.getMemory(), lve.getOffset(), lve.getType(), node.getValue(), SingleUnshared);
+        return null;
+    }
+
+    @Override
     public Void visit(VmThreadImpl thread, Fence node) {
         GlobalAccessMode gam = node.getAccessMode();
         if (GlobalPlain.includes(gam)) {
@@ -2470,7 +2490,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
         @Override
         public Memory visit(Frame frame, LocalVariable node) {
-            return frame.memory;
+            return frame.memoryPointer.getMemory();
         }
 
         @Override
