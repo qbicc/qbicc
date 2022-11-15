@@ -478,11 +478,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         throw new IllegalStateException("Instance field of unresolved type");
     }
 
-    public ValueHandle staticField(FieldElement field) {
-        return new StaticField(element, line, bci, (StaticFieldElement) field, field.getType());
-    }
-
-    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+    public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         throw new IllegalStateException("Static field of unresolved type");
     }
 

@@ -172,13 +172,13 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+    public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
         NativeDataInfo fieldInfo = nativeInfo.getFieldInfo(owner, name);
         if (fieldInfo != null) {
-            return pointerHandle(getAndDeclareSymbolLiteral(fieldInfo));
+            return getAndDeclareSymbolLiteral(fieldInfo);
         }
-        return super.staticField(deNative(owner), name, deNative(type));
+        return super.resolveStaticField(deNative(owner), name, deNative(type));
     }
 
     @Override

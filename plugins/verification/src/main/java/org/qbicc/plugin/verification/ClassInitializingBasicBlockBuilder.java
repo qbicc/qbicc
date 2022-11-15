@@ -2,9 +2,16 @@ package org.qbicc.plugin.verification;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.PointerHandle;
+import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
+import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.StaticMethodType;
@@ -35,9 +42,35 @@ public class ClassInitializingBasicBlockBuilder extends DelegatingBasicBlockBuil
     }
 
     @Override
-    public ValueHandle staticField(FieldElement field) {
-        initializeStaticMember(field.getEnclosingType());
-        return super.staticField(field);
+    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
+        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sfl) {
+            initializeStaticMember(sfl.getVariableElement().getEnclosingType());
+        }
+        return super.load(handle, accessMode);
+    }
+
+    @Override
+    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
+        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sfl) {
+            initializeStaticMember(sfl.getVariableElement().getEnclosingType());
+        }
+        return super.store(handle, value, accessMode);
+    }
+
+    @Override
+    public Value readModifyWrite(ValueHandle handle, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sfl) {
+            initializeStaticMember(sfl.getVariableElement().getEnclosingType());
+        }
+        return super.readModifyWrite(handle, op, update, readMode, writeMode);
+    }
+
+    @Override
+    public Value cmpAndSwap(ValueHandle handle, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sfl) {
+            initializeStaticMember(sfl.getVariableElement().getEnclosingType());
+        }
+        return super.cmpAndSwap(handle, expect, update, readMode, writeMode, strength);
     }
 
     @Override

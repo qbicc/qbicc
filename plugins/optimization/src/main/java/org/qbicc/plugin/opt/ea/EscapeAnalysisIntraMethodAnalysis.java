@@ -41,7 +41,6 @@ import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Select;
 import org.qbicc.graph.Slot;
-import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
@@ -53,6 +52,7 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Return;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.NumericType;
@@ -121,7 +121,7 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
                             param.connectionGraph.addPointsToEdge(fieldOf, value);
                         }
                     }
-                } else if (handle instanceof StaticField) {
+                } else if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral) {
                     param.connectionGraph.setGlobalEscape(handle);
                     if (value instanceof NotNull nn) {
                         param.connectionGraph.addPointsToEdge(handle, nn.getInput());
@@ -222,12 +222,6 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
 
         @Override
         public Void visit(AnalysisContext param, Load node) {
-            visitKnown(param, node);
-            return null;
-        }
-
-        @Override
-        public Void visit(AnalysisContext param, StaticField node) {
             visitKnown(param, node);
             return null;
         }

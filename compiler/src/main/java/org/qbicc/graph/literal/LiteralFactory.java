@@ -24,6 +24,7 @@ import org.qbicc.type.WordType;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.VariableElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.methodhandle.MethodHandleConstant;
 
 /**
@@ -84,6 +85,8 @@ public interface LiteralFactory {
     PointerLiteral literalOf(Pointer value);
 
     GlobalVariableLiteral literalOf(GlobalVariableElement variableElement);
+
+    StaticFieldLiteral literalOf(StaticFieldElement variableElement);
 
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
@@ -266,6 +269,13 @@ public interface LiteralFactory {
                 Assert.checkNotNullParam("variableElement", variableElement);
                 return (GlobalVariableLiteral) varLiterals.computeIfAbsent(variableElement, GlobalVariableLiteral::new);
             }
+
+            @Override
+            public StaticFieldLiteral literalOf(StaticFieldElement variableElement) {
+                Assert.checkNotNullParam("variableElement", variableElement);
+                return (StaticFieldLiteral) varLiterals.computeIfAbsent(variableElement, StaticFieldLiteral::new);
+            }
+
         };
     }
 }

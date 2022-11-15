@@ -105,7 +105,6 @@ import org.qbicc.graph.Select;
 import org.qbicc.graph.Shl;
 import org.qbicc.graph.Shr;
 import org.qbicc.graph.StackAllocation;
-import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
@@ -140,6 +139,7 @@ import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
@@ -1225,7 +1225,7 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, StaticField node) {
+        public Void visit(Disassembler param, StaticFieldLiteral node) {
             final String id = param.nextId();
             final String description = node.getVariableElement().toString();
             param.nodeInfo.put(node, new NodeInfo(id, description));

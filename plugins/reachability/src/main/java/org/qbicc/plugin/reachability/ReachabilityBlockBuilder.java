@@ -25,7 +25,6 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
-import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Terminator;
@@ -35,6 +34,7 @@ import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.pointer.InstanceMethodPointer;
@@ -294,7 +294,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         }
 
         @Override
-        public Void visit(ReachabilityContext param, StaticField node) {
+        public Void visit(ReachabilityContext param, StaticFieldLiteral node) {
             if (visitUnknown(param, (Node)node)) {
                 StaticFieldElement f = node.getVariableElement();
                 param.analysis.processReachableStaticFieldAccess(f, param.currentElement);

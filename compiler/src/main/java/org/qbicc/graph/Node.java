@@ -28,6 +28,7 @@ import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
@@ -790,8 +791,8 @@ public interface Node {
                 return param.getBlockBuilder().stackAllocate(node.getType().getPointeeType(), param.copyValue(node.getCount()), param.copyValue(node.getAlign()));
             }
 
-            public ValueHandle visit(Copier param, StaticField node) {
-                return param.getBlockBuilder().staticField(node.getVariableElement());
+            public Value visit(final Copier copier, final StaticFieldLiteral node) {
+                return node;
             }
 
             public ValueHandle visit(Copier param, StaticMethodElementHandle node) {

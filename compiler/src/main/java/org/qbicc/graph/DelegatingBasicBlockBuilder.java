@@ -161,12 +161,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().instanceFieldOf(instance, owner, name, type);
     }
 
-    public ValueHandle staticField(FieldElement field) {
-        return getDelegate().staticField(field);
-    }
-
-    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
-        return getDelegate().staticField(owner, name, type);
+    public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+        return getDelegate().resolveStaticField(owner, name, type);
     }
 
     public ValueHandle localVariable(LocalVariableElement variable) {

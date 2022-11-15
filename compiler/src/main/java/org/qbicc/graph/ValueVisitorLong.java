@@ -15,6 +15,7 @@ import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
@@ -326,6 +327,10 @@ public interface ValueVisitorLong<T> {
     }
 
     default long visit(T t, StackAllocation node) {
+        return visitUnknown(t, node);
+    }
+
+    default long visit(T t, StaticFieldLiteral node) {
         return visitUnknown(t, node);
     }
 
@@ -669,6 +674,10 @@ public interface ValueVisitorLong<T> {
         }
 
         default long visit(T t, StackAllocation node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default long visit(T t, StaticFieldLiteral node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

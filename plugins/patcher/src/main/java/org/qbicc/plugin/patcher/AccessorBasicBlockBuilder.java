@@ -10,13 +10,14 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
+import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.ReadModifyWrite;
-import org.qbicc.graph.StaticField;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
@@ -47,7 +48,7 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value load(ValueHandle handle, ReadAccessMode accessMode) {
-        if (handle instanceof StaticField staticField) {
+        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral staticField) {
             FieldElement field = staticField.getVariableElement();
             VmObject accessor = getAccessor(field);
             if (accessor != null) {
@@ -65,7 +66,7 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
-        if (handle instanceof StaticField staticField) {
+        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral staticField) {
             FieldElement field = staticField.getVariableElement();
             VmObject accessor = getAccessor(field);
             if (accessor != null) {
@@ -88,7 +89,7 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     @Override
     public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (op == ReadModifyWrite.Op.SET) {
-            if (target instanceof StaticField sf && getAccessor(sf.getVariableElement()) != null) {
+            if (target instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sfl && getAccessor(sfl.getVariableElement()) != null) {
                 if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
                     Value loaded = load(target, readMode);
                     store(target, update, writeMode);
@@ -104,7 +105,7 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private void checkAtomicAccessor(final ValueHandle target) {
-        if (target instanceof StaticField sf && getAccessor(sf.getVariableElement()) != null) {
+        if (target instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sfl && getAccessor(sfl.getVariableElement()) != null) {
             atomicNotAllowed();
         }
     }

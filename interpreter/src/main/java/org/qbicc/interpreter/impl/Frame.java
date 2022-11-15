@@ -94,7 +94,6 @@ import org.qbicc.graph.Select;
 import org.qbicc.graph.Shl;
 import org.qbicc.graph.Shr;
 import org.qbicc.graph.StackAllocation;
-import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
@@ -127,6 +126,7 @@ import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
@@ -1570,6 +1570,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
+    public Object visit(VmThreadImpl thread, StaticFieldLiteral node) {
+        return node.getVariableElement().getPointer();
+    }
+
+    @Override
     public Object visit(VmThreadImpl thread, StringLiteral node) {
         return VmImpl.require().intern(node.getValue());
     }
@@ -1693,7 +1698,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, CmpAndSwap node) {
         ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof StaticField sf) {
+        if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
         Memory memory = getMemory(valueHandle);
@@ -1769,7 +1774,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, ReadModifyWrite node) {
         ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof StaticField sf) {
+        if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
         Memory memory = getMemory(valueHandle);
@@ -1952,7 +1957,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         if (valueHandle instanceof CurrentThread) {
             return thread;
         }
-        if (valueHandle instanceof StaticField sf) {
+        if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
         Memory memory = getMemory(valueHandle);
@@ -2160,7 +2165,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         ValueHandle valueHandle = node.getValueHandle();
         Value value = node.getValue();
         WriteAccessMode mode = node.getAccessMode();
-        if (valueHandle instanceof StaticField sf) {
+        if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
         store(thread, valueHandle, value, mode);
@@ -2494,17 +2499,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
 
         @Override
-        public Memory visit(Frame frame, StaticField node) {
-            StaticFieldElement variableElement = node.getVariableElement();
-            if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
-                throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run-time field "+variableElement));
-            }
-            DefinedTypeDefinition enclosingType = variableElement.getEnclosingType();
-            VmClassImpl clazz = (VmClassImpl) enclosingType.load().getVmClass();
-            return clazz.getStaticMemory();
-        }
-
-        @Override
         public Memory visit(Frame frame, UnsafeHandle node) {
             Object rawVal = frame.require(node.getOffset());
             if (rawVal instanceof Pointer p) {
@@ -2588,18 +2582,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             long byteOffset = offset * pointeeType.getSize();
             Pointer targetPointer = pointer.offsetInBytes(byteOffset, true);
             return targetPointer == null ? 0 : targetPointer.getRootByteOffset();
-        }
-
-        @Override
-        public long visit(Frame frame, StaticField node) {
-            CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
-            Layout layout = Layout.get(ctxt);
-            FieldElement field = node.getVariableElement();
-            LayoutInfo layoutInfo = layout.getStaticLayoutInfo(field.getEnclosingType());
-            if (layoutInfo == null) {
-                throw new IllegalStateException("No static fields found");
-            }
-            return layoutInfo.getMember(field).getOffset();
         }
 
         @Override

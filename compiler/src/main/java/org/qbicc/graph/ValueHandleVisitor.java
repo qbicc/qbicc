@@ -44,10 +44,6 @@ public interface ValueHandleVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
-    default R visit(T t, StaticField node) {
-        return visitUnknown(t, node);
-    }
-
     default R visit(T t, StaticMethodElementHandle node) {
         return visitUnknown(t, node);
     }
@@ -110,11 +106,6 @@ public interface ValueHandleVisitor<T, R> {
 
         @Override
         default R visit(T t, LocalVariable node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default R visit(T t, StaticField node) {
             return getDelegateValueHandleVisitor().visit(t, node);
         }
 
