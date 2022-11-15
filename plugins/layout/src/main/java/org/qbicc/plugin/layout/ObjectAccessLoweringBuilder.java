@@ -2,16 +2,19 @@ package org.qbicc.plugin.layout;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PointerType;
+import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.UnsignedIntegerType;
@@ -76,8 +79,10 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
         if (arrayPointer.getPointeeType() instanceof CompoundType ct && ct.getMemberCount() > 0) {
             // ElementOf a CompoundType -> ElementOf the last Member
             CompoundType.Member lastMember = ct.getMember(ct.getMemberCount() - 1);
-            BasicBlockBuilder fb = getFirstBuilder();
-            return fb.elementOf(fb.memberOf(arrayPointer, lastMember), index);
+            if (lastMember.getType() instanceof ArrayType) {
+                BasicBlockBuilder fb = getFirstBuilder();
+                return fb.elementOf(fb.memberOf(arrayPointer, lastMember), index);
+            }
         }
         return getDelegate().elementOf(arrayPointer, index);
     }
