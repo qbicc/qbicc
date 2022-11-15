@@ -18,13 +18,16 @@ import org.qbicc.interpreter.VmString;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.pointer.Pointer;
+import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.IntegerType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
+import org.qbicc.type.TypeSystem;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
@@ -74,6 +77,7 @@ class BuildtimeHeapAnalyzer {
         worklist.add(root);
 
         Layout interpreterLayout = Layout.get(ctxt);
+        TypeSystem ts = ctxt.getTypeSystem();
         while (!worklist.isEmpty()) {
             VmObject cur = worklist.pop();
 
@@ -95,10 +99,12 @@ class BuildtimeHeapAnalyzer {
                             worklist.add(child);
                             visited.put(child, Boolean.TRUE);
                         }
-                    } else if (im.getType() instanceof PointerType) {
+                    } else if (im.getType() instanceof PointerType || im.getType().equals(ts.getSignedInteger64Type())) {
                         Pointer pointer = cur.getMemory().loadPointer(im.getOffset(), SinglePlain);
                         if (pointer instanceof StaticMethodPointer smp) {
                             analysis.processReachableExactInvocation(smp.getStaticMethod(), rootElement);
+                        } else if (pointer instanceof StaticFieldPointer sfp) {
+                            analysis.processReachableStaticFieldAccess(sfp.getStaticField(), rootElement);
                         }
                     }
                 }
