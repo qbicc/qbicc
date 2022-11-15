@@ -425,12 +425,6 @@ public interface BasicBlockBuilder extends Locatable {
      */
     Value selectMember(ValueHandle handle);
 
-    // memory values
-
-    Value memberOf(Value structPointer, CompoundType.Member member);
-
-    Value elementOf(Value array, Value index);
-
     // memory handles
 
     /**
@@ -575,6 +569,10 @@ public interface BasicBlockBuilder extends Locatable {
     ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type);
 
     // memory
+
+    Value memberOf(Value structPointer, CompoundType.Member member);
+
+    Value elementOf(Value array, Value index);
 
     Value addressOf(ValueHandle handle);
 
