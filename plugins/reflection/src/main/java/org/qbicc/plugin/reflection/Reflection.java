@@ -675,6 +675,18 @@ public final class Reflection {
             vm.intern(field.getTypeSignature().toString()),
             getAnnotations(field)
         ));
+
+        // Store the native offset (see Field$_patch) used to implement the Unsafe.fieldOffset natives
+        field.setModifierFlags(ClassFile.I_ACC_PINNED);
+        int memOffset = fieldClass.indexOf(fieldClass.getTypeDefinition().findField("offset"));
+        if (field.isStatic()) {
+            vmObject.getMemory().storePointer(memOffset, StaticFieldPointer.of((StaticFieldElement) field), SinglePlain);
+        } else {
+            LayoutInfo layoutInfo = Layout.get(vm.getCompilationContext()).getInstanceLayoutInfo(field.getEnclosingType().load());
+            CompoundType.Member member = layoutInfo.getMember(field);
+            vmObject.getMemory().store64(memOffset, member.getOffset(), SinglePlain);
+        }
+
         VmObject appearing = reflectionObjects.putIfAbsent(field, vmObject);
         return appearing != null ? appearing : vmObject;
     }
