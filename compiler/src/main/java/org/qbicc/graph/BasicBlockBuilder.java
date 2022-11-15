@@ -44,6 +44,7 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
@@ -474,9 +475,15 @@ public interface BasicBlockBuilder extends Locatable {
         return pointerHandle(decodeReference(reference));
     }
 
-    ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field);
+    @Deprecated
+    default ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
+        return getFirstBuilder().pointerHandle(instanceFieldOf(getFirstBuilder().addressOf(instance), (InstanceFieldElement) field));
+    }
 
-    ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type);
+    @Deprecated
+    default ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
+        return getFirstBuilder().pointerHandle(instanceFieldOf(getFirstBuilder().addressOf(instance), owner, name, type));
+    }
 
     @Deprecated
     default ValueHandle staticField(FieldElement field) {
@@ -585,6 +592,10 @@ public interface BasicBlockBuilder extends Locatable {
     Value elementOf(Value array, Value index);
 
     Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type);
+
+    Value instanceFieldOf(Value instancePointer, InstanceFieldElement field);
+
+    Value instanceFieldOf(Value instancePointer, TypeDescriptor owner, String name, TypeDescriptor type);
 
     Value addressOf(ValueHandle handle);
 

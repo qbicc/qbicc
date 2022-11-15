@@ -28,10 +28,6 @@ public interface ValueHandleVisitorLong<T> {
         return visitUnknown(t, node);
     }
 
-    default long visit(T t, InstanceFieldOf node) {
-        return visitUnknown(t, node);
-    }
-
     default long visit(T t, InterfaceMethodElementHandle node) {
         return visitUnknown(t, node);
     }
@@ -82,11 +78,6 @@ public interface ValueHandleVisitorLong<T> {
 
         @Override
         default long visit(T t, FunctionElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default long visit(T t, InstanceFieldOf node) {
             return getDelegateValueHandleVisitor().visit(t, node);
         }
 

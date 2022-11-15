@@ -107,7 +107,7 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
                 final ValueHandle handle = node.getValueHandle();
                 final Value value = node.getValue();
 
-                if (handle instanceof InstanceFieldOf fieldOf && fieldOf.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr) {
+                if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof InstanceFieldOf fieldOf && fieldOf.getInstance() instanceof DecodeReference dr) {
                     Value ref = dr.getInput();
                     if (value instanceof New && ref instanceof BlockParameter bp && bp.isEntryParameter()) {
                         if (bp.getSlot() == Slot.this_()) {

@@ -47,7 +47,6 @@ import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 
 /**
@@ -133,13 +132,13 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value load(ValueHandle handle, ReadAccessMode accessMode) {
-        if (handle instanceof InstanceFieldOf ifo) {
+        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof InstanceFieldOf ifo) {
             CoreClasses coreClasses = CoreClasses.get(getContext());
             // it might be an array length...
             InstanceFieldElement ve = ifo.getVariableElement();
             if (ve == coreClasses.getArrayLengthField()) {
                 // see if it's constant; extract the array size directly if so
-                if (ifo.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr) {
+                if (ifo.getInstance() instanceof DecodeReference dr) {
                     if (dr.getInput() instanceof NewReferenceArray nra) {
                         return nra.getSize();
                     } else if (dr.getInput() instanceof NewArray na) {
@@ -147,13 +146,13 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                     }
                 }
             } else if (ve == coreClasses.getRefArrayDimensionsField()) {
-                if (ifo.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr) {
+                if (ifo.getInstance() instanceof DecodeReference dr) {
                     if (dr.getInput() instanceof NewReferenceArray nra) {
                         return nra.getDimensions();
                     }
                 }
             } else if (ve == coreClasses.getRefArrayElementTypeIdField()) {
-                if (ifo.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr) {
+                if (ifo.getInstance() instanceof DecodeReference dr) {
                     if (dr.getInput() instanceof NewReferenceArray nra) {
                         return nra.getElemTypeId();
                     }

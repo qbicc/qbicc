@@ -223,8 +223,8 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
-        return super.instanceFieldOf(instance, deNative(owner), name, deNative(type));
+    public Value instanceFieldOf(Value instancePointer, TypeDescriptor owner, String name, TypeDescriptor type) {
+        return super.instanceFieldOf(instancePointer, deNative(owner), name, deNative(type));
     }
 
     MethodDescriptor deNative(MethodDescriptor md) {

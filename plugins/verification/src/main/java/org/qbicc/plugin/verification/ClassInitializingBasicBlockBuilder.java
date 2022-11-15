@@ -18,8 +18,8 @@ import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
-import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 
@@ -36,7 +36,7 @@ public class ClassInitializingBasicBlockBuilder extends DelegatingBasicBlockBuil
     }
 
     @Override
-    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
+    public Value instanceFieldOf(Value instance, InstanceFieldElement field) {
         initialize(field.getEnclosingType());
         return super.instanceFieldOf(instance, field);
     }

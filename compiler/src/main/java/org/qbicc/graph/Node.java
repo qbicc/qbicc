@@ -602,8 +602,8 @@ public interface Node {
                 return param.getBlockBuilder().isNe(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
-            public ValueHandle visit(Copier param, InstanceFieldOf node) {
-                return param.getBlockBuilder().instanceFieldOf(param.copyValueHandle(node.getValueHandle()), node.getVariableElement());
+            public Value visit(final Copier param, final InstanceFieldOf node) {
+                return param.getBlockBuilder().instanceFieldOf(param.copyValue(node.getInstance()), node.getVariableElement());
             }
 
             public ValueHandle visit(Copier param, InterfaceMethodElementHandle node) {

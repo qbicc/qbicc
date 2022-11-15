@@ -1184,7 +1184,7 @@ public final class Disassembler {
         @Override
         public Void visit(Disassembler param, InstanceFieldOf node) {
             final String id = param.nextId();
-            String description = node.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr
+            String description = node.getInstance() instanceof DecodeReference dr
                 ? show(dr.getInput()) + " " + node.getVariableElement().getName()
                 : "?";
             param.nodeInfo.put(node, new NodeInfo(id, description));

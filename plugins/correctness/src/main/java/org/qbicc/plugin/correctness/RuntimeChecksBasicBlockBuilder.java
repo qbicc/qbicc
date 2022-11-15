@@ -50,6 +50,7 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
@@ -240,6 +241,12 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         return super.divide(v1, v2);
     }
 
+    @Override
+    public Value instanceFieldOf(Value instancePointer, InstanceFieldElement field) {
+        nullCheck(instancePointer);
+        return super.instanceFieldOf(instancePointer, field);
+    }
+
     private void throwIncompatibleClassChangeError() {
         MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseIncompatibleClassChangeError");
         throw new BlockEarlyTermination(callNoReturn(staticMethod(helper), List.of()));
@@ -256,16 +263,6 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     private Value check(ValueHandle handle, Value storedValue) {
         return handle.accept(new ValueHandleVisitor<Void, Value>() {
-            @Override
-            public Value visit(Void param, InstanceFieldOf node) {
-                if (node.getVariableElement().isStatic()) {
-                    throwIncompatibleClassChangeError();
-                } else {
-                    node.getValueHandle().accept(this, param);
-                }
-                return null;
-            }
-
             @Override
             public Value visit(Void param, PointerHandle node) {
                 if (node.getPointerValue() instanceof DecodeReference dr) {

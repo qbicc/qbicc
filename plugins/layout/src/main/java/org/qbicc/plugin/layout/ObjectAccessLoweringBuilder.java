@@ -17,7 +17,7 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 
 /**
  *
@@ -100,7 +100,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     }
 
     @Override
-    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
+    public Value instanceFieldOf(Value instance, InstanceFieldElement field) {
         BasicBlockBuilder fb = getFirstBuilder();
         Layout layout = Layout.get(ctxt);
         LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(field.getEnclosingType());

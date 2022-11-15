@@ -470,16 +470,16 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return new PointerHandle(callSite, element, line, bci, pointer, offsetValue);
     }
 
-    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
-        return new InstanceFieldOf(element, line, bci, (InstanceFieldElement) field, field.getType(), instance);
-    }
-
-    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
-        throw new IllegalStateException("Instance field of unresolved type");
-    }
-
     public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         throw new IllegalStateException("Static field of unresolved type");
+    }
+
+    public Value instanceFieldOf(Value instancePointer, InstanceFieldElement field) {
+        return unique(new InstanceFieldOf(callSite, element, line, bci, instancePointer, field));
+    }
+
+    public Value instanceFieldOf(Value instancePointer, TypeDescriptor owner, String name, TypeDescriptor type) {
+        throw new IllegalStateException("Instance field of unresolved type");
     }
 
     public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {

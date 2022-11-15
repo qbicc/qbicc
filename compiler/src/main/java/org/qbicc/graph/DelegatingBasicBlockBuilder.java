@@ -28,6 +28,7 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -153,16 +154,16 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().pointerHandle(pointer, offsetValue);
     }
 
-    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
-        return getDelegate().instanceFieldOf(instance, field);
-    }
-
-    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
-        return getDelegate().instanceFieldOf(instance, owner, name, type);
-    }
-
     public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         return getDelegate().resolveStaticField(owner, name, type);
+    }
+
+    public Value instanceFieldOf(Value instancePointer, InstanceFieldElement field) {
+        return getDelegate().instanceFieldOf(instancePointer, field);
+    }
+
+    public Value instanceFieldOf(Value instancePointer, TypeDescriptor owner, String name, TypeDescriptor type) {
+        return getDelegate().instanceFieldOf(instancePointer, owner, name, type);
     }
 
     public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {

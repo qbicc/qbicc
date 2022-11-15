@@ -39,7 +39,7 @@ public final class EscapeAnalysisDotVisitor implements NodeVisitor.Delegating<Di
     @Override
     public Void visit(Disassembler param, Store node) {
         final ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral || valueHandle instanceof InstanceFieldOf) {
+        if (valueHandle instanceof PointerHandle ph && (ph.getPointerValue() instanceof StaticFieldLiteral || ph.getPointerValue() instanceof InstanceFieldOf)) {
             decorate(param, valueHandle);
         }
 

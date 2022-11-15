@@ -34,9 +34,9 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         this.ctxt = getContext();
     }
 
-    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
+    public Value instanceFieldOf(Value instancePointer, TypeDescriptor owner, String name, TypeDescriptor type) {
         if (loadClass(owner)) {
-            return super.instanceFieldOf(instance, owner, name, type);
+            return super.instanceFieldOf(instancePointer, owner, name, type);
         }
         // no need to continue
         throw new BlockEarlyTermination(noClassDefFound(owner));

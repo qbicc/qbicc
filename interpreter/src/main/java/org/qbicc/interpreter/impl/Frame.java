@@ -925,6 +925,16 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
+    public Object visit(VmThreadImpl vmThread, InstanceFieldOf node) {
+        Value instance = node.getInstance();
+        Pointer pointer = unboxPointer(instance);
+        if (pointer == null) {
+            return null;
+        }
+        return new InstanceFieldPointer(pointer, node.getVariableElement());
+    }
+
+    @Override
     public Object visit(VmThreadImpl thread, InstanceOf node) {
         Value instance = node.getInstance();
         Object value = require(instance);
@@ -2479,15 +2489,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
 
         @Override
-        public Memory visit(Frame frame, InstanceFieldOf node) {
-            InstanceFieldElement variableElement = node.getVariableElement();
-            if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
-                throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run-time field "+variableElement));
-            }
-            return node.getValueHandle().accept(this, frame);
-        }
-
-        @Override
         public Memory visit(Frame frame, UnsafeHandle node) {
             Object rawVal = frame.require(node.getOffset());
             if (rawVal instanceof Pointer p) {
@@ -2523,19 +2524,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public long visitUnknown(Frame thread, ValueHandle node) {
             throw unsupportedType();
-        }
-
-        @Override
-        public long visit(Frame frame, InstanceFieldOf node) {
-            CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
-            Layout layout = Layout.get(ctxt);
-            InstanceFieldElement field = node.getVariableElement();
-            LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(field.getEnclosingType());
-            try {
-                return node.getValueHandle().accept(this, frame) + layoutInfo.getMember(field).getOffset();
-            } catch (NullPointerException e) {
-                throw e;
-            }
         }
 
         @Override
