@@ -239,6 +239,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         call.arg(metadata(mappedPointerType), mappedAddress)
             .arg(metadata, metadataNode.asRef())
             .arg(metadata, LLVM.diExpression().arg(DIOpcode.Deref).asValue());
+        call.comment("local var " + node.getVariable().getName());
         return call;
     }
 
@@ -254,6 +255,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         call.arg(metadata(mappedValueType), mappedValue)
             .arg(metadata, metadataNode.asRef())
             .arg(metadata, emptyExpr);
+        call.comment("local var " + node.getVariable().getName());
         return call;
     }
 
