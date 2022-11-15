@@ -1008,7 +1008,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isInt64(inputType)) {
             return Boolean.valueOf(unboxLong(left) >= unboxLong(right));
         } else if (isInteger(inputType)) {
-            return Boolean.valueOf(unboxInt(left) >= unboxInt(right));
+            return Boolean.valueOf(isSigned(inputType) ? unboxInt(left) >= unboxInt(right) : Integer.compareUnsigned(unboxInt(left), unboxInt(right)) >= 0);
         }
         throw new IllegalStateException("Invalid is*");
     }
@@ -1026,7 +1026,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isInt64(inputType)) {
             return Boolean.valueOf(unboxLong(left) > unboxLong(right));
         } else if (isInteger(inputType)) {
-            return Boolean.valueOf(unboxInt(left) > unboxInt(right));
+            return Boolean.valueOf(isSigned(inputType) ? unboxInt(left) > unboxInt(right) : Integer.compareUnsigned(unboxInt(left), unboxInt(right)) > 0);
         }
         throw new IllegalStateException("Invalid is*");
     }
@@ -1044,7 +1044,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isInt64(inputType)) {
             return Boolean.valueOf(unboxLong(left) <= unboxLong(right));
         } else if (isInteger(inputType)) {
-            return Boolean.valueOf(unboxInt(left) <= unboxInt(right));
+            return Boolean.valueOf(isSigned(inputType) ? unboxInt(left) <= unboxInt(right) : Integer.compareUnsigned(unboxInt(left), unboxInt(right)) <= 0);
         }
         throw new IllegalStateException("Invalid is*");
     }
@@ -1062,7 +1062,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isInt64(inputType)) {
             return Boolean.valueOf(unboxLong(left) < unboxLong(right));
         } else if (isInteger(inputType)) {
-            return Boolean.valueOf(unboxInt(left) < unboxInt(right));
+            return Boolean.valueOf(isSigned(inputType) ? unboxInt(left) < unboxInt(right) : Integer.compareUnsigned(unboxInt(left), unboxInt(right)) < 0);
         }
         throw new IllegalStateException("Invalid is*");
     }
@@ -2618,12 +2618,21 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
     }
 
-    private int unboxInt(final Value rightInput) {
-        Object required = require(rightInput);
+    private int unboxInt(final Value input) {
+        Object required = require(input);
         if (required instanceof Boolean boo) {
             return boo.booleanValue() ? 1 : 0;
         } else if (required instanceof Number num) {
-            return num.intValue();
+            if (input.getType() instanceof UnsignedIntegerType uit) {
+                return switch (uit.getMinBits()) {
+                    case 8 -> num.byteValue() & 0xff;
+                    case 16 -> num.shortValue() & 0xffff;
+                    default -> num.intValue();
+                };
+            } else {
+                // always sign-extends
+                return num.intValue();
+            }
         } else if (required instanceof Character ch) {
             return ch.charValue();
         } else {
