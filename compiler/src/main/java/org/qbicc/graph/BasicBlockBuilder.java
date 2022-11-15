@@ -481,7 +481,10 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type);
 
-    ValueHandle globalVariable(GlobalVariableElement variable);
+    @Deprecated
+    default ValueHandle globalVariable(GlobalVariableElement variable) {
+        return pointerHandle(getLiteralFactory().literalOf(variable));
+    }
 
     ValueHandle localVariable(LocalVariableElement variable);
 

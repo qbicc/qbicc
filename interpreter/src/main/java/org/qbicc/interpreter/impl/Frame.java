@@ -50,7 +50,6 @@ import org.qbicc.graph.Extend;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
 import org.qbicc.graph.FunctionElementHandle;
-import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
 import org.qbicc.graph.InstanceFieldOf;
@@ -120,6 +119,7 @@ import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.literal.GlobalVariableLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.NullLiteral;
@@ -1426,6 +1426,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
+    public Object visit(VmThreadImpl thread, GlobalVariableLiteral node) {
+        return node.getVariableElement().getPointer();
+    }
+
+    @Override
     public Object visit(VmThreadImpl thread, IntegerLiteral node) {
         return box(node.longValue(), node.getType());
     }
@@ -2262,11 +2267,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
 
         @Override
-        public ExecutableElement visit(Frame param, GlobalVariable node) {
-            throw unsatisfiedLink();
-        }
-
-        @Override
         public ExecutableElement visit(Frame param, LocalVariable node) {
             throw unsatisfiedLink();
         }
@@ -2344,12 +2344,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
 
         @Override
-        public Memory visit(Frame frame, GlobalVariable node) {
-            VmImpl vm = (VmImpl) Vm.current();
-            return vm.getGlobal(node.getVariableElement());
-        }
-
-        @Override
         public Memory visit(Frame frame, InstanceFieldOf node) {
             InstanceFieldElement variableElement = node.getVariableElement();
             if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
@@ -2410,11 +2404,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public long visitUnknown(Frame thread, ValueHandle node) {
             throw unsupportedType();
-        }
-
-        @Override
-        public long visit(Frame thread, GlobalVariable node) {
-            return 0;
         }
 
         @Override

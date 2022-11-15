@@ -169,10 +169,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().staticField(owner, name, type);
     }
 
-    public ValueHandle globalVariable(GlobalVariableElement variable) {
-        return getDelegate().globalVariable(variable);
-    }
-
     public ValueHandle localVariable(LocalVariableElement variable) {
         return getDelegate().localVariable(variable);
     }

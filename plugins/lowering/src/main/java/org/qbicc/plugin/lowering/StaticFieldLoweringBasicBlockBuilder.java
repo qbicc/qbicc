@@ -36,6 +36,6 @@ public class StaticFieldLoweringBasicBlockBuilder extends DelegatingBasicBlockBu
             ProgramModule programModule = ctxt.getOrAddProgramModule(ourHolder);
             programModule.declareData(field, global.getName(), global.getType());
         }
-        return globalVariable(global);
+        return pointerHandle(getLiteralFactory().literalOf(global));
     }
 }

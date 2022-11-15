@@ -486,10 +486,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         throw new IllegalStateException("Static field of unresolved type");
     }
 
-    public ValueHandle globalVariable(GlobalVariableElement variable) {
-        return new GlobalVariable(element, line, bci, variable, variable.getType());
-    }
-
     public ValueHandle localVariable(LocalVariableElement variable) {
         return new LocalVariable(element, line, bci, variable, variable.getType());
     }

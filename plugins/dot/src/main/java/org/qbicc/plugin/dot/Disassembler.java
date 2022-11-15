@@ -57,7 +57,6 @@ import org.qbicc.graph.ExtractInstanceField;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
 import org.qbicc.graph.FunctionElementHandle;
-import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
 import org.qbicc.graph.InitCheck;
@@ -134,6 +133,7 @@ import org.qbicc.graph.literal.CompoundLiteral;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.literal.GlobalVariableLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.MethodHandleLiteral;
@@ -1175,7 +1175,7 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, GlobalVariable node) {
+        public Void visit(Disassembler param, GlobalVariableLiteral node) {
             final String id = param.nextId();
             final String description = node.getVariableElement().getName();
             param.nodeInfo.put(node, new NodeInfo(id, description));

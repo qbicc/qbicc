@@ -9,6 +9,7 @@ import org.qbicc.graph.literal.CompoundLiteral;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.literal.GlobalVariableLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.NullLiteral;
@@ -213,6 +214,10 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T t, Load node) {
+        return visitUnknown(t, node);
+    }
+
+    default R visit(T t, GlobalVariableLiteral node) {
         return visitUnknown(t, node);
     }
 
@@ -552,6 +557,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T t, Load node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default R visit(T t, GlobalVariableLiteral node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 
