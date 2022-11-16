@@ -447,8 +447,6 @@ public interface BasicBlockBuilder extends Locatable {
         return pointerHandle(elementOf(addressOf(array), index));
     }
 
-    ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType);
-
     /**
      * Convenience method to construct a pointer handle with an offset.
      * <b>Do not override this method.</b>
@@ -590,6 +588,8 @@ public interface BasicBlockBuilder extends Locatable {
     Value elementOf(Value array, Value index);
 
     Value offsetPointer(Value basePointer, Value offset);
+
+    Value byteOffsetPointer(Value base, Value offset, ValueType outputType);
 
     Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type);
 

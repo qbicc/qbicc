@@ -115,13 +115,12 @@ import org.qbicc.graph.Throw;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.UnaryValue;
 import org.qbicc.graph.Unreachable;
-import org.qbicc.graph.UnsafeHandle;
+import org.qbicc.graph.ByteOffsetPointer;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.VaArg;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Return;
-import org.qbicc.graph.ValueVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.literal.ArrayLiteral;
@@ -1246,11 +1245,11 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, UnsafeHandle node) {
+        public Void visit(Disassembler param, ByteOffsetPointer node) {
             final String id = param.nextId();
             final String description = String.format(
                 "unsafe-handle %s %s"
-                , show(node.getValueHandle())
+                , show(node.getBasePointer())
                 , show(node.getOffset())
             );
             param.nodeInfo.put(node, new NodeInfo(id, description));

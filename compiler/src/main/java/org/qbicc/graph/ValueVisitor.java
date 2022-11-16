@@ -43,6 +43,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, ByteOffsetPointer node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, ByteSwap node) {
         return visitUnknown(t, node);
     }
@@ -323,6 +327,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         }
 
         default R visit(T t, BlockParameter node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default R visit(T t, ByteOffsetPointer node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

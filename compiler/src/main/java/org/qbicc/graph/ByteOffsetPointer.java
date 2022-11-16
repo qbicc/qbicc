@@ -8,14 +8,14 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import java.util.Objects;
 
 /**
- * A base + offset to be used in an Unsafe memory access.
+ * A pointer that is offset from another pointer by some number of bytes.
  */
-public class UnsafeHandle extends AbstractValueHandle {
-    private final ValueHandle base;
+public final class ByteOffsetPointer extends AbstractValue {
+    private final Value base;
     private final Value offset;
     private final ValueType outputType;
 
-    UnsafeHandle(Node callSite, ExecutableElement element, int line, int bci, ValueHandle base, Value offset, ValueType outputType) {
+    ByteOffsetPointer(Node callSite, ExecutableElement element, int line, int bci, Value base, Value offset, ValueType outputType) {
         super(callSite, element, line, bci);
         this.base = base;
         this.offset = offset;
@@ -23,23 +23,17 @@ public class UnsafeHandle extends AbstractValueHandle {
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
-        return true;
-    }
-
-    @Override
-    public ValueHandle getValueHandle() {
-        return base;
-    }
-
-    @Override
     public int getValueDependencyCount() {
-        return 1;
+        return 2;
     }
 
     @Override
     public Value getValueDependency(int index) throws IndexOutOfBoundsException {
-        return index == 0 ? this.offset : Util.throwIndexOutOfBounds(index);
+        return switch (index) {
+            case 0 -> base;
+            case 1 -> offset;
+            default -> throw new IndexOutOfBoundsException(index);
+        };
     }
 
     @Override
@@ -48,13 +42,13 @@ public class UnsafeHandle extends AbstractValueHandle {
     }
 
     @Override
-    public boolean isConstantLocation() {
-            return offset.isConstant() && base.isConstantLocation();
+    public boolean isConstant() {
+        return offset.isConstant() && base.isConstant();
     }
 
     @Override
-    public boolean isValueConstant() {
-        return offset.isConstant() && base.isValueConstant();
+    public boolean isPointeeConstant() {
+        return false;
     }
 
     @Override
@@ -62,7 +56,7 @@ public class UnsafeHandle extends AbstractValueHandle {
         return base.getDetectedMode();
     }
 
-    public ValueHandle getBase() {
+    public Value getBasePointer() {
         return base;
     }
 
@@ -71,7 +65,7 @@ public class UnsafeHandle extends AbstractValueHandle {
     }
 
     public ValueType getOutputType() {
-        return outputType;
+        return getPointeeType();
     }
 
     int calcHashCode() {
@@ -80,11 +74,16 @@ public class UnsafeHandle extends AbstractValueHandle {
 
     @Override
     String getNodeName() {
-        return "Unsafe";
+        return "ByteOffsetPointer";
     }
 
     public boolean equals(final Object other) {
-        return other instanceof UnsafeHandle && equals((UnsafeHandle) other);
+        return other instanceof ByteOffsetPointer && equals((ByteOffsetPointer) other);
+    }
+
+    @Override
+    StringBuilder toRValueString(StringBuilder b) {
+        return offset.toReferenceString(base.toReferenceString(b.append("offset ")).append(" by bytes "));
     }
 
     @Override
@@ -96,15 +95,11 @@ public class UnsafeHandle extends AbstractValueHandle {
         return b;
     }
 
-    public boolean equals(final UnsafeHandle other) {
+    public boolean equals(final ByteOffsetPointer other) {
         return this == other || other != null && base.equals(other.base) && offset.equals(other.offset) && outputType.equals(other.offset);
     }
 
-    public <T, R> R accept(final ValueHandleVisitor<T, R> visitor, final T param) {
-        return visitor.visit(param, this);
-    }
-
-    public <T> long accept(final ValueHandleVisitorLong<T> visitor, final T param) {
+    public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
 }

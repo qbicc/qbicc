@@ -104,7 +104,7 @@ import org.qbicc.graph.TerminatorVisitor;
 import org.qbicc.graph.Throw;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Unreachable;
-import org.qbicc.graph.UnsafeHandle;
+import org.qbicc.graph.ByteOffsetPointer;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
@@ -341,6 +341,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl param, AddressOf node) {
         ValueHandle valueHandle = node.getValueHandle();
+        if (valueHandle instanceof PointerHandle ph) {
+            return require(ph.getPointerValue());
+        }
         Memory memory = getMemory(valueHandle);
         if (memory == null) {
             return null;
@@ -416,6 +419,55 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return box(Integer.reverse(unboxInt(input)) >>> 24, inputType);
         }
         throw badInputType();
+    }
+
+    @Override
+    public Object visit(VmThreadImpl vmThread, ByteOffsetPointer node) {
+        // allow all supportable combinations of a + b
+        Object base = require(node.getBasePointer());
+        Object off = require(node.getOffset());
+        if (base == null) {
+            if (off == null) {
+                return null;
+            } if (off instanceof Pointer p) {
+                return p;
+            } else if (off instanceof Number n) {
+                long offVal = n.longValue();
+                return offVal == 0 ? null : new IntegerAsPointer(node.getType(), offVal);
+            } else {
+                // ??
+                return null;
+            }
+        } else if (base instanceof Number || base instanceof IntegerAsPointer) {
+            long baseVal = base instanceof Number n ? n.longValue() : ((IntegerAsPointer) base).getValue();
+            if (off == null) {
+                return new IntegerAsPointer(node.getType(), baseVal);
+            } else if (off instanceof Number || off instanceof IntegerAsPointer) {
+                long offVal = off instanceof Number n ? n.longValue() : ((IntegerAsPointer) off).getValue();
+                return new IntegerAsPointer(node.getType(), baseVal + offVal);
+            } else if (off instanceof Pointer offPtr) {
+                return offPtr.offsetInBytes(baseVal, false);
+            } else {
+                // ??
+                return null;
+            }
+        } else if (base instanceof Pointer basePtr) {
+            if (off == null) {
+                return basePtr;
+            } else if (off instanceof Number || off instanceof IntegerAsPointer) {
+                long offVal = off instanceof Number n ? n.longValue() : ((IntegerAsPointer) off).getValue();
+                return basePtr.offsetInBytes(offVal, false);
+            } else if (off instanceof Pointer) {
+                // pointer + pointer
+                return null;
+            } else {
+                // ??
+                return null;
+            }
+        } else {
+            // ??
+            return null;
+        }
     }
 
     @Override
@@ -2513,17 +2565,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
 
         @Override
-        public Memory visit(Frame frame, UnsafeHandle node) {
-            Object rawVal = frame.require(node.getOffset());
-            if (rawVal instanceof Pointer p) {
-                return p.getRootPointer().accept(GET_MEMORY_FROM_POINTER, frame);
-            } else if (rawVal == null) {
-                return null;
-            }
-            return node.getValueHandle().accept(this, frame);
-        }
-
-        @Override
         public Memory visit(Frame frame, PointerHandle node) {
             Pointer pointer = frame.unboxPointer(node.getPointerValue());
             if (pointer == null) {
@@ -2547,15 +2588,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         public long visit(Frame frame, PointerHandle node) {
             Pointer pointer = frame.unboxPointer(node.getPointerValue());
             return pointer == null ? 0 : pointer.getRootByteOffset();
-        }
-
-        @Override
-        public long visit(Frame frame, UnsafeHandle node) {
-            Object rawVal = frame.require(node.getOffset());
-            if (rawVal instanceof Pointer p) {
-                return p.getRootByteOffset();
-            }
-            return ((Long) rawVal).longValue();
         }
     };
 
@@ -2713,7 +2745,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     private Pointer unboxPointer(final Value rightInput) {
-        return (Pointer) require(rightInput);
+        Object v = require(rightInput);
+        if (v instanceof Number n && n.longValue() == 0) {
+            return null;
+        }
+        return (Pointer) v;
     }
 
     private long unboxLong(final Value rightInput) {

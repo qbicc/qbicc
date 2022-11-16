@@ -742,8 +742,8 @@ public interface Node {
                 return param.getBlockBuilder().vaArg(param.copyValue(node.getVaList()), node.getType());
             }
 
-            public ValueHandle visit(final Copier param, final UnsafeHandle node) {
-                return param.getBlockBuilder().unsafeHandle(param.copyValueHandle(node.getBase()), param.copyValue(node.getOffset()), node.getOutputType());
+            public Value visit(final Copier param, final ByteOffsetPointer node) {
+                return param.getBlockBuilder().byteOffsetPointer(param.copyValue(node.getBasePointer()), param.copyValue(node.getOffset()), node.getOutputType());
             }
 
             public Value visit(final Copier param, final Xor node) {

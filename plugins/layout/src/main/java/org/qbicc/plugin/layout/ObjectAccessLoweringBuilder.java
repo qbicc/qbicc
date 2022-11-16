@@ -112,10 +112,10 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     }
 
     @Override
-    public ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType) {
+    public Value byteOffsetPointer(Value base, Value offset, ValueType outputType) {
         BasicBlockBuilder fb = getFirstBuilder();
         UnsignedIntegerType u8 = ctxt.getTypeSystem().getUnsignedInteger8Type();
-        ValueHandle valueHandle = fb.pointerHandle(fb.bitCast(fb.addressOf(base), u8.getPointer()), offset);
-        return fb.pointerHandle(fb.bitCast(fb.addressOf(valueHandle), outputType.getPointer()));
+        ValueHandle valueHandle = fb.pointerHandle(fb.bitCast(base, u8.getPointer()), offset);
+        return fb.bitCast(fb.addressOf(valueHandle), outputType.getPointer());
     }
 }

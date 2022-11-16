@@ -115,7 +115,7 @@ public class UnsafeIntrinsics {
             ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getObjectType();
             expectType = objectType.getReference();
         }
-        ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, expectType);
+        ValueHandle handle = builder.pointerHandle(builder.byteOffsetPointer(builder.decodeReference(obj), offset, expectType));
         Value result = builder.cmpAndSwap(handle, expect, update, readMode, writeMode, strength);
         // result is a compound structure; extract the result
         return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, expectType).getMember(0));
@@ -181,7 +181,7 @@ public class UnsafeIntrinsics {
             ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getObjectType();
             expectType = objectType.getReference();
         }
-        ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, expectType);
+        ValueHandle handle = builder.pointerHandle(builder.byteOffsetPointer(builder.decodeReference(obj), offset, expectType));
         Value result = builder.cmpAndSwap(handle, expect, update, readMode, writeMode, strength);
         // result is a compound structure; extract the success flag
         return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, expectType).getMember(1));
@@ -265,7 +265,7 @@ public class UnsafeIntrinsics {
             ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getObjectType();
             operandType = objectType.getReference();
         }
-        ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, operandType);
+        ValueHandle handle = builder.pointerHandle(builder.byteOffsetPointer(builder.decodeReference(obj), offset, operandType));
         return builder.readModifyWrite(handle, op, operand, readMode, writeMode);
     }
 
@@ -438,7 +438,7 @@ public class UnsafeIntrinsics {
                         value = builder.select(value, ctxt.getLiteralFactory().literalOf((IntegerType) valueType, 1),
                             ctxt.getLiteralFactory().literalOf((IntegerType) valueType, 0));
                     }
-                    ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, valueType);
+                    ValueHandle handle = builder.pointerHandle(builder.byteOffsetPointer(builder.decodeReference(obj), offset, valueType));
                     builder.store(handle, value, suffixAndMode.getValue());
                     return voidLiteral;
                 });

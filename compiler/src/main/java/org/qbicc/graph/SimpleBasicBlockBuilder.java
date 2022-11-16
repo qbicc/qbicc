@@ -463,8 +463,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return unique(new OffsetPointer(callSite, element, line, bci, basePointer, offset));
     }
 
-    public ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType) {
-        return new UnsafeHandle(callSite, element, line, bci, base, offset, outputType);
+    public Value byteOffsetPointer(Value base, Value offset, ValueType outputType) {
+        return unique(new ByteOffsetPointer(callSite, element, line, bci, base, offset, outputType));
     }
 
     public ValueHandle pointerHandle(Value pointer) {

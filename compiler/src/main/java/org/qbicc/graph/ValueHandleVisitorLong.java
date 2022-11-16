@@ -32,10 +32,6 @@ public interface ValueHandleVisitorLong<T> {
         return visitUnknown(t, node);
     }
 
-    default long visit(T t, UnsafeHandle node) {
-        return visitUnknown(t, node);
-    }
-
     default long visit(T t, PointerHandle node) {
         return visitUnknown(t, node);
     }
@@ -75,11 +71,6 @@ public interface ValueHandleVisitorLong<T> {
 
         @Override
         default long visit(T t, StaticMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default long visit(T t, UnsafeHandle node) {
             return getDelegateValueHandleVisitor().visit(t, node);
         }
 
