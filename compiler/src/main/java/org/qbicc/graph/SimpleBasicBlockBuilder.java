@@ -442,9 +442,9 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return unique(new MemberSelector(callSite, element, line, bci, handle, ts.getVoidType()));
     }
 
-    public ValueHandle currentThread() {
+    public Value currentThread() {
         ReferenceType refType = element.getEnclosingType().getContext().getCompilationContext().getBootstrapClassContext().findDefinedType("java/lang/Thread").load().getObjectType().getReference();
-        return new CurrentThread(element, line, bci, refType);
+        return unique(new CurrentThread(callSite, element, line, bci, refType));
     }
 
     public Value vaArg(Value vaList, ValueType type) {

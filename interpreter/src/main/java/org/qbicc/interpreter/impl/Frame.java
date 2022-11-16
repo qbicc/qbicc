@@ -802,6 +802,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
+    public Object visit(VmThreadImpl vmThread, CurrentThread node) {
+        return vmThread.getSelfPointer();
+    }
+
+    @Override
     public Object visit(VmThreadImpl vmThread, DecodeReference node) {
         Object obj = require(node.getInput());
         return obj == null ? null : new ReferenceAsPointer((VmObject) obj);
@@ -1963,9 +1968,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, Load node) {
         ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof CurrentThread) {
-            return thread;
-        }
         if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }

@@ -68,7 +68,7 @@ public class ThreadLocalBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                     return super.staticField(fieldElement);
                 }
                 // thread local values are never visible outside of the current thread
-                return instanceFieldOf(referenceHandle(load(currentThread(), SingleUnshared)), threadLocalField);
+                return instanceFieldOf(referenceHandle(load(pointerHandle(currentThread()), SingleUnshared)), threadLocalField);
             } else {
                 return handle;
             }

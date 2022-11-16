@@ -131,7 +131,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().selectMember(handle);
     }
 
-    public ValueHandle currentThread() {
+    public Value currentThread() {
         return getDelegate().currentThread();
     }
 

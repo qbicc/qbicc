@@ -12,10 +12,6 @@ public interface ValueHandleVisitorLong<T> {
         return visitUnknown(t, node);
     }
 
-    default long visit(T t, CurrentThread node) {
-        return visitUnknown(t, node);
-    }
-
     default long visit(T t, ExactMethodElementHandle node) {
         return visitUnknown(t, node);
     }
@@ -54,11 +50,6 @@ public interface ValueHandleVisitorLong<T> {
 
         @Override
         default long visit(T t, ConstructorElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default long visit(T t, CurrentThread node) {
             return getDelegateValueHandleVisitor().visit(t, node);
         }
 

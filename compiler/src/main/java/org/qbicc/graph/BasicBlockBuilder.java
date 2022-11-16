@@ -433,7 +433,7 @@ public interface BasicBlockBuilder extends Locatable {
      *
      * @return the handle (not {@code null})
      */
-    ValueHandle currentThread();
+    Value currentThread();
 
     ValueHandle lengthOf(ValueHandle arrayHandle);
 

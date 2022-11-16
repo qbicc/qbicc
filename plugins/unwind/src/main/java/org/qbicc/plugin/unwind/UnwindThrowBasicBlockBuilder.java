@@ -30,7 +30,7 @@ public class UnwindThrowBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         UnwindExceptionStrategy teh = UnwindExceptionStrategy.get(ctxt);
 
         // TODO Is this safe? Can the java/lang/Thread object be moved while this pointer is still in use?
-        Value ptr = addressOf(instanceFieldOf(referenceHandle(load(currentThread(), SinglePlain)), teh.getUnwindExceptionField()));
+        Value ptr = addressOf(instanceFieldOf(referenceHandle(load(pointerHandle(currentThread()), SinglePlain)), teh.getUnwindExceptionField()));
 
         String functionName = "_Unwind_RaiseException";
         MethodType origType = teh.getRaiseExceptionMethod().getType();

@@ -517,7 +517,7 @@ public interface Node {
                 return param.getBlockBuilder().constructorOf(param.copyValue(node.getInstance()), node.getExecutable(), node.getCallSiteDescriptor(), node.getCallSiteType());
             }
 
-            public ValueHandle visit(Copier param, CurrentThread node) {
+            public Value visit(Copier param, CurrentThread node) {
                 return param.getBlockBuilder().currentThread();
             }
 
