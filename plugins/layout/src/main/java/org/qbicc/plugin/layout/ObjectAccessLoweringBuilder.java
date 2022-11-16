@@ -14,7 +14,6 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PointerType;
-import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.UnsignedIntegerType;
@@ -34,7 +33,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     }
 
     @Override
-    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
+    public ValueHandle pointerHandle(Value pointer) {
         BasicBlockBuilder fb = getFirstBuilder();
         PointerType pointerType = (PointerType) pointer.getType();
         if (pointerType.getPointeeType() instanceof PhysicalObjectType pot) {
@@ -42,7 +41,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
             LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
             return fb.pointerHandle(fb.valueConvert(pointer, info.getCompoundType().getPointer()));
         }
-        return getDelegate().pointerHandle(pointer, offsetValue);
+        return getDelegate().pointerHandle(pointer);
     }
 
     @Override

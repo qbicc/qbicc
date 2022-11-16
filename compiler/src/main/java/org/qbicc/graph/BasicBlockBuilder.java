@@ -449,18 +449,20 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType);
 
-    ValueHandle pointerHandle(Value pointer, Value offsetValue);
-
     /**
-     * Convenience method to construct a pointer handle with a zero offset.
+     * Convenience method to construct a pointer handle with an offset.
      * <b>Do not override this method.</b>
      *
      * @param pointer the pointer value (must not be {@code null})
-     * @return the zero-offset pointer handle (must not be {@code null})
+     * @param offsetValue the offset value (must not be {@code null})
+     * @return the offset pointer handle (must not be {@code null})
      */
-    default ValueHandle pointerHandle(Value pointer) {
-        return pointerHandle(pointer, getCurrentElement().getEnclosingType().getContext().getLiteralFactory().literalOf(0));
+    @Deprecated
+    default ValueHandle pointerHandle(Value pointer, Value offsetValue) {
+        return getFirstBuilder().pointerHandle(getFirstBuilder().offsetPointer(pointer, offsetValue));
     }
+
+    ValueHandle pointerHandle(Value pointer);
 
     /**
      * Convenience method to construct a pointer handle to a decoded reference pointer.
@@ -586,6 +588,8 @@ public interface BasicBlockBuilder extends Locatable {
     Value memberOf(Value structPointer, CompoundType.Member member);
 
     Value elementOf(Value array, Value index);
+
+    Value offsetPointer(Value basePointer, Value offset);
 
     Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type);
 

@@ -227,6 +227,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, OffsetPointer node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, Or node) {
         return visitUnknown(t, node);
     }
@@ -503,6 +507,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         }
 
         default R visit(T t, OffsetOfField node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default R visit(T t, OffsetPointer node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

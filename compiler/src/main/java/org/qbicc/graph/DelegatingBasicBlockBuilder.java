@@ -143,12 +143,16 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().elementOf(arrayPointer, index);
     }
 
+    public Value offsetPointer(Value basePointer, Value offset) {
+        return getDelegate().offsetPointer(basePointer, offset);
+    }
+
     public ValueHandle unsafeHandle(final ValueHandle base, final Value offset, final ValueType outputType) {
         return getDelegate().unsafeHandle(base, offset, outputType);
     }
 
-    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
-        return getDelegate().pointerHandle(pointer, offsetValue);
+    public ValueHandle pointerHandle(Value pointer) {
+        return getDelegate().pointerHandle(pointer);
     }
 
     public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {

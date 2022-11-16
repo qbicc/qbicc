@@ -81,6 +81,7 @@ import org.qbicc.graph.NewReferenceArray;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OffsetOfField;
+import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
@@ -2082,6 +2083,27 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
+    public Object visit(VmThreadImpl vmThread, OffsetPointer node) {
+        Pointer basePtr = unboxPointer(node.getBasePointer());
+        if (basePtr == null) {
+            // it's possible that it's a null pointer being added to another pointer, as the JDK sometimes does
+            Object offset = require(node.getOffset());
+            if (offset instanceof Pointer pv) {
+                return pv;
+            } else {
+                // invalid pointer
+                return null;
+            }
+        }
+        long offset = unboxLong(node.getOffset());
+        if (offset == 0) {
+            return basePtr;
+        }
+        long pointeeSize = node.getBasePointer().getPointeeType().getSize();
+        return basePtr.offsetInBytes(offset * pointeeSize, true);
+    }
+
+    @Override
     public Object visit(VmThreadImpl thread, StackAllocation node) {
         return new MemoryPointer(node.getType(), thread.vm.allocate(node.getType().getPointeeType(), unboxLong(node.getCount())));
     }
@@ -2505,14 +2527,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         public Memory visit(Frame frame, PointerHandle node) {
             Pointer pointer = frame.unboxPointer(node.getPointerValue());
             if (pointer == null) {
-                // it's possible that it's a null pointer being added to another pointer, as the JDK sometimes does
-                Pointer pv = frame.unboxPointer(node.getOffsetValue());
-                if (pv instanceof IntegerAsPointer) {
-                    // invalid pointer
-                    return null;
-                } else {
-                    return pv.getRootMemoryIfExists();
-                }
+                return null;
             }
             return pointer.getRootMemoryIfExists();
         }
@@ -2531,31 +2546,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         @Override
         public long visit(Frame frame, PointerHandle node) {
             Pointer pointer = frame.unboxPointer(node.getPointerValue());
-            if (pointer == null) {
-                // it's possible that it's a null pointer being added to another pointer, as the JDK sometimes does
-                pointer = frame.unboxPointer(node.getOffsetValue());
-                if (pointer instanceof IntegerAsPointer iap) {
-                    // invalid pointer *probably*
-                    return iap.getValue();
-                } else {
-                    // either invalid (pv is {@code null}) or valid but the offset is zero
-                    return 0;
-                }
-            }
-            long offset = frame.unboxLong(node.getOffsetValue());
-            if (offset == 0) {
-                return pointer.getRootByteOffset();
-            }
-            // get the number of *bytes* to offset by, because the pointer's type might differ from the handle type
-            PointerType pointerType = node.getType();
-            ValueType pointeeType = pointerType.getPointeeType();
-            if (pointeeType instanceof ObjectType ot) {
-                CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
-                pointeeType = Layout.get(ctxt).getInstanceLayoutInfo(ot.getDefinition()).getCompoundType();
-            }
-            long byteOffset = offset * pointeeType.getSize();
-            Pointer targetPointer = pointer.offsetInBytes(byteOffset, true);
-            return targetPointer == null ? 0 : targetPointer.getRootByteOffset();
+            return pointer == null ? 0 : pointer.getRootByteOffset();
         }
 
         @Override

@@ -459,12 +459,16 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return unique(new ElementOf(callSite, element, line, bci, arrayPointer, index));
     }
 
+    public Value offsetPointer(Value basePointer, Value offset) {
+        return unique(new OffsetPointer(callSite, element, line, bci, basePointer, offset));
+    }
+
     public ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType) {
         return new UnsafeHandle(callSite, element, line, bci, base, offset, outputType);
     }
 
-    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
-        return new PointerHandle(callSite, element, line, bci, pointer, offsetValue);
+    public ValueHandle pointerHandle(Value pointer) {
+        return new PointerHandle(callSite, element, line, bci, pointer);
     }
 
     public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {

@@ -61,6 +61,7 @@ import org.qbicc.graph.Neg;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NotNull;
+import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Reachable;
@@ -686,6 +687,13 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         return map(node.getInput());
     }
 
+    public LLValue visit(Void unused, OffsetPointer node) {
+        ValueType pointeeType = node.getPointeeType();
+        GetElementPtr gep = builder.getelementptr(pointeeType instanceof VoidType ? i8 : map(pointeeType), map(node.getType()), map(node.getBasePointer()));
+        gep.arg(false, map(node.getOffset().getType()), map(node.getOffset()));
+        return gep.setLValue(map(node));
+    }
+
     public LLValue visit(final Void param, final Shr node) {
         LLValue inputType = map(node.getType());
         LLValue llvmLeft = map(node.getLeftInput());
@@ -1175,9 +1183,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
         @Override
         public GetElementPtr visit(LLVMNodeVisitor param, PointerHandle node) {
-            LLValue offset = param.map(node.getOffsetValue());
-            LLValue offsetType = param.map(node.getOffsetValue().getType());
-            return param.gep(param.map(node.getPointerValue()), node).arg(false, offsetType, offset);
+            return param.gep(param.map(node.getPointerValue()), node).arg(false, i32, ZERO);
         }
     };
 
@@ -1189,12 +1195,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
         @Override
         public LLValue visit(LLVMNodeVisitor param, PointerHandle node) {
-            final Value offsetValue = node.getOffsetValue();
-            if (offsetValue.getType() instanceof IntegerType it && offsetValue.isDefEq(param.ctxt.getLiteralFactory().literalOf(it, 0))) {
-                return param.map(node.getPointerValue());
-            } else {
-                return node.accept(GET_HANDLE_ELEMENT_POINTER, param).asLocal();
-            }
+            return param.map(node.getPointerValue());
         }
     };
 

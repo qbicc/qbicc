@@ -91,6 +91,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OffsetOfField;
+import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
@@ -120,6 +121,7 @@ import org.qbicc.graph.VaArg;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Return;
+import org.qbicc.graph.ValueVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.literal.ArrayLiteral;
@@ -1203,6 +1205,18 @@ public final class Disassembler {
         public Void visit(Disassembler param, MemberOf node) {
             final String id = param.nextId();
             final String description = "member-of " + show(node.getStructurePointer());
+            param.nodeInfo.put(node, new NodeInfo(id, description));
+            return delegate.visit(param, node);
+        }
+
+        @Override
+        public Void visit(Disassembler param, OffsetPointer node) {
+            final String id = param.nextId();
+            final String description = String.format(
+                "offset %s %s"
+                , show(node.getBasePointer())
+                , show(node.getOffset())
+            );
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }

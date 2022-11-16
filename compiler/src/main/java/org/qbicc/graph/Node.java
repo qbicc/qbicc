@@ -672,6 +672,10 @@ public interface Node {
                 return param.getBlockBuilder().offsetOfField(node.getFieldElement());
             }
 
+            public Value visit(final Copier copier, final OffsetPointer node) {
+                return copier.getBlockBuilder().offsetPointer(copier.copyValue(node.getBasePointer()), copier.copyValue(node.getOffset()));
+            }
+
             public Value visit(final Copier param, final Or node) {
                 return param.getBlockBuilder().or(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
@@ -697,7 +701,7 @@ public interface Node {
             }
 
             public ValueHandle visit(Copier param, PointerHandle node) {
-                return param.getBlockBuilder().pointerHandle(param.copyValue(node.getPointerValue()), param.copyValue(node.getOffsetValue()));
+                return param.getBlockBuilder().pointerHandle(param.copyValue(node.getPointerValue()));
             }
 
             public Value visit(final Copier param, final Select node) {

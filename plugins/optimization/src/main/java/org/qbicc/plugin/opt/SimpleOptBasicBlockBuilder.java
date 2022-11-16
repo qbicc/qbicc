@@ -21,6 +21,7 @@ import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.Neg;
 import org.qbicc.graph.NewArray;
 import org.qbicc.graph.NewReferenceArray;
+import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Truncate;
@@ -58,6 +59,17 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public SimpleOptBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = getContext();
+    }
+
+    @Override
+    public Value offsetPointer(Value basePointer, Value offset) {
+        if (isZero(offset)) {
+            return basePointer;
+        } else if (basePointer instanceof OffsetPointer op) {
+            return offsetPointer(op.getBasePointer(), add(op.getOffset(), offset));
+        } else {
+            return super.offsetPointer(basePointer, offset);
+        }
     }
 
     @Override
@@ -684,23 +696,18 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value addressOf(ValueHandle handle) {
-        if (handle instanceof PointerHandle ph && isZero(ph.getOffsetValue())) {
-            return ((PointerHandle) handle).getPointerValue();
+        if (handle instanceof PointerHandle ph) {
+            return ph.getPointerValue();
         }
         return super.addressOf(handle);
     }
 
     @Override
-    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
+    public ValueHandle pointerHandle(Value pointer) {
         if (pointer instanceof AddressOf) {
-            if (isZero(offsetValue)) {
-                return pointer.getValueHandle();
-            } else if (pointer.getValueHandle() instanceof PointerHandle ph) {
-                // merge the offset value
-                return pointerHandle(ph.getPointerValue(), add(ph.getOffsetValue(), offsetValue));
-            }
+            return pointer.getValueHandle();
         }
-        return super.pointerHandle(pointer, offsetValue);
+        return super.pointerHandle(pointer);
     }
 
     private static boolean isAlwaysNull(final Value value) {

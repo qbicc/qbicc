@@ -66,19 +66,23 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
-    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
-        if (pointer.getType() instanceof PointerType) {
-            if (offsetValue.getType() instanceof UnsignedIntegerType uit) {
-                // try to extend it
-                Value extended = tryExtend(offsetValue, uit);
-                if (extended != null) {
-                    offsetValue = extended;
-                } else {
-                    ctxt.error(getLocation(), "`pointerHandle` offset must be signed");
-                }
-                // recoverable
+    public Value offsetPointer(Value basePointer, Value offset) {
+        if (offset.getType() instanceof UnsignedIntegerType uit) {
+            // try to extend it
+            Value extended = tryExtend(offset, uit);
+            if (extended != null) {
+                offset = extended;
+            } else {
+                ctxt.error(getLocation(), "`offsetHandle` offset must be signed");
             }
-            return super.pointerHandle(pointer, offsetValue);
+        }
+        return super.offsetPointer(basePointer, offset);
+    }
+
+    @Override
+    public ValueHandle pointerHandle(Value pointer) {
+        if (pointer.getType() instanceof PointerType) {
+            return super.pointerHandle(pointer);
         }
         ctxt.error(getLocation(), "`pointerHandle` value must have pointer type");
         throw new BlockEarlyTermination(unreachable());
