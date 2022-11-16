@@ -535,10 +535,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return unique(new AddressOf(callSite, element, line, bci, handle));
     }
 
-    public Value referenceTo(ValueHandle handle) throws IllegalArgumentException {
-        return unique(new ReferenceTo(callSite, element, line, bci, handle));
-    }
-
     public Value stackAllocate(final ValueType type, final Value count, final Value align) {
         return asDependency(new StackAllocation(callSite, element, line, bci, requireDependency(), type, count, align));
     }

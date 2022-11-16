@@ -688,10 +688,6 @@ public interface Node {
                 return copier.getBlockBuilder().readModifyWrite(copier.copyValueHandle(node.getValueHandle()), node.getOp(), copier.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
             }
 
-            public Value visit(Copier param, ReferenceTo node) {
-                return param.getBlockBuilder().referenceTo(param.copyValueHandle(node.getValueHandle()));
-            }
-
             public Value visit(final Copier param, final Rol node) {
                 return param.getBlockBuilder().rol(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }

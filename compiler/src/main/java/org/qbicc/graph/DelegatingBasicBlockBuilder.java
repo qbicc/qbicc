@@ -219,10 +219,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().addressOf(handle);
     }
 
-    public Value referenceTo(ValueHandle handle) throws IllegalArgumentException {
-        return getDelegate().referenceTo(handle);
-    }
-
     public Value stackAllocate(final ValueType type, final Value count, final Value align) {
         return getDelegate().stackAllocate(type, count, align);
     }

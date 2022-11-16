@@ -97,7 +97,6 @@ import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.ReadModifyWriteValue;
-import org.qbicc.graph.ReferenceTo;
 import org.qbicc.graph.Ret;
 import org.qbicc.graph.Rol;
 import org.qbicc.graph.Ror;
@@ -664,14 +663,6 @@ public final class Disassembler {
         public Void visit(Disassembler param, OffsetOfField node) {
             final String id = param.nextId();
             final String description = "offset-of " + node.getFieldElement().toString();
-            param.nodeInfo.put(node, new NodeInfo(id, description));
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, ReferenceTo node) {
-            final String id = param.nextId();
-            final String description = "ref-to " + node.getType().toString();
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }

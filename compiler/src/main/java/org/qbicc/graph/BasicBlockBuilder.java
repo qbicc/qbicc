@@ -599,16 +599,6 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value addressOf(ValueHandle handle);
 
-    /**
-     * Get a value that is a reference to the given value handle. If the handle's type is not an allocated
-     * object, an exception is thrown.
-     *
-     * @param handle the value handle (must not be {@code null})
-     * @return the reference value (not {@code null})
-     * @throws IllegalArgumentException if the value handle does not refer to something that can be referenced
-     */
-    Value referenceTo(ValueHandle handle) throws IllegalArgumentException;
-
     Value stackAllocate(ValueType type, Value count, Value align);
 
     Value new_(ClassObjectType type, Value typeId, Value size, Value align);
