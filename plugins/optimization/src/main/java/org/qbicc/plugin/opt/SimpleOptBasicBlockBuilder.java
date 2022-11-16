@@ -143,8 +143,12 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
-        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof InstanceFieldOf ifo) {
+    public Value load(Value pointer, ReadAccessMode accessMode) {
+        // temporary
+        while (pointer instanceof AddressOf ao && ao.getValueHandle() instanceof PointerHandle ph) {
+            pointer = ph.getPointerValue();
+        }
+        if (pointer instanceof InstanceFieldOf ifo) {
             CoreClasses coreClasses = CoreClasses.get(getContext());
             // it might be an array length...
             InstanceFieldElement ve = ifo.getVariableElement();
@@ -171,7 +175,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
         }
-        return super.load(handle, accessMode);
+        return super.load(pointer, accessMode);
     }
 
     @Override

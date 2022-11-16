@@ -363,7 +363,7 @@ public class UnsafeIntrinsics {
                 intrinsics.registerIntrinsic(unsafeDesc, name, desc, (builder, instance, target, arguments) -> {
                     Value obj = arguments.get(0);
                     Value offset = arguments.get(1);
-                    ValueHandle handle = builder.unsafeHandle(builder.referenceHandle(obj), offset, outputType);
+                    Value handle = builder.byteOffsetPointer(builder.decodeReference(obj), offset, outputType);
                     return builder.load(handle, suffixAndMode.getValue());
                 });
             }

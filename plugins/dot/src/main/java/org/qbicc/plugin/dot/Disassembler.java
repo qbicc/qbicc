@@ -594,7 +594,7 @@ public final class Disassembler {
         @Override
         public Void visit(Disassembler param, Load node) {
             final String id = param.nextId();
-            String description = "load " + showDescription(node.getValueHandle());
+            String description = "load " + showDescription(node.getPointer());
             param.addLine(id + " = " + description, node);
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);

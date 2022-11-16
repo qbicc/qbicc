@@ -42,11 +42,11 @@ public class ClassInitializingBasicBlockBuilder extends DelegatingBasicBlockBuil
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
-        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sfl) {
+    public Value load(Value pointer, ReadAccessMode accessMode) {
+        if (pointer instanceof StaticFieldLiteral sfl) {
             initializeStaticMember(sfl.getVariableElement().getEnclosingType());
         }
-        return super.load(handle, accessMode);
+        return super.load(pointer, accessMode);
     }
 
     @Override

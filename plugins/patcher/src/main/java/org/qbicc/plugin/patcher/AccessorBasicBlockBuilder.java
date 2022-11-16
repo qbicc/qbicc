@@ -47,8 +47,8 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
-        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral staticField) {
+    public Value load(Value pointer, ReadAccessMode accessMode) {
+        if (pointer instanceof StaticFieldLiteral staticField) {
             FieldElement field = staticField.getVariableElement();
             VmObject accessor = getAccessor(field);
             if (accessor != null) {
@@ -61,7 +61,7 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 return fb.call(fb.virtualMethodOf(lf.literalOf(accessor), accessor.getVmClass().getTypeDefinition().getDescriptor(), getter, desc), List.of());
             }
         }
-        return super.load(handle, accessMode);
+        return super.load(pointer, accessMode);
     }
 
     @Override

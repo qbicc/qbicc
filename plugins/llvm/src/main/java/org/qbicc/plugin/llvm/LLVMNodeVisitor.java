@@ -630,9 +630,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     }
 
     public LLValue visit(final Void param, final Load node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        org.qbicc.machine.llvm.op.Load loadInsn = builder.load(map(valueHandle.getType()), map(valueHandle.getPointeeType()), ptr);
+        LLValue ptr = map(node.getPointer());
+        org.qbicc.machine.llvm.op.Load loadInsn = builder.load(map(node.getPointer().getType()), map(node.getType()), ptr);
         loadInsn.align(node.getType().getAlign());
         ReadAccessMode accessMode = node.getAccessMode();
         if (SingleUnshared.includes(accessMode)) {

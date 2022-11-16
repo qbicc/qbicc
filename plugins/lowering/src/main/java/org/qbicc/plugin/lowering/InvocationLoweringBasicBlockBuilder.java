@@ -83,11 +83,11 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
-        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof CurrentThread) {
+    public Value load(Value pointer, ReadAccessMode accessMode) {
+        if (pointer instanceof CurrentThread) {
             return getCurrentThreadRef();
         }
-        return super.load(handle, accessMode);
+        return super.load(pointer, accessMode);
     }
 
     @Override

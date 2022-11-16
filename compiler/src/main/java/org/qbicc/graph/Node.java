@@ -612,7 +612,7 @@ public interface Node {
 
             public Value visit(final Copier param, final Load node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().load(param.copyValueHandle(node.getValueHandle()), node.getAccessMode());
+                return param.getBlockBuilder().load(param.copyValue(node.getPointer()), node.getAccessMode());
             }
 
             public Value visit(Copier param, MemberOf node) {

@@ -1,6 +1,9 @@
 package org.qbicc.plugin.threadlocal;
 
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
+
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
@@ -13,11 +16,9 @@ import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.type.definition.classfile.ClassFile;
-import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
-
-import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 /**
  *
@@ -31,7 +32,7 @@ public class ThreadLocalBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
+    public Value load(Value handle, ReadAccessMode accessMode) {
         return super.load(transform(handle), accessMode);
     }
 
@@ -51,29 +52,41 @@ public class ThreadLocalBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private ValueHandle transform(ValueHandle handle) {
-        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sfl) {
+        if (handle instanceof PointerHandle ph) {
+            return getFirstBuilder().pointerHandle(transform(ph.getPointerValue()));
+        } else {
+            return handle;
+        }
+    }
+
+    private Value transform(Value pointer) {
+        // temporary
+        while (pointer instanceof AddressOf ao && ao.getValueHandle() instanceof PointerHandle ph) {
+            pointer = ph.getPointerValue();
+        }
+        if (pointer instanceof StaticFieldLiteral sfl) {
             StaticFieldElement fieldElement = sfl.getVariableElement();
             boolean isTL = fieldElement.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL);
             if (getCurrentElement() instanceof InitializerElement) {
                 if (isTL) {
                     ctxt.warning(fieldElement, "Initialization of thread locals is not yet supported");
-                    return super.staticField(fieldElement);
+                    return getLiteralFactory().literalOf(fieldElement);
                 }
             }
             if (isTL) {
                 ThreadLocals threadLocals = ThreadLocals.get(ctxt);
-                FieldElement threadLocalField = threadLocals.getThreadLocalField(fieldElement);
+                InstanceFieldElement threadLocalField = threadLocals.getThreadLocalField(fieldElement);
                 if (threadLocalField == null) {
                     ctxt.error(fieldElement, "Internal: Thread local field was not registered");
-                    return super.staticField(fieldElement);
+                    return getLiteralFactory().literalOf(fieldElement);
                 }
                 // thread local values are never visible outside of the current thread
-                return instanceFieldOf(referenceHandle(load(pointerHandle(currentThread()), SingleUnshared)), threadLocalField);
+                return instanceFieldOf(load(currentThread(), SingleUnshared), threadLocalField);
             } else {
-                return handle;
+                return pointer;
             }
         } else {
-            return handle;
+            return pointer;
         }
     }
 }

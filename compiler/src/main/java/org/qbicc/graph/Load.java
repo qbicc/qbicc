@@ -11,16 +11,16 @@ import org.qbicc.type.definition.element.ExecutableElement;
  */
 public class Load extends AbstractValue implements OrderedNode {
     private final Node dependency;
-    private final ValueHandle handle;
+    private final Value pointer;
     private final ReadAccessMode mode;
 
-    Load(Node callSite, ExecutableElement element, int line, int bci, Node dependency, ValueHandle handle, ReadAccessMode mode) {
+    Load(Node callSite, ExecutableElement element, int line, int bci, Node dependency, Value pointer, ReadAccessMode mode) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
-        this.handle = handle;
+        this.pointer = pointer;
         this.mode = mode;
-        if (! handle.isReadable()) {
-            throw new IllegalArgumentException("Handle is not readable");
+        if (! pointer.isReadable()) {
+            throw new IllegalArgumentException("Pointer is not readable");
         }
     }
 
@@ -30,7 +30,7 @@ public class Load extends AbstractValue implements OrderedNode {
     }
 
     int calcHashCode() {
-        return Objects.hash(dependency, handle, mode);
+        return Objects.hash(dependency, pointer, mode);
     }
 
     @Override
@@ -48,11 +48,15 @@ public class Load extends AbstractValue implements OrderedNode {
     }
 
     public boolean equals(final Load other) {
-        return this == other || other != null && dependency.equals(other.dependency) && handle.equals(other.handle) && mode == other.mode;
+        return this == other || other != null && dependency.equals(other.dependency) && pointer.equals(other.pointer) && mode == other.mode;
     }
 
     public ValueType getType() {
-        return handle.getPointeeType();
+        return pointer.getPointeeType();
+    }
+
+    public Value getPointer() {
+        return pointer;
     }
 
     public ReadAccessMode getAccessMode() {
@@ -60,13 +64,16 @@ public class Load extends AbstractValue implements OrderedNode {
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
-        return true;
+    public int getValueDependencyCount() {
+        return 1;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
-        return handle;
+    public Value getValueDependency(int index) throws IndexOutOfBoundsException {
+        return switch (index) {
+            case 0 -> pointer;
+            default -> throw new IndexOutOfBoundsException(index);
+        };
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
@@ -74,6 +81,6 @@ public class Load extends AbstractValue implements OrderedNode {
     }
 
     public boolean isConstant() {
-        return handle.isValueConstant();
+        return pointer.isPointeeConstant();
     }
 }

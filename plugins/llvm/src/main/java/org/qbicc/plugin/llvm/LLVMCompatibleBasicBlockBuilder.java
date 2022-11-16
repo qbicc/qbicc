@@ -228,29 +228,29 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
+    public Value load(Value pointer, ReadAccessMode accessMode) {
         Value loaded;
         if (accessMode.includes(GlobalAcquire)) {
             // we have to emit a global fence
-            loaded = super.load(handle, SingleUnshared);
+            loaded = super.load(pointer, SingleUnshared);
             fence(accessMode.getGlobalAccess());
             return loaded;
         } else if (accessMode.includes(GlobalPlain)) {
             // emit equivalent single load
-            return super.load(handle, SinglePlain);
+            return super.load(pointer, SinglePlain);
         } else if (accessMode.includes(GlobalUnshared)) {
             // emit equivalent single load
-            return super.load(handle, SingleUnshared);
+            return super.load(pointer, SingleUnshared);
         }
         // Break apart atomic structure and array loads
-        if (handle.getPointeeType() instanceof CompoundType ct) {
+        if (pointer.getPointeeType() instanceof CompoundType ct) {
             LiteralFactory lf = ctxt.getLiteralFactory();
             Value res = lf.zeroInitializerLiteralOfType(ct);
             for (CompoundType.Member member : ct.getPaddedMembers()) {
-                res = insertMember(res, member, load(memberOf(handle, member), accessMode));
+                res = insertMember(res, member, load(memberOf(pointer, member), accessMode));
             }
             return res;
-        } else if (handle.getPointeeType() instanceof ArrayType at) {
+        } else if (pointer.getPointeeType() instanceof ArrayType at) {
             long ec = at.getElementCount();
             LiteralFactory lf = ctxt.getLiteralFactory();
             if (ec < 16) {
@@ -258,7 +258,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 Value res = lf.zeroInitializerLiteralOfType(at);
                 for (long i = 0; i < ec; i ++) {
                     IntegerLiteral idxLit = lf.literalOf(i);
-                    res = insertElement(res, idxLit, load(elementOf(handle, idxLit), accessMode));
+                    res = insertElement(res, idxLit, load(elementOf(pointer, idxLit), accessMode));
                 }
                 return res;
             } else {
@@ -270,14 +270,14 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 begin(top);
                 BlockParameter idx = addParam(top, Slot.temp(0), idxType);
                 BlockParameter val = addParam(top, Slot.temp(1), at);
-                Value modVal = insertElement(val, idx, load(elementOf(handle, idx), accessMode));
+                Value modVal = insertElement(val, idx, load(elementOf(pointer, idx), accessMode));
                 if_(isLt(idx, lf.literalOf(idxType, ec)), top, exit, Map.of(Slot.temp(0), add(idx, lf.literalOf(idxType, 1)), Slot.temp(1), modVal));
                 begin(exit);
                 // be sure to return the final modified value
                 return addParam(exit, Slot.temp(1), at);
             }
         }
-        return super.load(handle, accessMode);
+        return super.load(pointer, accessMode);
     }
 
     @Override

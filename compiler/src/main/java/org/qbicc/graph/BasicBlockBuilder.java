@@ -625,11 +625,21 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value multiNewArray(ArrayTypeDescriptor desc, List<Value> dimensions);
 
+    @Deprecated
     default Value load(ValueHandle handle) {
         return load(handle, SinglePlain);
     }
 
-    Value load(ValueHandle handle, ReadAccessMode mode);
+    @Deprecated
+    default Value load(ValueHandle handle, ReadAccessMode mode) {
+        return load(getFirstBuilder().addressOf(handle), mode);
+    }
+
+    default Value load(Value pointer) {
+        return load(pointer, SinglePlain);
+    }
+
+    Value load(Value pointer, ReadAccessMode mode);
 
     Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
 

@@ -53,18 +53,18 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
+    public Value load(Value pointer, ReadAccessMode accessMode) {
         // todo: hopefully we can be slightly more aggressive than this
         if (! GlobalPlain.includes(accessMode)) {
             knownValues.clear();
         } else {
-            Value value = handle.accept(this, accessMode);
+            Value value = knownValues.get(pointer);
             if (value != null) {
                 return value;
             }
         }
-        Value loaded = super.load(handle, accessMode);
-        knownValues.put(handle, loaded);
+        Value loaded = super.load(pointer, accessMode);
+        knownValues.put(pointer, loaded);
         return loaded;
     }
 

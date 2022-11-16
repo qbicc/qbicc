@@ -618,8 +618,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         throw new IllegalStateException("New of unresolved array type");
     }
 
-    public Value load(final ValueHandle handle, final ReadAccessMode mode) {
-        return asDependency(new Load(callSite, element, line, bci, requireDependency(), handle, mode));
+    public Value load(final Value pointer, final ReadAccessMode mode) {
+        return asDependency(new Load(callSite, element, line, bci, requireDependency(), pointer, mode));
     }
 
     public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {

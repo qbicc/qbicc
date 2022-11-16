@@ -307,8 +307,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().multiNewArray(desc, dimensions);
     }
 
-    public Value load(final ValueHandle handle, final ReadAccessMode accessMode) {
-        return getDelegate().load(handle, accessMode);
+    public Value load(final Value pointer, final ReadAccessMode accessMode) {
+        return getDelegate().load(pointer, accessMode);
     }
 
     public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {

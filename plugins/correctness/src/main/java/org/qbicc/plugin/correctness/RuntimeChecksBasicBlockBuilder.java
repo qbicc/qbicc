@@ -5,6 +5,7 @@ import java.util.Map;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
@@ -71,9 +72,9 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
-        check(handle);
-        return super.load(handle, accessMode);
+    public Value load(Value pointer, ReadAccessMode accessMode) {
+        checkPointerValue(pointer, null);
+        return super.load(pointer, accessMode);
     }
 
     @Override
@@ -265,32 +266,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         return handle.accept(new ValueHandleVisitor<Void, Value>() {
             @Override
             public Value visit(Void param, PointerHandle node) {
-                if (node.getPointerValue() instanceof DecodeReference dr) {
-                    nullCheck(dr.getInput());
-                } else if (node.getPointerValue() instanceof ElementOf eo &&
-                    eo.getArrayPointer() instanceof DecodeReference dr &&
-                    dr.getPointeeType() instanceof ArrayObjectType arrayType) {
-                    indexOutOfBoundsCheck(dr, eo.getIndex());
-                    if (arrayType instanceof ReferenceArrayObjectType referenceArrayType && storedValue != null) {
-                        Value toTypeId = load(instanceFieldOf(pointerHandle(dr), CoreClasses.get(ctxt).getRefArrayElementTypeIdField()));
-                        Value toDimensions;
-                        ObjectType jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load().getObjectType();
-                        if (referenceArrayType.getLeafElementType().equals(jlo)) {
-                            // All arrays are subtypes of Object, so if the leafElementType is Object, we won't know the real dimension count until runtime!
-                            toDimensions = sub(load(instanceFieldOf(pointerHandle(dr), CoreClasses.get(ctxt).getRefArrayDimensionsField())), ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), 1));
-                        } else {
-                            toDimensions = ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), referenceArrayType.getDimensionCount() - 1);
-                        }
-                        return checkcast(storedValue, toTypeId, toDimensions, CheckCast.CastType.ArrayStore, referenceArrayType.getElementObjectType());
-                    }
-                } else if (node.getPointerValue() instanceof StaticFieldLiteral sfl) {
-                    InitializerElement init = sfl.getVariableElement().getRunTimeInitializer();
-                    if (init != null && !getRootElement().equals(init)) {
-                        VmObject initThunkInstance = RuntimeInitManager.get(ctxt).getOnceInstance(init);
-                        initCheck(init, ctxt.getLiteralFactory().literalOf(initThunkInstance));
-                    }
-                }
-                return null;
+                return checkPointerValue(node.getPointerValue(), storedValue);
             }
 
             @Override
@@ -355,6 +331,39 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                 return null;
             }
         }, null);
+    }
+
+    private Value checkPointerValue(Value pointerValue, final Value storedValue) {
+        // temporary
+        while (pointerValue instanceof AddressOf ao && ao.getValueHandle() instanceof PointerHandle ph) {
+            pointerValue = ph.getPointerValue();
+        }
+        if (pointerValue instanceof DecodeReference dr) {
+            nullCheck(dr.getInput());
+        } else if (pointerValue instanceof ElementOf eo &&
+            eo.getArrayPointer() instanceof DecodeReference dr &&
+            dr.getPointeeType() instanceof ArrayObjectType arrayType) {
+            indexOutOfBoundsCheck(dr, eo.getIndex());
+            if (arrayType instanceof ReferenceArrayObjectType referenceArrayType && storedValue != null) {
+                Value toTypeId = load(instanceFieldOf(pointerHandle(dr), CoreClasses.get(ctxt).getRefArrayElementTypeIdField()));
+                Value toDimensions;
+                ObjectType jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load().getObjectType();
+                if (referenceArrayType.getLeafElementType().equals(jlo)) {
+                    // All arrays are subtypes of Object, so if the leafElementType is Object, we won't know the real dimension count until runtime!
+                    toDimensions = sub(load(instanceFieldOf(pointerHandle(dr), CoreClasses.get(ctxt).getRefArrayDimensionsField())), ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), 1));
+                } else {
+                    toDimensions = ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), referenceArrayType.getDimensionCount() - 1);
+                }
+                return checkcast(storedValue, toTypeId, toDimensions, CheckCast.CastType.ArrayStore, referenceArrayType.getElementObjectType());
+            }
+        } else if (pointerValue instanceof StaticFieldLiteral sfl) {
+            InitializerElement init = sfl.getVariableElement().getRunTimeInitializer();
+            if (init != null && !getRootElement().equals(init)) {
+                VmObject initThunkInstance = RuntimeInitManager.get(ctxt).getOnceInstance(init);
+                initCheck(init, ctxt.getLiteralFactory().literalOf(initThunkInstance));
+            }
+        }
+        return null;
     }
 
     /**

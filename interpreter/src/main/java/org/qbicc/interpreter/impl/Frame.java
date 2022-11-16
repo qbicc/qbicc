@@ -2020,16 +2020,24 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl thread, Load node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
+        Value pointerValue = node.getPointer();
+        // temporary
+        while (pointerValue instanceof AddressOf ao && ao.getValueHandle() instanceof PointerHandle ph) {
+            pointerValue = ph.getPointerValue();
+        }
+        if (pointerValue instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
-        Memory memory = getMemory(valueHandle);
+        Pointer pointer = unboxPointer(pointerValue);
+        if (pointer == null) {
+            throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
+        }
+        Memory memory = pointer.getRootMemoryIfExists();
         if (memory == null) {
             throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
         }
-        long offset = getOffset(valueHandle);
-        ValueType type = valueHandle.getPointeeType();
+        long offset = pointer.getRootByteOffset();
+        ValueType type = node.getType();
         ReadAccessMode mode = node.getAccessMode();
         if (isInt8(type)) {
             return Byte.valueOf((byte) memory.load8(offset, mode));
@@ -2039,7 +2047,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Integer.valueOf(memory.load32(offset, mode));
         } else if (isInt64(type)) {
             // todo: memory.getTypeAt(offset)
-            Pointer pointer;
             try {
                 pointer = memory.loadPointer(offset, mode);
             } catch (InvalidMemoryAccessException ignored) {

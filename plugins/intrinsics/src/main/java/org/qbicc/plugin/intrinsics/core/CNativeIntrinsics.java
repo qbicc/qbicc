@@ -129,7 +129,7 @@ final class CNativeIntrinsics {
                 value = ((WordCastValue)value).getInput();
             }
             if (value instanceof Load load) {
-                return builder.addressOf(load.getValueHandle());
+                return load.getPointer();
             } else {
                 ctxt.error(builder.getLocation(), "Cannot take address of value");
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(value.getType().getPointer());
