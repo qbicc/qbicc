@@ -23,4 +23,6 @@ public class String {
     public static native c_int strcmp(const_char_ptr src1, const_char_ptr src2);
 
     public static native c_int strncmp(const_char_ptr src1, const_char_ptr src2, size_t len);
+
+    public static native c_int strncpy(char_ptr dst, const_char_ptr src, size_t len);
 }
