@@ -496,7 +496,12 @@ public class Main implements Callable<DiagnosticContext> {
                                         Reflection.get(ctxt).generateFieldAccessors();
                                     });
                                 });
-                                builder.addPostHook(Phase.ADD, ctxt -> Reflection.get(ctxt).transferToReflectionData());
+                                builder.addPostHook(Phase.ADD, ctxt -> {
+                                    Vm vm = ctxt.getVm();
+                                    vm.doAttached(vm.newThread("ReflectionData Generation", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> {
+                                        Reflection.get(ctxt).transferToReflectionData();
+                                    });
+                                });
                                 builder.addPostHook(Phase.ADD, ctxt -> {
                                     Vm vm = ctxt.getVm();
                                     vm.doAttached(vm.newThread("ServiceProvider Serialization", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> {

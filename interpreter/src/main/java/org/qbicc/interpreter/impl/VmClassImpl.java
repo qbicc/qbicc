@@ -375,6 +375,10 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             }
             memory.store32(getVmClass().getLayoutInfo().getMember(jlcDef.findField("modifiers")).getOffset(), typeDefinition.getModifiers(), SinglePlain);
             setPointerField(jlcDef, "referenceBitMap", computeBitMap());
+            String sig = typeDefinition.getSignature().toString();
+            if (!sig.isEmpty()) {
+                setRefField(jlcDef, "genericSignature", vm.intern(sig));
+            }
         } catch (Exception e) {
             // for breakpoints
             throw e;

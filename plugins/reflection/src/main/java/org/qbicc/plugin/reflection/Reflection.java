@@ -35,6 +35,7 @@ import org.qbicc.interpreter.VmThrowableClass;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.patcher.Patcher;
+import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.StaticFieldPointer;
@@ -490,6 +491,20 @@ public final class Reflection {
         declaredPublicConstructors.forEach((c, a) -> {
             c.getMemory().loadRef(rdIndex, SinglePlain).getMemory().storeRef(dpci, a, SinglePlain);
         });
+
+        long ii = rdLayout.getMember(rdDef.findField("interfaces")).getOffset();
+        VmReferenceArray none = vm.newArrayOf(classClass, 0);
+        ReachabilityInfo.get(ctxt).visitReachableTypes(ltd -> {
+            VmReferenceArray impl = none;
+            LoadedTypeDefinition[] implemented = ltd.getInterfaces();
+            if (implemented.length > 0) {
+                impl = vm.newArrayOf(classClass, implemented.length);
+                for (int j=0; j<implemented.length; j++) {
+                    impl.store(j, implemented[j].getVmClass());
+                }
+            }
+            ltd.getVmClass().getMemory().loadRef(rdIndex, SinglePlain).getMemory().storeRef(ii, impl, SinglePlain);
+        });
     }
 
     static MethodDescriptor erase(final ClassContext classContext, final MethodDescriptor descriptor) {
@@ -675,6 +690,18 @@ public final class Reflection {
             vm.intern(field.getTypeSignature().toString()),
             getAnnotations(field)
         ));
+
+        // Store the native offset (see Field$_patch) used to implement the Unsafe.fieldOffset natives
+        field.setModifierFlags(ClassFile.I_ACC_PINNED);
+        int memOffset = fieldClass.indexOf(fieldClass.getTypeDefinition().findField("offset"));
+        if (field.isStatic()) {
+            vmObject.getMemory().storePointer(memOffset, StaticFieldPointer.of((StaticFieldElement) field), SinglePlain);
+        } else {
+            LayoutInfo layoutInfo = Layout.get(vm.getCompilationContext()).getInstanceLayoutInfo(field.getEnclosingType().load());
+            CompoundType.Member member = layoutInfo.getMember(field);
+            vmObject.getMemory().store64(memOffset, member.getOffset(), SinglePlain);
+        }
+
         VmObject appearing = reflectionObjects.putIfAbsent(field, vmObject);
         return appearing != null ? appearing : vmObject;
     }
