@@ -319,7 +319,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().cmpAndSwap(target, expect, update, readMode, writeMode, strength);
     }
 
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
+    public Node store(Value handle, Value value, WriteAccessMode accessMode) {
         return getDelegate().store(handle, value, accessMode);
     }
 

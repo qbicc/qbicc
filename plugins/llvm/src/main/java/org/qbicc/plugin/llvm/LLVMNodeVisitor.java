@@ -278,10 +278,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     }
 
     public Instruction visit(final Void param, final Store node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        org.qbicc.machine.llvm.op.Store storeInsn = builder.store(map(valueHandle.getType()), map(node.getValue()), map(node.getValue().getType()), ptr);
-        storeInsn.align(valueHandle.getPointeeType().getAlign());
+        Value pointer = node.getPointer();
+        LLValue ptr = map(pointer);
+        org.qbicc.machine.llvm.op.Store storeInsn = builder.store(map(pointer.getType()), map(node.getValue()), map(node.getValue().getType()), ptr);
+        storeInsn.align(pointer.getPointeeType().getAlign());
         WriteAccessMode accessMode = node.getAccessMode();
         if (SingleUnshared.includes(accessMode)) {
             // do nothing; not atomic

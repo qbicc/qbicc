@@ -10,15 +10,19 @@ import java.util.function.BiConsumer;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.ByteOffsetPointer;
 import org.qbicc.graph.CmpAndSwap;
+import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.ElementOf;
+import org.qbicc.graph.InstanceFieldOf;
+import org.qbicc.graph.MemberOf;
 import org.qbicc.graph.Node;
+import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.ValueHandleVisitor;
-import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
@@ -27,7 +31,7 @@ import org.qbicc.type.CompoundType;
 /**
  *
  */
-public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<AccessMode, Value> {
+public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private Map<Node, Value> knownValues = new HashMap<>();
 
     public LocalMemoryTrackingBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
@@ -63,18 +67,19 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
                 return value;
             }
         }
+        // todo: keep a map of pointer -> "thing" for better alias detection
         Value loaded = super.load(pointer, accessMode);
         knownValues.put(pointer, loaded);
         return loaded;
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
-        ValueHandle root = findRoot(handle);
+    public Node store(Value pointer, Value value, WriteAccessMode accessMode) {
+        Value root = findRoot(pointer);
         // todo: not completely correct but this class is temporarily disabled in any case
-        knownValues.keySet().removeIf(k -> k instanceof ValueHandle vh && ! hasSameRoot(vh, root));
-        knownValues.put(handle, value);
-        return super.store(handle, value, accessMode);
+        knownValues.keySet().removeIf(k -> k instanceof Value ptr && ! hasSameRoot(ptr, root));
+        knownValues.put(pointer, value);
+        return super.store(pointer, value, accessMode);
     }
 
     @Override
@@ -157,16 +162,25 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
         return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
-    private static ValueHandle findRoot(ValueHandle handle) {
-        return ! handle.hasValueHandleDependency() ? handle : findRoot(handle.getValueHandle());
+    private static Value findRoot(Value pointer) {
+        if (pointer instanceof MemberOf mo) {
+            return findRoot(mo.getStructurePointer());
+        } else if (pointer instanceof ElementOf eo) {
+            return findRoot(eo.getArrayPointer());
+        } else if (pointer instanceof InstanceFieldOf ifo) {
+            return findRoot(ifo.getInstance());
+        } else if (pointer instanceof DecodeReference dr) {
+            return findRoot(dr.getInput());
+        } else if (pointer instanceof OffsetPointer op) {
+            return findRoot(op.getBasePointer());
+        } else if (pointer instanceof ByteOffsetPointer bop) {
+            return findRoot(bop.getBasePointer());
+        } else {
+            return pointer;
+        }
     }
 
-    private static boolean hasSameRoot(ValueHandle handle, ValueHandle root) {
-        return findRoot(handle).equals(root);
-    }
-
-    @Override
-    public Value visitUnknown(AccessMode param, ValueHandle node) {
-        return knownValues.get(node);
+    private static boolean hasSameRoot(Value pointer, Value root) {
+        return findRoot(pointer).equals(root);
     }
 }

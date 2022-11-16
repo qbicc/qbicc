@@ -65,8 +65,8 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
-        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral staticField) {
+    public Node store(Value pointer, Value value, WriteAccessMode accessMode) {
+        if (pointer instanceof StaticFieldLiteral staticField) {
             FieldElement field = staticField.getVariableElement();
             VmObject accessor = getAccessor(field);
             if (accessor != null) {
@@ -77,7 +77,7 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 return fb.call(fb.virtualMethodOf(lf.literalOf(accessor), accessor.getVmClass().getTypeDefinition().getDescriptor(), "set", desc), List.of(value));
             }
         }
-        return super.store(handle, value, accessMode);
+        return super.store(pointer, value, accessMode);
     }
 
     @Override

@@ -2254,13 +2254,13 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Void visit(VmThreadImpl thread, Store node) {
-        ValueHandle valueHandle = node.getValueHandle();
+        Value pointer = node.getPointer();
         Value value = node.getValue();
         WriteAccessMode mode = node.getAccessMode();
-        if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
+        if (pointer instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
-        store(thread, valueHandle, value, mode);
+        store(thread, pointer, value, mode);
         return null;
     }
 
@@ -2268,14 +2268,18 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
      * Store a value into the interpreter memory.
      *
      * @param thread the thread (must not be {@code null})
-     * @param valueHandle the store target (must not be {@code null})
+     * @param pointer the store target (must not be {@code null})
      * @param value the value to store
      * @param mode the atomicity mode (must not be {@code null})
      */
-    void store(VmThreadImpl thread, final ValueHandle valueHandle, final Value value, final WriteAccessMode mode) {
-        Memory memory = getMemory(valueHandle);
-        long offset = getOffset(valueHandle);
-        ValueType type = valueHandle.getPointeeType();
+    void store(VmThreadImpl thread, final Value pointer, final Value value, final WriteAccessMode mode) {
+        Pointer ptr = unboxPointer(pointer);
+        if (ptr == null) {
+            throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
+        }
+        Memory memory = ptr.getRootMemoryIfExists();
+        long offset = ptr.getRootByteOffset();
+        ValueType type = pointer.getPointeeType();
         store(thread, memory, offset, type, value, mode);
     }
 

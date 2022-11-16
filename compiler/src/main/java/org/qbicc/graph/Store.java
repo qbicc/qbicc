@@ -10,17 +10,17 @@ import org.qbicc.type.definition.element.ExecutableElement;
  */
 public class Store extends AbstractNode implements Action, OrderedNode {
     private final Node dependency;
-    private final ValueHandle handle;
+    private final Value pointer;
     private final Value value;
     private final WriteAccessMode mode;
 
-    Store(Node callSite, ExecutableElement element, int line, int bci, Node dependency, ValueHandle handle, Value value, WriteAccessMode mode) {
+    Store(Node callSite, ExecutableElement element, int line, int bci, Node dependency, Value pointer, Value value, WriteAccessMode mode) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
-        this.handle = handle;
+        this.pointer = pointer;
         this.value = value;
         this.mode = mode;
-        if (! handle.isWritable()) {
+        if (! pointer.isWritable()) {
             throw new IllegalArgumentException("Handle is not writable");
         }
     }
@@ -28,6 +28,10 @@ public class Store extends AbstractNode implements Action, OrderedNode {
     @Override
     public Node getDependency() {
         return dependency;
+    }
+
+    public Value getPointer() {
+        return pointer;
     }
 
     public Value getValue() {
@@ -39,7 +43,7 @@ public class Store extends AbstractNode implements Action, OrderedNode {
     }
 
     int calcHashCode() {
-        return Objects.hash(dependency, handle, value, mode);
+        return Objects.hash(dependency, pointer, value, mode);
     }
 
     @Override
@@ -63,27 +67,21 @@ public class Store extends AbstractNode implements Action, OrderedNode {
     }
 
     public boolean equals(final Store other) {
-        return this == other || other != null && dependency.equals(other.dependency) && handle.equals(other.handle) && value.equals(other.value) && mode == other.mode;
-    }
-
-    @Override
-    public boolean hasValueHandleDependency() {
-        return true;
-    }
-
-    @Override
-    public ValueHandle getValueHandle() {
-        return handle;
+        return this == other || other != null && dependency.equals(other.dependency) && pointer.equals(other.pointer) && value.equals(other.value) && mode == other.mode;
     }
 
     @Override
     public int getValueDependencyCount() {
-        return 1;
+        return 2;
     }
 
     @Override
     public Value getValueDependency(int index) throws IndexOutOfBoundsException {
-        return index == 0 ? value : Util.throwIndexOutOfBounds(index);
+        return switch (index) {
+            case 0 -> pointer;
+            case 1 -> value;
+            default -> throw new IndexOutOfBoundsException(index);
+        };
     }
 
     @Override

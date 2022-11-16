@@ -344,18 +344,16 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         @Override
         public Void visit(ReachabilityContext param, Store node) {
             if (visitUnknown(param, (Node)node)) {
-                if (node.getValueHandle() instanceof PointerHandle ph) {
-                    FieldElement field;
-                    if (ph.getPointerValue() instanceof StaticFieldLiteral sfl) {
-                        field = sfl.getVariableElement();
-                    } else if (ph.getPointerValue() instanceof InstanceFieldOf ifo) {
-                        field = ifo.getVariableElement();
-                    } else {
-                        return null;
-                    }
-                    // todo: exclude writes of the field's original constant value (usually null/zero but might be something else)
-                    Facts.get(param.ctxt).discover(field, FieldReachabilityFacts.IS_WRITTEN);
+                FieldElement field;
+                if (node.getPointer() instanceof StaticFieldLiteral sfl) {
+                    field = sfl.getVariableElement();
+                } else if (node.getPointer() instanceof InstanceFieldOf ifo) {
+                    field = ifo.getVariableElement();
+                } else {
+                    return null;
                 }
+                // todo: exclude writes of the field's original constant value (usually null/zero but might be something else)
+                Facts.get(param.ctxt).discover(field, FieldReachabilityFacts.IS_WRITTEN);
             }
             return null;
         }

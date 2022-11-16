@@ -411,10 +411,10 @@ public final class Disassembler {
             final String id = param.nextId();
             final String description = String.format(
                 "store %s ← %s"
-                , showDescription(node.getValueHandle())
+                , showDescription(node.getPointer())
                 , show(node.getValue())
             );
-            param.addLine(description, node, node.getValueHandle());
+            param.addLine(description, node, node.getPointer());
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }

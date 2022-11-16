@@ -647,11 +647,21 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value vaArg(Value vaList, ValueType type);
 
+    @Deprecated
     default Node store(ValueHandle handle, Value value) {
         return store(handle, value, SinglePlain);
     }
 
-    Node store(ValueHandle handle, Value value, WriteAccessMode mode);
+    @Deprecated
+    default Node store(ValueHandle handle, Value value, WriteAccessMode mode) {
+        return store(addressOf(handle), value, mode);
+    }
+
+    default Node store(Value pointer, Value value) {
+        return store(pointer, value, SinglePlain);
+    }
+
+    Node store(Value pointer, Value value, WriteAccessMode mode);
 
     Node initCheck(InitializerElement initializer, Value initThunk);
 

@@ -82,8 +82,8 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
-        return super.store(handle, castVoidPointer(value, handle.getPointeeType()), accessMode);
+    public Node store(Value pointer, Value value, WriteAccessMode accessMode) {
+        return super.store(pointer, castVoidPointer(value, pointer.getPointeeType()), accessMode);
     }
 
     @Override

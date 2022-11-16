@@ -37,7 +37,7 @@ public class ThreadLocalBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
+    public Node store(Value handle, Value value, WriteAccessMode accessMode) {
         return super.store(transform(handle), value, accessMode);
     }
 

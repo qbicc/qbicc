@@ -78,8 +78,8 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
-        Value narrowedValue = check(handle, value);
+    public Node store(Value handle, Value value, WriteAccessMode accessMode) {
+        Value narrowedValue = checkPointerValue(handle, value);
         return super.store(handle, narrowedValue != null ? narrowedValue : value, accessMode);
     }
 

@@ -50,11 +50,11 @@ public class ClassInitializingBasicBlockBuilder extends DelegatingBasicBlockBuil
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
-        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sfl) {
+    public Node store(Value pointer, Value value, WriteAccessMode accessMode) {
+        if (pointer instanceof StaticFieldLiteral sfl) {
             initializeStaticMember(sfl.getVariableElement().getEnclosingType());
         }
-        return super.store(handle, value, accessMode);
+        return super.store(pointer, value, accessMode);
     }
 
     @Override

@@ -288,38 +288,38 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
-        if (handle.getPointeeType() instanceof BooleanType) {
-            ctxt.error("Invalid boolean-typed handle %s", handle);
+    public Node store(Value pointer, Value value, WriteAccessMode accessMode) {
+        if (pointer.getPointeeType() instanceof BooleanType) {
+            ctxt.error("Invalid boolean-typed handle %s", pointer);
         }
         if (value.getType() instanceof BooleanType) {
             ctxt.error("Invalid boolean-typed value %s", value);
         }
         if (accessMode.includes(GlobalRelease)) {
             // we have to emit a global fence
-            Node store = store(handle, value, SingleUnshared);
+            Node store = store(pointer, value, SingleUnshared);
             fence(accessMode.getGlobalAccess());
             return store;
         } else if (accessMode.includes(GlobalPlain)) {
-            return store(handle, value, SinglePlain);
+            return store(pointer, value, SinglePlain);
         } else if (accessMode.includes(GlobalUnshared)) {
-            return store(handle, value, SingleUnshared);
+            return store(pointer, value, SingleUnshared);
         }
         // Break apart atomic structure and array stores
-        if (handle.getPointeeType() instanceof CompoundType ct) {
+        if (pointer.getPointeeType() instanceof CompoundType ct) {
             if (value instanceof Literal lit && lit.isZero()) {
                 LiteralFactory lf = getLiteralFactory();
                 for (CompoundType.Member member : ct.getPaddedMembers()) {
-                    store(memberOf(handle, member), lf.zeroInitializerLiteralOfType(member.getType()), accessMode);
+                    store(memberOf(pointer, member), lf.zeroInitializerLiteralOfType(member.getType()), accessMode);
                 }
                 return nop();
             } else {
                 for (CompoundType.Member member : ct.getPaddedMembers()) {
-                    store(memberOf(handle, member), extractMember(value, member), accessMode);
+                    store(memberOf(pointer, member), extractMember(value, member), accessMode);
                 }
                 return nop();
             }
-        } else if (handle.getPointeeType() instanceof ArrayType at) {
+        } else if (pointer.getPointeeType() instanceof ArrayType at) {
             long ec = at.getElementCount();
             LiteralFactory lf = ctxt.getLiteralFactory();
             if (ec < 16) {
@@ -327,12 +327,12 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 if (value instanceof Literal lit && lit.isZero()) {
                     for (long i = 0; i < ec; i ++) {
                         IntegerLiteral idxLit = lf.literalOf(i);
-                        store(elementOf(handle, idxLit), lf.zeroInitializerLiteralOfType(at.getElementType()));
+                        store(elementOf(pointer, idxLit), lf.zeroInitializerLiteralOfType(at.getElementType()));
                     }
                 } else {
                     for (long i = 0; i < ec; i ++) {
                         IntegerLiteral idxLit = lf.literalOf(i);
-                        store(elementOf(handle, idxLit), extractElement(value, idxLit));
+                        store(elementOf(pointer, idxLit), extractElement(value, idxLit));
                     }
                 }
                 return nop();
@@ -345,16 +345,16 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 begin(top);
                 BlockParameter idx = addParam(top, Slot.temp(0), idxType);
                 if (value instanceof Literal lit && lit.isZero()) {
-                    store(elementOf(handle, idx), lf.zeroInitializerLiteralOfType(at.getElementType()));
+                    store(elementOf(pointer, idx), lf.zeroInitializerLiteralOfType(at.getElementType()));
                 } else {
-                    store(elementOf(handle, idx), extractElement(value, idx));
+                    store(elementOf(pointer, idx), extractElement(value, idx));
                 }
                 if_(isLt(idx, lf.literalOf(idxType, ec)), top, exit, Map.of(Slot.temp(0), add(idx, lf.literalOf(idxType, 1))));
                 begin(exit);
             }
             return nop();
         }
-        return super.store(handle, value, accessMode);
+        return super.store(pointer, value, accessMode);
     }
 
     @Override

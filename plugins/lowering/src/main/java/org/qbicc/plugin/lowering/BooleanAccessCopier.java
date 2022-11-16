@@ -40,14 +40,14 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
     @Override
     public Node visit(Node.Copier param, Store node) {
         param.copyNode(node.getDependency());
-        ValueHandle origHandle = node.getValueHandle();
-        ValueHandle copyHandle = param.copyValueHandle(origHandle);
+        Value origPointer = node.getPointer();
+        Value copyPointer = param.copyValue(origPointer);
         BasicBlockBuilder b = param.getBlockBuilder();
         Value copiedValue = param.copyValue(node.getValue());
-        if (origHandle.getPointeeType() instanceof BooleanType && copyHandle.getPointeeType() instanceof IntegerType it) {
+        if (origPointer.getPointeeType() instanceof BooleanType && copyPointer.getPointeeType() instanceof IntegerType it) {
             copiedValue = b.extend(copiedValue, it);
         }
-        return b.store(copyHandle, copiedValue, node.getAccessMode());
+        return b.store(copyPointer, copiedValue, node.getAccessMode());
     }
 
     @Override
