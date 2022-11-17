@@ -685,7 +685,7 @@ public interface Node {
             }
 
             public Value visit(Copier copier, ReadModifyWrite node) {
-                return copier.getBlockBuilder().readModifyWrite(copier.copyValueHandle(node.getValueHandle()), node.getOp(), copier.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
+                return copier.getBlockBuilder().readModifyWrite(copier.copyValue(node.getPointer()), node.getOp(), copier.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
             }
 
             public Value visit(final Copier param, final Rol node) {

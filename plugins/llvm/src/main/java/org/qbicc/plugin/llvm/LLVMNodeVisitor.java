@@ -652,9 +652,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
     @Override
     public LLValue visit(Void unused, ReadModifyWrite node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr);
+        Value pointer = node.getPointer();
+        LLValue ptr = map(pointer);
+        AtomicRmw insn = builder.atomicrmw(map(pointer.getType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr);
         switch (node.getOp()) {
             case SET -> insn.xchg();
             case ADD -> insn.add();
@@ -666,7 +666,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             case MIN -> insn.min();
             case MAX -> insn.max();
         }
-        insn.align(valueHandle.getPointeeType().getAlign());
+        insn.align(pointer.getPointeeType().getAlign());
         insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.setLValue(map(node));
     }

@@ -83,9 +83,9 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    public Value readModifyWrite(Value pointer, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         knownValues.clear();
-        return super.readModifyWrite(target, op, update, readMode, writeMode);
+        return super.readModifyWrite(pointer, op, update, readMode, writeMode);
     }
 
     @Override

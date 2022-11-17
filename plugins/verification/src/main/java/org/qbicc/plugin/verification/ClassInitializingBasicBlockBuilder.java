@@ -5,7 +5,6 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -58,11 +57,11 @@ public class ClassInitializingBasicBlockBuilder extends DelegatingBasicBlockBuil
     }
 
     @Override
-    public Value readModifyWrite(ValueHandle handle, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sfl) {
+    public Value readModifyWrite(Value pointer, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        if (pointer instanceof StaticFieldLiteral sfl) {
             initializeStaticMember(sfl.getVariableElement().getEnclosingType());
         }
-        return super.readModifyWrite(handle, op, update, readMode, writeMode);
+        return super.readModifyWrite(pointer, op, update, readMode, writeMode);
     }
 
     @Override

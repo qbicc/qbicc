@@ -96,7 +96,6 @@ import org.qbicc.graph.Or;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
 import org.qbicc.graph.ReadModifyWrite;
-import org.qbicc.graph.ReadModifyWriteValue;
 import org.qbicc.graph.Ret;
 import org.qbicc.graph.Rol;
 import org.qbicc.graph.Ror;
@@ -532,7 +531,7 @@ public final class Disassembler {
             return delegate.visit(param, node);
         }
 
-        private void readModifyWrite(String format, Disassembler param, ReadModifyWriteValue node) {
+        private void readModifyWrite(String format, Disassembler param, ReadModifyWrite node) {
             final String id = param.nextId();
             final String description = String.format(
                 format

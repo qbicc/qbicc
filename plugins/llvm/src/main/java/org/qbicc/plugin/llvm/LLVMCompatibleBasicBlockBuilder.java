@@ -410,7 +410,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    public Value readModifyWrite(Value pointer, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         BasicBlockBuilder fb = getFirstBuilder();
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
@@ -418,7 +418,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             // not actually atomic!
             // emit fences via load and store logic.
-            result = fb.load(target, readMode);
+            result = fb.load(pointer, readMode);
             Value computed = switch (op) {
                 case SET -> update;
                 case ADD -> fb.add(result, update);
@@ -430,7 +430,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 case MIN -> fb.min(result, update);
                 case MAX -> fb.max(result, update);
             };
-            fb.store(target, computed, writeMode);
+            fb.store(pointer, computed, writeMode);
         } else {
             boolean readRequiresFence = readMode.includes(GlobalAcquire);
             if (readMode instanceof GlobalAccessMode) {
@@ -440,7 +440,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             if (writeMode instanceof GlobalAccessMode) {
                 lowerWriteMode = SingleOpaque;
             }
-            result = super.readModifyWrite(target, op, update, lowerReadMode, lowerWriteMode);
+            result = super.readModifyWrite(pointer, op, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
                 fence(readMode.getGlobalAccess());
             }

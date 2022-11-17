@@ -1844,13 +1844,17 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl thread, ReadModifyWrite node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
+        Value pointerValue = node.getPointer();
+        if (pointerValue instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
-        Memory memory = getMemory(valueHandle);
-        long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getPointeeType();
+        Pointer pointer = unboxPointer(pointerValue);
+        if (pointer == null) {
+            throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
+        }
+        Memory memory = pointer.getRootMemoryIfExists();
+        long offset = pointer.getRootByteOffset();
+        ValueType type = pointerValue.getPointeeType();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
         WriteAccessMode writeAccessMode = node.getWriteAccessMode();

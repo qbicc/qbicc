@@ -92,8 +92,8 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.readModifyWrite(target, op, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
+    public Value readModifyWrite(Value pointer, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return super.readModifyWrite(pointer, op, castVoidPointer(update, pointer.getPointeeType()), readMode, writeMode);
     }
 
     @Override

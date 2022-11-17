@@ -1,6 +1,6 @@
 package org.qbicc.plugin.patcher;
 
-import static org.qbicc.graph.atomic.AccessModes.*;
+import static org.qbicc.graph.atomic.AccessModes.GlobalPlain;
 
 import java.util.List;
 import java.util.Map;
@@ -10,10 +10,8 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -87,27 +85,21 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    public Value readModifyWrite(Value pointer, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (op == ReadModifyWrite.Op.SET) {
-            if (target instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sfl && getAccessor(sfl.getVariableElement()) != null) {
+            if (pointer instanceof StaticFieldLiteral sfl && getAccessor(sfl.getVariableElement()) != null) {
                 if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
-                    Value loaded = load(target, readMode);
-                    store(target, update, writeMode);
+                    Value loaded = load(pointer, readMode);
+                    store(pointer, update, writeMode);
                     return loaded;
                 } else {
                     atomicNotAllowed();
                 }
             }
         } else {
-            checkAtomicAccessor(target);
+            checkAtomicAccessor(pointer);
         }
-        return super.readModifyWrite(target, op, update, readMode, writeMode);
-    }
-
-    private void checkAtomicAccessor(final ValueHandle target) {
-        if (target instanceof PointerHandle ph) {
-            checkAtomicAccessor(ph.getPointerValue());
-        }
+        return super.readModifyWrite(pointer, op, update, readMode, writeMode);
     }
 
     private void checkAtomicAccessor(final Value pointer) {

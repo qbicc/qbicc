@@ -11,7 +11,6 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.StaticFieldLiteral;
@@ -42,21 +41,13 @@ public class ThreadLocalBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value readModifyWrite(ValueHandle handle, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.readModifyWrite(transform(handle), op, update, readMode, writeMode);
+    public Value readModifyWrite(Value pointer, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return super.readModifyWrite(transform(pointer), op, update, readMode, writeMode);
     }
 
     @Override
     public Value cmpAndSwap(Value handle, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         return super.cmpAndSwap(transform(handle), expect, update, readMode, writeMode, strength);
-    }
-
-    private ValueHandle transform(ValueHandle handle) {
-        if (handle instanceof PointerHandle ph) {
-            return getFirstBuilder().pointerHandle(transform(ph.getPointerValue()));
-        } else {
-            return handle;
-        }
     }
 
     private Value transform(Value pointer) {

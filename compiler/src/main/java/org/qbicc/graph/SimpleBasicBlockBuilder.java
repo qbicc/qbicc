@@ -618,8 +618,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return asDependency(new Load(callSite, element, line, bci, requireDependency(), pointer, mode));
     }
 
-    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return asDependency(new ReadModifyWrite(callSite, element, line, bci, requireDependency(), target, op, update, readMode, writeMode));
+    public Value readModifyWrite(Value pointer, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return asDependency(new ReadModifyWrite(callSite, element, line, bci, requireDependency(), pointer, op, update, readMode, writeMode));
     }
 
     public Value cmpAndSwap(Value pointer, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
