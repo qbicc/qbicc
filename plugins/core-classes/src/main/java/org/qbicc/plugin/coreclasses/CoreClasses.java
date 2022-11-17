@@ -25,6 +25,7 @@ import org.qbicc.type.definition.InitializerResolver;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -70,7 +71,7 @@ public final class CoreClasses {
 
     private final FieldElement thrownField;
 
-    private final FieldElement arrayLengthField;
+    private final InstanceFieldElement arrayLengthField;
 
     private final FieldElement refArrayElementTypeIdField;
     private final FieldElement refArrayDimensionsField;
@@ -150,7 +151,7 @@ public final class CoreClasses {
         typeBuilder.setInitializer(EMPTY_INIT, 0);
         DefinedTypeDefinition baseType = typeBuilder.build();
 
-        arrayLengthField = baseType.load().getField(0);
+        arrayLengthField = (InstanceFieldElement) baseType.load().getField(0);
 
         // primitive types
 
@@ -548,7 +549,7 @@ public final class CoreClasses {
         return getArrayLengthField().getEnclosingType().load();
     }
 
-    public FieldElement getArrayLengthField() {
+    public InstanceFieldElement getArrayLengthField() {
         return arrayLengthField;
     }
 

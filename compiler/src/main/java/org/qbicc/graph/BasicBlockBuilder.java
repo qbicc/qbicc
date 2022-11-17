@@ -435,8 +435,6 @@ public interface BasicBlockBuilder extends Locatable {
      */
     Value currentThread();
 
-    ValueHandle lengthOf(ValueHandle arrayHandle);
-
     @Deprecated
     default ValueHandle memberOf(ValueHandle structHandle, CompoundType.Member member) {
         return pointerHandle(memberOf(addressOf(structHandle), member));
@@ -630,6 +628,15 @@ public interface BasicBlockBuilder extends Locatable {
     }
 
     Value load(Value pointer, ReadAccessMode mode);
+
+    /**
+     * Load the length value for the given array pointer.
+     * The access mode is always {@code SinglePlain}.
+     *
+     * @param arrayPointer the array pointer (must not be {@code null})
+     * @return the length value (not {@code null})
+     */
+    Value loadLength(Value arrayPointer);
 
     Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
 

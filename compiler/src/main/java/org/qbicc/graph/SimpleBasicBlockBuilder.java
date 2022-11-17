@@ -376,8 +376,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         throw Assert.unsupported();
     }
 
-    public ValueHandle lengthOf(final ValueHandle arrayHandle) {
-        throw new IllegalStateException("lengthOf not converted");
+    public Value loadLength(final Value arrayPointer) {
+        throw new IllegalStateException("loadLength not converted");
     }
 
     public Value truncate(final Value value, final WordType toType) {

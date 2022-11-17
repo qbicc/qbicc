@@ -16,7 +16,6 @@ import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.ExactMethodElementHandle;
-import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.InstanceMethodElementHandle;
 import org.qbicc.graph.InterfaceMethodElementHandle;
 import org.qbicc.graph.MultiNewArray;
@@ -118,12 +117,6 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     public Value addressOf(ValueHandle handle) {
         check(handle);
         return super.addressOf(handle);
-    }
-
-    @Override
-    public ValueHandle lengthOf(ValueHandle handle) {
-        check(handle);
-        return super.lengthOf(handle);
     }
 
     @Override

@@ -1740,7 +1740,7 @@ final class MethodParser {
                     }
                     case OP_ARRAYLENGTH:
                         v1 = pop1();
-                        push1(gf.load(gf.lengthOf(gf.referenceHandle(v1))));
+                        push1(gf.loadLength(gf.decodeReference(v1)));
                         if (v1.getType() instanceof ReferenceType) {
                             replaceAll(v1, gf.notNull(v1));
                         }

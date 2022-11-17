@@ -271,8 +271,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().select(condition, trueValue, falseValue);
     }
 
-    public ValueHandle lengthOf(final ValueHandle arrayHandle) {
-        return getDelegate().lengthOf(arrayHandle);
+    public Value loadLength(final Value arrayPointer) {
+        return getDelegate().loadLength(arrayPointer);
     }
 
     public Value new_(final ClassObjectType type, final Value typeId, final Value size, final Value align) {
