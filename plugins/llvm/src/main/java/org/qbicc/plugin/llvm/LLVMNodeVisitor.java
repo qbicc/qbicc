@@ -1409,7 +1409,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     }
 
     private LLValue map(Value value) {
-        if (value instanceof Unschedulable || value instanceof AsmLiteral) {
+        if (value instanceof Unschedulable) {
             // emit every time
             return value.accept(this, null);
         }

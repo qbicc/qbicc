@@ -40,6 +40,10 @@ public interface LiteralVisitor<T, R> {
         return visitAny(t, literal);
     }
 
+    default R visit(T t, ConstructorLiteral literal) {
+        return visitAny(t, literal);
+    }
+
     default R visit(T t, ElementOfLiteral literal) {
         return visitAny(t, literal);
     }
@@ -48,7 +52,19 @@ public interface LiteralVisitor<T, R> {
         return visitAny(t, literal);
     }
 
+    default R visit(T t, FunctionLiteral literal) {
+        return visitAny(t, literal);
+    }
+
     default R visit(T t, GlobalVariableLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, InitializerLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, InstanceMethodLiteral literal) {
         return visitAny(t, literal);
     }
 
@@ -73,6 +89,10 @@ public interface LiteralVisitor<T, R> {
     }
 
     default R visit(T t, StaticFieldLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, StaticMethodLiteral literal) {
         return visitAny(t, literal);
     }
 
@@ -131,6 +151,10 @@ public interface LiteralVisitor<T, R> {
             return getDelegateLiteralVisitor().visit(t, literal);
         }
 
+        default R visit(T t, ConstructorLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
         default R visit(T t, ElementOfLiteral literal) {
             return getDelegateLiteralVisitor().visit(t, literal);
         }
@@ -139,7 +163,19 @@ public interface LiteralVisitor<T, R> {
             return getDelegateLiteralVisitor().visit(t, literal);
         }
 
+        default R visit(T t, FunctionLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
         default R visit(T t, GlobalVariableLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, InitializerLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, InstanceMethodLiteral literal) {
             return getDelegateLiteralVisitor().visit(t, literal);
         }
 
@@ -164,6 +200,10 @@ public interface LiteralVisitor<T, R> {
         }
 
         default R visit(T t, StaticFieldLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, StaticMethodLiteral literal) {
             return getDelegateLiteralVisitor().visit(t, literal);
         }
 
