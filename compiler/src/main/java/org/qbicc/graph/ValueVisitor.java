@@ -187,7 +187,7 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
-    default R visit(T t, MemberSelector node) {
+    default R visit(T t, Dereference node) {
         return visitUnknown(t, node);
     }
 
@@ -470,7 +470,7 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
             return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T t, MemberSelector node) {
+        default R visit(T t, Dereference node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

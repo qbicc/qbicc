@@ -14,6 +14,7 @@ import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.Dereference;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.InstanceMethodElementHandle;
@@ -85,6 +86,13 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     @Override
     public Value checkcast(Value value, Value toType, Value toDimensions, CheckCast.CastType kind, ObjectType expectedType) {
         ValueType rawValueType = value.getType();
+        if (value instanceof Dereference deref) {
+            BasicBlockBuilder fb = getFirstBuilder();
+            return fb.deref(fb.checkcast(deref.getPointer(), toType, toDimensions, kind, expectedType));
+        } else if (value instanceof DecodeReference dr) {
+            BasicBlockBuilder fb = getFirstBuilder();
+            return fb.decodeReference(fb.checkcast(dr.getInput(), toType, toDimensions, kind, expectedType));
+        }
         if (rawValueType instanceof ReferenceType refType) {
             ReferenceType outputType = refType.narrow(expectedType);
             if (outputType == null) {

@@ -417,13 +417,13 @@ public interface BasicBlockBuilder extends Locatable {
     Value checkcast(Value value, TypeDescriptor desc);
 
     /**
-     * Wrap the pointer value with a member selection node, which can later be unwrapped.
+     * Wrap the pointer value with a dereference node, which can later be unwrapped.
      *
-     * @param handle the pointer value to wrap (must not be {@code null})
+     * @param pointer the pointer value to wrap (must not be {@code null})
      * @return the member selection node (not {@code null})
-     * @see MemberSelector
+     * @see Dereference
      */
-    Value selectMember(ValueHandle handle);
+    Value deref(Value pointer);
 
     // memory handles
 

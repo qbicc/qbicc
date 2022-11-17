@@ -76,7 +76,7 @@ import org.qbicc.graph.IsNe;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.Max;
 import org.qbicc.graph.MemberOf;
-import org.qbicc.graph.MemberSelector;
+import org.qbicc.graph.Dereference;
 import org.qbicc.graph.Min;
 import org.qbicc.graph.Mod;
 import org.qbicc.graph.MonitorEnter;
@@ -599,9 +599,9 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, MemberSelector node) {
+        public Void visit(Disassembler param, Dereference node) {
             final String id = param.nextId();
-            String description = "sel " + show(node.getValueHandle());
+            String description = "sel " + show(node.getPointer());
             param.addLine(id + " = " + description, node);
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);

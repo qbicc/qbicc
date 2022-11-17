@@ -623,8 +623,8 @@ public interface Node {
                 return param.getBlockBuilder().max(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
-            public Value visit(final Copier param, final MemberSelector node) {
-                return param.getBlockBuilder().selectMember(param.copyValueHandle(node.getValueHandle()));
+            public Value visit(final Copier param, final Dereference node) {
+                return param.getBlockBuilder().deref(param.copyValue(node.getPointer()));
             }
 
             public Value visit(final Copier param, final Min node) {
