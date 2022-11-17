@@ -311,7 +311,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().readModifyWrite(target, op, update, readMode, writeMode);
     }
 
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(Value target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         return getDelegate().cmpAndSwap(target, expect, update, readMode, writeMode, strength);
     }
 

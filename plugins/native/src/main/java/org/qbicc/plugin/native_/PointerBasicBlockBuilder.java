@@ -87,8 +87,8 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
-        return super.cmpAndSwap(target, castVoidPointer(expect, target.getPointeeType()), castVoidPointer(update, target.getPointeeType()), readMode, writeMode, strength);
+    public Value cmpAndSwap(Value pointer, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+        return super.cmpAndSwap(pointer, castVoidPointer(expect, pointer.getPointeeType()), castVoidPointer(update, pointer.getPointeeType()), readMode, writeMode, strength);
     }
 
     @Override

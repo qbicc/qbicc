@@ -640,7 +640,11 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
-    Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength);
+    default Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+        return cmpAndSwap(getFirstBuilder().addressOf(target), expect, update, readMode, writeMode, strength);
+    }
+
+    Value cmpAndSwap(Value target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength);
 
     Value vaArg(Value vaList, ValueType type);
 

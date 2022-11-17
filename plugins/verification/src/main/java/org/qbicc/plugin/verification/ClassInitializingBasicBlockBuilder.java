@@ -66,11 +66,11 @@ public class ClassInitializingBasicBlockBuilder extends DelegatingBasicBlockBuil
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle handle, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
-        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sfl) {
+    public Value cmpAndSwap(Value pointer, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+        if (pointer instanceof StaticFieldLiteral sfl) {
             initializeStaticMember(sfl.getVariableElement().getEnclosingType());
         }
-        return super.cmpAndSwap(handle, expect, update, readMode, writeMode, strength);
+        return super.cmpAndSwap(pointer, expect, update, readMode, writeMode, strength);
     }
 
     @Override

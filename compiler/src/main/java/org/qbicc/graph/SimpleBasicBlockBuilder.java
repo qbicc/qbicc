@@ -622,9 +622,9 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return asDependency(new ReadModifyWrite(callSite, element, line, bci, requireDependency(), target, op, update, readMode, writeMode));
     }
 
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(Value pointer, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         CompilationContext ctxt = getCurrentElement().getEnclosingType().getContext().getCompilationContext();
-        return asDependency(new CmpAndSwap(callSite, element, line, bci, CmpAndSwap.getResultType(ctxt, target.getPointeeType()), requireDependency(), target, expect, update, readMode, writeMode, strength));
+        return asDependency(new CmpAndSwap(callSite, element, line, bci, CmpAndSwap.getResultType(ctxt, pointer.getPointeeType()), requireDependency(), pointer, expect, update, readMode, writeMode, strength));
     }
 
     public Node store(Value handle, Value value, WriteAccessMode mode) {

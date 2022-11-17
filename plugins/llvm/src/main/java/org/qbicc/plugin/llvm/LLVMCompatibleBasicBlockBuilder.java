@@ -358,16 +358,16 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(Value pointer, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         BasicBlockBuilder fb = getFirstBuilder();
-        CompoundType resultType = CmpAndSwap.getResultType(ctxt, target.getPointeeType());
+        CompoundType resultType = CmpAndSwap.getResultType(ctxt, pointer.getPointeeType());
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
         Value result;
         if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             // not actually atomic!
             // emit fences via load and store logic.
-            Value compareVal = fb.load(target, readMode);
+            Value compareVal = fb.load(pointer, readMode);
             BlockLabel success = new BlockLabel();
             BlockLabel resume = new BlockLabel();
             Value compareResult = fb.isEq(compareVal, expect);
@@ -377,7 +377,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             result = fb.insertMember(withCompareVal, resultType.getMember(1), compareResult);
             fb.if_(compareResult, success, resume, Map.of());
             fb.begin(success);
-            fb.store(target, update, writeMode);
+            fb.store(pointer, update, writeMode);
             fb.goto_(resume, Map.of());
             fb.begin(resume);
         } else {
@@ -389,7 +389,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             if (writeMode instanceof GlobalAccessMode) {
                 lowerWriteMode = SingleOpaque;
             }
-            result = super.cmpAndSwap(target, expect, update, lowerReadMode, lowerWriteMode, strength);
+            result = super.cmpAndSwap(pointer, expect, update, lowerReadMode, lowerWriteMode, strength);
             if (readRequiresFence) {
                 fence(readMode.getGlobalAccess());
             }

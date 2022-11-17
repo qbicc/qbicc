@@ -47,7 +47,7 @@ public class ThreadLocalBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle handle, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(Value handle, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         return super.cmpAndSwap(transform(handle), expect, update, readMode, writeMode, strength);
     }
 

@@ -1240,10 +1240,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
     @Override
     public LLValue visit(final Void param, final CmpAndSwap node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue ptrType = map(valueHandle.getType());
-        LLValue type = map(valueHandle.getPointeeType());
-        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
+        Value pointerValue = node.getPointer();
+        LLValue ptrType = map(pointerValue.getType());
+        LLValue type = map(pointerValue.getPointeeType());
+        LLValue ptr = map(pointerValue);
         LLValue expect = map(node.getExpectedValue());
         LLValue update = map(node.getUpdateValue());
         ReadAccessMode readMode = node.getReadAccessMode();

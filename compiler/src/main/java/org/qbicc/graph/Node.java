@@ -497,7 +497,7 @@ public interface Node {
 
             public Value visit(final Copier param, final CmpAndSwap node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().cmpAndSwap(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getExpectedValue()),
+                return param.getBlockBuilder().cmpAndSwap(param.copyValue(node.getPointer()), param.copyValue(node.getExpectedValue()),
                     param.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode(), node.getStrength());
             }
 

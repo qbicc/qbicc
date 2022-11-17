@@ -480,7 +480,7 @@ public final class Disassembler {
             final String id = param.nextId();
             final String description = String.format(
                 "cmp-and-swap %s ← %s %s"
-                , show(node.getValueHandle())
+                , show(node.getPointer())
                 , show(node.getExpectedValue())
                 , show(node.getUpdateValue())
             );

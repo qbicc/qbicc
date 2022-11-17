@@ -89,9 +89,9 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(Value pointer, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         knownValues.clear();
-        return super.cmpAndSwap(target, expect, update, readMode, writeMode, strength);
+        return super.cmpAndSwap(pointer, expect, update, readMode, writeMode, strength);
     }
 
     @Override

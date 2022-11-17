@@ -81,7 +81,7 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(Value target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         checkAtomicAccessor(target);
         return super.cmpAndSwap(target, expect, update, readMode, writeMode, strength);
     }
@@ -105,7 +105,13 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private void checkAtomicAccessor(final ValueHandle target) {
-        if (target instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sfl && getAccessor(sfl.getVariableElement()) != null) {
+        if (target instanceof PointerHandle ph) {
+            checkAtomicAccessor(ph.getPointerValue());
+        }
+    }
+
+    private void checkAtomicAccessor(final Value pointer) {
+        if (pointer instanceof StaticFieldLiteral sfl && getAccessor(sfl.getVariableElement()) != null) {
             atomicNotAllowed();
         }
     }
