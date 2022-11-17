@@ -17,13 +17,13 @@ public final class ConstructorLiteral extends InvokableLiteral {
     }
 
     @Override
-    public ConstructorElement getElement() {
-        return (ConstructorElement) super.getElement();
+    public ConstructorElement getExecutable() {
+        return (ConstructorElement) super.getExecutable();
     }
 
     @Override
     public InstanceMethodType getPointeeType() {
-        return getElement().getType();
+        return getExecutable().getType();
     }
 
     @Override
@@ -37,7 +37,7 @@ public final class ConstructorLiteral extends InvokableLiteral {
 
     @Override
     public StringBuilder toReferenceString(StringBuilder b) {
-        ConstructorElement element = getElement();
+        ConstructorElement element = getExecutable();
         String niceClass = element.getEnclosingType().getInternalName().replace('/', '.');
         return element.getDescriptor().toString(b.append('@').append(niceClass).append('#').append("<init>"));
     }

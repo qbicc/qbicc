@@ -5,7 +5,7 @@ import org.qbicc.type.definition.element.InvokableElement;
 /**
  *
  */
-public abstract class InvokableLiteral extends ExecutableLiteral {
+public abstract sealed class InvokableLiteral extends ExecutableLiteral permits ConstructorLiteral, FunctionLiteral, MethodLiteral {
     InvokableLiteral(InvokableElement element) {
         super(element);
     }

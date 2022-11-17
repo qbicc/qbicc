@@ -5,8 +5,8 @@ import java.util.List;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Phase;
 import org.qbicc.graph.BasicBlockBuilder;
-import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
+import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.context.ClassContext;
 import org.qbicc.plugin.intrinsics.StaticIntrinsic;
@@ -28,8 +28,8 @@ public class UserMainIntrinsic implements StaticIntrinsic {
     }
 
     @Override
-    public Value emitIntrinsic(BasicBlockBuilder builder, StaticMethodElementHandle target, List<Value> arguments) {
-        return builder.call(builder.staticMethod(realMain), arguments);
+    public Value emitIntrinsic(BasicBlockBuilder builder, StaticMethodLiteral targetPtr, List<Value> arguments) {
+        return builder.call(builder.getLiteralFactory().literalOf(realMain), arguments);
     }
 
     public static void register(CompilationContext ctxt, MethodElement mainMethod) {

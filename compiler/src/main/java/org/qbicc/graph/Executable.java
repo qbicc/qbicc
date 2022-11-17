@@ -1,32 +1,31 @@
 package org.qbicc.graph;
 
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
+
+import java.util.Objects;
+
 import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.PointerType;
-import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
-import org.qbicc.type.descriptor.MethodDescriptor;
-
-import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 /**
  * A value handle to an executable element.
  */
-public abstract class Executable extends AbstractValueHandle {
-    private final ExecutableElement executable;
-    private final MethodDescriptor callSiteDescriptor;
-    private final InvokableType callSiteType;
+public final class Executable extends AbstractValueHandle {
 
-    Executable(ExecutableElement currentElement, int line, int bci, ExecutableElement executable, MethodDescriptor callSiteDescriptor, InvokableType callSiteType) {
+    private final Value target;
+    private final Value receiver;
+
+    Executable(final ExecutableElement currentElement, final int line, final int bci, final Value target, final Value receiver) {
         super(null, currentElement, line, bci);
-        this.executable = executable;
-        this.callSiteDescriptor = callSiteDescriptor;
-        this.callSiteType = callSiteType;
+        this.target = target;
+        this.receiver = receiver;
     }
 
     @Override
     int calcHashCode() {
-        return executable.hashCode();
+        return Objects.hash(target, receiver);
     }
 
     @Override
@@ -36,39 +35,61 @@ public abstract class Executable extends AbstractValueHandle {
 
     @Override
     public InvokableType getPointeeType() {
-        return callSiteType;
+        return target.getPointeeType(InvokableType.class);
     }
 
-    public ExecutableElement getExecutable() {
-        return executable;
+    @Override
+    String getNodeName() {
+        return "Executable";
     }
 
-    public MethodDescriptor getCallSiteDescriptor() {
-        return callSiteDescriptor;
+    public Value getTarget() {
+        return target;
     }
 
-    public InvokableType getCallSiteType() {
-        return callSiteType;
+    @Override
+    public Value getReceiver() {
+        return receiver;
+    }
+
+    @Override
+    public boolean isConstantLocation() {
+        return true;
+    }
+
+    @Override
+    public boolean isValueConstant() {
+        return true;
+    }
+
+    @Override
+    public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
+        return visitor.visit(param, this);
+    }
+
+    @Override
+    public <T> long accept(ValueHandleVisitorLong<T> visitor, T param) {
+        return visitor.visit(param, this);
     }
 
     @Override
     public boolean isNoThrow() {
-        return executable.hasAllModifiersOf(ClassFile.I_ACC_NO_THROW);
+        return target.isNoThrow();
     }
 
     @Override
     public boolean isNoSafePoints() {
-        return executable.hasAllModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS);
+        return target.isNoSafePoints();
     }
 
     @Override
     public boolean isNoReturn() {
-        return executable.hasAllModifiersOf(ClassFile.I_ACC_NO_RETURN);
+        return target.isNoReturn();
     }
 
     @Override
     public boolean isFold() {
-        return executable.hasAllModifiersOf(ClassFile.I_ACC_FOLD);
+        return target.isFold();
     }
 
     @Override
@@ -81,13 +102,13 @@ public abstract class Executable extends AbstractValueHandle {
         super.toString(b);
         b.append('{');
         // todo: replace with executable.toString(b)
-        b.append(executable);
+        target.toString(b);
         b.append('}');
         return b;
     }
 
     public boolean equals(Executable other) {
-        return this == other || other != null && executable.equals(other.executable);
+        return this == other || other != null && target.equals(other.target) && receiver.equals(other.receiver);
     }
 
     @Override

@@ -91,6 +91,7 @@ import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
+import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.machine.llvm.AsmFlag;
@@ -956,14 +957,14 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         FunctionType functionType = (FunctionType) node.getCalleeType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue llTarget = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
+        Value target = node.getTarget();
+        LLValue llTarget = map(target);
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
         Call call = builder.call(llType, llTarget).noTail();
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (functionType.isVariadic() || valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof AsmLiteral || valueHandle.isNoSafePoints()) {
+        if (functionType.isVariadic() || target instanceof AsmLiteral || target.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -976,15 +977,14 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         FunctionType functionType = (FunctionType) node.getCalleeType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue llTarget;
-        llTarget = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
+        Value target = node.getTarget();
+        LLValue llTarget = map(target);
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
         Call call = builder.call(llType, llTarget).noTail();
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (functionType.isVariadic() || valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof AsmLiteral || valueHandle.isNoSafePoints()) {
+        if (functionType.isVariadic() || target instanceof AsmLiteral || target.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -997,15 +997,14 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         FunctionType functionType = (FunctionType) node.getCalleeType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue llTarget;
-        llTarget = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
+        Value target = node.getTarget();
+        LLValue llTarget = map(target);
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
         Call call = builder.call(llType, llTarget).noTail().attribute(FunctionAttributes.noreturn);
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (functionType.isVariadic() || valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof AsmLiteral || valueHandle.isNoSafePoints()) {
+        if (functionType.isVariadic() || target instanceof AsmLiteral || target.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1019,15 +1018,14 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         FunctionType functionType = (FunctionType) node.getCalleeType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue llTarget;
-        llTarget = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
+        Value target = node.getTarget();
+        LLValue llTarget = map(target);
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
         Call call = builder.call(llType, llTarget).tail(); // hint only
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (functionType.isVariadic() || valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof AsmLiteral || valueHandle.isNoSafePoints()) {
+        if (functionType.isVariadic() || target instanceof AsmLiteral || target.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1045,8 +1043,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         FunctionType functionType = (FunctionType) node.getCalleeType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue llTarget = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
+        Value target = node.getTarget();
+        LLValue llTarget = map(target);
         if (invokeResults.containsKey(node)) {
             // already done
             return null;
@@ -1074,7 +1072,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
         addPersonalityIfNeeded();
-        if (functionType.isVariadic() || valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof AsmLiteral || valueHandle.isNoSafePoints()) {
+        if (functionType.isVariadic() || target instanceof AsmLiteral || target.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1087,8 +1085,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         FunctionType functionType = (FunctionType) node.getCalleeType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue llTarget = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
+        Value target = node.getTarget();
+        LLValue llTarget = map(target);
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
         LLBasicBlock unreachableTarget = func.createBlock();
@@ -1105,7 +1103,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
         addPersonalityIfNeeded();
-        if (functionType.isVariadic() || valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof AsmLiteral || valueHandle.isNoSafePoints()) {
+        if (functionType.isVariadic() || target instanceof AsmLiteral || target.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1173,18 +1171,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     }
 
     // GEP
-
-    private static final ValueHandleVisitor<LLVMNodeVisitor, GetElementPtr> GET_HANDLE_ELEMENT_POINTER = new ValueHandleVisitor<LLVMNodeVisitor, GetElementPtr>() {
-        @Override
-        public GetElementPtr visitUnknown(LLVMNodeVisitor param, ValueHandle node) {
-            throw new IllegalStateException("Unexpected handle " + node);
-        }
-
-        @Override
-        public GetElementPtr visit(LLVMNodeVisitor param, PointerHandle node) {
-            return param.gep(param.map(node.getPointerValue()), node).arg(false, i32, ZERO);
-        }
-    };
 
     private static final ValueHandleVisitor<LLVMNodeVisitor, LLValue> GET_HANDLE_POINTER_VALUE = new ValueHandleVisitor<LLVMNodeVisitor, LLValue>() {
         @Override
@@ -1264,7 +1250,13 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     // unknown node catch-all methods
 
     public LLValue visitUnknown(final Void param, final Value node) {
-        return node.accept(moduleVisitor, null);
+        ctxt.error(Location.builder().setNode(node).build(), "llvm: Unrecognized value %s", node.getClass());
+        return FALSE;
+    }
+
+    @Override
+    public LLValue visitAny(Void unused, Literal literal) {
+        return literal.accept(moduleVisitor, null);
     }
 
     public Instruction visitUnknown(final Void param, final Action node) {

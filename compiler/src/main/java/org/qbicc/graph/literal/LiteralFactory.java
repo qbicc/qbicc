@@ -31,6 +31,8 @@ import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
+import org.qbicc.type.definition.element.InvokableElement;
+import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.StaticMethodElement;
 import org.qbicc.type.definition.element.VariableElement;
 import org.qbicc.type.methodhandle.MethodHandleConstant;
@@ -97,6 +99,38 @@ public interface LiteralFactory {
     StaticFieldLiteral literalOf(StaticFieldElement variableElement);
 
     AsmLiteral literalOfAsm(String instructions, String constraints, FunctionType type, AsmLiteral.Flag... flags);
+
+    default ExecutableLiteral literalOf(ExecutableElement element) {
+        if (element instanceof InitializerElement ie) {
+            return literalOf(ie);
+        } else if (element instanceof InvokableElement ie) {
+            return literalOf(ie);
+        } else {
+            throw new IllegalStateException();
+        }
+    }
+
+    default InvokableLiteral literalOf(InvokableElement element) {
+        if (element instanceof ConstructorElement ce) {
+            return literalOf(ce);
+        } else if (element instanceof FunctionElement fe) {
+            return literalOf(fe);
+        } else if (element instanceof MethodElement me) {
+            return literalOf(me);
+        } else {
+            throw new IllegalStateException();
+        }
+    }
+
+    default MethodLiteral literalOf(MethodElement element) {
+        if (element instanceof InstanceMethodElement ime) {
+            return literalOf(ime);
+        } else if (element instanceof StaticMethodElement sme) {
+            return literalOf(sme);
+        } else {
+            throw new IllegalStateException();
+        }
+    }
 
     StaticMethodLiteral literalOf(StaticMethodElement element);
 

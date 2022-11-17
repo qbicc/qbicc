@@ -10,7 +10,6 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.generic.TypeParameterContext;
@@ -64,34 +63,34 @@ public final class BciRangeExceptionHandlerBasicBlockBuilder extends DelegatingB
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
-        if (inRange() && ! target.isNoThrow()) {
+    public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (inRange() && ! targetPtr.isNoThrow()) {
             Map<Slot, Value> capture = mp.captureOutbound();
             BlockLabel resumeLabel = new BlockLabel();
             BlockLabel handlerLabel = new BlockLabel();
-            Value rv = invoke(target, arguments, BlockLabel.of(begin(handlerLabel, this, (bbb, fb) -> bbb.beginHandler(handlerLabel, capture))), resumeLabel, capture);
+            Value rv = invoke(targetPtr, receiver, arguments, BlockLabel.of(begin(handlerLabel, this, (bbb, fb) -> bbb.beginHandler(handlerLabel, capture))), resumeLabel, capture);
             begin(resumeLabel);
             return addParam(resumeLabel, Slot.result(), rv.getType(), rv.isNullable());
         }
-        return super.call(target, arguments);
+        return super.call(targetPtr, receiver, arguments);
     }
 
     @Override
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
-        if (inRange() && ! target.isNoThrow()) {
+    public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (inRange() && ! targetPtr.isNoThrow()) {
             Map<Slot, Value> capture = mp.captureOutbound();
             BlockLabel handlerLabel = new BlockLabel();
-            return invokeNoReturn(target, arguments, BlockLabel.of(begin(handlerLabel, this, (bbb, fb) -> bbb.beginHandler(handlerLabel, capture))), Map.of());
+            return invokeNoReturn(targetPtr, receiver, arguments, BlockLabel.of(begin(handlerLabel, this, (bbb, fb) -> bbb.beginHandler(handlerLabel, capture))), Map.of());
         }
-        return super.callNoReturn(target, arguments);
+        return super.callNoReturn(targetPtr, receiver, arguments);
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
-        if (inRange() && ! target.isNoThrow()) {
-            return_(call(target, arguments));
+    public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (inRange() && ! targetPtr.isNoThrow()) {
+            return_(call(targetPtr, receiver, arguments));
         }
-        return super.tailCall(target, arguments);
+        return super.tailCall(targetPtr, receiver, arguments);
     }
 
     private void beginHandler(BlockLabel handlerLabel, Map<Slot, Value> capture) {

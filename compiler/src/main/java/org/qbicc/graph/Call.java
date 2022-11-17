@@ -1,10 +1,8 @@
 package org.qbicc.graph;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
-import org.qbicc.type.InvokableType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -13,25 +11,25 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * The return value of the target is the type of this node (which may be {@link org.qbicc.type.VoidType VoidType}).
  * Exceptions thrown by the target are not caught; instead, they are propagated out of the caller's frame.
  *
- * @see BasicBlockBuilder#call(org.qbicc.graph.ValueHandle, java.util.List)
+ * @see BasicBlockBuilder#call(org.qbicc.graph.Value, org.qbicc.graph.Value, java.util.List)
  */
-public final class Call extends AbstractValue implements OrderedNode {
+public final class Call extends AbstractValue implements OrderedNode, InvocationNode {
     private final Node dependency;
-    private final ValueHandle target;
+    private final Value target;
+    private final Value receiver;
     private final List<Value> arguments;
-    private final InvokableType functionType;
 
-    Call(Node callSite, ExecutableElement element, int line, int bci, Node dependency, ValueHandle target, List<Value> arguments) {
+    Call(Node callSite, ExecutableElement element, int line, int bci, Node dependency, Value target, Value receiver, List<Value> arguments) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.target = target;
+        this.receiver = receiver;
         this.arguments = arguments;
-        functionType = (InvokableType) target.getPointeeType();
     }
 
     @Override
     int calcHashCode() {
-        return Objects.hash(Call.class, dependency, target, arguments);
+        return Objects.hash(Call.class, dependency, target, receiver, arguments);
     }
 
     @Override
@@ -40,28 +38,17 @@ public final class Call extends AbstractValue implements OrderedNode {
     }
 
     @Override
-    public StringBuilder toString(StringBuilder b) {
-        super.toString(b);
-        b.append('(');
-        Iterator<Value> itr = arguments.iterator();
-        if (itr.hasNext()) {
-            itr.next().toReferenceString(b);
-            while (itr.hasNext()) {
-                b.append(',');
-                itr.next().toReferenceString(b);
-            }
-        }
-        b.append(')');
-        return b;
-    }
-
-    @Override
     public boolean equals(Object other) {
         return other instanceof Call && equals((Call) other);
     }
 
     public boolean equals(Call other) {
-        return this == other || other != null && dependency.equals(other.dependency) && target.equals(other.target) && arguments.equals(other.arguments);
+        return this == other || other != null && dependency.equals(other.dependency) && target.equals(other.target) && receiver.equals(other.receiver) && arguments.equals(other.arguments);
+    }
+
+    @Override
+    StringBuilder toRValueString(StringBuilder b) {
+        return InvocationNode.toRValueString(this, "call", b);
     }
 
     @Override
@@ -74,8 +61,14 @@ public final class Call extends AbstractValue implements OrderedNode {
         return ! target.isNoSafePoints();
     }
 
-    public InvokableType getCalleeType() {
-        return functionType;
+    @Override
+    public Value getTarget() {
+        return target;
+    }
+
+    @Override
+    public Value getReceiver() {
+        return receiver;
     }
 
     @Override
@@ -85,26 +78,6 @@ public final class Call extends AbstractValue implements OrderedNode {
 
     public List<Value> getArguments() {
         return arguments;
-    }
-
-    @Override
-    public int getValueDependencyCount() {
-        return arguments.size();
-    }
-
-    @Override
-    public Value getValueDependency(int index) throws IndexOutOfBoundsException {
-        return arguments.get(index);
-    }
-
-    @Override
-    public boolean hasValueHandleDependency() {
-        return true;
-    }
-
-    @Override
-    public ValueHandle getValueHandle() {
-        return target;
     }
 
     @Override

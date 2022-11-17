@@ -448,6 +448,10 @@ final class NativeInfo {
         return ref == null ? null : ref.get();
     }
 
+    public boolean isNativeType(final DefinedTypeDefinition enclosingType) {
+        return nativeTypes.containsKey(enclosingType);
+    }
+
     static final class FunctionalInterfaceData {
         MethodElement me;
         ClassTypeSignature signature;

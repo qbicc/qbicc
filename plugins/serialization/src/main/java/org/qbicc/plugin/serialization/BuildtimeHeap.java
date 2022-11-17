@@ -601,7 +601,7 @@ public class BuildtimeHeap {
                     ctxt.enqueue(method);
                     Function function = ctxt.getExactFunction(method);
                     FunctionDeclaration decl = into.getProgramModule().declareFunction(function);
-                    memberMap.put(om, lf.bitcastLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), smp.getType()));
+                    memberMap.put(om, lf.bitcastLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), pt));
                 } else if (pointer instanceof StaticFieldPointer sfp) {
                     // lower static field pointers to their corresponding program objects
                     StaticFieldElement sfe = sfp.getStaticField();

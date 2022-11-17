@@ -2,6 +2,7 @@ package org.qbicc.runtime.main;
 
 import org.qbicc.runtime.CNative.*;
 import org.qbicc.runtime.Hidden;
+import org.qbicc.runtime.NoSafePoint;
 import org.qbicc.runtime.posix.PThread;
 import org.qbicc.runtime.stdc.Stdint.*;
 
@@ -55,6 +56,7 @@ public class CompilerIntrinsics {
      * Get the java.lang.Class instance for the type ID for non-array classes.
      */
     @Hidden
+    @NoSafePoint
     public static native Class<?> getClassFromTypeIdSimple(type_id typeId);
 
     /**

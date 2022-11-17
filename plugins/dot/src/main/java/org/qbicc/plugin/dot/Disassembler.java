@@ -39,7 +39,6 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
 import org.qbicc.graph.Comp;
-import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.CountLeadingZeros;
 import org.qbicc.graph.CountTrailingZeros;
@@ -49,14 +48,11 @@ import org.qbicc.graph.DebugValueDeclaration;
 import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
-import org.qbicc.graph.ExactMethodElementHandle;
-import org.qbicc.graph.Executable;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.ExtractElement;
 import org.qbicc.graph.ExtractInstanceField;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
-import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
 import org.qbicc.graph.InitCheck;
@@ -64,7 +60,7 @@ import org.qbicc.graph.InsertElement;
 import org.qbicc.graph.InsertMember;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.InstanceOf;
-import org.qbicc.graph.InterfaceMethodElementHandle;
+import org.qbicc.graph.InterfaceMethodLookup;
 import org.qbicc.graph.Invoke;
 import org.qbicc.graph.InvokeNoReturn;
 import org.qbicc.graph.IsEq;
@@ -103,7 +99,6 @@ import org.qbicc.graph.Select;
 import org.qbicc.graph.Shl;
 import org.qbicc.graph.Shr;
 import org.qbicc.graph.StackAllocation;
-import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
 import org.qbicc.graph.Switch;
@@ -119,7 +114,7 @@ import org.qbicc.graph.VaArg;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Return;
-import org.qbicc.graph.VirtualMethodElementHandle;
+import org.qbicc.graph.VirtualMethodLookup;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
@@ -128,9 +123,12 @@ import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ByteArrayLiteral;
 import org.qbicc.graph.literal.CompoundLiteral;
 import org.qbicc.graph.literal.ConstantLiteral;
+import org.qbicc.graph.literal.ConstructorLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.literal.FunctionLiteral;
 import org.qbicc.graph.literal.GlobalVariableLiteral;
+import org.qbicc.graph.literal.InstanceMethodLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.MethodHandleLiteral;
@@ -138,21 +136,20 @@ import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
+import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.graph.literal.ValueConvertLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.definition.element.ExecutableElement;
-import org.qbicc.type.generic.BaseTypeSignature;
 
 public final class Disassembler {
-    private final Schedule schedule;
     private final DisassembleVisitor visitor;
     private final ExecutableElement element;
     private final Map<BasicBlock, BlockData> blocks = new HashMap<>();
@@ -166,7 +163,6 @@ public final class Disassembler {
     private int currentNodeId;
 
     Disassembler(BasicBlock entryBlock, ExecutableElement element, CompilationContext ctxt, BiFunction<CompilationContext, NodeVisitor<Disassembler, Void, Void, Void, Void>, NodeVisitor<Disassembler, Void, Void, Void, Void>> nodeVisitorFactory) {
-        this.schedule = Schedule.forMethod(entryBlock);
         this.visitor = new DisassembleVisitor(nodeVisitorFactory.apply(ctxt, new Terminus()));
         this.element = element;
         this.blockQueue.add(entryBlock);
@@ -439,21 +435,20 @@ public final class Disassembler {
 
         @Override
         public Void visit(Disassembler param, Call node) {
-            call("call", param, node, node.getArguments());
+            call("call", param, node, node.getTarget(), node.getReceiver(), node.getArguments());
             return delegate.visit(param, node);
         }
 
         @Override
         public Void visit(Disassembler param, CallNoSideEffects node) {
-            call("call-nse", param, node, node.getArguments());
+            call("call-nse", param, node, node.getTarget(), node.getReceiver(), node.getArguments());
             return delegate.visit(param, node);
         }
 
-        private void call(String prefix, Disassembler param, Node node, List<Value> args) {
+        private void call(String prefix, Disassembler param, Node node, Value targetPtr, Value receiver, List<Value> args) {
             final String id = param.nextId();
-            final String description = showWithArguments(prefix, node.getValueHandle(), args);
-            if (node.getValueHandle() instanceof Executable exec
-                && !exec.getExecutable().getSignature().getReturnTypeSignature().equals(BaseTypeSignature.V)) {
+            final String description = showWithArguments(prefix, targetPtr, receiver, args);
+            if (targetPtr.getPointeeType() instanceof InvokableType it && ! (it.getReturnType() instanceof VoidType)) {
                 param.addLine(id + " = " + description, node);
             } else {
                 param.addLine(description, node);
@@ -1121,9 +1116,9 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, ConstructorElementHandle node) {
+        public Void visit(Disassembler param, ConstructorLiteral node) {
             final String id = param.nextId();
-            final String description = showId(node.getInstance()) + " constructor";
+            final String description = node.getExecutable().toString();
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }
@@ -1149,7 +1144,7 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, ExactMethodElementHandle node) {
+        public Void visit(Disassembler param, InstanceMethodLiteral node) {
             final String id = param.nextId();
             final String description = node.getExecutable().toString();
             param.nodeInfo.put(node, new NodeInfo(id, description));
@@ -1157,7 +1152,7 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, FunctionElementHandle node) {
+        public Void visit(Disassembler param, FunctionLiteral node) {
             final String id = param.nextId();
             final String description = node.getExecutable().toString();
             param.nodeInfo.put(node, new NodeInfo(id, description));
@@ -1183,9 +1178,9 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, InterfaceMethodElementHandle node) {
+        public Void visit(Disassembler param, InterfaceMethodLookup node) {
             final String id = param.nextId();
-            final String description = node.getExecutable().toString();
+            final String description = node.getMethod().toString();
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }
@@ -1227,7 +1222,7 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, StaticMethodElementHandle node) {
+        public Void visit(Disassembler param, StaticMethodLiteral node) {
             final String id = param.nextId();
             final String description = node.getExecutable().toString();
             param.nodeInfo.put(node, new NodeInfo(id, description));
@@ -1247,9 +1242,9 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, VirtualMethodElementHandle node) {
+        public Void visit(Disassembler param, VirtualMethodLookup node) {
             final String id = param.nextId();
-            final String description = node.getExecutable().toString();
+            final String description = node.getMethod().toString();
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }
@@ -1261,7 +1256,7 @@ public final class Disassembler {
         @Override
         public Void visit(Disassembler param, CallNoReturn node) {
             final String id = param.nextId();
-            final String description = showWithArguments("call-no-return", node.getValueHandle(), node.getArguments());
+            final String description = showWithArguments("call-no-return", node.getTarget(), node.getReceiver(), node.getArguments());
             param.addLine(description, node);
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
@@ -1291,7 +1286,7 @@ public final class Disassembler {
         @Override
         public Void visit(Disassembler param, Invoke node) {
             final String id = param.nextId();
-            final String description = showWithArguments("invoke", node.getValueHandle(), node.getArguments());
+            final String description = showWithArguments("invoke", node.getTarget(), node.getReceiver(), node.getArguments());
             param.addLine(id + " = " + description, node);
             param.nodeInfo.put(node, new NodeInfo(id, description));
             param.queueBlock(currentBlock, node.getCatchBlock(), "catch", EdgeType.CONTROL_FLOW);
@@ -1302,7 +1297,7 @@ public final class Disassembler {
         @Override
         public Void visit(Disassembler param, InvokeNoReturn node) {
             final String id = param.nextId();
-            final String description = showWithArguments("invoke-no-return", node.getValueHandle(), node.getArguments());
+            final String description = showWithArguments("invoke-no-return", node.getTarget(), node.getReceiver(), node.getArguments());
             param.addLine(id + " = " + description, node);
             param.nodeInfo.put(node, new NodeInfo(id, description));
             param.queueBlock(currentBlock, node.getCatchBlock(), "catch", EdgeType.CONTROL_FLOW);
@@ -1343,7 +1338,7 @@ public final class Disassembler {
         @Override
         public Void visit(Disassembler param, TailCall node) {
             final String id = param.nextId();
-            final String description = showWithArguments("tail-call", node.getValueHandle(), node.getArguments());
+            final String description = showWithArguments("tail-call", node.getTarget(), node.getReceiver(), node.getArguments());
             param.addLine(id + " = " + description, node);
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
@@ -1391,17 +1386,27 @@ public final class Disassembler {
             return disassemble(node).description;
         }
 
-        private String showWithArguments(String prefix, ValueHandle handle, List<Value> arguments) {
+        private String showWithArguments(String prefix, Value target, Value receiver, List<Value> arguments) {
             String args = arguments.stream()
                 .map(this::show)
                 .collect(Collectors.joining(" "));
 
-            return String.format(
-                "%s %s %s"
-                , prefix
-                , showDescription(handle)
-                , args
-            );
+            if (receiver == null) {
+                return String.format(
+                    "%s %s %s"
+                    , prefix
+                    , target
+                    , args
+                );
+            } else {
+                return String.format(
+                    "%s %s %s %s"
+                    , prefix
+                    , target
+                    , receiver
+                    , args
+                );
+            }
         }
     }
 

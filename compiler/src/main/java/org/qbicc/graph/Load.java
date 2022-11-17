@@ -47,6 +47,11 @@ public class Load extends AbstractValue implements OrderedNode {
         return super.toString(b).append('(').append(mode).append(')');
     }
 
+    @Override
+    StringBuilder toRValueString(StringBuilder b) {
+        return pointer.toReferenceString(b.append("load ").append(mode).append(" from "));
+    }
+
     public boolean equals(final Load other) {
         return this == other || other != null && dependency.equals(other.dependency) && pointer.equals(other.pointer) && mode == other.mode;
     }

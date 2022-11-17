@@ -17,13 +17,13 @@ public final class StaticMethodLiteral extends MethodLiteral {
     }
 
     @Override
-    public StaticMethodElement getElement() {
-        return (StaticMethodElement) super.getElement();
+    public StaticMethodElement getExecutable() {
+        return (StaticMethodElement) super.getExecutable();
     }
 
     @Override
     public StaticMethodType getPointeeType() {
-        return getElement().getType();
+        return getExecutable().getType();
     }
 
     @Override

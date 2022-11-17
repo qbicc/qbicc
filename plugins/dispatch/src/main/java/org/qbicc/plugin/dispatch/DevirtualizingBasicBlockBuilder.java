@@ -1,15 +1,16 @@
 package org.qbicc.plugin.dispatch;
 
-import org.qbicc.graph.*;
+import org.jboss.logging.Logger;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.Value;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
-import org.jboss.logging.Logger;
-import org.qbicc.type.descriptor.MethodDescriptor;
 
 public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private static final Logger log = Logger.getLogger("org.qbicc.plugin.dispatch.devirt");
@@ -19,31 +20,31 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public ValueHandle interfaceMethodOf(Value instance, MethodElement target, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        MethodElement exactTarget = staticallyBind(instance, target);
+    public Value lookupInterfaceMethod(Value reference, InstanceMethodElement method) {
+        MethodElement exactTarget = staticallyBind(method);
         if (exactTarget != null) {
-            return exactMethodOf(instance, exactTarget, callSiteDescriptor, callSiteType);
+            return getLiteralFactory().literalOf(exactTarget);
         }
-        MethodElement virtualTarget = virtualizeInvokeInterface(instance, target);
+        MethodElement virtualTarget = virtualizeInvokeInterface(reference, method);
         if (virtualTarget != null) {
-            return virtualMethodOf(instance, virtualTarget, callSiteDescriptor, callSiteType);
+            return getLiteralFactory().literalOf(virtualTarget);
         }
-        return super.interfaceMethodOf(instance, target, callSiteDescriptor, callSiteType);
+        return super.lookupInterfaceMethod(reference, method);
     }
 
     @Override
-    public ValueHandle virtualMethodOf(Value instance, MethodElement target, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        MethodElement exactTarget = staticallyBind(instance, target);
-        return exactTarget != null ? exactMethodOf(instance, exactTarget, callSiteDescriptor, callSiteType) : super.virtualMethodOf(instance, target, callSiteDescriptor, callSiteType);
+    public Value lookupVirtualMethod(Value reference, InstanceMethodElement method) {
+        MethodElement exactTarget = staticallyBind(method);
+        return exactTarget != null ? getLiteralFactory().literalOf(exactTarget) : super.lookupVirtualMethod(reference, method);
     }
 
     /*
      * Determine if an interface call be converted to a virtual call based on the static
      * type of the receiver.
      */
-    private MethodElement virtualizeInvokeInterface(final Value instance, final MethodElement target) {
+    private MethodElement virtualizeInvokeInterface(final Value reference, final InstanceMethodElement target) {
         ClassObjectType classType;
-        ValueType type = instance.getType();
+        ValueType type = reference.getType();
         if (type instanceof ReferenceType) {
             PhysicalObjectType upperBound = ((ReferenceType) type).getUpperBound();
             if (upperBound instanceof ClassObjectType) {
@@ -73,7 +74,7 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
      * Determine if a virtual call can be statically bound to a single target method.
      * If yes, return the exact target method.  If no, return null.
      */
-    private MethodElement staticallyBind(final Value instance, final MethodElement target) {
+    private MethodElement staticallyBind(final MethodElement target) {
         // Handle a very trivial case as a proof of concept that the phase actually does something..
         if (target.isFinal() || target.getEnclosingType().isFinal() || target.isPrivate()) {
             log.debugf("Devirtualizing call to %s::%s", target.getEnclosingType().getDescriptor(), target.getName());

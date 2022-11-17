@@ -11,11 +11,8 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Slot;
-import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
@@ -23,6 +20,7 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
+import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.interpreter.Thrown;
@@ -35,8 +33,8 @@ import org.qbicc.type.NullableType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
+import org.qbicc.type.definition.element.StaticMethodElement;
 
 /**
  * A basic block builder which substitutes reads from trivially constant static fields,
@@ -74,56 +72,57 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
-        if (target.isFold()) try {
-            return fold(target, arguments);
+    public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (targetPtr.isFold()) try {
+            return fold(targetPtr, arguments);
         } catch (Thrown t) {
             throw new BlockEarlyTermination(throw_(getLiteralFactory().literalOf(t.getThrowable())));
         }
-        return super.call(target, arguments);
+        return super.call(targetPtr, receiver, arguments);
     }
 
     @Override
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
-        return target.isFold() ? fold(target, arguments) : super.callNoSideEffects(target, arguments);
+    public Value callNoSideEffects(Value targetPtr, Value receiver, List<Value> arguments) {
+        return targetPtr.isFold() ? fold(targetPtr, arguments) : super.callNoSideEffects(targetPtr, receiver, arguments);
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
-        if (target.isFold()) try {
-            return return_(fold(target, arguments));
+    public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (targetPtr.isFold()) try {
+            return return_(fold(targetPtr, arguments));
         } catch (Thrown t) {
             return throw_(getLiteralFactory().literalOf(t.getThrowable()));
         }
-        return super.tailCall(target, arguments);
+        return super.tailCall(targetPtr, receiver, arguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
-        if (target.isFold()) {
+    public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        if (targetPtr.isFold()) {
             ImmutableMap<Slot, Value> immutableMap = Maps.immutable.ofMap(targetArguments);
             try {
-                Value result = fold(target, arguments);
+                Value result = fold(targetPtr, arguments);
                 goto_(resumeLabel, immutableMap.newWithKeyValue(Slot.result(), result).castToMap());
                 return result;
             } catch (Thrown t) {
                 goto_(catchLabel, immutableMap.newWithKeyValue(Slot.thrown(), getLiteralFactory().literalOf(t.getThrowable())).castToMap());
             }
         }
-        return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
+        return super.invoke(targetPtr, receiver, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
     private static final Object[] NO_ARGS = new Object[0];
 
-    private Value fold(final ValueHandle target, final List<Value> arguments) throws Thrown {
+    private Value fold(final Value targetPtr, final List<Value> arguments) throws Thrown {
         // we fold per call site, so caching does not really make sense
-        if (target instanceof StaticMethodElementHandle sh && target.getPointeeType() instanceof StaticMethodType smt) {
+        if (targetPtr instanceof StaticMethodLiteral sh) {
+            StaticMethodType smt = sh.getPointeeType();
             int size = arguments.size();
             Object[] args = size == 0 ? NO_ARGS : new Object[size];
             for (int i = 0; i < size; i ++) {
                 args[i] = mapValue(arguments.get(i));
             }
-            MethodElement method = sh.getExecutable();
+            StaticMethodElement method = sh.getExecutable();
             VmThread thread = Vm.requireCurrentThread();
             Vm vm = thread.getVM();
             // may throw!

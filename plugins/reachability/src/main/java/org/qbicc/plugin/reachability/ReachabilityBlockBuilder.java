@@ -9,13 +9,10 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.CmpAndSwap;
-import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.ExactMethodElementHandle;
-import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.InitCheck;
 import org.qbicc.graph.InstanceFieldOf;
-import org.qbicc.graph.InterfaceMethodElementHandle;
+import org.qbicc.graph.InterfaceMethodLookup;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.MultiNewArray;
 import org.qbicc.graph.New;
@@ -23,21 +20,23 @@ import org.qbicc.graph.NewReferenceArray;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.OrderedNode;
-import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
-import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.ValueHandleVisitor;
-import org.qbicc.graph.VirtualMethodElementHandle;
+import org.qbicc.graph.VirtualMethodLookup;
+import org.qbicc.graph.literal.ConstructorLiteral;
+import org.qbicc.graph.literal.FunctionLiteral;
+import org.qbicc.graph.literal.InstanceMethodLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
+import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
+import org.qbicc.pointer.ConstructorPointer;
 import org.qbicc.pointer.InstanceMethodPointer;
 import org.qbicc.pointer.ReferenceAsPointer;
 import org.qbicc.pointer.RootPointer;
@@ -62,7 +61,7 @@ import org.qbicc.type.definition.element.StaticMethodElement;
  * As a result of the analysis, new ExecutableElements may become reachable and
  * this be enqueued for compilation.
  */
-public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<Void, Void> {
+public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
     public ReachabilityBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
@@ -178,7 +177,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
 
         @Override
         public Void visit(ReachabilityContext reachabilityContext, InstanceMethodPointer pointer) {
-            InstanceMethodElement target = pointer.getInstanceMethod();
+            InstanceMethodElement target = pointer.getExecutableElement();
             reachabilityContext.analysis.processReachableExactInvocation(target, reachabilityContext.currentElement);
             return null;
         }
@@ -198,13 +197,13 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
 
         @Override
         public Void visit(ReachabilityContext param, StaticMethodPointer pointer) {
-            StaticMethodElement target = pointer.getStaticMethod();
+            StaticMethodElement target = pointer.getExecutableElement();
             param.analysis.processReachableExactInvocation(target, param.currentElement);
             return null;
         }
 
         @Override
-        public Void visit(ReachabilityContext param, ConstructorElementHandle node) {
+        public Void visit(ReachabilityContext param, ConstructorLiteral node) {
             if (visitUnknown(param, (Node)node)) {
                 ConstructorElement target = node.getExecutable();
                 param.analysis.processReachableExactInvocation(target, param.currentElement);
@@ -225,7 +224,26 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         }
 
         @Override
-        public Void visit(ReachabilityContext param, FunctionElementHandle node) {
+        public Void visit(ReachabilityContext param, ConstructorPointer pointer) {
+            ConstructorElement target = pointer.getExecutableElement();
+            param.analysis.processReachableExactInvocation(target, param.currentElement);
+            // The lambda meta factory and other reflective machinery in the JDK use Unsafe.allocateInstance
+            // instead of a "real" New to instantiate a class.  To compensate, reachability analysis assumes
+            // that if a ConstructorElementHandle is invoked and the invocation isn't the super.<init> that starts
+            // all non-Object constructors, then the declaring type of the constructor _must_ have been instantiated somehow.
+            if (!target.getEnclosingType().load().isAbstract()) {
+                if (!(param.currentElement instanceof ConstructorElement) ||
+                    (param.currentElement instanceof ConstructorElement &&
+                        (param.currentElement.getEnclosingType().load().getSuperClass() == null ||
+                        !param.currentElement.getEnclosingType().load().getSuperClass().equals(target.getEnclosingType())))) {
+                    param.analysis.processInstantiatedClass(target.getEnclosingType().load(), false, param.currentElement);
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visit(ReachabilityContext param, FunctionLiteral node) {
             if (visitUnknown(param, (Node)node)) {
                 FunctionElement target = node.getExecutable();
                 param.analysis.processReachableExactInvocation(target, param.currentElement);
@@ -234,7 +252,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         }
 
         @Override
-        public Void visit(ReachabilityContext param, ExactMethodElementHandle node) {
+        public Void visit(ReachabilityContext param, InstanceMethodLiteral node) {
             if (visitUnknown(param, (Node)node)) {
                 param.analysis.processReachableExactInvocation(node.getExecutable(), param.currentElement);
             }
@@ -242,23 +260,23 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         }
 
         @Override
-        public Void visit(ReachabilityContext param, VirtualMethodElementHandle node) {
+        public Void visit(ReachabilityContext param, VirtualMethodLookup node) {
             if (visitUnknown(param, (Node)node)) {
-                param.analysis.processReachableDispatchedInvocation(node.getExecutable(), param.currentElement);
+                param.analysis.processReachableDispatchedInvocation(node.getMethod(), param.currentElement);
             }
             return null;
         }
 
         @Override
-        public Void visit(ReachabilityContext param, InterfaceMethodElementHandle node) {
+        public Void visit(ReachabilityContext param, InterfaceMethodLookup node) {
             if (visitUnknown(param, (Node)node)) {
-                param.analysis.processReachableDispatchedInvocation(node.getExecutable(), param.currentElement);
+                param.analysis.processReachableDispatchedInvocation(node.getMethod(), param.currentElement);
             }
             return null;
         }
 
         @Override
-        public Void visit(ReachabilityContext param, StaticMethodElementHandle node) {
+        public Void visit(ReachabilityContext param, StaticMethodLiteral node) {
             if (visitUnknown(param, (Node)node)) {
                 MethodElement target = node.getExecutable();
                 param.analysis.processReachableExactInvocation(target, param.currentElement);

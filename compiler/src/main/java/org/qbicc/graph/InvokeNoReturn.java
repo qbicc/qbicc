@@ -1,6 +1,5 @@
 package org.qbicc.graph;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -13,21 +12,23 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * Exceptions thrown by the target are caught and delivered to the catch block.
  * This node terminates its block.
  *
- * @see BasicBlockBuilder#invokeNoReturn(org.qbicc.graph.ValueHandle, java.util.List, org.qbicc.graph.BlockLabel, java.util.Map)
+ * @see BasicBlockBuilder#invokeNoReturn(org.qbicc.graph.Value, org.qbicc.graph.Value, java.util.List, org.qbicc.graph.BlockLabel, java.util.Map)
  */
-public final class InvokeNoReturn extends AbstractTerminator {
+public final class InvokeNoReturn extends AbstractTerminator implements InvocationNode {
     private final Node dependency;
     private final BasicBlock terminatedBlock;
-    private final ValueHandle target;
+    private final Value target;
+    private final Value receiver;
     private final List<Value> arguments;
     private final InvokableType calleeType;
     private final BlockLabel catchLabel;
 
-    InvokeNoReturn(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    InvokeNoReturn(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, Value target, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         super(callSite, element, line, bci, targetArguments);
         this.dependency = dependency;
         this.terminatedBlock = new BasicBlock(blockEntry, this);
         this.target = target;
+        this.receiver = receiver;
         this.arguments = arguments;
         this.catchLabel = catchLabel;
         calleeType = (InvokableType) target.getPointeeType();
@@ -35,7 +36,7 @@ public final class InvokeNoReturn extends AbstractTerminator {
 
     @Override
     int calcHashCode() {
-        return Objects.hash(InvokeNoReturn.class, dependency, target, arguments);
+        return Objects.hash(InvokeNoReturn.class, dependency, target, receiver, arguments);
     }
 
     @Override
@@ -48,24 +49,13 @@ public final class InvokeNoReturn extends AbstractTerminator {
         return other instanceof InvokeNoReturn && equals((InvokeNoReturn) other);
     }
 
-    @Override
-    public StringBuilder toString(StringBuilder b) {
-        super.toString(b);
-        b.append('(');
-        Iterator<Value> itr = arguments.iterator();
-        if (itr.hasNext()) {
-            itr.next().toReferenceString(b);
-            while (itr.hasNext()) {
-                b.append(',');
-                itr.next().toReferenceString(b);
-            }
-        }
-        b.append(')');
-        return b;
+    public boolean equals(InvokeNoReturn other) {
+        return this == other || other != null && dependency.equals(other.dependency) && target.equals(other.target) && receiver.equals(other.receiver) && arguments.equals(other.arguments);
     }
 
-    public boolean equals(InvokeNoReturn other) {
-        return this == other || other != null && dependency.equals(other.dependency) && target.equals(other.target) && arguments.equals(other.arguments);
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return InvocationNode.toRValueString(this, "invoke", b).append(" no-return catch ").append(catchLabel);
     }
 
     @Override
@@ -86,24 +76,12 @@ public final class InvokeNoReturn extends AbstractTerminator {
         return arguments;
     }
 
-    @Override
-    public int getValueDependencyCount() {
-        return arguments.size();
-    }
-
-    @Override
-    public Value getValueDependency(int index) throws IndexOutOfBoundsException {
-        return arguments.get(index);
-    }
-
-    @Override
-    public boolean hasValueHandleDependency() {
-        return true;
-    }
-
-    @Override
-    public ValueHandle getValueHandle() {
+    public Value getTarget() {
         return target;
+    }
+
+    public Value getReceiver() {
+        return receiver;
     }
 
     @Override

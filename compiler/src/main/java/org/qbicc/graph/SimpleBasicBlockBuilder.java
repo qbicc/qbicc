@@ -17,6 +17,7 @@ import org.qbicc.context.Location;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
+import org.qbicc.graph.literal.ExecutableLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
@@ -30,20 +31,16 @@ import org.qbicc.type.PointerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
-import org.qbicc.type.StaticMethodType;
-import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
-import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
-import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -380,6 +377,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         throw new IllegalStateException("loadLength not converted");
     }
 
+    public Value loadTypeId(final Value objectPointer) {
+        throw new IllegalStateException("loadTypeId not converted");
+    }
+
     public Value truncate(final Value value, final WordType toType) {
         return unique(new Truncate(callSite, element, line, bci, value, toType));
     }
@@ -467,7 +468,49 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public ValueHandle pointerHandle(Value pointer) {
+        if (pointer instanceof ExecutableLiteral) {
+            return executableHandle(pointer, emptyVoid());
+        }
         return new PointerHandle(callSite, element, line, bci, pointer);
+    }
+
+    public ValueHandle executableHandle(Value executablePtr, Value receiver) {
+        return new Executable(element, line, bci, executablePtr, receiver);
+    }
+
+    @Override
+    public Value lookupVirtualMethod(Value reference, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        throw new IllegalStateException("lookupVirtualMethod of unresolved type");
+    }
+
+    @Override
+    public Value lookupVirtualMethod(Value reference, InstanceMethodElement method) {
+        return unique(new VirtualMethodLookup(callSite, element, line, bci, requireDependency(), reference, method));
+    }
+
+    @Override
+    public Value lookupInterfaceMethod(Value reference, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        throw new IllegalStateException("lookupInterfaceMethod of unresolved type");
+    }
+
+    @Override
+    public Value lookupInterfaceMethod(Value reference, InstanceMethodElement method) {
+        return unique(new InterfaceMethodLookup(callSite, element, line, bci, requireDependency(), reference, method));
+    }
+
+    @Override
+    public Value resolveStaticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        throw new IllegalStateException("resolveStaticMethod of unresolved type");
+    }
+
+    @Override
+    public Value resolveInstanceMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        throw new IllegalStateException("resolveInstanceMethod of unresolved type");
+    }
+
+    @Override
+    public Value resolveConstructor(TypeDescriptor owner, MethodDescriptor descriptor) {
+        throw new IllegalStateException("resolveConstructor of unresolved type");
     }
 
     public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
@@ -480,50 +523,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value instanceFieldOf(Value instancePointer, TypeDescriptor owner, String name, TypeDescriptor type) {
         throw new IllegalStateException("Instance field of unresolved type");
-    }
-
-    public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        return new ExactMethodElementHandle(element, line, bci, method, instance, callSiteDescriptor, callSiteType);
-    }
-
-    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        throw new IllegalStateException("Unresolved instance method");
-    }
-
-    public ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        return new VirtualMethodElementHandle(element, line, bci, method, instance, callSiteDescriptor, callSiteType);
-    }
-
-    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        throw new IllegalStateException("Unresolved instance method");
-    }
-
-    public ValueHandle interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        return new InterfaceMethodElementHandle(element, line, bci, method, instance, callSiteDescriptor, callSiteType);
-    }
-
-    public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        throw new IllegalStateException("Unresolved instance method");
-    }
-
-    public ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType) {
-        return new StaticMethodElementHandle(element, line, bci, method, callSiteDescriptor, callSiteType);
-    }
-
-    public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        throw new IllegalStateException("Unresolved static method");
-    }
-
-    public ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        return new ConstructorElementHandle(element, line, bci, constructor, instance, callSiteDescriptor, callSiteType);
-    }
-
-    public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
-        throw new IllegalStateException("Unresolved constructor");
-    }
-
-    public ValueHandle functionOf(FunctionElement function) {
-        return new FunctionElementHandle(element, line, bci, function);
     }
 
     public Value auto(Value initializer) {
@@ -646,12 +645,18 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return asDependency(new MonitorExit(callSite, element, line, bci, requireDependency(), Assert.checkNotNullParam("obj", obj)));
     }
 
-    public Value call(ValueHandle target, List<Value> arguments) {
-        return asDependency(new Call(callSite, element, line, bci, requireDependency(), target, arguments));
+    public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (receiver.getType() instanceof VoidType && targetPtr.getPointeeType() instanceof InstanceMethodType) {
+            getContext().error(getLocation(), "Call to instance method without receiver");
+        }
+        return asDependency(new Call(callSite, element, line, bci, requireDependency(), targetPtr, receiver, arguments));
     }
 
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
-        return unique(new CallNoSideEffects(callSite, element, line, bci, target, arguments));
+    public Value callNoSideEffects(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (receiver.getType() instanceof VoidType && targetPtr.getPointeeType() instanceof InstanceMethodType) {
+            getContext().error(getLocation(), "Call to instance method without receiver");
+        }
+        return unique(new CallNoSideEffects(callSite, element, line, bci, targetPtr, receiver, arguments));
     }
 
     public Node nop() {
@@ -743,22 +748,35 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return asDependency(new SafePoint(callSite, element, line, bci, requireDependency()));
     }
 
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
-        return terminate(requireCurrentBlock(), new CallNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments));
+    public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (receiver.getType() instanceof VoidType && targetPtr.getPointeeType() instanceof InstanceMethodType) {
+            getContext().error(getLocation(), "Call to instance method without receiver");
+        }
+        return terminate(requireCurrentBlock(), new CallNoReturn(callSite, element, line, bci, blockEntry, dependency, targetPtr, receiver, arguments));
     }
 
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        return terminate(requireCurrentBlock(), new InvokeNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, targetArguments));
+    public BasicBlock invokeNoReturn(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        if (receiver.getType() instanceof VoidType && targetPtr.getPointeeType() instanceof InstanceMethodType) {
+            getContext().error(getLocation(), "Call to instance method without receiver");
+        }
+        return terminate(requireCurrentBlock(), new InvokeNoReturn(callSite, element, line, bci, blockEntry, dependency, targetPtr, receiver, arguments, catchLabel, targetArguments));
     }
 
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
-        return terminate(requireCurrentBlock(), new TailCall(callSite, element, line, bci, blockEntry, dependency, target, arguments));
+    public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (receiver.getType() instanceof VoidType && targetPtr.getPointeeType() instanceof InstanceMethodType) {
+            getContext().error(getLocation(), "Call to instance method without receiver");
+        }
+        return terminate(requireCurrentBlock(), new TailCall(callSite, element, line, bci, blockEntry, dependency, targetPtr, receiver, arguments));
     }
 
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+    public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        if (receiver.getType() instanceof VoidType && targetPtr.getPointeeType() instanceof InstanceMethodType) {
+            getContext().error(getLocation(), "Call to instance method without receiver");
+        }
         final BlockLabel currentBlock = requireCurrentBlock();
-        Invoke invoke = new Invoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, resumeLabel, targetArguments);
+        Invoke invoke = new Invoke(callSite, element, line, bci, blockEntry, dependency, targetPtr, receiver, arguments, catchLabel, resumeLabel, targetArguments);
         terminate(currentBlock, invoke);
+        // todo: addParam(resumeLabel, Slot.result(), targetPtr.getReturnType())
         return invoke.getReturnValue();
     }
 

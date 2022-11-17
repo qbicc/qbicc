@@ -11,13 +11,12 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Load;
-import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.interpreter.VmString;
@@ -44,7 +43,7 @@ public final class LLVMIntrinsics {
 
         MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
 
-        StaticIntrinsic isLlvm = (builder, target, arguments) -> ctxt.getLiteralFactory().literalOf(true);
+        StaticIntrinsic isLlvm = (builder, targetPtr, arguments) -> ctxt.getLiteralFactory().literalOf(true);
         intrinsics.registerIntrinsic(buildTargetDesc, "isLlvm", emptyToBool, isLlvm);
 
         // inline assembly
@@ -82,7 +81,7 @@ public final class LLVMIntrinsics {
 
         ClassTypeDescriptor stdArgDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdarg");
 
-        StaticIntrinsic saVaStart = (builder, target, arguments) -> {
+        StaticIntrinsic saVaStart = (builder, targetPtr, arguments) -> {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             Value vaListPtr;
             Value vaList = arguments.get(0);
@@ -92,12 +91,12 @@ public final class LLVMIntrinsics {
                 ctxt.error(builder.getLocation(), "Invalid ap argument to va_start: must have an address");
                 return voidLiteral;
             }
-            return fb.call(fb.staticMethod(llvmRuntimeDesc, "va_start", vaListPtrToVoid), List.of(vaListPtr));
+            return fb.call(fb.resolveStaticMethod(llvmRuntimeDesc, "va_start", vaListPtrToVoid), List.of(vaListPtr));
         };
 
         intrinsics.registerIntrinsic(stdArgDesc, "va_start", vaListToVoid, saVaStart);
 
-        StaticIntrinsic saVaEnd = (builder, target, arguments) -> {
+        StaticIntrinsic saVaEnd = (builder, targetPtr, arguments) -> {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             Value vaListPtr;
             Value vaList = arguments.get(0);
@@ -107,12 +106,12 @@ public final class LLVMIntrinsics {
                 ctxt.error(builder.getLocation(), "Invalid ap argument to va_end: must have an address");
                 return voidLiteral;
             }
-            return fb.call(fb.staticMethod(llvmRuntimeDesc, "va_end", vaListPtrToVoid), List.of(vaListPtr));
+            return fb.call(fb.resolveStaticMethod(llvmRuntimeDesc, "va_end", vaListPtrToVoid), List.of(vaListPtr));
         };
 
         intrinsics.registerIntrinsic(stdArgDesc, "va_end", vaListToVoid, saVaEnd);
 
-        StaticIntrinsic saVaCopy = (builder, target, arguments) -> {
+        StaticIntrinsic saVaCopy = (builder, targetPtr, arguments) -> {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             Value destPtr;
             Value destList = arguments.get(0);
@@ -130,14 +129,13 @@ public final class LLVMIntrinsics {
                 ctxt.error(builder.getLocation(), "Invalid src argument to va_copy: must have an address");
                 return voidLiteral;
             }
-            return fb.call(fb.staticMethod(llvmRuntimeDesc, "va_copy", vaListPtrVaListPtrToVoid), List.of(destPtr, srcPtr));
+            return fb.call(fb.resolveStaticMethod(llvmRuntimeDesc, "va_copy", vaListPtrVaListPtrToVoid), List.of(destPtr, srcPtr));
         };
 
         intrinsics.registerIntrinsic(stdArgDesc, "va_copy", vaListVaListToVoid, saVaCopy);
 
         // this one is technically implementation-neutral, but we can keep it here until we have another backend
-        StaticIntrinsic saVaArg = (builder, target, arguments) -> {
-            BasicBlockBuilder fb = builder.getFirstBuilder();
+        StaticIntrinsic saVaArg = (builder, targetPtr, arguments) -> {
             Value vaListPtr;
             Value vaList = arguments.get(0);
             if (vaList instanceof Load load) {
@@ -166,42 +164,42 @@ public final class LLVMIntrinsics {
         MethodDescriptor doubleToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.D));
         MethodDescriptor doubleToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.D));
 
-        StaticIntrinsic floatToInt1 = (builder, target, arguments) -> {
+        StaticIntrinsic floatToInt1 = (builder, targetPtr, arguments) -> {
             TypeSystem ts = ctxt.getTypeSystem();
             LiteralFactory lf = ctxt.getLiteralFactory();
-            FunctionType fnType = ts.getFunctionType(ts.getSignedInteger32Type(), ts.getFloat32Type());
+            FunctionType fnType = ts.getFunctionType(ts.getSignedInteger32Type(), List.of(ts.getFloat32Type()));
             FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i32.f32", fnType);
-            return builder.getFirstBuilder().callNoSideEffects(builder.pointerHandle(lf.literalOf(decl)), arguments);
+            return builder.getFirstBuilder().callNoSideEffects(lf.literalOf(decl), arguments);
         };
 
         intrinsics.registerIntrinsic(cNativeDesc, "floatToInt1", floatToInt, floatToInt1);
 
-        StaticIntrinsic floatToLong1 = (builder, target, arguments) -> {
+        StaticIntrinsic floatToLong1 = (builder, targetPtr, arguments) -> {
             TypeSystem ts = ctxt.getTypeSystem();
             LiteralFactory lf = ctxt.getLiteralFactory();
-            FunctionType fnType = ts.getFunctionType(ts.getSignedInteger64Type(), ts.getFloat32Type());
+            FunctionType fnType = ts.getFunctionType(ts.getSignedInteger64Type(), List.of(ts.getFloat32Type()));
             FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i64.f32", fnType);
-            return builder.getFirstBuilder().callNoSideEffects(builder.pointerHandle(lf.literalOf(decl)), arguments);
+            return builder.getFirstBuilder().callNoSideEffects(lf.literalOf(decl), arguments);
         };
 
         intrinsics.registerIntrinsic(cNativeDesc, "floatToLong1", floatToLong, floatToLong1);
 
-        StaticIntrinsic doubleToInt1 = (builder, target, arguments) -> {
+        StaticIntrinsic doubleToInt1 = (builder, targetPtr, arguments) -> {
             TypeSystem ts = ctxt.getTypeSystem();
             LiteralFactory lf = ctxt.getLiteralFactory();
-            FunctionType fnType = ts.getFunctionType(ts.getSignedInteger32Type(), ts.getFloat64Type());
+            FunctionType fnType = ts.getFunctionType(ts.getSignedInteger32Type(), List.of(ts.getFloat64Type()));
             FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i32.f64", fnType);
-            return builder.getFirstBuilder().callNoSideEffects(builder.pointerHandle(lf.literalOf(decl)), arguments);
+            return builder.getFirstBuilder().callNoSideEffects(lf.literalOf(decl), arguments);
         };
 
         intrinsics.registerIntrinsic(cNativeDesc, "doubleToInt1", doubleToInt, doubleToInt1);
 
-        StaticIntrinsic doubleToLong1 = (builder, target, arguments) -> {
+        StaticIntrinsic doubleToLong1 = (builder, targetPtr, arguments) -> {
             TypeSystem ts = ctxt.getTypeSystem();
             LiteralFactory lf = ctxt.getLiteralFactory();
-            FunctionType fnType = ts.getFunctionType(ts.getSignedInteger64Type(), ts.getFloat64Type());
+            FunctionType fnType = ts.getFunctionType(ts.getSignedInteger64Type(), List.of(ts.getFloat64Type()));
             FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i64.f64", fnType);
-            return builder.getFirstBuilder().callNoSideEffects(builder.pointerHandle(lf.literalOf(decl)), arguments);
+            return builder.getFirstBuilder().callNoSideEffects(lf.literalOf(decl), arguments);
         };
 
         intrinsics.registerIntrinsic(cNativeDesc, "doubleToLong1", doubleToLong, doubleToLong1);
@@ -224,7 +222,7 @@ public final class LLVMIntrinsics {
      * @param parameters the parameter values (must not be {@code null})
      * @return the assembly result (if any)
      */
-    private static Value asm(final BasicBlockBuilder bb, final StaticMethodElementHandle handle, final List<Value> parameters) {
+    private static Value asm(final BasicBlockBuilder bb, final StaticMethodLiteral handle, final List<Value> parameters) {
         ExecutableElement element = bb.getCurrentElement();
         DefinedTypeDefinition enclosingType = element.getEnclosingType();
         ClassContext classContext = enclosingType.getContext();
@@ -334,7 +332,7 @@ public final class LLVMIntrinsics {
         }
         boolean noReturn = (flags & ASM_FLAG_NO_RETURN) != 0;
 
-        ValueHandle asm = bb.pointerHandle(lf.literalOfAsm(instruction, operands, type, flagSet.toArray(AsmLiteral.Flag[]::new)));
+        Value asm = lf.literalOfAsm(instruction, operands, type, flagSet.toArray(AsmLiteral.Flag[]::new));
 
         if (noReturn) {
             throw new BlockEarlyTermination(bb.callNoReturn(asm, args));

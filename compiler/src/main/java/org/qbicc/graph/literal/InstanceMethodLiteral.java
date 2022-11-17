@@ -17,13 +17,13 @@ public final class InstanceMethodLiteral extends MethodLiteral {
     }
 
     @Override
-    public InstanceMethodElement getElement() {
-        return (InstanceMethodElement) super.getElement();
+    public InstanceMethodElement getExecutable() {
+        return (InstanceMethodElement) super.getExecutable();
     }
 
     @Override
     public InstanceMethodType getPointeeType() {
-        return getElement().getType();
+        return getExecutable().getType();
     }
 
     @Override

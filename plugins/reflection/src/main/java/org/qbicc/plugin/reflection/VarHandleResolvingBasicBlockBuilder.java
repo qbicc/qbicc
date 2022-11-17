@@ -9,7 +9,6 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -28,19 +27,19 @@ public final class VarHandleResolvingBasicBlockBuilder extends DelegatingBasicBl
     }
 
     @Override
-    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public Value lookupVirtualMethod(Value reference, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         if (owner instanceof ClassTypeDescriptor ctd && ctd.packageAndClassNameEquals("java/lang/invoke", "VarHandle")) {
-            return super.virtualMethodOf(instance, owner, name, translate(name, descriptor));
+            return super.lookupVirtualMethod(reference, owner, name, translate(name, descriptor));
         }
-        return super.virtualMethodOf(instance, owner, name, descriptor);
+        return super.lookupVirtualMethod(reference, owner, name, descriptor);
     }
 
     @Override
-    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public Value resolveInstanceMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         if (owner instanceof ClassTypeDescriptor ctd && ctd.packageAndClassNameEquals("java/lang/invoke", "VarHandle")) {
-            return super.exactMethodOf(instance, owner, name, translate(name, descriptor));
+            return super.resolveInstanceMethod(owner, name, translate(name, descriptor));
         }
-        return super.exactMethodOf(instance, owner, name, descriptor);
+        return super.resolveInstanceMethod(owner, name, descriptor);
     }
 
     private MethodDescriptor translate(String name, MethodDescriptor descriptor) {

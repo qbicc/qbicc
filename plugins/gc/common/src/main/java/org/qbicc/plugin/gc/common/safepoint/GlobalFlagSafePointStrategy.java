@@ -71,7 +71,7 @@ public final class GlobalFlagSafePointStrategy extends AbstractMethodBasedSafePo
             bbb.begin(enterSafePoint);
             final StaticMethodElement enterSafePointMethod = (StaticMethodElement) bbb.getContext().getBootstrapClassContext().findDefinedType(SAFE_POINT_INT_NAME).load().requireSingleMethod("enterSafePoint");
             // directly enter the safe point work method
-            bbb.tailCall(bbb.staticMethod(enterSafePointMethod), List.of());
+            bbb.tailCall(bbb.getLiteralFactory().literalOf(enterSafePointMethod), List.of());
         } catch (BlockEarlyTermination ignored) {}
         try {
             bbb.begin(resume);

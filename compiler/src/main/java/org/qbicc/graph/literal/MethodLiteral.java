@@ -6,19 +6,19 @@ import org.qbicc.type.definition.element.MethodElement;
 /**
  *
  */
-public abstract class MethodLiteral extends InvokableLiteral {
+public abstract sealed class MethodLiteral extends InvokableLiteral permits InstanceMethodLiteral, StaticMethodLiteral {
     MethodLiteral(MethodElement element) {
         super(element);
     }
 
     @Override
-    public MethodElement getElement() {
-        return (MethodElement) super.getElement();
+    public MethodElement getExecutable() {
+        return (MethodElement) super.getExecutable();
     }
 
     @Override
     public MethodType getPointeeType() {
-        return getElement().getType();
+        return getExecutable().getType();
     }
 
     @Override
@@ -32,7 +32,7 @@ public abstract class MethodLiteral extends InvokableLiteral {
 
     @Override
     public StringBuilder toReferenceString(StringBuilder b) {
-        MethodElement element = getElement();
+        MethodElement element = getExecutable();
         String niceClass = element.getEnclosingType().getInternalName().replace('/', '.');
         return element.getDescriptor().toString(b.append('@').append(niceClass).append('#').append(element.getName()));
     }

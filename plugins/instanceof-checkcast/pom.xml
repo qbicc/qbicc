@@ -28,6 +28,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-reachability</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-correctness</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

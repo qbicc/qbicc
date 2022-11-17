@@ -8,27 +8,7 @@ public interface ValueHandleVisitorLong<T> {
         return 0;
     }
 
-    default long visit(T t, ConstructorElementHandle node) {
-        return visitUnknown(t, node);
-    }
-
-    default long visit(T t, ExactMethodElementHandle node) {
-        return visitUnknown(t, node);
-    }
-
-    default long visit(T t, FunctionElementHandle node) {
-        return visitUnknown(t, node);
-    }
-
-    default long visit(T t, InterfaceMethodElementHandle node) {
-        return visitUnknown(t, node);
-    }
-
-    default long visit(T t, VirtualMethodElementHandle node) {
-        return visitUnknown(t, node);
-    }
-
-    default long visit(T t, StaticMethodElementHandle node) {
+    default long visit(T t, Executable node) {
         return visitUnknown(t, node);
     }
 
@@ -45,32 +25,7 @@ public interface ValueHandleVisitorLong<T> {
         }
 
         @Override
-        default long visit(T t, ConstructorElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default long visit(T t, ExactMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default long visit(T t, FunctionElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default long visit(T t, InterfaceMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default long visit(T t, VirtualMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default long visit(T t, StaticMethodElementHandle node) {
+        default long visit(T t, Executable node) {
             return getDelegateValueHandleVisitor().visit(t, node);
         }
 

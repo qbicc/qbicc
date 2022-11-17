@@ -16,8 +16,8 @@ public final class FunctionLiteral extends InvokableLiteral {
     }
 
     @Override
-    public FunctionElement getElement() {
-        return (FunctionElement) super.getElement();
+    public FunctionElement getExecutable() {
+        return (FunctionElement) super.getExecutable();
     }
 
     @Override
@@ -31,7 +31,7 @@ public final class FunctionLiteral extends InvokableLiteral {
 
     @Override
     public StringBuilder toReferenceString(StringBuilder b) {
-        FunctionElement element = getElement();
+        FunctionElement element = getExecutable();
         return b.append('@').append(element.getName());
     }
 

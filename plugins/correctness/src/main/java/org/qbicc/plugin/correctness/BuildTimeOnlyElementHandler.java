@@ -40,7 +40,7 @@ public class BuildTimeOnlyElementHandler implements Consumer<ExecutableElement> 
             try {
                 MethodElement helper = RuntimeMethodFinder.get(compilationContext).getMethod("raiseUnreachableCodeError");
                 Literal msg = compilationContext.getLiteralFactory().literalOf(element.toString(), classContext.findDefinedType("java/lang/String").load().getObjectType().getReference());
-                builder.callNoReturn(builder.staticMethod(helper), List.of(msg));
+                builder.callNoReturn(builder.getLiteralFactory().literalOf(helper), List.of(msg));
             } catch (BlockEarlyTermination ignored) {}
             builder.finish();
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);

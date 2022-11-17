@@ -8,15 +8,14 @@ import org.qbicc.type.definition.element.ExecutableElement;
 /**
  *
  */
-public abstract class ExecutableLiteral extends Literal {
+public abstract sealed class ExecutableLiteral extends Literal permits InitializerLiteral, InvokableLiteral {
     private final ExecutableElement element;
 
     ExecutableLiteral(ExecutableElement element) {
         this.element = element;
     }
 
-    @Override
-    public ExecutableElement getElement() {
+    public ExecutableElement getExecutable() {
         return element;
     }
 

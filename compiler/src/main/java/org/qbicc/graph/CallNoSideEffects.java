@@ -1,6 +1,5 @@
 package org.qbicc.graph;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -13,23 +12,25 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * The return value of the target is the type of this node (which may be {@link org.qbicc.type.VoidType VoidType}).
  * Exceptions are considered a side-effect, thus the target must not throw exceptions (this excludes most Java methods, which can throw {@code OutOfMemoryError} among other things).
  *
- * @see BasicBlockBuilder#callNoSideEffects(ValueHandle, List)
+ * @see BasicBlockBuilder#callNoSideEffects(Value, Value, List)
  */
-public final class CallNoSideEffects extends AbstractValue {
-    private final ValueHandle target;
+public final class CallNoSideEffects extends AbstractValue implements InvocationNode {
+    private final Value target;
+    private final Value receiver;
     private final List<Value> arguments;
     private final InvokableType calleeType;
 
-    CallNoSideEffects(Node callSite, ExecutableElement element, int line, int bci, ValueHandle target, List<Value> arguments) {
+    CallNoSideEffects(Node callSite, ExecutableElement element, int line, int bci, Value target, Value receiver, List<Value> arguments) {
         super(callSite, element, line, bci);
         this.target = target;
+        this.receiver = receiver;
         this.arguments = arguments;
         calleeType = (InvokableType) target.getPointeeType();
     }
 
     @Override
     int calcHashCode() {
-        return Objects.hash(CallNoSideEffects.class, target, arguments);
+        return Objects.hash(CallNoSideEffects.class, target, receiver, arguments);
     }
 
     @Override
@@ -42,24 +43,13 @@ public final class CallNoSideEffects extends AbstractValue {
         return other instanceof CallNoSideEffects && equals((CallNoSideEffects) other);
     }
 
-    @Override
-    public StringBuilder toString(StringBuilder b) {
-        super.toString(b);
-        b.append('(');
-        Iterator<Value> itr = arguments.iterator();
-        if (itr.hasNext()) {
-            itr.next().toReferenceString(b);
-            while (itr.hasNext()) {
-                b.append(',');
-                itr.next().toReferenceString(b);
-            }
-        }
-        b.append(')');
-        return b;
+    public boolean equals(CallNoSideEffects other) {
+        return this == other || other != null && target.equals(other.target) && receiver.equals(other.receiver) && arguments.equals(other.arguments);
     }
 
-    public boolean equals(CallNoSideEffects other) {
-        return this == other || other != null && target.equals(other.target) && arguments.equals(other.arguments);
+    @Override
+    StringBuilder toRValueString(StringBuilder b) {
+        return InvocationNode.toRValueString(this, "call", b).append(" no-side-effects");
     }
 
     public InvokableType getCalleeType() {
@@ -76,23 +66,13 @@ public final class CallNoSideEffects extends AbstractValue {
     }
 
     @Override
-    public int getValueDependencyCount() {
-        return arguments.size();
-    }
-
-    @Override
-    public Value getValueDependency(int index) throws IndexOutOfBoundsException {
-        return arguments.get(index);
-    }
-
-    @Override
-    public boolean hasValueHandleDependency() {
-        return true;
-    }
-
-    @Override
-    public ValueHandle getValueHandle() {
+    public Value getTarget() {
         return target;
+    }
+
+    @Override
+    public Value getReceiver() {
+        return receiver;
     }
 
     @Override

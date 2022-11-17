@@ -108,7 +108,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         FunctionType functionType = tps.getFunctionType(numericType, numericType, numericType);
         FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, funcName, functionType);
         final LiteralFactory lf = ctxt.getLiteralFactory();
-        return getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v1, v2));
+        return getFirstBuilder().callNoSideEffects(lf.literalOf(declaration), List.of(v1, v2));
     }
 
     @Override
@@ -123,7 +123,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         String functionName = "llvm.bswap.i" + minBits;
         FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType);
         final LiteralFactory lf = ctxt.getLiteralFactory();
-        return getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v));
+        return getFirstBuilder().callNoSideEffects(lf.literalOf(declaration), List.of(v));
     }
 
     @Override
@@ -135,7 +135,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         String functionName = "llvm.bitreverse.i" + minBits;
         FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType);
         final LiteralFactory lf = ctxt.getLiteralFactory();
-        return getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v));
+        return getFirstBuilder().callNoSideEffects(lf.literalOf(declaration), List.of(v));
     }
 
     @Override
@@ -147,7 +147,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         String functionName = "llvm.ctlz.i" + minBits;
         FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType);
         LiteralFactory lf = ctxt.getLiteralFactory();
-        Value result = getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v, lf.literalOf(false)));
+        Value result = getFirstBuilder().callNoSideEffects(lf.literalOf(declaration), List.of(v, lf.literalOf(false)));
         // LLVM always returns the same type as the input
         if (minBits < 32) {
             result = getFirstBuilder().extend(result, tps.getUnsignedInteger32Type());
@@ -170,7 +170,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         String functionName = "llvm.cttz.i" + minBits;
         FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType);
         LiteralFactory lf = ctxt.getLiteralFactory();
-        Value result = getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v, lf.literalOf(false)));
+        Value result = getFirstBuilder().callNoSideEffects(lf.literalOf(declaration), List.of(v, lf.literalOf(false)));
         // LLVM always returns the same type as the input
         if (minBits < 32) {
             result = getFirstBuilder().extend(result, tps.getUnsignedInteger32Type());
@@ -193,7 +193,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         String functionName = "llvm.ctpop.i" + minBits;
         FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType);
         final LiteralFactory lf = ctxt.getLiteralFactory();
-        Value result = getFirstBuilder().callNoSideEffects(pointerHandle(lf.literalOf(declaration)), List.of(v));
+        Value result = getFirstBuilder().callNoSideEffects(lf.literalOf(declaration), List.of(v));
         // LLVM always returns the same type as the input
         if (minBits < 32) {
             result = getFirstBuilder().extend(result, tps.getUnsignedInteger32Type());
@@ -284,7 +284,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public BasicBlock unreachable() {
         TypeSystem ts = ctxt.getTypeSystem();
         FunctionDeclaration decl = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, "llvm.trap", ts.getFunctionType(ts.getVoidType()));
-        return callNoReturn(pointerHandle(ctxt.getLiteralFactory().literalOf(decl)), List.of());
+        return callNoReturn(ctxt.getLiteralFactory().literalOf(decl), List.of());
     }
 
     @Override
@@ -452,30 +452,30 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+    public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
         if (isTailCallSafe()) {
-            return super.tailCall(target, arguments);
+            return super.tailCall(targetPtr, receiver, arguments);
         }
         // break tail call
-        return super.return_(super.call(target, arguments));
+        return super.return_(super.call(targetPtr, receiver, arguments));
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock invokeNoReturn(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         // declare personality function
         MethodElement personalityMethod = UnwindExceptionStrategy.get(ctxt).getPersonalityMethod();
         Function function = ctxt.getExactFunction(personalityMethod);
         ctxt.getOrAddProgramModule(getRootElement()).declareFunction(function);
-        return super.invokeNoReturn(target, arguments, catchLabel, targetArguments);
+        return super.invokeNoReturn(targetPtr, receiver, arguments, catchLabel, targetArguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+    public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         // declare personality function
         MethodElement personalityMethod = UnwindExceptionStrategy.get(ctxt).getPersonalityMethod();
         Function function = ctxt.getExactFunction(personalityMethod);
         ctxt.getOrAddProgramModule(getRootElement()).declareFunction(function);
-        return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
+        return super.invoke(targetPtr, receiver, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
     private boolean isTailCallSafe() {

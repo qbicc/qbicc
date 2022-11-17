@@ -14,7 +14,6 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 
@@ -33,13 +32,13 @@ final class ExceptionOnThreadBasicBlockBuilder extends DelegatingBasicBlockBuild
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        return super.invokeNoReturn(target, arguments, getLandingPad(catchLabel), targetArguments);
+    public BasicBlock invokeNoReturn(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return super.invokeNoReturn(targetPtr, receiver, arguments, getLandingPad(catchLabel), targetArguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
-        return super.invoke(target, arguments, getLandingPad(catchLabel), resumeLabel, targetArguments);
+    public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        return super.invoke(targetPtr, receiver, arguments, getLandingPad(catchLabel), resumeLabel, targetArguments);
     }
 
     private BlockLabel getLandingPad(final BlockLabel catchLabel) {

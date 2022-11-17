@@ -1,26 +1,27 @@
 package org.qbicc.plugin.verification;
 
+import java.util.List;
+import java.util.Map;
+
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.ReadModifyWrite;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
+import org.qbicc.graph.literal.ExecutableLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.InstanceMethodType;
-import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
-import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
-import org.qbicc.type.definition.element.MethodElement;
-import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  *
@@ -73,33 +74,46 @@ public class ClassInitializingBasicBlockBuilder extends DelegatingBasicBlockBuil
     }
 
     @Override
-    public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        initialize(method.getEnclosingType());
-        return super.exactMethodOf(instance, method, callSiteDescriptor, callSiteType);
+    public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
+        return super.call(initialize(targetPtr), receiver, arguments);
     }
 
     @Override
-    public ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        initialize(method.getEnclosingType());
-        return super.virtualMethodOf(instance, method, callSiteDescriptor, callSiteType);
+    public Value callNoSideEffects(Value targetPtr, Value receiver, List<Value> arguments) {
+        return super.callNoSideEffects(initialize(targetPtr), receiver, arguments);
     }
 
     @Override
-    public ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType) {
-        initializeStaticMember(method.getEnclosingType());
-        return super.staticMethod(method, callSiteDescriptor, callSiteType);
+    public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
+        return super.callNoReturn(initialize(targetPtr), receiver, arguments);
     }
 
     @Override
-    public ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        initialize(constructor.getEnclosingType());
-        return super.constructorOf(instance, constructor, callSiteDescriptor, callSiteType);
+    public BasicBlock invokeNoReturn(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return super.invokeNoReturn(initialize(targetPtr), receiver, arguments, catchLabel, targetArguments);
+    }
+
+    @Override
+    public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
+        return super.tailCall(initialize(targetPtr), receiver, arguments);
+    }
+
+    @Override
+    public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        return super.invoke(initialize(targetPtr), receiver, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
     @Override
     public Value new_(ClassObjectType type, Value typeId, Value size, Value align) {
         initialize(type.getDefinition());
         return super.new_(type, typeId, size, align);
+    }
+
+    private Value initialize(final Value targetPtr) {
+        if (targetPtr instanceof ExecutableLiteral el) {
+            initialize(el.getExecutable().getEnclosingType());
+        }
+        return targetPtr;
     }
 
     private void initializeStaticMember(DefinedTypeDefinition definition) {

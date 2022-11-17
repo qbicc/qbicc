@@ -42,6 +42,7 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -435,86 +436,104 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle pointerHandle(Value pointer);
 
-    ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
+    @Deprecated
+    ValueHandle executableHandle(Value executablePtr, Value receiver);
 
-    /**
-     * Convenience method to construct a method handle whose descriptor and type match the element's descriptor and type.
-     * <b>Do not override this method.</b>
-     *
-     * @param instance the object instance (must not be {@code null})
-     * @param method the method element (must not be {@code null})
-     * @return the value handle (not {@code null})
-     */
-    default ValueHandle exactMethodOf(Value instance, MethodElement method) {
-        return exactMethodOf(instance, method, method.getDescriptor(), (InstanceMethodType) method.getType());
+    @Deprecated
+    default ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
+        return executableHandle(getLiteralFactory().literalOf(method), instance);
     }
 
-    ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
+    @Deprecated
+    default ValueHandle exactMethodOf(Value instance, MethodElement method) {
+        return executableHandle(getLiteralFactory().literalOf(method), instance);
+    }
 
-    ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
+    @Deprecated
+    default ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return executableHandle(resolveInstanceMethod(owner, name, descriptor), instance);
+    }
 
-    /**
-     * Convenience method to construct a method handle whose descriptor and type match the element's descriptor and type.
-     * <b>Do not override this method.</b>
-     *
-     * @param instance the object instance (must not be {@code null})
-     * @param method the method element (must not be {@code null})
-     * @return the value handle (not {@code null})
-     */
+    @Deprecated
+    default ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
+        return executableHandle(lookupVirtualMethod(instance, (InstanceMethodElement) method), instance);
+    }
+
+    @Deprecated
     default ValueHandle virtualMethodOf(Value instance, MethodElement method) {
         return virtualMethodOf(instance, method, method.getDescriptor(), (InstanceMethodType) method.getType());
     }
 
-    ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
+    @Deprecated
+    default ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return executableHandle(lookupVirtualMethod(instance, owner, name, descriptor), instance);
+    }
 
-    ValueHandle interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
+    @Deprecated
+    default ValueHandle interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
+        return executableHandle(lookupInterfaceMethod(instance, (InstanceMethodElement) method), instance);
+    }
 
-    /**
-     * Convenience method to construct a method handle whose descriptor and type match the element's descriptor and type.
-     * <b>Do not override this method.</b>
-     *
-     * @param instance the object instance (must not be {@code null})
-     * @param method the method element (must not be {@code null})
-     * @return the value handle (not {@code null})
-     */
+    @Deprecated
     default ValueHandle interfaceMethodOf(Value instance, MethodElement method) {
         return interfaceMethodOf(instance, method, method.getDescriptor(), (InstanceMethodType) method.getType());
     }
 
-    ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
+    @Deprecated
+    default ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return executableHandle(lookupInterfaceMethod(instance, owner, name, descriptor), instance);
+    }
 
-    ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType);
+    @Deprecated
+    default ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType) {
+        return executableHandle(getLiteralFactory().literalOf(method), emptyVoid());
+    }
 
-    /**
-     * Convenience method to construct a method handle whose descriptor and type match the element's descriptor and type.
-     * <b>Do not override this method.</b>
-     *
-     * @param method the method element (must not be {@code null})
-     * @return the value handle (not {@code null})
-     */
+    @Deprecated
     default ValueHandle staticMethod(MethodElement method) {
         return staticMethod(method, method.getDescriptor(), (StaticMethodType) method.getType());
     }
 
-    ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor);
+    @Deprecated
+    default ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return executableHandle(resolveStaticMethod(owner, name, descriptor), emptyVoid());
+    }
 
-    ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
+    @Deprecated
+    default ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
+        return executableHandle(getLiteralFactory().literalOf(constructor), instance);
+    }
 
-    /**
-     * Convenience method to construct a constructor handle whose descriptor and type match the element's descriptor and type.
-     * <b>Do not override this method.</b>
-     *
-     * @param instance the object instance (must not be {@code null})
-     * @param constructor the constructor element (must not be {@code null})
-     * @return the value handle (not {@code null})
-     */
+    @Deprecated
     default ValueHandle constructorOf(Value instance, ConstructorElement constructor) {
         return constructorOf(instance, constructor, constructor.getDescriptor(), constructor.getType());
     }
 
-    ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor);
+    @Deprecated
+    default ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
+        return executableHandle(resolveConstructor(owner, descriptor), instance);
+    }
 
-    ValueHandle functionOf(FunctionElement function);
+    @Deprecated
+    default ValueHandle functionOf(FunctionElement function) {
+        return executableHandle(getLiteralFactory().literalOf(function), emptyVoid());
+    }
+
+    // executables
+
+    Value lookupVirtualMethod(Value reference, TypeDescriptor owner, String name, MethodDescriptor descriptor);
+
+    Value lookupVirtualMethod(Value reference, InstanceMethodElement method);
+
+    Value lookupInterfaceMethod(Value reference, TypeDescriptor owner, String name, MethodDescriptor descriptor);
+
+    Value lookupInterfaceMethod(Value reference, InstanceMethodElement method);
+
+    Value resolveStaticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor);
+
+    Value resolveInstanceMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor);
+
+    Value resolveConstructor(TypeDescriptor owner, MethodDescriptor descriptor);
 
     // memory
 
@@ -567,6 +586,15 @@ public interface BasicBlockBuilder extends Locatable {
      */
     Value loadLength(Value arrayPointer);
 
+    /**
+     * Load the type ID value for the given object pointer.
+     * The access mode is always {@code SinglePlain}.
+     *
+     * @param objectPointer the object pointer (must not be {@code null})
+     * @return the type ID value (not {@code null})
+     */
+    Value loadTypeId(Value objectPointer);
+
     Value readModifyWrite(Value pointer, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
 
     Value cmpAndSwap(Value target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength);
@@ -592,24 +620,38 @@ public interface BasicBlockBuilder extends Locatable {
     /**
      * Call an invocation target with normal program-order dependency behavior.  The target either does not throw an exception or
      * the current block does not catch exceptions.
+     * <p>
+     * Method calls with no receiver should pass {@code emptyVoid()} for the {@code receiver} argument.
      *
-     * @param target the invocation target handle (must not be {@code null})
+     * @param targetPtr the invocation target pointer (must not be {@code null})
+     * @param receiver the invocation receiver (must not be {@code null})
      * @param arguments the invocation arguments (must not be {@code null})
      * @return the invocation result (not {@code null})
      * @see Call
      */
-    Value call(ValueHandle target, List<Value> arguments);
+    Value call(Value targetPtr, Value receiver, List<Value> arguments);
+
+    default Value call(Value targetPtr, List<Value> arguments) {
+        return call(targetPtr, emptyVoid(), arguments);
+    }
 
     /**
      * Call an invocation target that does not have side-effects (and does not have any program-order dependency relationships).
      * The target either does not throw an exception or the current block does not catch exceptions.
+     * <p>
+     * Method calls with no receiver should pass {@code emptyVoid()} for the {@code receiver} argument.
      *
-     * @param target the invocation target handle (must not be {@code null})
+     * @param targetPtr the invocation target handle (must not be {@code null})
+     * @param receiver the invocation receiver (must not be {@code null})
      * @param arguments the invocation arguments (must not be {@code null})
      * @return the invocation result (not {@code null})
      * @see CallNoSideEffects
      */
-    Value callNoSideEffects(ValueHandle target, List<Value> arguments);
+    Value callNoSideEffects(Value targetPtr, Value receiver, List<Value> arguments);
+
+    default Value callNoSideEffects(Value targetPtr, List<Value> arguments) {
+        return callNoSideEffects(targetPtr, emptyVoid(), arguments);
+    }
 
     // misc
 
@@ -672,39 +714,60 @@ public interface BasicBlockBuilder extends Locatable {
 
     /**
      * Call an invocation target that does not return, thus terminating the block.
+     * <p>
+     * Method calls with no receiver should pass {@code emptyVoid()} for the {@code receiver} argument.
      *
-     * @param target the invocation target handle (must not be {@code null})
+     * @param targetPtr the invocation target pointer (must not be {@code null})
+     * @param receiver the invocation receiver (must not be {@code null})
      * @param arguments the invocation arguments (must not be {@code null})
      * @return the terminated block (not {@code null}
      * @see CallNoReturn
      */
-    BasicBlock callNoReturn(ValueHandle target, List<Value> arguments);
+    BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments);
+
+    default BasicBlock callNoReturn(Value targetPtr, List<Value> arguments) {
+        return callNoReturn(targetPtr, emptyVoid(), arguments);
+    }
 
     /**
      * Call an invocation target that does not return - thus terminating the block - and catch the thrown exception.
      * The given arguments must provide an argument value for every parameter defined in the target block.
      * Extra arguments are ignored.
      * An implicit argument for the thrown exception is provided to the catch block (see {@link Slot#thrown()}.
+     * <p>
+     * Method calls with no receiver should pass {@code emptyVoid()} for the {@code receiver} argument.
      *
-     * @param target the invocation target handle (must not be {@code null})
+     * @param targetPtr the invocation target pointer (must not be {@code null})
+     * @param receiver the invocation receiver (must not be {@code null})
      * @param arguments the invocation arguments (must not be {@code null})
      * @param catchLabel the exception handler label (must not be {@code null})
      * @param targetArguments the block arguments to pass to the target block (must not be {@code null})
      * @return the terminated block (not {@code null}
      * @see InvokeNoReturn
      */
-    BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments);
+    BasicBlock invokeNoReturn(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments);
+
+    default BasicBlock invokeNoReturn(Value targetPtr, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return invokeNoReturn(targetPtr, emptyVoid(), arguments, catchLabel, targetArguments);
+    }
 
     /**
      * Tail-call an invocation target that returns the same type as this method, thus terminating the block.  The
      * backend can optimize such calls into tail calls if the calling element is {@linkplain ClassFile#I_ACC_HIDDEN hidden}.
+     * <p>
+     * Method calls with no receiver should pass {@code emptyVoid()} for the {@code receiver} argument.
      *
-     * @param target the invocation target handle (must not be {@code null})
+     * @param targetPtr the invocation target handle (must not be {@code null})
+     * @param receiver the invocation receiver (must not be {@code null})
      * @param arguments the invocation arguments (must not be {@code null})
      * @return the terminated block (not {@code null}
      * @see TailCall
      */
-    BasicBlock tailCall(ValueHandle target, List<Value> arguments);
+    BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments);
+
+    default BasicBlock tailCall(Value targetPtr, List<Value> arguments) {
+        return tailCall(targetPtr, emptyVoid(), arguments);
+    }
 
     /**
      * Call an invocation target and catch the thrown exception, terminating the block.
@@ -715,8 +778,11 @@ public interface BasicBlockBuilder extends Locatable {
      * Extra arguments are ignored.
      * An implicit argument for the thrown exception is provided to the catch block (see {@link Slot#thrown()}.
      * An implicit argument for the return value is provided to the resume block (see {@link Slot#result()}.
+     * <p>
+     * Method calls with no receiver should pass {@code emptyVoid()} for the {@code receiver} argument.
      *
-     * @param target the invocation target handle (must not be {@code null})
+     * @param targetPtr the invocation target handle (must not be {@code null})
+     * @param receiver the invocation receiver (must not be {@code null})
      * @param arguments the invocation arguments (must not be {@code null})
      * @param catchLabel the exception handler label (must not be {@code null})
      * @param resumeLabel the handle of the resume target (must not be {@code null})
@@ -724,7 +790,11 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the invocation result (not {@code null})
      * @see Invoke
      */
-    Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments);
+    Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments);
+
+    default Value invoke(Value targetPtr, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        return invoke(targetPtr, emptyVoid(), arguments, catchLabel, resumeLabel, targetArguments);
+    }
 
     /**
      * Generate a {@code goto} termination node.  The terminated block is returned.

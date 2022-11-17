@@ -2,48 +2,66 @@ package org.qbicc.runtime.stackwalk;
 
 import org.qbicc.runtime.AutoQueued;
 import org.qbicc.runtime.CNative;
+import org.qbicc.runtime.NoSafePoint;
 import org.qbicc.runtime.main.CompilerIntrinsics;
 
 import static org.qbicc.runtime.CNative.*;
 
 public final class MethodData {
 
+    @NoSafePoint
     public static native String getFileName(int minfoIndex);
+    @NoSafePoint
     public static native String getMethodName(int minfoIndex);
+    @NoSafePoint
     public static native String getMethodDesc(int minfoIndex);
+    @NoSafePoint
     public static native type_id getTypeId(int minfoIndex);
+    @NoSafePoint
     public static native int getModifiers(int minfoIndex);
 
+    @NoSafePoint
     public static String getClassName(int minfoIndex) {
         Class<?> clazz = getClass(minfoIndex);
         return clazz == null ? "<no class>" : clazz.getName();
     }
 
+    @NoSafePoint
     public static Class<?> getClass(int minfoIndex) {
         type_id typeId = getTypeId(minfoIndex);
-        Class<?> clazz = typeId.isZero() ? null : CompilerIntrinsics.getClassFromTypeId(typeId, word(0));
+        Class<?> clazz = typeId.isZero() ? null : CompilerIntrinsics.getClassFromTypeIdSimple(typeId);
         return clazz;
     }
 
+    @NoSafePoint
     public static boolean hasAllModifiersOf(int minfoIndex, int mask) {
         int modifiers = getModifiers(minfoIndex);
         return (modifiers & mask) == mask;
     }
 
+    @NoSafePoint
     public static boolean hasNoModifiersOf(int minfoIndex, int mask) {
         int modifiers = getModifiers(minfoIndex);
         return (modifiers & mask) == 0;
     }
 
+    @NoSafePoint
     public static native int getMethodInfoIndex(int scIndex);
+    @NoSafePoint
     public static native int getLineNumber(int scIndex);
+    @NoSafePoint
     public static native int getBytecodeIndex(int scIndex);
+    @NoSafePoint
     public static native int getInlinedAtIndex(int scIndex);
 
+    @NoSafePoint
     public static native int getSourceCodeInfoIndex(int index);
+    @NoSafePoint
     public static native long getInstructionAddress(int index);
+    @NoSafePoint
     public static native int getInstructionListSize();
 
+    @NoSafePoint
     static int findInstructionIndex(long ip) {
         // do a binary search in instruction table
         int upper = MethodData.getInstructionListSize();

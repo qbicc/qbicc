@@ -11,18 +11,17 @@ import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.Executable;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
+import org.qbicc.type.VariadicType;
 import org.qbicc.type.VoidType;
 
 /**
@@ -60,20 +59,28 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return value;
     }
 
-    private List<Value> castVoidPointers(List<Value> arguments, ValueHandle target) {
-        return target instanceof Executable ex ? castVoidPointers(arguments, ex) : arguments;
-    }
-
-    private List<Value> castVoidPointers(List<Value> arguments, Executable target) {
+    private List<Value> castVoidPointers(List<Value> arguments, Value target) {
         int sz = arguments.size();
-        InvokableType callSiteType = target.getCallSiteType();
-        for (int i = 0; i < sz; i ++) {
+        InvokableType callSiteType = target.getPointeeType(InvokableType.class);
+        int parameterCount = callSiteType.getParameterCount();
+        int actualCnt;
+        if (parameterCount > 0 && callSiteType.getLastParameterType(0) instanceof VariadicType) {
+            // do not map variadic arguments
+            actualCnt = parameterCount - 1;
+        } else {
+            actualCnt = sz;
+        }
+        for (int i = 0; i < actualCnt; i ++) {
             Value arg = arguments.get(i);
             if (arg != castVoidPointer(arg, callSiteType.getParameterType(i))) {
                 List<Value> newArgs = new ArrayList<>(sz);
-                //noinspection ForLoopReplaceableByForEach
-                for (int j = 0; j < sz; j ++) {
-                    newArgs.add(castVoidPointer(arguments.get(j), callSiteType.getParameterType(i)));
+                int j = 0;
+                for (; j < actualCnt; j ++) {
+                    newArgs.add(castVoidPointer(arguments.get(j), callSiteType.getParameterType(j)));
+                }
+                // variadic arguments (if any)
+                for (; j < sz; j ++) {
+                    newArgs.add(arguments.get(j));
                 }
                 return newArgs;
             }
@@ -97,32 +104,32 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
-        return super.call(target, castVoidPointers(arguments, target));
+    public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
+        return super.call(targetPtr, receiver, castVoidPointers(arguments, targetPtr));
     }
 
     @Override
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
-        return super.callNoSideEffects(target, castVoidPointers(arguments, target));
+    public Value callNoSideEffects(Value targetPtr, Value receiver, List<Value> arguments) {
+        return super.callNoSideEffects(targetPtr, receiver, castVoidPointers(arguments, targetPtr));
     }
 
     @Override
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
-        return super.callNoReturn(target, castVoidPointers(arguments, target));
+    public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
+        return super.callNoReturn(targetPtr, receiver, castVoidPointers(arguments, targetPtr));
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        return super.invokeNoReturn(target, castVoidPointers(arguments, target), catchLabel, targetArguments);
+    public BasicBlock invokeNoReturn(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return super.invokeNoReturn(targetPtr, receiver, castVoidPointers(arguments, targetPtr), catchLabel, targetArguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
-        return super.invoke(target, castVoidPointers(arguments, target), catchLabel, resumeLabel, targetArguments);
+    public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        return super.invoke(targetPtr, receiver, castVoidPointers(arguments, targetPtr), catchLabel, resumeLabel, targetArguments);
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
-        return super.tailCall(target, castVoidPointers(arguments, target));
+    public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
+        return super.tailCall(targetPtr, receiver, castVoidPointers(arguments, targetPtr));
     }
 }

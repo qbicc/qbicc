@@ -89,7 +89,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         try {
             begin(fail);
             MethodElement thrower = RuntimeMethodFinder.get(ctxt).getMethod(kind.equals(CheckCast.CastType.Cast) ? "raiseClassCastException" : "raiseArrayStoreException");
-            getFirstBuilder().callNoReturn(getFirstBuilder().staticMethod(thrower), List.of());
+            getFirstBuilder().callNoReturn(getLiteralFactory().literalOf(thrower), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
         }
@@ -146,7 +146,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
                     helperName = "arrayStoreCheck";
                 }
                 MethodElement method = RuntimeMethodFinder.get(ctxt).getMethod(helperName);
-                getFirstBuilder().call(getFirstBuilder().staticMethod(method), List.of(input, toType, toDimensions));
+                getFirstBuilder().call(getLiteralFactory().literalOf(method), List.of(input, toType, toDimensions));
                 goto_(pass, Map.of());
             }
         } catch (BlockEarlyTermination ignored) {
@@ -207,7 +207,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
                 MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("instanceofTypeId");
                 BasicBlockBuilder fb = getFirstBuilder();
                 UnsignedIntegerType u8 = ts.getUnsignedInteger8Type();
-                Value passResult = fb.call(fb.staticMethod(helper),
+                Value passResult = fb.call(lf.literalOf(helper),
                     List.of(input, lf.literalOfType(expectedType), lf.literalOf(u8, expectedDimensions)));
                 goto_(allDone, Slot.temp(0), passResult);
             } else {
@@ -227,13 +227,14 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
     public Value classOf(final Value typeId, final Value dimensions) {
         MethodElement methodElement;
         RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
-        if (dimensions.isDefEq(ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), 0))) {
+        LiteralFactory lf = getLiteralFactory();
+        if (dimensions.isDefEq(lf.literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), 0))) {
             // call the intrinsic directly, inlining the calculation
             methodElement = methodFinder.getMethod("getClassFromTypeIdSimple");
-            return notNull(getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement), List.of(typeId)));
+            return notNull(getFirstBuilder().call(lf.literalOf(methodElement), List.of(typeId)));
         } else {
             methodElement = methodFinder.getMethod("getClassFromTypeId");
-            return notNull(getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement), List.of(typeId, dimensions)));
+            return notNull(getFirstBuilder().call(lf.literalOf(methodElement), List.of(typeId, dimensions)));
         }
     }
 

@@ -16,8 +16,8 @@ public final class InitializerLiteral extends ExecutableLiteral {
     }
 
     @Override
-    public InitializerElement getElement() {
-        return (InitializerElement) super.getElement();
+    public InitializerElement getExecutable() {
+        return (InitializerElement) super.getExecutable();
     }
 
     @Override
@@ -31,7 +31,7 @@ public final class InitializerLiteral extends ExecutableLiteral {
 
     @Override
     public StringBuilder toReferenceString(StringBuilder b) {
-        InitializerElement element = getElement();
+        InitializerElement element = getExecutable();
         String niceClass = element.getEnclosingType().getInternalName().replace('/', '.');
         return b.append('@').append(niceClass).append('#').append("<clinit>");
     }

@@ -15,6 +15,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.type.definition.element.FieldElement;
@@ -56,7 +57,8 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 @SuppressWarnings("SuspiciousMethodCalls")
                 String getter = GETTER_NAMES.getOrDefault(fieldDesc, "get");
                 MethodDescriptor desc = MethodDescriptor.synthesize(accessor.getVmClass().getTypeDefinition().getContext(), fieldDesc, List.of());
-                return fb.call(fb.virtualMethodOf(lf.literalOf(accessor), accessor.getVmClass().getTypeDefinition().getDescriptor(), getter, desc), List.of());
+                ObjectLiteral accessorValue = lf.literalOf(accessor);
+                return fb.call(fb.lookupVirtualMethod(accessorValue, accessor.getVmClass().getTypeDefinition().getDescriptor(), getter, desc), accessorValue, List.of());
             }
         }
         return super.load(pointer, accessMode);
@@ -72,7 +74,8 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 LiteralFactory lf = ctxt.getLiteralFactory();
                 TypeDescriptor fieldDesc = field.getTypeDescriptor();
                 MethodDescriptor desc = MethodDescriptor.synthesize(accessor.getVmClass().getTypeDefinition().getContext(), BaseTypeDescriptor.V, List.of(fieldDesc));
-                return fb.call(fb.virtualMethodOf(lf.literalOf(accessor), accessor.getVmClass().getTypeDefinition().getDescriptor(), "set", desc), List.of(value));
+                ObjectLiteral accessorValue = lf.literalOf(accessor);
+                return fb.call(fb.lookupVirtualMethod(accessorValue, accessor.getVmClass().getTypeDefinition().getDescriptor(), "set", desc), accessorValue, List.of(value));
             }
         }
         return super.store(pointer, value, accessMode);
