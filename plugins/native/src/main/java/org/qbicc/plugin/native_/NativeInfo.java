@@ -365,7 +365,7 @@ final class NativeInfo {
                                                     // compound type
                                                     String name = field.getName();
                                                     CProbe.Type.Info member = result.getTypeInfoOfMember(probeType, name);
-                                                    list.add(ts.getCompoundTypeMember(name, type, (int) member.getOffset(), 1));
+                                                    list.add(ts.getProbedCompoundTypeMember(name, type, (int) member.getOffset()));
                                                 }
                                             }
                                             list.sort(Comparator.naturalOrder());

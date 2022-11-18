@@ -230,6 +230,12 @@ public final class TypeSystem {
         return referenceArrayDefinition;
     }
 
+    public CompoundType.Member getProbedCompoundTypeMember(String name, ValueType type, int offset) {
+        Assert.checkNotNullParam("name", name);
+        Assert.checkMinimumParameter("offset", 0, offset);
+        return new CompoundType.Member(name, type, offset, 1);
+    }
+
     public CompoundType.Member getCompoundTypeMember(String name, ValueType type, int offset, int align) {
         Assert.checkNotNullParam("name", name);
         TypeUtil.checkAlignmentParameter("align", align);
