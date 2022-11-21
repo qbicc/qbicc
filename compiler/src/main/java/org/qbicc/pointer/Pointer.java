@@ -10,7 +10,6 @@ import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
-import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 
 /**
@@ -62,16 +61,14 @@ public abstract class Pointer {
             // assume that this may be a "flexible" array if it's the top level
             return new ElementPointer(this, index).offsetInBytes(extra, array);
         }
-        // not an array, so check the bounds within the pointee size
-        long pointeeSize = pointeeType.getSize();
-        if (pointeeSize > 0 && (offset < 0 || offset >= pointeeSize)) {
-            if (! array) {
-                // invalid pointer/unknown memory location (out of bounds)
-                return null;
+        // not an inner array, so check the bounds within the pointee size within an outer array
+        if (array) {
+            long pointeeSize = pointeeType.getSize();
+            if (pointeeSize > 0 && (offset < 0 || offset >= pointeeSize)) {
+                long index = offset / pointeeSize;
+                long extra = offset % pointeeSize;
+                return offsetByElements(index).offsetInBytes(extra, false);
             }
-            long index = offset / pointeeSize;
-            long extra = offset % pointeeSize;
-            return offsetByElements(index).offsetInBytes(extra, false);
         }
         // structure?
         if (pointeeType instanceof CompoundType ct) {
@@ -99,24 +96,26 @@ public abstract class Pointer {
         // field?
         if (pointeeType instanceof PhysicalObjectType pot) {
             LoadedTypeDefinition def = pot.getDefinition().load();
-            int fieldCount = def.getFieldCount();
-            for (int i = 0; i < fieldCount; i ++) {
-                FieldElement field = def.getField(i);
-                if (field instanceof InstanceFieldElement ife) {
-                    long fieldOffset = ife.getOffset();
-                    if (fieldOffset > offset) {
-                        // not it
-                        continue;
-                    }
-                    if (i == fieldCount - 1 && field.getType() instanceof ArrayType at && at.getElementCount() == 0) {
-                        // flexible array member; it claims all following memory
-                        return new InstanceFieldPointer(this, ife).offsetInBytes(offset - fieldOffset, true);
-                    }
-                    if (offset < ife.getType().getSize()) {
-                        return new InstanceFieldPointer(this, ife).offsetInBytes(offset - fieldOffset, false);
+            do {
+                int fieldCount = def.getFieldCount();
+                for (int i = 0; i < fieldCount; i ++) {
+                    if (def.getField(i) instanceof InstanceFieldElement ife) {
+                        long fieldOffset = ife.getOffset();
+                        if (fieldOffset > offset) {
+                            // not it
+                            continue;
+                        }
+                        if (i == fieldCount - 1 && ife.getType() instanceof ArrayType at && at.getElementCount() == 0) {
+                            // flexible array member; it claims all following memory
+                            return new InstanceFieldPointer(this, ife).offsetInBytes(offset - fieldOffset, true);
+                        }
+                        if (offset < fieldOffset + ife.getType().getSize()) {
+                            return new InstanceFieldPointer(this, ife).offsetInBytes(offset - fieldOffset, false);
+                        }
                     }
                 }
-            }
+                def = def.getSuperClass();
+            } while (def != null);
             // invalid pointer/unknown memory location (not within target object)
             return null;
         }

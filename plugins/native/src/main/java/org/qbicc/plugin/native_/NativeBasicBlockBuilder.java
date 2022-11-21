@@ -77,6 +77,15 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
+    public Value loadLength(Value arrayPointer) {
+        if (arrayPointer.getType() instanceof ArrayType at) {
+            return getLiteralFactory().literalOf(getTypeSystem().getSignedInteger32Type(), at.getElementCount());
+        } else {
+            return super.loadLength(arrayPointer);
+        }
+    }
+
+    @Override
     public Value checkcast(Value value, TypeDescriptor desc) {
         if (value instanceof Auto auto) {
             return auto;
@@ -223,8 +232,8 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
-        return super.instanceFieldOf(instance, deNative(owner), name, deNative(type));
+    public Value instanceFieldOf(Value instancePointer, TypeDescriptor owner, String name, TypeDescriptor type) {
+        return super.instanceFieldOf(instancePointer, deNative(owner), name, deNative(type));
     }
 
     MethodDescriptor deNative(MethodDescriptor md) {

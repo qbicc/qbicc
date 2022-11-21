@@ -83,21 +83,21 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
-        if (handle instanceof CurrentThread) {
+    public Value load(Value pointer, ReadAccessMode accessMode) {
+        if (pointer instanceof CurrentThread) {
             return getCurrentThreadRef();
         }
-        return super.load(handle, accessMode);
+        return super.load(pointer, accessMode);
     }
 
     @Override
-    public ValueHandle currentThread() {
+    public Value currentThread() {
         if (originalElement instanceof FunctionElement fe) {
             ProgramModule programModule = ctxt.getOrAddProgramModule(fe.getEnclosingType());
             DataDeclaration decl = programModule.declareData(null, "_qbicc_bound_java_thread", threadType);
             decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
             final LiteralFactory lf = ctxt.getLiteralFactory();
-            return pointerHandle(lf.literalOf(decl));
+            return lf.literalOf(decl);
         }
         // todo: replace this with addressOf(%thread) node after https://github.com/qbicc/qbicc/pull/1433
         return super.currentThread();
@@ -154,7 +154,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     public ValueHandle visit(ArrayList<Value> args, ConstructorElementHandle node) {
         final BasicBlockBuilder fb = getFirstBuilder();
         // insert "this" and current thread
-        args.addAll(0, List.of(fb.load(fb.currentThread(), SingleUnshared), node.getInstance()));
+        args.addAll(0, List.of(fb.load(fb.pointerHandle(currentThread()), SingleUnshared), node.getInstance()));
         ctxt.enqueue(node.getExecutable());
         Function function = ctxt.getExactFunction(node.getExecutable());
         node.getExecutable();
@@ -185,7 +185,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         }
         final BasicBlockBuilder fb = getFirstBuilder();
         // insert "this" and current thread
-        args.addAll(0, List.of(fb.load(fb.currentThread(), SingleUnshared), node.getInstance()));
+        args.addAll(0, List.of(fb.load(fb.pointerHandle(fb.currentThread()), SingleUnshared), node.getInstance()));
         ctxt.enqueue(node.getExecutable());
         Function function = ctxt.getExactFunction(node.getExecutable());
         FunctionDeclaration decl = ctxt.getOrAddProgramModule(originalElement).declareFunction(function);
@@ -197,7 +197,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     public ValueHandle visit(ArrayList<Value> args, VirtualMethodElementHandle node) {
         final BasicBlockBuilder fb = getFirstBuilder();
         // insert "this" and current thread
-        args.addAll(0, List.of(fb.load(fb.currentThread(), SingleUnshared), node.getInstance()));
+        args.addAll(0, List.of(fb.load(fb.pointerHandle(fb.currentThread()), SingleUnshared), node.getInstance()));
         final MethodElement target = node.getExecutable();
         if (!ReachabilityInfo.get(ctxt).isDispatchableMethod(target)) {
             // No realized invocation targets are possible for this method!
@@ -223,7 +223,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     public ValueHandle visit(ArrayList<Value> args, InterfaceMethodElementHandle node) {
         final BasicBlockBuilder fb = getFirstBuilder();
         // insert "this" and current thread
-        args.addAll(0, List.of(fb.load(fb.currentThread(), SingleUnshared), node.getInstance()));
+        args.addAll(0, List.of(fb.load(fb.pointerHandle(fb.currentThread()), SingleUnshared), node.getInstance()));
         final MethodElement target = node.getExecutable();
         DispatchTables dt = DispatchTables.get(ctxt);
         DispatchTables.ITableInfo info = dt.getITableInfo(target.getEnclosingType().load());

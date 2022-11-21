@@ -3,10 +3,15 @@ package org.qbicc.interpreter.impl;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
+import org.qbicc.interpreter.memory.MemoryFactory;
+import org.qbicc.pointer.MemoryPointer;
+import org.qbicc.pointer.Pointer;
+import org.qbicc.type.ClassObjectType;
 
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
 final class VmThreadImpl extends VmObjectImpl implements VmThread {
+    private final Pointer selfPointer;
     final VmImpl vm;
     volatile Thread boundThread;
     Frame currentFrame;
@@ -14,6 +19,8 @@ final class VmThreadImpl extends VmObjectImpl implements VmThread {
     VmThreadImpl(VmClassImpl clazz, VmImpl vm) {
         super(clazz);
         this.vm = vm;
+        ClassObjectType threadType = clazz.getTypeDefinition().getClassType();
+        selfPointer = new MemoryPointer(threadType.getPointer(), MemoryFactory.wrap(new VmObject[] { this }, threadType.getReference()));
     }
 
     @Override
@@ -65,5 +72,9 @@ final class VmThreadImpl extends VmObjectImpl implements VmThread {
 
     Thread getBoundThread() {
         return boundThread;
+    }
+
+    Pointer getSelfPointer() {
+        return selfPointer;
     }
 }

@@ -218,7 +218,7 @@ public final class CoreIntrinsics {
         MethodDescriptor booleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
 
         /* public static native Thread currentThread(); */
-        StaticIntrinsic currentThread = (builder, target, arguments) -> builder.load(builder.currentThread(), SingleUnshared);
+        StaticIntrinsic currentThread = (builder, target, arguments) -> builder.load(builder.pointerHandle(builder.currentThread()), SingleUnshared);
         intrinsics.registerIntrinsic(jltDesc, "currentThread", returnJlt, currentThread);
 
         /* public final native boolean isAlive(); */
@@ -918,7 +918,7 @@ public final class CoreIntrinsics {
             ProgramModule programModule = ctxt.getOrAddProgramModule(builder.getCurrentElement().getEnclosingType());
             programModule.declareData(null, rtinitTable.getName(), rtinitTable.getType());
             Value initFunc = builder.load(builder.elementOf(builder.globalVariable(rtinitTable), index));
-            return builder.call(builder.pointerHandle(initFunc), List.of(builder.load(builder.currentThread(), SingleUnshared)));
+            return builder.call(builder.pointerHandle(initFunc), List.of(builder.load(builder.pointerHandle(builder.currentThread()), SingleUnshared)));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "callRuntimeInitializer", intVoidDesc, callRuntimeInitializer);
 

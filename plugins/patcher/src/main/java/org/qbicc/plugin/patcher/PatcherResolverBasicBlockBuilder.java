@@ -64,8 +64,8 @@ public final class PatcherResolverBasicBlockBuilder extends DelegatingBasicBlock
     }
 
     @Override
-    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
-        return super.instanceFieldOf(instance, info.transform(owner), name, info.transform(type));
+    public Value instanceFieldOf(Value instancePointer, TypeDescriptor owner, String name, TypeDescriptor type) {
+        return super.instanceFieldOf(instancePointer, info.transform(owner), name, info.transform(type));
     }
 
     @Override

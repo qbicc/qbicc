@@ -52,7 +52,7 @@ final class ExceptionOnThreadBasicBlockBuilder extends DelegatingBasicBlockBuild
 
     @Override
     public BasicBlock throw_(Value value) {
-        store(instanceFieldOf(referenceHandle(load(currentThread(), SingleUnshared)), exceptionField), value, SingleUnshared);
+        store(instanceFieldOf(referenceHandle(load(pointerHandle(currentThread()), SingleUnshared)), exceptionField), value, SingleUnshared);
         return super.throw_(value);
     }
 
@@ -64,7 +64,7 @@ final class ExceptionOnThreadBasicBlockBuilder extends DelegatingBasicBlockBuild
             BlockLabel delegateCatch = entry.getKey();
             BlockLabel landingPad = entry.getValue();
             begin(landingPad);
-            Value ex = readModifyWrite(instanceFieldOf(referenceHandle(load(currentThread(), SingleUnshared)), exceptionField), ReadModifyWrite.Op.SET, lf.zeroInitializerLiteralOfType(exceptionField.getType()), SingleUnshared, SingleUnshared);
+            Value ex = readModifyWrite(instanceFieldOf(referenceHandle(load(pointerHandle(currentThread()), SingleUnshared)), exceptionField), ReadModifyWrite.Op.SET, lf.zeroInitializerLiteralOfType(exceptionField.getType()), SingleUnshared, SingleUnshared);
             goto_(delegateCatch, Slot.thrown(), ex);
         }
         super.finish();

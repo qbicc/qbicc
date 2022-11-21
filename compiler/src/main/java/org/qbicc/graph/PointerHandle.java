@@ -17,24 +17,22 @@ import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
  */
 public final class PointerHandle extends AbstractValueHandle {
     private final Value pointerValue;
-    private final Value offsetValue;
     private final PointerType pointerType;
 
-    PointerHandle(Node callSite, ExecutableElement element, int line, int bci, Value pointerValue, Value offsetValue) {
+    PointerHandle(Node callSite, ExecutableElement element, int line, int bci, Value pointerValue) {
         super(callSite, element, line, bci);
         this.pointerValue = pointerValue;
         pointerType = (PointerType) pointerValue.getType();
-        this.offsetValue = offsetValue;
     }
 
     @Override
     public int getValueDependencyCount() {
-        return 2;
+        return 1;
     }
 
     @Override
     public Value getValueDependency(int index) throws IndexOutOfBoundsException {
-        return index == 0 ? pointerValue : index == 1 ? offsetValue : Util.throwIndexOutOfBounds(index);
+        return index == 0 ? pointerValue : Util.throwIndexOutOfBounds(index);
     }
 
     @Override
@@ -72,7 +70,7 @@ public final class PointerHandle extends AbstractValueHandle {
 
     @Override
     public boolean isConstantLocation() {
-        return pointerValue.isConstant() && offsetValue.isConstant();
+        return pointerValue.isConstant();
     }
 
     @Override
@@ -91,7 +89,7 @@ public final class PointerHandle extends AbstractValueHandle {
     }
 
     int calcHashCode() {
-        return Objects.hash(pointerValue, offsetValue);
+        return Objects.hash(PointerHandle.class, pointerValue);
     }
 
     @Override
@@ -101,10 +99,6 @@ public final class PointerHandle extends AbstractValueHandle {
 
     public Value getPointerValue() {
         return pointerValue;
-    }
-
-    public Value getOffsetValue() {
-        return offsetValue;
     }
 
     @Override
@@ -117,15 +111,12 @@ public final class PointerHandle extends AbstractValueHandle {
         super.toString(b);
         b.append('(');
         pointerValue.toReferenceString(b);
-        b.append('[');
-        offsetValue.toReferenceString(b);
-        b.append(']');
         b.append(')');
         return b;
     }
 
     public boolean equals(PointerHandle other) {
-        return this == other || other != null && pointerValue.equals(other.pointerValue) && offsetValue.equals(other.offsetValue);
+        return this == other || other != null && pointerValue.equals(other.pointerValue);
     }
 
     @Override

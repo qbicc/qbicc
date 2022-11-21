@@ -56,8 +56,8 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
-        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
+    public Value load(Value pointer, ReadAccessMode accessMode) {
+        if (pointer instanceof StaticFieldLiteral sf) {
             final StaticFieldElement fieldElement = sf.getVariableElement();
             Value constantValue = Constants.get(ctxt).getConstantValue(fieldElement);
             if (constantValue != null) {
@@ -70,7 +70,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
         }
-        return getDelegate().load(handle, accessMode);
+        return getDelegate().load(pointer, accessMode);
     }
 
     @Override

@@ -38,6 +38,7 @@ import org.qbicc.graph.Neg;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Or;
+import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Return;
 import org.qbicc.graph.Rol;
 import org.qbicc.graph.Ror;
@@ -277,7 +278,7 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
         }
 
         Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate, final List<Value> arguments, final ValueHandle target, final Function<Value, BasicBlock> onReturn, final BlockLabel catchLabel, final boolean alwaysInline) {
-            this(delegate, arguments, target.hasValueHandleDependency() ? referenceTo(target.getValueHandle()) : null, onReturn, catchLabel, alwaysInline);
+            this(delegate, arguments, target instanceof PointerHandle ph ? ph.getPointerValue() : null, onReturn, catchLabel, alwaysInline);
         }
 
         Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate, final List<Value> arguments, final Value this_, final Function<Value, BasicBlock> onReturn, final BlockLabel catchLabel, final boolean alwaysInline) {

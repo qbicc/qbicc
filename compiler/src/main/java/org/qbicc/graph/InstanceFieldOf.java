@@ -1,44 +1,55 @@
 package org.qbicc.graph;
 
-import org.qbicc.type.PhysicalObjectType;
-import org.qbicc.type.ValueType;
+import java.util.Objects;
+
+import org.qbicc.type.PointerType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 
 /**
- * A field handle for an instance field.
+ * A pointer to an instance field.
  */
-public final class InstanceFieldOf extends Field {
-    private final ValueHandle instance;
-    private final PhysicalObjectType instanceType;
+public final class InstanceFieldOf extends AbstractValue {
+    private final Value instancePointer;
+    private final InstanceFieldElement field;
+    private final PointerType type;
 
-    InstanceFieldOf(ExecutableElement element, int line, int bci, InstanceFieldElement fieldElement, ValueType valueType, ValueHandle instance) {
-        super(element, line, bci, fieldElement, valueType.getPointer().withQualifiersFrom(instance.getType()));
-        instanceType = (PhysicalObjectType) instance.getPointeeType();
-        this.instance = instance;
+    InstanceFieldOf(Node callSite, ExecutableElement element, int line, int bci, Value instancePointer, InstanceFieldElement field) {
+        super(callSite, element, line, bci);
+        this.instancePointer = instancePointer;
+        instancePointer.getType(PointerType.class);
+        this.field = field;
+        type = field.getType().getPointer();
+    }
+
+    public Value getInstance() {
+        return instancePointer;
     }
 
     @Override
-    public boolean hasValueHandleDependency() {
-        return true;
+    public int getValueDependencyCount() {
+        return 1;
     }
 
     @Override
-    public ValueHandle getValueHandle() {
-        return instance;
+    public Value getValueDependency(int index) throws IndexOutOfBoundsException {
+        return switch (index) {
+            case 0 -> instancePointer;
+            default -> throw new IndexOutOfBoundsException(index);
+        };
     }
 
     @Override
+    public PointerType getType() {
+        return type;
+    }
+
     public InstanceFieldElement getVariableElement() {
-        return (InstanceFieldElement) super.getVariableElement();
-    }
-
-    public PhysicalObjectType getInstanceType() {
-        return instanceType;
+        return field;
     }
 
     int calcHashCode() {
-        return super.calcHashCode() * 19 + instance.hashCode();
+        return Objects.hash(instancePointer, field);
     }
 
     @Override
@@ -46,30 +57,25 @@ public final class InstanceFieldOf extends Field {
         return "InstanceFieldOf";
     }
 
+    @Override
+    StringBuilder toRValueString(StringBuilder b) {
+        b.append("field pointer ");
+        instancePointer.toReferenceString(b);
+        b.append('.');
+        b.append(field.getName());
+        return b;
+    }
+
     public boolean equals(final Object other) {
         return other instanceof InstanceFieldOf ifo && equals(ifo);
     }
 
     public boolean equals(final InstanceFieldOf other) {
-        return this == other || other != null && getVariableElement().equals(other.getVariableElement()) && instance.equals(other.instance);
-    }
-
-    public boolean isConstantLocation() {
-        return false;
+        return this == other || other != null && getVariableElement().equals(other.getVariableElement()) && instancePointer.equals(other.instancePointer);
     }
 
     @Override
-    public boolean isValueConstant() {
-        return false;
-    }
-
-    @Override
-    public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
-        return visitor.visit(param, this);
-    }
-
-    @Override
-    public <T> long accept(ValueHandleVisitorLong<T> visitor, T param) {
+    public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
 }

@@ -21,6 +21,7 @@ import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.Neg;
 import org.qbicc.graph.NewArray;
 import org.qbicc.graph.NewReferenceArray;
+import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Truncate;
@@ -47,7 +48,6 @@ import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 
 /**
@@ -59,6 +59,17 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public SimpleOptBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = getContext();
+    }
+
+    @Override
+    public Value offsetPointer(Value basePointer, Value offset) {
+        if (isZero(offset)) {
+            return basePointer;
+        } else if (basePointer instanceof OffsetPointer op) {
+            return offsetPointer(op.getBasePointer(), add(op.getOffset(), offset));
+        } else {
+            return super.offsetPointer(basePointer, offset);
+        }
     }
 
     @Override
@@ -132,14 +143,18 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
-        if (handle instanceof InstanceFieldOf ifo) {
+    public Value load(Value pointer, ReadAccessMode accessMode) {
+        // temporary
+        while (pointer instanceof AddressOf ao && ao.getValueHandle() instanceof PointerHandle ph) {
+            pointer = ph.getPointerValue();
+        }
+        if (pointer instanceof InstanceFieldOf ifo) {
             CoreClasses coreClasses = CoreClasses.get(getContext());
             // it might be an array length...
             InstanceFieldElement ve = ifo.getVariableElement();
             if (ve == coreClasses.getArrayLengthField()) {
                 // see if it's constant; extract the array size directly if so
-                if (ifo.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr) {
+                if (ifo.getInstance() instanceof DecodeReference dr) {
                     if (dr.getInput() instanceof NewReferenceArray nra) {
                         return nra.getSize();
                     } else if (dr.getInput() instanceof NewArray na) {
@@ -147,20 +162,20 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                     }
                 }
             } else if (ve == coreClasses.getRefArrayDimensionsField()) {
-                if (ifo.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr) {
+                if (ifo.getInstance() instanceof DecodeReference dr) {
                     if (dr.getInput() instanceof NewReferenceArray nra) {
                         return nra.getDimensions();
                     }
                 }
             } else if (ve == coreClasses.getRefArrayElementTypeIdField()) {
-                if (ifo.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr) {
+                if (ifo.getInstance() instanceof DecodeReference dr) {
                     if (dr.getInput() instanceof NewReferenceArray nra) {
                         return nra.getElemTypeId();
                     }
                 }
             }
         }
-        return super.load(handle, accessMode);
+        return super.load(pointer, accessMode);
     }
 
     @Override
@@ -685,23 +700,18 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value addressOf(ValueHandle handle) {
-        if (handle instanceof PointerHandle ph && isZero(ph.getOffsetValue())) {
-            return ((PointerHandle) handle).getPointerValue();
+        if (handle instanceof PointerHandle ph) {
+            return ph.getPointerValue();
         }
         return super.addressOf(handle);
     }
 
     @Override
-    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
+    public ValueHandle pointerHandle(Value pointer) {
         if (pointer instanceof AddressOf) {
-            if (isZero(offsetValue)) {
-                return pointer.getValueHandle();
-            } else if (pointer.getValueHandle() instanceof PointerHandle ph) {
-                // merge the offset value
-                return pointerHandle(ph.getPointerValue(), add(ph.getOffsetValue(), offsetValue));
-            }
+            return pointer.getValueHandle();
         }
-        return super.pointerHandle(pointer, offsetValue);
+        return super.pointerHandle(pointer);
     }
 
     private static boolean isAlwaysNull(final Value value) {

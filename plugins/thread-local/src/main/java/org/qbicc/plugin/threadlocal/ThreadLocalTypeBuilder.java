@@ -9,6 +9,8 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
@@ -61,9 +63,9 @@ public class ThreadLocalTypeBuilder implements DefinedTypeDefinition.Builder.Del
                             injectedFieldBuilder.setSourceFileName(resolved.getSourceFileName());
                             injectedFieldBuilder.setSignature(resolved.getTypeSignature());
                             injectedFieldBuilder.setEnclosingType(jlt);
-                            FieldElement injectedField = injectedFieldBuilder.build();
+                            InstanceFieldElement injectedField = (InstanceFieldElement) injectedFieldBuilder.build();
                             jlt.load().injectField(injectedField);
-                            ThreadLocals.get(ctxt).registerThreadLocalField(resolved, injectedField);
+                            ThreadLocals.get(ctxt).registerThreadLocalField((StaticFieldElement) resolved, injectedField);
                         }
                     }
                 }

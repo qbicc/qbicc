@@ -20,7 +20,7 @@ import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.And;
-import org.qbicc.graph.AsmHandle;
+import org.qbicc.graph.literal.AsmLiteral;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BinaryValue;
 import org.qbicc.graph.BitCast;
@@ -76,7 +76,7 @@ import org.qbicc.graph.IsNe;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.Max;
 import org.qbicc.graph.MemberOf;
-import org.qbicc.graph.MemberSelector;
+import org.qbicc.graph.Dereference;
 import org.qbicc.graph.Min;
 import org.qbicc.graph.Mod;
 import org.qbicc.graph.MonitorEnter;
@@ -91,12 +91,11 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OffsetOfField;
+import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
 import org.qbicc.graph.ReadModifyWrite;
-import org.qbicc.graph.ReadModifyWriteValue;
-import org.qbicc.graph.ReferenceTo;
 import org.qbicc.graph.Ret;
 import org.qbicc.graph.Rol;
 import org.qbicc.graph.Ror;
@@ -114,7 +113,7 @@ import org.qbicc.graph.Throw;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.UnaryValue;
 import org.qbicc.graph.Unreachable;
-import org.qbicc.graph.UnsafeHandle;
+import org.qbicc.graph.ByteOffsetPointer;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.VaArg;
 import org.qbicc.graph.Value;
@@ -410,10 +409,10 @@ public final class Disassembler {
             final String id = param.nextId();
             final String description = String.format(
                 "store %s ← %s"
-                , showDescription(node.getValueHandle())
+                , showDescription(node.getPointer())
                 , show(node.getValue())
             );
-            param.addLine(description, node, node.getValueHandle());
+            param.addLine(description, node, node.getPointer());
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }
@@ -480,7 +479,7 @@ public final class Disassembler {
             final String id = param.nextId();
             final String description = String.format(
                 "cmp-and-swap %s ← %s %s"
-                , show(node.getValueHandle())
+                , show(node.getPointer())
                 , show(node.getExpectedValue())
                 , show(node.getUpdateValue())
             );
@@ -532,7 +531,7 @@ public final class Disassembler {
             return delegate.visit(param, node);
         }
 
-        private void readModifyWrite(String format, Disassembler param, ReadModifyWriteValue node) {
+        private void readModifyWrite(String format, Disassembler param, ReadModifyWrite node) {
             final String id = param.nextId();
             final String description = String.format(
                 format
@@ -593,16 +592,16 @@ public final class Disassembler {
         @Override
         public Void visit(Disassembler param, Load node) {
             final String id = param.nextId();
-            String description = "load " + showDescription(node.getValueHandle());
+            String description = "load " + showDescription(node.getPointer());
             param.addLine(id + " = " + description, node);
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }
 
         @Override
-        public Void visit(Disassembler param, MemberSelector node) {
+        public Void visit(Disassembler param, Dereference node) {
             final String id = param.nextId();
-            String description = "sel " + show(node.getValueHandle());
+            String description = "sel " + show(node.getPointer());
             param.addLine(id + " = " + description, node);
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
@@ -663,14 +662,6 @@ public final class Disassembler {
         public Void visit(Disassembler param, OffsetOfField node) {
             final String id = param.nextId();
             final String description = "offset-of " + node.getFieldElement().toString();
-            param.nodeInfo.put(node, new NodeInfo(id, description));
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, ReferenceTo node) {
-            final String id = param.nextId();
-            final String description = "ref-to " + node.getType().toString();
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }
@@ -1118,7 +1109,7 @@ public final class Disassembler {
         // START value handles
 
         @Override
-        public Void visit(Disassembler param, AsmHandle node) {
+        public Void visit(Disassembler param, AsmLiteral node) {
             final String id = param.nextId();
             final String description = String.format(
                 "asm %s %s"
@@ -1184,7 +1175,7 @@ public final class Disassembler {
         @Override
         public Void visit(Disassembler param, InstanceFieldOf node) {
             final String id = param.nextId();
-            String description = node.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr
+            String description = node.getInstance() instanceof DecodeReference dr
                 ? show(dr.getInput()) + " " + node.getVariableElement().getName()
                 : "?";
             param.nodeInfo.put(node, new NodeInfo(id, description));
@@ -1203,6 +1194,18 @@ public final class Disassembler {
         public Void visit(Disassembler param, MemberOf node) {
             final String id = param.nextId();
             final String description = "member-of " + show(node.getStructurePointer());
+            param.nodeInfo.put(node, new NodeInfo(id, description));
+            return delegate.visit(param, node);
+        }
+
+        @Override
+        public Void visit(Disassembler param, OffsetPointer node) {
+            final String id = param.nextId();
+            final String description = String.format(
+                "offset %s %s"
+                , show(node.getBasePointer())
+                , show(node.getOffset())
+            );
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }
@@ -1232,11 +1235,11 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, UnsafeHandle node) {
+        public Void visit(Disassembler param, ByteOffsetPointer node) {
             final String id = param.nextId();
             final String description = String.format(
                 "unsafe-handle %s %s"
-                , show(node.getValueHandle())
+                , show(node.getBasePointer())
                 , show(node.getOffset())
             );
             param.nodeInfo.put(node, new NodeInfo(id, description));

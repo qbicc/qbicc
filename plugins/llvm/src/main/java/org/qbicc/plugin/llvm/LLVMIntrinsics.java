@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.AsmHandle;
+import org.qbicc.graph.literal.AsmLiteral;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.ClassOf;
@@ -84,53 +84,53 @@ public final class LLVMIntrinsics {
 
         StaticIntrinsic saVaStart = (builder, target, arguments) -> {
             BasicBlockBuilder fb = builder.getFirstBuilder();
-            ValueHandle vaListHandle;
+            Value vaListPtr;
             Value vaList = arguments.get(0);
             if (vaList instanceof Load load) {
-                vaListHandle = load.getValueHandle();
+                vaListPtr = load.getPointer();
             } else {
                 ctxt.error(builder.getLocation(), "Invalid ap argument to va_start: must have an address");
                 return voidLiteral;
             }
-            return fb.call(fb.staticMethod(llvmRuntimeDesc, "va_start", vaListPtrToVoid), List.of(fb.addressOf(vaListHandle)));
+            return fb.call(fb.staticMethod(llvmRuntimeDesc, "va_start", vaListPtrToVoid), List.of(vaListPtr));
         };
 
         intrinsics.registerIntrinsic(stdArgDesc, "va_start", vaListToVoid, saVaStart);
 
         StaticIntrinsic saVaEnd = (builder, target, arguments) -> {
             BasicBlockBuilder fb = builder.getFirstBuilder();
-            ValueHandle vaListHandle;
+            Value vaListPtr;
             Value vaList = arguments.get(0);
             if (vaList instanceof Load load) {
-                vaListHandle = load.getValueHandle();
+                vaListPtr = load.getPointer();
             } else {
                 ctxt.error(builder.getLocation(), "Invalid ap argument to va_end: must have an address");
                 return voidLiteral;
             }
-            return fb.call(fb.staticMethod(llvmRuntimeDesc, "va_end", vaListPtrToVoid), List.of(fb.addressOf(vaListHandle)));
+            return fb.call(fb.staticMethod(llvmRuntimeDesc, "va_end", vaListPtrToVoid), List.of(vaListPtr));
         };
 
         intrinsics.registerIntrinsic(stdArgDesc, "va_end", vaListToVoid, saVaEnd);
 
         StaticIntrinsic saVaCopy = (builder, target, arguments) -> {
             BasicBlockBuilder fb = builder.getFirstBuilder();
-            ValueHandle destHandle;
+            Value destPtr;
             Value destList = arguments.get(0);
             if (destList instanceof Load load) {
-                destHandle = load.getValueHandle();
+                destPtr = load.getPointer();
             } else {
                 ctxt.error(builder.getLocation(), "Invalid dest argument to va_copy: must have an address");
                 return voidLiteral;
             }
-            ValueHandle srcHandle;
+            Value srcPtr;
             Value srcList = arguments.get(1);
             if (srcList instanceof Load load2) {
-                srcHandle = load2.getValueHandle();
+                srcPtr = load2.getPointer();
             } else {
                 ctxt.error(builder.getLocation(), "Invalid src argument to va_copy: must have an address");
                 return voidLiteral;
             }
-            return fb.call(fb.staticMethod(llvmRuntimeDesc, "va_copy", vaListPtrVaListPtrToVoid), List.of(fb.addressOf(destHandle), fb.addressOf(srcHandle)));
+            return fb.call(fb.staticMethod(llvmRuntimeDesc, "va_copy", vaListPtrVaListPtrToVoid), List.of(destPtr, srcPtr));
         };
 
         intrinsics.registerIntrinsic(stdArgDesc, "va_copy", vaListVaListToVoid, saVaCopy);
@@ -138,17 +138,17 @@ public final class LLVMIntrinsics {
         // this one is technically implementation-neutral, but we can keep it here until we have another backend
         StaticIntrinsic saVaArg = (builder, target, arguments) -> {
             BasicBlockBuilder fb = builder.getFirstBuilder();
-            ValueHandle vaListHandle;
+            Value vaListPtr;
             Value vaList = arguments.get(0);
             if (vaList instanceof Load load) {
-                vaListHandle = load.getValueHandle();
+                vaListPtr = load.getPointer();
             } else {
                 ctxt.error(builder.getLocation(), "Invalid ap argument to va_arg: must have an address");
                 throw new BlockEarlyTermination(builder.unreachable());
             }
             Value outputType = arguments.get(1);
             if (outputType instanceof ClassOf co && co.getInput() instanceof TypeLiteral tl) {
-                return builder.vaArg(fb.addressOf(vaListHandle), tl.getValue());
+                return builder.vaArg(vaListPtr, tl.getValue());
             } else {
                 ctxt.error(builder.getLocation(), "Invalid type argument to va_arg (must be a class literal)");
                 throw new BlockEarlyTermination(builder.unreachable());
@@ -312,29 +312,29 @@ public final class LLVMIntrinsics {
             return lf.zeroInitializerLiteralOfType(ts.getVoidType());
         }
 
-        EnumSet<AsmHandle.Flag> flagSet = EnumSet.of(AsmHandle.Flag.NO_THROW);
+        EnumSet<AsmLiteral.Flag> flagSet = EnumSet.of(AsmLiteral.Flag.NO_THROW);
         boolean generalSideEffects = false;
         if ((flags & ASM_FLAG_SIDE_EFFECT) != 0) {
-            flagSet.add(AsmHandle.Flag.SIDE_EFFECT);
+            flagSet.add(AsmLiteral.Flag.SIDE_EFFECT);
             generalSideEffects = true;
         }
         if ((flags & ASM_FLAG_IMPLICIT_SIDE_EFFECT) != 0) {
-            flagSet.add(AsmHandle.Flag.IMPLICIT_SIDE_EFFECT);
+            flagSet.add(AsmLiteral.Flag.IMPLICIT_SIDE_EFFECT);
             generalSideEffects = true;
         }
         if ((flags & ASM_FLAG_ALIGN_STACK) != 0) {
-            flagSet.add(AsmHandle.Flag.ALIGN_STACK);
+            flagSet.add(AsmLiteral.Flag.ALIGN_STACK);
         }
         if ((flags & ASM_FLAG_INTEL_DIALECT) != 0) {
-            flagSet.add(AsmHandle.Flag.INTEL_DIALECT);
+            flagSet.add(AsmLiteral.Flag.INTEL_DIALECT);
         }
         if ((flags & ASM_FLAG_UNWIND) != 0) {
-            flagSet.remove(AsmHandle.Flag.NO_THROW);
+            flagSet.remove(AsmLiteral.Flag.NO_THROW);
             generalSideEffects = true;
         }
         boolean noReturn = (flags & ASM_FLAG_NO_RETURN) != 0;
 
-        ValueHandle asm = bb.asm(instruction, operands, flagSet, type);
+        ValueHandle asm = bb.pointerHandle(lf.literalOfAsm(instruction, operands, type, flagSet.toArray(AsmLiteral.Flag[]::new)));
 
         if (noReturn) {
             throw new BlockEarlyTermination(bb.callNoReturn(asm, args));

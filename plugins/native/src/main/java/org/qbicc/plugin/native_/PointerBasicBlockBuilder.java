@@ -82,18 +82,18 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
-        return super.store(handle, castVoidPointer(value, handle.getPointeeType()), accessMode);
+    public Node store(Value pointer, Value value, WriteAccessMode accessMode) {
+        return super.store(pointer, castVoidPointer(value, pointer.getPointeeType()), accessMode);
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
-        return super.cmpAndSwap(target, castVoidPointer(expect, target.getPointeeType()), castVoidPointer(update, target.getPointeeType()), readMode, writeMode, strength);
+    public Value cmpAndSwap(Value pointer, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+        return super.cmpAndSwap(pointer, castVoidPointer(expect, pointer.getPointeeType()), castVoidPointer(update, pointer.getPointeeType()), readMode, writeMode, strength);
     }
 
     @Override
-    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return super.readModifyWrite(target, op, castVoidPointer(update, target.getPointeeType()), readMode, writeMode);
+    public Value readModifyWrite(Value pointer, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return super.readModifyWrite(pointer, op, castVoidPointer(update, pointer.getPointeeType()), readMode, writeMode);
     }
 
     @Override

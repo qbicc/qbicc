@@ -9,19 +9,15 @@ import org.qbicc.type.definition.element.FunctionElement;
 import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 /**
- * A handle representing the location where the current thread is stashed.
+ * A pointer to the location where the current thread is stashed.
  */
-public final class CurrentThread extends AbstractValueHandle {
-    private final ReferenceType valueType;
+public final class CurrentThread extends AbstractValue {
 
-    CurrentThread(ExecutableElement element, int line, int bci, ReferenceType valueType) {
-        super(null, element, line, bci);
-        this.valueType = valueType;
-    }
+    private final PointerType pointerType;
 
-    @Override
-    public ReferenceType getPointeeType() {
-        return valueType;
+    CurrentThread(Node callSite, ExecutableElement element, int line, int bci, ReferenceType valueType) {
+        super(callSite, element, line, bci);
+        this.pointerType = valueType.getPointer();
     }
 
     @Override
@@ -40,18 +36,12 @@ public final class CurrentThread extends AbstractValueHandle {
     }
 
     public boolean equals(CurrentThread other) {
-        // all are equal
         return other != null;
     }
 
     @Override
     public PointerType getType() {
-        return valueType.getPointer();
-    }
-
-    @Override
-    public boolean isConstantLocation() {
-        return true;
+        return pointerType;
     }
 
     @Override
@@ -60,8 +50,8 @@ public final class CurrentThread extends AbstractValueHandle {
     }
 
     @Override
-    public StringBuilder toString(StringBuilder b) {
-        return b.append("CurrentThread");
+    StringBuilder toRValueString(StringBuilder b) {
+        return b.append("current thread ptr");
     }
 
     @Override
@@ -70,7 +60,12 @@ public final class CurrentThread extends AbstractValueHandle {
     }
 
     @Override
-    public boolean isValueConstant() {
+    public boolean isConstant() {
+        return true;
+    }
+
+    @Override
+    public boolean isPointeeConstant() {
         return ! (getElement() instanceof FunctionElement);
     }
 
@@ -80,12 +75,7 @@ public final class CurrentThread extends AbstractValueHandle {
     }
 
     @Override
-    public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
-        return visitor.visit(param, this);
-    }
-
-    @Override
-    public <T> long accept(ValueHandleVisitorLong<T> visitor, T param) {
+    public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
 }

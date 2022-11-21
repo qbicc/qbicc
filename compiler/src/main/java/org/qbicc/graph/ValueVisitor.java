@@ -43,6 +43,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, ByteOffsetPointer node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, ByteSwap node) {
         return visitUnknown(t, node);
     }
@@ -119,6 +123,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, CurrentThread node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, DecodeReference node) {
         return visitUnknown(t, node);
     }
@@ -155,6 +163,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, InstanceFieldOf node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, InstanceOf node) {
         return visitUnknown(t, node);
     }
@@ -175,7 +187,7 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
-    default R visit(T t, MemberSelector node) {
+    default R visit(T t, Dereference node) {
         return visitUnknown(t, node);
     }
 
@@ -219,6 +231,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, OffsetPointer node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, Or node) {
         return visitUnknown(t, node);
     }
@@ -228,10 +244,6 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
     }
 
     default R visit(T t, ReadModifyWrite node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, ReferenceTo node) {
         return visitUnknown(t, node);
     }
 
@@ -314,6 +326,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
             return getDelegateValueVisitor().visit(t, node);
         }
 
+        default R visit(T t, ByteOffsetPointer node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
         default R visit(T t, ByteSwap node) {
             return getDelegateValueVisitor().visit(t, node);
         }
@@ -366,6 +382,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
             return getDelegateValueVisitor().visit(t, node);
         }
 
+        default R visit(T t, CurrentThread node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
         default R visit(T t, DecodeReference node) {
             return getDelegateValueVisitor().visit(t, node);
         }
@@ -399,6 +419,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         }
 
         default R visit(T t, InsertMember node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default R visit(T t, InstanceFieldOf node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 
@@ -446,7 +470,7 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
             return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T t, MemberSelector node) {
+        default R visit(T t, Dereference node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 
@@ -490,6 +514,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
             return getDelegateValueVisitor().visit(t, node);
         }
 
+        default R visit(T t, OffsetPointer node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
         default R visit(T t, Or node) {
             return getDelegateValueVisitor().visit(t, node);
         }
@@ -499,10 +527,6 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         }
 
         default R visit(T t, ReadModifyWrite node) {
-            return getDelegateValueVisitor().visit(t, node);
-        }
-
-        default R visit(T t, ReferenceTo node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

@@ -228,29 +228,29 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
+    public Value load(Value pointer, ReadAccessMode accessMode) {
         Value loaded;
         if (accessMode.includes(GlobalAcquire)) {
             // we have to emit a global fence
-            loaded = super.load(handle, SingleUnshared);
+            loaded = super.load(pointer, SingleUnshared);
             fence(accessMode.getGlobalAccess());
             return loaded;
         } else if (accessMode.includes(GlobalPlain)) {
             // emit equivalent single load
-            return super.load(handle, SinglePlain);
+            return super.load(pointer, SinglePlain);
         } else if (accessMode.includes(GlobalUnshared)) {
             // emit equivalent single load
-            return super.load(handle, SingleUnshared);
+            return super.load(pointer, SingleUnshared);
         }
         // Break apart atomic structure and array loads
-        if (handle.getPointeeType() instanceof CompoundType ct) {
+        if (pointer.getPointeeType() instanceof CompoundType ct) {
             LiteralFactory lf = ctxt.getLiteralFactory();
             Value res = lf.zeroInitializerLiteralOfType(ct);
             for (CompoundType.Member member : ct.getPaddedMembers()) {
-                res = insertMember(res, member, load(memberOf(handle, member), accessMode));
+                res = insertMember(res, member, load(memberOf(pointer, member), accessMode));
             }
             return res;
-        } else if (handle.getPointeeType() instanceof ArrayType at) {
+        } else if (pointer.getPointeeType() instanceof ArrayType at) {
             long ec = at.getElementCount();
             LiteralFactory lf = ctxt.getLiteralFactory();
             if (ec < 16) {
@@ -258,7 +258,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 Value res = lf.zeroInitializerLiteralOfType(at);
                 for (long i = 0; i < ec; i ++) {
                     IntegerLiteral idxLit = lf.literalOf(i);
-                    res = insertElement(res, idxLit, load(elementOf(handle, idxLit), accessMode));
+                    res = insertElement(res, idxLit, load(elementOf(pointer, idxLit), accessMode));
                 }
                 return res;
             } else {
@@ -270,14 +270,14 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 begin(top);
                 BlockParameter idx = addParam(top, Slot.temp(0), idxType);
                 BlockParameter val = addParam(top, Slot.temp(1), at);
-                Value modVal = insertElement(val, idx, load(elementOf(handle, idx), accessMode));
+                Value modVal = insertElement(val, idx, load(elementOf(pointer, idx), accessMode));
                 if_(isLt(idx, lf.literalOf(idxType, ec)), top, exit, Map.of(Slot.temp(0), add(idx, lf.literalOf(idxType, 1)), Slot.temp(1), modVal));
                 begin(exit);
                 // be sure to return the final modified value
                 return addParam(exit, Slot.temp(1), at);
             }
         }
-        return super.load(handle, accessMode);
+        return super.load(pointer, accessMode);
     }
 
     @Override
@@ -288,38 +288,38 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
-        if (handle.getPointeeType() instanceof BooleanType) {
-            ctxt.error("Invalid boolean-typed handle %s", handle);
+    public Node store(Value pointer, Value value, WriteAccessMode accessMode) {
+        if (pointer.getPointeeType() instanceof BooleanType) {
+            ctxt.error("Invalid boolean-typed handle %s", pointer);
         }
         if (value.getType() instanceof BooleanType) {
             ctxt.error("Invalid boolean-typed value %s", value);
         }
         if (accessMode.includes(GlobalRelease)) {
             // we have to emit a global fence
-            Node store = store(handle, value, SingleUnshared);
+            Node store = store(pointer, value, SingleUnshared);
             fence(accessMode.getGlobalAccess());
             return store;
         } else if (accessMode.includes(GlobalPlain)) {
-            return store(handle, value, SinglePlain);
+            return store(pointer, value, SinglePlain);
         } else if (accessMode.includes(GlobalUnshared)) {
-            return store(handle, value, SingleUnshared);
+            return store(pointer, value, SingleUnshared);
         }
         // Break apart atomic structure and array stores
-        if (handle.getPointeeType() instanceof CompoundType ct) {
+        if (pointer.getPointeeType() instanceof CompoundType ct) {
             if (value instanceof Literal lit && lit.isZero()) {
                 LiteralFactory lf = getLiteralFactory();
                 for (CompoundType.Member member : ct.getPaddedMembers()) {
-                    store(memberOf(handle, member), lf.zeroInitializerLiteralOfType(member.getType()), accessMode);
+                    store(memberOf(pointer, member), lf.zeroInitializerLiteralOfType(member.getType()), accessMode);
                 }
                 return nop();
             } else {
                 for (CompoundType.Member member : ct.getPaddedMembers()) {
-                    store(memberOf(handle, member), extractMember(value, member), accessMode);
+                    store(memberOf(pointer, member), extractMember(value, member), accessMode);
                 }
                 return nop();
             }
-        } else if (handle.getPointeeType() instanceof ArrayType at) {
+        } else if (pointer.getPointeeType() instanceof ArrayType at) {
             long ec = at.getElementCount();
             LiteralFactory lf = ctxt.getLiteralFactory();
             if (ec < 16) {
@@ -327,12 +327,12 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 if (value instanceof Literal lit && lit.isZero()) {
                     for (long i = 0; i < ec; i ++) {
                         IntegerLiteral idxLit = lf.literalOf(i);
-                        store(elementOf(handle, idxLit), lf.zeroInitializerLiteralOfType(at.getElementType()));
+                        store(elementOf(pointer, idxLit), lf.zeroInitializerLiteralOfType(at.getElementType()));
                     }
                 } else {
                     for (long i = 0; i < ec; i ++) {
                         IntegerLiteral idxLit = lf.literalOf(i);
-                        store(elementOf(handle, idxLit), extractElement(value, idxLit));
+                        store(elementOf(pointer, idxLit), extractElement(value, idxLit));
                     }
                 }
                 return nop();
@@ -345,29 +345,29 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 begin(top);
                 BlockParameter idx = addParam(top, Slot.temp(0), idxType);
                 if (value instanceof Literal lit && lit.isZero()) {
-                    store(elementOf(handle, idx), lf.zeroInitializerLiteralOfType(at.getElementType()));
+                    store(elementOf(pointer, idx), lf.zeroInitializerLiteralOfType(at.getElementType()));
                 } else {
-                    store(elementOf(handle, idx), extractElement(value, idx));
+                    store(elementOf(pointer, idx), extractElement(value, idx));
                 }
                 if_(isLt(idx, lf.literalOf(idxType, ec)), top, exit, Map.of(Slot.temp(0), add(idx, lf.literalOf(idxType, 1))));
                 begin(exit);
             }
             return nop();
         }
-        return super.store(handle, value, accessMode);
+        return super.store(pointer, value, accessMode);
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(Value pointer, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         BasicBlockBuilder fb = getFirstBuilder();
-        CompoundType resultType = CmpAndSwap.getResultType(ctxt, target.getPointeeType());
+        CompoundType resultType = CmpAndSwap.getResultType(ctxt, pointer.getPointeeType());
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
         Value result;
         if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             // not actually atomic!
             // emit fences via load and store logic.
-            Value compareVal = fb.load(target, readMode);
+            Value compareVal = fb.load(pointer, readMode);
             BlockLabel success = new BlockLabel();
             BlockLabel resume = new BlockLabel();
             Value compareResult = fb.isEq(compareVal, expect);
@@ -377,7 +377,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             result = fb.insertMember(withCompareVal, resultType.getMember(1), compareResult);
             fb.if_(compareResult, success, resume, Map.of());
             fb.begin(success);
-            fb.store(target, update, writeMode);
+            fb.store(pointer, update, writeMode);
             fb.goto_(resume, Map.of());
             fb.begin(resume);
         } else {
@@ -389,7 +389,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             if (writeMode instanceof GlobalAccessMode) {
                 lowerWriteMode = SingleOpaque;
             }
-            result = super.cmpAndSwap(target, expect, update, lowerReadMode, lowerWriteMode, strength);
+            result = super.cmpAndSwap(pointer, expect, update, lowerReadMode, lowerWriteMode, strength);
             if (readRequiresFence) {
                 fence(readMode.getGlobalAccess());
             }
@@ -410,7 +410,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    public Value readModifyWrite(Value pointer, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         BasicBlockBuilder fb = getFirstBuilder();
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
@@ -418,7 +418,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         if (GlobalPlain.includes(readMode) && GlobalPlain.includes(writeMode)) {
             // not actually atomic!
             // emit fences via load and store logic.
-            result = fb.load(target, readMode);
+            result = fb.load(pointer, readMode);
             Value computed = switch (op) {
                 case SET -> update;
                 case ADD -> fb.add(result, update);
@@ -430,7 +430,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 case MIN -> fb.min(result, update);
                 case MAX -> fb.max(result, update);
             };
-            fb.store(target, computed, writeMode);
+            fb.store(pointer, computed, writeMode);
         } else {
             boolean readRequiresFence = readMode.includes(GlobalAcquire);
             if (readMode instanceof GlobalAccessMode) {
@@ -440,7 +440,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             if (writeMode instanceof GlobalAccessMode) {
                 lowerWriteMode = SingleOpaque;
             }
-            result = super.readModifyWrite(target, op, update, lowerReadMode, lowerWriteMode);
+            result = super.readModifyWrite(pointer, op, update, lowerReadMode, lowerWriteMode);
             if (readRequiresFence) {
                 fence(readMode.getGlobalAccess());
             }

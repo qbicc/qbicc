@@ -7,26 +7,26 @@ import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
-public final class ReadModifyWrite extends AbstractValue implements ReadModifyWriteValue, OrderedNode {
+public final class ReadModifyWrite extends AbstractValue implements OrderedNode {
     private final Node dependency;
-    private final ValueHandle target;
+    private final Value pointer;
     private final Value updateValue;
     private final ReadAccessMode readMode;
     private final WriteAccessMode writeMode;
     private final Op op;
 
-    ReadModifyWrite(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final ValueHandle target, Op op, final Value updateValue, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    ReadModifyWrite(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final Value pointer, Op op, final Value updateValue, ReadAccessMode readMode, WriteAccessMode writeMode) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
-        this.target = target;
+        this.pointer = pointer;
         this.updateValue = updateValue;
         this.readMode = readMode;
         this.writeMode = writeMode;
         this.op = op;
-        if (! target.isWritable()) {
+        if (! pointer.isWritable()) {
             throw new IllegalArgumentException("Handle is not writable");
         }
-        if (! target.isReadable()) {
+        if (! pointer.isReadable()) {
             throw new IllegalArgumentException("Handle is not readable");
         }
     }
@@ -48,26 +48,24 @@ public final class ReadModifyWrite extends AbstractValue implements ReadModifyWr
         return dependency;
     }
 
-    public ValueHandle getValueHandle() {
-        return target;
+    public Value getPointer() {
+        return pointer;
     }
 
     public Value getUpdateValue() {
         return updateValue;
     }
 
-    @Override
     public ReadAccessMode getReadAccessMode() {
         return readMode;
     }
 
-    @Override
     public WriteAccessMode getWriteAccessMode() {
         return writeMode;
     }
 
     int calcHashCode() {
-        return Objects.hash(getClass(), dependency, target, updateValue, readMode, writeMode);
+        return Objects.hash(getClass(), dependency, pointer, updateValue, readMode, writeMode);
     }
 
     @Override
@@ -95,21 +93,24 @@ public final class ReadModifyWrite extends AbstractValue implements ReadModifyWr
     }
 
     private boolean equals(final ReadModifyWrite other) {
-        return this == other || other.getClass() == getClass() && dependency.equals(other.dependency) && target.equals(other.target)
-            && updateValue.equals(other.updateValue) && readMode.equals(other.readMode) && writeMode.equals(other.writeMode);
+        return this == other || other != null &&
+            dependency.equals(other.dependency) &&
+            pointer.equals(other.pointer) &&
+            updateValue.equals(other.updateValue) &&
+            readMode.equals(other.readMode) &&
+            writeMode.equals(other.writeMode);
     }
 
     public int getValueDependencyCount() {
-        return 1;
+        return 2;
     }
 
     public Value getValueDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? updateValue : Util.throwIndexOutOfBounds(index);
-    }
-
-    @Override
-    public boolean hasValueHandleDependency() {
-        return true;
+        return switch (index) {
+            case 0 -> pointer;
+            case 1 -> updateValue;
+            default -> throw new IndexOutOfBoundsException(index);
+        };
     }
 
     @Override

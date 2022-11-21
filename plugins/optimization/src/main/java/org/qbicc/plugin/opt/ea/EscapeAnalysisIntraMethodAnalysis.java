@@ -104,10 +104,10 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
         @Override
         public Void visit(AnalysisContext param, Store node) {
             if (visitKnown(param, node)) {
-                final ValueHandle handle = node.getValueHandle();
+                final Value pointer = node.getPointer();
                 final Value value = node.getValue();
 
-                if (handle instanceof InstanceFieldOf fieldOf && fieldOf.getValueHandle() instanceof PointerHandle ph && ph.getPointerValue() instanceof DecodeReference dr) {
+                if (pointer instanceof InstanceFieldOf fieldOf && fieldOf.getInstance() instanceof DecodeReference dr) {
                     Value ref = dr.getInput();
                     if (value instanceof New && ref instanceof BlockParameter bp && bp.isEntryParameter()) {
                         if (bp.getSlot() == Slot.this_()) {
@@ -121,12 +121,12 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
                             param.connectionGraph.addPointsToEdge(fieldOf, value);
                         }
                     }
-                } else if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral) {
-                    param.connectionGraph.setGlobalEscape(handle);
+                } else if (pointer instanceof StaticFieldLiteral) {
+                    param.connectionGraph.setGlobalEscape(pointer);
                     if (value instanceof NotNull nn) {
-                        param.connectionGraph.addPointsToEdge(handle, nn.getInput());
+                        param.connectionGraph.addPointsToEdge(pointer, nn.getInput());
                     } else {
-                        param.connectionGraph.addPointsToEdge(handle, value);
+                        param.connectionGraph.addPointsToEdge(pointer, value);
                     }
                 }
             }

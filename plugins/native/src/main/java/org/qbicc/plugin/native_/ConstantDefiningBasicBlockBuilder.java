@@ -54,14 +54,14 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
+    public Node store(Value pointer, Value value, WriteAccessMode accessMode) {
         Value test = value;
         while (test instanceof CastValue) {
             test = ((CastValue) test).getInput();
         }
         if (test instanceof ConstantLiteral) {
             // it's a constant
-            if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sfl) {
+            if (pointer instanceof StaticFieldLiteral sfl) {
                 FieldElement fieldElement = sfl.getVariableElement();
                 if (fieldElement.isReallyFinal()) {
                     processConstant(fieldElement);
@@ -72,7 +72,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
             ctxt.error(getLocation(), "Compilation constants must be static final fields");
             return nop();
         }
-        return super.store(handle, value, accessMode);
+        return super.store(pointer, value, accessMode);
     }
 
     private void processConstant(final FieldElement fieldElement) {

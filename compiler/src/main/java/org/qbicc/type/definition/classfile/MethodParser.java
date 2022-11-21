@@ -26,7 +26,7 @@ import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.MemberSelector;
+import org.qbicc.graph.Dereference;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
@@ -409,7 +409,7 @@ final class MethodParser {
                     if (lveType instanceof CompoundType || lveType instanceof ArrayType) {
                         // return a *handle* to the variable
                         // (never needs promotion)
-                        return gf.selectMember(gf.pointerHandle(ptr));
+                        return gf.deref(ptr);
                     } else {
                         return promote(gf.load(gf.pointerHandle(ptr), SingleUnshared), lve.getTypeDescriptor());
                     }
@@ -717,8 +717,8 @@ final class MethodParser {
                     case OP_AALOAD: {
                         v2 = pop1();
                         v1 = pop1();
-                        if (v1 instanceof MemberSelector ms) {
-                            v1 = gf.selectMember(gf.elementOf(ms.getValueHandle(), v2));
+                        if (v1 instanceof Dereference deref) {
+                            v1 = gf.deref(gf.elementOf(deref.getPointer(), v2));
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = gf.extractElement(v1, v2);
                         } else if (v1.getType() instanceof PointerType) {
@@ -733,8 +733,8 @@ final class MethodParser {
                     case OP_LALOAD: {
                         v2 = pop1();
                         v1 = pop1();
-                        if (v1 instanceof MemberSelector ms) {
-                            v1 = gf.selectMember(gf.elementOf(ms.getValueHandle(), v2));
+                        if (v1 instanceof Dereference deref) {
+                            v1 = gf.deref(gf.elementOf(deref.getPointer(), v2));
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = gf.extractElement(v1, v2);
                         } else if (v1.getType() instanceof PointerType) {
@@ -752,8 +752,8 @@ final class MethodParser {
                     case OP_CALOAD: {
                         v2 = pop1();
                         v1 = pop1();
-                        if (v1 instanceof MemberSelector ms) {
-                            v1 = gf.selectMember(gf.elementOf(ms.getValueHandle(), v2));
+                        if (v1 instanceof Dereference deref) {
+                            v1 = gf.deref(gf.elementOf(deref.getPointer(), v2));
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = promote(gf.extractElement(v1, v2));
                         } else if (v1.getType() instanceof PointerType) {
@@ -809,8 +809,8 @@ final class MethodParser {
                         v3 = pop1();
                         v2 = pop1();
                         v1 = pop1();
-                        if (v1 instanceof MemberSelector ms) {
-                            gf.store(gf.elementOf(ms.getValueHandle(), v2), v3, SinglePlain);
+                        if (v1 instanceof Dereference deref) {
+                            gf.store(gf.elementOf(deref.getPointer(), v2), v3, SinglePlain);
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
@@ -826,8 +826,8 @@ final class MethodParser {
                         v3 = gf.truncate(pop1(), ts.getSignedInteger8Type());
                         v2 = pop1();
                         v1 = pop1();
-                        if (v1 instanceof MemberSelector ms) {
-                            gf.store(gf.elementOf(ms.getValueHandle(), v2), v3, SinglePlain);
+                        if (v1 instanceof Dereference deref) {
+                            gf.store(gf.elementOf(deref.getPointer(), v2), v3, SinglePlain);
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
@@ -843,8 +843,8 @@ final class MethodParser {
                         v3 = gf.truncate(pop1(), ts.getSignedInteger16Type());
                         v2 = pop1();
                         v1 = pop1();
-                        if (v1 instanceof MemberSelector ms) {
-                            gf.store(gf.elementOf(ms.getValueHandle(), v2), v3, SinglePlain);
+                        if (v1 instanceof Dereference deref) {
+                            gf.store(gf.elementOf(deref.getPointer(), v2), v3, SinglePlain);
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
@@ -860,8 +860,8 @@ final class MethodParser {
                         v3 = gf.truncate(pop1(), ts.getUnsignedInteger16Type());
                         v2 = pop1();
                         v1 = pop1();
-                        if (v1 instanceof MemberSelector ms) {
-                            gf.store(gf.elementOf(ms.getValueHandle(), v2), v3, SinglePlain);
+                        if (v1 instanceof Dereference deref) {
+                            gf.store(gf.elementOf(deref.getPointer(), v2), v3, SinglePlain);
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
@@ -878,8 +878,8 @@ final class MethodParser {
                         v3 = pop2();
                         v2 = pop1();
                         v1 = pop1();
-                        if (v1 instanceof MemberSelector ms) {
-                            gf.store(gf.elementOf(ms.getValueHandle(), v2), v3, SinglePlain);
+                        if (v1 instanceof Dereference deref) {
+                            gf.store(gf.elementOf(deref.getPointer(), v2), v3, SinglePlain);
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
@@ -1476,13 +1476,13 @@ final class MethodParser {
                         TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
                         String name = getNameOfFieldRef(fieldRef);
                         v1 = pop1();
-                        if (v1 instanceof MemberSelector ms) {
-                            ValueHandle vh = ms.getValueHandle();
-                            ValueType valueType = vh.getPointeeType();
+                        if (v1 instanceof Dereference deref) {
+                            Value pointer = deref.getPointer();
+                            ValueType valueType = pointer.getPointeeType();
                             if (valueType instanceof CompoundType ct) {
-                                push1(gf.selectMember(gf.memberOf(vh, ct.getMember(name))));
+                                push1(gf.deref(gf.memberOf(pointer, ct.getMember(name))));
                             } else if (valueType instanceof PhysicalObjectType) {
-                                push1(gf.selectMember(gf.instanceFieldOf(vh, owner, name, desc)));
+                                push1(gf.deref(gf.instanceFieldOf(pointer, owner, name, desc)));
                             } else {
                                 ctxt.getCompilationContext().error(gf.getLocation(), "Invalid field dereference of '%s'", name);
                                 throw new BlockEarlyTermination(gf.unreachable());
@@ -1508,13 +1508,13 @@ final class MethodParser {
                         String name = getNameOfFieldRef(fieldRef);
                         v2 = pop(desc.isClass2());
                         v1 = pop1();
-                        if (v1 instanceof MemberSelector ms) {
-                            ValueHandle vh = ms.getValueHandle();
-                            ValueType valueType = vh.getPointeeType();
+                        if (v1 instanceof Dereference deref) {
+                            Value pointer = deref.getPointer();
+                            ValueType valueType = pointer.getPointeeType();
                             if (valueType instanceof CompoundType ct) {
-                                gf.store(gf.memberOf(vh, ct.getMember(name)), storeTruncate(v2, desc), SinglePlain);
+                                gf.store(gf.memberOf(pointer, ct.getMember(name)), storeTruncate(v2, desc), SinglePlain);
                             } else if (valueType instanceof PhysicalObjectType) {
-                                gf.store(gf.instanceFieldOf(vh, owner, name, desc), storeTruncate(v2, desc), SinglePlain);
+                                gf.store(gf.instanceFieldOf(pointer, owner, name, desc), storeTruncate(v2, desc), SinglePlain);
                             } else {
                                 ctxt.getCompilationContext().error(gf.getLocation(), "Invalid field dereference of '%s'", name);
                                 throw new BlockEarlyTermination(gf.unreachable());
@@ -1740,7 +1740,7 @@ final class MethodParser {
                     }
                     case OP_ARRAYLENGTH:
                         v1 = pop1();
-                        push1(gf.load(gf.lengthOf(gf.referenceHandle(v1))));
+                        push1(gf.loadLength(gf.decodeReference(v1)));
                         if (v1.getType() instanceof ReferenceType) {
                             replaceAll(v1, gf.notNull(v1));
                         }

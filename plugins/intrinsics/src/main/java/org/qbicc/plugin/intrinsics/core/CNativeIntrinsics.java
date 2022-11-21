@@ -18,7 +18,7 @@ import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.Load;
-import org.qbicc.graph.MemberSelector;
+import org.qbicc.graph.Dereference;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
@@ -122,14 +122,14 @@ final class CNativeIntrinsics {
 
         StaticIntrinsic addrOf = (builder, target, arguments) -> {
             Value value = arguments.get(0);
-            if (value instanceof MemberSelector ms) {
-                return builder.addressOf(ms.getValueHandle());
+            if (value instanceof Dereference deref) {
+                return deref.getPointer();
             }
             while (value instanceof BitCast || value instanceof Extend || value instanceof Truncate) {
                 value = ((WordCastValue)value).getInput();
             }
             if (value instanceof Load load) {
-                return builder.addressOf(load.getValueHandle());
+                return load.getPointer();
             } else {
                 ctxt.error(builder.getLocation(), "Cannot take address of value");
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(value.getType().getPointer());
@@ -520,11 +520,11 @@ final class CNativeIntrinsics {
 
         Literal zeroVoid = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
 
-        InstanceIntrinsic sel = (builder, instance, target, arguments) -> builder.selectMember(builder.pointerHandle(instance));
+        InstanceIntrinsic sel = (builder, instance, target, arguments) -> builder.deref(instance);
         InstanceIntrinsic selWithType = (builder, instance, target, arguments) -> {
             if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
                 PointerType pt = typeLiteral.getValue().getPointer();
-                return builder.selectMember(builder.pointerHandle(builder.bitCast(instance, pt)));
+                return builder.deref(builder.bitCast(instance, pt));
             } else {
                 ctxt.error(builder.getLocation(), "Pointee argument must be a class literal");
                 return zeroVoid;
@@ -866,8 +866,8 @@ final class CNativeIntrinsics {
     }
 
     static Value smartConvert(BasicBlockBuilder builder, Value input, WordType toType, boolean cRules) {
-        if (input instanceof MemberSelector ms) {
-            return smartConvert(builder, builder.load(ms.getValueHandle(), SinglePlain), toType, cRules);
+        if (input instanceof Dereference deref) {
+            return smartConvert(builder, builder.load(deref.getPointer(), SinglePlain), toType, cRules);
         }
         CompilationContext ctxt = builder.getCurrentElement().getEnclosingType().getContext().getCompilationContext();
         ValueType fromType = input.getType();

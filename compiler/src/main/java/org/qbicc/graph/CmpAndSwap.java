@@ -22,7 +22,7 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
     private static final AttachmentKey<Map<ValueType, CompoundType>> RESULT_TYPE_MAP_KEY = new AttachmentKey<>();
 
     private final Node dependency;
-    private final ValueHandle target;
+    private final Value pointer;
     private final Value expectedValue;
     private final Value updateValue;
     private final CompoundType resultType;
@@ -30,24 +30,24 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
     private final WriteAccessMode writeAccessMode;
     private final Strength strength;
 
-    CmpAndSwap(final Node callSite, final ExecutableElement element, final int line, final int bci, final CompoundType resultType, final Node dependency, final ValueHandle target, final Value expectedValue, final Value updateValue, final ReadAccessMode readAccessMode, final WriteAccessMode writeAccessMode, Strength strength) {
+    CmpAndSwap(final Node callSite, final ExecutableElement element, final int line, final int bci, final CompoundType resultType, final Node dependency, final Value pointer, final Value expectedValue, final Value updateValue, final ReadAccessMode readAccessMode, final WriteAccessMode writeAccessMode, Strength strength) {
         super(callSite, element, line, bci);
         this.resultType = Assert.checkNotNullParam("resultType", resultType);
         this.dependency = Assert.checkNotNullParam("dependency", dependency);
-        this.target = Assert.checkNotNullParam("target", target);
+        this.pointer = Assert.checkNotNullParam("pointer", pointer);
         this.expectedValue = Assert.checkNotNullParam("expectedValue", expectedValue);
         this.updateValue = Assert.checkNotNullParam("updateValue", updateValue);
         this.readAccessMode = Assert.checkNotNullParam("readAccessMode", readAccessMode);
         this.writeAccessMode = Assert.checkNotNullParam("writeAccessMode", writeAccessMode);
         this.strength = Assert.checkNotNullParam("strength", strength);
-        if (! target.isWritable()) {
+        if (! pointer.isWritable()) {
             throw new IllegalArgumentException("Handle is not writable");
         }
-        if (! target.isReadable()) {
+        if (! pointer.isReadable()) {
             throw new IllegalArgumentException("Handle is not readable");
         }
 
-        ValueType targetType = target.getPointeeType();
+        ValueType targetType = pointer.getPointeeType();
         /* expected and update value both be assignable to the handle. */
         if (!(expectedValue instanceof NullLiteral || targetType.isImplicitlyConvertibleFrom(expectedValue.getType()))) {
             throw new IllegalArgumentException("The target and expected value types must agree.");
@@ -58,7 +58,7 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
     }
 
     int calcHashCode() {
-        return Objects.hash(CmpAndSwap.class, dependency, target, expectedValue, updateValue, resultType, readAccessMode, writeAccessMode);
+        return Objects.hash(CmpAndSwap.class, dependency, pointer, expectedValue, updateValue, resultType, readAccessMode, writeAccessMode);
     }
 
     @Override
@@ -74,12 +74,8 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
         return dependency;
     }
 
-    public ValueHandle getValueHandle() {
-        return target;
-    }
-
-    public boolean hasValueHandleDependency() {
-        return true;
+    public Value getPointer() {
+        return pointer;
     }
 
     public Value getExpectedValue() {
@@ -124,18 +120,23 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
     }
 
     public boolean equals(final CmpAndSwap other) {
-        return this == other || other != null && dependency.equals(other.dependency) && target.equals(other.target)
+        return this == other || other != null && dependency.equals(other.dependency) && pointer.equals(other.pointer)
             && expectedValue.equals(other.expectedValue) && updateValue.equals(other.updateValue)
             && resultType.equals(other.resultType) && readAccessMode == other.readAccessMode
             && writeAccessMode == other.writeAccessMode && strength == other.strength;
     }
 
     public int getValueDependencyCount() {
-        return 2;
+        return 3;
     }
 
     public Value getValueDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? expectedValue : index == 1 ? updateValue : Util.throwIndexOutOfBounds(index);
+        return switch (index) {
+            case 0 -> pointer;
+            case 1 -> expectedValue;
+            case 2 -> updateValue;
+            default -> throw new IndexOutOfBoundsException(index);
+        };
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

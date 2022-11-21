@@ -11,7 +11,7 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.MemberSelector;
+import org.qbicc.graph.Dereference;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.ConstantLiteral;
@@ -35,6 +35,7 @@ import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -59,8 +60,8 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         this.ctxt = getContext();
     }
 
-    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
-        return instanceFieldOf(instance, resolveField(owner, name, type));
+    public Value instanceFieldOf(Value instance, TypeDescriptor owner, String name, TypeDescriptor type) {
+        return instanceFieldOf(instance, resolveInstanceField(owner, name, type));
     }
 
     public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
@@ -229,7 +230,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(castType);
             } else if (castType.equals(valueType)) {
                 return value;
-            } else if (value instanceof MemberSelector){
+            } else if (value instanceof Dereference){
                 return value;
             } else {
                 ctxt.error(getLocation(), "Disallowed cast of value from %s to %s", valueType, castType);
@@ -313,6 +314,15 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         return super.multiNewArray(desc, dimensions);
     }
 
+    private InstanceFieldElement resolveInstanceField(final TypeDescriptor owner, final String name, final TypeDescriptor desc) {
+        FieldElement field = resolveField(owner, name, desc);
+        if (field instanceof InstanceFieldElement ife) {
+            return ife;
+        }
+        ctxt.warning(getLocation(), "Incompatible class change: non-static to static field %s#%s", field.getEnclosingType().getInternalName().replace('/', '.'), name);
+        throw new BlockEarlyTermination(icce(name));
+    }
+
     private FieldElement resolveField(final TypeDescriptor owner, final String name, final TypeDescriptor desc) {
         DefinedTypeDefinition definedType = resolveDescriptor(owner);
         if (definedType != null) {
@@ -390,6 +400,14 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         return throw_(nsme);
     }
 
+    private BasicBlock icce(String name) {
+        Info info = Info.get(ctxt);
+        Value icce = new_(info.icceClass);
+        Literal l = ctxt.getLiteralFactory().literalOf(name, ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load().getObjectType().getReference());
+        call(constructorOf(icce, info.icceClass, info.cd), List.of(l));
+        return throw_(icce);
+    }
+
     private ClassContext getClassContext() {
         return getCurrentElement().getEnclosingType().getContext();
     }
@@ -397,6 +415,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     static final class Info {
         final ClassTypeDescriptor nsmeClass;
         final ClassTypeDescriptor nsfeClass;
+        final ClassTypeDescriptor icceClass;
         final MethodDescriptor cd; // void (String)
 
         private Info(final CompilationContext ctxt) {
@@ -404,6 +423,8 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             nsmeClass = (ClassTypeDescriptor) type.getDescriptor();
             type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/NoSuchFieldError");
             nsfeClass = (ClassTypeDescriptor) type.getDescriptor();
+            type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/IncompatibleClassChangeError");
+            icceClass = (ClassTypeDescriptor) type.getDescriptor();
             ClassTypeDescriptor string = ClassTypeDescriptor.synthesize(ctxt.getBootstrapClassContext(), "java/lang/String");
             cd = MethodDescriptor.synthesize(ctxt.getBootstrapClassContext(), BaseTypeDescriptor.V, List.of(string));
         }

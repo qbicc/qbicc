@@ -12,9 +12,9 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ExactMethodElementHandle;
-import org.qbicc.graph.Field;
 import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.InitCheck;
+import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.InterfaceMethodElementHandle;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.MultiNewArray;
@@ -23,6 +23,7 @@ import org.qbicc.graph.NewReferenceArray;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.OrderedNode;
+import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticMethodElementHandle;
@@ -48,6 +49,7 @@ import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -326,9 +328,15 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         @Override
         public Void visit(ReachabilityContext param, Load node) {
             if (visitUnknown(param, (Node)node)) {
-                if (node.getValueHandle() instanceof Field f) {
-                    Facts.get(param.ctxt).discover(f.getVariableElement(), FieldReachabilityFacts.IS_READ);
+                FieldElement field;
+                if (node.getPointer() instanceof StaticFieldLiteral sfl) {
+                    field = sfl.getVariableElement();
+                } else if (node.getPointer() instanceof InstanceFieldOf ifo) {
+                    field = ifo.getVariableElement();
+                } else {
+                    return null;
                 }
+                Facts.get(param.ctxt).discover(field, FieldReachabilityFacts.IS_READ);
             }
             return null;
         }
@@ -336,10 +344,16 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         @Override
         public Void visit(ReachabilityContext param, Store node) {
             if (visitUnknown(param, (Node)node)) {
-                if (node.getValueHandle() instanceof Field f) {
-                    // todo: exclude writes of the field's original constant value (usually null/zero but might be something else)
-                    Facts.get(param.ctxt).discover(f.getVariableElement(), FieldReachabilityFacts.IS_WRITTEN);
+                FieldElement field;
+                if (node.getPointer() instanceof StaticFieldLiteral sfl) {
+                    field = sfl.getVariableElement();
+                } else if (node.getPointer() instanceof InstanceFieldOf ifo) {
+                    field = ifo.getVariableElement();
+                } else {
+                    return null;
                 }
+                // todo: exclude writes of the field's original constant value (usually null/zero but might be something else)
+                Facts.get(param.ctxt).discover(field, FieldReachabilityFacts.IS_WRITTEN);
             }
             return null;
         }
@@ -347,10 +361,16 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         @Override
         public Void visit(ReachabilityContext param, CmpAndSwap node) {
             if (visitUnknown(param, (Node)node)) {
-                if (node.getValueHandle() instanceof Field f) {
-                    // todo: if `expect` is not equal to the field's original constant value, then only mark a read here
-                    Facts.get(param.ctxt).discover(f.getVariableElement(), FieldReachabilityFacts.IS_READ, FieldReachabilityFacts.IS_WRITTEN);
+                FieldElement field;
+                if (node.getPointer() instanceof StaticFieldLiteral sfl) {
+                    field = sfl.getVariableElement();
+                } else if (node.getPointer() instanceof InstanceFieldOf ifo) {
+                    field = ifo.getVariableElement();
+                } else {
+                    return null;
                 }
+                // todo: if `expect` is not equal to the field's original constant value, then only mark a read here
+                Facts.get(param.ctxt).discover(field, FieldReachabilityFacts.IS_READ, FieldReachabilityFacts.IS_WRITTEN);
             }
             return null;
         }
@@ -358,9 +378,15 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         @Override
         public Void visit(ReachabilityContext param, ReadModifyWrite node) {
             if (visitUnknown(param, (Node)node)) {
-                if (node.getValueHandle() instanceof Field f) {
-                    Facts.get(param.ctxt).discover(f.getVariableElement(), FieldReachabilityFacts.IS_READ, FieldReachabilityFacts.IS_WRITTEN);
+                FieldElement field;
+                if (node.getPointer() instanceof StaticFieldLiteral sfl) {
+                    field = sfl.getVariableElement();
+                } else if (node.getPointer() instanceof InstanceFieldOf ifo) {
+                    field = ifo.getVariableElement();
+                } else {
+                    return null;
                 }
+                Facts.get(param.ctxt).discover(field, FieldReachabilityFacts.IS_READ, FieldReachabilityFacts.IS_WRITTEN);
             }
             return null;
         }

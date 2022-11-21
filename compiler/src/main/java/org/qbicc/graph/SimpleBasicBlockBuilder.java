@@ -22,7 +22,6 @@ import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NullableType;
@@ -41,12 +40,10 @@ import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
-import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
-import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -379,8 +376,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         throw Assert.unsupported();
     }
 
-    public ValueHandle lengthOf(final ValueHandle arrayHandle) {
-        throw new IllegalStateException("lengthOf not converted");
+    public Value loadLength(final Value arrayPointer) {
+        throw new IllegalStateException("loadLength not converted");
     }
 
     public Value truncate(final Value value, final WordType toType) {
@@ -440,14 +437,13 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         throw new IllegalStateException("CheckCast of unresolved type");
     }
 
-    public Value selectMember(ValueHandle handle) {
-        TypeSystem ts = element.getEnclosingType().getContext().getTypeSystem();
-        return unique(new MemberSelector(callSite, element, line, bci, handle, ts.getVoidType()));
+    public Value deref(Value pointer) {
+        return unique(new Dereference(callSite, element, line, bci, pointer));
     }
 
-    public ValueHandle currentThread() {
+    public Value currentThread() {
         ReferenceType refType = element.getEnclosingType().getContext().getCompilationContext().getBootstrapClassContext().findDefinedType("java/lang/Thread").load().getObjectType().getReference();
-        return new CurrentThread(element, line, bci, refType);
+        return unique(new CurrentThread(callSite, element, line, bci, refType));
     }
 
     public Value vaArg(Value vaList, ValueType type) {
@@ -462,24 +458,28 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return unique(new ElementOf(callSite, element, line, bci, arrayPointer, index));
     }
 
-    public ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType) {
-        return new UnsafeHandle(callSite, element, line, bci, base, offset, outputType);
+    public Value offsetPointer(Value basePointer, Value offset) {
+        return unique(new OffsetPointer(callSite, element, line, bci, basePointer, offset));
     }
 
-    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
-        return new PointerHandle(callSite, element, line, bci, pointer, offsetValue);
+    public Value byteOffsetPointer(Value base, Value offset, ValueType outputType) {
+        return unique(new ByteOffsetPointer(callSite, element, line, bci, base, offset, outputType));
     }
 
-    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
-        return new InstanceFieldOf(element, line, bci, (InstanceFieldElement) field, field.getType(), instance);
-    }
-
-    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
-        throw new IllegalStateException("Instance field of unresolved type");
+    public ValueHandle pointerHandle(Value pointer) {
+        return new PointerHandle(callSite, element, line, bci, pointer);
     }
 
     public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         throw new IllegalStateException("Static field of unresolved type");
+    }
+
+    public Value instanceFieldOf(Value instancePointer, InstanceFieldElement field) {
+        return unique(new InstanceFieldOf(callSite, element, line, bci, instancePointer, field));
+    }
+
+    public Value instanceFieldOf(Value instancePointer, TypeDescriptor owner, String name, TypeDescriptor type) {
+        throw new IllegalStateException("Instance field of unresolved type");
     }
 
     public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
@@ -526,20 +526,12 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return new FunctionElementHandle(element, line, bci, function);
     }
 
-    public ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type) {
-        return new AsmHandle(callSite, element, line, bci, instruction, constraints, flags, type);
-    }
-
     public Value auto(Value initializer) {
         return unique(new Auto(callSite, element, line, bci, requireDependency(), initializer));
     }
 
     public Value addressOf(ValueHandle handle) {
         return unique(new AddressOf(callSite, element, line, bci, handle));
-    }
-
-    public Value referenceTo(ValueHandle handle) throws IllegalArgumentException {
-        return unique(new ReferenceTo(callSite, element, line, bci, handle));
     }
 
     public Value stackAllocate(final ValueType type, final Value count, final Value align) {
@@ -621,20 +613,20 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         throw new IllegalStateException("New of unresolved array type");
     }
 
-    public Value load(final ValueHandle handle, final ReadAccessMode mode) {
-        return asDependency(new Load(callSite, element, line, bci, requireDependency(), handle, mode));
+    public Value load(final Value pointer, final ReadAccessMode mode) {
+        return asDependency(new Load(callSite, element, line, bci, requireDependency(), pointer, mode));
     }
 
-    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return asDependency(new ReadModifyWrite(callSite, element, line, bci, requireDependency(), target, op, update, readMode, writeMode));
+    public Value readModifyWrite(Value pointer, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return asDependency(new ReadModifyWrite(callSite, element, line, bci, requireDependency(), pointer, op, update, readMode, writeMode));
     }
 
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(Value pointer, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         CompilationContext ctxt = getCurrentElement().getEnclosingType().getContext().getCompilationContext();
-        return asDependency(new CmpAndSwap(callSite, element, line, bci, CmpAndSwap.getResultType(ctxt, target.getPointeeType()), requireDependency(), target, expect, update, readMode, writeMode, strength));
+        return asDependency(new CmpAndSwap(callSite, element, line, bci, CmpAndSwap.getResultType(ctxt, pointer.getPointeeType()), requireDependency(), pointer, expect, update, readMode, writeMode, strength));
     }
 
-    public Node store(ValueHandle handle, Value value, WriteAccessMode mode) {
+    public Node store(Value handle, Value value, WriteAccessMode mode) {
         return asDependency(new Store(callSite, element, line, bci, requireDependency(), handle, value, mode));
     }
 

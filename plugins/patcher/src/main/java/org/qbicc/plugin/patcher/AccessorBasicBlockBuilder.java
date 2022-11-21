@@ -1,6 +1,6 @@
 package org.qbicc.plugin.patcher;
 
-import static org.qbicc.graph.atomic.AccessModes.*;
+import static org.qbicc.graph.atomic.AccessModes.GlobalPlain;
 
 import java.util.List;
 import java.util.Map;
@@ -10,10 +10,8 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -47,8 +45,8 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value load(ValueHandle handle, ReadAccessMode accessMode) {
-        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral staticField) {
+    public Value load(Value pointer, ReadAccessMode accessMode) {
+        if (pointer instanceof StaticFieldLiteral staticField) {
             FieldElement field = staticField.getVariableElement();
             VmObject accessor = getAccessor(field);
             if (accessor != null) {
@@ -61,12 +59,12 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 return fb.call(fb.virtualMethodOf(lf.literalOf(accessor), accessor.getVmClass().getTypeDefinition().getDescriptor(), getter, desc), List.of());
             }
         }
-        return super.load(handle, accessMode);
+        return super.load(pointer, accessMode);
     }
 
     @Override
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
-        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral staticField) {
+    public Node store(Value pointer, Value value, WriteAccessMode accessMode) {
+        if (pointer instanceof StaticFieldLiteral staticField) {
             FieldElement field = staticField.getVariableElement();
             VmObject accessor = getAccessor(field);
             if (accessor != null) {
@@ -77,35 +75,35 @@ public class AccessorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 return fb.call(fb.virtualMethodOf(lf.literalOf(accessor), accessor.getVmClass().getTypeDefinition().getDescriptor(), "set", desc), List.of(value));
             }
         }
-        return super.store(handle, value, accessMode);
+        return super.store(pointer, value, accessMode);
     }
 
     @Override
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(Value target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         checkAtomicAccessor(target);
         return super.cmpAndSwap(target, expect, update, readMode, writeMode, strength);
     }
 
     @Override
-    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+    public Value readModifyWrite(Value pointer, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (op == ReadModifyWrite.Op.SET) {
-            if (target instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sfl && getAccessor(sfl.getVariableElement()) != null) {
+            if (pointer instanceof StaticFieldLiteral sfl && getAccessor(sfl.getVariableElement()) != null) {
                 if (GlobalPlain.includes(readMode) || GlobalPlain.includes(writeMode)) {
-                    Value loaded = load(target, readMode);
-                    store(target, update, writeMode);
+                    Value loaded = load(pointer, readMode);
+                    store(pointer, update, writeMode);
                     return loaded;
                 } else {
                     atomicNotAllowed();
                 }
             }
         } else {
-            checkAtomicAccessor(target);
+            checkAtomicAccessor(pointer);
         }
-        return super.readModifyWrite(target, op, update, readMode, writeMode);
+        return super.readModifyWrite(pointer, op, update, readMode, writeMode);
     }
 
-    private void checkAtomicAccessor(final ValueHandle target) {
-        if (target instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sfl && getAccessor(sfl.getVariableElement()) != null) {
+    private void checkAtomicAccessor(final Value pointer) {
+        if (pointer instanceof StaticFieldLiteral sfl && getAccessor(sfl.getVariableElement()) != null) {
             atomicNotAllowed();
         }
     }

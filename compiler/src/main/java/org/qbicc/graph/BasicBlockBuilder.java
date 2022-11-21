@@ -5,7 +5,6 @@ import static org.qbicc.graph.atomic.AccessModes.*;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -22,7 +21,6 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.NullableType;
@@ -44,6 +42,7 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
@@ -418,13 +417,13 @@ public interface BasicBlockBuilder extends Locatable {
     Value checkcast(Value value, TypeDescriptor desc);
 
     /**
-     * Wrap the pointer value with a member selection node, which can later be unwrapped.
+     * Wrap the pointer value with a dereference node, which can later be unwrapped.
      *
-     * @param handle the pointer value to wrap (must not be {@code null})
+     * @param pointer the pointer value to wrap (must not be {@code null})
      * @return the member selection node (not {@code null})
-     * @see MemberSelector
+     * @see Dereference
      */
-    Value selectMember(ValueHandle handle);
+    Value deref(Value pointer);
 
     // memory handles
 
@@ -434,9 +433,7 @@ public interface BasicBlockBuilder extends Locatable {
      *
      * @return the handle (not {@code null})
      */
-    ValueHandle currentThread();
-
-    ValueHandle lengthOf(ValueHandle arrayHandle);
+    Value currentThread();
 
     @Deprecated
     default ValueHandle memberOf(ValueHandle structHandle, CompoundType.Member member) {
@@ -448,20 +445,20 @@ public interface BasicBlockBuilder extends Locatable {
         return pointerHandle(elementOf(addressOf(array), index));
     }
 
-    ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType);
-
-    ValueHandle pointerHandle(Value pointer, Value offsetValue);
-
     /**
-     * Convenience method to construct a pointer handle with a zero offset.
+     * Convenience method to construct a pointer handle with an offset.
      * <b>Do not override this method.</b>
      *
      * @param pointer the pointer value (must not be {@code null})
-     * @return the zero-offset pointer handle (must not be {@code null})
+     * @param offsetValue the offset value (must not be {@code null})
+     * @return the offset pointer handle (must not be {@code null})
      */
-    default ValueHandle pointerHandle(Value pointer) {
-        return pointerHandle(pointer, getCurrentElement().getEnclosingType().getContext().getLiteralFactory().literalOf(0));
+    @Deprecated
+    default ValueHandle pointerHandle(Value pointer, Value offsetValue) {
+        return getFirstBuilder().pointerHandle(getFirstBuilder().offsetPointer(pointer, offsetValue));
     }
+
+    ValueHandle pointerHandle(Value pointer);
 
     /**
      * Convenience method to construct a pointer handle to a decoded reference pointer.
@@ -474,9 +471,15 @@ public interface BasicBlockBuilder extends Locatable {
         return pointerHandle(decodeReference(reference));
     }
 
-    ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field);
+    @Deprecated
+    default ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
+        return getFirstBuilder().pointerHandle(instanceFieldOf(getFirstBuilder().addressOf(instance), (InstanceFieldElement) field));
+    }
 
-    ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type);
+    @Deprecated
+    default ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
+        return getFirstBuilder().pointerHandle(instanceFieldOf(getFirstBuilder().addressOf(instance), owner, name, type));
+    }
 
     @Deprecated
     default ValueHandle staticField(FieldElement field) {
@@ -574,8 +577,6 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle functionOf(FunctionElement function);
 
-    ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type);
-
     // memory
 
     Value auto(Value initializer);
@@ -584,19 +585,17 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value elementOf(Value array, Value index);
 
+    Value offsetPointer(Value basePointer, Value offset);
+
+    Value byteOffsetPointer(Value base, Value offset, ValueType outputType);
+
     Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type);
 
-    Value addressOf(ValueHandle handle);
+    Value instanceFieldOf(Value instancePointer, InstanceFieldElement field);
 
-    /**
-     * Get a value that is a reference to the given value handle. If the handle's type is not an allocated
-     * object, an exception is thrown.
-     *
-     * @param handle the value handle (must not be {@code null})
-     * @return the reference value (not {@code null})
-     * @throws IllegalArgumentException if the value handle does not refer to something that can be referenced
-     */
-    Value referenceTo(ValueHandle handle) throws IllegalArgumentException;
+    Value instanceFieldOf(Value instancePointer, TypeDescriptor owner, String name, TypeDescriptor type);
+
+    Value addressOf(ValueHandle handle);
 
     Value stackAllocate(ValueType type, Value count, Value align);
 
@@ -614,23 +613,60 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value multiNewArray(ArrayTypeDescriptor desc, List<Value> dimensions);
 
+    @Deprecated
     default Value load(ValueHandle handle) {
         return load(handle, SinglePlain);
     }
 
-    Value load(ValueHandle handle, ReadAccessMode mode);
+    @Deprecated
+    default Value load(ValueHandle handle, ReadAccessMode mode) {
+        return load(getFirstBuilder().addressOf(handle), mode);
+    }
 
-    Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
+    default Value load(Value pointer) {
+        return load(pointer, SinglePlain);
+    }
 
-    Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength);
+    Value load(Value pointer, ReadAccessMode mode);
+
+    /**
+     * Load the length value for the given array pointer.
+     * The access mode is always {@code SinglePlain}.
+     *
+     * @param arrayPointer the array pointer (must not be {@code null})
+     * @return the length value (not {@code null})
+     */
+    Value loadLength(Value arrayPointer);
+
+    default Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return readModifyWrite(getFirstBuilder().addressOf(target), op, update, readMode, writeMode);
+    }
+
+    Value readModifyWrite(Value pointer, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode);
+
+    default Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+        return cmpAndSwap(getFirstBuilder().addressOf(target), expect, update, readMode, writeMode, strength);
+    }
+
+    Value cmpAndSwap(Value target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength);
 
     Value vaArg(Value vaList, ValueType type);
 
+    @Deprecated
     default Node store(ValueHandle handle, Value value) {
         return store(handle, value, SinglePlain);
     }
 
-    Node store(ValueHandle handle, Value value, WriteAccessMode mode);
+    @Deprecated
+    default Node store(ValueHandle handle, Value value, WriteAccessMode mode) {
+        return store(addressOf(handle), value, mode);
+    }
+
+    default Node store(Value pointer, Value value) {
+        return store(pointer, value, SinglePlain);
+    }
+
+    Node store(Value pointer, Value value, WriteAccessMode mode);
 
     Node initCheck(InitializerElement initializer, Value initThunk);
 

@@ -2,12 +2,14 @@ package org.qbicc.plugin.layout;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PhysicalObjectType;
@@ -17,7 +19,7 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 
 /**
  *
@@ -31,7 +33,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     }
 
     @Override
-    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
+    public ValueHandle pointerHandle(Value pointer) {
         BasicBlockBuilder fb = getFirstBuilder();
         PointerType pointerType = (PointerType) pointer.getType();
         if (pointerType.getPointeeType() instanceof PhysicalObjectType pot) {
@@ -39,7 +41,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
             LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
             return fb.pointerHandle(fb.valueConvert(pointer, info.getCompoundType().getPointer()));
         }
-        return getDelegate().pointerHandle(pointer, offsetValue);
+        return getDelegate().pointerHandle(pointer);
     }
 
     @Override
@@ -76,8 +78,10 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
         if (arrayPointer.getPointeeType() instanceof CompoundType ct && ct.getMemberCount() > 0) {
             // ElementOf a CompoundType -> ElementOf the last Member
             CompoundType.Member lastMember = ct.getMember(ct.getMemberCount() - 1);
-            BasicBlockBuilder fb = getFirstBuilder();
-            return fb.elementOf(fb.memberOf(arrayPointer, lastMember), index);
+            if (lastMember.getType() instanceof ArrayType) {
+                BasicBlockBuilder fb = getFirstBuilder();
+                return fb.elementOf(fb.memberOf(arrayPointer, lastMember), index);
+            }
         }
         return getDelegate().elementOf(arrayPointer, index);
     }
@@ -100,7 +104,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     }
 
     @Override
-    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
+    public Value instanceFieldOf(Value instance, InstanceFieldElement field) {
         BasicBlockBuilder fb = getFirstBuilder();
         Layout layout = Layout.get(ctxt);
         LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(field.getEnclosingType());
@@ -108,10 +112,10 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     }
 
     @Override
-    public ValueHandle unsafeHandle(ValueHandle base, Value offset, ValueType outputType) {
+    public Value byteOffsetPointer(Value base, Value offset, ValueType outputType) {
         BasicBlockBuilder fb = getFirstBuilder();
         UnsignedIntegerType u8 = ctxt.getTypeSystem().getUnsignedInteger8Type();
-        ValueHandle valueHandle = fb.pointerHandle(fb.bitCast(fb.addressOf(base), u8.getPointer()), offset);
-        return fb.pointerHandle(fb.bitCast(fb.addressOf(valueHandle), outputType.getPointer()));
+        ValueHandle valueHandle = fb.pointerHandle(fb.bitCast(base, u8.getPointer()), offset);
+        return fb.bitCast(fb.addressOf(valueHandle), outputType.getPointer());
     }
 }

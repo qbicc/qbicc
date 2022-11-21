@@ -81,6 +81,7 @@ import org.qbicc.graph.NewReferenceArray;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OffsetOfField;
+import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
@@ -103,7 +104,7 @@ import org.qbicc.graph.TerminatorVisitor;
 import org.qbicc.graph.Throw;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Unreachable;
-import org.qbicc.graph.UnsafeHandle;
+import org.qbicc.graph.ByteOffsetPointer;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
@@ -340,6 +341,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl param, AddressOf node) {
         ValueHandle valueHandle = node.getValueHandle();
+        if (valueHandle instanceof PointerHandle ph) {
+            return require(ph.getPointerValue());
+        }
         Memory memory = getMemory(valueHandle);
         if (memory == null) {
             return null;
@@ -415,6 +419,55 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return box(Integer.reverse(unboxInt(input)) >>> 24, inputType);
         }
         throw badInputType();
+    }
+
+    @Override
+    public Object visit(VmThreadImpl vmThread, ByteOffsetPointer node) {
+        // allow all supportable combinations of a + b
+        Object base = require(node.getBasePointer());
+        Object off = require(node.getOffset());
+        if (base == null) {
+            if (off == null) {
+                return null;
+            } if (off instanceof Pointer p) {
+                return p;
+            } else if (off instanceof Number n) {
+                long offVal = n.longValue();
+                return offVal == 0 ? null : new IntegerAsPointer(node.getType(), offVal);
+            } else {
+                // ??
+                return null;
+            }
+        } else if (base instanceof Number || base instanceof IntegerAsPointer) {
+            long baseVal = base instanceof Number n ? n.longValue() : ((IntegerAsPointer) base).getValue();
+            if (off == null) {
+                return new IntegerAsPointer(node.getType(), baseVal);
+            } else if (off instanceof Number || off instanceof IntegerAsPointer) {
+                long offVal = off instanceof Number n ? n.longValue() : ((IntegerAsPointer) off).getValue();
+                return new IntegerAsPointer(node.getType(), baseVal + offVal);
+            } else if (off instanceof Pointer offPtr) {
+                return offPtr.offsetInBytes(baseVal, false);
+            } else {
+                // ??
+                return null;
+            }
+        } else if (base instanceof Pointer basePtr) {
+            if (off == null) {
+                return basePtr;
+            } else if (off instanceof Number || off instanceof IntegerAsPointer) {
+                long offVal = off instanceof Number n ? n.longValue() : ((IntegerAsPointer) off).getValue();
+                return basePtr.offsetInBytes(offVal, false);
+            } else if (off instanceof Pointer) {
+                // pointer + pointer
+                return null;
+            } else {
+                // ??
+                return null;
+            }
+        } else {
+            // ??
+            return null;
+        }
     }
 
     @Override
@@ -802,6 +855,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
+    public Object visit(VmThreadImpl vmThread, CurrentThread node) {
+        return vmThread.getSelfPointer();
+    }
+
+    @Override
     public Object visit(VmThreadImpl vmThread, DecodeReference node) {
         Object obj = require(node.getInput());
         return obj == null ? null : new ReferenceAsPointer((VmObject) obj);
@@ -922,6 +980,16 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else {
             throw new IllegalStateException("Invalid type for extract");
         }
+    }
+
+    @Override
+    public Object visit(VmThreadImpl vmThread, InstanceFieldOf node) {
+        Value instance = node.getInstance();
+        Pointer pointer = unboxPointer(instance);
+        if (pointer == null) {
+            return null;
+        }
+        return new InstanceFieldPointer(pointer, node.getVariableElement());
     }
 
     @Override
@@ -1696,13 +1764,17 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl thread, CmpAndSwap node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
+        Value pointerValue = node.getPointer();
+        if (pointerValue instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
-        Memory memory = getMemory(valueHandle);
-        long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getPointeeType();
+        Pointer pointer = unboxPointer(pointerValue);
+        if (pointer == null) {
+            throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
+        }
+        Memory memory = pointer.getRootMemoryIfExists();
+        long offset = pointer.getRootByteOffset();
+        ValueType type = pointerValue.getPointeeType();
         Value expect = node.getExpectedValue();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
@@ -1772,13 +1844,17 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl thread, ReadModifyWrite node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
+        Value pointerValue = node.getPointer();
+        if (pointerValue instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
-        Memory memory = getMemory(valueHandle);
-        long offset = getOffset(valueHandle);
-        ValueType type = node.getValueHandle().getPointeeType();
+        Pointer pointer = unboxPointer(pointerValue);
+        if (pointer == null) {
+            throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
+        }
+        Memory memory = pointer.getRootMemoryIfExists();
+        long offset = pointer.getRootByteOffset();
+        ValueType type = pointerValue.getPointeeType();
         Value update = node.getUpdateValue();
         ReadAccessMode readAccessMode = node.getReadAccessMode();
         WriteAccessMode writeAccessMode = node.getWriteAccessMode();
@@ -1952,19 +2028,24 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl thread, Load node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof CurrentThread) {
-            return thread;
+        Value pointerValue = node.getPointer();
+        // temporary
+        while (pointerValue instanceof AddressOf ao && ao.getValueHandle() instanceof PointerHandle ph) {
+            pointerValue = ph.getPointerValue();
         }
-        if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
+        if (pointerValue instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
-        Memory memory = getMemory(valueHandle);
+        Pointer pointer = unboxPointer(pointerValue);
+        if (pointer == null) {
+            throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
+        }
+        Memory memory = pointer.getRootMemoryIfExists();
         if (memory == null) {
             throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
         }
-        long offset = getOffset(valueHandle);
-        ValueType type = valueHandle.getPointeeType();
+        long offset = pointer.getRootByteOffset();
+        ValueType type = node.getType();
         ReadAccessMode mode = node.getAccessMode();
         if (isInt8(type)) {
             return Byte.valueOf((byte) memory.load8(offset, mode));
@@ -1974,7 +2055,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Integer.valueOf(memory.load32(offset, mode));
         } else if (isInt64(type)) {
             // todo: memory.getTypeAt(offset)
-            Pointer pointer;
             try {
                 pointer = memory.loadPointer(offset, mode);
             } catch (InvalidMemoryAccessException ignored) {
@@ -2070,6 +2150,27 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
+    public Object visit(VmThreadImpl vmThread, OffsetPointer node) {
+        Pointer basePtr = unboxPointer(node.getBasePointer());
+        if (basePtr == null) {
+            // it's possible that it's a null pointer being added to another pointer, as the JDK sometimes does
+            Object offset = require(node.getOffset());
+            if (offset instanceof Pointer pv) {
+                return pv;
+            } else {
+                // invalid pointer
+                return null;
+            }
+        }
+        long offset = unboxLong(node.getOffset());
+        if (offset == 0) {
+            return basePtr;
+        }
+        long pointeeSize = node.getBasePointer().getPointeeType().getSize();
+        return basePtr.offsetInBytes(offset * pointeeSize, true);
+    }
+
+    @Override
     public Object visit(VmThreadImpl thread, StackAllocation node) {
         return new MemoryPointer(node.getType(), thread.vm.allocate(node.getType().getPointeeType(), unboxLong(node.getCount())));
     }
@@ -2161,13 +2262,13 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Void visit(VmThreadImpl thread, Store node) {
-        ValueHandle valueHandle = node.getValueHandle();
+        Value pointer = node.getPointer();
         Value value = node.getValue();
         WriteAccessMode mode = node.getAccessMode();
-        if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
+        if (pointer instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
-        store(thread, valueHandle, value, mode);
+        store(thread, pointer, value, mode);
         return null;
     }
 
@@ -2175,14 +2276,18 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
      * Store a value into the interpreter memory.
      *
      * @param thread the thread (must not be {@code null})
-     * @param valueHandle the store target (must not be {@code null})
+     * @param pointer the store target (must not be {@code null})
      * @param value the value to store
      * @param mode the atomicity mode (must not be {@code null})
      */
-    void store(VmThreadImpl thread, final ValueHandle valueHandle, final Value value, final WriteAccessMode mode) {
-        Memory memory = getMemory(valueHandle);
-        long offset = getOffset(valueHandle);
-        ValueType type = valueHandle.getPointeeType();
+    void store(VmThreadImpl thread, final Value pointer, final Value value, final WriteAccessMode mode) {
+        Pointer ptr = unboxPointer(pointer);
+        if (ptr == null) {
+            throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
+        }
+        Memory memory = ptr.getRootMemoryIfExists();
+        long offset = ptr.getRootByteOffset();
+        ValueType type = pointer.getPointeeType();
         store(thread, memory, offset, type, value, mode);
     }
 
@@ -2479,37 +2584,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
 
         @Override
-        public Memory visit(Frame frame, InstanceFieldOf node) {
-            InstanceFieldElement variableElement = node.getVariableElement();
-            if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
-                throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run-time field "+variableElement));
-            }
-            return node.getValueHandle().accept(this, frame);
-        }
-
-        @Override
-        public Memory visit(Frame frame, UnsafeHandle node) {
-            Object rawVal = frame.require(node.getOffset());
-            if (rawVal instanceof Pointer p) {
-                return p.getRootPointer().accept(GET_MEMORY_FROM_POINTER, frame);
-            } else if (rawVal == null) {
-                return null;
-            }
-            return node.getValueHandle().accept(this, frame);
-        }
-
-        @Override
         public Memory visit(Frame frame, PointerHandle node) {
             Pointer pointer = frame.unboxPointer(node.getPointerValue());
             if (pointer == null) {
-                // it's possible that it's a null pointer being added to another pointer, as the JDK sometimes does
-                Pointer pv = frame.unboxPointer(node.getOffsetValue());
-                if (pv instanceof IntegerAsPointer) {
-                    // invalid pointer
-                    return null;
-                } else {
-                    return pv.getRootMemoryIfExists();
-                }
+                return null;
             }
             return pointer.getRootMemoryIfExists();
         }
@@ -2526,55 +2604,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
 
         @Override
-        public long visit(Frame frame, InstanceFieldOf node) {
-            CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
-            Layout layout = Layout.get(ctxt);
-            InstanceFieldElement field = node.getVariableElement();
-            LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(field.getEnclosingType());
-            try {
-                return node.getValueHandle().accept(this, frame) + layoutInfo.getMember(field).getOffset();
-            } catch (NullPointerException e) {
-                throw e;
-            }
-        }
-
-        @Override
         public long visit(Frame frame, PointerHandle node) {
             Pointer pointer = frame.unboxPointer(node.getPointerValue());
-            if (pointer == null) {
-                // it's possible that it's a null pointer being added to another pointer, as the JDK sometimes does
-                pointer = frame.unboxPointer(node.getOffsetValue());
-                if (pointer instanceof IntegerAsPointer iap) {
-                    // invalid pointer *probably*
-                    return iap.getValue();
-                } else {
-                    // either invalid (pv is {@code null}) or valid but the offset is zero
-                    return 0;
-                }
-            }
-            long offset = frame.unboxLong(node.getOffsetValue());
-            if (offset == 0) {
-                return pointer.getRootByteOffset();
-            }
-            // get the number of *bytes* to offset by, because the pointer's type might differ from the handle type
-            PointerType pointerType = node.getType();
-            ValueType pointeeType = pointerType.getPointeeType();
-            if (pointeeType instanceof ObjectType ot) {
-                CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
-                pointeeType = Layout.get(ctxt).getInstanceLayoutInfo(ot.getDefinition()).getCompoundType();
-            }
-            long byteOffset = offset * pointeeType.getSize();
-            Pointer targetPointer = pointer.offsetInBytes(byteOffset, true);
-            return targetPointer == null ? 0 : targetPointer.getRootByteOffset();
-        }
-
-        @Override
-        public long visit(Frame frame, UnsafeHandle node) {
-            Object rawVal = frame.require(node.getOffset());
-            if (rawVal instanceof Pointer p) {
-                return p.getRootByteOffset();
-            }
-            return ((Long) rawVal).longValue();
+            return pointer == null ? 0 : pointer.getRootByteOffset();
         }
     };
 
@@ -2732,7 +2764,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     private Pointer unboxPointer(final Value rightInput) {
-        return (Pointer) require(rightInput);
+        Object v = require(rightInput);
+        if (v instanceof Number n && n.longValue() == 0) {
+            return null;
+        }
+        return (Pointer) v;
     }
 
     private long unboxLong(final Value rightInput) {

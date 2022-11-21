@@ -40,24 +40,24 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
     @Override
     public Node visit(Node.Copier param, Store node) {
         param.copyNode(node.getDependency());
-        ValueHandle origHandle = node.getValueHandle();
-        ValueHandle copyHandle = param.copyValueHandle(origHandle);
+        Value origPointer = node.getPointer();
+        Value copyPointer = param.copyValue(origPointer);
         BasicBlockBuilder b = param.getBlockBuilder();
         Value copiedValue = param.copyValue(node.getValue());
-        if (origHandle.getPointeeType() instanceof BooleanType && copyHandle.getPointeeType() instanceof IntegerType it) {
+        if (origPointer.getPointeeType() instanceof BooleanType && copyPointer.getPointeeType() instanceof IntegerType it) {
             copiedValue = b.extend(copiedValue, it);
         }
-        return b.store(copyHandle, copiedValue, node.getAccessMode());
+        return b.store(copyPointer, copiedValue, node.getAccessMode());
     }
 
     @Override
     public Value visit(Node.Copier param, Load node) {
         param.copyNode(node.getDependency());
-        ValueHandle origHandle = node.getValueHandle();
-        ValueHandle copyHandle = param.copyValueHandle(origHandle);
+        Value origPointer = node.getPointer();
+        Value copyPointer = param.copyValue(origPointer);
         BasicBlockBuilder b = param.getBlockBuilder();
-        Value loaded = b.load(copyHandle, node.getAccessMode());
-        if (origHandle.getPointeeType() instanceof BooleanType bt && copyHandle.getPointeeType() instanceof IntegerType) {
+        Value loaded = b.load(copyPointer, node.getAccessMode());
+        if (origPointer.getPointeeType() instanceof BooleanType bt && copyPointer.getPointeeType() instanceof IntegerType) {
             return b.truncate(loaded, bt);
         } else {
             return loaded;
@@ -67,13 +67,13 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
     @Override
     public Value visit(Node.Copier param, CmpAndSwap node) {
         param.copyNode(node.getDependency());
-        ValueHandle origHandle = node.getValueHandle();
-        ValueHandle copyHandle = param.copyValueHandle(origHandle);
+        Value origPointer = node.getPointer();
+        Value copyPointer = param.copyValue(origPointer);
         Value copiedExpect = param.copyValue(node.getExpectedValue());
         Value copiedUpdate = param.copyValue(node.getUpdateValue());
         BasicBlockBuilder b = param.getBlockBuilder();
-        if (origHandle.getPointeeType() instanceof BooleanType bt && copyHandle.getPointeeType() instanceof IntegerType it) {
-            Value result = b.cmpAndSwap(copyHandle, b.extend(copiedExpect, it), b.extend(copiedUpdate, it), node.getReadAccessMode(), node.getWriteAccessMode(), node.getStrength());
+        if (origPointer.getPointeeType() instanceof BooleanType bt && copyPointer.getPointeeType() instanceof IntegerType it) {
+            Value result = b.cmpAndSwap(copyPointer, b.extend(copiedExpect, it), b.extend(copiedUpdate, it), node.getReadAccessMode(), node.getWriteAccessMode(), node.getStrength());
             // the result is a { i8, i1 } if the field is boolean
             // we need to change to a { i1, i1 }
             LiteralFactory lf = ctxt.getLiteralFactory();
@@ -85,22 +85,22 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
             result = b.insertMember(result, newType.getMember(1), resultFlag);
             return result;
         } else {
-            return b.cmpAndSwap(copyHandle, copiedExpect, copiedUpdate, node.getReadAccessMode(), node.getWriteAccessMode(), node.getStrength());
+            return b.cmpAndSwap(copyPointer, copiedExpect, copiedUpdate, node.getReadAccessMode(), node.getWriteAccessMode(), node.getStrength());
         }
     }
 
     @Override
     public Value visit(Node.Copier param, ReadModifyWrite node) {
         param.copyNode(node.getDependency());
-        ValueHandle origHandle = node.getValueHandle();
-        ValueHandle copyHandle = param.copyValueHandle(origHandle);
+        Value origPointer = node.getPointer();
+        Value copyPointer = param.copyValue(origPointer);
         BasicBlockBuilder b = param.getBlockBuilder();
         Value copiedUpdate = param.copyValue(node.getUpdateValue());
         ReadModifyWrite.Op op = node.getOp();
-        if (origHandle.getPointeeType() instanceof BooleanType bt && copyHandle.getPointeeType() instanceof IntegerType it) {
-            return b.truncate(b.readModifyWrite(copyHandle, op, b.extend(copiedUpdate, it), node.getReadAccessMode(), node.getWriteAccessMode()), bt);
+        if (origPointer.getPointeeType() instanceof BooleanType bt && copyPointer.getPointeeType() instanceof IntegerType it) {
+            return b.truncate(b.readModifyWrite(copyPointer, op, b.extend(copiedUpdate, it), node.getReadAccessMode(), node.getWriteAccessMode()), bt);
         } else {
-            return b.readModifyWrite(copyHandle, op, copiedUpdate, node.getReadAccessMode(), node.getWriteAccessMode());
+            return b.readModifyWrite(copyPointer, op, copiedUpdate, node.getReadAccessMode(), node.getWriteAccessMode());
         }
     }
 

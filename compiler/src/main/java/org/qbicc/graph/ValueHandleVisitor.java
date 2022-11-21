@@ -8,15 +8,7 @@ public interface ValueHandleVisitor<T, R> {
         return null;
     }
 
-    default R visit(T t, AsmHandle node) {
-        return visitUnknown(t, node);
-    }
-
     default R visit(T t, ConstructorElementHandle node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, CurrentThread node) {
         return visitUnknown(t, node);
     }
 
@@ -25,10 +17,6 @@ public interface ValueHandleVisitor<T, R> {
     }
 
     default R visit(T t, FunctionElementHandle node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, InstanceFieldOf node) {
         return visitUnknown(t, node);
     }
 
@@ -41,10 +29,6 @@ public interface ValueHandleVisitor<T, R> {
     }
 
     default R visit(T t, StaticMethodElementHandle node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, UnsafeHandle node) {
         return visitUnknown(t, node);
     }
 
@@ -61,17 +45,7 @@ public interface ValueHandleVisitor<T, R> {
         }
 
         @Override
-        default R visit(T t, AsmHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
         default R visit(T t, ConstructorElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default R visit(T t, CurrentThread node) {
             return getDelegateValueHandleVisitor().visit(t, node);
         }
 
@@ -82,11 +56,6 @@ public interface ValueHandleVisitor<T, R> {
 
         @Override
         default R visit(T t, FunctionElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default R visit(T t, InstanceFieldOf node) {
             return getDelegateValueHandleVisitor().visit(t, node);
         }
 
@@ -102,11 +71,6 @@ public interface ValueHandleVisitor<T, R> {
 
         @Override
         default R visit(T t, StaticMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default R visit(T t, UnsafeHandle node) {
             return getDelegateValueHandleVisitor().visit(t, node);
         }
 

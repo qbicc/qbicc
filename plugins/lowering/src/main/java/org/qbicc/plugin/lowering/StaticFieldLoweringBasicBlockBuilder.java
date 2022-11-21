@@ -26,7 +26,7 @@ public class StaticFieldLoweringBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
+    public ValueHandle pointerHandle(Value pointer) {
         if (pointer instanceof StaticFieldLiteral sfl) {
             StaticFieldElement field = sfl.getVariableElement();
             GlobalVariableElement global = BuildtimeHeap.get(ctxt).getGlobalForStaticField(field);
@@ -38,7 +38,7 @@ public class StaticFieldLoweringBasicBlockBuilder extends DelegatingBasicBlockBu
             }
             return pointerHandle(getLiteralFactory().literalOf(global));
         } else {
-            return super.pointerHandle(pointer, offsetValue);
+            return super.pointerHandle(pointer);
         }
     }
 }

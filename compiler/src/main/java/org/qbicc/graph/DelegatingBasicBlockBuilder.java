@@ -3,7 +3,6 @@ package org.qbicc.graph;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.function.BiConsumer;
 
 import org.qbicc.context.Location;
@@ -13,7 +12,6 @@ import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
@@ -26,8 +24,8 @@ import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
-import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -129,11 +127,11 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().checkcast(value, desc);
     }
 
-    public Value selectMember(ValueHandle handle) {
-        return getDelegate().selectMember(handle);
+    public Value deref(Value pointer) {
+        return getDelegate().deref(pointer);
     }
 
-    public ValueHandle currentThread() {
+    public Value currentThread() {
         return getDelegate().currentThread();
     }
 
@@ -145,24 +143,28 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().elementOf(arrayPointer, index);
     }
 
-    public ValueHandle unsafeHandle(final ValueHandle base, final Value offset, final ValueType outputType) {
-        return getDelegate().unsafeHandle(base, offset, outputType);
+    public Value offsetPointer(Value basePointer, Value offset) {
+        return getDelegate().offsetPointer(basePointer, offset);
     }
 
-    public ValueHandle pointerHandle(Value pointer, Value offsetValue) {
-        return getDelegate().pointerHandle(pointer, offsetValue);
+    public Value byteOffsetPointer(final Value base, final Value offset, final ValueType outputType) {
+        return getDelegate().byteOffsetPointer(base, offset, outputType);
     }
 
-    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
-        return getDelegate().instanceFieldOf(instance, field);
-    }
-
-    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
-        return getDelegate().instanceFieldOf(instance, owner, name, type);
+    public ValueHandle pointerHandle(Value pointer) {
+        return getDelegate().pointerHandle(pointer);
     }
 
     public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         return getDelegate().resolveStaticField(owner, name, type);
+    }
+
+    public Value instanceFieldOf(Value instancePointer, InstanceFieldElement field) {
+        return getDelegate().instanceFieldOf(instancePointer, field);
+    }
+
+    public Value instanceFieldOf(Value instancePointer, TypeDescriptor owner, String name, TypeDescriptor type) {
+        return getDelegate().instanceFieldOf(instancePointer, owner, name, type);
     }
 
     public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
@@ -209,20 +211,12 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().functionOf(function);
     }
 
-    public ValueHandle asm(final String instruction, final String constraints, final Set<AsmHandle.Flag> flags, FunctionType type) {
-        return getDelegate().asm(instruction, constraints, flags, type);
-    }
-
     public Value auto(Value initializer) {
         return getDelegate().auto(initializer);
     }
 
     public Value addressOf(final ValueHandle handle) {
         return getDelegate().addressOf(handle);
-    }
-
-    public Value referenceTo(ValueHandle handle) throws IllegalArgumentException {
-        return getDelegate().referenceTo(handle);
     }
 
     public Value stackAllocate(final ValueType type, final Value count, final Value align) {
@@ -277,8 +271,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().select(condition, trueValue, falseValue);
     }
 
-    public ValueHandle lengthOf(final ValueHandle arrayHandle) {
-        return getDelegate().lengthOf(arrayHandle);
+    public Value loadLength(final Value arrayPointer) {
+        return getDelegate().loadLength(arrayPointer);
     }
 
     public Value new_(final ClassObjectType type, final Value typeId, final Value size, final Value align) {
@@ -309,19 +303,19 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().multiNewArray(desc, dimensions);
     }
 
-    public Value load(final ValueHandle handle, final ReadAccessMode accessMode) {
-        return getDelegate().load(handle, accessMode);
+    public Value load(final Value pointer, final ReadAccessMode accessMode) {
+        return getDelegate().load(pointer, accessMode);
     }
 
-    public Value readModifyWrite(ValueHandle target, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        return getDelegate().readModifyWrite(target, op, update, readMode, writeMode);
+    public Value readModifyWrite(Value pointer, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return getDelegate().readModifyWrite(pointer, op, update, readMode, writeMode);
     }
 
-    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+    public Value cmpAndSwap(Value target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         return getDelegate().cmpAndSwap(target, expect, update, readMode, writeMode, strength);
     }
 
-    public Node store(ValueHandle handle, Value value, WriteAccessMode accessMode) {
+    public Node store(Value handle, Value value, WriteAccessMode accessMode) {
         return getDelegate().store(handle, value, accessMode);
     }
 

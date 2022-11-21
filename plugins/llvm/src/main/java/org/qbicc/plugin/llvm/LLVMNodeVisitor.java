@@ -18,7 +18,7 @@ import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.And;
-import org.qbicc.graph.AsmHandle;
+import org.qbicc.graph.literal.AsmLiteral;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEntry;
@@ -61,6 +61,7 @@ import org.qbicc.graph.Neg;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NotNull;
+import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Reachable;
@@ -277,10 +278,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     }
 
     public Instruction visit(final Void param, final Store node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        org.qbicc.machine.llvm.op.Store storeInsn = builder.store(map(valueHandle.getType()), map(node.getValue()), map(node.getValue().getType()), ptr);
-        storeInsn.align(valueHandle.getPointeeType().getAlign());
+        Value pointer = node.getPointer();
+        LLValue ptr = map(pointer);
+        org.qbicc.machine.llvm.op.Store storeInsn = builder.store(map(pointer.getType()), map(node.getValue()), map(node.getValue().getType()), ptr);
+        storeInsn.align(pointer.getPointeeType().getAlign());
         WriteAccessMode accessMode = node.getAccessMode();
         if (SingleUnshared.includes(accessMode)) {
             // do nothing; not atomic
@@ -404,6 +405,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
         return builder.and(map(node.getType()), llvmLeft, llvmRight).setLValue(map(node));
+    }
+
+    public LLValue visit(Void unused, AsmLiteral node) {
+        return Values.asm(node.getInstruction(), node.getConstraints(), map(node.getFlags()));
     }
 
     @Override
@@ -625,9 +630,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     }
 
     public LLValue visit(final Void param, final Load node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        org.qbicc.machine.llvm.op.Load loadInsn = builder.load(map(valueHandle.getType()), map(valueHandle.getPointeeType()), ptr);
+        LLValue ptr = map(node.getPointer());
+        org.qbicc.machine.llvm.op.Load loadInsn = builder.load(map(node.getPointer().getType()), map(node.getType()), ptr);
         loadInsn.align(node.getType().getAlign());
         ReadAccessMode accessMode = node.getAccessMode();
         if (SingleUnshared.includes(accessMode)) {
@@ -648,9 +652,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
     @Override
     public LLValue visit(Void unused, ReadModifyWrite node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
-        AtomicRmw insn = builder.atomicrmw(map(valueHandle.getType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr);
+        Value pointer = node.getPointer();
+        LLValue ptr = map(pointer);
+        AtomicRmw insn = builder.atomicrmw(map(pointer.getType()), map(node.getUpdateValue()), map(node.getUpdateValue().getType()), ptr);
         switch (node.getOp()) {
             case SET -> insn.xchg();
             case ADD -> insn.add();
@@ -662,7 +666,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             case MIN -> insn.min();
             case MAX -> insn.max();
         }
-        insn.align(valueHandle.getPointeeType().getAlign());
+        insn.align(pointer.getPointeeType().getAlign());
         insn.ordering(getOC(node.getReadAccessMode().combinedWith(node.getWriteAccessMode())));
         return insn.setLValue(map(node));
     }
@@ -680,6 +684,13 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
     public LLValue visit(Void param, NotNull node) {
         return map(node.getInput());
+    }
+
+    public LLValue visit(Void unused, OffsetPointer node) {
+        ValueType pointeeType = node.getPointeeType();
+        GetElementPtr gep = builder.getelementptr(pointeeType instanceof VoidType ? i8 : map(pointeeType), map(node.getType()), map(node.getBasePointer()));
+        gep.arg(false, map(node.getOffset().getType()), map(node.getOffset()));
+        return gep.setLValue(map(node));
     }
 
     public LLValue visit(final Void param, final Shr node) {
@@ -952,7 +963,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail();
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafePoints()) {
+        if (functionType.isVariadic() || valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof AsmLiteral || valueHandle.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -973,7 +984,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail();
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafePoints()) {
+        if (functionType.isVariadic() || valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof AsmLiteral || valueHandle.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -994,7 +1005,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail().attribute(FunctionAttributes.noreturn);
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafePoints()) {
+        if (functionType.isVariadic() || valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof AsmLiteral || valueHandle.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1016,7 +1027,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).tail(); // hint only
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafePoints()) {
+        if (functionType.isVariadic() || valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof AsmLiteral || valueHandle.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1063,7 +1074,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
         addPersonalityIfNeeded();
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafePoints()) {
+        if (functionType.isVariadic() || valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof AsmLiteral || valueHandle.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1094,7 +1105,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
         addPersonalityIfNeeded();
-        if (functionType.isVariadic() || valueHandle instanceof AsmHandle || valueHandle.isNoSafePoints()) {
+        if (functionType.isVariadic() || valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof AsmLiteral || valueHandle.isNoSafePoints()) {
             call.attribute(FunctionAttributes.gcLeafFunction);
         } else {
             addStatepointId(call, node);
@@ -1171,9 +1182,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
         @Override
         public GetElementPtr visit(LLVMNodeVisitor param, PointerHandle node) {
-            LLValue offset = param.map(node.getOffsetValue());
-            LLValue offsetType = param.map(node.getOffsetValue().getType());
-            return param.gep(param.map(node.getPointerValue()), node).arg(false, offsetType, offset);
+            return param.gep(param.map(node.getPointerValue()), node).arg(false, i32, ZERO);
         }
     };
 
@@ -1184,34 +1193,23 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         }
 
         @Override
-        public LLValue visit(LLVMNodeVisitor param, AsmHandle node) {
-            // special case: not a pointer at all!
-            return Values.asm(node.getInstruction(), node.getConstraints(), map(node.getFlags()));
-        }
-
-        @Override
         public LLValue visit(LLVMNodeVisitor param, PointerHandle node) {
-            final Value offsetValue = node.getOffsetValue();
-            if (offsetValue.getType() instanceof IntegerType it && offsetValue.isDefEq(param.ctxt.getLiteralFactory().literalOf(it, 0))) {
-                return param.map(node.getPointerValue());
-            } else {
-                return node.accept(GET_HANDLE_ELEMENT_POINTER, param).asLocal();
-            }
+            return param.map(node.getPointerValue());
         }
     };
 
-    private static Set<AsmFlag> map(final Set<AsmHandle.Flag> flags) {
+    private static Set<AsmFlag> map(final Set<AsmLiteral.Flag> flags) {
         EnumSet<AsmFlag> output = EnumSet.noneOf(AsmFlag.class);
-        if (flags.contains(AsmHandle.Flag.SIDE_EFFECT)) {
+        if (flags.contains(AsmLiteral.Flag.SIDE_EFFECT)) {
             output.add(AsmFlag.SIDE_EFFECT);
         }
-        if (! flags.contains(AsmHandle.Flag.NO_THROW)) {
+        if (! flags.contains(AsmLiteral.Flag.NO_THROW)) {
             output.add(AsmFlag.UNWIND);
         }
-        if (flags.contains(AsmHandle.Flag.ALIGN_STACK)) {
+        if (flags.contains(AsmLiteral.Flag.ALIGN_STACK)) {
             output.add(AsmFlag.ALIGN_STACK);
         }
-        if (flags.contains(AsmHandle.Flag.INTEL_DIALECT)) {
+        if (flags.contains(AsmLiteral.Flag.INTEL_DIALECT)) {
             output.add(AsmFlag.INTEL_DIALECT);
         }
         return output;
@@ -1242,10 +1240,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
     @Override
     public LLValue visit(final Void param, final CmpAndSwap node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        LLValue ptrType = map(valueHandle.getType());
-        LLValue type = map(valueHandle.getPointeeType());
-        LLValue ptr = valueHandle.accept(GET_HANDLE_POINTER_VALUE, this);
+        Value pointerValue = node.getPointer();
+        LLValue ptrType = map(pointerValue.getType());
+        LLValue type = map(pointerValue.getPointeeType());
+        LLValue ptr = map(pointerValue);
         LLValue expect = map(node.getExpectedValue());
         LLValue update = map(node.getUpdateValue());
         ReadAccessMode readMode = node.getReadAccessMode();
@@ -1411,7 +1409,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     }
 
     private LLValue map(Value value) {
-        if (value instanceof Unschedulable) {
+        if (value instanceof Unschedulable || value instanceof AsmLiteral) {
             // emit every time
             return value.accept(this, null);
         }
