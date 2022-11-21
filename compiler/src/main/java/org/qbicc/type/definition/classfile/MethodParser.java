@@ -7,6 +7,7 @@ import static org.qbicc.type.definition.classfile.ClassMethodInfo.align;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -23,12 +24,14 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.MemberSelector;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.Auto;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
@@ -89,6 +92,7 @@ final class MethodParser {
     int sp;
     private ValueType[][] varTypesByEntryPoint;
     private ValueType[][] stackTypesByEntryPoint;
+    Map<LocalVariableElement, Value> stackAllocatedValues;
 
     MethodParser(final ClassContext ctxt, final ClassMethodInfo info, final ByteBuffer buffer, final ExecutableElement element) {
         this.ctxt = ctxt;
@@ -297,19 +301,83 @@ final class MethodParser {
     // Locals manipulation
 
     void setLocal2(int index, Value value, int bci) {
-        locals[index] = value;
-        locals[index + 1] = null;
-        LocalVariableElement lve = getLocalVariableElement(bci, index);
-        if (lve != null) {
-            gf.store(gf.localVariable(lve), storeTruncate(value, lve.getTypeDescriptor()), SingleUnshared);
+        if (value instanceof Auto al) {
+            LocalVariableElement lve = getLocalVariableElement(bci, index);
+            if (lve != null) {
+                Value allocated = gf.stackAllocate(lve.getType(), lf.literalOf(1), lf.literalOf(al.getPointeeType().getAlign()));
+                Value init = al.getInitializer();
+                if (init instanceof Literal lit && lit.isZero()) {
+                    init = lf.zeroInitializerLiteralOfType(lve.getType());
+                }
+                gf.store(gf.pointerHandle(allocated), init, SingleUnshared);
+                Map<LocalVariableElement, Value> sav = stackAllocatedValues;
+                if (sav == null) {
+                    stackAllocatedValues = sav = new HashMap<>();
+                }
+                sav.put(lve, allocated);
+                gf.declareDebugAddress(lve, allocated);
+            } else {
+                ctxt.getCompilationContext().error(gf.getLocation(), "No local variable declaration for auto() initialized variable");
+            }
+            locals[index] = null;
+            locals[index + 1] = null;
+        } else {
+            LocalVariableElement lve = getLocalVariableElement(bci, index);
+            if (lve != null) {
+                Map<LocalVariableElement, Value> sav = stackAllocatedValues;
+                if (sav != null) {
+                    Value ptr = sav.get(lve);
+                    if (ptr != null) {
+                        gf.store(gf.pointerHandle(ptr), value, SingleUnshared);
+                        return;
+                    }
+                } else {
+                    gf.setDebugValue(lve, value);
+                }
+            }
+            locals[index] = value;
+            locals[index + 1] = null;
         }
     }
 
     void setLocal1(int index, Value value, int bci) {
-        locals[index] = value;
-        LocalVariableElement lve = getLocalVariableElement(bci, index);
-        if (lve != null) {
-            gf.store(gf.localVariable(lve), storeTruncate(value, lve.getTypeDescriptor()), SingleUnshared);
+        if (value instanceof Auto al) {
+            LocalVariableElement lve = getLocalVariableElement(bci, index);
+            if (lve != null) {
+                Value allocated = gf.stackAllocate(lve.getType(), lf.literalOf(1), lf.literalOf(al.getPointeeType().getAlign()));
+                Value init = al.getInitializer();
+                if (init instanceof Literal lit && lit.isZero()) {
+                    init = lf.zeroInitializerLiteralOfType(lve.getType());
+                }
+                gf.store(gf.pointerHandle(allocated), storeTruncate(init, lve.getTypeDescriptor()), SingleUnshared);
+                Map<LocalVariableElement, Value> sav = stackAllocatedValues;
+                if (sav == null) {
+                    stackAllocatedValues = sav = new HashMap<>();
+                }
+                sav.put(lve, allocated);
+                gf.declareDebugAddress(lve, allocated);
+                locals[index] = null;
+            } else {
+                ctxt.getCompilationContext().error(gf.getLocation(), "No local variable declaration for auto() initialized variable");
+                locals[index] = value;
+            }
+        } else {
+            LocalVariableElement lve = getLocalVariableElement(bci, index);
+            if (lve != null) {
+                Map<LocalVariableElement, Value> sav = stackAllocatedValues;
+                Value truncated = storeTruncate(value, lve.getTypeDescriptor());
+                if (sav != null) {
+                    Value ptr = sav.get(lve);
+                    if (ptr != null) {
+                        gf.store(gf.pointerHandle(ptr), truncated, SingleUnshared);
+                        return;
+                    }
+                }
+                gf.setDebugValue(lve, truncated);
+                locals[index] = truncated;
+            } else {
+                locals[index] = value;
+            }
         }
     }
 
@@ -331,23 +399,28 @@ final class MethodParser {
 
     Value getLocal(int index, int bci) {
         final LocalVariableElement lve = getLocalVariableElement(bci, index);
-        Value value = locals[index];
+        Value value;
+        if (lve != null) {
+            Map<LocalVariableElement, Value> sav = stackAllocatedValues;
+            if (sav != null) {
+                Value ptr = sav.get(lve);
+                if (ptr != null) {
+                    ValueType lveType = lve.getType();
+                    if (lveType instanceof CompoundType || lveType instanceof ArrayType) {
+                        // return a *handle* to the variable
+                        // (never needs promotion)
+                        return gf.selectMember(gf.pointerHandle(ptr));
+                    } else {
+                        return promote(gf.load(gf.pointerHandle(ptr), SingleUnshared), lve.getTypeDescriptor());
+                    }
+                }
+            }
+            value = promote(locals[index], lve.getTypeDescriptor());
+        } else {
+            value = promote(locals[index]);
+        }
         if (value == null) {
             throw new IllegalStateException("Invalid get local (no value)");
-        }
-        if (value.getType() instanceof ReferenceType) {
-            // address cannot be taken of this variable; do not indirect through the LV
-            return value;
-        }
-        if (lve != null) {
-            ValueType lveType = lve.getType();
-            if (lveType instanceof CompoundType || lveType instanceof ArrayType) {
-                // return a *handle* to the variable
-                // (never needs promotion)
-                return gf.selectMember(gf.localVariable(lve));
-            } else {
-                return promote(gf.load(gf.localVariable(lve), SingleUnshared), lve.getTypeDescriptor());
-            }
         }
         return value;
     }
@@ -510,7 +583,23 @@ final class MethodParser {
         for (int i = 0; i < locals.length && i < varTypes.length; i++) {
             ValueType varType = varTypes[i];
             if (varType != null) {
-                locals[i] = gf.addParam(block, Slot.variable(i), varType);
+                LocalVariableElement lve = getLocalVariableElement(bci, i);
+                if (lve != null) {
+                    Map<LocalVariableElement, Value> sav = stackAllocatedValues;
+                    if (sav != null) {
+                        Value ptr = sav.get(lve);
+                        if (ptr != null) {
+                            // special case: stack-allocated variable
+                            locals[i] = null;
+                            continue;
+                        }
+                    }
+                    BlockParameter bp = gf.addParam(block, Slot.variable(i), lve.getType());
+                    gf.setDebugValue(lve, bp);
+                    locals[i] = bp;
+                } else {
+                    locals[i] = gf.addParam(block, Slot.variable(i), varType);
+                }
             } else {
                 locals[i] = null;
             }

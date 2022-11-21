@@ -42,9 +42,9 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+    public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         if (loadClass(owner)) {
-            return super.staticField(owner, name, type);
+            return super.resolveStaticField(owner, name, type);
         }
         // no need to continue
         throw new BlockEarlyTermination(noClassDefFound(owner));

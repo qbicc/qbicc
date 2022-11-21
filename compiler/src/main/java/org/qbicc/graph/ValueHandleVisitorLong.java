@@ -28,10 +28,6 @@ public interface ValueHandleVisitorLong<T> {
         return visitUnknown(t, node);
     }
 
-    default long visit(T t, GlobalVariable node) {
-        return visitUnknown(t, node);
-    }
-
     default long visit(T t, InstanceFieldOf node) {
         return visitUnknown(t, node);
     }
@@ -41,14 +37,6 @@ public interface ValueHandleVisitorLong<T> {
     }
 
     default long visit(T t, VirtualMethodElementHandle node) {
-        return visitUnknown(t, node);
-    }
-
-    default long visit(T t, LocalVariable node) {
-        return visitUnknown(t, node);
-    }
-
-    default long visit(T t, StaticField node) {
         return visitUnknown(t, node);
     }
 
@@ -98,11 +86,6 @@ public interface ValueHandleVisitorLong<T> {
         }
 
         @Override
-        default long visit(T t, GlobalVariable node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
         default long visit(T t, InstanceFieldOf node) {
             return getDelegateValueHandleVisitor().visit(t, node);
         }
@@ -114,16 +97,6 @@ public interface ValueHandleVisitorLong<T> {
 
         @Override
         default long visit(T t, VirtualMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default long visit(T t, LocalVariable node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default long visit(T t, StaticField node) {
             return getDelegateValueHandleVisitor().visit(t, node);
         }
 

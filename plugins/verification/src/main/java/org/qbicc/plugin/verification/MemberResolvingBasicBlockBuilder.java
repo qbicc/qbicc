@@ -36,6 +36,7 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -62,8 +63,13 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         return instanceFieldOf(instance, resolveField(owner, name, type));
     }
 
-    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
-        return staticField(resolveField(owner, name, type));
+    public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+        FieldElement field = resolveField(owner, name, type);
+        if (field instanceof StaticFieldElement sfe) {
+            return getLiteralFactory().literalOf(sfe);
+        } else {
+            return super.resolveStaticField(owner, name, type);
+        }
     }
 
     public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {

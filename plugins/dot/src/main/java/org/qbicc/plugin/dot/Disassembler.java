@@ -57,7 +57,6 @@ import org.qbicc.graph.ExtractInstanceField;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
 import org.qbicc.graph.FunctionElementHandle;
-import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
 import org.qbicc.graph.InitCheck;
@@ -75,7 +74,6 @@ import org.qbicc.graph.IsLe;
 import org.qbicc.graph.IsLt;
 import org.qbicc.graph.IsNe;
 import org.qbicc.graph.Load;
-import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.Max;
 import org.qbicc.graph.MemberOf;
 import org.qbicc.graph.MemberSelector;
@@ -106,7 +104,6 @@ import org.qbicc.graph.Select;
 import org.qbicc.graph.Shl;
 import org.qbicc.graph.Shr;
 import org.qbicc.graph.StackAllocation;
-import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
@@ -134,12 +131,14 @@ import org.qbicc.graph.literal.CompoundLiteral;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.literal.GlobalVariableLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
@@ -1175,7 +1174,7 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, GlobalVariable node) {
+        public Void visit(Disassembler param, GlobalVariableLiteral node) {
             final String id = param.nextId();
             final String description = node.getVariableElement().getName();
             param.nodeInfo.put(node, new NodeInfo(id, description));
@@ -1201,14 +1200,6 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, LocalVariable node) {
-            final String id = param.nextId();
-            final String description = node.getVariableElement().getName();
-            param.nodeInfo.put(node, new NodeInfo(id, description));
-            return delegate.visit(param, node);
-        }
-
-        @Override
         public Void visit(Disassembler param, MemberOf node) {
             final String id = param.nextId();
             final String description = "member-of " + show(node.getStructurePointer());
@@ -1225,7 +1216,7 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, StaticField node) {
+        public Void visit(Disassembler param, StaticFieldLiteral node) {
             final String id = param.nextId();
             final String description = node.getVariableElement().toString();
             param.nodeInfo.put(node, new NodeInfo(id, description));

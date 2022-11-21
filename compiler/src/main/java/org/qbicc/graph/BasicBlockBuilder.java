@@ -46,6 +46,7 @@ import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -425,12 +426,6 @@ public interface BasicBlockBuilder extends Locatable {
      */
     Value selectMember(ValueHandle handle);
 
-    // memory values
-
-    Value memberOf(Value structPointer, CompoundType.Member member);
-
-    Value elementOf(Value array, Value index);
-
     // memory handles
 
     /**
@@ -483,13 +478,20 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type);
 
-    ValueHandle staticField(FieldElement field);
+    @Deprecated
+    default ValueHandle staticField(FieldElement field) {
+        return pointerHandle(getLiteralFactory().literalOf((StaticFieldElement) field));
+    }
 
-    ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type);
+    @Deprecated
+    default ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+        return getFirstBuilder().pointerHandle(resolveStaticField(owner, name, type));
+    }
 
-    ValueHandle globalVariable(GlobalVariableElement variable);
-
-    ValueHandle localVariable(LocalVariableElement variable);
+    @Deprecated
+    default ValueHandle globalVariable(GlobalVariableElement variable) {
+        return pointerHandle(getLiteralFactory().literalOf(variable));
+    }
 
     ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType);
 
@@ -575,6 +577,14 @@ public interface BasicBlockBuilder extends Locatable {
     ValueHandle asm(String instruction, String constraints, Set<AsmHandle.Flag> flags, FunctionType type);
 
     // memory
+
+    Value auto(Value initializer);
+
+    Value memberOf(Value structPointer, CompoundType.Member member);
+
+    Value elementOf(Value array, Value index);
+
+    Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type);
 
     Value addressOf(ValueHandle handle);
 

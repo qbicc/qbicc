@@ -443,6 +443,11 @@ final class NativeInfo {
         return false;
     }
 
+    public ValueType getNativeType(final DefinedTypeDefinition def) {
+        AtomicReference<ValueType> ref = nativeTypes.get(def);
+        return ref == null ? null : ref.get();
+    }
+
     static final class FunctionalInterfaceData {
         MethodElement me;
         ClassTypeSignature signature;

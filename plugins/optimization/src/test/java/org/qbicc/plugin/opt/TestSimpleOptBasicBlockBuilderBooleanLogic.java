@@ -14,19 +14,16 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.Comp;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.Value;
+import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.test.AbstractCompilerTestCase;
-import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
-import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
-import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
-import org.qbicc.type.generic.BaseTypeSignature;
 import org.qbicc.type.generic.ClassSignature;
 import org.qbicc.type.generic.MethodSignature;
 
@@ -63,20 +60,14 @@ public final class TestSimpleOptBasicBlockBuilderBooleanLogic extends AbstractCo
         element = builder.build();
     }
 
-    private LocalVariableElement createLocalVar(String name, ValueType type) {
-        final LocalVariableElement.Builder builder = LocalVariableElement.builder(name, BaseTypeDescriptor.V, 0);
-        builder.setEnclosingType(element.getEnclosingType());
-        builder.setType(type);
-        builder.setSignature(BaseTypeSignature.V);
-        builder.setTypeParameterContext(element.getEnclosingType());
-        return builder.build();
-    }
-
     @Test
     public void testDeMorgansAnd2Or() {
         final BasicBlockBuilder bbb = makeBlockBuilder();
-        Value v1 = bbb.load(bbb.localVariable(createLocalVar("v1", ts.getBooleanType())), SingleUnshared);
-        Value v2 = bbb.load(bbb.localVariable(createLocalVar("v2", ts.getBooleanType())), SingleUnshared);
+        LiteralFactory lf = bbb.getLiteralFactory();
+        Value sa1 = bbb.stackAllocate(ts.getBooleanType(), lf.literalOf(1), lf.literalOf(1));
+        Value sa2 = bbb.stackAllocate(ts.getBooleanType(), lf.literalOf(1), lf.literalOf(1));
+        Value v1 = bbb.load(bbb.pointerHandle(sa1), SingleUnshared);
+        Value v2 = bbb.load(bbb.pointerHandle(sa2), SingleUnshared);
         final Value res = bbb.and(bbb.complement(v1), bbb.complement(v2));
         assertTrue(res instanceof Comp comp
             && comp.getInput() instanceof Or or
@@ -88,8 +79,10 @@ public final class TestSimpleOptBasicBlockBuilderBooleanLogic extends AbstractCo
     @Test
     public void testDeMorgansOr2And() {
         final BasicBlockBuilder bbb = makeBlockBuilder();
-        Value v1 = bbb.load(bbb.localVariable(createLocalVar("v1", ts.getBooleanType())), SingleUnshared);
-        Value v2 = bbb.load(bbb.localVariable(createLocalVar("v2", ts.getBooleanType())), SingleUnshared);
+        Value sa1 = bbb.stackAllocate(ts.getBooleanType(), lf.literalOf(1), lf.literalOf(1));
+        Value sa2 = bbb.stackAllocate(ts.getBooleanType(), lf.literalOf(1), lf.literalOf(1));
+        Value v1 = bbb.load(bbb.pointerHandle(sa1), SingleUnshared);
+        Value v2 = bbb.load(bbb.pointerHandle(sa2), SingleUnshared);
         final Value res = bbb.or(bbb.complement(v1), bbb.complement(v2));
         assertTrue(res instanceof Comp comp
             && comp.getInput() instanceof And and
@@ -101,9 +94,12 @@ public final class TestSimpleOptBasicBlockBuilderBooleanLogic extends AbstractCo
     @Test
     public void testDistributiveAnd() {
         final BasicBlockBuilder bbb = makeBlockBuilder();
-        Value v1 = bbb.load(bbb.localVariable(createLocalVar("v1", ts.getBooleanType())), SingleUnshared);
-        Value v2 = bbb.load(bbb.localVariable(createLocalVar("v2", ts.getBooleanType())), SingleUnshared);
-        Value v3 = bbb.load(bbb.localVariable(createLocalVar("v3", ts.getBooleanType())), SingleUnshared);
+        Value sa1 = bbb.stackAllocate(ts.getBooleanType(), lf.literalOf(1), lf.literalOf(1));
+        Value sa2 = bbb.stackAllocate(ts.getBooleanType(), lf.literalOf(1), lf.literalOf(1));
+        Value sa3 = bbb.stackAllocate(ts.getBooleanType(), lf.literalOf(1), lf.literalOf(1));
+        Value v1 = bbb.load(bbb.pointerHandle(sa1), SingleUnshared);
+        Value v2 = bbb.load(bbb.pointerHandle(sa2), SingleUnshared);
+        Value v3 = bbb.load(bbb.pointerHandle(sa3), SingleUnshared);
         final Value res = bbb.or(bbb.and(v1, v2), bbb.and(v1, v3));
         assertTrue(res instanceof And and
             && and.getLeftInput().equals(v1)

@@ -23,7 +23,6 @@ import org.qbicc.graph.NewReferenceArray;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Slot;
-import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -33,6 +32,7 @@ import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -267,19 +267,6 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             }
 
             @Override
-            public Value visit(Void param, StaticField node) {
-                if (! node.getVariableElement().isStatic()) {
-                    throwIncompatibleClassChangeError();
-                }
-                InitializerElement init = node.getVariableElement().getRunTimeInitializer();
-                if (init != null && !getRootElement().equals(init)) {
-                    VmObject initThunkInstance = RuntimeInitManager.get(ctxt).getOnceInstance(init);
-                    initCheck(init, ctxt.getLiteralFactory().literalOf(initThunkInstance));
-                }
-                return null;
-            }
-
-            @Override
             public Value visit(Void param, PointerHandle node) {
                 if (node.getPointerValue() instanceof DecodeReference dr) {
                     nullCheck(dr.getInput());
@@ -298,6 +285,12 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                             toDimensions = ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), referenceArrayType.getDimensionCount() - 1);
                         }
                         return checkcast(storedValue, toTypeId, toDimensions, CheckCast.CastType.ArrayStore, referenceArrayType.getElementObjectType());
+                    }
+                } else if (node.getPointerValue() instanceof StaticFieldLiteral sfl) {
+                    InitializerElement init = sfl.getVariableElement().getRunTimeInitializer();
+                    if (init != null && !getRootElement().equals(init)) {
+                        VmObject initThunkInstance = RuntimeInitManager.get(ctxt).getOnceInstance(init);
+                        initCheck(init, ctxt.getLiteralFactory().literalOf(initThunkInstance));
                     }
                 }
                 return null;

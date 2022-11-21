@@ -7,6 +7,7 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
@@ -23,6 +24,7 @@ import org.qbicc.pointer.OffsetPointer;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.ProgramObjectPointer;
 import org.qbicc.pointer.StaticFieldPointer;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
@@ -86,4 +88,17 @@ public final class MemberPointerCopier implements NodeVisitor.Delegating<Node.Co
         }
     }
 
+    @Override
+    public Value visit(Node.Copier copier, StaticFieldLiteral node) {
+        StaticFieldElement field = node.getVariableElement();
+        GlobalVariableElement global = BuildtimeHeap.get(ctxt).getGlobalForStaticField(field);
+        DefinedTypeDefinition fieldHolder = field.getEnclosingType();
+        DefinedTypeDefinition ourHolder = copier.getBlockBuilder().getRootElement().getEnclosingType();
+        if (! fieldHolder.equals(ourHolder)) {
+            // we have to declare it in our translation unit
+            ProgramModule programModule = ctxt.getOrAddProgramModule(ourHolder);
+            programModule.declareData(field, global.getName(), global.getType());
+        }
+        return ctxt.getLiteralFactory().literalOf(global);
+    }
 }

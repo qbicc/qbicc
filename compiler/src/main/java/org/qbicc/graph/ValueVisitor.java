@@ -9,11 +9,13 @@ import org.qbicc.graph.literal.CompoundLiteral;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.literal.GlobalVariableLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
@@ -41,6 +43,10 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T t, ArrayLiteral node) {
+        return visitUnknown(t, node);
+    }
+
+    default R visit(T t, Auto node) {
         return visitUnknown(t, node);
     }
 
@@ -216,6 +222,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, GlobalVariableLiteral node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, Max node) {
         return visitUnknown(t, node);
     }
@@ -324,6 +334,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, StaticFieldLiteral node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, StringLiteral node) {
         return visitUnknown(t, node);
     }
@@ -380,6 +394,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T t, ArrayLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default R visit(T t, Auto node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 
@@ -555,6 +573,10 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(t, node);
         }
 
+        default R visit(T t, GlobalVariableLiteral node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
         default R visit(T t, Max node) {
             return getDelegateValueVisitor().visit(t, node);
         }
@@ -660,6 +682,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T t, StackAllocation node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default R visit(T t, StaticFieldLiteral node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

@@ -11,8 +11,8 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Slot;
-import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -22,6 +22,7 @@ import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.interpreter.Thrown;
@@ -56,7 +57,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value load(ValueHandle handle, ReadAccessMode accessMode) {
-        if (handle instanceof StaticField sf) {
+        if (handle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
             final StaticFieldElement fieldElement = sf.getVariableElement();
             Value constantValue = Constants.get(ctxt).getConstantValue(fieldElement);
             if (constantValue != null) {

@@ -22,6 +22,10 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.VariableElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
+import org.qbicc.type.definition.element.VariableElement;
 import org.qbicc.type.methodhandle.MethodHandleConstant;
 
 /**
@@ -81,6 +85,10 @@ public interface LiteralFactory {
 
     PointerLiteral literalOf(Pointer value);
 
+    GlobalVariableLiteral literalOf(GlobalVariableElement variableElement);
+
+    StaticFieldLiteral literalOf(StaticFieldElement variableElement);
+
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
             private final BooleanLiteral TRUE = new BooleanLiteral(typeSystem.getBooleanType(), true);
@@ -94,6 +102,7 @@ public interface LiteralFactory {
             private final ConcurrentMap<NullableType, NullLiteral> nullLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ValueType, UndefinedLiteral> undefLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ValueType, ConstantLiteral> constantLiterals = new ConcurrentHashMap<>();
+            private final ConcurrentMap<VariableElement, VariableLiteral> varLiterals = new ConcurrentHashMap<>();
 
             public BlockLiteral literalOf(final BlockLabel blockLabel) {
                 return new BlockLiteral(typeSystem.getBlockType(), blockLabel);
@@ -255,6 +264,19 @@ public interface LiteralFactory {
                 Assert.checkNotNullParam("value", value);
                 return new PointerLiteral(value);
             }
+
+            @Override
+            public GlobalVariableLiteral literalOf(GlobalVariableElement variableElement) {
+                Assert.checkNotNullParam("variableElement", variableElement);
+                return (GlobalVariableLiteral) varLiterals.computeIfAbsent(variableElement, GlobalVariableLiteral::new);
+            }
+
+            @Override
+            public StaticFieldLiteral literalOf(StaticFieldElement variableElement) {
+                Assert.checkNotNullParam("variableElement", variableElement);
+                return (StaticFieldLiteral) varLiterals.computeIfAbsent(variableElement, StaticFieldLiteral::new);
+            }
+
         };
     }
 }

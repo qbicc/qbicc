@@ -13,19 +13,12 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Phase;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
-import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.InstanceMethodElementHandle;
-import org.qbicc.graph.Load;
-import org.qbicc.graph.LocalVariable;
-import org.qbicc.graph.Node;
-import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.ReadModifyWrite;
-import org.qbicc.graph.Store;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.Variable;
 import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
@@ -661,29 +654,6 @@ public class UnsafeIntrinsics {
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "arrayIndexScale0", classToInt, arrayIndexScale);
-    }
-
-    private static Value traverseLoads(Value value) {
-        // todo: modify Load to carry a "known value"?
-        if (value instanceof Load) {
-            ValueHandle valueHandle = value.getValueHandle();
-            if (valueHandle instanceof LocalVariable || valueHandle instanceof Variable && ((Variable) valueHandle).getVariableElement().isFinal()) {
-                Node dependency = value;
-                while (dependency instanceof OrderedNode) {
-                    dependency = ((OrderedNode) dependency).getDependency();
-                    if (dependency instanceof Store) {
-                        if (dependency.getValueHandle().equals(valueHandle)) {
-                            return ((Store) dependency).getValue();
-                        }
-                    }
-                    if (dependency instanceof BlockEntry) {
-                        // not resolvable
-                        break;
-                    }
-                }
-            }
-        }
-        return value;
     }
 
     // remaining TODO:

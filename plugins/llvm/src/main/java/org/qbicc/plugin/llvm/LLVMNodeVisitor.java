@@ -41,7 +41,6 @@ import org.qbicc.graph.Extend;
 import org.qbicc.graph.ExtractElement;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
-import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
 import org.qbicc.graph.InsertElement;
@@ -134,7 +133,6 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.MethodBody;
-import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -241,6 +239,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         call.arg(metadata(mappedPointerType), mappedAddress)
             .arg(metadata, metadataNode.asRef())
             .arg(metadata, LLVM.diExpression().arg(DIOpcode.Deref).asValue());
+        call.comment("local var " + node.getVariable().getName());
         return call;
     }
 
@@ -256,6 +255,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         call.arg(metadata(mappedValueType), mappedValue)
             .arg(metadata, metadataNode.asRef())
             .arg(metadata, emptyExpr);
+        call.comment("local var " + node.getVariable().getName());
         return call;
     }
 
@@ -1170,12 +1170,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         }
 
         @Override
-        public GetElementPtr visit(LLVMNodeVisitor param, GlobalVariable node) {
-            GlobalVariableElement gv = node.getVariableElement();
-            return param.gep(Values.global(gv.getName()), node).arg(false, i32, ZERO);
-        }
-
-        @Override
         public GetElementPtr visit(LLVMNodeVisitor param, PointerHandle node) {
             LLValue offset = param.map(node.getOffsetValue());
             LLValue offsetType = param.map(node.getOffsetValue().getType());
@@ -1193,11 +1187,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         public LLValue visit(LLVMNodeVisitor param, AsmHandle node) {
             // special case: not a pointer at all!
             return Values.asm(node.getInstruction(), node.getConstraints(), map(node.getFlags()));
-        }
-
-        @Override
-        public LLValue visit(LLVMNodeVisitor param, GlobalVariable node) {
-            return Values.global(node.getVariableElement().getName());
         }
 
         @Override

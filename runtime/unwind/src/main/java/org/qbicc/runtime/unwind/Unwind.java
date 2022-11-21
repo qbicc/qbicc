@@ -152,7 +152,7 @@ public final class Unwind {
     }
 
     public static long getHandlerOffset(uint8_t_ptr lsda, long pcOffset) {
-        int offset = 0;
+        int offset = auto(0);
         int32_t_ptr offsetPtr = addr_of(offset);
         uint8_t header = lsda.plus(offset++).loadPlain();   // encoding of landingpad base which is generally DW_EH_PE_omit(0xff)
         uint8_t typeEncodingEncoding = lsda.plus(offset++).loadPlain();

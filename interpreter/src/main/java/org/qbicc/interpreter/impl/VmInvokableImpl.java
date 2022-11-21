@@ -21,6 +21,7 @@ import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
+import org.qbicc.pointer.MemoryPointer;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
@@ -84,7 +85,7 @@ final class VmInvokableImpl implements VmInvokable {
         }
         Frame caller = thread.currentFrame;
         Memory memory = thread.getVM().allocate(frameMemoryType, 1);
-        Frame frame = new Frame(caller, element, memory);
+        Frame frame = new Frame(caller, element, new MemoryPointer(frameMemoryType.getPointer(), memory));
         thread.currentFrame = frame;
         // bind inputs
         MethodBody body = element.getMethodBody();

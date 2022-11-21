@@ -7,13 +7,16 @@ import java.util.Map;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.Auto;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.pointer.ProgramObjectPointer;
@@ -23,6 +26,7 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.VariadicType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -39,7 +43,44 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
+    public Value new_(ClassTypeDescriptor desc) {
+        ClassContext classContext = getCurrentClassContext();
+        DefinedTypeDefinition def = classContext.findDefinedType(desc.getPackageName() + "/" + desc.getClassName());
+        if (def != null) {
+            ValueType nativeType = NativeInfo.get(ctxt).getNativeType(def);
+            if (nativeType != null) {
+                return getFirstBuilder().auto(getLiteralFactory().zeroInitializerLiteralOfType(nativeType));
+            }
+        }
+        return super.new_(desc);
+    }
+
+    @Override
+    public Value newArray(ArrayTypeDescriptor atd, Value size) {
+        ClassContext classContext = getCurrentClassContext();
+        TypeDescriptor etd = atd.getElementTypeDescriptor();
+        if (etd instanceof ClassTypeDescriptor desc) {
+            DefinedTypeDefinition def = classContext.findDefinedType(desc.getPackageName() + "/" + desc.getClassName());
+            if (def != null) {
+                ValueType nativeType = NativeInfo.get(ctxt).getNativeType(def);
+                if (nativeType != null) {
+                    if (size instanceof IntegerLiteral lit) {
+                        return getFirstBuilder().auto(getLiteralFactory().zeroInitializerLiteralOfType(getTypeSystem().getArrayType(nativeType, lit.longValue())));
+                    } else {
+                        ctxt.error(getLocation(), "Non-constant array length for native types not supported");
+                        throw new BlockEarlyTermination(unreachable());
+                    }
+                }
+            }
+        }
+        return super.newArray(atd, size);
+    }
+
+    @Override
     public Value checkcast(Value value, TypeDescriptor desc) {
+        if (value instanceof Auto auto) {
+            return auto;
+        }
         // delete casts to native base types preemptively
         if (desc instanceof ClassTypeDescriptor ctd) {
             if (ctd.packageAndClassNameEquals(Native.NATIVE_PKG, Native.WORD)) {
@@ -172,13 +213,13 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+    public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
         NativeDataInfo fieldInfo = nativeInfo.getFieldInfo(owner, name);
         if (fieldInfo != null) {
-            return pointerHandle(getAndDeclareSymbolLiteral(fieldInfo));
+            return getAndDeclareSymbolLiteral(fieldInfo);
         }
-        return super.staticField(deNative(owner), name, deNative(type));
+        return super.resolveStaticField(deNative(owner), name, deNative(type));
     }
 
     @Override

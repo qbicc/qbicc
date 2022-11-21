@@ -307,19 +307,35 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         }
         // Break apart atomic structure and array stores
         if (handle.getPointeeType() instanceof CompoundType ct) {
-            for (CompoundType.Member member : ct.getPaddedMembers()) {
-                store(memberOf(handle, member), extractMember(value, member), accessMode);
+            if (value instanceof Literal lit && lit.isZero()) {
+                LiteralFactory lf = getLiteralFactory();
+                for (CompoundType.Member member : ct.getPaddedMembers()) {
+                    store(memberOf(handle, member), lf.zeroInitializerLiteralOfType(member.getType()), accessMode);
+                }
+                return nop();
+            } else {
+                for (CompoundType.Member member : ct.getPaddedMembers()) {
+                    store(memberOf(handle, member), extractMember(value, member), accessMode);
+                }
+                return nop();
             }
-            return nop();
         } else if (handle.getPointeeType() instanceof ArrayType at) {
             long ec = at.getElementCount();
             LiteralFactory lf = ctxt.getLiteralFactory();
             if (ec < 16) {
                 // unrolled
-                for (long i = 0; i < ec; i ++) {
-                    IntegerLiteral idxLit = lf.literalOf(i);
-                    store(elementOf(handle, idxLit), extractElement(value, idxLit));
+                if (value instanceof Literal lit && lit.isZero()) {
+                    for (long i = 0; i < ec; i ++) {
+                        IntegerLiteral idxLit = lf.literalOf(i);
+                        store(elementOf(handle, idxLit), lf.zeroInitializerLiteralOfType(at.getElementType()));
+                    }
+                } else {
+                    for (long i = 0; i < ec; i ++) {
+                        IntegerLiteral idxLit = lf.literalOf(i);
+                        store(elementOf(handle, idxLit), extractElement(value, idxLit));
+                    }
                 }
+                return nop();
             } else {
                 // rolled loop
                 BlockLabel top = new BlockLabel();
@@ -328,7 +344,11 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 goto_(top, Slot.temp(0), lf.literalOf(idxType, 0));
                 begin(top);
                 BlockParameter idx = addParam(top, Slot.temp(0), idxType);
-                store(elementOf(handle, idx), extractElement(value, idx));
+                if (value instanceof Literal lit && lit.isZero()) {
+                    store(elementOf(handle, idx), lf.zeroInitializerLiteralOfType(at.getElementType()));
+                } else {
+                    store(elementOf(handle, idx), extractElement(value, idx));
+                }
                 if_(isLt(idx, lf.literalOf(idxType, ec)), top, exit, Map.of(Slot.temp(0), add(idx, lf.literalOf(idxType, 1))));
                 begin(exit);
             }

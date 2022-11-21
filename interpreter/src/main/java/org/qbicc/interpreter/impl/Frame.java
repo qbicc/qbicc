@@ -30,6 +30,8 @@ import org.qbicc.graph.Call;
 import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.CheckCast;
+import org.qbicc.graph.DebugAddressDeclaration;
+import org.qbicc.graph.DebugValueDeclaration;
 import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.InitCheck;
 import org.qbicc.graph.ClassOf;
@@ -50,7 +52,6 @@ import org.qbicc.graph.Extend;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
 import org.qbicc.graph.FunctionElementHandle;
-import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
 import org.qbicc.graph.InstanceFieldOf;
@@ -65,7 +66,6 @@ import org.qbicc.graph.IsLe;
 import org.qbicc.graph.IsLt;
 import org.qbicc.graph.IsNe;
 import org.qbicc.graph.Load;
-import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.Max;
 import org.qbicc.graph.MemberOf;
 import org.qbicc.graph.Min;
@@ -93,7 +93,6 @@ import org.qbicc.graph.Select;
 import org.qbicc.graph.Shl;
 import org.qbicc.graph.Shr;
 import org.qbicc.graph.StackAllocation;
-import org.qbicc.graph.StaticField;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
@@ -120,11 +119,13 @@ import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.literal.GlobalVariableLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
@@ -177,6 +178,7 @@ import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
+import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -202,7 +204,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     /**
      * Local variable memory.
      */
-    final Memory memory;
+    final MemoryPointer memoryPointer;
 
     /**
      * Frame values.
@@ -234,11 +236,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
      */
     VmThrowable exception;
 
-    Frame(Frame enclosing, ExecutableElement element, Memory memory) {
+    Frame(Frame enclosing, ExecutableElement element, MemoryPointer memoryPointer) {
         this.enclosing = enclosing;
         this.depth = enclosing == null ? 0 : enclosing.depth + 1;
         this.element = element;
-        this.memory = memory;
+        this.memoryPointer = memoryPointer;
     }
 
     /////////////////////
@@ -1006,7 +1008,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isFloat64(inputType)) {
             return Boolean.valueOf(unboxDouble(left) >= unboxDouble(right));
         } else if (isInt64(inputType)) {
-            return Boolean.valueOf(unboxLong(left) >= unboxLong(right));
+            return Boolean.valueOf(isSigned(inputType) ? compareLongSigned(left, right, -1) >= 0 : compareLongUnsigned(left, right, -1) >= 0);
         } else if (isInteger(inputType)) {
             return Boolean.valueOf(isSigned(inputType) ? unboxInt(left) >= unboxInt(right) : Integer.compareUnsigned(unboxInt(left), unboxInt(right)) >= 0);
         }
@@ -1024,7 +1026,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isFloat64(inputType)) {
             return Boolean.valueOf(unboxDouble(left) > unboxDouble(right));
         } else if (isInt64(inputType)) {
-            return Boolean.valueOf(unboxLong(left) > unboxLong(right));
+            return Boolean.valueOf(isSigned(inputType) ? compareLongSigned(left, right, -1) > 0 : compareLongUnsigned(left, right, -1) > 0);
         } else if (isInteger(inputType)) {
             return Boolean.valueOf(isSigned(inputType) ? unboxInt(left) > unboxInt(right) : Integer.compareUnsigned(unboxInt(left), unboxInt(right)) > 0);
         }
@@ -1042,7 +1044,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isFloat64(inputType)) {
             return Boolean.valueOf(unboxDouble(left) <= unboxDouble(right));
         } else if (isInt64(inputType)) {
-            return Boolean.valueOf(unboxLong(left) <= unboxLong(right));
+            return Boolean.valueOf(isSigned(inputType) ? compareLongSigned(left, right, 1) <= 0 : compareLongUnsigned(left, right, 1) <= 0);
         } else if (isInteger(inputType)) {
             return Boolean.valueOf(isSigned(inputType) ? unboxInt(left) <= unboxInt(right) : Integer.compareUnsigned(unboxInt(left), unboxInt(right)) <= 0);
         }
@@ -1060,11 +1062,127 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isFloat64(inputType)) {
             return Boolean.valueOf(unboxDouble(left) < unboxDouble(right));
         } else if (isInt64(inputType)) {
-            return Boolean.valueOf(unboxLong(left) < unboxLong(right));
+            return Boolean.valueOf(isSigned(inputType) ? compareLongSigned(left, right, 1) < 0 : compareLongUnsigned(left, right, 1) < 0);
         } else if (isInteger(inputType)) {
             return Boolean.valueOf(isSigned(inputType) ? unboxInt(left) < unboxInt(right) : Integer.compareUnsigned(unboxInt(left), unboxInt(right)) < 0);
         }
         throw new IllegalStateException("Invalid is*");
+    }
+
+    private int compareLongSigned(Value left, Value right, int undef) {
+        Object leftObj = require(left);
+        Object rightObj = require(right);
+        if (leftObj == rightObj) {
+            return 0;
+        } else if (leftObj == null) {
+            if (rightObj instanceof Number rightLong) {
+                return Long.compare(0, rightLong.longValue());
+            } else if (rightObj instanceof IntegerAsPointer rightPointer) {
+                return Long.compare(0, rightPointer.getValue());
+            } else if (rightObj instanceof Pointer) {
+                return -1; // null < pointer
+            } else {
+                // treat comparison as undefined
+                return undef;
+            }
+        } else if (leftObj instanceof Number leftLong) {
+            if (rightObj == null) {
+                return Long.compare(leftLong.longValue(), 0);
+            } else if (rightObj instanceof Number rightLong) {
+                return Long.compare(leftLong.longValue(), rightLong.longValue());
+            } else if (rightObj instanceof IntegerAsPointer rightPointer) {
+                return Long.compare(leftLong.longValue(), rightPointer.getValue());
+            } else {
+                // treat comparison as undefined
+                return undef;
+            }
+        } else if (leftObj instanceof IntegerAsPointer leftPointer) {
+            if (rightObj == null) {
+                return Long.compare(leftPointer.getValue(), 0);
+            } else if (rightObj instanceof Number rightLong) {
+                return Long.compare(leftPointer.getValue(), rightLong.longValue());
+            } else if (rightObj instanceof IntegerAsPointer rightPointer) {
+                return Long.compare(leftPointer.getValue(), rightPointer.getValue());
+            } else {
+                // treat comparison as undefined
+                return undef;
+            }
+        } else if (leftObj instanceof Pointer leftPointer) {
+            if (rightObj == null) {
+                return 1; // pointer > null
+            } else if (rightObj instanceof Pointer rightPointer) {
+                Memory leftMemory = leftPointer.getRootMemoryIfExists();
+                Memory rightMemory = rightPointer.getRootMemoryIfExists();
+                if (leftMemory != null && rightMemory == leftMemory) {
+                    return Long.compareUnsigned(leftPointer.getRootByteOffset(), rightPointer.getRootByteOffset());
+                } else {
+                    return undef;
+                }
+            } else {
+                return undef;
+            }
+        } else {
+            // treat comparison as undefined
+            return undef;
+        }
+    }
+
+    private int compareLongUnsigned(Value left, Value right, int undef) {
+        Object leftObj = require(left);
+        Object rightObj = require(right);
+        if (leftObj == rightObj) {
+            return 0;
+        } else if (leftObj == null) {
+            if (rightObj instanceof Number rightLong) {
+                return Long.compareUnsigned(0, rightLong.longValue());
+            } else if (rightObj instanceof IntegerAsPointer rightPointer) {
+                return Long.compareUnsigned(0, rightPointer.getValue());
+            } else if (rightObj instanceof Pointer) {
+                return -1; // null < pointer
+            } else {
+                // treat comparison as undefined
+                return undef;
+            }
+        } else if (leftObj instanceof Number leftLong) {
+            if (rightObj == null) {
+                return Long.compareUnsigned(leftLong.longValue(), 0);
+            } else if (rightObj instanceof Number rightLong) {
+                return Long.compareUnsigned(leftLong.longValue(), rightLong.longValue());
+            } else if (rightObj instanceof IntegerAsPointer rightPointer) {
+                return Long.compareUnsigned(leftLong.longValue(), rightPointer.getValue());
+            } else {
+                // treat comparison as undefined
+                return undef;
+            }
+        } else if (leftObj instanceof IntegerAsPointer leftPointer) {
+            if (rightObj == null) {
+                return Long.compareUnsigned(leftPointer.getValue(), 0);
+            } else if (rightObj instanceof Number rightLong) {
+                return Long.compareUnsigned(leftPointer.getValue(), rightLong.longValue());
+            } else if (rightObj instanceof IntegerAsPointer rightPointer) {
+                return Long.compareUnsigned(leftPointer.getValue(), rightPointer.getValue());
+            } else {
+                // treat comparison as undefined
+                return undef;
+            }
+        } else if (leftObj instanceof Pointer leftPointer) {
+            if (rightObj == null) {
+                return 1; // pointer > null
+            } else if (rightObj instanceof Pointer rightPointer) {
+                Memory leftMemory = leftPointer.getRootMemoryIfExists();
+                Memory rightMemory = rightPointer.getRootMemoryIfExists();
+                if (leftMemory != null && rightMemory == leftMemory) {
+                    return Long.compareUnsigned(leftPointer.getRootByteOffset(), rightPointer.getRootByteOffset());
+                } else {
+                    return undef;
+                }
+            } else {
+                return undef;
+            }
+        } else {
+            // treat comparison as undefined
+            return undef;
+        }
     }
 
     @Override
@@ -1426,6 +1544,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
+    public Object visit(VmThreadImpl thread, GlobalVariableLiteral node) {
+        return node.getVariableElement().getPointer();
+    }
+
+    @Override
     public Object visit(VmThreadImpl thread, IntegerLiteral node) {
         return box(node.longValue(), node.getType());
     }
@@ -1443,6 +1566,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl param, PointerLiteral node) {
         return node.getPointer();
+    }
+
+    @Override
+    public Object visit(VmThreadImpl thread, StaticFieldLiteral node) {
+        return node.getVariableElement().getPointer();
     }
 
     @Override
@@ -1569,7 +1697,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, CmpAndSwap node) {
         ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof StaticField sf) {
+        if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
         Memory memory = getMemory(valueHandle);
@@ -1645,7 +1773,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, ReadModifyWrite node) {
         ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof StaticField sf) {
+        if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
         Memory memory = getMemory(valueHandle);
@@ -1828,7 +1956,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         if (valueHandle instanceof CurrentThread) {
             return thread;
         }
-        if (valueHandle instanceof StaticField sf) {
+        if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
         Memory memory = getMemory(valueHandle);
@@ -1961,6 +2089,23 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
+    public Void visit(VmThreadImpl thread, DebugAddressDeclaration node) {
+        LocalVariableElement lve = node.getVariable();
+        Value address = node.getAddress();
+        // replace it
+        Pointer replacement = memoryPointer.offsetInBytes(lve.getOffset(), false);
+        values.put(address, replacement);
+        return null;
+    }
+
+    @Override
+    public Void visit(VmThreadImpl thread, DebugValueDeclaration node) {
+        LocalVariableElement lve = node.getVariable();
+        store(thread, memoryPointer.getMemory(), lve.getOffset(), lve.getType(), node.getValue(), SingleUnshared);
+        return null;
+    }
+
+    @Override
     public Void visit(VmThreadImpl thread, Fence node) {
         GlobalAccessMode gam = node.getAccessMode();
         if (GlobalPlain.includes(gam)) {
@@ -2019,7 +2164,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         ValueHandle valueHandle = node.getValueHandle();
         Value value = node.getValue();
         WriteAccessMode mode = node.getAccessMode();
-        if (valueHandle instanceof StaticField sf) {
+        if (valueHandle instanceof PointerHandle ph && ph.getPointerValue() instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }
         store(thread, valueHandle, value, mode);
@@ -2262,16 +2407,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
 
         @Override
-        public ExecutableElement visit(Frame param, GlobalVariable node) {
-            throw unsatisfiedLink();
-        }
-
-        @Override
-        public ExecutableElement visit(Frame param, LocalVariable node) {
-            throw unsatisfiedLink();
-        }
-
-        @Override
         public ExecutableElement visit(Frame param, PointerHandle node) {
             if (((PointerType)node.getPointerValue().getType()).getPointeeType() instanceof StaticMethodType) {
                 StaticMethodPointer pointer = (StaticMethodPointer) param.require(node.getPointerValue());
@@ -2344,34 +2479,12 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
 
         @Override
-        public Memory visit(Frame frame, GlobalVariable node) {
-            VmImpl vm = (VmImpl) Vm.current();
-            return vm.getGlobal(node.getVariableElement());
-        }
-
-        @Override
         public Memory visit(Frame frame, InstanceFieldOf node) {
             InstanceFieldElement variableElement = node.getVariableElement();
             if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
                 throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run-time field "+variableElement));
             }
             return node.getValueHandle().accept(this, frame);
-        }
-
-        @Override
-        public Memory visit(Frame frame, LocalVariable node) {
-            return frame.memory;
-        }
-
-        @Override
-        public Memory visit(Frame frame, StaticField node) {
-            StaticFieldElement variableElement = node.getVariableElement();
-            if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
-                throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run-time field "+variableElement));
-            }
-            DefinedTypeDefinition enclosingType = variableElement.getEnclosingType();
-            VmClassImpl clazz = (VmClassImpl) enclosingType.load().getVmClass();
-            return clazz.getStaticMemory();
         }
 
         @Override
@@ -2413,11 +2526,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
 
         @Override
-        public long visit(Frame thread, GlobalVariable node) {
-            return 0;
-        }
-
-        @Override
         public long visit(Frame frame, InstanceFieldOf node) {
             CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
             Layout layout = Layout.get(ctxt);
@@ -2428,11 +2536,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             } catch (NullPointerException e) {
                 throw e;
             }
-        }
-
-        @Override
-        public long visit(Frame frame, LocalVariable node) {
-            return node.getVariableElement().getOffset();
         }
 
         @Override
@@ -2463,18 +2566,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             long byteOffset = offset * pointeeType.getSize();
             Pointer targetPointer = pointer.offsetInBytes(byteOffset, true);
             return targetPointer == null ? 0 : targetPointer.getRootByteOffset();
-        }
-
-        @Override
-        public long visit(Frame frame, StaticField node) {
-            CompilationContext ctxt = frame.element.getEnclosingType().getContext().getCompilationContext();
-            Layout layout = Layout.get(ctxt);
-            FieldElement field = node.getVariableElement();
-            LayoutInfo layoutInfo = layout.getStaticLayoutInfo(field.getEnclosingType());
-            if (layoutInfo == null) {
-                throw new IllegalStateException("No static fields found");
-            }
-            return layoutInfo.getMember(field).getOffset();
         }
 
         @Override

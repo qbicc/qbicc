@@ -54,8 +54,8 @@ public final class PatcherResolverBasicBlockBuilder extends DelegatingBasicBlock
     }
 
     @Override
-    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
-        return super.staticField(info.transform(owner), name, info.transform(type));
+    public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+        return super.resolveStaticField(info.transform(owner), name, info.transform(type));
     }
 
     @Override

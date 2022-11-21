@@ -22,11 +22,13 @@ import org.qbicc.graph.literal.CompoundLiteral;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.literal.GlobalVariableLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
@@ -456,6 +458,10 @@ public interface Node {
                 return node;
             }
 
+            public Value visit(final Copier copier, final Auto node) {
+                return node;
+            }
+
             public Value visit(final Copier param, final BitCast node) {
                 return param.getBlockBuilder().bitCast(param.copyValue(node.getInput()), node.getType());
             }
@@ -613,8 +619,8 @@ public interface Node {
                 return param.getBlockBuilder().insertMember(param.copyValue(node.getCompoundValue()), node.getMember(), param.copyValue(node.getInsertedValue()));
             }
 
-            public ValueHandle visit(Copier param, GlobalVariable node) {
-                return param.getBlockBuilder().globalVariable(node.getVariableElement());
+            public Value visit(final Copier copier, final GlobalVariableLiteral node) {
+                return node;
             }
 
             public Value visit(final Copier param, final InstanceOf node) {
@@ -665,10 +671,6 @@ public interface Node {
             public Value visit(final Copier param, final Load node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().load(param.copyValueHandle(node.getValueHandle()), node.getAccessMode());
-            }
-
-            public ValueHandle visit(Copier param, LocalVariable node) {
-                return param.getBlockBuilder().localVariable(node.getVariableElement());
             }
 
             public Value visit(Copier param, MemberOf node) {
@@ -789,8 +791,8 @@ public interface Node {
                 return param.getBlockBuilder().stackAllocate(node.getType().getPointeeType(), param.copyValue(node.getCount()), param.copyValue(node.getAlign()));
             }
 
-            public ValueHandle visit(Copier param, StaticField node) {
-                return param.getBlockBuilder().staticField(node.getVariableElement());
+            public Value visit(final Copier copier, final StaticFieldLiteral node) {
+                return node;
             }
 
             public ValueHandle visit(Copier param, StaticMethodElementHandle node) {
