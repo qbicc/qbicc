@@ -54,11 +54,6 @@ public final class AddressOf extends AbstractValue {
     }
 
     @Override
-    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
-        return visitor.visit(param, this);
-    }
-
-    @Override
     public boolean isConstant() {
         return valueHandle.isConstantLocation();
     }

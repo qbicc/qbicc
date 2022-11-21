@@ -87,11 +87,6 @@ public final class InsertElement extends AbstractValue {
         return visitor.visit(param, this);
     }
 
-    @Override
-    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
-        return visitor.visit(param, this);
-    }
-
     public Value extractElement(LiteralFactory lf, final Value index) {
         return index.equals(this.index) ? insertedValue : arrayValue.extractElement(lf, index);
     }

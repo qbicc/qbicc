@@ -81,8 +81,4 @@ public final class VaArg extends AbstractValue implements OrderedNode {
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
-
-    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
-        return visitor.visit(param, this);
-    }
 }

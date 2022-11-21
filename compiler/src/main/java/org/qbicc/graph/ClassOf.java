@@ -34,10 +34,6 @@ public final class ClassOf extends AbstractValue implements UnaryValue {
         return visitor.visit(param, this);
     }
 
-    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
-        return visitor.visit(param, this);
-    }
-
     int calcHashCode() {
         return Objects.hash(ClassOf.class, input, dimensions);
     }

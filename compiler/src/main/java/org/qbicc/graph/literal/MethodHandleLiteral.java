@@ -2,7 +2,6 @@ package org.qbicc.graph.literal;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.graph.ValueVisitor;
-import org.qbicc.graph.ValueVisitorLong;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.methodhandle.MethodHandleConstant;
 
@@ -43,10 +42,6 @@ public final class MethodHandleLiteral extends Literal {
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
-        return visitor.visit(param, this);
-    }
-
-    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
         return visitor.visit(param, this);
     }
 

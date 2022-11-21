@@ -5,7 +5,6 @@ import java.util.Objects;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.ValueVisitor;
-import org.qbicc.graph.ValueVisitorLong;
 import org.qbicc.type.BlockType;
 
 public final class BlockLiteral extends Literal {
@@ -48,10 +47,6 @@ public final class BlockLiteral extends Literal {
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
-        return visitor.visit(param, this);
-    }
-
-    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
         return visitor.visit(param, this);
     }
 

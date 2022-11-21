@@ -112,11 +112,6 @@ public final class Call extends AbstractValue implements OrderedNode {
         return visitor.visit(param, this);
     }
 
-    @Override
-    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
-        return visitor.visit(param, this);
-    }
-
     public boolean isConstant() {
         return false;
     }
