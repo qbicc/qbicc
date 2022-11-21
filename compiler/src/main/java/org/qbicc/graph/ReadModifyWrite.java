@@ -117,11 +117,6 @@ public final class ReadModifyWrite extends AbstractValue implements ReadModifyWr
         return visitor.visit(param, this);
     }
 
-    @Override
-    public <T> long accept(ValueVisitorLong<T> visitor, T param) {
-        return visitor.visit(param, this);
-    }
-
     public enum Op {
         SET,
         ADD,

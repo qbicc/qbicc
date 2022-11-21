@@ -1,8 +1,6 @@
 package org.qbicc.graph.literal;
 
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueVisitor;
-import org.qbicc.graph.ValueVisitorLong;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.WordType;
@@ -36,11 +34,7 @@ public final class BooleanLiteral extends WordLiteral {
         return this == other || other != null && value == other.value && type.equals(other.type);
     }
 
-    public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
-        return visitor.visit(param, this);
-    }
-
-    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
+    public <T, R> R accept(final LiteralVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
 

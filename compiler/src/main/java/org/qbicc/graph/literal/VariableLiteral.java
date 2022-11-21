@@ -3,8 +3,6 @@ package org.qbicc.graph.literal;
 import static org.qbicc.graph.atomic.AccessModes.GlobalSeqCst;
 import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
-import org.qbicc.graph.ValueVisitor;
-import org.qbicc.graph.ValueVisitorLong;
 import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -57,16 +55,6 @@ public abstract class VariableLiteral extends Literal {
     @Override
     public StringBuilder toString(StringBuilder b) {
         return toReferenceString(b);
-    }
-
-    @Override
-    public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
-        return null;
-    }
-
-    @Override
-    public <T> long accept(ValueVisitorLong<T> visitor, T param) {
-        return 0;
     }
 
     @Override

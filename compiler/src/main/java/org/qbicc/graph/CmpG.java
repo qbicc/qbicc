@@ -15,10 +15,6 @@ public class CmpG extends AbstractBinaryValue implements NonCommutativeBinaryVal
         return visitor.visit(param, this);
     }
 
-    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
-        return visitor.visit(param, this);
-    }
-
     public SignedIntegerType getType() {
         return integerType;
     }

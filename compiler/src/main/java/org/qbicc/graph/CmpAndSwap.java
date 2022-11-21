@@ -142,10 +142,6 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
         return visitor.visit(param, this);
     }
 
-    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
-        return visitor.visit(param, this);
-    }
-
     public boolean isConstant() {
         // we could possibly make this more exact in the future
         return false;

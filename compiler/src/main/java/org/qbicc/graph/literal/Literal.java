@@ -3,6 +3,7 @@ package org.qbicc.graph.literal;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueVisitor;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -78,4 +79,11 @@ public abstract class Literal implements Unschedulable, Value {
     Literal elementOf(LiteralFactory literalFactory, Literal index) {
         return new ElementOfLiteral(this, index);
     }
+
+    @Override
+    public final <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
+        return accept((LiteralVisitor<T, R>) visitor, param);
+    }
+
+    public abstract <T, R> R accept(LiteralVisitor<T, R> visitor, T param);
 }

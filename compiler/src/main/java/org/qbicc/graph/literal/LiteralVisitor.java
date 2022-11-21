@@ -1,0 +1,182 @@
+package org.qbicc.graph.literal;
+
+/**
+ * A visitor over every possible kind of literal.
+ */
+public interface LiteralVisitor<T, R> {
+    default R visitAny(T t, Literal literal) {
+        return null;
+    }
+
+    default R visit(T t, ArrayLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, BitCastLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, BlockLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, BooleanLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, ByteArrayLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, CompoundLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, ConstantLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, ElementOfLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, FloatLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, GlobalVariableLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, IntegerLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, MethodHandleLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, NullLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, ObjectLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, PointerLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, StaticFieldLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, StringLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, TypeLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, UndefinedLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, ValueConvertLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    default R visit(T t, ZeroInitializerLiteral literal) {
+        return visitAny(t, literal);
+    }
+
+    interface Delegating<T, R> extends LiteralVisitor<T, R> {
+        LiteralVisitor<T, R> getDelegateLiteralVisitor();
+
+        default R visit(T t, ArrayLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, BitCastLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, BlockLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, BooleanLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, ByteArrayLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, CompoundLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, ConstantLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, ElementOfLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, FloatLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, GlobalVariableLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, IntegerLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, MethodHandleLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, NullLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, ObjectLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, PointerLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, StaticFieldLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, StringLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, TypeLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, UndefinedLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, ValueConvertLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, ZeroInitializerLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+    }
+}

@@ -73,9 +73,4 @@ public final class Auto extends AbstractValue implements OrderedNode {
     public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
-
-    @Override
-    public <T> long accept(ValueVisitorLong<T> visitor, T param) {
-        return visitor.visit(param, this);
-    }
 }

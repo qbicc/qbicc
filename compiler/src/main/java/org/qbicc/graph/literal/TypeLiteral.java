@@ -1,7 +1,5 @@
 package org.qbicc.graph.literal;
 
-import org.qbicc.graph.ValueVisitor;
-import org.qbicc.graph.ValueVisitorLong;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 
@@ -45,11 +43,7 @@ public final class TypeLiteral extends Literal {
         return value.toString(b);
     }
 
-    public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
-        return visitor.visit(param, this);
-    }
-
-    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
+    public <T, R> R accept(final LiteralVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
 }

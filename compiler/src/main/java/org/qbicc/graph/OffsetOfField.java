@@ -31,10 +31,6 @@ public final class OffsetOfField extends AbstractValue {
         return visitor.visit(param, this);
     }
 
-    public <T> long accept(final ValueVisitorLong<T> visitor, final T param) {
-        return visitor.visit(param, this);
-    }
-
     int calcHashCode() {
         return Objects.hash(OffsetOfField.class, fieldElement);
     }

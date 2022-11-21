@@ -1,7 +1,5 @@
 package org.qbicc.graph.literal;
 
-import org.qbicc.graph.ValueVisitor;
-import org.qbicc.graph.ValueVisitorLong;
 import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.definition.element.VariableElement;
 
@@ -29,12 +27,7 @@ public class StaticFieldLiteral extends VariableLiteral {
     }
 
     @Override
-    public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
-        return visitor.visit(param, this);
-    }
-
-    @Override
-    public <T> long accept(ValueVisitorLong<T> visitor, T param) {
+    public <T, R> R accept(LiteralVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
 }
