@@ -1,6 +1,5 @@
 package org.qbicc.graph.literal;
 
-import org.qbicc.graph.ValueVisitor;
 import org.qbicc.type.WordType;
 
 public class ValueConvertLiteral extends Literal {
@@ -30,7 +29,7 @@ public class ValueConvertLiteral extends Literal {
         return other == this || other != null && toType.equals(other.toType) && value.equals(other.value);
     }
 
-    public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
+    public <T, R> R accept(final LiteralVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
 

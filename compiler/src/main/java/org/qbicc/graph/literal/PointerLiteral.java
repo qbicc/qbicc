@@ -1,6 +1,5 @@
 package org.qbicc.graph.literal;
 
-import org.qbicc.graph.ValueVisitor;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
@@ -42,7 +41,7 @@ public final class PointerLiteral extends WordLiteral {
     }
 
     @Override
-    public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
+    public <T, R> R accept(LiteralVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
 
