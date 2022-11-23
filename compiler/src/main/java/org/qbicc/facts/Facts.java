@@ -164,7 +164,7 @@ public final class Facts {
                         break;
                     }
                     if (longArrayHandle.compareAndSet(array, 1, oldVal, newVal)) {
-                        ctxt.submitTask(item, action);
+                        action.accept(item);
                         break;
                     }
                 }
@@ -267,8 +267,17 @@ public final class Facts {
         return fact1.getElementType().isInstance(item) && fact2.getElementType().isInstance(item) && fact3.getElementType().isInstance(item) && hadAnyFactBits(item, 1L << getFactIndex(fact1) | 1L << getFactIndex(fact2) | 1L << getFactIndex(fact3));
     }
 
-    public <E> void registerAction(Condition<? extends Fact<? super E>> condition, BiConsumer<E, Facts> action) {
+    public <E> void registerInlineAction(Condition<? extends Fact<? super E>> condition, BiConsumer<E, Facts> action) {
         condition.getRegisterFunction((facts, bits) -> facts.registerAction(bits, action)).accept(this, 0);
+    }
+
+    public <E> void registerInlineAction(Condition<? extends Fact<? super E>> condition, Consumer<E> action) {
+        registerInlineAction(condition, (e, f) -> action.accept(e));
+    }
+
+    public <E> void registerAction(Condition<? extends Fact<? super E>> condition, BiConsumer<E, Facts> action) {
+        BiConsumer<E, Facts> bc = (e, f) -> ctxt.submitTask(e, e2 -> action.accept(e2, f));
+        condition.getRegisterFunction((facts, bits) -> facts.registerAction(bits, bc)).accept(this, 0);
     }
 
     public <E> void registerAction(Condition<? extends Fact<? super E>> condition, Consumer<E> action) {
