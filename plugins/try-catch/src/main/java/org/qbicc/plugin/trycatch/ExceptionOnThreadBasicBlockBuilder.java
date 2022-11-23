@@ -16,20 +16,20 @@ import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 
 /**
  * A basic block builder which implements the exception handling strategy of storing the exception on the thread.
  */
 final class ExceptionOnThreadBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
-    private final FieldElement exceptionField;
+    private final InstanceFieldElement exceptionField;
     private final Map<BlockLabel, BlockLabel> landingPads = new HashMap<>();
 
     ExceptionOnThreadBasicBlockBuilder(BasicBlockBuilder delegate) {
         super(delegate);
         ClassContext bcc = delegate.getContext().getBootstrapClassContext();
-        exceptionField = bcc.findDefinedType(ExceptionOnThreadStrategy.THREAD_INT_NAME).load().findField("thrown", true);
+        exceptionField = bcc.findDefinedType(ExceptionOnThreadStrategy.THREAD_INT_NAME).load().findInstanceField("thrown", true);
     }
 
     @Override
@@ -52,7 +52,7 @@ final class ExceptionOnThreadBasicBlockBuilder extends DelegatingBasicBlockBuild
 
     @Override
     public BasicBlock throw_(Value value) {
-        store(instanceFieldOf(referenceHandle(load(pointerHandle(currentThread()), SingleUnshared)), exceptionField), value, SingleUnshared);
+        store(instanceFieldOf(decodeReference(load(currentThread(), SingleUnshared)), exceptionField), value, SingleUnshared);
         return super.throw_(value);
     }
 
@@ -64,7 +64,7 @@ final class ExceptionOnThreadBasicBlockBuilder extends DelegatingBasicBlockBuild
             BlockLabel delegateCatch = entry.getKey();
             BlockLabel landingPad = entry.getValue();
             begin(landingPad);
-            Value ex = readModifyWrite(instanceFieldOf(referenceHandle(load(pointerHandle(currentThread()), SingleUnshared)), exceptionField), ReadModifyWrite.Op.SET, lf.zeroInitializerLiteralOfType(exceptionField.getType()), SingleUnshared, SingleUnshared);
+            Value ex = readModifyWrite(instanceFieldOf(decodeReference(load(currentThread(), SingleUnshared)), exceptionField), ReadModifyWrite.Op.SET, lf.zeroInitializerLiteralOfType(exceptionField.getType()), SingleUnshared, SingleUnshared);
             goto_(delegateCatch, Slot.thrown(), ex);
         }
         super.finish();

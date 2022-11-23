@@ -37,7 +37,6 @@ import org.qbicc.type.InvokableType;
 import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.VoidType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.MethodBody;
@@ -248,9 +247,9 @@ public final class ReflectionIntrinsics {
             TypeSystem ts = ctxt.getTypeSystem();
             Reflection reflection = Reflection.get(ctxt);
             BasicBlockBuilder fb = builder.getFirstBuilder();
-            Value lambdaForm = fb.load(fb.instanceFieldOf(fb.referenceHandle(instance), reflection.methodHandleLambdaFormField));
-            Value memberName = fb.load(fb.instanceFieldOf(fb.referenceHandle(lambdaForm), reflection.lambdaFormMemberNameField));
-            Value methodPtr = fb.load(fb.instanceFieldOf(fb.referenceHandle(memberName), reflection.memberNameExactDispatcherField));
+            Value lambdaForm = fb.load(fb.instanceFieldOf(fb.decodeReference(instance), reflection.methodHandleLambdaFormField));
+            Value memberName = fb.load(fb.instanceFieldOf(fb.decodeReference(lambdaForm), reflection.lambdaFormMemberNameField));
+            Value methodPtr = fb.load(fb.instanceFieldOf(fb.decodeReference(memberName), reflection.memberNameExactDispatcherField));
             // pass the method handle to the lambda form
             ArrayList<Value> newArgs = new ArrayList<>(arguments.size() + 1);
             newArgs.add(instance);
@@ -304,7 +303,7 @@ public final class ReflectionIntrinsics {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             int lastArg = arguments.size() - 1;
             Value memberName = arguments.get(lastArg);
-            Value methodPtr = fb.load(fb.instanceFieldOf(fb.referenceHandle(memberName), reflection.memberNameExactDispatcherField));
+            Value methodPtr = fb.load(fb.instanceFieldOf(fb.decodeReference(memberName), reflection.memberNameExactDispatcherField));
             StaticMethodType methodType = (StaticMethodType) target.getExecutable().getType();
             // cast to the matching static method pointer type for this particular shape
             Value castMethodPtr = fb.bitCast(methodPtr, methodType.trimLastParameter().getPointer());
@@ -351,7 +350,7 @@ public final class ReflectionIntrinsics {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             int lastArg = arguments.size() - 1;
             Value memberName = arguments.get(lastArg);
-            Value methodPtr = fb.load(fb.instanceFieldOf(fb.referenceHandle(memberName), reflection.memberNameExactDispatcherField));
+            Value methodPtr = fb.load(fb.instanceFieldOf(fb.decodeReference(memberName), reflection.memberNameExactDispatcherField));
             StaticMethodType methodType = (StaticMethodType) target.getExecutable().getType();
             // cast to the matching static helper method pointer type for this particular shape
             Value castMethodPtr = fb.bitCast(methodPtr, methodType.trimLastParameter().getPointer());
@@ -396,7 +395,7 @@ public final class ReflectionIntrinsics {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             int lastArg = arguments.size() - 1;
             Value memberName = arguments.get(lastArg);
-            Value methodPtr = fb.load(fb.instanceFieldOf(fb.referenceHandle(memberName), reflection.memberNameExactDispatcherField));
+            Value methodPtr = fb.load(fb.instanceFieldOf(fb.decodeReference(memberName), reflection.memberNameExactDispatcherField));
             StaticMethodType methodType = (StaticMethodType) target.getExecutable().getType();
             // cast to the matching static helper method pointer type for this particular shape
             Value castMethodPtr = fb.bitCast(methodPtr, methodType.trimLastParameter().getPointer());
@@ -441,7 +440,7 @@ public final class ReflectionIntrinsics {
             BasicBlockBuilder fb = builder.getFirstBuilder();
             int lastArg = arguments.size() - 1;
             Value memberName = arguments.get(lastArg);
-            Value methodPtr = fb.load(fb.instanceFieldOf(fb.referenceHandle(memberName), reflection.memberNameExactDispatcherField));
+            Value methodPtr = fb.load(fb.instanceFieldOf(fb.decodeReference(memberName), reflection.memberNameExactDispatcherField));
             StaticMethodType methodType = (StaticMethodType) target.getExecutable().getType();
             // cast to the matching static helper method pointer type for this particular shape
             Value castMethodPtr = fb.bitCast(methodPtr, methodType.trimLastParameter().getPointer());

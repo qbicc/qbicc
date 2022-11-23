@@ -535,7 +535,7 @@ public final class Disassembler {
             final String id = param.nextId();
             final String description = String.format(
                 format
-                , show(node.getValueHandle())
+                , show(node.getPointer())
                 , show(node.getUpdateValue())
             );
             param.addLine(id + " = " + description, node);

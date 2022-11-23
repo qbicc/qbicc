@@ -260,14 +260,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     private Value check(ValueHandle handle) {
-        return check(handle, null);
-    }
-
-    private Value check(ValueHandle handle, Value storedValue) {
         return handle.accept(new ValueHandleVisitor<Void, Value>() {
             @Override
             public Value visit(Void param, PointerHandle node) {
-                return checkPointerValue(node.getPointerValue(), storedValue);
+                return checkPointerValue(node.getPointerValue(), null);
             }
 
             @Override
@@ -346,12 +342,12 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             dr.getPointeeType() instanceof ArrayObjectType arrayType) {
             indexOutOfBoundsCheck(dr, eo.getIndex());
             if (arrayType instanceof ReferenceArrayObjectType referenceArrayType && storedValue != null) {
-                Value toTypeId = load(instanceFieldOf(pointerHandle(dr), CoreClasses.get(ctxt).getRefArrayElementTypeIdField()));
+                Value toTypeId = load(instanceFieldOf(dr, CoreClasses.get(ctxt).getRefArrayElementTypeIdField()));
                 Value toDimensions;
                 ObjectType jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load().getObjectType();
                 if (referenceArrayType.getLeafElementType().equals(jlo)) {
                     // All arrays are subtypes of Object, so if the leafElementType is Object, we won't know the real dimension count until runtime!
-                    toDimensions = sub(load(instanceFieldOf(pointerHandle(dr), CoreClasses.get(ctxt).getRefArrayDimensionsField())), ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), 1));
+                    toDimensions = sub(load(instanceFieldOf(dr, CoreClasses.get(ctxt).getRefArrayDimensionsField())), ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), 1));
                 } else {
                     toDimensions = ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), referenceArrayType.getDimensionCount() - 1);
                 }
@@ -441,7 +437,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         if_(isLt(index, zero), throwIt, notNegative, Map.of());
         try {
             begin(notNegative);
-            final Value length = load(instanceFieldOf(pointerHandle(dr), CoreClasses.get(ctxt).getArrayLengthField()));
+            final Value length = load(instanceFieldOf(dr, CoreClasses.get(ctxt).getArrayLengthField()));
             if_(isGe(index, length), throwIt, goAhead, Map.of());
         } catch (BlockEarlyTermination ignored) {
             // continue

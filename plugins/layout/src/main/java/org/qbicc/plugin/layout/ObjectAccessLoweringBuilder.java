@@ -2,7 +2,6 @@ package org.qbicc.plugin.layout;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
-import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -115,7 +114,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder imp
     public Value byteOffsetPointer(Value base, Value offset, ValueType outputType) {
         BasicBlockBuilder fb = getFirstBuilder();
         UnsignedIntegerType u8 = ctxt.getTypeSystem().getUnsignedInteger8Type();
-        ValueHandle valueHandle = fb.pointerHandle(fb.bitCast(base, u8.getPointer()), offset);
-        return fb.bitCast(fb.addressOf(valueHandle), outputType.getPointer());
+        Value valueHandle = fb.offsetPointer(fb.bitCast(base, u8.getPointer()), offset);
+        return fb.bitCast(valueHandle, outputType.getPointer());
     }
 }
