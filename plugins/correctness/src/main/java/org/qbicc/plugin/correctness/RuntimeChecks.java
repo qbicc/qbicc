@@ -10,19 +10,17 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.NullableType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
-import org.qbicc.type.descriptor.BaseTypeDescriptor;
-import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  * A handy utility class to do some common runtime checks.
  */
 public final class RuntimeChecks {
+    public static final String NPE = "java/lang/NullPointerException";
 
     private static final Slot TEMP0 = Slot.temp(0);
 
@@ -58,7 +56,7 @@ public final class RuntimeChecks {
             bbb.if_(isNull(bbb, value), npe, resume, Map.of(TEMP0, value));
             // throw an NPE
             bbb.begin(npe);
-            throwException(bbb, "java/lang/NullPointerException", List.of());
+            throwException(bbb, RuntimeChecks.NPE, List.of());
             // null check passed OK
             bbb.begin(resume);
             return bbb.addParam(resume, TEMP0, value.getType(), false);
@@ -94,8 +92,8 @@ public final class RuntimeChecks {
         LoadedTypeDefinition npeType = bcc.findDefinedType(className).load();
         CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(npeType).getCompoundType();
         Value ex = bbb.new_(npeType.getClassType(), lf.literalOfType(npeType.getClassType()), lf.literalOf(compoundType.getSize()), lf.literalOf(compoundType.getAlign()));
-        ValueHandle ctor = bbb.constructorOf(ex, npeType.getDescriptor(), MethodDescriptor.synthesize(bcc, BaseTypeDescriptor.V, List.of()));
-        bbb.call(ctor, ctorArgs);
+        Value ctor = lf.literalOf(npeType.requireSingleConstructor(ce -> ce.getParameters().size() == 0));
+        bbb.call(ctor, ex, ctorArgs);
         return ex;
     }
 }

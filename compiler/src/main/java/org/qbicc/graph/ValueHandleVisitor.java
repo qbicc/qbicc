@@ -8,27 +8,7 @@ public interface ValueHandleVisitor<T, R> {
         return null;
     }
 
-    default R visit(T t, ConstructorElementHandle node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, ExactMethodElementHandle node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, FunctionElementHandle node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, InterfaceMethodElementHandle node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, VirtualMethodElementHandle node) {
-        return visitUnknown(t, node);
-    }
-
-    default R visit(T t, StaticMethodElementHandle node) {
+    default R visit(T t, Executable node) {
         return visitUnknown(t, node);
     }
 
@@ -45,32 +25,7 @@ public interface ValueHandleVisitor<T, R> {
         }
 
         @Override
-        default R visit(T t, ConstructorElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default R visit(T t, ExactMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default R visit(T t, FunctionElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default R visit(T t, InterfaceMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default R visit(T t, VirtualMethodElementHandle node) {
-            return getDelegateValueHandleVisitor().visit(t, node);
-        }
-
-        @Override
-        default R visit(T t, StaticMethodElementHandle node) {
+        default R visit(T t, Executable node) {
             return getDelegateValueHandleVisitor().visit(t, node);
         }
 

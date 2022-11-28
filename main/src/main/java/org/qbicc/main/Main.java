@@ -67,7 +67,7 @@ import org.qbicc.plugin.apploader.InitAppClassLoaderHook;
 import org.qbicc.plugin.constants.ConstantBasicBlockBuilder;
 import org.qbicc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import org.qbicc.plugin.core.CoreAnnotationTypeBuilder;
-import org.qbicc.plugin.coreclasses.ArrayLengthBasicBlockBuilder;
+import org.qbicc.plugin.coreclasses.CoreClassesBasicBlockBuilder;
 import org.qbicc.plugin.coreclasses.BasicHeaderManualInitializer;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.correctness.BuildTimeOnlyElementHandler;
@@ -476,7 +476,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassInitializingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ArrayLengthBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, CoreClassesBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, BciRangeExceptionHandlerBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);

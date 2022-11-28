@@ -2,6 +2,8 @@ package org.qbicc.plugin.llvm;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.facts.Facts;
+import org.qbicc.facts.core.ExecutableReachabilityFacts;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -139,6 +141,10 @@ final class LLVMModuleGenerator {
                 Linkage linkage = map(item.getLinkage());
                 if (item instanceof Function fn) {
                     ExecutableElement element = fn.getOriginalElement();
+                    if (! Facts.get(context).hadFact(element, ExecutableReachabilityFacts.IS_INVOKED)) {
+                        // not reachable; do not emit
+                        continue;
+                    }
                     MethodBody body = fn.getBody();
                     boolean isExact = item == context.getExactFunction(element);
                     if (body == null) {

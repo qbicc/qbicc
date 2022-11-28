@@ -338,7 +338,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                                 ClassContext bc = ib.getContext().getBootstrapClassContext();
                                                 LoadedTypeDefinition vmHelpers = bc.findDefinedType("org/qbicc/runtime/main/VMHelpers").load();
                                                 MethodElement icce = vmHelpers.resolveMethodElementExact("raiseIncompatibleClassChangeError", MethodDescriptor.synthesize(bc, BaseTypeDescriptor.V, List.of()));
-                                                ib.callNoReturn(ib.staticMethod(icce), List.of());
+                                                ib.callNoReturn(ib.getLiteralFactory().literalOf(icce), List.of());
                                             });
                                             // that's all
                                             bbb.finish();
@@ -381,7 +381,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                     for (int i = 0; i < pcnt; i ++) {
                                         paramValues.add(bbb.addParam(entryLabel, Slot.funcParam(i), type.getParameterType(i)));
                                     }
-                                    BasicBlock entryBlock = bbb.begin(entryLabel, ib -> ib.tailCall(ib.exactMethodOf(thisValue, finalDefaultMethod), paramValues));
+                                    BasicBlock entryBlock = bbb.begin(entryLabel, ib -> ib.tailCall(ib.getLiteralFactory().literalOf(finalDefaultMethod), thisValue, paramValues));
                                     bbb.finish();
                                     Schedule schedule = Schedule.forMethod(entryBlock);
                                     return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(pcnt));

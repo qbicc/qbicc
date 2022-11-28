@@ -1,5 +1,7 @@
 package org.qbicc.plugin.lowering;
 
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -11,21 +13,13 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.BlockParameter;
-import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.CurrentThread;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.ExactMethodElementHandle;
-import org.qbicc.graph.FunctionElementHandle;
-import org.qbicc.graph.InterfaceMethodElementHandle;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Slot;
-import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.ValueHandleVisitor;
-import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.literal.ExecutableLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -40,24 +34,24 @@ import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.plugin.dispatch.DispatchTables;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
-import org.qbicc.type.MethodType;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.InstanceMethodType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
-import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
-
-import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 /**
  *
  */
-public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<ArrayList<Value>, ValueHandle> {
+public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
     private final ExecutableElement originalElement;
     private final ReferenceType threadType;
@@ -99,109 +93,88 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             final LiteralFactory lf = ctxt.getLiteralFactory();
             return lf.literalOf(decl);
         }
-        // todo: replace this with addressOf(%thread) node after https://github.com/qbicc/qbicc/pull/1433
         return super.currentThread();
     }
 
+    public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
+        ArrayList<Value> argList = copyArgList(arguments);
+        return super.call(lower(targetPtr, receiver, argList), receiver, argList);
+    }
+
+    public Value callNoSideEffects(Value targetPtr, Value receiver, List<Value> arguments) {
+        ArrayList<Value> argList = copyArgList(arguments);
+        return super.callNoSideEffects(lower(targetPtr, receiver, argList), receiver, argList);
+    }
+
+    public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
+        ArrayList<Value> argList = copyArgList(arguments);
+        return super.callNoReturn(lower(targetPtr, receiver, argList), receiver, argList);
+    }
+
+    public BasicBlock invokeNoReturn(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        ArrayList<Value> argList = copyArgList(arguments);
+        return super.invokeNoReturn(lower(targetPtr, receiver, argList), receiver, argList, catchLabel, targetArguments);
+    }
+
     @Override
-    public Value addressOf(final ValueHandle handle) {
-        if (handle instanceof StaticMethodElementHandle mh) {
-            if (!mh.getExecutable().hasMethodBodyFactory() && mh.getExecutable().hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
-                // Convert native method that wasn't intercepted by an intrinsic to a runtime link error
-                throw new BlockEarlyTermination(raiseLinkError(mh.getExecutable()));
+    public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
+        ArrayList<Value> argList = copyArgList(arguments);
+        return super.tailCall(lower(targetPtr, receiver, argList), receiver, argList);
+    }
+
+    @Override
+    public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        ArrayList<Value> argList = copyArgList(arguments);
+        return super.invoke(lower(targetPtr, receiver, argList), receiver, argList, catchLabel, resumeLabel, targetArguments);
+    }
+
+    private static ArrayList<Value> copyArgList(final List<Value> arguments) {
+        ArrayList<Value> list = new ArrayList<>(arguments.size() + 2);
+        list.addAll(arguments);
+        return list;
+    }
+
+    private Value lower(Value targetPtr, Value receiver, ArrayList<Value> args) {
+        final BasicBlockBuilder fb = getFirstBuilder();
+        InvokableType invType = targetPtr.getPointeeType(InvokableType.class);
+        if (! (invType instanceof FunctionType)) {
+            // insert current thread
+            args.add(0, fb.load(fb.currentThread()));
+            if (invType instanceof InstanceMethodType) {
+                // also insert the receiver
+                args.add(1, receiver);
             }
-            ctxt.enqueue(mh.getExecutable());
-            Function function = ctxt.getExactFunction(mh.getExecutable());
+        }
+        // now lower to function
+        if (targetPtr instanceof ExecutableLiteral el) {
+            ExecutableElement element = el.getExecutable();
+            if (! element.hasMethodBodyFactory() && element.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+                // Convert native method that wasn't intercepted by an intrinsic to a runtime link error
+                throw new BlockEarlyTermination(raiseLinkError((MethodElement) element));
+            }
+            if (!ctxt.mayBeEnqueued(element)) {
+                // No realized invocation targets are possible for this method!
+                throw new BlockEarlyTermination(unreachable());
+            }
+            ctxt.enqueue(element);
+            Function function = ctxt.getExactFunction(element);
             FunctionDeclaration decl = ctxt.getOrAddProgramModule(originalElement).declareFunction(function);
             final LiteralFactory lf = ctxt.getLiteralFactory();
             return lf.literalOf(decl);
+        } else {
+            // already lowered pointer; we may have to bitcast it
+            FunctionType lowerInvType = ctxt.getFunctionTypeForInvokableType(invType);
+            return invType == lowerInvType ? targetPtr : bitCast(targetPtr, lowerInvType.getPointer());
         }
-        return super.addressOf(handle);
-    }
-
-
-    public Value call(ValueHandle target, List<Value> arguments) {
-        ArrayList<Value> argList = new ArrayList<>(arguments);
-        return super.call(target.accept(this, argList), argList);
-    }
-
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
-        ArrayList<Value> argList = new ArrayList<>(arguments);
-        return super.callNoSideEffects(target.accept(this, argList), argList);
-    }
-
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
-        ArrayList<Value> argList = new ArrayList<>(arguments);
-        return super.callNoReturn(target.accept(this, argList), argList);
-    }
-
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        ArrayList<Value> argList = new ArrayList<>(arguments);
-        return super.invokeNoReturn(target.accept(this, argList), argList, catchLabel, targetArguments);
-    }
-
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
-        ArrayList<Value> argList = new ArrayList<>(arguments);
-        return super.tailCall(target.accept(this, argList), argList);
-    }
-
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
-        ArrayList<Value> argList = new ArrayList<>(arguments);
-        return super.invoke(target.accept(this, argList), argList, catchLabel, resumeLabel, targetArguments);
     }
 
     @Override
-    public ValueHandle visit(ArrayList<Value> args, ConstructorElementHandle node) {
-        final BasicBlockBuilder fb = getFirstBuilder();
-        // insert "this" and current thread
-        args.addAll(0, List.of(fb.load(currentThread(), SingleUnshared), node.getInstance()));
-        ctxt.enqueue(node.getExecutable());
-        Function function = ctxt.getExactFunction(node.getExecutable());
-        node.getExecutable();
-        FunctionDeclaration decl = ctxt.getOrAddProgramModule(originalElement).declareFunction(function);
-        final LiteralFactory lf = ctxt.getLiteralFactory();
-        return pointerHandle(lf.literalOf(decl));
-    }
-
-    @Override
-    public ValueHandle visit(ArrayList<Value> args, FunctionElementHandle node) {
-        ctxt.enqueue(node.getExecutable());
-        Function function = ctxt.getExactFunction(node.getExecutable());
-        node.getExecutable();
-        FunctionDeclaration decl = ctxt.getOrAddProgramModule(originalElement).declareFunction(function);
-        final LiteralFactory lf = ctxt.getLiteralFactory();
-        return pointerHandle(lf.literalOf(decl));
-    }
-
-    @Override
-    public ValueHandle visit(ArrayList<Value> args, ExactMethodElementHandle node) {
-        if (!node.getExecutable().hasMethodBodyFactory() && node.getExecutable().hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
-            // Convert native method that wasn't intercepted by an intrinsic to a runtime link error
-            throw new BlockEarlyTermination(raiseLinkError(node.getExecutable()));
-        }
-        if (!ctxt.mayBeEnqueued(node.getExecutable())) {
-            // No realized invocation targets are possible for this method!
-            throw new BlockEarlyTermination(unreachable());
-        }
-        final BasicBlockBuilder fb = getFirstBuilder();
-        // insert "this" and current thread
-        args.addAll(0, List.of(fb.load(fb.currentThread(), SingleUnshared), node.getInstance()));
-        ctxt.enqueue(node.getExecutable());
-        Function function = ctxt.getExactFunction(node.getExecutable());
-        FunctionDeclaration decl = ctxt.getOrAddProgramModule(originalElement).declareFunction(function);
-        final LiteralFactory lf = ctxt.getLiteralFactory();
-        return pointerHandle(lf.literalOf(decl));
-    }
-
-    @Override
-    public ValueHandle visit(ArrayList<Value> args, VirtualMethodElementHandle node) {
-        final BasicBlockBuilder fb = getFirstBuilder();
-        // insert "this" and current thread
-        args.addAll(0, List.of(fb.load(fb.currentThread(), SingleUnshared), node.getInstance()));
-        final MethodElement target = node.getExecutable();
+    public Value lookupVirtualMethod(Value reference, InstanceMethodElement target) {
+        BasicBlockBuilder fb = getFirstBuilder();
+        LiteralFactory lf = getLiteralFactory();
         if (!ReachabilityInfo.get(ctxt).isDispatchableMethod(target)) {
             // No realized invocation targets are possible for this method!
-            throw new BlockEarlyTermination(unreachable());
+            return lf.nullLiteralOfType(target.getType().getPointer());
         }
         DispatchTables dt = DispatchTables.get(ctxt);
         DispatchTables.VTableInfo info = dt.getVTableInfo(target.getEnclosingType().load());
@@ -212,25 +185,21 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             programModule.declareData(null, vtables.getName(), vtables.getType());
         }
         int index = dt.getVTableIndex(target);
-        Value typeId = fb.load(fb.instanceFieldOf(fb.decodeReference(node.getInstance()), CoreClasses.get(ctxt).getObjectTypeIdField()));
-        Value vtable = fb.load(elementOf(ctxt.getLiteralFactory().literalOf(dt.getVTablesGlobal()), typeId));
-        Value ptr = fb.load(memberOf(bitCast(vtable, info.getType().getPointer()), info.getType().getMember(index)));
-        return pointerHandle(ptr);
+        Value typeId = fb.load(instanceFieldOf(fb.decodeReference(reference), CoreClasses.get(ctxt).getObjectTypeIdField()));
+        Value vtable = fb.load(elementOf(lf.literalOf(dt.getVTablesGlobal()), typeId));
+        return fb.load(memberOf(bitCast(vtable, info.getType().getPointer()), info.getType().getMember(index)));
     }
 
     // Current implementation strategy is "searched itables" in the terminology of [Alpern et al 2001].
     @Override
-    public ValueHandle visit(ArrayList<Value> args, InterfaceMethodElementHandle node) {
+    public Value lookupInterfaceMethod(Value reference, InstanceMethodElement target) {
         final BasicBlockBuilder fb = getFirstBuilder();
-        // insert "this" and current thread
-        args.addAll(0, List.of(fb.load(fb.currentThread(), SingleUnshared), node.getInstance()));
-        final MethodElement target = node.getExecutable();
+        LiteralFactory lf = getLiteralFactory();
         DispatchTables dt = DispatchTables.get(ctxt);
         DispatchTables.ITableInfo info = dt.getITableInfo(target.getEnclosingType().load());
         if (info == null) {
             // No realized invocation targets are possible for this method!
-            MethodElement method = RuntimeMethodFinder.get(ctxt).getMethod("raiseIncompatibleClassChangeError");
-            throw new BlockEarlyTermination(fb.callNoReturn(staticMethod(method), List.of()));
+            return lf.nullLiteralOfType(target.getType().getPointer());
         }
 
         ProgramModule programModule = ctxt.getOrAddProgramModule(originalElement.getEnclosingType());
@@ -239,10 +208,8 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             programModule.declareData(null, rootITables.getName(), rootITables.getType());
         }
 
-        LiteralFactory lf = ctxt.getLiteralFactory();
-
         // Use the receiver's typeId to get the itable dictionary for its class
-        Value typeId = fb.load(fb.instanceFieldOf(fb.decodeReference(node.getInstance()), CoreClasses.get(ctxt).getObjectTypeIdField()));
+        Value typeId = fb.load(instanceFieldOf(fb.decodeReference(reference), CoreClasses.get(ctxt).getObjectTypeIdField()));
         Value itableDict = fb.load(elementOf(lf.literalOf(rootITables), typeId));
 
         // Search loop to find the itableDictEntry with the typeId of the target interface.
@@ -267,46 +234,13 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
             begin(failLabel);
             MethodElement method = RuntimeMethodFinder.get(ctxt).getMethod("raiseIncompatibleClassChangeError");
-            callNoReturn(staticMethod(method), List.of());
+            callNoReturn(lf.literalOf(method), List.of());
         } catch (BlockEarlyTermination ignored) {
             // ignore; continue to generate validEntry block
         }
         begin(exitMatched);
         Value itable = fb.bitCast(fb.load(fb.memberOf(fb.elementOf(itableDict, bp), dt.getItableDictType().getMember("itable"))), info.getType().getPointer());
-        final Value ptr = fb.load(memberOf(itable, info.getType().getMember(dt.getITableIndex(target))));
-        return pointerHandle(ptr);
-    }
-
-    @Override
-    public ValueHandle visit(ArrayList<Value> args, StaticMethodElementHandle node) {
-        if (!node.getExecutable().hasMethodBodyFactory() && node.getExecutable().hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
-            // Convert native method that wasn't intercepted by an intrinsic to a runtime link error
-            throw new BlockEarlyTermination(raiseLinkError(node.getExecutable()));
-        }
-        // insert current thread only
-        args.add(0, getCurrentThreadRef());
-        ctxt.enqueue(node.getExecutable());
-        Function function = ctxt.getExactFunction(node.getExecutable());
-        FunctionDeclaration decl = ctxt.getOrAddProgramModule(originalElement).declareFunction(function);
-        final LiteralFactory lf = ctxt.getLiteralFactory();
-        return pointerHandle(lf.literalOf(decl));
-    }
-
-    @Override
-    public ValueHandle visit(ArrayList<Value> args, PointerHandle node) {
-        // potentially, a pointer to a method
-        Value pointerValue = node.getPointerValue();
-        ValueType valueType = node.getPointeeType();
-        if (valueType instanceof MethodType mt) {
-            // we have to bitcast it, and also transform the arguments accordingly
-            args.add(0, getCurrentThreadRef());
-            // NOTE: calls to pointers to instance methods MUST already have the receiver set in the arg list by this point
-            // todo: this is inconsistent with how instance method handles work
-            //   - option 1: add a receiver argument to all call nodes, let backend decide what reg to use
-            //   - option 2: receiver is first arg to all instance calls, backend can rearrange based on callee type
-            return pointerHandle(bitCast(pointerValue, ctxt.getFunctionTypeForInvokableType(mt).getPointer()));
-        }
-        return node;
+        return fb.load(memberOf(itable, info.getType().getMember(dt.getITableIndex(target))));
     }
 
     private Value getCurrentThreadRef() {
@@ -324,12 +258,6 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         }
     }
 
-    @Override
-    public ValueHandle visitUnknown(ArrayList<Value> args, ValueHandle node) {
-        // no conversion needed
-        return node;
-    }
-
     private BasicBlock raiseLinkError(MethodElement target) {
         // Perform the transformation done by ObjectLiteralSerializingVisitor.visit(StringLiteral) because this BBB runs during LOWER
         VmString vString = ctxt.getVm().intern(target.getEnclosingType().getInternalName().replace("/", ".")+"."+target.getName());
@@ -340,6 +268,6 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             ctxt.getOrAddProgramModule(originalElement));
 
         MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseUnsatisfiedLinkError");
-        return callNoReturn(staticMethod(helper), List.of(arg));
+        return callNoReturn(getLiteralFactory().literalOf(helper), List.of(arg));
     }
 }

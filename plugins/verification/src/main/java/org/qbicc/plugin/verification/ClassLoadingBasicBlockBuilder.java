@@ -9,7 +9,6 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.context.ClassContext;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -50,41 +49,46 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    @Override
+    public Value resolveInstanceMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         if (loadClass(owner)) {
-            return super.exactMethodOf(instance, owner, name, descriptor);
+            return super.resolveInstanceMethod(owner, name, descriptor);
         }
         // no need to continue
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    @Override
+    public Value lookupVirtualMethod(Value reference, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         if (loadClass(owner)) {
-            return super.virtualMethodOf(instance, owner, name, descriptor);
+            return super.lookupVirtualMethod(reference, owner, name, descriptor);
         }
         // no need to continue
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    @Override
+    public Value lookupInterfaceMethod(Value reference, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         if (loadClass(owner)) {
-            return super.interfaceMethodOf(instance, owner, name, descriptor);
+            return super.lookupInterfaceMethod(reference, owner, name, descriptor);
         }
         // no need to continue
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    @Override
+    public Value resolveStaticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         if (loadClass(owner)) {
-            return super.staticMethod(owner, name, descriptor);
+            return super.resolveStaticMethod(owner, name, descriptor);
         }
         // no need to continue
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
+    @Override
+    public Value resolveConstructor(TypeDescriptor owner, MethodDescriptor descriptor) {
         if (loadClass(owner)) {
-            return super.constructorOf(instance, owner, descriptor);
+            return super.resolveConstructor(owner, descriptor);
         }
         // no need to continue
         throw new BlockEarlyTermination(noClassDefFound(owner));
@@ -164,7 +168,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             fullName = desc.toString();
         }
         StringLiteral msg = ctxt.getLiteralFactory().literalOf(fullName, getClassContext().findDefinedType("java/lang/String").load().getObjectType().getReference());
-        call(constructorOf(ncdfe, ncdfeClass, info.voidStringDesc), List.of(msg));
+        call(resolveConstructor(ncdfeClass, info.voidStringDesc), ncdfe, List.of(msg));
         return throw_(ncdfe);
     }
 
@@ -179,7 +183,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             fullName = desc.toString();
         }
         StringLiteral msg = ctxt.getLiteralFactory().literalOf(fullName, getClassContext().findDefinedType("java/lang/String").load().getObjectType().getReference());
-        call(constructorOf(ve, veClass, info.voidStringDesc), List.of(msg));
+        call(resolveConstructor(veClass, info.voidStringDesc), ve, List.of(msg));
         return throw_(ve);
     }
 

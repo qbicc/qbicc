@@ -10,16 +10,16 @@ import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.FunctionElementHandle;
-import org.qbicc.graph.InstanceMethodElementHandle;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
-import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
+import org.qbicc.graph.literal.ExecutableLiteral;
+import org.qbicc.graph.literal.InitializerLiteral;
+import org.qbicc.graph.literal.MethodLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
@@ -172,52 +172,54 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
-        return super.call(check(target), arguments);
+    public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
+        return super.call(check(targetPtr), receiver, arguments);
     }
 
     @Override
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
-        return super.callNoSideEffects(check(target), arguments);
+    public Value callNoSideEffects(Value targetPtr, Value receiver, List<Value> arguments) {
+        return super.callNoSideEffects(check(targetPtr), receiver, arguments);
     }
 
     @Override
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
-        return super.callNoReturn(check(target), arguments);
+    public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
+        return super.callNoReturn(check(targetPtr), receiver, arguments);
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        return super.invokeNoReturn(check(target), arguments, catchLabel, targetArguments);
+    public BasicBlock invokeNoReturn(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return super.invokeNoReturn(check(targetPtr), receiver, arguments, catchLabel, targetArguments);
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
-        return super.tailCall(check(target), arguments);
+    public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
+        return super.tailCall(check(targetPtr), receiver, arguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
-        return super.invoke(check(target), arguments, catchLabel, resumeLabel, targetArguments);
+    public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        return super.invoke(check(targetPtr), receiver, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
-    private ValueHandle check(ValueHandle handle) {
+    private Value check(Value targetPtr) {
+        checkTargetType(targetPtr);
         if (getCurrentElement().hasAllModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS)) {
             ExecutableElement target;
             // not an exhaustive check but good enough for detecting common errors
-            if (handle instanceof InstanceMethodElementHandle h) {
-                target = h.getElement();
-            } else if (handle instanceof StaticMethodElementHandle h) {
-                target = h.getElement();
-            } else if (handle instanceof FunctionElementHandle h) {
-                target = h.getElement();
+            // todo: targetPtr.isNoSafePoints()
+            if (targetPtr instanceof ExecutableLiteral xl) {
+                if (xl instanceof MethodLiteral || xl instanceof InitializerLiteral) {
+                    target = xl.getExecutable();
+                } else {
+                    return targetPtr;
+                }
             } else {
-                return handle;
+                return targetPtr;
             }
             if (target.hasNoModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS)) {
                 getContext().error(getLocation(), "This method may not call methods or functions that are not marked as no-safepoint");
             }
         }
-        return handle;
+        return targetPtr;
     }
 }

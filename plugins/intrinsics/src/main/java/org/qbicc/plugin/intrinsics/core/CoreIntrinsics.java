@@ -17,7 +17,6 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.GlobalVariableLiteral;
 import org.qbicc.graph.literal.Literal;
@@ -57,6 +56,7 @@ import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -150,14 +150,14 @@ public final class CoreIntrinsics {
 
         InstanceIntrinsic getEnclosingMethod0 = (builder, instance, target, arguments) -> {
             LiteralFactory lf = ctxt.getLiteralFactory();
-            return lf.nullLiteralOfType((NullableType) target.getExecutable().getType().getReturnType());
+            return lf.nullLiteralOfType((NullableType) target.getReturnType());
         };
 
         intrinsics.registerIntrinsic(Phase.ANALYZE, jlcDesc, "getEnclosingMethod0", emptyToObjArray, getEnclosingMethod0);
 
         InstanceIntrinsic getDeclaringClass0 = (builder, instance, target, arguments) -> {
             LiteralFactory lf = ctxt.getLiteralFactory();
-            return lf.nullLiteralOfType((NullableType) target.getExecutable().getType().getReturnType());
+            return lf.nullLiteralOfType((NullableType) target.getReturnType());
         };
 
         intrinsics.registerIntrinsic(Phase.ANALYZE, jlcDesc, "getDeclaringClass0", emptyToClass, getDeclaringClass0);
@@ -248,22 +248,23 @@ public final class CoreIntrinsics {
         MethodElement getFrameCountElement = methodFinder.getMethod(jswClass, "getFrameCount");
         MethodElement walkStackElement = methodFinder.getMethod(jswClass, "walkStack");
 
-        MethodElement getSourceCodeIndexListElement = methodFinder.getMethod(jsfcClass, "getSourceCodeIndexList");
+        InstanceMethodElement getSourceCodeIndexListElement = (InstanceMethodElement) methodFinder.getMethod(jsfcClass, "getSourceCodeIndexList");
         ConstructorElement jsfcConstructor = methodFinder.getConstructor(jsfcClass, intToVoidDesc);
 
         InstanceIntrinsic fillInStackTrace = (builder, instance, target, arguments) -> {
+            LiteralFactory lf = builder.getLiteralFactory();
             Value frameCount = builder.getFirstBuilder().call(
-                builder.staticMethod(getFrameCountElement),
+                lf.literalOf(getFrameCountElement),
                 List.of(instance));
             ClassObjectType jsfcClassType = (ClassObjectType) ctxt.getBootstrapClassContext().findDefinedType(jsfcClass).load().getObjectType();
             CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(jsfcClassType.getDefinition()).getCompoundType();
-            LiteralFactory lf = ctxt.getLiteralFactory();
             Value visitor = builder.getFirstBuilder().new_(jsfcClassType, lf.literalOfType(jsfcClassType), lf.literalOf(compoundType.getSize()), lf.literalOf(compoundType.getAlign()));
             builder.call(
-                builder.getFirstBuilder().constructorOf(visitor, jsfcConstructor),
+                lf.literalOf(jsfcConstructor),
+                visitor,
                 List.of(frameCount));
             builder.call(
-                builder.getFirstBuilder().staticMethod(walkStackElement),
+                lf.literalOf(walkStackElement),
                 List.of(instance, visitor));
 
             // set Throwable#backtrace and Throwable#depth fields
@@ -272,7 +273,8 @@ public final class CoreIntrinsics {
             InstanceFieldElement backtraceField = jltVal.findInstanceField("backtrace");
             InstanceFieldElement depthField = jltVal.findInstanceField("depth");
             Value backtraceValue = builder.getFirstBuilder().call(
-                builder.virtualMethodOf(visitor, getSourceCodeIndexListElement),
+                builder.lookupVirtualMethod(visitor, getSourceCodeIndexListElement),
+                visitor,
                 List.of());
             builder.store(builder.instanceFieldOf(builder.decodeReference(instance), backtraceField), backtraceValue, SingleUnshared);
             builder.store(builder.instanceFieldOf(builder.decodeReference(instance), depthField), frameCount, SingleUnshared);
@@ -325,7 +327,7 @@ public final class CoreIntrinsics {
             Value backtraceValue = builder.load(builder.instanceFieldOf(builder.decodeReference(arguments.get(1)), backtraceField), SingleUnshared);
             Value depthValue = builder.load(builder.instanceFieldOf(builder.decodeReference(arguments.get(1)), depthField), SingleUnshared);
 
-            return builder.getFirstBuilder().call(builder.staticMethod(fillStackTraceElements), List.of(arguments.get(0), backtraceValue, depthValue));
+            return builder.getFirstBuilder().call(builder.getLiteralFactory().literalOf(fillStackTraceElements), List.of(arguments.get(0), backtraceValue, depthValue));
         };
 
         intrinsics.registerIntrinsic(Phase.ANALYZE, steDesc, "initStackTraceElements", steArrayThrowableToVoidDesc, initStackTraceElements);
@@ -478,25 +480,26 @@ public final class CoreIntrinsics {
             DefinedTypeDefinition jls = classContext.findDefinedType("java/lang/StackTraceElement");
             LoadedTypeDefinition jlsVal = jls.load();
             Value scIndex = arguments.get(1);
+            LiteralFactory lf = builder.getLiteralFactory();
 
             Value lineNumber = builder.getFirstBuilder().call(
-                builder.staticMethod(getLineNumberElement),
+                lf.literalOf(getLineNumberElement),
                 List.of(scIndex));
             Value minfoIndex = builder.getFirstBuilder().call(
-                builder.staticMethod(getMethodInfoIndexElement),
+                lf.literalOf(getMethodInfoIndexElement),
                 List.of(scIndex));
 
             Value fileName = builder.getFirstBuilder().call(
-                builder.staticMethod(getFileNameElement),
+                lf.literalOf(getFileNameElement),
                 List.of(minfoIndex));
             Value classObject = builder.getFirstBuilder().call(
-                builder.staticMethod(getClassElement),
+                lf.literalOf(getClassElement),
                 List.of(minfoIndex));
             Value className = builder.getFirstBuilder().call(
-                builder.staticMethod(getClassNameElement),
+                lf.literalOf(getClassNameElement),
                 List.of(minfoIndex));
             Value methodName = builder.getFirstBuilder().call(
-                builder.staticMethod(getMethodNameElement),
+                lf.literalOf(getMethodNameElement),
                 List.of(minfoIndex));
 
             Value steRefHandle = builder.decodeReference(arguments.get(0));
@@ -635,9 +638,8 @@ public final class CoreIntrinsics {
             try {
                 MethodElement me = ltd.requireSingleMethod(name.getValue());
                 // The three argument form of staticMethod enables the machinery that processes the @export annotation
-                ValueHandle mh  = builder.staticMethod(me.getEnclosingType().getDescriptor(), name.getValue(), me.getDescriptor());
-                Value funcPtr = builder.addressOf(mh);
-                return builder.bitCast(funcPtr, toType);
+                Value mh  = builder.resolveStaticMethod(me.getEnclosingType().getDescriptor(), name.getValue(), me.getDescriptor());
+                return builder.bitCast(mh, toType);
             } catch (IllegalArgumentException e) {
                 ctxt.error("CompilerIntrinsics.nativeFunctionPointer: failed to find: %s.%s", clazz.getValue(), name.getValue());
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(toType);
@@ -677,7 +679,7 @@ public final class CoreIntrinsics {
             //  2. We are overwriting the object header fields initialized by new when doing the copy
             //     (to make sure we copy any instance fields that have been assigned to use the padding bytes in the basic object header).
             MethodElement method = NoGc.get(ctxt).getCopyMethod();
-            return builder.call(builder.staticMethod(method), List.of(dst, src, size));
+            return builder.call(builder.getLiteralFactory().literalOf(method), List.of(dst, src, size));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "copyInstanceFields", copyDesc, copy);
     }
@@ -857,7 +859,7 @@ public final class CoreIntrinsics {
             builder.if_(builder.isGt(dims, ctxt.getLiteralFactory().literalOf(0)), trueBranch, fallThrough, Map.of(Slot.temp(0), result)); // if (dimensions > 0)
 
             builder.begin(trueBranch); // true; create Class for array reference
-            result = builder.getFirstBuilder().call(builder.staticMethod(getOrCreateArrayClass), List.of(componentClass, dims));
+            result = builder.getFirstBuilder().call(lf.literalOf(getOrCreateArrayClass), List.of(componentClass, dims));
             builder.goto_(fallThrough, Slot.temp(0), result);
             builder.begin(fallThrough);
             return builder.addParam(fallThrough, Slot.temp(0), result.getType());
@@ -917,7 +919,7 @@ public final class CoreIntrinsics {
             ProgramModule programModule = ctxt.getOrAddProgramModule(builder.getCurrentElement().getEnclosingType());
             programModule.declareData(null, rtinitTable.getName(), rtinitTable.getType());
             Value initFunc = builder.load(builder.elementOf(builder.getLiteralFactory().literalOf(rtinitTable), index));
-            return builder.call(builder.pointerHandle(initFunc), List.of(builder.load(builder.currentThread(), SingleUnshared)));
+            return builder.call(initFunc, List.of(builder.load(builder.currentThread(), SingleUnshared)));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "callRuntimeInitializer", intVoidDesc, callRuntimeInitializer);
 

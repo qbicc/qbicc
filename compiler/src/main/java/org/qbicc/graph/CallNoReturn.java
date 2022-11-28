@@ -1,6 +1,5 @@
 package org.qbicc.graph;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -12,27 +11,29 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * Exceptions thrown by the target are not caught; instead, they are propagated out of the caller's frame.
  * This node terminates its block.
  *
- * @see BasicBlockBuilder#callNoReturn(ValueHandle, List)
+ * @see BasicBlockBuilder#callNoReturn(Value, Value, List)
  */
-public final class CallNoReturn extends AbstractTerminator {
+public final class CallNoReturn extends AbstractTerminator implements InvocationNode {
     private final Node dependency;
     private final BasicBlock terminatedBlock;
-    private final ValueHandle target;
+    private final Value target;
+    private final Value receiver;
     private final List<Value> arguments;
     private final InvokableType calleeType;
 
-    CallNoReturn(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments) {
+    CallNoReturn(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, Value target, Value receiver, List<Value> arguments) {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.terminatedBlock = new BasicBlock(blockEntry, this);
         this.target = target;
+        this.receiver = receiver;
         this.arguments = arguments;
         calleeType = (InvokableType) target.getPointeeType();
     }
 
     @Override
     int calcHashCode() {
-        return Objects.hash(CallNoReturn.class, dependency, target, arguments);
+        return Objects.hash(CallNoReturn.class, dependency, target, receiver, arguments);
     }
 
     @Override
@@ -45,24 +46,13 @@ public final class CallNoReturn extends AbstractTerminator {
         return other instanceof CallNoReturn && equals((CallNoReturn) other);
     }
 
-    @Override
-    public StringBuilder toString(StringBuilder b) {
-        super.toString(b);
-        b.append('(');
-        Iterator<Value> itr = arguments.iterator();
-        if (itr.hasNext()) {
-            itr.next().toReferenceString(b);
-            while (itr.hasNext()) {
-                b.append(',');
-                itr.next().toReferenceString(b);
-            }
-        }
-        b.append(')');
-        return b;
+    public boolean equals(CallNoReturn other) {
+        return this == other || other != null && dependency.equals(other.dependency) && target.equals(other.target) && receiver.equals(other.receiver) && arguments.equals(other.arguments);
     }
 
-    public boolean equals(CallNoReturn other) {
-        return this == other || other != null && dependency.equals(other.dependency) && target.equals(other.target) && arguments.equals(other.arguments);
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return InvocationNode.toRValueString(this, "call", b).append(" no-return");
     }
 
     @Override
@@ -84,23 +74,13 @@ public final class CallNoReturn extends AbstractTerminator {
     }
 
     @Override
-    public int getValueDependencyCount() {
-        return arguments.size();
-    }
-
-    @Override
-    public Value getValueDependency(int index) throws IndexOutOfBoundsException {
-        return arguments.get(index);
-    }
-
-    @Override
-    public boolean hasValueHandleDependency() {
-        return true;
-    }
-
-    @Override
-    public ValueHandle getValueHandle() {
+    public Value getTarget() {
         return target;
+    }
+
+    @Override
+    public Value getReceiver() {
+        return receiver;
     }
 
     @Override

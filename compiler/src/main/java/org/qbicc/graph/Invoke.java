@@ -1,6 +1,5 @@
 package org.qbicc.graph;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -17,23 +16,25 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * If no exception is thrown by the callee, execution resumes in the resume block.
  * This node terminates its block.
  *
- * @see BasicBlockBuilder#invoke(org.qbicc.graph.ValueHandle, java.util.List, org.qbicc.graph.BlockLabel, org.qbicc.graph.BlockLabel, java.util.Map)
+ * @see BasicBlockBuilder#invoke(org.qbicc.graph.Value, org.qbicc.graph.Value, java.util.List, org.qbicc.graph.BlockLabel, org.qbicc.graph.BlockLabel, java.util.Map)
  */
-public final class Invoke extends AbstractTerminator implements Resume {
+public final class Invoke extends AbstractTerminator implements Resume, InvocationNode {
     private final Node dependency;
     private final BasicBlock terminatedBlock;
-    private final ValueHandle target;
+    private final Value target;
+    private final Value receiver;
     private final List<Value> arguments;
     private final InvokableType calleeType;
     private final BlockLabel catchLabel;
     private final BlockLabel resumeLabel;
     private final ReturnValue returnValue;
 
-    Invoke(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+    Invoke(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, Value target, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         super(callSite, element, line, bci, targetArguments);
         this.dependency = dependency;
         this.terminatedBlock = new BasicBlock(blockEntry, this);
         this.target = target;
+        this.receiver = receiver;
         this.arguments = arguments;
         this.catchLabel = catchLabel;
         this.resumeLabel = resumeLabel;
@@ -43,7 +44,7 @@ public final class Invoke extends AbstractTerminator implements Resume {
 
     @Override
     int calcHashCode() {
-        return Objects.hash(Invoke.class, dependency, target, arguments);
+        return Objects.hash(Invoke.class, dependency, target, receiver, arguments);
     }
 
     @Override
@@ -56,24 +57,13 @@ public final class Invoke extends AbstractTerminator implements Resume {
         return other instanceof Invoke && equals((Invoke) other);
     }
 
-    @Override
-    public StringBuilder toString(StringBuilder b) {
-        super.toString(b);
-        b.append('(');
-        Iterator<Value> itr = arguments.iterator();
-        if (itr.hasNext()) {
-            itr.next().toString(b);
-            while (itr.hasNext()) {
-                b.append(',');
-                itr.next().toString(b);
-            }
-        }
-        b.append(')');
-        return b;
+    public boolean equals(Invoke other) {
+        return this == other || other != null && dependency.equals(other.dependency) && target.equals(other.target) && receiver.equals(other.receiver) && arguments.equals(other.arguments);
     }
 
-    public boolean equals(Invoke other) {
-        return this == other || other != null && dependency.equals(other.dependency) && target.equals(other.target) && arguments.equals(other.arguments);
+    @Override
+    public StringBuilder toString(StringBuilder b) {
+        return InvocationNode.toRValueString(this, "invoke", b).append(" catch ").append(catchLabel).append(" resume ").append(resumeLabel);
     }
 
     @Override
@@ -99,23 +89,13 @@ public final class Invoke extends AbstractTerminator implements Resume {
     }
 
     @Override
-    public int getValueDependencyCount() {
-        return arguments.size();
-    }
-
-    @Override
-    public Value getValueDependency(int index) throws IndexOutOfBoundsException {
-        return arguments.get(index);
-    }
-
-    @Override
-    public boolean hasValueHandleDependency() {
-        return true;
-    }
-
-    @Override
-    public ValueHandle getValueHandle() {
+    public Value getTarget() {
         return target;
+    }
+
+    @Override
+    public Value getReceiver() {
+        return receiver;
     }
 
     @Override

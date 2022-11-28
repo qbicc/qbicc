@@ -44,19 +44,19 @@ public final class ReachabilityFactsSetup {
     }
 
     private static void setupReachability(final Facts facts) {
-        facts.registerAction(Condition.when(TypeReachabilityFacts.IS_INSTANTIATED), ReachabilityFactsSetup::markEachMethodAsInstantiated);
-        facts.registerAction(Condition.when(InstanceMethodReachabilityFacts.IS_PROVISIONALLY_INVOKED), ReachabilityFactsSetup::markEnclosingTypeAsProvisionallyInvoked);
-        facts.registerAction(Condition.when(InstanceMethodReachabilityFacts.IS_PROVISIONALLY_DISPATCH_INVOKED), ReachabilityFactsSetup::markEnclosingTypeAsProvisionallyDispatched);
-        facts.registerAction(Condition.whenAll(InstanceMethodReachabilityFacts.EXACT_RECEIVER_IS_ON_HEAP, InstanceMethodReachabilityFacts.IS_PROVISIONALLY_INVOKED), ReachabilityFactsSetup::markAsInvoked);
-        facts.registerAction(Condition.whenAll(InstanceMethodReachabilityFacts.DISPATCH_RECEIVER_IS_ON_HEAP, InstanceMethodReachabilityFacts.IS_PROVISIONALLY_DISPATCH_INVOKED), ReachabilityFactsSetup::markAsDispatchInvoked);
-        facts.registerAction(Condition.when(ObjectReachabilityFacts.IS_REACHABLE), ReachabilityFactsSetup::markObjectTypeDefAsOnHeap);
+        facts.registerInlineAction(Condition.when(TypeReachabilityFacts.IS_INSTANTIATED), ReachabilityFactsSetup::markEachMethodAsInstantiated);
+        facts.registerInlineAction(Condition.when(InstanceMethodReachabilityFacts.IS_PROVISIONALLY_INVOKED), ReachabilityFactsSetup::markEnclosingTypeAsProvisionallyInvoked);
+        facts.registerInlineAction(Condition.when(InstanceMethodReachabilityFacts.IS_PROVISIONALLY_DISPATCH_INVOKED), ReachabilityFactsSetup::markEnclosingTypeAsProvisionallyDispatched);
+        facts.registerInlineAction(Condition.whenAll(InstanceMethodReachabilityFacts.EXACT_RECEIVER_IS_ON_HEAP, InstanceMethodReachabilityFacts.IS_PROVISIONALLY_INVOKED), ReachabilityFactsSetup::markAsInvoked);
+        facts.registerInlineAction(Condition.whenAll(InstanceMethodReachabilityFacts.DISPATCH_RECEIVER_IS_ON_HEAP, InstanceMethodReachabilityFacts.IS_PROVISIONALLY_DISPATCH_INVOKED), ReachabilityFactsSetup::markAsDispatchInvoked);
+        facts.registerInlineAction(Condition.when(ObjectReachabilityFacts.IS_REACHABLE), ReachabilityFactsSetup::markObjectTypeDefAsOnHeap);
         facts.registerAction(Condition.when(ExecutableReachabilityFacts.IS_INVOKED), ReachabilityFactsSetup::markEnclosingAsInstantiatedIfCtor);
         // TODO: generate DISPATCH_RECEIVER_IS_ON_HEAP
         facts.registerAction(Condition.when(TypeReachabilityFacts.HAS_CLASS), (ltd, f) -> ReachabilityInfo.get(f.getCompilationContext()).getAnalysis().processReachableType(ltd, null));
     }
 
     private static void setupValidate(final Facts facts) {
-        facts.registerAction(Condition.when(ExecutableReachabilityFacts.IS_INVOKED), ReachabilityFactsSetup::validateWasInvoked);
+        facts.registerInlineAction(Condition.when(ExecutableReachabilityFacts.IS_INVOKED), ReachabilityFactsSetup::validateWasInvoked);
     }
 
     // actions

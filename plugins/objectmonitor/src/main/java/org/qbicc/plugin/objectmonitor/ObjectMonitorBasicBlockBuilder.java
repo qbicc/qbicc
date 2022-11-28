@@ -34,11 +34,11 @@ public class ObjectMonitorBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     public Node monitorEnter(final Value object) {
         BasicBlockBuilder fb = getFirstBuilder();
-        return fb.call(fb.exactMethodOf(object, monitorEnterMethod), List.of());
+        return fb.call(getLiteralFactory().literalOf(monitorEnterMethod), object, List.of());
     }
 
     public Node monitorExit(final Value object) {
         BasicBlockBuilder fb = getFirstBuilder();
-        return fb.call(fb.exactMethodOf(object, monitorExitMethod), List.of());
+        return fb.call(getLiteralFactory().literalOf(monitorExitMethod), object, List.of());
     }
 }

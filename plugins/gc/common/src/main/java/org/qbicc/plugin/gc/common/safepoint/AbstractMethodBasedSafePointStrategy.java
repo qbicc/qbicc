@@ -40,7 +40,7 @@ public abstract class AbstractMethodBasedSafePointStrategy extends AbstractSafeP
     public void safePoint(BasicBlockBuilder bbb) {
         final ClassContext bcc = bbb.getContext().getBootstrapClassContext();
         final StaticMethodElement pollSafePoint = (StaticMethodElement) bcc.findDefinedType(SAFE_POINT_INT_NAME).load().requireSingleMethod(POLL_SAFE_POINT);
-        bbb.call(bbb.staticMethod(pollSafePoint), List.of());
+        bbb.call(bbb.getLiteralFactory().literalOf(pollSafePoint), List.of());
     }
 
     public abstract void implementPollSafePoint(BasicBlockBuilder bbb);

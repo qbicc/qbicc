@@ -14,7 +14,6 @@ import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueVisitor;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
@@ -22,9 +21,11 @@ import org.qbicc.graph.literal.ByteArrayLiteral;
 import org.qbicc.graph.literal.CompoundLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.literal.FunctionLiteral;
 import org.qbicc.graph.literal.GlobalVariableLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.LiteralVisitor;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
@@ -55,7 +56,7 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
-import org.qbicc.type.MethodType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
@@ -66,7 +67,7 @@ import org.qbicc.type.VariadicType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 
-final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue>, Pointer.Visitor<PointerLiteral, LLValue> {
+final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Pointer.Visitor<PointerLiteral, LLValue> {
     final AtomicInteger anonCnt = new AtomicInteger();
     final Module module;
     final CompilationContext ctxt;
@@ -118,9 +119,9 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue>, Pointe
             } else {
                 throw Assert.unreachableCode();
             }
-        } else if (type instanceof MethodType) {
+        } else if (type instanceof InvokableType it) {
             // LLVM does not have an equivalent to method types
-            res = i8;
+            res = map(ctxt.getFunctionTypeForInvokableType(it));
         } else if (type instanceof PointerType) {
             Type pointeeType = ((PointerType) type).getPointeeType();
             res = ptrTo(pointeeType instanceof VoidType ? i8 : map(pointeeType), 0);
@@ -257,7 +258,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue>, Pointe
             return refFactory.cast(input, fromType, toType);
         }
         // todo: add signed/unsigned int <-> fp
-        return visitUnknown(param, node);
+        return visitAny(param, node);
     }
 
     public LLValue visit(final Void param, final ByteArrayLiteral node) {
@@ -288,11 +289,15 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue>, Pointe
     }
 
     public LLValue visit(final Void param, final FloatLiteral node) {
-        if (((FloatType) node.getType()).getMinBits() == 32) {
+        if (node.getType().getMinBits() == 32) {
             return Values.floatConstant(node.floatValue());
         } else { // Should be 64
             return Values.floatConstant(node.doubleValue());
         }
+    }
+
+    public LLValue visit(Void unused, FunctionLiteral literal) {
+        return Values.global(literal.getExecutable().getName());
     }
 
     public LLValue visit(final Void unused, final GlobalVariableLiteral node) {
@@ -347,8 +352,9 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue>, Pointe
         return Values.intConstant(typeId);
     }
 
-    public LLValue visitUnknown(final Void param, final Value node) {
-        ctxt.error(Location.builder().setNode(node).build(), "llvm: Unrecognized value %s", node.getClass());
+    @Override
+    public LLValue visitAny(Void unused, Literal literal) {
+        ctxt.error(Location.builder().setNode(literal).build(), "llvm: Unrecognized literal type %s", literal.getClass());
         return LLVM.FALSE;
     }
 

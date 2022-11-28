@@ -32,25 +32,25 @@ public final class GcCommon {
         MethodDescriptor emptyToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of());
         MethodDescriptor emptyToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
 
-        intrinsics.registerIntrinsic(heapDesc, "getConfiguredMinHeapSize", emptyToLong, (builder, target, arguments) -> {
+        intrinsics.registerIntrinsic(heapDesc, "getConfiguredMinHeapSize", emptyToLong, (builder, targetPtr, arguments) -> {
             // todo: configuration
             // hard-coded 16MB for now
             return lf.literalOf(16L * (1L << 20));
         });
 
-        intrinsics.registerIntrinsic(heapDesc, "getConfiguredMaxHeapSize", emptyToLong, (builder, target, arguments) -> {
+        intrinsics.registerIntrinsic(heapDesc, "getConfiguredMaxHeapSize", emptyToLong, (builder, targetPtr, arguments) -> {
             // todo: configuration
             // hard-coded 128MB for now
             return lf.literalOf(128L * (1L << 20));
         });
 
-        intrinsics.registerIntrinsic(heapDesc, "getConfiguredHeapAlignment", emptyToLong, (builder, target, arguments) -> {
+        intrinsics.registerIntrinsic(heapDesc, "getConfiguredHeapAlignment", emptyToLong, (builder, targetPtr, arguments) -> {
             // todo: configuration
             // hard-coded 16MB alignment for now
             return lf.literalOf(1L << 24);
         });
 
-        intrinsics.registerIntrinsic(heapDesc, "getConfiguredObjectAlignment", emptyToInt, (builder, target, arguments) -> {
+        intrinsics.registerIntrinsic(heapDesc, "getConfiguredObjectAlignment", emptyToInt, (builder, targetPtr, arguments) -> {
             // todo: configuration
             // hard-coded to pointer alignment for now
             return lf.literalOf(ts.getPointerAlignment());

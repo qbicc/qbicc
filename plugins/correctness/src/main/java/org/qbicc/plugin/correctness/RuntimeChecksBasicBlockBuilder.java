@@ -3,7 +3,6 @@ package org.qbicc.plugin.correctness;
 import java.util.List;
 import java.util.Map;
 
-import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.BasicBlock;
@@ -11,24 +10,16 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.CheckCast;
-import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Dereference;
 import org.qbicc.graph.ElementOf;
-import org.qbicc.graph.ExactMethodElementHandle;
-import org.qbicc.graph.InstanceMethodElementHandle;
-import org.qbicc.graph.InterfaceMethodElementHandle;
 import org.qbicc.graph.MultiNewArray;
 import org.qbicc.graph.NewReferenceArray;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Slot;
-import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.ValueHandleVisitor;
-import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.IntegerLiteral;
@@ -49,7 +40,6 @@ import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.classfile.ClassFile;
-import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -122,33 +112,27 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public Value addressOf(ValueHandle handle) {
-        check(handle);
-        return super.addressOf(handle);
+    public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
+        checkPointerValue(targetPtr, null);
+        return super.call(targetPtr, receiver, arguments);
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
-        check(target);
-        return super.call(target, arguments);
+    public Value callNoSideEffects(Value targetPtr, Value receiver, List<Value> arguments) {
+        checkPointerValue(targetPtr, null);
+        return super.callNoSideEffects(targetPtr, receiver, arguments);
     }
 
     @Override
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
-        check(target);
-        return super.callNoSideEffects(target, arguments);
+    public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
+        checkPointerValue(targetPtr, null);
+        return super.callNoReturn(targetPtr, receiver, arguments);
     }
 
     @Override
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
-        check(target);
-        return super.callNoReturn(target, arguments);
-    }
-
-    @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        check(target);
-        return super.invokeNoReturn(target, arguments, catchLabel, targetArguments);
+    public BasicBlock invokeNoReturn(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        checkPointerValue(targetPtr, null);
+        return super.invokeNoReturn(targetPtr, receiver, arguments, catchLabel, targetArguments);
     }
 
     @Override
@@ -157,15 +141,15 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
-        check(target);
-        return super.tailCall(target, arguments);
+    public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
+        checkPointerValue(targetPtr, null);
+        return super.tailCall(targetPtr, receiver, arguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
-        check(target);
-        return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
+    public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        checkPointerValue(targetPtr, null);
+        return super.invoke(targetPtr, receiver, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
     @Override
@@ -234,7 +218,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             try {
                 begin(throwIt);
                 MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseArithmeticException");
-                callNoReturn(staticMethod(helper), List.of());
+                callNoReturn(getLiteralFactory().literalOf(helper), List.of());
             } catch (BlockEarlyTermination ignored) {
                 // continue
             }
@@ -249,85 +233,9 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         return super.instanceFieldOf(instancePointer, field);
     }
 
-    private void throwIncompatibleClassChangeError() {
-        MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseIncompatibleClassChangeError");
-        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper), List.of()));
-    }
-
     private void throwClassCastException() {
         MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseClassCastException");
-        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper), List.of()));
-    }
-
-    private Value check(ValueHandle handle) {
-        return handle.accept(new ValueHandleVisitor<Void, Value>() {
-            @Override
-            public Value visit(Void param, PointerHandle node) {
-                return checkPointerValue(node.getPointerValue(), null);
-            }
-
-            @Override
-            public Value visit(Void param, ConstructorElementHandle node) {
-                ConstructorElement target = node.getExecutable();
-                nullCheck(node.getInstance());
-                if (target.isStatic()) {
-                    throwIncompatibleClassChangeError();
-                    throw Assert.unreachableCode();
-                }
-                // return value unused in this case
-                return null;
-            }
-
-            @Override
-            public Value visit(Void param, ExactMethodElementHandle node) {
-                //maybe needs an initCheck?
-                return visit(node);
-            }
-
-            @Override
-            public Value visit(Void param, InterfaceMethodElementHandle node) {
-                return visit(node);
-            }
-
-            @Override
-            public Value visit(Void param, VirtualMethodElementHandle node) {
-                return visit(node);
-            }
-
-            private Value visit(VirtualMethodElementHandle node) {
-                MethodElement target = node.getExecutable();
-                // Elides check for native method because we don't know the exact target (could be overridden).
-                if (target.isStatic()) {
-                    throwIncompatibleClassChangeError();
-                    throw Assert.unreachableCode();
-                }
-                nullCheck(node.getInstance());
-                // return value unused in this case
-                return null;
-            }
-
-            private Value visit(InstanceMethodElementHandle node) {
-                MethodElement target = node.getExecutable();
-                if (target.isStatic()) {
-                    throwIncompatibleClassChangeError();
-                    throw Assert.unreachableCode();
-                }
-                nullCheck(node.getInstance());
-                // return value unused in this case
-                return null;
-            }
-
-            @Override
-            public Value visit(Void param, StaticMethodElementHandle node) {
-                MethodElement target = node.getExecutable();
-                if (target.isVirtual()) {
-                    throwIncompatibleClassChangeError();
-                    throw Assert.unreachableCode();
-                }
-                // return value unused in this case
-                return null;
-            }
-        }, null);
+        throw new BlockEarlyTermination(callNoReturn(getLiteralFactory().literalOf(helper), List.of()));
     }
 
     private Value checkPointerValue(Value pointerValue, final Value storedValue) {
@@ -386,7 +294,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         try {
             begin(throwIt);
             MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseNullPointerException");
-            callNoReturn(staticMethod(helper), List.of());
+            callNoReturn(getLiteralFactory().literalOf(helper), List.of());
         } catch (BlockEarlyTermination ignored) {
             //continue
         }
@@ -404,7 +312,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         try {
             begin(throwIt);
             MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseNegativeArraySizeException");
-            callNoReturn(staticMethod(helper), List.of());
+            callNoReturn(getLiteralFactory().literalOf(helper), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
         }
@@ -445,7 +353,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         try {
             begin(throwIt);
             MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseArrayIndexOutOfBoundsException");
-            callNoReturn(staticMethod(helper), List.of());
+            callNoReturn(getLiteralFactory().literalOf(helper), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
         }

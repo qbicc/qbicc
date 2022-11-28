@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import org.qbicc.type.VoidType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -12,7 +13,11 @@ abstract class AbstractValue extends AbstractNode implements Value {
 
     @Override
     public StringBuilder toString(StringBuilder b) {
-        return toRValueString(toLValueString(b).append(" = "));
+        if (getType() instanceof VoidType) {
+            return toRValueString(b);
+        } else {
+            return toRValueString(toLValueString(b).append(" = "));
+        }
     }
 
     StringBuilder toLValueString(StringBuilder b) {

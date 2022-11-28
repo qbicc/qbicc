@@ -11,7 +11,6 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -81,25 +80,25 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
+    public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
         BlockLabel resumeLabel = new BlockLabel();
         BlockLabel handlerLabel = new BlockLabel();
-        Value rv = invoke(target, arguments, BlockLabel.of(begin(handlerLabel, ignored -> throw_(addParam(handlerLabel, THROWN, throwable, false)))), resumeLabel, Map.of());
+        Value rv = invoke(targetPtr, receiver, arguments, BlockLabel.of(begin(handlerLabel, ignored -> throw_(addParam(handlerLabel, THROWN, throwable, false)))), resumeLabel, Map.of());
         begin(resumeLabel);
         return addParam(resumeLabel, Slot.result(), rv.getType());
     }
 
     @Override
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+    public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
         BlockLabel handlerLabel = new BlockLabel();
-        return invokeNoReturn(target, arguments, BlockLabel.of(begin(handlerLabel, ignored -> throw_(addParam(handlerLabel, THROWN, throwable, false)))), Map.of());
+        return invokeNoReturn(targetPtr, receiver, arguments, BlockLabel.of(begin(handlerLabel, ignored -> throw_(addParam(handlerLabel, THROWN, throwable, false)))), Map.of());
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+    public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
         // tail calls don't work with synchronized
         BasicBlockBuilder fb = getFirstBuilder();
-        return fb.return_(fb.call(target, arguments));
+        return fb.return_(fb.call(targetPtr, receiver, arguments));
     }
 
     public static BasicBlockBuilder createIfNeeded(FactoryContext fc, BasicBlockBuilder delegate) {

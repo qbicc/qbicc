@@ -12,20 +12,24 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.pointer.ProgramObjectPointer;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.PointerType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VariadicType;
+import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -40,6 +44,35 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public NativeBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = getContext();
+    }
+
+    @Override
+    public Value loadTypeId(Value objectPointer) {
+        if (objectPointer instanceof DecodeReference) {
+            // not a native type
+            return super.loadTypeId(objectPointer);
+        } else {
+            // it is a native type
+            return getLiteralFactory().literalOfType(objectPointer.getType());
+        }
+    }
+
+    @Override
+    public Value decodeReference(Value refVal, PointerType pointerType) {
+        if (refVal.getType() instanceof ReferenceType) {
+            // regular reference
+            return super.decodeReference(refVal, pointerType);
+        } else {
+            // it is a native type
+            if (refVal.getType() instanceof PointerType rpt) {
+                if (pointerType.getPointeeType() instanceof VoidType || pointerType.equals(rpt)) {
+                    return refVal;
+                }
+                return getFirstBuilder().bitCast(refVal, pointerType);
+            } else {
+                return refVal;
+            }
+        }
     }
 
     @Override
@@ -108,45 +141,45 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
-        return super.call(target, mapArguments(target, arguments));
+    public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
+        return super.call(targetPtr, receiver, mapArguments(targetPtr, arguments));
     }
 
     @Override
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
-        return super.callNoSideEffects(target, mapArguments(target, arguments));
+    public Value callNoSideEffects(Value targetPtr, Value receiver, List<Value> arguments) {
+        return super.callNoSideEffects(targetPtr, receiver, mapArguments(targetPtr, arguments));
     }
 
     @Override
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
-        return super.callNoReturn(target, mapArguments(target, arguments));
+    public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
+        return super.callNoReturn(targetPtr, receiver, mapArguments(targetPtr, arguments));
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        return super.invokeNoReturn(target, mapArguments(target, arguments), catchLabel, targetArguments);
+    public BasicBlock invokeNoReturn(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return super.invokeNoReturn(targetPtr, receiver, mapArguments(targetPtr, arguments), catchLabel, targetArguments);
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
-        return super.tailCall(target, mapArguments(target, arguments));
+    public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
+        return super.tailCall(targetPtr, receiver, mapArguments(targetPtr, arguments));
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
-        return super.invoke(target, mapArguments(target, arguments), catchLabel, resumeLabel, targetArguments);
+    public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        return super.invoke(targetPtr, receiver, mapArguments(targetPtr, arguments), catchLabel, resumeLabel, targetArguments);
     }
 
     /**
      * Map arguments for calls to variadic functions.  If the call target is a variadic function, then the Java-style
      * varargs are mapped to native variadic form.  If the Java varargs array is not of a constant length, an error is raised.
      *
-     * @param handle the handle to the call target (must not be {@code null})
+     * @param targetPtr the pointer to the call target (must not be {@code null})
      * @param arguments the input arguments (must not be {@code null})
      * @return the mapped arguments (not {@code null})
      */
-    private List<Value> mapArguments(ValueHandle handle, List<Value> arguments) {
-        ValueType valueType = handle.getPointeeType();
+    private List<Value> mapArguments(Value targetPtr, List<Value> arguments) {
+        ValueType valueType = targetPtr.getPointeeType();
         if (valueType instanceof FunctionType fnType) {
             if (fnType.isVariadic()) {
                 // build up an argument list from the varargs array
@@ -181,44 +214,61 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public Value resolveStaticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
         NativeFunctionInfo functionInfo = nativeInfo.getFunctionInfo(owner, name, descriptor);
         if (functionInfo != null) {
-            if (functionInfo instanceof ExportedFunctionInfo) {
-                ExportedFunctionInfo efi = (ExportedFunctionInfo) functionInfo;
+            if (functionInfo instanceof ExportedFunctionInfo efi) {
                 // we define it
                 DefinedTypeDefinition declaringClass = efi.getDeclaringClass();
                 if (getRootElement().getEnclosingType() == declaringClass) {
                     // we do not have to declare it; we call it directly
-                    return functionOf(efi.getFunctionElement());
+                    return getLiteralFactory().literalOf(efi.getFunctionElement());
                 }
             }
             // declare it
-            return pointerHandle(ctxt.getLiteralFactory().literalOf(ctxt.getOrAddProgramModule(getRootElement())
-                .declareFunction(null, functionInfo.getName(), functionInfo.getType())));
+            return ctxt.getLiteralFactory().literalOf(ctxt.getOrAddProgramModule(getRootElement())
+                .declareFunction(null, functionInfo.getName(), functionInfo.getType()));
         }
-        return super.staticMethod(owner, name, deNative(descriptor));
+        return super.resolveStaticMethod(owner, name, deNative(descriptor));
     }
 
     @Override
-    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        return super.exactMethodOf(instance, deNative(owner), name, deNative(descriptor));
+    public Value resolveInstanceMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return super.resolveInstanceMethod(deNative(owner), name, deNative(descriptor));
     }
 
     @Override
-    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        return super.virtualMethodOf(instance, deNative(owner), name, deNative(descriptor));
+    public Value lookupVirtualMethod(Value reference, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return super.lookupVirtualMethod(reference, deNative(owner), name, deNative(descriptor));
     }
 
     @Override
-    public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        return super.interfaceMethodOf(instance, deNative(owner), name, deNative(descriptor));
+    public Value lookupVirtualMethod(Value reference, InstanceMethodElement method) {
+        if (NativeInfo.get(ctxt).isNativeType(method.getEnclosingType())) {
+            return getLiteralFactory().literalOf(method);
+        } else {
+            return super.lookupVirtualMethod(reference, method);
+        }
     }
 
     @Override
-    public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
-        return super.constructorOf(instance, deNative(owner), deNative(descriptor));
+    public Value lookupInterfaceMethod(Value reference, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return super.lookupInterfaceMethod(reference, deNative(owner), name, deNative(descriptor));
+    }
+
+    @Override
+    public Value lookupInterfaceMethod(Value reference, InstanceMethodElement method) {
+        if (NativeInfo.get(ctxt).isNativeType(method.getEnclosingType())) {
+            return getLiteralFactory().literalOf(method);
+        } else {
+            return super.lookupInterfaceMethod(reference, method);
+        }
+    }
+
+    @Override
+    public Value resolveConstructor(TypeDescriptor owner, MethodDescriptor descriptor) {
+        return super.resolveConstructor(deNative(owner), deNative(descriptor));
     }
 
     @Override

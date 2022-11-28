@@ -8,15 +8,16 @@ import org.eclipse.collections.api.map.ImmutableMap;
 import org.jboss.logging.Logger;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Phase;
+import org.qbicc.graph.AbstractMethodLookup;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.InstanceMethodElementHandle;
 import org.qbicc.graph.Slot;
-import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.literal.InstanceMethodLiteral;
+import org.qbicc.graph.literal.StaticMethodLiteral;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 
 /**
  * The basic block builder which substitutes invocations of intrinsic methods.
@@ -50,159 +51,156 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
-        if (target instanceof StaticMethodElementHandle) {
-            StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
-            StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());
+    public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (targetPtr instanceof StaticMethodLiteral lit) {
+            StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, lit.getExecutable());
             if (intrinsic != null) {
                 Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
-                    decodedTarget,
+                    lit,
                     arguments);
                 if (result != null) {
                     return result;
                 }
             }
-        } else if (target instanceof InstanceMethodElementHandle) {
-            InstanceMethodElementHandle decodedTarget = (InstanceMethodElementHandle) target;
+        } else if (targetPtr instanceof InstanceMethodLiteral lit) {
             // instance
-            InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, decodedTarget.getExecutable());
+            InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, lit.getExecutable());
             if (intrinsic != null) {
-                Value instance = decodedTarget.getInstance();
                 Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
-                    instance,
-                    decodedTarget,
+                    receiver,
+                    lit,
+                    arguments);
+                if (result != null) {
+                    return result;
+                }
+            }
+        } else if (targetPtr instanceof AbstractMethodLookup lookup) {
+            // instance (virtual)
+            InstanceMethodElement method = lookup.getMethod();
+            InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, method);
+            if (intrinsic != null) {
+                Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
+                    receiver,
+                    getLiteralFactory().literalOf(method),
                     arguments);
                 if (result != null) {
                     return result;
                 }
             }
         }
-        return super.call(target, arguments);
+        return super.call(targetPtr, receiver, arguments);
     }
 
     @Override
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
-        if (target instanceof StaticMethodElementHandle) {
-            StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
-            StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());
+    public Value callNoSideEffects(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (targetPtr instanceof StaticMethodLiteral lit) {
+            StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, lit.getExecutable());
             if (intrinsic != null) {
                 Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
-                    decodedTarget,
+                    lit,
                     arguments);
                 if (result != null) {
                     return result;
                 }
             }
-        } else if (target instanceof InstanceMethodElementHandle) {
-            InstanceMethodElementHandle decodedTarget = (InstanceMethodElementHandle) target;
+        } else if (targetPtr instanceof InstanceMethodLiteral lit) {
             // instance
-            InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, decodedTarget.getExecutable());
+            InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, lit.getExecutable());
             if (intrinsic != null) {
-                Value instance = decodedTarget.getInstance();
                 Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
-                    instance,
-                    decodedTarget,
+                    receiver,
+                    lit,
                     arguments);
                 if (result != null) {
                     return result;
                 }
             }
         }
-        return super.callNoSideEffects(target, arguments);
+        return super.callNoSideEffects(targetPtr, receiver, arguments);
     }
 
     @Override
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
-        if (target instanceof StaticMethodElementHandle) {
-            StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
-            StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());
+    public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (targetPtr instanceof StaticMethodLiteral lit) {
+            StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, lit.getExecutable());
             if (intrinsic != null) {
                 intrinsic.emitIntrinsic(getFirstBuilder(),
-                    decodedTarget,
+                    lit,
                     arguments);
                 return unreachable();
             }
-        } else if (target instanceof InstanceMethodElementHandle) {
-            InstanceMethodElementHandle decodedTarget = (InstanceMethodElementHandle) target;
+        } else if (targetPtr instanceof InstanceMethodLiteral lit) {
             // instance
-            InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, decodedTarget.getExecutable());
+            InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, lit.getExecutable());
             if (intrinsic != null) {
-                Value instance = decodedTarget.getInstance();
                 intrinsic.emitIntrinsic(getFirstBuilder(),
-                    instance,
-                    decodedTarget,
+                    receiver,
+                    lit,
                     arguments);
                 return unreachable();
             }
         }
-        return super.callNoReturn(target, arguments);
+        return super.callNoReturn(targetPtr, receiver, arguments);
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        if (target instanceof StaticMethodElementHandle) {
-            StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
-            StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());
+    public BasicBlock invokeNoReturn(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        if (targetPtr instanceof StaticMethodLiteral lit) {
+            StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, lit.getExecutable());
             if (intrinsic != null) {
                 intrinsic.emitIntrinsic(getFirstBuilder(),
-                    decodedTarget,
+                    lit,
                     arguments);
                 return unreachable();
             }
-        } else if (target instanceof InstanceMethodElementHandle) {
-            InstanceMethodElementHandle decodedTarget = (InstanceMethodElementHandle) target;
-            InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, decodedTarget.getExecutable());
+        } else if (targetPtr instanceof InstanceMethodLiteral lit) {
+            InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, lit.getExecutable());
             if (intrinsic != null) {
-                Value instance = decodedTarget.getInstance();
                 intrinsic.emitIntrinsic(getFirstBuilder(),
-                    instance,
-                    decodedTarget,
+                    receiver,
+                    lit,
                     arguments);
                 return unreachable();
             }
         }
-        return super.invokeNoReturn(target, arguments, catchLabel, targetArguments);
+        return super.invokeNoReturn(targetPtr, receiver, arguments, catchLabel, targetArguments);
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
-        if (target instanceof StaticMethodElementHandle) {
-            StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
-            StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());
+    public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (targetPtr instanceof StaticMethodLiteral lit) {
+            StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, lit.getExecutable());
             if (intrinsic != null) {
                 Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
-                    decodedTarget,
+                    lit,
                     arguments);
                 if (result != null) {
                     return return_(result);
                 }
             }
-        } else if (target instanceof InstanceMethodElementHandle) {
-            InstanceMethodElementHandle decodedTarget = (InstanceMethodElementHandle) target;
+        } else if (targetPtr instanceof InstanceMethodLiteral lit) {
             // instance
-            InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, decodedTarget.getExecutable());
+            InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, lit.getExecutable());
             if (intrinsic != null) {
-                Value instance = decodedTarget.getInstance();
                 Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
-                    instance,
-                    decodedTarget,
+                    receiver,
+                    lit,
                     arguments);
                 if (result != null) {
                     return return_(result);
                 }
             }
         }
-        return super.tailCall(target, arguments);
+        return super.tailCall(targetPtr, receiver, arguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
-        if (target instanceof StaticMethodElementHandle) {
-            StaticMethodElementHandle decodedTarget = (StaticMethodElementHandle) target;
-            StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget.getExecutable());
+    public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        if (targetPtr instanceof StaticMethodLiteral lit) {
+            StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, lit.getExecutable());
             if (intrinsic != null) {
                 Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
-                    (StaticMethodElementHandle) target,
+                    lit,
                     arguments);
                 if (result != null) {
                     ImmutableMap<Slot, Value> immutableMap = Maps.immutable.ofMap(targetArguments);
@@ -210,15 +208,13 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
                     return result;
                 }
             }
-        } else if (target instanceof InstanceMethodElementHandle) {
-            InstanceMethodElementHandle decodedTarget = (InstanceMethodElementHandle) target;
+        } else if (targetPtr instanceof InstanceMethodLiteral lit) {
             // instance
-            InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, decodedTarget.getExecutable());
+            InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, lit.getExecutable());
             if (intrinsic != null) {
-                Value instance = decodedTarget.getInstance();
                 Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
-                    instance,
-                    (InstanceMethodElementHandle) target,
+                    receiver,
+                    lit,
                     arguments);
                 if (result != null) {
                     ImmutableMap<Slot, Value> immutableMap = Maps.immutable.ofMap(targetArguments);
@@ -227,7 +223,7 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 }
             }
         }
-        return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
+        return super.invoke(targetPtr, receiver, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
 }

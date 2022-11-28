@@ -11,6 +11,7 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.plugin.dispatch.DispatchTables;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 import java.util.List;
@@ -39,7 +40,7 @@ public class InitCheckLoweringBasicBlockBuilder extends DelegatingBasicBlockBuil
         if_(isNe(done, lf.literalOf(ctxt.getTypeSystem().getSignedInteger8Type(), 0)), goAhead, callInit, Map.of());
         try {
             begin(callInit);
-            getFirstBuilder().call(getFirstBuilder().virtualMethodOf(initThunk, run), List.of());
+            getFirstBuilder().call(getFirstBuilder().lookupVirtualMethod(initThunk, (InstanceMethodElement) run), initThunk, List.of());
             goto_(goAhead, Map.of());
         } catch (BlockEarlyTermination ignored) {
             // continue

@@ -18,7 +18,6 @@ import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.Call;
 import org.qbicc.graph.CheckCast;
-import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.Executable;
 import org.qbicc.graph.Extend;
@@ -41,7 +40,6 @@ import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Select;
 import org.qbicc.graph.Slot;
-import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
 import org.qbicc.graph.Terminator;
@@ -50,7 +48,6 @@ import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Return;
-import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.type.BooleanType;
@@ -136,7 +133,7 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
 
         @Override
         public Void visit(AnalysisContext param, Call node) {
-            if (visitKnown(param, node) && node.getValueHandle() instanceof Executable) {
+            if (visitKnown(param, node)) {
                 param.escapeAnalysisState.addCall(element, node);
             }
 
@@ -227,12 +224,6 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
         }
 
         @Override
-        public Void visit(AnalysisContext param, StaticMethodElementHandle node) {
-            visitKnown(param, node);
-            return null;
-        }
-
-        @Override
         public Void visit(AnalysisContext param, IsEq node) {
             visitKnown(param, node);
             return null;
@@ -264,18 +255,6 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
 
         @Override
         public Void visit(AnalysisContext param, IsNe node) {
-            visitKnown(param, node);
-            return null;
-        }
-
-        @Override
-        public Void visit(AnalysisContext param, VirtualMethodElementHandle node) {
-            visitKnown(param, node);
-            return null;
-        }
-
-        @Override
-        public Void visit(AnalysisContext param, ConstructorElementHandle node) {
             visitKnown(param, node);
             return null;
         }

@@ -27,6 +27,6 @@ public class AbortingThrowLoweringBasicBlockBuilder extends DelegatingBasicBlock
         ProgramModule programModule = ctxt.getOrAddProgramModule(el);
         FunctionType abortSignature = ts.getFunctionType(ts.getVoidType(), List.of());
         FunctionDeclaration fd = programModule.declareFunction(null, "abort", abortSignature);
-        return callNoReturn(pointerHandle(ctxt.getLiteralFactory().literalOf(fd)), List.of());
+        return callNoReturn(getLiteralFactory().literalOf(fd), List.of());
     }
 }

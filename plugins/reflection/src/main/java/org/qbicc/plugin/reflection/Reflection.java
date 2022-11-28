@@ -56,6 +56,7 @@ import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.definition.element.ParameterElement;
@@ -1385,10 +1386,11 @@ public final class Reflection {
                     paramValues.add(bbb.addParam(entryLabel, Slot.funcParam(i), type.getParameterType(i)));
                 }
                 List<Value> values = (List) paramValues.subList(1, paramValues.size());
+                InstanceMethodElement ime = (InstanceMethodElement) element;
                 switch (resolvedKind) {
-                    case INVOKE_VIRTUAL -> bbb.tailCall(bbb.virtualMethodOf(paramValues.get(0), element), values);
-                    case INVOKE_SPECIAL -> bbb.tailCall(bbb.exactMethodOf(paramValues.get(0), element), values);
-                    case INVOKE_INTERFACE -> bbb.tailCall(bbb.interfaceMethodOf(paramValues.get(0), element), values);
+                    case INVOKE_VIRTUAL -> bbb.tailCall(bbb.lookupVirtualMethod(paramValues.get(0), ime), paramValues.get(0), values);
+                    case INVOKE_SPECIAL -> bbb.tailCall(bbb.getLiteralFactory().literalOf(ime), paramValues.get(0), values);
+                    case INVOKE_INTERFACE -> bbb.tailCall(bbb.lookupInterfaceMethod(paramValues.get(0), ime), paramValues.get(0), values);
                     default -> throw new IllegalStateException();
                 }
                 bbb.finish();
@@ -1451,7 +1453,7 @@ public final class Reflection {
                     paramValues.add(bbb.addParam(entryLabel, Slot.funcParam(i), type.getParameterType(i)));
                 }
                 List<Value> values = (List) paramValues.subList(1, paramValues.size());
-                bbb.tailCall(bbb.constructorOf(paramValues.get(0), element), values);
+                bbb.tailCall(bbb.getLiteralFactory().literalOf(element), paramValues.get(0), values);
                 bbb.finish();
                 BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
                 Schedule schedule = Schedule.forMethod(entryBlock);

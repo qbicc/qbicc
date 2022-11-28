@@ -7,6 +7,8 @@ import java.util.function.Consumer;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Call;
 import org.qbicc.graph.Executable;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.literal.ExecutableLiteral;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -59,11 +61,14 @@ public class EscapeAnalysisInterMethodAnalysis implements Consumer<CompilationCo
             // Skipped because arguments are initialized as argument escape during intra method analysis phase
 
             for (Call callee : state.getCallees(caller)) {
-                final ExecutableElement calleeElement = ((Executable) callee.getValueHandle()).getExecutable();
-                final ConnectionGraph calleeCG = updateConnectionGraphIfNotVisited(calleeElement);
-                if (calleeCG != null) {
-                    // 4.4 Update Connection Graph Immediately After a Method Invocation
-                    callerCG.updateAfterInvokingMethod(callee, calleeCG);
+                final Value targetPtr = callee.getTarget();
+                if (targetPtr instanceof ExecutableLiteral el) {
+                    final ExecutableElement calleeElement = el.getExecutable();
+                    final ConnectionGraph calleeCG = updateConnectionGraphIfNotVisited(calleeElement);
+                    if (calleeCG != null) {
+                        // 4.4 Update Connection Graph Immediately After a Method Invocation
+                        callerCG.updateAfterInvokingMethod(callee, calleeCG);
+                    }
                 }
             }
 

@@ -28,12 +28,12 @@ import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Dereference;
 import org.qbicc.graph.Slot;
-import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Auto;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
@@ -438,7 +438,7 @@ final class MethodParser {
             if (type instanceof UnresolvedType) {
                 ClassTypeDescriptor cd = ClassTypeDescriptor.synthesize(ctxt, "java/lang/NoClassDefFoundError");
                 Value ncdfe = gf.new_(cd);
-                gf.call(gf.constructorOf(gf.new_(cd), cd, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+                gf.call(gf.resolveConstructor(cd, MethodDescriptor.VOID_METHOD_DESCRIPTOR), ncdfe, List.of());
                 throw new BlockEarlyTermination(gf.throw_(ncdfe));
             }
             if (type instanceof ReferenceArrayObjectType) {
@@ -1567,31 +1567,31 @@ final class MethodParser {
                             v1 = pop1();
                         } else {
                             // definite initialization
-                            v1 = null;
+                            v1 = gf.emptyVoid();
                         }
                         if (name.equals("<init>")) {
                             if (opcode != OP_INVOKESPECIAL) {
                                 throw new InvalidByteCodeException();
                             }
-                            gf.call(gf.constructorOf(v1, owner, desc), List.of(demote(args, desc)));
+                            gf.call(gf.resolveConstructor(owner, desc), v1, List.of(demote(args, desc)));
                         } else {
                             TypeDescriptor returnType = desc.getReturnType();
-                            ValueHandle handle;
+                            Value handle;
                             if (opcode == OP_INVOKESTATIC) {
-                                handle = gf.staticMethod(owner, name, desc);
+                                handle = gf.resolveStaticMethod(owner, name, desc);
                             } else if (opcode == OP_INVOKESPECIAL) {
-                                handle = gf.exactMethodOf(v1, owner, name, desc);
+                                handle = gf.resolveInstanceMethod(owner, name, desc);
                             } else if (opcode == OP_INVOKEVIRTUAL) {
-                                handle = gf.virtualMethodOf(v1, owner, name, desc);
+                                handle = gf.lookupVirtualMethod(v1, owner, name, desc);
                             } else {
                                 assert opcode == OP_INVOKEINTERFACE;
-                                handle = gf.interfaceMethodOf(v1, owner, name, desc);
+                                handle = gf.lookupInterfaceMethod(v1, owner, name, desc);
                             }
                             if (handle.isNoReturn()) {
-                                gf.callNoReturn(handle, List.of(demote(args, desc)));
+                                gf.callNoReturn(handle, v1, List.of(demote(args, desc)));
                                 return;
                             }
-                            Value result = handle.isNoSideEffect() ? gf.callNoSideEffects(handle, List.of(demote(args, desc))) : gf.call(handle, List.of(demote(args, desc)));
+                            Value result = handle.isNoSideEffect() ? gf.callNoSideEffects(handle, v1, List.of(demote(args, desc))) : gf.call(handle, v1, List.of(demote(args, desc)));
                             if (returnType != BaseTypeDescriptor.V) {
                                 push(promote(result, returnType), desc.getReturnType().isClass2());
                             }
@@ -1627,7 +1627,12 @@ final class MethodParser {
                             // (0.) find the element
                             MethodElement targetMethod;
                             if (bootstrapHandle instanceof MethodMethodHandleConstant mh) {
-                                targetMethod = ((StaticMethodElementHandle) gf.staticMethod(mh.getOwnerDescriptor(), mh.getMethodName(), mh.getDescriptor())).getExecutable();
+                                Value resolvedStaticMethod = gf.resolveStaticMethod(mh.getOwnerDescriptor(), mh.getMethodName(), mh.getDescriptor());
+                                if (resolvedStaticMethod instanceof StaticMethodLiteral sml) {
+                                    targetMethod = sml.getExecutable();
+                                } else {
+                                    throw new IllegalStateException();
+                                }
                             } else {
                                 throw new IllegalStateException();
                             }
@@ -1679,7 +1684,7 @@ final class MethodParser {
                             ClassTypeDescriptor bmeDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/BootstrapMethodError");
                             ClassTypeDescriptor thrDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/Throwable");
                             Value error = gf.new_(bmeDesc);
-                            gf.call(gf.constructorOf(error, bmeDesc, MethodDescriptor.synthesize(ctxt, BaseTypeDescriptor.V, List.of(thrDesc))), List.of(lf.literalOf(thrown.getThrowable())));
+                            gf.call(gf.resolveConstructor(bmeDesc, MethodDescriptor.synthesize(ctxt, BaseTypeDescriptor.V, List.of(thrDesc))), error, List.of(lf.literalOf(thrown.getThrowable())));
                             gf.throw_(error);
                             return;
                         }
@@ -1699,8 +1704,8 @@ final class MethodParser {
                             args[i] = pop(parameterTypes.get(i).isClass2());
                         }
                         // todo: promote the method handle directly to a ValueHandle?
-                        Value result = gf.call(gf.exactMethodOf(lf.literalOf(methodHandle), descOfMethodHandle, "invokeExact",
-                            desc), List.of(args));
+                        Value result = gf.call(gf.resolveInstanceMethod(descOfMethodHandle, "invokeExact",
+                            desc), lf.literalOf(methodHandle), List.of(args));
                         TypeDescriptor returnType = desc.getReturnType();
                         if (! returnType.isVoid()) {
                             push(promote(result, returnType), returnType.isClass2());

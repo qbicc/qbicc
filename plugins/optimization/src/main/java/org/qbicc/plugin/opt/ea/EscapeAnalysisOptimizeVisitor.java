@@ -21,7 +21,6 @@ import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.MethodElement;
@@ -112,6 +111,6 @@ public final class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegati
     }
 
     private void initializeObjectFieldsToZero(final LayoutInfo info, final LiteralFactory lf, final Value oop, final BasicBlockBuilder bbb) {
-        bbb.call(bbb.staticMethod(zeroMethod, zeroMethod.getDescriptor(), (StaticMethodType) zeroMethod.getType()), List.of(oop, lf.literalOf(info.getCompoundType().getSize())));
+        bbb.call(lf.literalOf(zeroMethod), List.of(oop, lf.literalOf(info.getCompoundType().getSize())));
     }
 }

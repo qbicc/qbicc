@@ -12,22 +12,18 @@ import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
-import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
-import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
-import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -155,6 +151,38 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().pointerHandle(pointer);
     }
 
+    public ValueHandle executableHandle(Value executablePtr, Value receiver) {
+        return getDelegate().executableHandle(executablePtr, receiver);
+    }
+
+    public Value lookupVirtualMethod(Value reference, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return getDelegate().lookupVirtualMethod(reference, owner, name, descriptor);
+    }
+
+    public Value lookupVirtualMethod(Value reference, InstanceMethodElement method) {
+        return getDelegate().lookupVirtualMethod(reference, method);
+    }
+
+    public Value lookupInterfaceMethod(Value reference, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return getDelegate().lookupInterfaceMethod(reference, owner, name, descriptor);
+    }
+
+    public Value lookupInterfaceMethod(Value reference, InstanceMethodElement method) {
+        return getDelegate().lookupInterfaceMethod(reference, method);
+    }
+
+    public Value resolveStaticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return getDelegate().resolveStaticMethod(owner, name, descriptor);
+    }
+
+    public Value resolveInstanceMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return getDelegate().resolveInstanceMethod(owner, name, descriptor);
+    }
+
+    public Value resolveConstructor(TypeDescriptor owner, MethodDescriptor descriptor) {
+        return getDelegate().resolveConstructor(owner, descriptor);
+    }
+
     public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         return getDelegate().resolveStaticField(owner, name, type);
     }
@@ -165,50 +193,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value instanceFieldOf(Value instancePointer, TypeDescriptor owner, String name, TypeDescriptor type) {
         return getDelegate().instanceFieldOf(instancePointer, owner, name, type);
-    }
-
-    public ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        return getDelegate().exactMethodOf(instance, method, callSiteDescriptor, callSiteType);
-    }
-
-    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        return getDelegate().exactMethodOf(instance, owner, name, descriptor);
-    }
-
-    public ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        return getDelegate().virtualMethodOf(instance, method, callSiteDescriptor, callSiteType);
-    }
-
-    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        return getDelegate().virtualMethodOf(instance, owner, name, descriptor);
-    }
-
-    public ValueHandle interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        return getDelegate().interfaceMethodOf(instance, method, callSiteDescriptor, callSiteType);
-    }
-
-    public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        return getDelegate().interfaceMethodOf(instance, owner, name, descriptor);
-    }
-
-    public ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType) {
-        return getDelegate().staticMethod(method, callSiteDescriptor, callSiteType);
-    }
-
-    public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        return getDelegate().staticMethod(owner, name, descriptor);
-    }
-
-    public ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        return getDelegate().constructorOf(instance, constructor, callSiteDescriptor, callSiteType);
-    }
-
-    public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
-        return getDelegate().constructorOf(instance, owner, descriptor);
-    }
-
-    public ValueHandle functionOf(FunctionElement function) {
-        return getDelegate().functionOf(function);
     }
 
     public Value auto(Value initializer) {
@@ -275,6 +259,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().loadLength(arrayPointer);
     }
 
+    public Value loadTypeId(Value objectPointer) {
+        return getDelegate().loadTypeId(objectPointer);
+    }
+
     public Value new_(final ClassObjectType type, final Value typeId, final Value size, final Value align) {
         return getDelegate().new_(type, typeId, size, align);
     }
@@ -335,12 +323,12 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().monitorExit(obj);
     }
 
-    public Value call(ValueHandle target, List<Value> arguments) {
-        return getDelegate().call(target, arguments);
+    public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
+        return getDelegate().call(targetPtr, receiver, arguments);
     }
 
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
-        return getDelegate().callNoSideEffects(target, arguments);
+    public Value callNoSideEffects(Value targetPtr, Value receiver, List<Value> arguments) {
+        return getDelegate().callNoSideEffects(targetPtr, receiver, arguments);
     }
 
     public Node begin(final BlockLabel blockLabel) {
@@ -359,20 +347,20 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().safePoint();
     }
 
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
-        return getDelegate().callNoReturn(target, arguments);
+    public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
+        return getDelegate().callNoReturn(targetPtr, receiver, arguments);
     }
 
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        return getDelegate().invokeNoReturn(target, arguments, catchLabel, targetArguments);
+    public BasicBlock invokeNoReturn(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        return getDelegate().invokeNoReturn(targetPtr, receiver, arguments, catchLabel, targetArguments);
     }
 
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
-        return getDelegate().tailCall(target, arguments);
+    public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
+        return getDelegate().tailCall(targetPtr, receiver, arguments);
     }
 
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
-        return getDelegate().invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
+    public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        return getDelegate().invoke(targetPtr, receiver, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
     public BasicBlock goto_(final BlockLabel resumeLabel, Map<Slot, Value> args) {

@@ -17,6 +17,8 @@ import org.qbicc.interpreter.VmStaticFieldBaseObject;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
+import org.qbicc.pointer.ConstructorPointer;
+import org.qbicc.pointer.InstanceMethodPointer;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
@@ -105,6 +107,10 @@ class BuildtimeHeapAnalyzer {
                             analysis.processReachableExactInvocation(smp.getStaticMethod(), rootElement);
                         } else if (pointer instanceof StaticFieldPointer sfp) {
                             analysis.processReachableStaticFieldAccess(sfp.getStaticField(), rootElement);
+                        } else if (pointer instanceof InstanceMethodPointer imp) {
+                            analysis.processReachableExactInvocation(imp.getExecutableElement(), rootElement);
+                        } else if (pointer instanceof ConstructorPointer cp) {
+                            analysis.processInstantiatedClass(cp.getExecutableElement().getEnclosingType().load(), false, rootElement);
                         }
                     }
                 }

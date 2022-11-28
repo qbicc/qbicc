@@ -166,8 +166,7 @@ public class DispatchTables {
         TypeSystem ts = ctxt.getTypeSystem();
         CompoundType.Member[] functions = new CompoundType.Member[vtable.length];
         for (int i=0; i<vtable.length; i++) {
-            FunctionType funType = ctxt.getFunctionTypeForElement(vtable[i]);
-            functions[i] = ts.getCompoundTypeMember("m"+i+"."+vtable[i].getName(), funType.getPointer(), i*ts.getPointerSize(), ts.getPointerAlignment());
+            functions[i] = ts.getCompoundTypeMember("m"+i+"."+vtable[i].getName(), vtable[i].getType().getPointer(), i*ts.getPointerSize(), ts.getPointerAlignment());
         }
         CompoundType vtableType = ts.getCompoundType(CompoundType.Tag.STRUCT, vtableName, vtable.length * ts.getPointerSize(),
             ts.getPointerAlignment(), () -> List.of(functions));
@@ -194,8 +193,7 @@ public class DispatchTables {
         TypeSystem ts = ctxt.getTypeSystem();
         CompoundType.Member[] functions = new CompoundType.Member[itable.length];
         for (int i=0; i<itable.length; i++) {
-            FunctionType funType = ctxt.getFunctionTypeForElement(itable[i]);
-            functions[i] = ts.getCompoundTypeMember("m"+i+"."+itable[i].getName(), funType.getPointer(), i*ts.getPointerSize(), ts.getPointerAlignment());
+            functions[i] = ts.getCompoundTypeMember("m"+i+"."+itable[i].getName(), itable[i].getType().getPointer(), i*ts.getPointerSize(), ts.getPointerAlignment());
         }
         CompoundType itableType = ts.getCompoundType(CompoundType.Tag.STRUCT, itableName, itable.length * ts.getPointerSize(),
             ts.getPointerAlignment(), () -> List.of(functions));

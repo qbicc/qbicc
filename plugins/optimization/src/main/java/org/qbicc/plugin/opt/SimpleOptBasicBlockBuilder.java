@@ -16,6 +16,7 @@ import org.qbicc.graph.Comp;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.Executable;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.Neg;
@@ -702,6 +703,8 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public Value addressOf(ValueHandle handle) {
         if (handle instanceof PointerHandle ph) {
             return ph.getPointerValue();
+        } else if (handle instanceof Executable e) {
+            return e.getTarget();
         }
         return super.addressOf(handle);
     }

@@ -22,7 +22,6 @@ import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
@@ -113,33 +112,33 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
+    public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
         knownValues.clear();
-        return super.call(target, arguments);
+        return super.call(targetPtr, receiver, arguments);
     }
 
     @Override
-    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+    public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
         knownValues.clear();
-        return super.callNoReturn(target, arguments);
+        return super.callNoReturn(targetPtr, receiver, arguments);
     }
 
     @Override
-    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+    public BasicBlock invokeNoReturn(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         knownValues.clear();
-        return super.invokeNoReturn(target, arguments, catchLabel, targetArguments);
+        return super.invokeNoReturn(targetPtr, receiver, arguments, catchLabel, targetArguments);
     }
 
     @Override
-    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+    public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
         knownValues.clear();
-        return super.tailCall(target, arguments);
+        return super.tailCall(targetPtr, receiver, arguments);
     }
 
     @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+    public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         knownValues.clear();
-        return super.invoke(target, arguments, catchLabel, resumeLabel, targetArguments);
+        return super.invoke(targetPtr, receiver, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
     private static Value findRoot(Value pointer) {

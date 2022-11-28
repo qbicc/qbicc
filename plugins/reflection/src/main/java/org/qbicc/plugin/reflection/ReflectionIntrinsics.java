@@ -14,11 +14,9 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.BlockParameter;
-import org.qbicc.graph.InstanceMethodElementHandle;
 import org.qbicc.graph.Slot;
-import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.literal.InstanceMethodLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.schedule.Schedule;
@@ -42,10 +40,11 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.MethodBodyFactory;
 import org.qbicc.type.definition.classfile.ClassFile;
-import org.qbicc.type.definition.element.BasicElement;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.StaticMethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -83,26 +82,27 @@ public final class ReflectionIntrinsics {
             LiteralFactory lf = ctxt.getLiteralFactory();
             if (instance instanceof ObjectLiteral instanceLit) {
                 // perform a build-time check
-                MethodDescriptor callSiteDescriptor = target.getCallSiteDescriptor();
+                InstanceMethodElement element = target.getExecutable();
+                MethodDescriptor callSiteDescriptor = element.getDescriptor();
                 BasicBlockBuilder fb = builder.getFirstBuilder();
                 Vm vm = Vm.requireCurrent();
                 try {
-                    ClassContext classContext = target.getElement().getEnclosingType().getContext();
+                    ClassContext classContext = builder.getCurrentClassContext();
                     VmObject realType = vm.createMethodType(classContext, callSiteDescriptor);
                     Value realHandle;
-                    LoadedTypeDefinition mhDef = target.getExecutable().getEnclosingType().load();
+                    LoadedTypeDefinition mhDef = element.getEnclosingType().load();
                     int asTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("asType"));
                     MethodElement asType = mhDef.getMethod(asTypeIdx);
                     // get the target statically
                     realHandle = lf.literalOf((VmObject) vm.invokeVirtual(asType, instanceLit.getValue(), List.of(realType)));
                     // and transform to `invokeExact`
-                    ValueHandle invokeExactHandle = fb.exactMethodOf(realHandle, methodHandleDesc, "invokeExact", callSiteDescriptor);
-                    return fb.call(invokeExactHandle, arguments);
+                    Value invokeExactHandle = fb.resolveInstanceMethod(methodHandleDesc, "invokeExact", callSiteDescriptor);
+                    return fb.call(invokeExactHandle, realHandle, arguments);
                 } catch (Thrown t) {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invoke intrinsic: %s", t);
                     log.warnf(t, "Failed to expand MethodHandle.invoke intrinsic");
                     Value ie = fb.new_(internalErrorDesc);
-                    fb.call(fb.constructorOf(ie, internalErrorDesc, throwableToVoid), List.of(lf.literalOf(t.getThrowable())));
+                    fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
                     throw new BlockEarlyTermination(fb.throw_(ie));
                 }
             } else {
@@ -115,27 +115,28 @@ public final class ReflectionIntrinsics {
         // (non-intrinsic version)
         InstanceIntrinsic invokeMethodBody = (builder, instance, target, arguments) -> {
             LiteralFactory lf = ctxt.getLiteralFactory();
-            MethodDescriptor callSiteDescriptor = target.getCallSiteDescriptor();
+            InstanceMethodElement element = target.getExecutable();
+            MethodDescriptor callSiteDescriptor = element.getDescriptor();
             BasicBlockBuilder fb = builder.getFirstBuilder();
             Vm vm = Vm.requireCurrent();
             try {
-                ClassContext classContext = target.getElement().getEnclosingType().getContext();
+                ClassContext classContext = builder.getCurrentClassContext();
                 VmObject realType = vm.createMethodType(classContext, callSiteDescriptor);
                 Value realHandle;
-                LoadedTypeDefinition mhDef = target.getExecutable().getEnclosingType().load();
+                LoadedTypeDefinition mhDef = element.getEnclosingType().load();
                 int asTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("asType"));
-                MethodElement asType = mhDef.getMethod(asTypeIdx);
+                InstanceMethodElement asType = (InstanceMethodElement) mhDef.getMethod(asTypeIdx);
                 // get the target dynamically
-                ValueHandle asTypeHandle = fb.virtualMethodOf(instance, asType);
-                realHandle = fb.call(asTypeHandle, List.of(lf.literalOf(realType)));
+                Value asTypeHandle = fb.lookupVirtualMethod(instance, asType);
+                realHandle = fb.call(asTypeHandle, instance, List.of(lf.literalOf(realType)));
                 // and transform to `invokeExact`
-                ValueHandle invokeExactHandle = fb.exactMethodOf(realHandle, methodHandleDesc, "invokeExact", callSiteDescriptor);
-                throw new BlockEarlyTermination(fb.tailCall(invokeExactHandle, arguments));
+                Value invokeExact = fb.resolveInstanceMethod(methodHandleDesc, "invokeExact", callSiteDescriptor);
+                throw new BlockEarlyTermination(fb.tailCall(invokeExact, realHandle, arguments));
             } catch (Thrown t) {
                 ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invoke method: %s", t);
                 log.warnf(t, "Failed to expand MethodHandle.invoke method");
                 Value ie = fb.new_(internalErrorDesc);
-                fb.call(fb.constructorOf(ie, internalErrorDesc, throwableToVoid), List.of(lf.literalOf(t.getThrowable())));
+                fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
                 throw new BlockEarlyTermination(fb.throw_(ie));
             }
         };
@@ -146,25 +147,26 @@ public final class ReflectionIntrinsics {
         InstanceIntrinsic invokeExactIntrinsic = (builder, instance, target, arguments) -> {
             LiteralFactory lf = ctxt.getLiteralFactory();
             if (instance instanceof ObjectLiteral instanceLit) {
-                MethodDescriptor callSiteDescriptor = target.getCallSiteDescriptor();
+                InstanceMethodElement element = target.getExecutable();
+                MethodDescriptor callSiteDescriptor = element.getDescriptor();
                 BasicBlockBuilder fb = builder.getFirstBuilder();
                 Vm vm = Vm.requireCurrent();
                 try {
-                    ClassContext classContext = target.getElement().getEnclosingType().getContext();
+                    ClassContext classContext = builder.getCurrentClassContext();
                     VmObject realType = vm.createMethodType(classContext, callSiteDescriptor);
-                    LoadedTypeDefinition mhDef = target.getExecutable().getEnclosingType().load();
+                    LoadedTypeDefinition mhDef = element.getEnclosingType().load();
                     int checkTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("checkType"));
                     MethodElement checkType = mhDef.getMethod(checkTypeIdx);
                     // check the type now
                     vm.invokeExact(checkType, instanceLit.getValue(), List.of(realType));
                     // type is OK; now we can forward to invokeBasic(...) on this same instance
-                    ValueHandle invokeBasicHandle = fb.exactMethodOf(instance, methodHandleDesc, "invokeBasic", callSiteDescriptor);
-                    return fb.call(invokeBasicHandle, arguments);
+                    Value invokeBasicHandle = fb.resolveInstanceMethod(methodHandleDesc, "invokeBasic", callSiteDescriptor);
+                    return fb.call(invokeBasicHandle, instance, arguments);
                 } catch (Thrown t) {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invokeExact intrinsic: %s", t);
                     log.warnf(t, "Failed to expand MethodHandle.invokeExact intrinsic");
                     Value ie = fb.new_(internalErrorDesc);
-                    fb.call(fb.constructorOf(ie, internalErrorDesc, throwableToVoid), List.of(lf.literalOf(t.getThrowable())));
+                    fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
                     throw new BlockEarlyTermination(fb.throw_(ie));
                 }
             } else {
@@ -176,26 +178,26 @@ public final class ReflectionIntrinsics {
 
         InstanceIntrinsic invokeExactMethodBody = (builder, instance, target, arguments) -> {
             LiteralFactory lf = ctxt.getLiteralFactory();
-            MethodDescriptor callSiteDescriptor = target.getCallSiteDescriptor();
+            InstanceMethodElement element = target.getExecutable();
+            MethodDescriptor callSiteDescriptor = element.getDescriptor();
             BasicBlockBuilder fb = builder.getFirstBuilder();
             Vm vm = Vm.requireCurrent();
             try {
-                ClassContext classContext = target.getElement().getEnclosingType().getContext();
+                ClassContext classContext = builder.getCurrentClassContext();
                 VmObject realType = vm.createMethodType(classContext, callSiteDescriptor);
-                LoadedTypeDefinition mhDef = target.getExecutable().getEnclosingType().load();
+                LoadedTypeDefinition mhDef = element.getEnclosingType().load();
                 int checkTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("checkType"));
-                MethodElement checkType = mhDef.getMethod(checkTypeIdx);
-                ValueHandle checkTypeHandle = fb.exactMethodOf(instance, checkType);
+                InstanceMethodElement checkType = (InstanceMethodElement) mhDef.getMethod(checkTypeIdx);
                 // check the type dynamically at run time
-                fb.call(checkTypeHandle, List.of(lf.literalOf(realType)));
+                fb.call(lf.literalOf(checkType), instance, List.of(lf.literalOf(realType)));
                 // and transform to `invokeBasic`
-                ValueHandle invokeBasicHandle = fb.exactMethodOf(instance, methodHandleDesc, "invokeBasic", callSiteDescriptor);
-                throw new BlockEarlyTermination(fb.tailCall(invokeBasicHandle, arguments));
+                Value invokeBasicHandle = fb.resolveInstanceMethod(methodHandleDesc, "invokeBasic", callSiteDescriptor);
+                throw new BlockEarlyTermination(fb.tailCall(invokeBasicHandle, instance, arguments));
             } catch (Thrown t) {
                 ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invokeExact method: %s", t);
                 log.warnf(t, "Failed to expand MethodHandle.invokeExact method");
                 Value ie = fb.new_(internalErrorDesc);
-                fb.call(fb.constructorOf(ie, internalErrorDesc, throwableToVoid), List.of(lf.literalOf(t.getThrowable())));
+                fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
                 throw new BlockEarlyTermination(fb.throw_(ie));
             }
         };
@@ -219,11 +221,11 @@ public final class ReflectionIntrinsics {
                     newArgs.addAll(arguments);
                     if (methodPtr instanceof StaticMethodPointer smp) {
                         // call the static method directly
-                        return fb.call(fb.staticMethod(smp.getStaticMethod()), newArgs);
+                        return fb.call(lf.literalOf(smp.getExecutableElement()), newArgs);
                     } else if (methodPtr instanceof InstanceMethodPointer imp) {
                         // todo: for now, we're using static helpers only
                         // call the exact method directly
-                        return fb.call(fb.exactMethodOf(arguments.get(0), imp.getInstanceMethod()), newArgs.subList(1, newArgs.size()));
+                        return fb.call(lf.literalOf(imp.getExecutableElement()), arguments.get(0), newArgs.subList(1, newArgs.size()));
                     } else {
                         // ???
                         ctxt.warning(fb.getLocation(), "Unknown method handle pointer type: %s", methodPtr.getClass());
@@ -233,7 +235,7 @@ public final class ReflectionIntrinsics {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invokeBasic intrinsic: %s", t);
                     log.warnf(t, "Failed to expand MethodHandle.invokeBasic intrinsic");
                     Value ie = fb.new_(internalErrorDesc);
-                    fb.call(fb.constructorOf(ie, internalErrorDesc, throwableToVoid), List.of(lf.literalOf(t.getThrowable())));
+                    fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
                     throw new BlockEarlyTermination(fb.throw_(ie));
                 }
             } else {
@@ -255,12 +257,12 @@ public final class ReflectionIntrinsics {
             newArgs.add(instance);
             newArgs.addAll(arguments);
             // todo: assume a static method or static dispatch helper
-            InstanceMethodType methodType = (InstanceMethodType) target.getExecutable().getType();
+            InstanceMethodType methodType = target.getExecutable().getType();
             List<ValueType> parameterTypes = methodType.getParameterTypes();
             StaticMethodType dispatcherType = ts.getStaticMethodType(methodType.getReturnType(), parameterTypes).withFirstParameterType(methodType.getReceiverType());
             // cast to the matching static method pointer type for this particular helper shape
             Value castMethodPtr = fb.bitCast(methodPtr, dispatcherType.getPointer());
-            throw new BlockEarlyTermination(fb.tailCall(fb.pointerHandle(castMethodPtr), newArgs));
+            throw new BlockEarlyTermination(fb.tailCall(castMethodPtr, newArgs));
         };
         patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "invokeBasic", objArrayToObj, new InstanceIntrinsicMethodBodyFactory(invokeBasicMethodBody), 0);
 
@@ -278,7 +280,7 @@ public final class ReflectionIntrinsics {
                     Pointer methodPtr = memberName.getMemory().loadPointer(memberName.indexOf(reflection.memberNameExactDispatcherField), SinglePlain);
                     if (methodPtr instanceof StaticMethodPointer smp) {
                         // call the static method directly
-                        return fb.call(fb.staticMethod(smp.getStaticMethod()), arguments.subList(0, lastArg));
+                        return fb.call(lf.literalOf(smp.getExecutableElement()), arguments.subList(0, lastArg));
                     } else {
                         // ???
                         ctxt.warning(fb.getLocation(), "Unknown method handle pointer type: %s", methodPtr.getClass());
@@ -288,7 +290,7 @@ public final class ReflectionIntrinsics {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.linkToStatic intrinsic: %s", t);
                     log.warnf(t, "Failed to expand MethodHandle.linkToStatic intrinsic");
                     Value ie = fb.new_(internalErrorDesc);
-                    fb.call(fb.constructorOf(ie, internalErrorDesc, throwableToVoid), List.of(lf.literalOf(t.getThrowable())));
+                    fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
                     throw new BlockEarlyTermination(fb.throw_(ie));
                 }
             } else {
@@ -304,10 +306,10 @@ public final class ReflectionIntrinsics {
             int lastArg = arguments.size() - 1;
             Value memberName = arguments.get(lastArg);
             Value methodPtr = fb.load(fb.instanceFieldOf(fb.decodeReference(memberName), reflection.memberNameExactDispatcherField));
-            StaticMethodType methodType = (StaticMethodType) target.getExecutable().getType();
+            StaticMethodType methodType = target.getExecutable().getType();
             // cast to the matching static method pointer type for this particular shape
             Value castMethodPtr = fb.bitCast(methodPtr, methodType.trimLastParameter().getPointer());
-            throw new BlockEarlyTermination(fb.tailCall(fb.pointerHandle(castMethodPtr), arguments.subList(0, lastArg)));
+            throw new BlockEarlyTermination(fb.tailCall(castMethodPtr, arguments.subList(0, lastArg)));
         };
         patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "linkToStatic", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToStaticMethodBody), 0);
 
@@ -325,7 +327,7 @@ public final class ReflectionIntrinsics {
                     Pointer methodPtr = memberName.getMemory().loadPointer(memberName.indexOf(reflection.memberNameExactDispatcherField), SinglePlain);
                     if (methodPtr instanceof StaticMethodPointer smp) {
                         // call the static helper method directly
-                        return fb.call(fb.staticMethod(smp.getStaticMethod()), arguments.subList(0, lastArg));
+                        return fb.call(lf.literalOf(smp.getExecutableElement()), arguments.subList(0, lastArg));
                     } else {
                         // ???
                         ctxt.warning(fb.getLocation(), "Unknown method handle pointer type: %s", methodPtr.getClass());
@@ -335,7 +337,7 @@ public final class ReflectionIntrinsics {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.linkToInterface intrinsic: %s", t);
                     log.warnf(t, "Failed to expand MethodHandle.linkToInterface intrinsic");
                     Value ie = fb.new_(internalErrorDesc);
-                    fb.call(fb.constructorOf(ie, internalErrorDesc, throwableToVoid), List.of(lf.literalOf(t.getThrowable())));
+                    fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
                     throw new BlockEarlyTermination(fb.throw_(ie));
                 }
             } else {
@@ -351,10 +353,10 @@ public final class ReflectionIntrinsics {
             int lastArg = arguments.size() - 1;
             Value memberName = arguments.get(lastArg);
             Value methodPtr = fb.load(fb.instanceFieldOf(fb.decodeReference(memberName), reflection.memberNameExactDispatcherField));
-            StaticMethodType methodType = (StaticMethodType) target.getExecutable().getType();
+            StaticMethodType methodType = target.getExecutable().getType();
             // cast to the matching static helper method pointer type for this particular shape
             Value castMethodPtr = fb.bitCast(methodPtr, methodType.trimLastParameter().getPointer());
-            throw new BlockEarlyTermination(fb.tailCall(fb.pointerHandle(castMethodPtr), arguments.subList(0, lastArg)));
+            throw new BlockEarlyTermination(fb.tailCall(castMethodPtr, arguments.subList(0, lastArg)));
         };
         patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "linkToInterface", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToInterfaceMethodBody), 0);
 
@@ -370,7 +372,7 @@ public final class ReflectionIntrinsics {
                     Pointer methodPtr = memberName.getMemory().loadPointer(memberName.indexOf(reflection.memberNameExactDispatcherField), SinglePlain);
                     if (methodPtr instanceof StaticMethodPointer smp) {
                         // call the static helper method directly
-                        return fb.call(fb.staticMethod(smp.getStaticMethod()), arguments.subList(0, lastArg));
+                        return fb.call(lf.literalOf(smp.getExecutableElement()), arguments.subList(0, lastArg));
                     } else {
                         // ???
                         ctxt.warning(fb.getLocation(), "Unknown method handle pointer type: %s", methodPtr.getClass());
@@ -380,7 +382,7 @@ public final class ReflectionIntrinsics {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.linkToSpecial intrinsic: %s", t);
                     log.warnf(t, "Failed to expand MethodHandle.linkToSpecial intrinsic");
                     Value ie = fb.new_(internalErrorDesc);
-                    fb.call(fb.constructorOf(ie, internalErrorDesc, throwableToVoid), List.of(lf.literalOf(t.getThrowable())));
+                    fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
                     throw new BlockEarlyTermination(fb.throw_(ie));
                 }
             } else {
@@ -396,10 +398,10 @@ public final class ReflectionIntrinsics {
             int lastArg = arguments.size() - 1;
             Value memberName = arguments.get(lastArg);
             Value methodPtr = fb.load(fb.instanceFieldOf(fb.decodeReference(memberName), reflection.memberNameExactDispatcherField));
-            StaticMethodType methodType = (StaticMethodType) target.getExecutable().getType();
+            StaticMethodType methodType = target.getExecutable().getType();
             // cast to the matching static helper method pointer type for this particular shape
             Value castMethodPtr = fb.bitCast(methodPtr, methodType.trimLastParameter().getPointer());
-            throw new BlockEarlyTermination(fb.tailCall(fb.pointerHandle(castMethodPtr), arguments.subList(0, lastArg)));
+            throw new BlockEarlyTermination(fb.tailCall(castMethodPtr, arguments.subList(0, lastArg)));
         };
         patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "linkToSpecial", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToSpecialMethodBody), 0);
 
@@ -415,7 +417,7 @@ public final class ReflectionIntrinsics {
                     Pointer methodPtr = memberName.getMemory().loadPointer(memberName.indexOf(reflection.memberNameExactDispatcherField), SinglePlain);
                     if (methodPtr instanceof StaticMethodPointer smp) {
                         // call the static helper method directly
-                        return fb.call(fb.staticMethod(smp.getStaticMethod()), arguments.subList(0, lastArg));
+                        return fb.call(lf.literalOf(smp.getExecutableElement()), arguments.subList(0, lastArg));
                     } else {
                         // ???
                         ctxt.warning(fb.getLocation(), "Unknown method handle pointer type: %s", methodPtr.getClass());
@@ -425,7 +427,7 @@ public final class ReflectionIntrinsics {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.linkToVirtual intrinsic: %s", t);
                     log.warnf(t, "Failed to expand MethodHandle.linkToVirtual intrinsic");
                     Value ie = fb.new_(internalErrorDesc);
-                    fb.call(fb.constructorOf(ie, internalErrorDesc, throwableToVoid), List.of(lf.literalOf(t.getThrowable())));
+                    fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
                     throw new BlockEarlyTermination(fb.throw_(ie));
                 }
             } else {
@@ -441,10 +443,10 @@ public final class ReflectionIntrinsics {
             int lastArg = arguments.size() - 1;
             Value memberName = arguments.get(lastArg);
             Value methodPtr = fb.load(fb.instanceFieldOf(fb.decodeReference(memberName), reflection.memberNameExactDispatcherField));
-            StaticMethodType methodType = (StaticMethodType) target.getExecutable().getType();
+            StaticMethodType methodType = target.getExecutable().getType();
             // cast to the matching static helper method pointer type for this particular shape
             Value castMethodPtr = fb.bitCast(methodPtr, methodType.trimLastParameter().getPointer());
-            throw new BlockEarlyTermination(fb.tailCall(fb.pointerHandle(castMethodPtr), arguments.subList(0, lastArg)));
+            throw new BlockEarlyTermination(fb.tailCall(castMethodPtr, arguments.subList(0, lastArg)));
         };
         patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "linkToVirtual", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToVirtualMethodBody), 0);
 
@@ -455,14 +457,14 @@ public final class ReflectionIntrinsics {
 
         final class VarHandleBodyIntrinsic implements InstanceIntrinsic {
             @Override
-            public Value emitIntrinsic(BasicBlockBuilder builder, Value instance, InstanceMethodElementHandle target, List<Value> arguments) {
+            public Value emitIntrinsic(BasicBlockBuilder builder, Value instance, InstanceMethodLiteral target, List<Value> arguments) {
                 MethodElement methodElement = target.getExecutable();
                 MethodDescriptor descriptor = methodElement.getDescriptor();
                 DefinedTypeDefinition enclosingType = methodElement.getEnclosingType();
                 if (Reflection.isErased(descriptor)) {
                     // base method implementation with erased type throws WrongMethodTypeException; overridden in subclasses
                     Value ex = builder.new_((ClassTypeDescriptor) wmteDef.getDescriptor());
-                    builder.call(builder.constructorOf(ex, wmteCtor), List.of());
+                    builder.call(builder.getLiteralFactory().literalOf(wmteCtor), ex, List.of());
                     throw new BlockEarlyTermination(builder.throw_(ex));
                 } else {
                     // not erased; delegate to erased version
@@ -471,9 +473,9 @@ public final class ReflectionIntrinsics {
                     TypeDescriptor returnTypeDesc = descriptor.getReturnType();
                     if (Reflection.isErased(returnTypeDesc)) {
                         // no cast needed
-                        throw new BlockEarlyTermination(builder.tailCall(builder.virtualMethodOf(instance, enclosingType.getDescriptor(), methodElement.getName(), erased), arguments));
+                        throw new BlockEarlyTermination(builder.tailCall(builder.lookupVirtualMethod(instance, enclosingType.getDescriptor(), methodElement.getName(), erased), arguments));
                     } else {
-                        Value result = builder.call(builder.virtualMethodOf(instance, enclosingType.getDescriptor(), methodElement.getName(), erased), arguments);
+                        Value result = builder.call(builder.lookupVirtualMethod(instance, enclosingType.getDescriptor(), methodElement.getName(), erased), instance, arguments);
                         throw new BlockEarlyTermination(builder.return_(builder.checkcast(result, returnTypeDesc)));
                     }
                 }
@@ -526,27 +528,30 @@ public final class ReflectionIntrinsics {
             this.methodBodyIntrinsic = methodBodyIntrinsic;
         }
 
-        @SuppressWarnings({ "unchecked", "rawtypes" })
         @Override
         public MethodBody createMethodBody(int index, ExecutableElement element) {
+            if (! (element instanceof StaticMethodElement sme)) {
+                throw new IllegalStateException();
+            }
             // hack the method to be hidden
-            ((BasicElement)element).setModifierFlags(ClassFile.I_ACC_HIDDEN);
+            sme.setModifierFlags(ClassFile.I_ACC_HIDDEN);
             // assume that the descriptor has *changed*
             InvokableType type = element.getType();
             DefinedTypeDefinition enclosingType = element.getEnclosingType();
             ClassContext classContext = enclosingType.getContext();
+            LiteralFactory lf = classContext.getLiteralFactory();
             BasicBlockBuilder bbb = classContext.newBasicBlockBuilder(element);
             // build the entry block
             BlockLabel entryLabel = new BlockLabel();
             bbb.begin(entryLabel);
-            List<BlockParameter> paramValues = new ArrayList<>(type.getParameterCount());
+            List<Value> paramValues = new ArrayList<>(type.getParameterCount());
             int cnt = type.getParameterCount();
             for (int i = 0; i < cnt; i ++) {
                 paramValues.add(bbb.addParam(entryLabel, Slot.funcParam(i), type.getParameterType(i)));
             }
             // expand the "intrinsic"
             try {
-                Value retVal = methodBodyIntrinsic.emitIntrinsic(bbb, (StaticMethodElementHandle) bbb.staticMethod((MethodElement) element), (List<Value>) (List) paramValues);
+                Value retVal = methodBodyIntrinsic.emitIntrinsic(bbb, lf.literalOf(sme), paramValues);
                 if (retVal == null) {
                     throw new IllegalStateException("Failed to emit method body");
                 }
@@ -569,28 +574,31 @@ public final class ReflectionIntrinsics {
             this.methodBodyIntrinsic = methodBodyIntrinsic;
         }
 
-        @SuppressWarnings({ "unchecked", "rawtypes" })
         @Override
         public MethodBody createMethodBody(int index, ExecutableElement element) {
+            if (! (element instanceof InstanceMethodElement ime)) {
+                throw new IllegalStateException();
+            }
             // hack the method to be hidden
-            ((BasicElement)element).setModifierFlags(ClassFile.I_ACC_HIDDEN);
+            ime.setModifierFlags(ClassFile.I_ACC_HIDDEN);
             // assume that the descriptor has *changed*
             InvokableType type = element.getType();
             DefinedTypeDefinition enclosingType = element.getEnclosingType();
             ClassContext classContext = enclosingType.getContext();
+            LiteralFactory lf = classContext.getLiteralFactory();
             BasicBlockBuilder bbb = classContext.newBasicBlockBuilder(element);
             // build the entry block
             BlockLabel entryLabel = new BlockLabel();
             bbb.begin(entryLabel);
             BlockParameter this_ = bbb.addParam(entryLabel, Slot.this_(), element.getEnclosingType().load().getObjectType().getReference(), false);
-            List<BlockParameter> paramValues = new ArrayList<>(type.getParameterCount());
+            List<Value> paramValues = new ArrayList<>(type.getParameterCount());
             int cnt = type.getParameterCount();
             for (int i = 0; i < cnt; i ++) {
                 paramValues.add(bbb.addParam(entryLabel, Slot.funcParam(i), type.getParameterType(i)));
             }
             // expand the "intrinsic"
             try {
-                Value retVal = methodBodyIntrinsic.emitIntrinsic(bbb, this_, (InstanceMethodElementHandle) bbb.exactMethodOf(this_, (MethodElement) element), (List<Value>) (List) paramValues);
+                Value retVal = methodBodyIntrinsic.emitIntrinsic(bbb, this_, lf.literalOf(ime), paramValues);
                 if (retVal == null) {
                     throw new IllegalStateException("Failed to emit method body");
                 }

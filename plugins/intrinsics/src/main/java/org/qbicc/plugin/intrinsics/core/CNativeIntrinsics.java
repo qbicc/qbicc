@@ -16,9 +16,9 @@ import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.CmpAndSwap;
+import org.qbicc.graph.Dereference;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.Load;
-import org.qbicc.graph.Dereference;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
@@ -88,7 +88,6 @@ final class CNativeIntrinsics {
         ClassTypeDescriptor thrDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
         ClassTypeDescriptor strDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
-        ClassTypeDescriptor qthrDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread$_qbicc");
 
         ClassTypeDescriptor boolPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$_Bool_ptr");
 
@@ -108,7 +107,7 @@ final class CNativeIntrinsics {
         MethodDescriptor objArrayTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objArrayDesc));
 
         StaticIntrinsic typeOf = (builder, target, arguments) ->
-            builder.load(builder.instanceFieldOf(builder.decodeReference(arguments.get(0)), CoreClasses.get(ctxt).getObjectTypeIdField()));
+            builder.loadTypeId(arguments.get(0));
 
         intrinsics.registerIntrinsic(cNativeDesc, "typeIdOf", objTypeIdDesc, typeOf);
 
@@ -182,7 +181,7 @@ final class CNativeIntrinsics {
             // Allocate uninitialized Thread object
             Value thread = builder.new_(thrDesc);
             // immediately set the newly allocated thread object to be the current thread
-            builder.store(builder.resolveStaticField(qthrDesc, "_qbicc_bound_java_thread", thrDesc), thread, SingleUnshared);
+            builder.store(builder.currentThread(), thread, SingleUnshared);
 
             // now start initializing
             DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
@@ -199,7 +198,7 @@ final class CNativeIntrinsics {
             Value threadRef = builder.decodeReference(thread);
             builder.store(builder.instanceFieldOf(threadRef, nameFld), arguments.get(0), SingleUnshared);
             builder.store(builder.instanceFieldOf(threadRef, groupFld), arguments.get(1), SingleUnshared);
-            Value tid = builder.call(builder.staticMethod(thrDesc, "nextThreadID", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of())), List.of());
+            Value tid = builder.call(builder.resolveStaticMethod(thrDesc, "nextThreadID", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of())), List.of());
             builder.store(builder.instanceFieldOf(threadRef, tidFld), tid, SingleUnshared);
             // priority default is Thread.NORM_PRIORITY
             Value normPriority = builder.load(lf.literalOf(jltVal.findStaticField("NORM_PRIORITY")), SingleUnshared);
@@ -257,7 +256,7 @@ final class CNativeIntrinsics {
 
         StaticIntrinsic sizeof = (builder, target, arguments) -> {
             long size = arguments.get(0).getType().getSize();
-            IntegerType returnType = (IntegerType) target.getExecutable().getType().getReturnType();
+            IntegerType returnType = (IntegerType) target.getReturnType();
             return ctxt.getLiteralFactory().literalOf(returnType, size);
         };
 
@@ -271,7 +270,7 @@ final class CNativeIntrinsics {
                 ctxt.error(builder.getLocation(), "unexpected type for sizeof(Class)");
                 size = arg.getType().getSize();
             }
-            IntegerType returnType = (IntegerType) target.getExecutable().getType().getReturnType();
+            IntegerType returnType = (IntegerType) target.getReturnType();
             return ctxt.getLiteralFactory().literalOf(returnType, size);
         };
 
@@ -288,7 +287,7 @@ final class CNativeIntrinsics {
             } else {
                 align = argType.getAlign();
             }
-            IntegerType returnType = (IntegerType) target.getExecutable().getType().getReturnType();
+            IntegerType returnType = (IntegerType) target.getReturnType();
             return ctxt.getLiteralFactory().literalOf(returnType, align);
         };
 
@@ -354,7 +353,7 @@ final class CNativeIntrinsics {
             LiteralFactory lf = ctxt.getLiteralFactory();
             TypeSystem ts = ctxt.getTypeSystem();
             String content;
-            PointerType returnType = (PointerType) target.getPointeeType().getReturnType();
+            PointerType returnType = (PointerType) target.getReturnType();
             if (arguments.get(0) instanceof StringLiteral sl) {
                 content = sl.getValue();
             } else if (arguments.get(0) instanceof ObjectLiteral ol && ol.getValue() instanceof VmString vs) {
@@ -421,7 +420,7 @@ final class CNativeIntrinsics {
         ClassTypeDescriptor wordDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$word");
 
         InstanceIntrinsic xxxValue = (builder, instance, target, arguments) -> {
-            WordType to = (WordType) target.getExecutable().getType().getReturnType();
+            WordType to = (WordType) target.getReturnType();
             return smartConvert(builder, instance, to, true);
         };
 
@@ -435,15 +434,15 @@ final class CNativeIntrinsics {
         intrinsics.registerIntrinsic(wordDesc, "shortValue", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.S, List.of()), xxxValue);
 
         intrinsics.registerIntrinsic(wordDesc, "ubyteValue", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of()), (builder, instance, target, arguments) -> {
-            WordType to = (WordType) target.getExecutable().getType().getReturnType();
+            WordType to = (WordType) target.getReturnType();
             return builder.extend(smartConvert(builder, instance, ctxt.getTypeSystem().getUnsignedInteger8Type(), true), to);
         });
         intrinsics.registerIntrinsic(wordDesc, "ushortValue", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of()), (builder, instance, target, arguments) -> {
-            WordType to = (WordType) target.getExecutable().getType().getReturnType();
+            WordType to = (WordType) target.getReturnType();
             return builder.extend(smartConvert(builder, instance, ctxt.getTypeSystem().getUnsignedInteger16Type(), true), to);
         });
         intrinsics.registerIntrinsic(wordDesc, "uintValue", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of()), (builder, instance, target, arguments) -> {
-            WordType to = (WordType) target.getExecutable().getType().getReturnType();
+            WordType to = (WordType) target.getReturnType();
             return builder.extend(smartConvert(builder, instance, ctxt.getTypeSystem().getUnsignedInteger32Type(), true), to);
         });
 
@@ -502,7 +501,7 @@ final class CNativeIntrinsics {
 
         InstanceIntrinsic set = (builder, instance, target, arguments) -> {
             builder.store(builder.offsetPointer(instance, arguments.get(0)), arguments.get(1), SingleUnshared);
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getExecutable().getType().getReturnType());
+            return builder.emptyVoid();
         };
 
         intrinsics.registerIntrinsic(ptrDesc, "set", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.I, objDesc)), set);

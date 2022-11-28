@@ -1,6 +1,5 @@
 package org.qbicc.plugin.reachability;
 
-import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;

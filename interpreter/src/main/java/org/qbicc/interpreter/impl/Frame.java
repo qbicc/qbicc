@@ -25,38 +25,36 @@ import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BitReverse;
 import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.BlockParameter;
+import org.qbicc.graph.ByteOffsetPointer;
 import org.qbicc.graph.ByteSwap;
 import org.qbicc.graph.Call;
 import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.CheckCast;
-import org.qbicc.graph.DebugAddressDeclaration;
-import org.qbicc.graph.DebugValueDeclaration;
-import org.qbicc.graph.DecodeReference;
-import org.qbicc.graph.InitCheck;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Cmp;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
 import org.qbicc.graph.Comp;
-import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.CountLeadingZeros;
 import org.qbicc.graph.CountTrailingZeros;
 import org.qbicc.graph.CurrentThread;
+import org.qbicc.graph.DebugAddressDeclaration;
+import org.qbicc.graph.DebugValueDeclaration;
+import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
-import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
-import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
+import org.qbicc.graph.InitCheck;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.InstanceOf;
-import org.qbicc.graph.InterfaceMethodElementHandle;
+import org.qbicc.graph.InterfaceMethodLookup;
 import org.qbicc.graph.Invoke;
 import org.qbicc.graph.InvokeNoReturn;
 import org.qbicc.graph.IsEq;
@@ -88,13 +86,13 @@ import org.qbicc.graph.PopCount;
 import org.qbicc.graph.Reachable;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Ret;
+import org.qbicc.graph.Return;
 import org.qbicc.graph.Rol;
 import org.qbicc.graph.Ror;
 import org.qbicc.graph.Select;
 import org.qbicc.graph.Shl;
 import org.qbicc.graph.Shr;
 import org.qbicc.graph.StackAllocation;
-import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
 import org.qbicc.graph.Switch;
@@ -104,14 +102,10 @@ import org.qbicc.graph.TerminatorVisitor;
 import org.qbicc.graph.Throw;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Unreachable;
-import org.qbicc.graph.ByteOffsetPointer;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.ValueHandleVisitor;
-import org.qbicc.graph.ValueHandleVisitorLong;
-import org.qbicc.graph.Return;
 import org.qbicc.graph.ValueVisitor;
-import org.qbicc.graph.VirtualMethodElementHandle;
+import org.qbicc.graph.VirtualMethodLookup;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
@@ -119,14 +113,17 @@ import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
+import org.qbicc.graph.literal.ConstructorLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.GlobalVariableLiteral;
+import org.qbicc.graph.literal.InstanceMethodLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
+import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
@@ -134,31 +131,28 @@ import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.interpreter.InvalidMemoryAccessException;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Thrown;
-import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThrowable;
+import org.qbicc.plugin.coreclasses.CoreClasses;
+import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.layout.LayoutInfo;
+import org.qbicc.pointer.ConstructorPointer;
 import org.qbicc.pointer.ElementPointer;
-import org.qbicc.pointer.GlobalPointer;
+import org.qbicc.pointer.ExecutableElementPointer;
 import org.qbicc.pointer.InstanceFieldPointer;
+import org.qbicc.pointer.InstanceMethodPointer;
 import org.qbicc.pointer.IntegerAsPointer;
 import org.qbicc.pointer.MemberPointer;
 import org.qbicc.pointer.MemoryPointer;
 import org.qbicc.pointer.Pointer;
-import org.qbicc.plugin.coreclasses.CoreClasses;
-import org.qbicc.plugin.layout.Layout;
-import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.pointer.ReferenceAsPointer;
-import org.qbicc.pointer.RootPointer;
-import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
-import org.qbicc.type.FunctionType;
-import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PhysicalObjectType;
@@ -167,7 +161,6 @@ import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
-import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
@@ -179,9 +172,8 @@ import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
-import org.qbicc.type.definition.element.MethodElement;
-import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 
 final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVisitor<VmThreadImpl, Object>, TerminatorVisitor<VmThreadImpl, BasicBlock> {
@@ -344,12 +336,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         if (valueHandle instanceof PointerHandle ph) {
             return require(ph.getPointerValue());
         }
-        Memory memory = getMemory(valueHandle);
-        if (memory == null) {
-            return null;
-        }
-        MemoryPointer memoryPointer = new MemoryPointer(node.getType(PointerType.class), memory);
-        return memoryPointer.offsetInBytes(getOffset(valueHandle), true);
+        throw badInputType();
     }
 
     @Override
@@ -862,7 +849,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl vmThread, DecodeReference node) {
         Object obj = require(node.getInput());
-        return obj == null ? null : new ReferenceAsPointer((VmObject) obj);
+        if (obj == null) {
+            return null;
+        }
+        return new ReferenceAsPointer((VmObject) obj);
     }
 
     @Override
@@ -1607,6 +1597,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
+    public Object visit(VmThreadImpl vmThread, ConstructorLiteral literal) {
+        return ConstructorPointer.of(literal.getExecutable());
+    }
+
+    @Override
     public Object visit(VmThreadImpl thread, FloatLiteral node) {
         return box(node.doubleValue(), node.getType());
     }
@@ -1614,6 +1609,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, GlobalVariableLiteral node) {
         return node.getVariableElement().getPointer();
+    }
+
+    @Override
+    public Object visit(VmThreadImpl vmThread, InstanceMethodLiteral literal) {
+        return InstanceMethodPointer.of(literal.getExecutable());
     }
 
     @Override
@@ -1639,6 +1639,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, StaticFieldLiteral node) {
         return node.getVariableElement().getPointer();
+    }
+
+    @Override
+    public Object visit(VmThreadImpl vmThread, StaticMethodLiteral literal) {
+        return StaticMethodPointer.of(literal.getExecutable());
     }
 
     @Override
@@ -1674,44 +1679,48 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     // Memory-affecting Values
     ///////////////////////////
 
-    private Object call(VmThreadImpl thread, ValueHandle handle, List<Object> arguments) {
+    private Object call(VmThreadImpl thread, Value targetPtr, Value receiverValue, List<Object> arguments) {
         if (depth == 4096) {
             // todo: configure
             VmThrowableClassImpl soeClass = (VmThrowableClassImpl) thread.vm.getBootstrapClassLoader().loadClass("java/lang/StackOverflowError");
             throw new Thrown(soeClass.newInstance());
         }
-        ExecutableElement element = handle.accept(GET_EXECUTABLE_ELEMENT, this);
-        VmObject receiver = handle.accept(GET_RECEIVER, this);
-        DefinedTypeDefinition def = element.getEnclosingType();
-        VmClassLoaderImpl cl = thread.vm.getClassLoaderForContext(def.getContext());
-        VmClassImpl clazz = (VmClassImpl) def.load().getVmClass();
-        clazz.initialize(thread);
-        VmInvokable invokable = clazz.getOrCompile(element);
-        return invokable.invokeAny(thread, receiver, arguments);
+        Object rawPtr = require(targetPtr);
+        if (rawPtr instanceof ExecutableElementPointer ptr) {
+            VmObject receiver = receiverValue.getType() instanceof VoidType ? null : (VmObject) require(receiverValue);
+            ExecutableElement element = ptr.getExecutableElement();
+            DefinedTypeDefinition def = element.getEnclosingType();
+            VmClassImpl clazz = (VmClassImpl) def.load().getVmClass();
+            clazz.initialize(thread);
+            VmInvokable invokable = clazz.getOrCompile(element);
+            return invokable.invokeAny(thread, receiver, arguments);
+        } else {
+            throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid pointer value (" + rawPtr + ")"));
+        }
     }
 
     // Invocation
 
     @Override
     public Object visit(VmThreadImpl thread, Call node) {
-        return call(thread, node.getValueHandle(), require(node.getArguments()));
+        return call(thread, node.getTarget(), node.getReceiver(), require(node.getArguments()));
     }
 
     @Override
     public Object visit(VmThreadImpl thread, CallNoSideEffects node) {
-        return call(thread, node.getValueHandle(), require(node.getArguments()));
+        return call(thread, node.getTarget(), node.getReceiver(), require(node.getArguments()));
     }
 
     @Override
     public BasicBlock visit(VmThreadImpl thread, CallNoReturn node) {
-        call(thread, node.getValueHandle(), require(node.getArguments()));
+        call(thread, node.getTarget(), node.getReceiver(), require(node.getArguments()));
         throw Assert.unreachableCode();
     }
 
     @Override
     public BasicBlock visit(VmThreadImpl thread, Invoke node) {
         try {
-            values.put(node.getReturnValue(), call(thread, node.getValueHandle(), require(node.getArguments())));
+            values.put(node.getReturnValue(), call(thread, node.getTarget(), node.getReceiver(), require(node.getArguments())));
             return node.getResumeTarget();
         } catch (Thrown t) {
             this.exception = t.getThrowable();
@@ -1727,7 +1736,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public BasicBlock visit(VmThreadImpl thread, InvokeNoReturn node) {
         try {
-            call(thread, node.getValueHandle(), require(node.getArguments()));
+            call(thread, node.getTarget(), node.getReceiver(), require(node.getArguments()));
             throw Assert.unreachableCode();
         } catch (Thrown t) {
             this.exception = t.getThrowable();
@@ -1737,7 +1746,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public BasicBlock visit(VmThreadImpl thread, TailCall node) {
-        output = call(thread, node.getValueHandle(), require(node.getArguments()));
+        output = call(thread, node.getTarget(), node.getReceiver(), require(node.getArguments()));
         return null;
     }
 
@@ -2175,6 +2184,38 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         return new MemoryPointer(node.getType(), thread.vm.allocate(node.getType().getPointeeType(), unboxLong(node.getCount())));
     }
 
+    @Override
+    public Object visit(VmThreadImpl thread, InterfaceMethodLookup node) {
+        InstanceMethodElement methodElement = node.getMethod();
+        VmObject refVal = (VmObject) require(node.getReference());
+        if (refVal == null) {
+            throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
+        }
+        PhysicalObjectType ot = refVal.getObjectType();
+        LoadedTypeDefinition baseDef = ot.getDefinition().load();
+        InstanceMethodElement result = (InstanceMethodElement) baseDef.resolveMethodElementVirtual(methodElement.getName(), methodElement.getDescriptor());
+        if (result == null) {
+            throw new Thrown(thread.vm.noSuchMethodErrorClass.newInstance());
+        }
+        return InstanceMethodPointer.of(result);
+    }
+
+    @Override
+    public Object visit(VmThreadImpl thread, VirtualMethodLookup node) {
+        InstanceMethodElement methodElement = node.getMethod();
+        VmObject refVal = (VmObject) require(node.getReference());
+        if (refVal == null) {
+            throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
+        }
+        PhysicalObjectType ot = refVal.getObjectType();
+        LoadedTypeDefinition baseDef = ot.getDefinition().load();
+        InstanceMethodElement result = (InstanceMethodElement) baseDef.resolveMethodElementVirtual(methodElement.getName(), methodElement.getDescriptor());
+        if (result == null) {
+            throw new Thrown(thread.vm.noSuchMethodErrorClass.newInstance());
+        }
+        return InstanceMethodPointer.of(result);
+    }
+
     ///////////
     // Actions
     ///////////
@@ -2406,216 +2447,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         throw Assert.unreachableCode();
     }
 
-    /////////////////
-    // Value handles
-    /////////////////
-
-    static final ValueHandleVisitor<Frame, VmObjectImpl> GET_RECEIVER = new ValueHandleVisitor<Frame, VmObjectImpl>() {
-        @Override
-        public VmObjectImpl visitUnknown(Frame frame, ValueHandle node) {
-            throw invalidHandleTypeForOp();
-        }
-
-        @Override
-        public VmObjectImpl visit(Frame frame, ConstructorElementHandle node) {
-            return (VmObjectImpl) frame.require(node.getInstance());
-        }
-
-        @Override
-        public VmObjectImpl visit(Frame frame, ExactMethodElementHandle node) {
-            return (VmObjectImpl) frame.require(node.getInstance());
-        }
-
-        @Override
-        public VmObjectImpl visit(Frame frame, InterfaceMethodElementHandle node) {
-            return (VmObjectImpl) frame.require(node.getInstance());
-        }
-
-        @Override
-        public VmObjectImpl visit(Frame frame, VirtualMethodElementHandle node) {
-            return (VmObjectImpl) frame.require(node.getInstance());
-        }
-
-        @Override
-        public VmObjectImpl visit(Frame frame, StaticMethodElementHandle node) {
-            return null;
-        }
-
-        @Override
-        public VmObjectImpl visit(Frame frame, PointerHandle node) {
-            if (node.getPointerValue().getType() instanceof PointerType pt) {
-                if (pt.getPointeeType() instanceof StaticMethodType || pt.getPointeeType() instanceof FunctionType) {
-                    // no receiver
-                    return null;
-                } else if (pt.getPointeeType() instanceof InstanceMethodType) {
-                    throw new IllegalStateException("Cannot determine receiver value from type");
-                }
-            }
-            return visitUnknown(frame, node);
-        }
-    };
-
-    static final ValueHandleVisitor<Frame, ExecutableElement> GET_EXECUTABLE_ELEMENT = new ValueHandleVisitor<Frame, ExecutableElement>() {
-        @Override
-        public ExecutableElement visitUnknown(Frame frame, ValueHandle node) {
-            throw invalidHandleTypeForOp();
-        }
-
-        @Override
-        public ExecutableElement visit(Frame frame, ExactMethodElementHandle node) {
-            return node.getExecutable();
-        }
-
-        @Override
-        public ExecutableElement visit(Frame frame, InterfaceMethodElementHandle node) {
-            Object instance = frame.require(node.getInstance());
-            if (instance instanceof VmObjectImpl) {
-                VmObjectImpl object = (VmObjectImpl) instance;
-                MethodElement methodElement = node.getExecutable();
-                MethodElement result = object.getVmClass().getTypeDefinition().resolveMethodElementVirtual(methodElement.getName(), methodElement.getDescriptor());
-                if (result == null) {
-                    VmImpl vm = VmImpl.require();
-                    VmClassImpl nsme = vm.noSuchMethodErrorClass;
-                    VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
-                    VmThrowable throwable = vm.manuallyInitialize((VmThrowable) nsme.newInstance());
-                    throw new Thrown(throwable);
-                }
-                return result;
-            } else {
-                throw unsupportedType();
-            }
-        }
-
-        @Override
-        public ExecutableElement visit(Frame frame, VirtualMethodElementHandle node) {
-            Object instance = frame.require(node.getInstance());
-            if (instance instanceof VmObjectImpl) {
-                VmObjectImpl object = (VmObjectImpl) instance;
-                MethodElement methodElement = node.getExecutable();
-                MethodElement result = object.getVmClass().getTypeDefinition().resolveMethodElementVirtual(methodElement.getName(), methodElement.getDescriptor());
-                if (result == null) {
-                    VmImpl vm = VmImpl.require();
-                    VmClassImpl nsme = vm.noSuchMethodErrorClass;
-                    VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
-                    VmThrowable throwable = vm.manuallyInitialize((VmThrowable) nsme.newInstance());
-                    throw new Thrown(throwable);
-                }
-                return result;
-            } else {
-                throw unsupportedType();
-            }
-        }
-
-        @Override
-        public ExecutableElement visit(Frame param, FunctionElementHandle node) {
-            throw unsatisfiedLink();
-        }
-
-        @Override
-        public ExecutableElement visit(Frame param, PointerHandle node) {
-            if (((PointerType)node.getPointerValue().getType()).getPointeeType() instanceof StaticMethodType) {
-                StaticMethodPointer pointer = (StaticMethodPointer) param.require(node.getPointerValue());
-                if (pointer == null) {
-                    // or perhaps null pointer...
-                    throw unsatisfiedLink();
-                }
-                return pointer.getStaticMethod();
-            }
-            throw unsatisfiedLink();
-        }
-
-        Thrown unsatisfiedLink() {
-            VmImpl vm = VmImpl.require();
-            VmClassImpl ule = vm.getBootstrapClassLoader().loadClass("java/lang/UnsatisfiedLinkError");
-            VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
-            VmThrowable throwable = vm.manuallyInitialize((VmThrowable) ule.newInstance());
-            return new Thrown(throwable);
-        }
-
-        @Override
-        public ExecutableElement visit(Frame thread, ConstructorElementHandle node) {
-            return node.getExecutable();
-        }
-
-        @Override
-        public ExecutableElement visit(Frame frame, StaticMethodElementHandle node) {
-            return node.getExecutable();
-        }
-    };
-
-    static final RootPointer.Visitor<Frame, Memory> GET_MEMORY_FROM_POINTER = new RootPointer.Visitor<Frame, Memory>() {
-        @Override
-        public Memory visitAny(Frame frame, RootPointer rootPointer) {
-            throw invalidHandleTypeForOp();
-        }
-
-        @Override
-        public Memory visit(Frame frame, GlobalPointer pointer) {
-            VmImpl vm = (VmImpl) Vm.current();
-            return vm.getGlobal(pointer.getGlobalVariable());
-        }
-
-        @Override
-        public Memory visit(Frame frame, MemoryPointer pointer) {
-            return pointer.getMemory();
-        }
-
-        @Override
-        public Memory visit(Frame frame, ReferenceAsPointer pointer) {
-            return pointer.getReference().getMemory();
-        }
-
-        @Override
-        public Memory visit(Frame frame, StaticFieldPointer pointer) {
-            StaticFieldElement variableElement = pointer.getStaticField();
-            if (variableElement.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
-                throw new Thrown(((VmImpl) Vm.requireCurrent()).linkageErrorClass.newInstance("Invalid build-time access of run-time field "+ variableElement));
-            }
-            DefinedTypeDefinition enclosingType = variableElement.getEnclosingType();
-            VmClassImpl clazz = (VmClassImpl) enclosingType.load().getVmClass();
-            return clazz.getStaticMemory();
-        }
-    };
-
-    static final ValueHandleVisitor<Frame, Memory> GET_MEMORY = new ValueHandleVisitor<Frame, Memory>() {
-        @Override
-        public Memory visitUnknown(Frame frame, ValueHandle node) {
-            throw invalidHandleTypeForOp();
-        }
-
-        @Override
-        public Memory visit(Frame frame, PointerHandle node) {
-            Pointer pointer = frame.unboxPointer(node.getPointerValue());
-            if (pointer == null) {
-                return null;
-            }
-            return pointer.getRootMemoryIfExists();
-        }
-    };
-
     private static IllegalArgumentException invalidHandleTypeForOp() {
         return new IllegalArgumentException("Invalid handle type for operation");
-    }
-
-    static final ValueHandleVisitorLong<Frame> GET_OFFSET = new ValueHandleVisitorLong<Frame>() {
-        @Override
-        public long visitUnknown(Frame thread, ValueHandle node) {
-            throw unsupportedType();
-        }
-
-        @Override
-        public long visit(Frame frame, PointerHandle node) {
-            Pointer pointer = frame.unboxPointer(node.getPointerValue());
-            return pointer == null ? 0 : pointer.getRootByteOffset();
-        }
-    };
-
-    private long getOffset(final ValueHandle valueHandle) {
-        return valueHandle.accept(GET_OFFSET, this);
-    }
-
-    private Memory getMemory(final ValueHandle valueHandle) {
-        return valueHandle.accept(GET_MEMORY, this);
     }
 
     /////////////
