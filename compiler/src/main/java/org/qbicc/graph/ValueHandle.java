@@ -4,7 +4,6 @@ import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A handle expression for some thing which is addressable at run time (i.e. can be read from and/or written to).

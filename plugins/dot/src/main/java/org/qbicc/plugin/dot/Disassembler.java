@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
-import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.And;
 import org.qbicc.graph.literal.AsmLiteral;
 import org.qbicc.graph.BasicBlock;
@@ -89,7 +88,6 @@ import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.Or;
-import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Ret;
@@ -416,14 +414,6 @@ public final class Disassembler {
         // END actions
 
         // START values
-
-        @Override
-        public Void visit(Disassembler param, AddressOf node) {
-            final String id = param.nextId();
-            final String description = "address-of " + show(node.getValueHandle());
-            param.nodeInfo.put(node, new NodeInfo(id, description));
-            return delegate.visit(param, node);
-        }
 
         @Override
         public Void visit(Disassembler disassembler, BlockParameter node) {
@@ -1201,14 +1191,6 @@ public final class Disassembler {
                 , show(node.getBasePointer())
                 , show(node.getOffset())
             );
-            param.nodeInfo.put(node, new NodeInfo(id, description));
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, PointerHandle node) {
-            final String id = param.nextId();
-            final String description = "prt " + show(node.getPointerValue());
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }

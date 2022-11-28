@@ -17,7 +17,6 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.ActionVisitor;
 import org.qbicc.graph.Add;
-import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.And;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BinaryValue;
@@ -81,7 +80,6 @@ import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.Or;
-import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.PopCount;
 import org.qbicc.graph.Reachable;
 import org.qbicc.graph.ReadModifyWrite;
@@ -103,7 +101,6 @@ import org.qbicc.graph.Throw;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Unreachable;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.graph.VirtualMethodLookup;
 import org.qbicc.graph.Xor;
@@ -326,15 +323,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return box(unboxFloat(node.getLeftInput()) + unboxFloat(node.getRightInput()), node.getType());
         } else if (isFloat64(inputType)) {
             return box(unboxDouble(node.getLeftInput()) + unboxDouble(node.getRightInput()), node.getType());
-        }
-        throw badInputType();
-    }
-
-    @Override
-    public Object visit(VmThreadImpl param, AddressOf node) {
-        ValueHandle valueHandle = node.getValueHandle();
-        if (valueHandle instanceof PointerHandle ph) {
-            return require(ph.getPointerValue());
         }
         throw badInputType();
     }
@@ -2038,10 +2026,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, Load node) {
         Value pointerValue = node.getPointer();
-        // temporary
-        while (pointerValue instanceof AddressOf ao && ao.getValueHandle() instanceof PointerHandle ph) {
-            pointerValue = ph.getPointerValue();
-        }
         if (pointerValue instanceof StaticFieldLiteral sf) {
             ((VmClassImpl)sf.getVariableElement().getEnclosingType().load().getVmClass()).initialize(thread);
         }

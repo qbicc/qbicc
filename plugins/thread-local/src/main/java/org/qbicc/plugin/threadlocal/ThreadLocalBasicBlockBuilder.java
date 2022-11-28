@@ -3,12 +3,10 @@ package org.qbicc.plugin.threadlocal;
 import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.atomic.ReadAccessMode;
@@ -51,10 +49,6 @@ public class ThreadLocalBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private Value transform(Value pointer) {
-        // temporary
-        while (pointer instanceof AddressOf ao && ao.getValueHandle() instanceof PointerHandle ph) {
-            pointer = ph.getPointerValue();
-        }
         if (pointer instanceof StaticFieldLiteral sfl) {
             StaticFieldElement fieldElement = sfl.getVariableElement();
             boolean isTL = fieldElement.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL);

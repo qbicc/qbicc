@@ -444,10 +444,6 @@ public interface Node {
                 return param.getBlockBuilder().add(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
-            public Value visit(final Copier param, final AddressOf node) {
-                return param.getBlockBuilder().addressOf(param.copyValueHandle(node.getValueHandle()));
-            }
-
             public Value visit(final Copier param, final And node) {
                 return param.getBlockBuilder().and(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
@@ -691,10 +687,6 @@ public interface Node {
 
             public Value visit(final Copier param, final Ror node) {
                 return param.getBlockBuilder().ror(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
-            }
-
-            public ValueHandle visit(Copier param, PointerHandle node) {
-                return param.getBlockBuilder().pointerHandle(param.copyValue(node.getPointerValue()));
             }
 
             public Value visit(final Copier param, final Select node) {

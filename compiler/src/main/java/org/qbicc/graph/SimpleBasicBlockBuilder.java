@@ -17,7 +17,6 @@ import org.qbicc.context.Location;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
-import org.qbicc.graph.literal.ExecutableLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
@@ -467,17 +466,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return unique(new ByteOffsetPointer(callSite, element, line, bci, base, offset, outputType));
     }
 
-    public ValueHandle pointerHandle(Value pointer) {
-        if (pointer instanceof ExecutableLiteral) {
-            return executableHandle(pointer, emptyVoid());
-        }
-        return new PointerHandle(callSite, element, line, bci, pointer);
-    }
-
-    public ValueHandle executableHandle(Value executablePtr, Value receiver) {
-        return new Executable(element, line, bci, executablePtr, receiver);
-    }
-
     @Override
     public Value lookupVirtualMethod(Value reference, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         throw new IllegalStateException("lookupVirtualMethod of unresolved type");
@@ -527,10 +515,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value auto(Value initializer) {
         return unique(new Auto(callSite, element, line, bci, requireDependency(), initializer));
-    }
-
-    public Value addressOf(ValueHandle handle) {
-        return unique(new AddressOf(callSite, element, line, bci, handle));
     }
 
     public Value stackAllocate(final ValueType type, final Value count, final Value align) {

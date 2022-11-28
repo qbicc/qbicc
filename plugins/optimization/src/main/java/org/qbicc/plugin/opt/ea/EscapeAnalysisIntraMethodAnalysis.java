@@ -19,7 +19,6 @@ import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.Call;
 import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.DecodeReference;
-import org.qbicc.graph.Executable;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
@@ -37,7 +36,6 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OrderedNode;
-import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Select;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Store;
@@ -206,14 +204,6 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
                 }
             }
 
-            return null;
-        }
-
-        @Override
-        public Void visit(AnalysisContext param, PointerHandle node) {
-            if (node.getPointerValue() instanceof DecodeReference) {
-                visitKnown(param, node);
-            }
             return null;
         }
 

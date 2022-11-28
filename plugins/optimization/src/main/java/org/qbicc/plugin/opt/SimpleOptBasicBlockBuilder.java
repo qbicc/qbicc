@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.And;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
@@ -16,18 +15,15 @@ import org.qbicc.graph.Comp;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.Executable;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.Neg;
 import org.qbicc.graph.NewArray;
 import org.qbicc.graph.NewReferenceArray;
 import org.qbicc.graph.OffsetPointer;
-import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.WordCastValue;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.literal.ArrayLiteral;
@@ -145,10 +141,6 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value load(Value pointer, ReadAccessMode accessMode) {
-        // temporary
-        while (pointer instanceof AddressOf ao && ao.getValueHandle() instanceof PointerHandle ph) {
-            pointer = ph.getPointerValue();
-        }
         if (pointer instanceof InstanceFieldOf ifo) {
             CoreClasses coreClasses = CoreClasses.get(getContext());
             // it might be an array length...
@@ -698,24 +690,6 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     // handles
-
-    @Override
-    public Value addressOf(ValueHandle handle) {
-        if (handle instanceof PointerHandle ph) {
-            return ph.getPointerValue();
-        } else if (handle instanceof Executable e) {
-            return e.getTarget();
-        }
-        return super.addressOf(handle);
-    }
-
-    @Override
-    public ValueHandle pointerHandle(Value pointer) {
-        if (pointer instanceof AddressOf) {
-            return pointer.getValueHandle();
-        }
-        return super.pointerHandle(pointer);
-    }
 
     private static boolean isAlwaysNull(final Value value) {
         return value instanceof NullLiteral;

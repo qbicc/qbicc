@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
@@ -17,7 +16,6 @@ import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.MultiNewArray;
 import org.qbicc.graph.NewReferenceArray;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.atomic.ReadAccessMode;
@@ -239,10 +237,6 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     private Value checkPointerValue(Value pointerValue, final Value storedValue) {
-        // temporary
-        while (pointerValue instanceof AddressOf ao && ao.getValueHandle() instanceof PointerHandle ph) {
-            pointerValue = ph.getPointerValue();
-        }
         if (pointerValue instanceof DecodeReference dr) {
             nullCheck(dr.getInput());
         } else if (pointerValue instanceof ElementOf eo &&

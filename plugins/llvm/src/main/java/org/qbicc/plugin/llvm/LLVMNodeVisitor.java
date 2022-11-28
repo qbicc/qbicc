@@ -16,7 +16,6 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
-import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.And;
 import org.qbicc.graph.literal.AsmLiteral;
 import org.qbicc.graph.BasicBlock;
@@ -63,7 +62,6 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.Or;
-import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Reachable;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Ret;
@@ -394,12 +392,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         return isFloating(type) ?
                builder.fadd(inputType, llvmLeft, llvmRight).setLValue(map(node)) :
                builder.add(inputType, llvmLeft, llvmRight).setLValue(map(node));
-    }
-
-    public LLValue visit(final Void param, final AddressOf node) {
-        LLValue tempValue = node.getValueHandle().accept(GET_HANDLE_POINTER_VALUE, this);
-        // todo: this is not ideal but until we can get rid of ValueHandle this is how we can force these to be scheduled
-        return gep(tempValue, node.getValueHandle()).arg(false, i32, ZERO).setLValue(map(node));
     }
 
     public LLValue visit(final Void param, final And node) {
@@ -1178,10 +1170,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             throw new IllegalStateException("Unexpected handle " + node);
         }
 
-        @Override
-        public LLValue visit(LLVMNodeVisitor param, PointerHandle node) {
-            return param.map(node.getPointerValue());
-        }
     };
 
     private static Set<AsmFlag> map(final Set<AsmLiteral.Flag> flags) {
