@@ -110,7 +110,6 @@ import org.qbicc.graph.ByteOffsetPointer;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.VaArg;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Return;
 import org.qbicc.graph.VirtualMethodLookup;
 import org.qbicc.graph.Xor;
@@ -160,7 +159,7 @@ public final class Disassembler {
     private BasicBlock currentBlock;
     private int currentNodeId;
 
-    Disassembler(BasicBlock entryBlock, ExecutableElement element, CompilationContext ctxt, BiFunction<CompilationContext, NodeVisitor<Disassembler, Void, Void, Void, Void>, NodeVisitor<Disassembler, Void, Void, Void, Void>> nodeVisitorFactory) {
+    Disassembler(BasicBlock entryBlock, ExecutableElement element, CompilationContext ctxt, BiFunction<CompilationContext, NodeVisitor<Disassembler, Void, Void, Void>, NodeVisitor<Disassembler, Void, Void, Void>> nodeVisitorFactory) {
         this.visitor = new DisassembleVisitor(nodeVisitorFactory.apply(ctxt, new Terminus()));
         this.element = element;
         this.blockQueue.add(entryBlock);
@@ -263,8 +262,6 @@ public final class Disassembler {
                 value.accept(visitor, this);
             } else if (node instanceof Action action) {
                 action.accept(visitor, this);
-            } else if (node instanceof ValueHandle valueHandle) {
-                valueHandle.accept(visitor, this);
             } else {
                 assert node instanceof Terminator;
                 ((Terminator) node).accept(visitor, this);
@@ -294,15 +291,15 @@ public final class Disassembler {
 
     record NodeInfo(String id, String description) {}
 
-    private final class DisassembleVisitor implements NodeVisitor.Delegating<Disassembler, Void, Void, Void, Void> {
-        private final NodeVisitor<Disassembler, Void, Void, Void, Void> delegate;
+    private final class DisassembleVisitor implements NodeVisitor.Delegating<Disassembler, Void, Void, Void> {
+        private final NodeVisitor<Disassembler, Void, Void, Void> delegate;
 
-        private DisassembleVisitor(NodeVisitor<Disassembler, Void, Void, Void, Void> delegate) {
+        private DisassembleVisitor(NodeVisitor<Disassembler, Void, Void, Void> delegate) {
             this.delegate = delegate;
         }
 
         @Override
-        public NodeVisitor<Disassembler, Void, Void, Void, Void> getDelegateNodeVisitor() {
+        public NodeVisitor<Disassembler, Void, Void, Void> getDelegateNodeVisitor() {
             return delegate;
         }
 
@@ -318,11 +315,6 @@ public final class Disassembler {
 
         @Override
         public Void visitUnknown(Disassembler param, Terminator node) {
-            throw new IllegalStateException("Visitor for node " + node.getClass() + " is not implemented");
-        }
-
-        @Override
-        public Void visitUnknown(Disassembler disassembler, ValueHandle node) {
             throw new IllegalStateException("Visitor for node " + node.getClass() + " is not implemented");
         }
 
@@ -1392,7 +1384,7 @@ public final class Disassembler {
         }
     }
 
-    private static final class Terminus implements NodeVisitor<Disassembler, Void, Void, Void, Void> {
+    private static final class Terminus implements NodeVisitor<Disassembler, Void, Void, Void> {
         @Override
         public Void visitUnknown(Disassembler param, Action node) {
             return null;
@@ -1400,11 +1392,6 @@ public final class Disassembler {
 
         @Override
         public Void visitUnknown(Disassembler param, Terminator node) {
-            return null;
-        }
-
-        @Override
-        public Void visitUnknown(Disassembler param, ValueHandle node) {
             return null;
         }
 

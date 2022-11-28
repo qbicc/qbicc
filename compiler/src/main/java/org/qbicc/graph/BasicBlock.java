@@ -207,10 +207,6 @@ public final class BasicBlock {
                 live.add(value);
             }
         }
-        // value handles are replicated at each use site, so their dependencies are our dependencies
-        if (node.hasValueHandleDependency()) {
-            addLocallyUsedValues(node.getValueHandle(), live);
-        }
     }
 
     /**

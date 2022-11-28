@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -59,14 +58,6 @@ public interface Node {
         throw new IndexOutOfBoundsException(index);
     }
 
-    default boolean hasValueHandleDependency() {
-        return false;
-    }
-
-    default ValueHandle getValueHandle() {
-        throw new NoSuchElementException();
-    }
-
     StringBuilder toString(StringBuilder b);
 
     /**
@@ -76,7 +67,7 @@ public interface Node {
     final class Copier {
         private final BasicBlock entryBlock;
         private final BasicBlockBuilder blockBuilder;
-        private final NodeVisitor<Copier, Value, Node, BasicBlock, ValueHandle> nodeVisitor;
+        private final NodeVisitor<Copier, Value, Node, BasicBlock> nodeVisitor;
         private final Map<BasicBlock, BlockLabel> copiedBlocks = new HashMap<>();
         private final HashMap<Node, Node> copiedNodes = new HashMap<>();
         private final HashMap<Terminator, BasicBlock> copiedTerminators = new HashMap<>();
@@ -86,7 +77,7 @@ public interface Node {
         private final Schedule schedule;
 
         public Copier(BasicBlock entryBlock, BasicBlockBuilder builder, CompilationContext ctxt,
-            BiFunction<CompilationContext, NodeVisitor<Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Copier, Value, Node, BasicBlock, ValueHandle>> nodeVisitorFactory
+            BiFunction<CompilationContext, NodeVisitor<Copier, Value, Node, BasicBlock>, NodeVisitor<Copier, Value, Node, BasicBlock>> nodeVisitorFactory
         ) {
             this.entryBlock = entryBlock;
             this.ctxt = ctxt;
@@ -96,7 +87,7 @@ public interface Node {
         }
 
         public static BasicBlock execute(BasicBlock entryBlock, BasicBlockBuilder builder, CompilationContext param,
-            BiFunction<CompilationContext, NodeVisitor<Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Copier, Value, Node, BasicBlock, ValueHandle>> nodeVisitorFactory
+            BiFunction<CompilationContext, NodeVisitor<Copier, Value, Node, BasicBlock>, NodeVisitor<Copier, Value, Node, BasicBlock>> nodeVisitorFactory
         ) {
             return new Copier(entryBlock, builder, param, nodeVisitorFactory).copyProgram();
         }
@@ -159,8 +150,6 @@ public interface Node {
                 return copyValue((Value) original);
             } else if (original instanceof Action) {
                 return copyAction((Action) original);
-            } else if (original instanceof ValueHandle) {
-                return copyValueHandle((ValueHandle) original);
             } else {
                 assert original instanceof Terminator;
                 BasicBlock block = copyTerminator((Terminator) original);
@@ -181,27 +170,6 @@ public interface Node {
                     copiedNodes.put(original, copy);
                     return copy;
                 }
-                int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
-                int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
-                ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
-                Node origCallSite = original.getCallSite();
-                Node oldCallSite = origCallSite == null ? blockBuilder.getCallSite() : blockBuilder.setCallSite(copyNode(origCallSite));
-                try {
-                    copy = original.accept(nodeVisitor, this);
-                    copiedNodes.put(original, copy);
-                } finally {
-                    blockBuilder.setLineNumber(oldLine);
-                    blockBuilder.setBytecodeIndex(oldBci);
-                    blockBuilder.setCurrentElement(oldElement);
-                    blockBuilder.setCallSite(oldCallSite);
-                }
-            }
-            return copy;
-        }
-
-        public ValueHandle copyValueHandle(ValueHandle original) {
-            ValueHandle copy = (ValueHandle) copiedNodes.get(original);
-            if (copy == null) {
                 int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
                 int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
                 ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
@@ -304,7 +272,7 @@ public interface Node {
             return basicBlock;
         }
 
-        static class Terminus implements NodeVisitor<Copier, Value, Node, BasicBlock, ValueHandle> {
+        static class Terminus implements NodeVisitor<Copier, Value, Node, BasicBlock> {
             public Node visitUnknown(final Copier param, final Action node) {
                 throw Assert.unreachableCode();
             }
@@ -314,10 +282,6 @@ public interface Node {
             }
 
             public Value visitUnknown(final Copier param, final Value node) {
-                throw Assert.unreachableCode();
-            }
-
-            public ValueHandle visitUnknown(Copier param, ValueHandle node) {
                 throw Assert.unreachableCode();
             }
 

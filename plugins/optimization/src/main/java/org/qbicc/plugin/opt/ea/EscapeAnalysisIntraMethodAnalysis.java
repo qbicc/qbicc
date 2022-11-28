@@ -44,7 +44,6 @@ import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Throw;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Return;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.StaticFieldLiteral;
@@ -80,7 +79,7 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
         analysisContext.process(element, methodBody.getEntryBlock());
     }
 
-    static final class AnalysisVisitor implements NodeVisitor<AnalysisContext, Void, Void, Void, Void> {
+    static final class AnalysisVisitor implements NodeVisitor<AnalysisContext, Void, Void, Void> {
         private final ExecutableElement element;
 
         public AnalysisVisitor(ExecutableElement element) {
@@ -334,12 +333,6 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
         }
 
         @Override
-        public Void visitUnknown(AnalysisContext param, ValueHandle node) {
-            visitUnknown(param, (Node) node);
-            return null;
-        }
-
-        @Override
         public Void visitUnknown(AnalysisContext param, Value node) {
             visitUnknown(param, (Node) node);
             return null;
@@ -353,12 +346,6 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
         boolean visitUnknown(AnalysisContext param, Node node) {
             if (param.visited.add(node)) {
                 boolean isNodeSupported = isSupported(param, node);
-
-                if (node.hasValueHandleDependency()) {
-                    final ValueHandle dependency = node.getValueHandle();
-                    checkSupport(isNodeSupported, dependency, param);
-                    dependency.accept(this, param);
-                }
 
                 int cnt = node.getValueDependencyCount();
                 for (int i = 0; i < cnt; i ++) {
@@ -376,8 +363,6 @@ public class EscapeAnalysisIntraMethodAnalysis implements ElementVisitor<Compila
                         ((Value) dependency).accept(this, param);
                     } else if (dependency instanceof Terminator) {
                         ((Terminator) dependency).accept(this, param);
-                    } else if (dependency instanceof ValueHandle) {
-                        ((ValueHandle) dependency).accept(this, param);
                     }
                 }
 

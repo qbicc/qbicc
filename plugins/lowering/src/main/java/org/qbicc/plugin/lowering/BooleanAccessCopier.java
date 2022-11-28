@@ -10,30 +10,26 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Return;
 import org.qbicc.graph.Store;
-import org.qbicc.graph.TerminatorVisitor;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.IntegerType;
-import org.qbicc.type.ValueType;
-import org.qbicc.type.VoidType;
 
 /**
  *
  */
-public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, ValueHandle> {
+public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock> {
     private final CompilationContext ctxt;
-    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate;
+    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate;
 
-    public BooleanAccessCopier(CompilationContext ctxt, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate) {
+    public BooleanAccessCopier(CompilationContext ctxt, NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate) {
         this.ctxt = ctxt;
         this.delegate = delegate;
     }
 
     @Override
-    public NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> getDelegateNodeVisitor() {
+    public NodeVisitor<Node.Copier, Value, Node, BasicBlock> getDelegateNodeVisitor() {
         return delegate;
     }
 

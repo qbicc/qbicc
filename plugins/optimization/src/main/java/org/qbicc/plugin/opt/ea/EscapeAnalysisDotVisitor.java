@@ -15,17 +15,17 @@ import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.plugin.dot.Disassembler;
 import org.qbicc.plugin.dot.DotAttributes;
 
-public final class EscapeAnalysisDotVisitor implements NodeVisitor.Delegating<Disassembler, Void, Void, Void, Void> {
-    private final NodeVisitor<Disassembler, Void, Void, Void, Void> delegate;
+public final class EscapeAnalysisDotVisitor implements NodeVisitor.Delegating<Disassembler, Void, Void, Void> {
+    private final NodeVisitor<Disassembler, Void, Void, Void> delegate;
     private final EscapeAnalysisState escapeAnalysisState;
 
-    public EscapeAnalysisDotVisitor(CompilationContext ctxt, NodeVisitor<Disassembler, Void, Void, Void, Void> delegate) {
+    public EscapeAnalysisDotVisitor(CompilationContext ctxt, NodeVisitor<Disassembler, Void, Void, Void> delegate) {
         this.delegate = delegate;
         this.escapeAnalysisState = EscapeAnalysisState.get(ctxt);
     }
 
     @Override
-    public NodeVisitor<Disassembler, Void, Void, Void, Void> getDelegateNodeVisitor() {
+    public NodeVisitor<Disassembler, Void, Void, Void> getDelegateNodeVisitor() {
         return delegate;
     }
 

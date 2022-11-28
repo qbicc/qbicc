@@ -3,10 +3,10 @@ package org.qbicc.graph;
 /**
  * A visitor that can visit any program node.
  */
-public interface NodeVisitor<C, V, A, T, H> extends ValueVisitor<C, V>, ActionVisitor<C, A>, TerminatorVisitor<C, T>, ValueHandleVisitor<C, H> {
+public interface NodeVisitor<C, V, A, T> extends ValueVisitor<C, V>, ActionVisitor<C, A>, TerminatorVisitor<C, T> {
 
-    interface Delegating<C, V, A, T, H> extends NodeVisitor<C, V, A, T, H>, ValueVisitor.Delegating<C, V>, ActionVisitor.Delegating<C, A>, TerminatorVisitor.Delegating<C, T>, ValueHandleVisitor.Delegating<C, H> {
-        NodeVisitor<C, V, A, T, H> getDelegateNodeVisitor();
+    interface Delegating<C, V, A, T> extends NodeVisitor<C, V, A, T>, ValueVisitor.Delegating<C, V>, ActionVisitor.Delegating<C, A>, TerminatorVisitor.Delegating<C, T> {
+        NodeVisitor<C, V, A, T> getDelegateNodeVisitor();
 
         default ActionVisitor<C, A> getDelegateActionVisitor() {
             return getDelegateNodeVisitor();
@@ -17,10 +17,6 @@ public interface NodeVisitor<C, V, A, T, H> extends ValueVisitor<C, V>, ActionVi
         }
 
         default ValueVisitor<C, V> getDelegateValueVisitor() {
-            return getDelegateNodeVisitor();
-        }
-
-        default ValueHandleVisitor<C, H> getDelegateValueHandleVisitor() {
             return getDelegateNodeVisitor();
         }
     }

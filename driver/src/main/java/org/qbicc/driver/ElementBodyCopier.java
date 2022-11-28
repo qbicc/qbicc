@@ -10,7 +10,6 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -31,7 +30,7 @@ public final class ElementBodyCopier implements Consumer<ExecutableElement> {
         if (element.hasMethodBody()) {
             ClassContext classContext = element.getEnclosingType().getContext();
             CompilationContext compilationContext = classContext.getCompilationContext();
-            BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> copier = compilationContext.getCopier();
+            BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> copier = compilationContext.getCopier();
             MethodBody original = element.getMethodBody();
             BasicBlock entryBlock = original.getEntryBlock();
             BasicBlockBuilder builder = classContext.newBasicBlockBuilder(element);

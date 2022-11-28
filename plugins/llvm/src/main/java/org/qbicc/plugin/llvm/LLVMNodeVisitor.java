@@ -81,8 +81,6 @@ import org.qbicc.graph.Unreachable;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.VaArg;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.WordCastValue;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.atomic.AccessMode;
@@ -138,7 +136,7 @@ import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.ParameterElement;
 
-final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, Instruction, Void> {
+final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, Instruction> {
     final CompilationContext ctxt;
     final Module module;
     final LLVMModuleDebugInfo debugInfo;
@@ -1162,16 +1160,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         CallSiteInfo.get(ctxt).mapStatepointIdToNode(statepointId, node);
     }
 
-    // GEP
-
-    private static final ValueHandleVisitor<LLVMNodeVisitor, LLValue> GET_HANDLE_POINTER_VALUE = new ValueHandleVisitor<LLVMNodeVisitor, LLValue>() {
-        @Override
-        public LLValue visitUnknown(LLVMNodeVisitor param, ValueHandle node) {
-            throw new IllegalStateException("Unexpected handle " + node);
-        }
-
-    };
-
     private static Set<AsmFlag> map(final Set<AsmLiteral.Flag> flags) {
         EnumSet<AsmFlag> output = EnumSet.noneOf(AsmFlag.class);
         if (flags.contains(AsmLiteral.Flag.SIDE_EFFECT)) {
@@ -1187,12 +1175,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             output.add(AsmFlag.INTEL_DIALECT);
         }
         return output;
-    }
-
-    GetElementPtr gep(LLValue ptr, ValueHandle handle) {
-        PointerType pointerType = handle.getType();
-        ValueType pointeeType = pointerType.getPointeeType();
-        return builder.getelementptr(pointeeType instanceof VoidType ? i8 : map(pointeeType), map(pointerType), ptr);
     }
 
     private OrderingConstraint getOC(AccessMode mode) {
