@@ -14,9 +14,11 @@ import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import io.smallrye.common.constraint.Assert;
@@ -168,6 +170,24 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
     default FieldElement findField(String name, boolean includeNoResolve) {
         int idx = getFieldIndex(name, includeNoResolve);
         return idx == -1 ? null : getField(idx);
+    }
+
+    default InstanceFieldElement findInstanceField(String name) {
+        return findInstanceField(name, false);
+    }
+
+    default InstanceFieldElement findInstanceField(String name, boolean includeNoResolve) {
+        int idx = getFieldIndex(name, includeNoResolve);
+        return idx == -1 ? null : getField(idx) instanceof InstanceFieldElement ife ? ife : null;
+    }
+
+    default StaticFieldElement findStaticField(String name) {
+        return findStaticField(name, false);
+    }
+
+    default StaticFieldElement findStaticField(String name, boolean includeNoResolve) {
+        int idx = getFieldIndex(name, includeNoResolve);
+        return idx == -1 ? null : getField(idx) instanceof StaticFieldElement ife ? ife : null;
     }
 
     /**

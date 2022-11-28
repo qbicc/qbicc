@@ -57,7 +57,7 @@ public class MultiNewArrayExpansionBasicBlockBuilder extends DelegatingBasicBloc
         try {
             begin(resume);
             Value innerArray = multiNewArray((ArrayTypeDescriptor) elementDesc, dimensions);
-            store(elementOf(referenceHandle(newArray), bp), innerArray);
+            store(elementOf(decodeReference(newArray), bp), innerArray);
             goto_(loop, TEMP0, add(bp, lf.literalOf(s32, 1)));
         } catch (BlockEarlyTermination ignored) {
             // continue

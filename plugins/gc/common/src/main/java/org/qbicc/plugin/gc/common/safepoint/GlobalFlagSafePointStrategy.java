@@ -15,7 +15,7 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.plugin.patcher.Patcher;
 import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.classfile.ClassFile;
-import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.definition.element.StaticMethodElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.generic.TypeSignature;
@@ -39,15 +39,15 @@ public final class GlobalFlagSafePointStrategy extends AbstractMethodBasedSafePo
         patcher.addField(ctxt.getBootstrapClassContext(), SAFE_POINT_INT_NAME, REQUEST_SAFE_POINT_FIELD, BaseTypeDescriptor.Z, requestSafePointResolver, 0, 0);
     }
 
-    private FieldElement getField() {
-        return ctxt.getBootstrapClassContext().findDefinedType(SAFE_POINT_INT_NAME).load().resolveField(BaseTypeDescriptor.Z, REQUEST_SAFE_POINT_FIELD);
+    private StaticFieldElement getField() {
+        return ctxt.getBootstrapClassContext().findDefinedType(SAFE_POINT_INT_NAME).load().findStaticField(REQUEST_SAFE_POINT_FIELD);
     }
 
     @Override
     public void implementRequestGlobalSafePoint(BasicBlockBuilder bbb) {
         final LiteralFactory lf = bbb.getLiteralFactory();
         bbb.begin(new BlockLabel());
-        bbb.store(bbb.staticField(getField()), lf.literalOf(true), SingleRelease);
+        bbb.store(lf.literalOf(getField()), lf.literalOf(true), SingleRelease);
         bbb.return_();
     }
 
@@ -55,14 +55,15 @@ public final class GlobalFlagSafePointStrategy extends AbstractMethodBasedSafePo
     public void implementClearGlobalSafePoint(BasicBlockBuilder bbb) {
         final LiteralFactory lf = bbb.getLiteralFactory();
         bbb.begin(new BlockLabel());
-        bbb.store(bbb.staticField(getField()), lf.literalOf(false), SingleRelease);
+        bbb.store(lf.literalOf(getField()), lf.literalOf(false), SingleRelease);
         bbb.return_();
     }
 
     @Override
     public void implementPollSafePoint(BasicBlockBuilder bbb) {
+        final LiteralFactory lf = bbb.getLiteralFactory();
         bbb.begin(new BlockLabel());
-        final Value flag = bbb.load(bbb.staticField(getField()), SingleAcquire);
+        final Value flag = bbb.load(lf.literalOf(getField()), SingleAcquire);
         BlockLabel enterSafePoint = new BlockLabel();
         BlockLabel resume = new BlockLabel();
         bbb.if_(flag, enterSafePoint, resume, Map.of());

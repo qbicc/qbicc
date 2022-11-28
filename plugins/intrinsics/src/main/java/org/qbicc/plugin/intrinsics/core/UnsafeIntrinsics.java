@@ -18,7 +18,6 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.InstanceMethodElementHandle;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
@@ -115,7 +114,7 @@ public class UnsafeIntrinsics {
             ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getObjectType();
             expectType = objectType.getReference();
         }
-        ValueHandle handle = builder.pointerHandle(builder.byteOffsetPointer(builder.decodeReference(obj), offset, expectType));
+        Value handle = builder.byteOffsetPointer(builder.decodeReference(obj), offset, expectType);
         Value result = builder.cmpAndSwap(handle, expect, update, readMode, writeMode, strength);
         // result is a compound structure; extract the result
         return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, expectType).getMember(0));
@@ -181,7 +180,7 @@ public class UnsafeIntrinsics {
             ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getObjectType();
             expectType = objectType.getReference();
         }
-        ValueHandle handle = builder.pointerHandle(builder.byteOffsetPointer(builder.decodeReference(obj), offset, expectType));
+        Value handle = builder.byteOffsetPointer(builder.decodeReference(obj), offset, expectType);
         Value result = builder.cmpAndSwap(handle, expect, update, readMode, writeMode, strength);
         // result is a compound structure; extract the success flag
         return builder.extractMember(result, CmpAndSwap.getResultType(ctxt, expectType).getMember(1));
@@ -265,7 +264,7 @@ public class UnsafeIntrinsics {
             ObjectType objectType = CoreClasses.get(ctxt).getObjectTypeIdField().getEnclosingType().load().getObjectType();
             operandType = objectType.getReference();
         }
-        ValueHandle handle = builder.pointerHandle(builder.byteOffsetPointer(builder.decodeReference(obj), offset, operandType));
+        Value handle = builder.byteOffsetPointer(builder.decodeReference(obj), offset, operandType);
         return builder.readModifyWrite(handle, op, operand, readMode, writeMode);
     }
 
@@ -438,7 +437,7 @@ public class UnsafeIntrinsics {
                         value = builder.select(value, ctxt.getLiteralFactory().literalOf((IntegerType) valueType, 1),
                             ctxt.getLiteralFactory().literalOf((IntegerType) valueType, 0));
                     }
-                    ValueHandle handle = builder.pointerHandle(builder.byteOffsetPointer(builder.decodeReference(obj), offset, valueType));
+                    Value handle = builder.byteOffsetPointer(builder.decodeReference(obj), offset, valueType);
                     builder.store(handle, value, suffixAndMode.getValue());
                     return voidLiteral;
                 });
@@ -517,13 +516,13 @@ public class UnsafeIntrinsics {
             BlockLabel isNotFloat = new BlockLabel();
             BlockLabel isDouble = new BlockLabel();
             BlockLabel isNotDouble = new BlockLabel();
-            Value classDims = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassDimensionField()));
+            Value classDims = builder.load(builder.instanceFieldOf(builder.decodeReference(arguments.get(0)), coreClasses.getClassDimensionField()));
             Value isRefBool = builder.isNe(classDims, lf.zeroInitializerLiteralOfType(classDims.getType()));
             builder.if_(isRefBool, isRef, isNotRef, Map.of());
             builder.begin(isRef);
             builder.return_(builder.offsetOfField(refArrayContentField));
             builder.begin(isNotRef);
-            Value typeId = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassTypeIdField()));
+            Value typeId = builder.load(builder.instanceFieldOf(builder.decodeReference(arguments.get(0)), coreClasses.getClassTypeIdField()));
             Value isBoolBool = builder.isEq(typeId, lf.literalOfType(booleanArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isBoolBool, isBool, isNotBool, Map.of());
             builder.begin(isBool);
@@ -602,13 +601,13 @@ public class UnsafeIntrinsics {
             BlockLabel isNotFloat = new BlockLabel();
             BlockLabel isDouble = new BlockLabel();
             BlockLabel isNotDouble = new BlockLabel();
-            Value classDims = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassDimensionField()));
+            Value classDims = builder.load(builder.instanceFieldOf(builder.decodeReference(arguments.get(0)), coreClasses.getClassDimensionField()));
             Value isRefBool = builder.isNe(classDims, lf.zeroInitializerLiteralOfType(classDims.getType()));
             builder.if_(isRefBool, isRef, isNotRef, Map.of());
             builder.begin(isRef);
             builder.return_(lf.literalOf(ctxt.getTypeSystem().getReferenceSize()));
             builder.begin(isNotRef);
-            Value typeId = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassTypeIdField()));
+            Value typeId = builder.load(builder.instanceFieldOf(builder.decodeReference(arguments.get(0)), coreClasses.getClassTypeIdField()));
             Value isBoolBool = builder.isEq(typeId, lf.literalOfType(booleanArrayContentField.getEnclosingType().load().getObjectType()));
             builder.if_(isBoolBool, isBool, isNotBool, Map.of());
             builder.begin(isBool);

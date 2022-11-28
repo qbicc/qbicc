@@ -106,7 +106,7 @@ public final class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegati
         // zero initialize the object's instance fields
         initializeObjectFieldsToZero(info, lf, oop, bbb);
         // initialize object header
-        BasicHeaderInitializer.initializeObjectHeader(ctxt, bbb, bbb.referenceHandle(oop), ctxt.getLiteralFactory().literalOfType(type));
+        BasicHeaderInitializer.initializeObjectHeader(ctxt, bbb, bbb.decodeReference(oop), ctxt.getLiteralFactory().literalOfType(type));
 
         return oop;
     }

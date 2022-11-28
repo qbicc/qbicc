@@ -10,6 +10,7 @@ import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.generic.TypeSignature;
@@ -19,7 +20,7 @@ import java.util.List;
 public class UnwindExceptionStrategy {
     private static final AttachmentKey<UnwindExceptionStrategy> KEY = new AttachmentKey<>();
 
-    private final FieldElement unwindExceptionField;
+    private final InstanceFieldElement unwindExceptionField;
     private final MethodElement raiseExceptionMethod;
     private final MethodElement personalityMethod;
 
@@ -28,7 +29,7 @@ public class UnwindExceptionStrategy {
         ClassContext classContext = ctxt.getBootstrapClassContext();
         ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/unwind/Unwind$struct__Unwind_Exception");
         DefinedTypeDefinition threadDef = classContext.findDefinedType("java/lang/Thread");
-        unwindExceptionField = threadDef.load().resolveField(desc, "unwindException", true);
+        unwindExceptionField = (InstanceFieldElement) threadDef.load().resolveField(desc, "unwindException", true);
 
         /* Get the symbol to Unwind#_Unwind_RaiseException */
         String unwindClass = "org/qbicc/runtime/unwind/Unwind";
@@ -75,7 +76,7 @@ public class UnwindExceptionStrategy {
         }, 0, 0);
     }
 
-    public FieldElement getUnwindExceptionField() {
+    public InstanceFieldElement getUnwindExceptionField() {
         return this.unwindExceptionField;
     }
 

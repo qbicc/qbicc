@@ -526,21 +526,21 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             // pointer to struct/array -> pointer to first member/element
             if (inPtrType.getPointeeType() instanceof CompoundType) {
                 final IntegerLiteral z = ctxt.getLiteralFactory().literalOf(0);
-                ValueHandle outVal = addressOfFirst(pointerHandle(input, z), outPtrType.getPointeeType());
+                Value outVal = addressOfFirst(offsetPointer(input, z), outPtrType.getPointeeType());
                 if (outVal != null) {
-                    return addressOf(outVal);
+                    return outVal;
                 }
             }
         }
         return super.bitCast(input, toType);
     }
 
-    private ValueHandle addressOfFirst(final ValueHandle input, final ValueType outputType) {
+    private Value addressOfFirst(final Value input, final ValueType outputType) {
         // if the output type matches the first member or element of input, return its handle
         if (input.getPointeeType() instanceof CompoundType ct && ct.getMemberCount() > 0) {
             final CompoundType.Member memberZero = ct.getMember(0);
             if (memberZero.getOffset() == 0) {
-                ValueHandle nextHandle = memberOf(input, memberZero);
+                Value nextHandle = memberOf(input, memberZero);
                 if (outputType.equals(memberZero.getType())) {
                     return nextHandle;
                 } else {
@@ -548,7 +548,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
         } else if (input.getPointeeType() instanceof ArrayType at && at.getElementCount() > 0) {
-            ValueHandle nextHandle = elementOf(input, ctxt.getLiteralFactory().literalOf(0));
+            Value nextHandle = elementOf(input, ctxt.getLiteralFactory().literalOf(0));
             if (outputType.equals(at.getElementType())) {
                 return nextHandle;
             } else {

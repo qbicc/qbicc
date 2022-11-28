@@ -8,13 +8,18 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.InstanceMethodElementHandle;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.atomic.ReadAccessMode;
+import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
@@ -22,9 +27,11 @@ import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 
 /**
  *
@@ -38,8 +45,56 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
+    public Value load(Value pointer, ReadAccessMode accessMode) {
+        return super.load(checkTargetType(pointer), accessMode);
+    }
+
+    @Override
+    public Value loadLength(Value arrayPointer) {
+        return super.loadLength(checkTargetType(arrayPointer));
+    }
+
+    @Override
+    public Node store(Value handle, Value value, WriteAccessMode accessMode) {
+        return super.store(checkTargetType(handle), value, accessMode);
+    }
+
+    @Override
+    public Value cmpAndSwap(Value target, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
+        return super.cmpAndSwap(checkTargetType(target), expect, update, readMode, writeMode, strength);
+    }
+
+    @Override
+    public Value readModifyWrite(Value pointer, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        return super.readModifyWrite(checkTargetType(pointer), op, update, readMode, writeMode);
+    }
+
+    @Override
+    public Value instanceFieldOf(Value instancePointer, InstanceFieldElement field) {
+        return super.instanceFieldOf(checkTargetType(instancePointer), field);
+    }
+
+    @Override
+    public Value byteOffsetPointer(Value base, Value offset, ValueType outputType) {
+        return super.byteOffsetPointer(checkTargetType(base), offset, outputType);
+    }
+
+    @Override
+    public Value deref(Value pointer) {
+        return super.deref(checkTargetType(pointer));
+    }
+
+    private Value checkTargetType(Value target) {
+        if (! (target.getType() instanceof PointerType)) {
+            ctxt.error(getLocation(), "Target must be of pointer type");
+            return getLiteralFactory().nullLiteralOfType(getTypeSystem().getVoidType().getPointer());
+        }
+        return target;
+    }
+
+    @Override
     public Value memberOf(Value structPointer, CompoundType.Member member) {
-        if (structPointer.getType(PointerType.class).getPointeeType() instanceof CompoundType) {
+        if (checkTargetType(structPointer).getType(PointerType.class).getPointeeType() instanceof CompoundType) {
             return super.memberOf(structPointer, member);
         }
         ctxt.error(getLocation(), "`memberOf` handle must have structure type");
@@ -48,7 +103,8 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
 
     @Override
     public Value elementOf(Value arrayPointer, Value index) {
-        if (arrayPointer.getPointeeType() instanceof ArrayType || arrayPointer.getPointeeType() instanceof ArrayObjectType) {
+        Value checkedPointer = checkTargetType(arrayPointer);
+        if (checkedPointer.getPointeeType() instanceof ArrayType || checkedPointer.getPointeeType() instanceof ArrayObjectType) {
             if (index.getType() instanceof UnsignedIntegerType uit) {
                 // try to extend it
                 Value extended = tryExtend(index, uit);
@@ -76,7 +132,7 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
                 ctxt.error(getLocation(), "`offsetHandle` offset must be signed");
             }
         }
-        return super.offsetPointer(basePointer, offset);
+        return super.offsetPointer(checkTargetType(basePointer), offset);
     }
 
     @Override

@@ -95,26 +95,6 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Value memberOf(Value structPointer, CompoundType.Member member) {
-        Value value = knownValues.get(structPointer);
-        if (value != null) {
-            return extractMember(value, member);
-        } else {
-            return super.memberOf(structPointer, member);
-        }
-    }
-
-    @Override
-    public Value elementOf(Value arrayPointer, Value index) {
-        Value value = knownValues.get(arrayPointer);
-        if (value != null) {
-            return extractElement(value, index);
-        } else {
-            return super.elementOf(arrayPointer, index);
-        }
-    }
-
-    @Override
     public Node fence(GlobalAccessMode fenceType) {
         knownValues.clear();
         return super.fence(fenceType);

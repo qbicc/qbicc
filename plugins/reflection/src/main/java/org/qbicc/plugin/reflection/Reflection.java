@@ -55,6 +55,7 @@ import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.definition.element.ParameterElement;
@@ -140,39 +141,39 @@ public final class Reflection {
 
     // reflection fields
     // MemberName
-    final FieldElement memberNameClazzField; // Class
-    final FieldElement memberNameNameField; // String
-    final FieldElement memberNameTypeField; // Object
-    final FieldElement memberNameFlagsField; // int
-    final FieldElement memberNameMethodField; // ResolvedMethodName
-    final FieldElement memberNameIndexField; // int (injected)
-    final FieldElement memberNameResolvedField; // boolean (injected)
-    final FieldElement memberNameExactDispatcherField; // void (<static method>*)(void *retPtr, const void *argsPtr) (injected)
+    final InstanceFieldElement memberNameClazzField; // Class
+    final InstanceFieldElement memberNameNameField; // String
+    final InstanceFieldElement memberNameTypeField; // Object
+    final InstanceFieldElement memberNameFlagsField; // int
+    final InstanceFieldElement memberNameMethodField; // ResolvedMethodName
+    final InstanceFieldElement memberNameIndexField; // int (injected)
+    final InstanceFieldElement memberNameResolvedField; // boolean (injected)
+    final InstanceFieldElement memberNameExactDispatcherField; // void (<static method>*)(void *retPtr, const void *argsPtr) (injected)
     // Field
-    private final FieldElement fieldClazzField; // Class
-    private final FieldElement fieldSlotField; // int
-    private final FieldElement fieldNameField; // String
-    private final FieldElement fieldTypeField; // Class
+    private final InstanceFieldElement fieldClazzField; // Class
+    private final InstanceFieldElement fieldSlotField; // int
+    private final InstanceFieldElement fieldNameField; // String
+    private final InstanceFieldElement fieldTypeField; // Class
     // Method
-    private final FieldElement methodClazzField; // Class
-    private final FieldElement methodSlotField; // int
-    private final FieldElement methodNameField; // String
-    private final FieldElement methodReturnTypeField; // Class
-    private final FieldElement methodParameterTypesField; // Class[]
+    private final InstanceFieldElement methodClazzField; // Class
+    private final InstanceFieldElement methodSlotField; // int
+    private final InstanceFieldElement methodNameField; // String
+    private final InstanceFieldElement methodReturnTypeField; // Class
+    private final InstanceFieldElement methodParameterTypesField; // Class[]
     // Constructor
-    private final FieldElement ctorClazzField; // Class
-    private final FieldElement ctorSlotField; // int
-    private final FieldElement ctorParameterTypesField; // Class[]
+    private final InstanceFieldElement ctorClazzField; // Class
+    private final InstanceFieldElement ctorSlotField; // int
+    private final InstanceFieldElement ctorParameterTypesField; // Class[]
     // ResolvedMethodName (injected fields)
-    private final FieldElement rmnIndexField; // int
-    private final FieldElement rmnClazzField; // Class
+    private final InstanceFieldElement rmnIndexField; // int
+    private final InstanceFieldElement rmnClazzField; // Class
     // MethodType
-    private final FieldElement methodTypePTypesField; // Class[]
-    private final FieldElement methodTypeRTypeField; // Class
+    private final InstanceFieldElement methodTypePTypesField; // Class[]
+    private final InstanceFieldElement methodTypeRTypeField; // Class
     // MethodHandle
-    final FieldElement methodHandleLambdaFormField;
+    final InstanceFieldElement methodHandleLambdaFormField;
     // LambdaForm
-    final FieldElement lambdaFormMemberNameField;
+    final InstanceFieldElement lambdaFormMemberNameField;
     // MethodHandleAccessorFactory
     final MethodElement newMethodAccessorMethod;
     final MethodElement newConstructorAccessorMethod;
@@ -251,7 +252,7 @@ public final class Reflection {
         ctorCtor = ctorDef.requireSingleConstructor(ce -> ce.getDescriptor().getParameterTypes().size() == 8);
         LoadedTypeDefinition mhDef = classContext.findDefinedType("java/lang/invoke/MethodHandle").load();
         methodHandleCheckType = mhDef.requireSingleMethod("checkType");
-        methodHandleLambdaFormField = mhDef.findField("form");
+        methodHandleLambdaFormField = mhDef.findInstanceField("form");
         LoadedTypeDefinition mhnDef = classContext.findDefinedType("java/lang/invoke/MethodHandleNatives").load();
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("init")), this::methodHandleNativesInit);
         methodHandleNativesResolve = mhnDef.requireSingleMethod(me -> me.nameEquals("resolve"));
@@ -261,7 +262,7 @@ public final class Reflection {
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("staticFieldOffset")), this::methodHandleNativesStaticFieldOffset);
         vm.registerInvokable(mhnDef.requireSingleMethod(me -> me.nameEquals("verifyConstants")), (thread, target, args) -> Boolean.TRUE);
         LoadedTypeDefinition lfDef = classContext.findDefinedType("java/lang/invoke/LambdaForm").load();
-        lambdaFormMemberNameField = lfDef.findField("vmentry");
+        lambdaFormMemberNameField = lfDef.findInstanceField("vmentry");
         LoadedTypeDefinition nativeCtorAccImplDef = classContext.findDefinedType("jdk/internal/reflect/NativeConstructorAccessorImpl").load();
         vm.registerInvokable(nativeCtorAccImplDef.requireSingleMethod(me -> me.nameEquals("newInstance0")), this::nativeConstructorAccessorImplNewInstance0);
         LoadedTypeDefinition nativeMethodAccImplDef = classContext.findDefinedType("jdk/internal/reflect/NativeMethodAccessorImpl").load();
@@ -271,14 +272,14 @@ public final class Reflection {
         // MemberName
         LoadedTypeDefinition memberNameDef = classContext.findDefinedType("java/lang/invoke/MemberName").load();
         vm.registerInvokable(memberNameDef.requireSingleMethod(me -> me.nameEquals("vminfoIsConsistent")), (thread, target, args) -> Boolean.TRUE);
-        memberNameClazzField = memberNameDef.findField("clazz");
-        memberNameNameField = memberNameDef.findField("name");
-        memberNameTypeField = memberNameDef.findField("type");
-        memberNameFlagsField = memberNameDef.findField("flags");
-        memberNameMethodField = memberNameDef.findField("method");
-        memberNameIndexField = memberNameDef.findField("index");
-        memberNameResolvedField = memberNameDef.findField("resolved");
-        memberNameExactDispatcherField = memberNameDef.findField("exactDispatcher");
+        memberNameClazzField = memberNameDef.findInstanceField("clazz");
+        memberNameNameField = memberNameDef.findInstanceField("name");
+        memberNameTypeField = memberNameDef.findInstanceField("type");
+        memberNameFlagsField = memberNameDef.findInstanceField("flags");
+        memberNameMethodField = memberNameDef.findInstanceField("method");
+        memberNameIndexField = memberNameDef.findInstanceField("index");
+        memberNameResolvedField = memberNameDef.findInstanceField("resolved");
+        memberNameExactDispatcherField = memberNameDef.findInstanceField("exactDispatcher");
         MethodDescriptor memberName4Desc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(
             BaseTypeDescriptor.B,
             classDef.getDescriptor(),
@@ -291,27 +292,27 @@ public final class Reflection {
         methodHandleNativesLinkMethod = mhnDef.requireSingleMethod(me -> me.nameEquals("linkMethod"));
         methodHandleNativesFindMethodHandleType = mhnDef.requireSingleMethod(me -> me.nameEquals("findMethodHandleType"));
         // Field
-        fieldClazzField = fieldDef.findField("clazz");
-        fieldSlotField = fieldDef.findField("slot");
-        fieldNameField = fieldDef.findField("name");
-        fieldTypeField = fieldDef.findField("type");
+        fieldClazzField = fieldDef.findInstanceField("clazz");
+        fieldSlotField = fieldDef.findInstanceField("slot");
+        fieldNameField = fieldDef.findInstanceField("name");
+        fieldTypeField = fieldDef.findInstanceField("type");
         // Method
-        methodClazzField = methodDef.findField("clazz");
-        methodSlotField = methodDef.findField("slot");
-        methodNameField = methodDef.findField("name");
-        methodReturnTypeField = methodDef.findField("returnType");
-        methodParameterTypesField = methodDef.findField("parameterTypes");
+        methodClazzField = methodDef.findInstanceField("clazz");
+        methodSlotField = methodDef.findInstanceField("slot");
+        methodNameField = methodDef.findInstanceField("name");
+        methodReturnTypeField = methodDef.findInstanceField("returnType");
+        methodParameterTypesField = methodDef.findInstanceField("parameterTypes");
         // Constructor
-        ctorClazzField = ctorDef.findField("clazz");
-        ctorSlotField = ctorDef.findField("slot");
-        ctorParameterTypesField = ctorDef.findField("parameterTypes");
+        ctorClazzField = ctorDef.findInstanceField("clazz");
+        ctorSlotField = ctorDef.findInstanceField("slot");
+        ctorParameterTypesField = ctorDef.findInstanceField("parameterTypes");
 
         // ResolvedMethodName
         LoadedTypeDefinition rmnDef = classContext.findDefinedType("java/lang/invoke/ResolvedMethodName").load();
         rmnCtor = rmnDef.getConstructor(0);
         rmnClass = rmnDef.getVmClass();
-        rmnIndexField = rmnDef.findField("index");
-        rmnClazzField = rmnDef.findField("clazz");
+        rmnIndexField = rmnDef.findInstanceField("index");
+        rmnClazzField = rmnDef.findInstanceField("clazz");
 
         // MethodHandleAccessorFactory
         LoadedTypeDefinition mhAccFactDef = classContext.findDefinedType("jdk/internal/reflect/MethodHandleAccessorFactory").load();
@@ -326,8 +327,8 @@ public final class Reflection {
 
         // MethodType
         LoadedTypeDefinition mtDef = classContext.findDefinedType("java/lang/invoke/MethodType").load();
-        methodTypeRTypeField = mtDef.findField("rtype");
-        methodTypePTypesField = mtDef.findField("ptypes");
+        methodTypeRTypeField = mtDef.findInstanceField("rtype");
+        methodTypePTypesField = mtDef.findInstanceField("ptypes");
 
         // box types
         LoadedTypeDefinition byteDef = classContext.findDefinedType("java/lang/Byte").load();
@@ -1236,13 +1237,13 @@ public final class Reflection {
                     Value instance = bbb.addParam(entryLabel, Slot.funcParam(0), e.getEnclosingType().load().getObjectType().getReference());
                     // load the field value
                     ReadAccessMode mode = element.isVolatile() ? GlobalSeqCst : SinglePlain;
-                    value = bbb.load(bbb.instanceFieldOf(bbb.referenceHandle(instance), element), mode);
+                    value = bbb.load(bbb.instanceFieldOf(bbb.decodeReference(instance), (InstanceFieldElement) element), mode);
                 } else {
                     assert kind == MethodHandleKind.GET_STATIC;
                     // no instance, no structure
                     // load the field value
                     ReadAccessMode mode = element.isVolatile() ? GlobalSeqCst : SinglePlain;
-                    value = bbb.load(bbb.staticField(element), mode);
+                    value = bbb.load(bbb.getLiteralFactory().literalOf((StaticFieldElement) element), mode);
                 }
                 bbb.return_(value);
                 bbb.finish();
@@ -1298,11 +1299,11 @@ public final class Reflection {
                 if (kind == MethodHandleKind.PUT_FIELD) {
                     Value instance = bbb.addParam(entryLabel, Slot.funcParam(0), element.getEnclosingType().load().getObjectType().getReference());
                     WriteAccessMode mode = element.isVolatile() ? GlobalSeqCst : SinglePlain;
-                    bbb.store(bbb.instanceFieldOf(bbb.referenceHandle(instance), element), value, mode);
+                    bbb.store(bbb.instanceFieldOf(bbb.decodeReference(instance), (InstanceFieldElement) element), value, mode);
                 } else {
                     assert kind == MethodHandleKind.PUT_STATIC;
                     WriteAccessMode mode = element.isVolatile() ? GlobalSeqCst : SinglePlain;
-                    bbb.store(bbb.staticField(element), value, mode);
+                    bbb.store(bbb.getLiteralFactory().literalOf((StaticFieldElement) element), value, mode);
                 }
                 bbb.return_();
                 bbb.finish();

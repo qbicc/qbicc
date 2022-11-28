@@ -7,7 +7,6 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.plugin.patcher.Patcher;
-import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.ObjectType;
@@ -57,37 +56,37 @@ public final class CoreClasses {
 
     private final CompilationContext ctxt;
 
-    private final FieldElement objectHeaderField;
-    private final FieldElement objectTypeIdField;
-    private final FieldElement classTypeIdField;
-    private final FieldElement classDimensionField;
-    private final FieldElement arrayClassField;
-    private final FieldElement classInstanceSizeField;
-    private final FieldElement classInstanceAlignField;
-    private final FieldElement classNestHostField;
-    private final FieldElement classNestMembersField;
-    private final FieldElement classModuleField;
-    private final FieldElement classLoaderUnnamedModuleField;
+    private final InstanceFieldElement objectHeaderField;
+    private final InstanceFieldElement objectTypeIdField;
+    private final InstanceFieldElement classTypeIdField;
+    private final InstanceFieldElement classDimensionField;
+    private final InstanceFieldElement arrayClassField;
+    private final InstanceFieldElement classInstanceSizeField;
+    private final InstanceFieldElement classInstanceAlignField;
+    private final InstanceFieldElement classNestHostField;
+    private final InstanceFieldElement classNestMembersField;
+    private final InstanceFieldElement classModuleField;
+    private final InstanceFieldElement classLoaderUnnamedModuleField;
 
-    private final FieldElement thrownField;
+    private final InstanceFieldElement thrownField;
 
     private final InstanceFieldElement arrayLengthField;
 
-    private final FieldElement refArrayElementTypeIdField;
-    private final FieldElement refArrayDimensionsField;
-    private final FieldElement refArrayContentField;
+    private final InstanceFieldElement refArrayElementTypeIdField;
+    private final InstanceFieldElement refArrayDimensionsField;
+    private final InstanceFieldElement refArrayContentField;
 
-    private final FieldElement booleanArrayContentField;
+    private final InstanceFieldElement booleanArrayContentField;
 
-    private final FieldElement byteArrayContentField;
-    private final FieldElement shortArrayContentField;
-    private final FieldElement intArrayContentField;
-    private final FieldElement longArrayContentField;
+    private final InstanceFieldElement byteArrayContentField;
+    private final InstanceFieldElement shortArrayContentField;
+    private final InstanceFieldElement intArrayContentField;
+    private final InstanceFieldElement longArrayContentField;
 
-    private final FieldElement charArrayContentField;
+    private final InstanceFieldElement charArrayContentField;
 
-    private final FieldElement floatArrayContentField;
-    private final FieldElement doubleArrayContentField;
+    private final InstanceFieldElement floatArrayContentField;
+    private final InstanceFieldElement doubleArrayContentField;
 
     private final DefinedTypeDefinition voidDef;
 
@@ -114,21 +113,21 @@ public final class CoreClasses {
         LoadedTypeDefinition jlt = jltDef.load();
         final TypeSystem ts = ctxt.getTypeSystem();
 
-        objectHeaderField = jlo.findField("header", true);
-        objectTypeIdField = jlo.findField("typeId", true);
+        objectHeaderField = jlo.findInstanceField("header", true);
+        objectTypeIdField = jlo.findInstanceField("typeId", true);
 
-        classTypeIdField = jlc.findField("id", true);
-        classDimensionField = jlc.findField("dimension", true);
-        arrayClassField = jlc.findField("arrayClass", true);
-        classInstanceSizeField = jlc.findField("instanceSize", true);
-        classInstanceAlignField = jlc.findField("instanceAlign", true);
-        classNestHostField = jlc.findField("nestHost", true);
-        classNestMembersField = jlc.findField("nestMembers", true);
-        classModuleField = jlc.findField("module", true);
+        classTypeIdField = jlc.findInstanceField("id", true);
+        classDimensionField = jlc.findInstanceField("dimension", true);
+        arrayClassField = jlc.findInstanceField("arrayClass", true);
+        classInstanceSizeField = jlc.findInstanceField("instanceSize", true);
+        classInstanceAlignField = jlc.findInstanceField("instanceAlign", true);
+        classNestHostField = jlc.findInstanceField("nestHost", true);
+        classNestMembersField = jlc.findInstanceField("nestMembers", true);
+        classModuleField = jlc.findInstanceField("module", true);
 
-        classLoaderUnnamedModuleField = classContext.findDefinedType(CLASS_LOADER_INT_NAME).load().findField("unnamedModule", true);
+        classLoaderUnnamedModuleField = (InstanceFieldElement) classContext.findDefinedType(CLASS_LOADER_INT_NAME).load().findField("unnamedModule", true);
 
-        thrownField = jlt.findField("thrown", true);
+        thrownField = (InstanceFieldElement) jlt.findField("thrown", true);
 
         // now define classes for arrays
         // todo: assign special type ID values to array types
@@ -171,24 +170,24 @@ public final class CoreClasses {
 
         // primitives arrays first
 
-        booleanArrayContentField = defineArrayType(classContext, baseType, ts.getBooleanType(), "[Z").load().getField(0);
+        booleanArrayContentField = (InstanceFieldElement) defineArrayType(classContext, baseType, ts.getBooleanType(), "[Z").load().getField(0);
 
-        byteArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger8Type(), "[B").load().getField(0);
-        shortArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger16Type(), "[S").load().getField(0);
-        intArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger32Type(), "[I").load().getField(0);
-        longArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger64Type(), "[J").load().getField(0);
+        byteArrayContentField = (InstanceFieldElement) defineArrayType(classContext, baseType, ts.getSignedInteger8Type(), "[B").load().getField(0);
+        shortArrayContentField = (InstanceFieldElement) defineArrayType(classContext, baseType, ts.getSignedInteger16Type(), "[S").load().getField(0);
+        intArrayContentField = (InstanceFieldElement) defineArrayType(classContext, baseType, ts.getSignedInteger32Type(), "[I").load().getField(0);
+        longArrayContentField = (InstanceFieldElement) defineArrayType(classContext, baseType, ts.getSignedInteger64Type(), "[J").load().getField(0);
 
-        charArrayContentField = defineArrayType(classContext, baseType, ts.getUnsignedInteger16Type(), "[C").load().getField(0);
+        charArrayContentField = (InstanceFieldElement) defineArrayType(classContext, baseType, ts.getUnsignedInteger16Type(), "[C").load().getField(0);
 
-        floatArrayContentField = defineArrayType(classContext, baseType, ts.getFloat32Type(), "[F").load().getField(0);
-        doubleArrayContentField = defineArrayType(classContext, baseType, ts.getFloat64Type(), "[D").load().getField(0);
+        floatArrayContentField = (InstanceFieldElement) defineArrayType(classContext, baseType, ts.getFloat32Type(), "[F").load().getField(0);
+        doubleArrayContentField = (InstanceFieldElement) defineArrayType(classContext, baseType, ts.getFloat64Type(), "[D").load().getField(0);
 
         // now the reference array class
 
         LoadedTypeDefinition refArrayType = defineArrayType(classContext, baseType, jlo.getClassType().getReference(), "[L").load();
-        refArrayDimensionsField = refArrayType.getField(0);
-        refArrayElementTypeIdField = refArrayType.getField(1);
-        refArrayContentField = refArrayType.getField(2);
+        refArrayDimensionsField = (InstanceFieldElement) refArrayType.getField(0);
+        refArrayElementTypeIdField = (InstanceFieldElement) refArrayType.getField(1);
+        refArrayContentField = (InstanceFieldElement) refArrayType.getField(2);
 
         ts.initializeReferenceArrayClass(refArrayType);
     }
@@ -483,7 +482,7 @@ public final class CoreClasses {
      *
      * @return the type identifier field
      */
-    public FieldElement getObjectTypeIdField() {
+    public InstanceFieldElement getObjectTypeIdField() {
         return objectTypeIdField;
     }
 
@@ -501,39 +500,39 @@ public final class CoreClasses {
      *
      * @return the class type identifier field
      */
-    public FieldElement getClassTypeIdField() {
+    public InstanceFieldElement getClassTypeIdField() {
         return classTypeIdField;
     }
 
-    public FieldElement getClassDimensionField() {
+    public InstanceFieldElement getClassDimensionField() {
         return classDimensionField;
     }
 
-    public FieldElement getArrayClassField() {
+    public InstanceFieldElement getArrayClassField() {
         return arrayClassField;
     }
 
-    public FieldElement getClassInstanceSizeField() {
+    public InstanceFieldElement getClassInstanceSizeField() {
         return classInstanceSizeField;
     }
 
-    public FieldElement getClassInstanceAlignField() {
+    public InstanceFieldElement getClassInstanceAlignField() {
         return classInstanceAlignField;
     }
 
-    public FieldElement getClassNestHostField() {
+    public InstanceFieldElement getClassNestHostField() {
         return classNestHostField;
     }
 
-    public FieldElement getClassNestMembersField() {
+    public InstanceFieldElement getClassNestMembersField() {
         return classNestMembersField;
     }
 
-    public FieldElement getClassModuleField() {
+    public InstanceFieldElement getClassModuleField() {
         return classModuleField;
     }
 
-    public FieldElement getClassLoaderUnnamedModuleField() {
+    public InstanceFieldElement getClassLoaderUnnamedModuleField() {
         return classLoaderUnnamedModuleField;
     }
 
@@ -541,7 +540,7 @@ public final class CoreClasses {
         return classTypeIdField.getEnclosingType().load();
     }
 
-    public FieldElement getThrownField() {
+    public InstanceFieldElement getThrownField() {
         return thrownField;
     }
 
@@ -557,15 +556,15 @@ public final class CoreClasses {
         return getRefArrayContentField().getEnclosingType().load();
     }
 
-    public FieldElement getRefArrayElementTypeIdField() {
+    public InstanceFieldElement getRefArrayElementTypeIdField() {
         return refArrayElementTypeIdField;
     }
 
-    public FieldElement getRefArrayDimensionsField() {
+    public InstanceFieldElement getRefArrayDimensionsField() {
         return refArrayDimensionsField;
     }
 
-    public FieldElement getRefArrayContentField() {
+    public InstanceFieldElement getRefArrayContentField() {
         return refArrayContentField;
     }
 
@@ -573,7 +572,7 @@ public final class CoreClasses {
         return getBooleanArrayContentField().getEnclosingType().load();
     }
 
-    public FieldElement getBooleanArrayContentField() {
+    public InstanceFieldElement getBooleanArrayContentField() {
         return booleanArrayContentField;
     }
 
@@ -581,7 +580,7 @@ public final class CoreClasses {
         return getByteArrayContentField().getEnclosingType().load();
     }
 
-    public FieldElement getByteArrayContentField() {
+    public InstanceFieldElement getByteArrayContentField() {
         return byteArrayContentField;
     }
 
@@ -589,7 +588,7 @@ public final class CoreClasses {
         return getShortArrayContentField().getEnclosingType().load();
     }
 
-    public FieldElement getShortArrayContentField() {
+    public InstanceFieldElement getShortArrayContentField() {
         return shortArrayContentField;
     }
 
@@ -597,7 +596,7 @@ public final class CoreClasses {
         return getIntArrayContentField().getEnclosingType().load();
     }
 
-    public FieldElement getIntArrayContentField() {
+    public InstanceFieldElement getIntArrayContentField() {
         return intArrayContentField;
     }
 
@@ -605,7 +604,7 @@ public final class CoreClasses {
         return getLongArrayContentField().getEnclosingType().load();
     }
 
-    public FieldElement getLongArrayContentField() {
+    public InstanceFieldElement getLongArrayContentField() {
         return longArrayContentField;
     }
 
@@ -613,7 +612,7 @@ public final class CoreClasses {
         return getCharArrayContentField().getEnclosingType().load();
     }
 
-    public FieldElement getCharArrayContentField() {
+    public InstanceFieldElement getCharArrayContentField() {
         return charArrayContentField;
     }
 
@@ -621,7 +620,7 @@ public final class CoreClasses {
         return getFloatArrayContentField().getEnclosingType().load();
     }
 
-    public FieldElement getFloatArrayContentField() {
+    public InstanceFieldElement getFloatArrayContentField() {
         return floatArrayContentField;
     }
 
@@ -629,7 +628,7 @@ public final class CoreClasses {
         return getDoubleArrayContentField().getEnclosingType().load();
     }
 
-    public FieldElement getDoubleArrayContentField() {
+    public InstanceFieldElement getDoubleArrayContentField() {
         return doubleArrayContentField;
     }
 

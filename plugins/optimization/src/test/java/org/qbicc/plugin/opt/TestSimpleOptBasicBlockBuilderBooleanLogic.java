@@ -66,8 +66,8 @@ public final class TestSimpleOptBasicBlockBuilderBooleanLogic extends AbstractCo
         LiteralFactory lf = bbb.getLiteralFactory();
         Value sa1 = bbb.stackAllocate(ts.getBooleanType(), lf.literalOf(1), lf.literalOf(1));
         Value sa2 = bbb.stackAllocate(ts.getBooleanType(), lf.literalOf(1), lf.literalOf(1));
-        Value v1 = bbb.load(bbb.pointerHandle(sa1), SingleUnshared);
-        Value v2 = bbb.load(bbb.pointerHandle(sa2), SingleUnshared);
+        Value v1 = bbb.load(sa1, SingleUnshared);
+        Value v2 = bbb.load(sa2, SingleUnshared);
         final Value res = bbb.and(bbb.complement(v1), bbb.complement(v2));
         assertTrue(res instanceof Comp comp
             && comp.getInput() instanceof Or or
@@ -81,8 +81,8 @@ public final class TestSimpleOptBasicBlockBuilderBooleanLogic extends AbstractCo
         final BasicBlockBuilder bbb = makeBlockBuilder();
         Value sa1 = bbb.stackAllocate(ts.getBooleanType(), lf.literalOf(1), lf.literalOf(1));
         Value sa2 = bbb.stackAllocate(ts.getBooleanType(), lf.literalOf(1), lf.literalOf(1));
-        Value v1 = bbb.load(bbb.pointerHandle(sa1), SingleUnshared);
-        Value v2 = bbb.load(bbb.pointerHandle(sa2), SingleUnshared);
+        Value v1 = bbb.load(sa1, SingleUnshared);
+        Value v2 = bbb.load(sa2, SingleUnshared);
         final Value res = bbb.or(bbb.complement(v1), bbb.complement(v2));
         assertTrue(res instanceof Comp comp
             && comp.getInput() instanceof And and
@@ -97,9 +97,9 @@ public final class TestSimpleOptBasicBlockBuilderBooleanLogic extends AbstractCo
         Value sa1 = bbb.stackAllocate(ts.getBooleanType(), lf.literalOf(1), lf.literalOf(1));
         Value sa2 = bbb.stackAllocate(ts.getBooleanType(), lf.literalOf(1), lf.literalOf(1));
         Value sa3 = bbb.stackAllocate(ts.getBooleanType(), lf.literalOf(1), lf.literalOf(1));
-        Value v1 = bbb.load(bbb.pointerHandle(sa1), SingleUnshared);
-        Value v2 = bbb.load(bbb.pointerHandle(sa2), SingleUnshared);
-        Value v3 = bbb.load(bbb.pointerHandle(sa3), SingleUnshared);
+        Value v1 = bbb.load(sa1, SingleUnshared);
+        Value v2 = bbb.load(sa2, SingleUnshared);
+        Value v3 = bbb.load(sa3, SingleUnshared);
         final Value res = bbb.or(bbb.and(v1, v2), bbb.and(v1, v3));
         assertTrue(res instanceof And and
             && and.getLeftInput().equals(v1)
