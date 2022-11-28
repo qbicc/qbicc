@@ -111,7 +111,11 @@ final class ProbeUtils {
             for (Annotation define : defines) {
                 String str = ((StringAnnotationValue) define.getValue("value")).getString();
                 if (ConditionEvaluation.get(classContext.getCompilationContext()).evaluateConditions(classContext, locatable, define)) {
-                    builder.define(str);
+                    if (define.getValue("as") instanceof StringAnnotationValue asStr) {
+                        builder.define(str, asStr.getString());
+                    } else {
+                        builder.define(str);
+                    }
                 }
             }
             for (Annotation undef : undefs) {
