@@ -17,16 +17,19 @@ public final class NetinetIn {
     public static final class struct_in_addr extends object {
         public in_addr_t s_addr;
     }
+    public static final class struct_in_addr_ptr extends ptr<struct_in_addr> {}
 
     public static final class struct_sockaddr_in extends object {
         public sa_family_t sin_family;
         public in_port_t sin_port;
         public struct_in_addr sin_addr;
     }
+    public static final class struct_sockaddr_in_ptr extends ptr<struct_sockaddr_in> {}
 
     public static final class struct_in6_addr extends object {
         public uint8_t @array_size(16)[] s6_addr;
     }
+    public static final class struct_in6_addr_ptr extends ptr<struct_in6_addr> {}
 
     public static final class struct_sockaddr_in6 extends object {
         public sa_family_t sin6_family;
@@ -35,6 +38,7 @@ public final class NetinetIn {
         public struct_in6_addr sin6_addr;
         public uint32_t sin6_scope_id;
     }
+    public static final class struct_sockaddr_in6_ptr extends ptr<struct_sockaddr_in6> {}
 
     @extern
     public static @c_const struct_in6_addr in6addr_any;
@@ -45,6 +49,7 @@ public final class NetinetIn {
         public struct_in6_addr ipv6mr_multiaddr;
         public unsigned_int ipv6mr_interface;
     }
+    public static final class struct_ipv6_mreq_ptr extends ptr<struct_ipv6_mreq> {}
 
     public static final c_int IPPROTO_IP = constant();
     public static final c_int IPPROTO_IPV6 = constant();
