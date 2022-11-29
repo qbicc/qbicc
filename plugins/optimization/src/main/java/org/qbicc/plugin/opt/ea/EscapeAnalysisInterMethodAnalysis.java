@@ -6,7 +6,6 @@ import java.util.function.Consumer;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Call;
-import org.qbicc.graph.Executable;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.ExecutableLiteral;
 import org.qbicc.plugin.reachability.ReachabilityInfo;

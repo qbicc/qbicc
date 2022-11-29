@@ -9,25 +9,23 @@ import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.New;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
-import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.plugin.dot.Disassembler;
 import org.qbicc.plugin.dot.DotAttributes;
 
-public final class EscapeAnalysisDotVisitor implements NodeVisitor.Delegating<Disassembler, Void, Void, Void, Void> {
-    private final NodeVisitor<Disassembler, Void, Void, Void, Void> delegate;
+public final class EscapeAnalysisDotVisitor implements NodeVisitor.Delegating<Disassembler, Void, Void, Void> {
+    private final NodeVisitor<Disassembler, Void, Void, Void> delegate;
     private final EscapeAnalysisState escapeAnalysisState;
 
-    public EscapeAnalysisDotVisitor(CompilationContext ctxt, NodeVisitor<Disassembler, Void, Void, Void, Void> delegate) {
+    public EscapeAnalysisDotVisitor(CompilationContext ctxt, NodeVisitor<Disassembler, Void, Void, Void> delegate) {
         this.delegate = delegate;
         this.escapeAnalysisState = EscapeAnalysisState.get(ctxt);
     }
 
     @Override
-    public NodeVisitor<Disassembler, Void, Void, Void, Void> getDelegateNodeVisitor() {
+    public NodeVisitor<Disassembler, Void, Void, Void> getDelegateNodeVisitor() {
         return delegate;
     }
 

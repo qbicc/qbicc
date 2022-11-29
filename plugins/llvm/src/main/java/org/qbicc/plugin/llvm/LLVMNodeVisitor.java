@@ -16,7 +16,6 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
-import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.And;
 import org.qbicc.graph.literal.AsmLiteral;
 import org.qbicc.graph.BasicBlock;
@@ -63,7 +62,6 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.Or;
-import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.Reachable;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Ret;
@@ -83,8 +81,6 @@ import org.qbicc.graph.Unreachable;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.VaArg;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.WordCastValue;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.atomic.AccessMode;
@@ -140,7 +136,7 @@ import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.ParameterElement;
 
-final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, Instruction, Void> {
+final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, Instruction> {
     final CompilationContext ctxt;
     final Module module;
     final LLVMModuleDebugInfo debugInfo;
@@ -394,12 +390,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         return isFloating(type) ?
                builder.fadd(inputType, llvmLeft, llvmRight).setLValue(map(node)) :
                builder.add(inputType, llvmLeft, llvmRight).setLValue(map(node));
-    }
-
-    public LLValue visit(final Void param, final AddressOf node) {
-        LLValue tempValue = node.getValueHandle().accept(GET_HANDLE_POINTER_VALUE, this);
-        // todo: this is not ideal but until we can get rid of ValueHandle this is how we can force these to be scheduled
-        return gep(tempValue, node.getValueHandle()).arg(false, i32, ZERO).setLValue(map(node));
     }
 
     public LLValue visit(final Void param, final And node) {
@@ -1170,20 +1160,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         CallSiteInfo.get(ctxt).mapStatepointIdToNode(statepointId, node);
     }
 
-    // GEP
-
-    private static final ValueHandleVisitor<LLVMNodeVisitor, LLValue> GET_HANDLE_POINTER_VALUE = new ValueHandleVisitor<LLVMNodeVisitor, LLValue>() {
-        @Override
-        public LLValue visitUnknown(LLVMNodeVisitor param, ValueHandle node) {
-            throw new IllegalStateException("Unexpected handle " + node);
-        }
-
-        @Override
-        public LLValue visit(LLVMNodeVisitor param, PointerHandle node) {
-            return param.map(node.getPointerValue());
-        }
-    };
-
     private static Set<AsmFlag> map(final Set<AsmLiteral.Flag> flags) {
         EnumSet<AsmFlag> output = EnumSet.noneOf(AsmFlag.class);
         if (flags.contains(AsmLiteral.Flag.SIDE_EFFECT)) {
@@ -1199,12 +1175,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             output.add(AsmFlag.INTEL_DIALECT);
         }
         return output;
-    }
-
-    GetElementPtr gep(LLValue ptr, ValueHandle handle) {
-        PointerType pointerType = handle.getType();
-        ValueType pointeeType = pointerType.getPointeeType();
-        return builder.getelementptr(pointeeType instanceof VoidType ? i8 : map(pointeeType), map(pointerType), ptr);
     }
 
     private OrderingConstraint getOC(AccessMode mode) {

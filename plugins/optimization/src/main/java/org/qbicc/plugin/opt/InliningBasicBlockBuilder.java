@@ -50,7 +50,6 @@ import org.qbicc.graph.TailCall;
 import org.qbicc.graph.Throw;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.literal.ExecutableLiteral;
 import org.qbicc.object.DataDeclaration;
@@ -223,8 +222,8 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
     }
 
-    final class Visitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, ValueHandle> {
-        private final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate;
+    final class Visitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock> {
+        private final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate;
         private final List<Value> arguments;
         private final Value this_;
         private final Function<Value, BasicBlock> onReturn;
@@ -233,7 +232,7 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         private final boolean alwaysInline;
         private final Map<Slot, Value> targetArguments;
 
-        Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate, final List<Value> arguments, final Value this_, final Function<Value, BasicBlock> onReturn, final BlockLabel catchLabel, BlockLabel entryBlock, final boolean alwaysInline, Map<Slot, Value> targetArguments) {
+        Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate, final List<Value> arguments, final Value this_, final Function<Value, BasicBlock> onReturn, final BlockLabel catchLabel, BlockLabel entryBlock, final boolean alwaysInline, Map<Slot, Value> targetArguments) {
             this.delegate = delegate;
             this.arguments = arguments;
             this.this_ = this_;
@@ -244,7 +243,7 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             this.targetArguments = targetArguments;
         }
 
-        public NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> getDelegateNodeVisitor() {
+        public NodeVisitor<Node.Copier, Value, Node, BasicBlock> getDelegateNodeVisitor() {
             return delegate;
         }
 

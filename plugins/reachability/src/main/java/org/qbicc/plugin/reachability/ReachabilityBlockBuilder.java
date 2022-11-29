@@ -25,7 +25,6 @@ import org.qbicc.graph.Slot;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.VirtualMethodLookup;
 import org.qbicc.graph.literal.ConstructorLiteral;
 import org.qbicc.graph.literal.FunctionLiteral;
@@ -90,7 +89,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         }
     }
 
-    static final class ReachabilityVisitor implements NodeVisitor<ReachabilityContext, Void, Void, Void, Void>, RootPointer.Visitor<ReachabilityContext, Void> {
+    static final class ReachabilityVisitor implements NodeVisitor<ReachabilityContext, Void, Void, Void>, RootPointer.Visitor<ReachabilityContext, Void> {
         @Override
         public Void visitUnknown(ReachabilityContext param, Action node) {
             visitUnknown(param, (Node) node);
@@ -99,12 +98,6 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
 
         @Override
         public Void visitUnknown(ReachabilityContext param, Value node) {
-            visitUnknown(param, (Node) node);
-            return null;
-        }
-
-        @Override
-        public Void visitUnknown(ReachabilityContext param, ValueHandle node) {
             visitUnknown(param, (Node) node);
             return null;
         }
@@ -126,9 +119,6 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
 
         boolean visitUnknown(ReachabilityContext param, Node node) {
             if (param.visited.add(node)) {
-                if (node.hasValueHandleDependency()) {
-                    node.getValueHandle().accept(this, param);
-                }
                 int cnt = node.getValueDependencyCount();
                 for (int i = 0; i < cnt; i ++) {
                     node.getValueDependency(i).accept(this, param);
@@ -141,8 +131,6 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
                         v.accept(this, param);
                     } else if (dependency instanceof Terminator t) {
                         t.accept(this, param);
-                    } else if (dependency instanceof ValueHandle vh) {
-                        vh.accept(this, param);
                     }
                 }
                 return true;

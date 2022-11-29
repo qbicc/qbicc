@@ -16,7 +16,6 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
@@ -39,7 +38,6 @@ import org.qbicc.type.NumericType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
-import org.qbicc.type.VoidType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -491,10 +489,5 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             return true;
         }
         return false;
-    }
-
-    private static boolean isVoidFunction(ValueHandle target) {
-        FunctionType type = (FunctionType) target.getPointeeType();
-        return type.getReturnType() instanceof VoidType;
     }
 }

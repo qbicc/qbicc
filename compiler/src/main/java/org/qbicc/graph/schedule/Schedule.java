@@ -22,7 +22,6 @@ import org.qbicc.graph.Slot;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.type.definition.element.LocalVariableElement;
 
 /**
@@ -157,9 +156,6 @@ public interface Schedule {
                 blockParameters.computeIfAbsent(bpBlock, Schedule::newMap).put(bp.getSlot(), bp);
                 cleanups.addLast(bp);
             }
-            if (node.hasValueHandleDependency()) {
-                buildSequence(node.getValueHandle(), visited, sequences, blockParameters, locals, cleanups);
-            }
             int cnt = node.getValueDependencyCount();
             for (int i = 0; i < cnt; i ++) {
                 buildSequence(node.getValueDependency(i), visited, sequences, blockParameters, locals, cleanups);
@@ -199,13 +195,6 @@ public interface Schedule {
 
     private static BlockInfo scheduleDependenciesEarly(BlockInfo root, Map<BasicBlock, BlockInfo> blockInfos, Map<Node, BlockInfo> scheduledNodes, Node node) {
         BlockInfo selected = root;
-        if (node.hasValueHandleDependency()) {
-            ValueHandle valueHandle = node.getValueHandle();
-            BlockInfo candidate = scheduleEarly(root, blockInfos, scheduledNodes, valueHandle);
-            if (candidate.domDepth > selected.domDepth) {
-                selected = candidate;
-            }
-        }
         int cnt = node.getValueDependencyCount();
         for (int i = 0; i < cnt; i ++) {
             Value valueDependency = node.getValueDependency(i);

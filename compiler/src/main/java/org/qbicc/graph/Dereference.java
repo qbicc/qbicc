@@ -17,11 +17,6 @@ public final class Dereference extends AbstractValue {
         this.pointer = pointer;
     }
 
-    @Override
-    public boolean hasValueHandleDependency() {
-        return true;
-    }
-
     public Value getPointer() {
         return pointer;
     }

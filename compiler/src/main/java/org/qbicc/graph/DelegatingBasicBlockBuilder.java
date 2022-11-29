@@ -147,14 +147,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().byteOffsetPointer(base, offset, outputType);
     }
 
-    public ValueHandle pointerHandle(Value pointer) {
-        return getDelegate().pointerHandle(pointer);
-    }
-
-    public ValueHandle executableHandle(Value executablePtr, Value receiver) {
-        return getDelegate().executableHandle(executablePtr, receiver);
-    }
-
     public Value lookupVirtualMethod(Value reference, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         return getDelegate().lookupVirtualMethod(reference, owner, name, descriptor);
     }
@@ -197,10 +189,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value auto(Value initializer) {
         return getDelegate().auto(initializer);
-    }
-
-    public Value addressOf(final ValueHandle handle) {
-        return getDelegate().addressOf(handle);
     }
 
     public Value stackAllocate(final ValueType type, final Value count, final Value align) {

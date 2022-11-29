@@ -14,7 +14,6 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.ExecutableLiteral;
@@ -133,15 +132,6 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
             }
         }
         return super.offsetPointer(checkTargetType(basePointer), offset);
-    }
-
-    @Override
-    public ValueHandle pointerHandle(Value pointer) {
-        if (pointer.getType() instanceof PointerType) {
-            return super.pointerHandle(pointer);
-        }
-        ctxt.error(getLocation(), "`pointerHandle` value must have pointer type");
-        throw new BlockEarlyTermination(unreachable());
     }
 
     @Override

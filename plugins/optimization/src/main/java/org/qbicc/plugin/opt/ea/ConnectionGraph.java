@@ -17,7 +17,6 @@ import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.New;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 final class ConnectionGraph {
@@ -27,8 +26,7 @@ final class ConnectionGraph {
      * Each node only points to one at other node at maximum.
      * Even if a reference is potentially assigned multiple New nodes (e.g. branches), the graph nodes are currently different.
      *
-     * The references can be {@link ValueHandle} instances,
-     * but they can also be {@link Value} instanaces like {@link org.qbicc.graph.CheckCast}.
+     * The references can be {@link Value} instanaces like {@link org.qbicc.graph.CheckCast}.
      * Referenced objects are {@link Value} instances.
      * Normally they are {@link New} instances, but they can also be {@link BlockParameter} or {@link Call}.
      * <p>
@@ -59,7 +57,6 @@ final class ConnectionGraph {
 
     /**
      * Tracks escape value of graph nodes.
-     * It includes not only {@link Value} nodes but also {@link ValueHandle} nodes.
      * The escape value of handles gets propagated eventually, using points-to edges, to {@code Value} instances.
      */
     private final Map<Node, EscapeValue> escapeValues = new HashMap<>();

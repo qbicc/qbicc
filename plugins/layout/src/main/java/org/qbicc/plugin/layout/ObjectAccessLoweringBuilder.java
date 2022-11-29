@@ -4,8 +4,6 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
@@ -23,24 +21,12 @@ import org.qbicc.type.definition.element.InstanceFieldElement;
 /**
  *
  */
-public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<Void, ValueHandle> {
+public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
     public ObjectAccessLoweringBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = getContext();
-    }
-
-    @Override
-    public ValueHandle pointerHandle(Value pointer) {
-        BasicBlockBuilder fb = getFirstBuilder();
-        PointerType pointerType = (PointerType) pointer.getType();
-        if (pointerType.getPointeeType() instanceof PhysicalObjectType pot) {
-            Layout layout = Layout.get(ctxt);
-            LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
-            return fb.pointerHandle(fb.valueConvert(pointer, info.getCompoundType().getPointer()));
-        }
-        return getDelegate().pointerHandle(pointer);
     }
 
     @Override

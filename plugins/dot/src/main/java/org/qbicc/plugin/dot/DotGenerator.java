@@ -42,7 +42,7 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
     private final Phase phase;
     private final String name;
     private final GraphGenFilter filter;
-    private final List<BiFunction<CompilationContext, NodeVisitor<Disassembler, Void, Void, Void, Void>, NodeVisitor<Disassembler, Void, Void, Void, Void>>> visitorFactories = new ArrayList<>();
+    private final List<BiFunction<CompilationContext, NodeVisitor<Disassembler, Void, Void, Void>, NodeVisitor<Disassembler, Void, Void, Void>>> visitorFactories = new ArrayList<>();
 
     public DotGenerator(Phase p, GraphGenConfig graphGenConfig) {
         this(p, p.toString(), graphGenConfig);
@@ -58,7 +58,7 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
         }
     }
 
-    public DotGenerator addVisitorFactory(BiFunction<CompilationContext, NodeVisitor<Disassembler, Void, Void, Void, Void>, NodeVisitor<Disassembler, Void, Void, Void, Void>> factory) {
+    public DotGenerator addVisitorFactory(BiFunction<CompilationContext, NodeVisitor<Disassembler, Void, Void, Void>, NodeVisitor<Disassembler, Void, Void, Void>> factory) {
         visitorFactories.add(factory);
         return this;
     }
@@ -167,7 +167,7 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
         return ctxt.warning("Failed to write \"%s\": %s", path, cause);
     }
 
-    private BiFunction<CompilationContext, NodeVisitor<Disassembler, Void, Void, Void, Void>, NodeVisitor<Disassembler, Void, Void, Void, Void>> constructDecorators() {
+    private BiFunction<CompilationContext, NodeVisitor<Disassembler, Void, Void, Void>, NodeVisitor<Disassembler, Void, Void, Void>> constructDecorators() {
         if (visitorFactories.isEmpty()) {
             return (dtxt, v) -> v;
         }

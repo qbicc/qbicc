@@ -21,7 +21,6 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.NullableType;
 import org.qbicc.type.ObjectType;
@@ -30,21 +29,17 @@ import org.qbicc.type.PointerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
-import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.classfile.ClassFile;
-import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
-import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
-import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -434,91 +429,6 @@ public interface BasicBlockBuilder extends Locatable {
      */
     Value currentThread();
 
-    ValueHandle pointerHandle(Value pointer);
-
-    @Deprecated
-    ValueHandle executableHandle(Value executablePtr, Value receiver);
-
-    @Deprecated
-    default ValueHandle exactMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        return executableHandle(getLiteralFactory().literalOf(method), instance);
-    }
-
-    @Deprecated
-    default ValueHandle exactMethodOf(Value instance, MethodElement method) {
-        return executableHandle(getLiteralFactory().literalOf(method), instance);
-    }
-
-    @Deprecated
-    default ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        return executableHandle(resolveInstanceMethod(owner, name, descriptor), instance);
-    }
-
-    @Deprecated
-    default ValueHandle virtualMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        return executableHandle(lookupVirtualMethod(instance, (InstanceMethodElement) method), instance);
-    }
-
-    @Deprecated
-    default ValueHandle virtualMethodOf(Value instance, MethodElement method) {
-        return virtualMethodOf(instance, method, method.getDescriptor(), (InstanceMethodType) method.getType());
-    }
-
-    @Deprecated
-    default ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        return executableHandle(lookupVirtualMethod(instance, owner, name, descriptor), instance);
-    }
-
-    @Deprecated
-    default ValueHandle interfaceMethodOf(Value instance, MethodElement method, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        return executableHandle(lookupInterfaceMethod(instance, (InstanceMethodElement) method), instance);
-    }
-
-    @Deprecated
-    default ValueHandle interfaceMethodOf(Value instance, MethodElement method) {
-        return interfaceMethodOf(instance, method, method.getDescriptor(), (InstanceMethodType) method.getType());
-    }
-
-    @Deprecated
-    default ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        return executableHandle(lookupInterfaceMethod(instance, owner, name, descriptor), instance);
-    }
-
-    @Deprecated
-    default ValueHandle staticMethod(MethodElement method, MethodDescriptor callSiteDescriptor, StaticMethodType callSiteType) {
-        return executableHandle(getLiteralFactory().literalOf(method), emptyVoid());
-    }
-
-    @Deprecated
-    default ValueHandle staticMethod(MethodElement method) {
-        return staticMethod(method, method.getDescriptor(), (StaticMethodType) method.getType());
-    }
-
-    @Deprecated
-    default ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        return executableHandle(resolveStaticMethod(owner, name, descriptor), emptyVoid());
-    }
-
-    @Deprecated
-    default ValueHandle constructorOf(Value instance, ConstructorElement constructor, MethodDescriptor callSiteDescriptor, InstanceMethodType callSiteType) {
-        return executableHandle(getLiteralFactory().literalOf(constructor), instance);
-    }
-
-    @Deprecated
-    default ValueHandle constructorOf(Value instance, ConstructorElement constructor) {
-        return constructorOf(instance, constructor, constructor.getDescriptor(), constructor.getType());
-    }
-
-    @Deprecated
-    default ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
-        return executableHandle(resolveConstructor(owner, descriptor), instance);
-    }
-
-    @Deprecated
-    default ValueHandle functionOf(FunctionElement function) {
-        return executableHandle(getLiteralFactory().literalOf(function), emptyVoid());
-    }
-
     // executables
 
     Value lookupVirtualMethod(Value reference, TypeDescriptor owner, String name, MethodDescriptor descriptor);
@@ -552,8 +462,6 @@ public interface BasicBlockBuilder extends Locatable {
     Value instanceFieldOf(Value instancePointer, InstanceFieldElement field);
 
     Value instanceFieldOf(Value instancePointer, TypeDescriptor owner, String name, TypeDescriptor type);
-
-    Value addressOf(ValueHandle handle);
 
     Value stackAllocate(ValueType type, Value count, Value align);
 
