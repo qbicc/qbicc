@@ -726,6 +726,20 @@ public class BuildtimeHeap {
         return arrayData.getDeclaration();
     }
 
+    public synchronized void serializeNativeMemory(ByteArrayMemory mem) {
+        serializeNativeMemory(mem.getArray(), objectSection);
+    }
+
+    public synchronized Literal referToSerializedNativeMemory(ByteArrayMemory mem, NullableType desiredType, ProgramModule from) {
+        DataDeclaration memDecl = nativeMemory.get(mem.getArray());
+        if (memDecl == null) {
+            ctxt.warning("Requested native memory not found in build time heap: " + mem);
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(desiredType);
+        }
+        DataDeclaration decl = from.declareData(memDecl);
+        return ctxt.getLiteralFactory().bitcastLiteral(ctxt.getLiteralFactory().literalOf(decl), desiredType);
+    }
+
     private DataDeclaration serializeNativeMemory(byte[] bytes, ModuleSection into) {
         DataDeclaration existing = nativeMemory.get(bytes);
         if (existing != null) {
@@ -734,6 +748,8 @@ public class BuildtimeHeap {
         LiteralFactory lf = ctxt.getLiteralFactory();
         Literal memoryLiteral = lf.literalOf(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getSignedInteger8Type(), bytes.length), bytes);
         Data memoryData = defineData(into, nextLiteralName(into), memoryLiteral);
-        return memoryData.getDeclaration();
+        DataDeclaration decl = memoryData.getDeclaration();
+        nativeMemory.put(bytes, decl);
+        return decl;
     }
 }
