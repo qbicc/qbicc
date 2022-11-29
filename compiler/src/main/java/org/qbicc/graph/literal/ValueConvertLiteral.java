@@ -1,5 +1,6 @@
 package org.qbicc.graph.literal;
 
+import org.qbicc.graph.Value;
 import org.qbicc.type.WordType;
 
 public class ValueConvertLiteral extends Literal {
@@ -9,6 +10,19 @@ public class ValueConvertLiteral extends Literal {
     ValueConvertLiteral(final Literal value, final WordType toType) {
         this.value = value;
         this.toType = toType;
+    }
+
+    @Override
+    public int getValueDependencyCount() {
+        return 1;
+    }
+
+    @Override
+    public Value getValueDependency(int index) throws IndexOutOfBoundsException {
+        return switch (index) {
+            case 0 -> value;
+            default -> throw new IndexOutOfBoundsException(index);
+        };
     }
 
     public WordType getType() {

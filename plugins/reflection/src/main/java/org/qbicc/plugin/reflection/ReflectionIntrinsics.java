@@ -19,7 +19,6 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.InstanceMethodLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
@@ -559,8 +558,7 @@ public final class ReflectionIntrinsics {
             } catch (BlockEarlyTermination ignored) {}
             bbb.finish();
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
-            Schedule schedule = Schedule.forMethod(entryBlock);
-            return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(cnt));
+            return MethodBody.of(entryBlock, Slot.simpleArgList(cnt));
         }
     }
 
@@ -606,8 +604,7 @@ public final class ReflectionIntrinsics {
             } catch (BlockEarlyTermination ignored) {}
             bbb.finish();
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
-            Schedule schedule = Schedule.forMethod(entryBlock);
-            return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(cnt));
+            return MethodBody.of(entryBlock, Slot.simpleArgList(cnt));
         }
     }
 }

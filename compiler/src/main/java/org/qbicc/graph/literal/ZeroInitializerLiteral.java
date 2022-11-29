@@ -1,7 +1,6 @@
 package org.qbicc.graph.literal;
 
 import org.qbicc.graph.Value;
-import org.qbicc.graph.ValueVisitor;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ValueType;

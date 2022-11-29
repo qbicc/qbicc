@@ -89,7 +89,6 @@ import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.PointerLiteral;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.machine.llvm.AsmFlag;
 import org.qbicc.machine.llvm.FastMathFlag;
 import org.qbicc.machine.llvm.FloatCondition;
@@ -143,7 +142,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     final LLVMPseudoIntrinsics pseudoIntrinsics;
     final LLValue topSubprogram;
     final LLVMModuleNodeVisitor moduleVisitor;
-    final Schedule schedule;
     final Function functionObj;
     final FunctionDefinition func;
     final BasicBlock entryBlock;
@@ -160,14 +158,13 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
 
     private boolean personalityAdded;
 
-    LLVMNodeVisitor(final CompilationContext ctxt, final Module module, final LLVMModuleDebugInfo debugInfo, final LLVMPseudoIntrinsics pseudoIntrinsics, final LLValue topSubprogram, final LLVMModuleNodeVisitor moduleVisitor, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
+    LLVMNodeVisitor(final CompilationContext ctxt, final Module module, final LLVMModuleDebugInfo debugInfo, final LLVMPseudoIntrinsics pseudoIntrinsics, final LLValue topSubprogram, final LLVMModuleNodeVisitor moduleVisitor, final Function functionObj, final FunctionDefinition func) {
         this.ctxt = ctxt;
         this.module = module;
         this.debugInfo = debugInfo;
         this.pseudoIntrinsics = pseudoIntrinsics;
         this.topSubprogram = topSubprogram;
         this.moduleVisitor = moduleVisitor;
-        this.schedule = schedule;
         this.functionObj = functionObj;
         this.func = func;
         this.methodBody = functionObj.getBody();
@@ -1360,7 +1357,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     private void map(Action action) {
         if (visitedActions.add(action)) {
             LLValue oldBuilderDebugLocation = builder.setDebugLocation(dbg(action));
-            LLBasicBlock oldBuilderBlock = builder.moveToBlock(map(schedule.getBlockForNode(action)));
+            LLBasicBlock oldBuilderBlock = builder.moveToBlock(map(action.getScheduledBlock()));
 
             Instruction instruction = action.accept(this, null);
             addLineComment(action, instruction);
@@ -1403,7 +1400,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             }
             name = block.toString(new StringBuilder()).append('.').append(scheduleIndex).toString();
         } else {
-            block = schedule.getBlockForNode(value);
+            block = value.getScheduledBlock();
             if (value instanceof BlockParameter bp) {
                 if (bp.getPinnedBlock().getIndex() == 1) {
                     // special, special case

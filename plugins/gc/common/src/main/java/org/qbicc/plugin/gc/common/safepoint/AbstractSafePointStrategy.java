@@ -8,7 +8,6 @@ import java.util.function.Consumer;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.plugin.patcher.Patcher;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.MethodBody;
@@ -45,7 +44,7 @@ public abstract class AbstractSafePointStrategy {
             consumer.accept(bbb);
             bbb.finish();
             final BasicBlock entry = bbb.getFirstBlock();
-            return MethodBody.of(entry, Schedule.forMethod(entry), List.of());
+            return MethodBody.of(entry, List.of());
         };
     }
 

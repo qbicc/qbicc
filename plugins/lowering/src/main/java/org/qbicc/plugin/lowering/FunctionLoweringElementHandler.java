@@ -12,7 +12,6 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.object.Function;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -53,7 +52,7 @@ public final class FunctionLoweringElementHandler implements Consumer<Executable
             BasicBlockBuilder builder = classContext.newBasicBlockBuilder(element);
             BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, copier);
             builder.finish();
-            function.replaceBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), paramSlots));
+            function.replaceBody(MethodBody.of(copyBlock, paramSlots));
             element.replaceMethodBody(function.getBody());
         }
     }

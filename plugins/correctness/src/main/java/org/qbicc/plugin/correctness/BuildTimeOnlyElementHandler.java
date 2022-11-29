@@ -10,7 +10,6 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.literal.Literal;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -44,7 +43,7 @@ public class BuildTimeOnlyElementHandler implements Consumer<ExecutableElement> 
             } catch (BlockEarlyTermination ignored) {}
             builder.finish();
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
-            element.replaceMethodBody(MethodBody.of(entryBlock, Schedule.forMethod(entryBlock), original.getParameterSlots()));
+            element.replaceMethodBody(MethodBody.of(entryBlock, original.getParameterSlots()));
         }
     }
 }

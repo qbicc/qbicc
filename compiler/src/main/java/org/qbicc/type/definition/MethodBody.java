@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.Slot;
-import org.qbicc.graph.schedule.Schedule;
 
 /**
  *
@@ -37,9 +36,7 @@ public interface MethodBody {
 
     BasicBlock getEntryBlock();
 
-    Schedule getSchedule();
-
-    static MethodBody of(BasicBlock entryBlock, Schedule schedule, List<Slot> paramSlots) {
+    static MethodBody of(BasicBlock entryBlock, List<Slot> paramSlots) {
         return new MethodBody() {
             public int getParameterCount() {
                 return paramSlots.size();
@@ -57,10 +54,6 @@ public interface MethodBody {
 
             public BasicBlock getEntryBlock() {
                 return entryBlock;
-            }
-
-            public Schedule getSchedule() {
-                return schedule;
             }
 
         };

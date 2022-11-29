@@ -1,6 +1,8 @@
 package org.qbicc.graph.literal;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -14,12 +16,30 @@ public final class CompoundLiteral extends Literal {
 
     private final CompoundType type;
     private final Map<CompoundType.Member, Literal> values;
+    private final List<Literal> valuesAsList;
     private final int hashCode;
 
     CompoundLiteral(final CompoundType type, final Map<CompoundType.Member, Literal> values) {
         this.type = type;
         this.values = values;
         hashCode = Objects.hash(type, values);
+        valuesAsList = new ArrayList<>(values.size());
+        for (CompoundType.Member member : type.getMembers()) {
+            Literal literal = values.get(member);
+            if (literal != null) {
+                valuesAsList.add(literal);
+            }
+        }
+    }
+
+    @Override
+    public int getValueDependencyCount() {
+        return valuesAsList.size();
+    }
+
+    @Override
+    public Value getValueDependency(int index) throws IndexOutOfBoundsException {
+        return valuesAsList.get(index);
     }
 
     public CompoundType getType() {

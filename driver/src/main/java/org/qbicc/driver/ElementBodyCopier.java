@@ -10,7 +10,6 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -36,7 +35,7 @@ public final class ElementBodyCopier implements Consumer<ExecutableElement> {
             BasicBlockBuilder builder = classContext.newBasicBlockBuilder(element);
             BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, copier);
             builder.finish();
-            element.replaceMethodBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), original.getParameterSlots()));
+            element.replaceMethodBody(MethodBody.of(copyBlock, original.getParameterSlots()));
         }
     }
 }

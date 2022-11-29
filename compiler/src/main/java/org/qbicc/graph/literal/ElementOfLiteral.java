@@ -1,5 +1,6 @@
 package org.qbicc.graph.literal;
 
+import org.qbicc.graph.Value;
 import org.qbicc.type.ValueType;
 
 public class ElementOfLiteral extends Literal {
@@ -9,6 +10,20 @@ public class ElementOfLiteral extends Literal {
     public ElementOfLiteral(Literal value, Literal index) {
         this.value = value;
         this.index = index;
+    }
+
+    @Override
+    public int getValueDependencyCount() {
+        return 2;
+    }
+
+    @Override
+    public Value getValueDependency(int index) throws IndexOutOfBoundsException {
+        return switch (index) {
+            case 0 -> value;
+            case 1 -> this.index;
+            default -> throw new IndexOutOfBoundsException(index);
+        };
     }
 
     @Override

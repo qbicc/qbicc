@@ -159,6 +159,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         if (firstBlock != null) {
             mark(BlockLabel.getTargetOf(firstBlock), null);
             computeLoops(BlockLabel.getTargetOf(firstBlock), new ArrayList<>(), new HashSet<>(), new HashSet<>(), new HashMap<>());
+            getContext().getScheduler().schedule(getFirstBlock());
         }
     }
 

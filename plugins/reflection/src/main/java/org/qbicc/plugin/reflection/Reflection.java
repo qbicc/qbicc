@@ -20,7 +20,6 @@ import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmArray;
@@ -1249,8 +1248,7 @@ public final class Reflection {
                 bbb.return_(value);
                 bbb.finish();
                 BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
-                Schedule schedule = Schedule.forMethod(entryBlock);
-                return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(element.isStatic() ? 0 : 1));
+                return MethodBody.of(entryBlock, Slot.simpleArgList(element.isStatic() ? 0 : 1));
             }
         }, 0);
         StaticMethodElement dispatcher = (StaticMethodElement) builder.build();
@@ -1309,8 +1307,7 @@ public final class Reflection {
                 bbb.return_();
                 bbb.finish();
                 BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
-                Schedule schedule = Schedule.forMethod(entryBlock);
-                return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(element.isStatic() ? 1 : 2));
+                return MethodBody.of(entryBlock, Slot.simpleArgList(element.isStatic() ? 1 : 2));
             }
         }, 0);
         StaticMethodElement dispatcher = (StaticMethodElement) builder.build();
@@ -1395,8 +1392,7 @@ public final class Reflection {
                 }
                 bbb.finish();
                 BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
-                Schedule schedule = Schedule.forMethod(entryBlock);
-                return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(pcnt));
+                return MethodBody.of(entryBlock, Slot.simpleArgList(pcnt));
             }
         }, 0);
         StaticMethodElement dispatcher = (StaticMethodElement) builder.build();
@@ -1456,8 +1452,7 @@ public final class Reflection {
                 bbb.tailCall(bbb.getLiteralFactory().literalOf(element), paramValues.get(0), values);
                 bbb.finish();
                 BasicBlock entryBlock = BlockLabel.getTargetOf(entryLabel);
-                Schedule schedule = Schedule.forMethod(entryBlock);
-                return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(pcnt));
+                return MethodBody.of(entryBlock, Slot.simpleArgList(pcnt));
             }
         }, 0);
         StaticMethodElement dispatcher = (StaticMethodElement) builder.build();

@@ -4,18 +4,22 @@ import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayDeque;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.qbicc.graph.Action;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BlockParameter;
+import org.qbicc.graph.DebugAddressDeclaration;
+import org.qbicc.graph.DebugValueDeclaration;
 import org.qbicc.graph.Invoke;
 import org.qbicc.graph.InvokeNoReturn;
 import org.qbicc.graph.Node;
+import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.VmInvokable;
@@ -39,24 +43,48 @@ final class VmInvokableImpl implements VmInvokable {
 
     private final ExecutableElement element;
     private final ValueType frameMemoryType;
-    private final Schedule schedule;
     @SuppressWarnings("unused") // VarHandle
     private volatile long count;
 
     VmInvokableImpl(ExecutableElement element) {
         this.element = element;
-        schedule = element.getMethodBody().getSchedule();
         TypeSystem ts = element.getEnclosingType().getContext().getTypeSystem();
         final CompoundType.Builder builder = CompoundType.builder(ts);
-        for (LocalVariableElement lve : schedule.getReferencedLocalVariables()) {
-            ValueType lveType = lve.getType();
-            builder.addNextMember(lve.getName(), lveType);
-            lve.setOffset(builder.getLastAddedMember().getOffset());
-        }
+        // find local variables
+        findLocalVars(element.getMethodBody().getEntryBlock().getTerminator(), builder, new HashSet<>(), new HashSet<>());
         if (builder.getMemberCountSoFar() == 0) {
             frameMemoryType = ts.getVoidType();
         } else {
             frameMemoryType = builder.build();
+        }
+    }
+
+    private void findLocalVars(final Node node, final CompoundType.Builder builder, final Set<Node> visited, final Set<LocalVariableElement> found) {
+        if (visited.add(node)) {
+            if (node instanceof DebugValueDeclaration dvd) {
+                registerLocalVariable(builder, found, dvd.getVariable());
+            } else if (node instanceof DebugAddressDeclaration dad) {
+                registerLocalVariable(builder, found, dad.getVariable());
+            }
+            // debug decls are actions, so we only have to browse the action chain
+            if (node instanceof OrderedNode on) {
+                findLocalVars(on.getDependency(), builder, visited, found);
+                if (on instanceof Terminator t) {
+                    // then, recurse to successors
+                    int sc = t.getSuccessorCount();
+                    for (int i = 0; i < sc; i ++) {
+                        findLocalVars(t.getSuccessor(i).getTerminator(), builder, visited, found);
+                    }
+                }
+            }
+        }
+    }
+
+    private static void registerLocalVariable(final CompoundType.Builder builder, final Set<LocalVariableElement> found, final LocalVariableElement lve) {
+        if (found.add(lve)) {
+            ValueType lveType = lve.getType();
+            builder.addNextMember(lve.getName(), lveType);
+            lve.setOffset(builder.getLastAddedMember().getOffset());
         }
     }
 

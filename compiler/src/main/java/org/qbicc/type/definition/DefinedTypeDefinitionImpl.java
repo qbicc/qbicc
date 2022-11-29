@@ -20,7 +20,6 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.ReferenceType;
@@ -342,8 +341,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                             });
                                             // that's all
                                             bbb.finish();
-                                            Schedule schedule = Schedule.forMethod(entryBlock);
-                                            return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(pcnt));
+                                            return MethodBody.of(entryBlock, Slot.simpleArgList(pcnt));
                                         }, 0);
                                         methodsList.add(builder.build());
                                         continue nextMethod;
@@ -383,8 +381,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                     }
                                     BasicBlock entryBlock = bbb.begin(entryLabel, ib -> ib.tailCall(ib.getLiteralFactory().literalOf(finalDefaultMethod), thisValue, paramValues));
                                     bbb.finish();
-                                    Schedule schedule = Schedule.forMethod(entryBlock);
-                                    return MethodBody.of(entryBlock, schedule, Slot.simpleArgList(pcnt));
+                                    return MethodBody.of(entryBlock, Slot.simpleArgList(pcnt));
                                 }, 0);
                             }
                             methodsList.add(builder.build());

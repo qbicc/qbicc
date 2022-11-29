@@ -15,7 +15,6 @@ import org.qbicc.graph.Comp;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.test.AbstractCompilerTestCase;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.MethodBody;
@@ -53,7 +52,6 @@ public final class TestSimpleOptBasicBlockBuilderBooleanLogic extends AbstractCo
             bbb.finish();
             return MethodBody.of(
                 emptyBlock,
-                Schedule.forMethod(emptyBlock),
                 List.of()
             );
         }, 0);
