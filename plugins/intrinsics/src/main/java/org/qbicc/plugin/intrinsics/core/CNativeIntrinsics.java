@@ -19,6 +19,7 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.Dereference;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.Load;
+import org.qbicc.graph.MemberOf;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
@@ -293,6 +294,19 @@ final class CNativeIntrinsics {
 
         intrinsics.registerIntrinsic(cNativeDesc, "alignof", MethodDescriptor.synthesize(classContext, sizeTDesc, List.of(nObjDesc)), alignof);
         intrinsics.registerIntrinsic(cNativeDesc, "alignof", MethodDescriptor.synthesize(classContext, sizeTDesc, List.of(classDesc)), alignof);
+
+        StaticIntrinsic offsetof = (builder, target, arguments) -> {
+            Value objExpr = arguments.get(0);
+            long offset = 0;
+            if (objExpr instanceof Dereference deref && deref.getPointer() instanceof MemberOf memberOf) {
+                offset = memberOf.getMember().getOffset();
+            } else {
+                ctxt.error(builder.getLocation(), "unexpected argument expression for offsetof(obj.field)");
+            }
+            IntegerType returnType = (IntegerType) target.getReturnType();
+            return ctxt.getLiteralFactory().literalOf(returnType, offset);
+        };
+        intrinsics.registerIntrinsic(cNativeDesc, "offsetof", offsetof);
 
         StaticIntrinsic defined = (builder, target, arguments) ->
             ctxt.getLiteralFactory().literalOf(! (arguments.get(0) instanceof UndefinedLiteral));
