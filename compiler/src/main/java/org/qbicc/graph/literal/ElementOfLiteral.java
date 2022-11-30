@@ -7,7 +7,7 @@ public class ElementOfLiteral extends Literal {
     final Literal value;
     final Literal index;
 
-    public ElementOfLiteral(Literal value, Literal index) {
+    ElementOfLiteral(Literal value, Literal index) {
         this.value = value;
         this.index = index;
     }

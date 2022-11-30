@@ -13,8 +13,14 @@ import io.smallrye.common.constraint.Assert;
 import org.eclipse.collections.api.factory.Maps;
 import org.eclipse.collections.api.map.ImmutableMap;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.literal.ArrayLiteral;
+import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BlockLiteral;
+import org.qbicc.graph.literal.CompoundLiteral;
+import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.ValueConvertLiteral;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -197,6 +203,18 @@ public interface Node {
             return Arrays.asList(values);
         }
 
+        public List<Literal> copyLiterals(List<Literal> list) {
+            if (list.isEmpty()) {
+                return List.of();
+            }
+            Literal[] values = new Literal[list.size()];
+            int i = 0;
+            for (Literal original : list) {
+                values[i++] = (Literal)copyValue(original);
+            }
+            return Arrays.asList(values);
+        }
+
         public Map<Slot, Value> copyArguments(final Terminator terminator) {
             Set<Slot> names = terminator.getOutboundArgumentNames();
             if (names.isEmpty()) {
@@ -283,8 +301,51 @@ public interface Node {
             }
 
             public Value visitAny(Copier copier, Literal literal) {
-                // literals remain unchanged by default
+                // literals without value dependencies remain unchanged by default
+                Assert.assertTrue(literal.getValueDependencyCount() == 0);
                 return literal;
+            }
+
+            public Value visit(Copier copier, ArrayLiteral literal) {
+                List<Literal> values = copier.copyLiterals(literal.getValues());
+                return copier.getBlockBuilder().getLiteralFactory().literalOf(literal.getType(), values);
+            }
+
+            public Value visit(Copier copier, BitCastLiteral literal) {
+                Literal value = (Literal)copier.copyValue(literal.getValue());
+                if (value == literal.getValue()) {
+                    return literal;
+                } else {
+                    return copier.getBlockBuilder().getLiteralFactory().bitcastLiteral(value, literal.getType());
+                }
+            }
+
+            public Value visit(Copier copier, CompoundLiteral literal) {
+                Map<CompoundType.Member, Literal> old = literal.getValues();
+                Map<CompoundType.Member, Literal> copied = new HashMap<>();
+                for (Map.Entry<CompoundType.Member, Literal> e : old.entrySet()) {
+                    copied.put(e.getKey(), (Literal)copier.copyValue(e.getValue()));
+                }
+                return copier.getBlockBuilder().getLiteralFactory().literalOf(literal.getType(), copied);
+            }
+
+            public Value visit(Copier copier, ElementOfLiteral literal) {
+                Literal value = (Literal)copier.copyValue(literal.getValue());
+                Literal index = (Literal)copier.copyValue(literal.getIndex());
+                if (value == literal.getValue() && index == literal.getIndex()) {
+                    return literal;
+                } else {
+                    return copier.getBlockBuilder().getLiteralFactory().elementOfLiteral(value, index);
+                }
+            }
+
+            public Value visit(Copier copier, ValueConvertLiteral literal) {
+                Literal value = (Literal)copier.copyValue(literal.getValue());
+                if (value == literal.getValue()) {
+                    return literal;
+                } else {
+                    return copier.getBlockBuilder().getLiteralFactory().valueConvertLiteral(value, literal.getType());
+                }
             }
 
             public Node visit(Copier param, BlockEntry node) {
