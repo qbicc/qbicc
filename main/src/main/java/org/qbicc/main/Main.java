@@ -157,7 +157,7 @@ import org.qbicc.plugin.reflection.VarHandleResolvingBasicBlockBuilder;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.plugin.serialization.ClassObjectSerializer;
 import org.qbicc.plugin.serialization.MethodDataStringsSerializer;
-import org.qbicc.plugin.serialization.ObjectLiteralSerializingVisitor;
+import org.qbicc.plugin.serialization.InitialHeapLiteralSerializingVisitor;
 import org.qbicc.plugin.serialization.StringInternTableEmitter;
 import org.qbicc.plugin.threadlocal.ThreadLocalBasicBlockBuilder;
 import org.qbicc.plugin.threadlocal.ThreadLocalTypeBuilder;
@@ -575,8 +575,8 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addCopyFactory(Phase.LOWER, BlockParameterOptimizingVisitor::new);
                                 }
                                 builder.addCopyFactory(Phase.LOWER, BooleanAccessCopier::new);
+                                builder.addCopyFactory(Phase.LOWER, InitialHeapLiteralSerializingVisitor::new);
                                 builder.addCopyFactory(Phase.LOWER, MemberPointerCopier::new);
-                                builder.addCopyFactory(Phase.LOWER, ObjectLiteralSerializingVisitor::new);
 
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, SafePointPlacementBasicBlockBuilder::createIfNeeded);
                                 if (isWasm) {

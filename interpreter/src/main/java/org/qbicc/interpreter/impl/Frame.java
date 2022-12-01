@@ -334,6 +334,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         ValueType inputType = left.getType();
         assertSameTypes(node);
         if (isInt64(inputType)) {
+            // TODO: Remove this when late-scheduling can be enabled.
+            //       This hacks around early scheduling of a bitwise and in runtime-only code in the DirectByteBuffer constructor
+            if (require(left) instanceof MemoryPointer) {
+                return box(0L, node.getType());
+            }
             return box(unboxLong(left) & unboxLong(right), node.getType());
         } else if (isInt32(inputType)) {
             return box(unboxInt(left) & unboxInt(right), node.getType());
@@ -1297,6 +1302,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         assertSameTypes(node);
         if (isSigned(inputType)) {
             if (isInt64(inputType)) {
+                // TODO: Remove this when late-scheduling can be enabled.
+                //       This hacks around early scheduling of a mod in runtime-only code in the DirectByteBuffer constructor
+                if (require(node.getLeftInput()) instanceof MemoryPointer) {
+                    return box(0L, node.getType());
+                }
                 // long math
                 return box(unboxLong(node.getLeftInput()) % unboxLong(node.getRightInput()), node.getType());
             } else if (isInteger(inputType)) {
@@ -1493,6 +1503,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         ValueType inputType = node.getLeftInput().getType();
         assertSameTypes(node);
         if (isInt64(inputType)) {
+            // TODO: Remove this when late-scheduling can be enabled.
+            //       This hacks around early scheduling of a pointer computation in runtime-only code in the DirectByteBuffer constructor
+            if (require(node.getLeftInput()) instanceof MemoryPointer) {
+                return require(node.getLeftInput());
+            }
             // long math
             return box(unboxLong(node.getLeftInput()) - unboxLong(node.getRightInput()), node.getType());
         } else if (isInteger(inputType)) {

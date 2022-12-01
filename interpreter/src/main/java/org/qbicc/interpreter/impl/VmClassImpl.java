@@ -18,6 +18,7 @@ import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
+import org.qbicc.interpreter.InvalidMemoryAccessException;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.VmClass;
@@ -518,7 +519,18 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 case 8 -> lf.literalOf((byte) staticMemory.load8(offset, SinglePlain));
                 case 16 -> lf.literalOf((short) staticMemory.load16(offset, SinglePlain));
                 case 32 -> lf.literalOf(staticMemory.load32(offset, SinglePlain));
-                case 64 -> lf.literalOf(staticMemory.load64(offset, SinglePlain));
+                case 64 -> {
+                    try {
+                        yield lf.literalOf(staticMemory.load64(offset, SinglePlain));
+                    } catch (InvalidMemoryAccessException e) {
+                        Pointer value = staticMemory.loadPointer(offset, SinglePlain);
+                        if (value == null) {
+                            yield lf.zeroInitializerLiteralOfType(sit);
+                        } else {
+                            yield lf.valueConvertLiteral(lf.literalOf(value), sit);
+                        }
+                    }
+                }
                 default -> throw Assert.impossibleSwitchCase(sit.getMinBits());
             };
         } else if (fieldType instanceof UnsignedIntegerType uit) {
