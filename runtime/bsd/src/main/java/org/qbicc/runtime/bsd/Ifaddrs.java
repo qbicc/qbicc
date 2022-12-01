@@ -6,7 +6,7 @@ import static org.qbicc.runtime.posix.SysSocket.*;
 @include("<ifaddrs.h>")
 public class Ifaddrs {
     public static class struct_ifaddrs extends object {
-        public void_ptr /* struct_ifaddrs_ptr */ ifa_next;  // TODO: void_ptr is a hack; struct_ifaddrs_ptr causes a StackOverflowException in qbicc
+        public ptr<struct_ifaddrs> ifa_next;
         public char_ptr ifa_name;
         public unsigned_int ifa_flags;
         public struct_sockaddr_ptr ifa_addr;

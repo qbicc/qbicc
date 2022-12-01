@@ -34,11 +34,9 @@ public final class CompoundType extends ValueType {
     private volatile List<Member> members;
     private volatile List<Member> paddedMembers;
     private volatile Map<String, Member> membersByName;
-    // late-computed hash code
-    private int hashCode;
 
     CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, final Supplier<List<Member>> membersResolver, final long size, final int overallAlign) {
-        super(typeSystem, 0);
+        super(typeSystem, CompoundType.class.hashCode());
         // name/tag do not contribute to hash or equality
         this.tag = tag;
         this.name = name;
@@ -51,8 +49,8 @@ public final class CompoundType extends ValueType {
     }
 
     CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, final Supplier<List<Member>> membersResolver) {
-        super(typeSystem, 0);
-        // name/tag do not contribute to hash or equality
+        super(typeSystem, CompoundType.class.hashCode());
+        // tag does not contribute to hash or equality
         this.tag = tag;
         this.name = name;
         this.size = -1;
@@ -62,7 +60,7 @@ public final class CompoundType extends ValueType {
     }
 
     CompoundType(final TypeSystem typeSystem, final Tag tag, final String name) {
-        super(typeSystem, 0);
+        super(typeSystem, CompoundType.class.hashCode());
         this.tag = tag;
         this.name = name;
         this.size = 0;
@@ -351,19 +349,6 @@ public final class CompoundType extends ValueType {
 
     public boolean equals(final CompoundType other) {
         return this == other || super.equals(other) && Objects.equals(name, other.name) && size == other.size && align == other.align && getMembers().equals(other.getMembers());
-    }
-
-    @Override
-    public int hashCode() {
-        int hashCode = this.hashCode;
-        if (hashCode == 0) {
-            hashCode = (int) (((getSize() * 19) + getAlign()) * 19 + getMembers().hashCode());
-            if (hashCode == 0) {
-                hashCode |= 1 << 31;
-            }
-            this.hashCode = hashCode;
-        }
-        return hashCode;
     }
 
     public StringBuilder toString(final StringBuilder b) {
