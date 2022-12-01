@@ -40,6 +40,9 @@ public final class Unistd {
 
     public static native pid_t fork();
 
+    @define(value = "_POSIX_C_SOURCE", as = "200112L", when = Build.Target.IsPosix.class)
+    public static native c_int gethostname(char_ptr buf, size_t buflen);
+
     // POSIX
     public static native c_int pipe(c_int[] fds);
 
