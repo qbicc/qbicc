@@ -36,8 +36,8 @@ public final class CompoundType extends ValueType {
     private volatile Map<String, Member> membersByName;
 
     CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, final Supplier<List<Member>> membersResolver, final long size, final int overallAlign) {
-        super(typeSystem, CompoundType.class.hashCode());
-        // name/tag do not contribute to hash or equality
+        super(typeSystem, Objects.hash(CompoundType.class, name, size, overallAlign));
+        // tag does not contribute to hash or equality
         this.tag = tag;
         this.name = name;
         // todo: assert size ≥ end of last member w/alignment etc.
@@ -49,7 +49,7 @@ public final class CompoundType extends ValueType {
     }
 
     CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, final Supplier<List<Member>> membersResolver) {
-        super(typeSystem, CompoundType.class.hashCode());
+        super(typeSystem, Objects.hash(CompoundType.class, name, -1, -1));
         // tag does not contribute to hash or equality
         this.tag = tag;
         this.name = name;
@@ -60,7 +60,8 @@ public final class CompoundType extends ValueType {
     }
 
     CompoundType(final TypeSystem typeSystem, final Tag tag, final String name) {
-        super(typeSystem, CompoundType.class.hashCode());
+        super(typeSystem, Objects.hash(CompoundType.class, name, 0, 1));
+        // tag does not contribute to hash or equality
         this.tag = tag;
         this.name = name;
         this.size = 0;
