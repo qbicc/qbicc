@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.qbicc.context.Diagnostic;
 import org.qbicc.context.DiagnosticContext;
+import org.qbicc.machine.arch.Platform;
+import org.qbicc.plugin.llvm.LLVMConfiguration;
 
 /**
  * Basic tests of {@code Main}.
@@ -24,6 +26,7 @@ public class TestMain {
         builder.setCompileOutput(false);
         builder.setOutputName("test-app");
         builder.setOutputPath(Path.of(System.getProperty("qbicc.test.outputPath", "target/test-output")));
+        builder.setLlvmConfigurationBuilder(LLVMConfiguration.builder().setPlatform(Platform.HOST_PLATFORM).setCompileOutput(false));
         final Main main = builder.build();
         final DiagnosticContext dc = main.call();
         for (Diagnostic d : dc.getDiagnostics()) {

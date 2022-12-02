@@ -45,6 +45,10 @@ public final class Platform {
         return abi;
     }
 
+    public boolean isWasm() {
+        return cpu == Cpu.WASM32;
+    }
+
     public ObjectType getObjectType() {
         return objectType;
     }

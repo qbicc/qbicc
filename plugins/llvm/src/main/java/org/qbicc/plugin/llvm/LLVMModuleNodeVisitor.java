@@ -70,10 +70,13 @@ import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 
 final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Pointer.Visitor<PointerLiteral, LLValue> {
+    static final LLValue i8_ptr = ptrTo(i8);
+    static final LLValue i8_ptr_as1 = ptrTo(i8, 1);
+
     final LLVMModuleGenerator generator;
     final Module module;
     final CompilationContext ctxt;
-    final LLVMReferencePointerFactory refFactory;
+    final LLVMConfiguration config;
 
     final Map<Type, LLValue> types = new HashMap<>();
     final Map<CompoundType, Map<CompoundType.Member, LLValue>> structureOffsets = new HashMap<>();
@@ -85,13 +88,12 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Poin
     final Map<ValueType, LLValue> resultDecls = new HashMap<>();
     final Map<String, LLValue> resultDeclsByName = new HashMap<>();
     final Map<ValueType, LLValue> resultDeclTypes = new HashMap<>();
-    LLValue relocateDecl;
 
-    LLVMModuleNodeVisitor(final LLVMModuleGenerator generator, final Module module, final CompilationContext ctxt, LLVMReferencePointerFactory refFactory) {
+    LLVMModuleNodeVisitor(final LLVMModuleGenerator generator, final Module module, final CompilationContext ctxt, final LLVMConfiguration config) {
         this.generator = generator;
         this.module = module;
         this.ctxt = ctxt;
-        this.refFactory = refFactory;
+        this.config = config;
     }
 
     LLValue map(Type type) {
@@ -135,12 +137,15 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Poin
             res = map(ctxt.getFunctionTypeForInvokableType(it));
         } else if (type instanceof PointerType) {
             Type pointeeType = ((PointerType) type).getPointeeType();
-            res = ptrTo(pointeeType instanceof VoidType ? i8 : map(pointeeType), 0);
+            res = pointeeType instanceof VoidType ? i8_ptr : ptrTo(map(pointeeType));
         } else if (type instanceof ReferenceType || type instanceof UnresolvedType) {
             // References can be used as different types in the IL without manually casting them, so we need to
             // represent all reference types as being the same LLVM type. We will cast to and from the actual type we
             // use the reference as when needed.
-            res = refFactory.makeReferencePointer();
+            res = switch (config.getReferenceStrategy()) {
+                case POINTER -> i8_ptr;
+                case POINTER_AS1 -> i8_ptr_as1;
+            };
         } else if (type instanceof WordType) {
             // all other words are integers
             // LLVM doesn't really care about signedness
@@ -264,9 +269,15 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Poin
         } else if (inputType instanceof PointerType && outputType instanceof IntegerType) {
             return Values.ptrtointConstant(input, fromType, toType);
         } else if (inputType instanceof ReferenceType && outputType instanceof PointerType) {
-            return refFactory.cast(input, fromType, toType);
+            return switch (config.getReferenceStrategy()) {
+                case POINTER -> throw new IllegalStateException("Cast found with pointer ref strategy");
+                case POINTER_AS1 -> Values.addrspacecastConstant(input, fromType, toType);
+            };
         } else if (inputType instanceof PointerType && outputType instanceof ReferenceType) {
-            return refFactory.cast(input, fromType, toType);
+            return switch (config.getReferenceStrategy()) {
+                case POINTER -> throw new IllegalStateException("Cast found with pointer ref strategy");
+                case POINTER_AS1 -> Values.addrspacecastConstant(input, fromType, toType);
+            };
         }
         // todo: add signed/unsigned int <-> fp
         return visitAny(param, node);

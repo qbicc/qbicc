@@ -3,6 +3,7 @@ package org.qbicc.context;
 import static java.lang.Math.*;
 
 import org.qbicc.graph.Node;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.BasicElement;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.Element;
@@ -268,6 +269,11 @@ public final class Location {
             if (element != null) {
                 setClassInternalName(element.getEnclosingType().getInternalName());
             }
+            return this;
+        }
+
+        public Builder setType(DefinedTypeDefinition def) {
+            setClassInternalName(def.getInternalName());
             return this;
         }
 

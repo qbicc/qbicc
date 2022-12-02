@@ -199,12 +199,10 @@ public abstract class InputSource {
     abstract ProcessBuilder.Redirect getInputRedirect();
 
     Closeable provideProcessInput(final Process process, final ProcessBuilder.Redirect inputRedirect) throws IOException {
-        String name = "Input thread for process \"" + nameOf(process) + "\" (pid " + process.pid() + ")";
-        return Closeables.start(name, () -> {
-            try (OutputStream os = process.getOutputStream()) {
-                transferTo(os);
-            }
-        });
+        try (OutputStream os = process.getOutputStream()) {
+            transferTo(os);
+        }
+        return Closeables.BLANK_CLOSEABLE;
     }
 
     void transferTo(OutputStream os) throws IOException {

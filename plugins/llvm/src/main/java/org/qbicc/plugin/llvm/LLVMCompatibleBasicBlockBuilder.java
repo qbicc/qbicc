@@ -35,9 +35,12 @@ import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NumericType;
+import org.qbicc.type.PointerType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.WordType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -45,10 +48,28 @@ import org.qbicc.type.definition.element.MethodElement;
 
 public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
+    private final LLVMConfiguration config;
 
-    public LLVMCompatibleBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
+    public LLVMCompatibleBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate, LLVMConfiguration config) {
         super(delegate);
+        this.config = config;
         this.ctxt = getContext();
+    }
+
+    @Override
+    public Value decodeReference(Value refVal, PointerType pointerType) {
+        if (config.getReferenceStrategy() == ReferenceStrategy.POINTER) {
+            return refVal;
+        }
+        return super.decodeReference(refVal, pointerType);
+    }
+
+    @Override
+    public Value valueConvert(Value value, WordType toType) {
+        if (toType instanceof ReferenceType && value.getType() instanceof PointerType && config.getReferenceStrategy() == ReferenceStrategy.POINTER) {
+            return value;
+        }
+        return super.valueConvert(value, toType);
     }
 
     @Override
