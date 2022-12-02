@@ -303,11 +303,13 @@ final class MethodParser {
         if (value instanceof Auto al) {
             LocalVariableElement lve = getLocalVariableElement(bci, index);
             if (lve != null) {
-                Value allocated = gf.stackAllocate(lve.getType(), lf.literalOf(1), lf.literalOf(al.getPointeeType().getAlign()));
                 Value init = al.getInitializer();
-                if (init instanceof Literal lit && lit.isZero()) {
-                    init = lf.zeroInitializerLiteralOfType(lve.getType());
+                ValueType varType = init.getType();
+                if (init.getType().equals(ts.getVoidType())) {
+                    varType = lve.getType();
+                    init = lf.zeroInitializerLiteralOfType(varType);
                 }
+                Value allocated = gf.stackAllocate(varType, lf.literalOf(1), lf.literalOf(varType.getAlign()));
                 gf.store(allocated, init, SingleUnshared);
                 Map<LocalVariableElement, Value> sav = stackAllocatedValues;
                 if (sav == null) {
@@ -343,11 +345,13 @@ final class MethodParser {
         if (value instanceof Auto al) {
             LocalVariableElement lve = getLocalVariableElement(bci, index);
             if (lve != null) {
-                Value allocated = gf.stackAllocate(lve.getType(), lf.literalOf(1), lf.literalOf(al.getPointeeType().getAlign()));
                 Value init = al.getInitializer();
-                if (init instanceof Literal lit && lit.isZero()) {
-                    init = lf.zeroInitializerLiteralOfType(lve.getType());
+                ValueType varType = init.getType();
+                if (init.getType().equals(ts.getVoidType())) {
+                    varType = lve.getType();
+                    init = lf.zeroInitializerLiteralOfType(varType);
                 }
+                Value allocated = gf.stackAllocate(varType, lf.literalOf(1), lf.literalOf(varType.getAlign()));
                 gf.store(allocated, storeTruncate(init, lve.getTypeDescriptor()), SingleUnshared);
                 Map<LocalVariableElement, Value> sav = stackAllocatedValues;
                 if (sav == null) {
