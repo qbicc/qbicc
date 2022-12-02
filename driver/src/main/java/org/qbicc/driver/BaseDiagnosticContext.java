@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.Diagnostic;
 import org.qbicc.context.DiagnosticContext;
@@ -24,8 +25,18 @@ public final class BaseDiagnosticContext implements DiagnosticContext  {
     final ConcurrentHashMap<String, String> stringCache = new ConcurrentHashMap<String, String>();
     final AtomicInteger errorCnt = new AtomicInteger(0);
     final AtomicInteger warnCnt = new AtomicInteger(0);
+    final int errorMax;
+    final int warnMax;
+
+    public BaseDiagnosticContext(int errorMax, int warnMax) {
+        Assert.checkMinimumParameter("errorMax", 1, errorMax);
+        Assert.checkMinimumParameter("warnMax", 0, warnMax);
+        this.errorMax = errorMax;
+        this.warnMax = warnMax;
+    }
 
     public BaseDiagnosticContext() {
+        this(100, 100);
     }
 
     @SuppressWarnings("unchecked")
@@ -154,13 +165,28 @@ public final class BaseDiagnosticContext implements DiagnosticContext  {
 
     Diagnostic msg(final Diagnostic diagnostic) {
         if (diagnostic.getParent() == null) {
-            diagnostics.addLast(diagnostic);
             Diagnostic.Level level = diagnostic.getLevel();
+            AtomicInteger cnt;
+            int max;
             if (level == Diagnostic.Level.ERROR) {
-                errorCnt.getAndIncrement();
+                cnt = errorCnt;
+                max = errorMax;
             } else if (level == Diagnostic.Level.WARNING) {
-                warnCnt.getAndIncrement();
+                cnt = warnCnt;
+                max = warnMax;
+            } else {
+                diagnostics.addLast(diagnostic);
+                return diagnostic;
             }
+            int oldCnt;
+            do {
+                oldCnt = cnt.get();
+                if (oldCnt == max) {
+                    // do not register it
+                    return diagnostic;
+                }
+            } while (! cnt.compareAndSet(oldCnt, oldCnt + 1));
+            diagnostics.addLast(diagnostic);
         }
         return diagnostic;
     }

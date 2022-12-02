@@ -9,6 +9,7 @@ import java.util.List;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.machine.tool.ToolMessageHandler;
 import org.qbicc.machine.tool.process.InputSource;
+import org.qbicc.machine.tool.process.LimitedAppendable;
 import org.qbicc.machine.tool.process.OutputDestination;
 
 /**
@@ -61,7 +62,7 @@ abstract class AbstractLlvmInvoker implements LlvmInvoker {
 
     public OutputDestination invokerAsDestination() {
         StringBuilder b = new StringBuilder();
-        OutputDestination errorHandler = OutputDestination.of(b, StandardCharsets.UTF_8);
+        OutputDestination errorHandler = OutputDestination.of(new LimitedAppendable(b, 1536), StandardCharsets.UTF_8);
         List<String> cmd = new ArrayList<>();
         cmd.add(execPath.toString());
         addArguments(cmd);
