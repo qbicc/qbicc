@@ -12,6 +12,7 @@ import org.qbicc.machine.llvm.LLValue;
 import org.qbicc.machine.llvm.Types;
 import org.qbicc.machine.llvm.op.Call;
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.machine.llvm.op.HasArguments;
 
 final class InvokeImpl extends AbstractYieldingInstruction implements Call {
     final AbstractValue type;
@@ -24,6 +25,7 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
     TailType tailType = TailType.notail;
     CallingConvention cconv = CallingConvention.C;
     ArgImpl lastArg;
+    BundleImpl lastBundle;
     int addressSpace;
 
     InvokeImpl(final BasicBlockImpl basicBlock, final AbstractValue type, final AbstractValue function, final BasicBlockImpl normal, final BasicBlockImpl unwind) {
@@ -43,6 +45,11 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
     public Call attribute(LLValue attribute) {
         attributes.add((AbstractValue) Assert.checkNotNullParam("attribute", attribute));
         return this;
+    }
+
+    @Override
+    public HasArguments operandBundle(String bundleName) {
+        return lastBundle = new BundleImpl(lastBundle, bundleName);
     }
 
     public Call comment(final String comment) {
@@ -110,7 +117,12 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
             target.append("addrspace").append('(').append(Integer.toString(addressSpace)).append(')').append(' ');
         }
         returns.appendTo(target);
-        type.appendTo(target).append(' ');
+        if (! (type instanceof FunctionType ft) || ft.isVariadic()) {
+            type.appendTo(target);
+        } else {
+            ft.returnType.appendTo(target);
+        }
+        target.append(' ');
         function.appendTo(target);
         target.append('(');
         final ArgImpl lastArg = this.lastArg;
@@ -122,7 +134,14 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
             target.append(' ');
             attribute.appendTo(target);
         }
-        // todo operand bundles
+        if (lastBundle != null) {
+            target.append(' ');
+            target.append('[');
+            target.append(' ');
+            lastBundle.appendTo(target);
+            target.append(' ');
+            target.append(']');
+        }
         target.append(' ');
         target.append("to label ");
         normal.appendTo(target);
@@ -155,14 +174,14 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
     }
 
     static final class ArgImpl extends AbstractEmittable implements Argument {
-        final InvokeImpl call;
+        final HasArguments hasArguments;
         final ArgImpl prev;
         final AbstractValue type;
         final AbstractValue value;
         final List<AbstractValue> attributes = new ArrayList<>();
 
-        ArgImpl(final InvokeImpl call, final ArgImpl prev, final AbstractValue type, final AbstractValue value) {
-            this.call = call;
+        ArgImpl(final HasArguments hasArguments, final ArgImpl prev, final AbstractValue type, final AbstractValue value) {
+            this.hasArguments = hasArguments;
             this.prev = prev;
             this.type = type;
             this.value = value;
@@ -174,7 +193,7 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
         }
 
         public Argument arg(final LLValue type, final LLValue value) {
-            return call.arg(type, value);
+            return hasArguments.arg(type, value);
         }
 
         public Appendable appendTo(final Appendable target) throws IOException {
@@ -191,6 +210,39 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
             }
             value.appendTo(target);
             return target;
+        }
+    }
+
+    static final class BundleImpl extends AbstractEmittable implements HasArguments {
+        private final String name;
+        private final BundleImpl prev;
+        ArgImpl lastArg;
+
+        BundleImpl(BundleImpl prev, String name) {
+            this.prev = prev;
+            this.name = name;
+        }
+
+        @Override
+        public Appendable appendTo(Appendable target) throws IOException {
+            if (prev != null) {
+                prev.appendTo(target);
+                target.append(',');
+                target.append(' ');
+            }
+            target.append(LLVM.quoteString(name));
+            target.append('(');
+            final ArgImpl lastArg = this.lastArg;
+            if (lastArg != null) {
+                lastArg.appendTo(target);
+            }
+            target.append(')');
+            return null;
+        }
+
+        @Override
+        public Argument arg(LLValue type, LLValue value) {
+            return lastArg = new ArgImpl(this, lastArg, (AbstractValue) type, (AbstractValue) value);
         }
     }
 }

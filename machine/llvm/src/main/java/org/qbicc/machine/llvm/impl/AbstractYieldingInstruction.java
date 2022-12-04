@@ -48,6 +48,15 @@ abstract class AbstractYieldingInstruction extends AbstractInstruction implement
         return lvalue = abstractValue;
     }
 
+    @Override
+    public LLValue getLValue() {
+        final AbstractValue lvalue = this.lvalue;
+        if (lvalue == null) {
+            throw new IllegalStateException("Target not set");
+        }
+        return lvalue;
+    }
+
     public YieldingInstruction comment(final String comment) {
         super.comment(comment);
         return this;

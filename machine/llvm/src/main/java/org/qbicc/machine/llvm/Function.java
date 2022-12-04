@@ -53,6 +53,8 @@ public interface Function extends Metable, Attributable {
 
         Parameter attribute(LLValue attribute);
 
+        Parameter immarg();
+
         LLValue type();
 
         LLValue asValue();

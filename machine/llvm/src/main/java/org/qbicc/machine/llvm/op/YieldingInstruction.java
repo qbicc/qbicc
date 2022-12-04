@@ -35,4 +35,6 @@ public interface YieldingInstruction extends Instruction {
     default LLValue asAttribute(String name) {
         throw new UnsupportedOperationException();
     }
+
+    LLValue getLValue();
 }

@@ -1,11 +1,13 @@
 package org.qbicc.graph.schedule;
 
 import java.util.BitSet;
+import java.util.HashSet;
 import java.util.Map;
 
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.Terminator;
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.graph.Value;
 
 final class BlockInfo {
     final BasicBlock block;
@@ -24,6 +26,8 @@ final class BlockInfo {
     int label;
     int semi;
     int size;
+    final HashSet<Value> liveIn = new HashSet<>();
+    final HashSet<Value> liveOut = new HashSet<>();
 
     BlockInfo(final BasicBlock block, final int index) {
         this.block = Assert.checkNotNullParam("block", block);

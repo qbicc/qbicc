@@ -29,6 +29,8 @@ import java.util.function.Consumer;
 import java.util.jar.JarInputStream;
 
 import io.smallrye.common.constraint.Assert;
+import io.smallrye.common.version.VersionIterator;
+import io.smallrye.common.version.VersionScheme;
 import org.apache.maven.settings.Settings;
 import org.apache.maven.settings.building.SettingsBuildingException;
 import org.eclipse.aether.RepositorySystemSession;
@@ -368,9 +370,10 @@ public class Main implements Callable<DiagnosticContext> {
                                 initialContext.error(error, "Failed to load plugin");
                             }
                             errors = initialContext.errors();
+                            LlvmToolChain llvmToolChain = null;
+                            int llvmMajor = 0;
                             if (errors == 0 && llvm) {
                                 Iterator<LlvmToolChain> llvmTools = LlvmToolChain.findAllLlvmToolChains(target, t -> true, Main.class.getClassLoader()).iterator();
-                                LlvmToolChain llvmToolChain = null;
                                 while (llvmTools.hasNext()) {
                                     llvmToolChain = llvmTools.next();
                                     if (llvmToolChain.compareVersionTo("12") >= 0) {
@@ -383,6 +386,9 @@ public class Main implements Callable<DiagnosticContext> {
                                     errors = initialContext.errors();
                                 } else {
                                     builder.setLlvmToolChain(llvmToolChain);
+                                    final VersionIterator vi = VersionScheme.BASIC.iterate(llvmToolChain.getVersion());
+                                    vi.next();
+                                    llvmMajor = vi.getNumberPartAsInt();
                                 }
                             }
                             if (errors == 0) {
@@ -622,7 +628,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
 
                                 if (llvm) {
-                                    builder.addPreHook(Phase.GENERATE, new LLVMGenerator(isPie ? 2 : 0, isPie ? 2 : 0, gcSupport, referencePointerFactory));
+                                    builder.addPreHook(Phase.GENERATE, new LLVMGenerator(llvmMajor, isPie ? 2 : 0, isPie ? 2 : 0, gcSupport, referencePointerFactory));
                                 }
 
                                 builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
@@ -633,7 +639,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 if (llvm) {
                                     builder.addPostHook(Phase.GENERATE, new MethodDataEmitter());
-                                    builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(isPie, compileOutput, gcSupport, referencePointerFactory, llvmCompilerFactory, optOptions, llcOptions));
+                                    builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(llvmMajor, isPie, compileOutput, gcSupport, referencePointerFactory, llvmCompilerFactory, optOptions, llcOptions));
                                     if (! isWasm) {
                                         builder.addPostHook(Phase.GENERATE, new LLVMStripStackMapStage());
                                     }

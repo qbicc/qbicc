@@ -5,6 +5,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.facts.Facts;
 import org.qbicc.facts.core.ExecutableReachabilityFacts;
 import org.qbicc.graph.BasicBlock;
+import org.qbicc.graph.InvocationNode;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.machine.llvm.FunctionAttributes;
@@ -48,18 +49,22 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 final class LLVMModuleGenerator {
     private final CompilationContext context;
+    private final int llvmMajor;
     private final int picLevel;
     private final int pieLevel;
     private final boolean gcSupport;
     private final LLVMReferencePointerFactory refFactory;
+    private final List<List<InvocationNode>> statePoints = new ArrayList<>();
 
-    LLVMModuleGenerator(final CompilationContext context, final int picLevel, final int pieLevel, final boolean gcSupport, final LLVMReferencePointerFactory refFactory) {
+    LLVMModuleGenerator(final CompilationContext context, int llvmMajor, final int picLevel, final int pieLevel, final boolean gcSupport, final LLVMReferencePointerFactory refFactory) {
         this.context = context;
+        this.llvmMajor = llvmMajor;
         this.picLevel = picLevel;
         this.pieLevel = pieLevel;
         this.gcSupport = gcSupport;
@@ -84,9 +89,8 @@ final class LLVMModuleGenerator {
             .float32Align(ts.getFloat32Type().getAlign() * 8)
             .float64Align(ts.getFloat64Type().getAlign() * 8)
             ;
-        final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(module, context, refFactory);
+        final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(this, module, context, refFactory);
         final LLVMModuleDebugInfo debugInfo = new LLVMModuleDebugInfo(programModule, module, context);
-        final LLVMPseudoIntrinsics pseudoIntrinsics = new LLVMPseudoIntrinsics(module, refFactory);
 
         if (picLevel != 0) {
             module.addFlag(ModuleFlagBehavior.Max, "PIC Level", Types.i32, Values.intConstant(picLevel));
@@ -176,7 +180,7 @@ final class LLVMModuleGenerator {
                         functionDefinition.attribute(FunctionAttributes.noreturn);
                     }
 
-                    LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(context, module, debugInfo, pseudoIntrinsics, topSubprogram, moduleVisitor, fn, functionDefinition);
+                    LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(context, module, debugInfo, topSubprogram, moduleVisitor, fn, functionDefinition);
                     if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                         functionDefinition.section(sectionName);
                     }
@@ -228,7 +232,12 @@ final class LLVMModuleGenerator {
                 context.warning("Failed to clean \"%s\": %s", outputFile, e.getMessage());
             }
         }
+        LLVMState.get(context).registerStatePoints(programModule, List.copyOf(statePoints));
         return outputFile;
+    }
+
+    void registerStatePoints(List<InvocationNode> invocationNodes) {
+        statePoints.add(invocationNodes);
     }
 
     private void processXtors(final List<GlobalXtor> xtors, final String xtorName, Module module, LLVMModuleNodeVisitor moduleVisitor) {
@@ -262,6 +271,10 @@ final class LLVMModuleGenerator {
             )));
             global_ctors.asGlobal(xtorName);
         }
+    }
+
+    public int getLlvmMajor() {
+        return llvmMajor;
     }
 
     Linkage map(org.qbicc.object.Linkage linkage) {

@@ -165,6 +165,10 @@ public final class LLVM {
         return new SingleWord(attribute + "=" + value);
     }
 
+    public static LLValue argumentAttribute(final String attribute, final LLValue value) {
+        return new ArgumentAttribute(attribute, value);
+    }
+
     public static int getNextStatepointId() {
         return statepointId.getAndIncrement();
     }

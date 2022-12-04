@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
@@ -33,9 +32,12 @@ import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.graph.literal.ValueConvertLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.machine.llvm.Array;
+import org.qbicc.machine.llvm.Function;
+import org.qbicc.machine.llvm.FunctionAttributes;
 import org.qbicc.machine.llvm.IdentifiedType;
 import org.qbicc.machine.llvm.LLValue;
 import org.qbicc.machine.llvm.Module;
+import org.qbicc.machine.llvm.ParameterAttributes;
 import org.qbicc.machine.llvm.Struct;
 import org.qbicc.machine.llvm.StructType;
 import org.qbicc.machine.llvm.Types;
@@ -68,16 +70,25 @@ import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 
 final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Pointer.Visitor<PointerLiteral, LLValue> {
-    final AtomicInteger anonCnt = new AtomicInteger();
+    final LLVMModuleGenerator generator;
     final Module module;
     final CompilationContext ctxt;
-    private LLVMReferencePointerFactory refFactory;
+    final LLVMReferencePointerFactory refFactory;
 
     final Map<Type, LLValue> types = new HashMap<>();
     final Map<CompoundType, Map<CompoundType.Member, LLValue>> structureOffsets = new HashMap<>();
     final Map<Value, LLValue> globalValues = new HashMap<>();
 
-    LLVMModuleNodeVisitor(final Module module, final CompilationContext ctxt, LLVMReferencePointerFactory refFactory) {
+    final Map<FunctionType, LLValue> statepointDecls = new HashMap<>();
+    final Map<String, LLValue> statepointDeclsByName = new HashMap<>();
+    final Map<FunctionType, LLValue> statepointTypes = new HashMap<>();
+    final Map<ValueType, LLValue> resultDecls = new HashMap<>();
+    final Map<String, LLValue> resultDeclsByName = new HashMap<>();
+    final Map<ValueType, LLValue> resultDeclTypes = new HashMap<>();
+    LLValue relocateDecl;
+
+    LLVMModuleNodeVisitor(final LLVMModuleGenerator generator, final Module module, final CompilationContext ctxt, LLVMReferencePointerFactory refFactory) {
+        this.generator = generator;
         this.module = module;
         this.ctxt = ctxt;
         this.refFactory = refFactory;
@@ -406,5 +417,120 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Poin
     @Override
     public LLValue visit(PointerLiteral pointerLiteral, ProgramObjectPointer pointer) {
         return Values.global(pointer.getProgramObject().getName());
+    }
+
+    public LLVMModuleGenerator getGenerator() {
+        return generator;
+    }
+
+    public LLValue mapStatepointType(final FunctionType functionType) {
+        LLValue statepointType = statepointTypes.get(functionType);
+        if (statepointType == null) {
+            statepointType = Types.function(token, List.of(i64, i32, map(functionType.getPointer()), i32, i32), true);
+            statepointTypes.put(functionType, statepointType);
+        }
+        return statepointType;
+    }
+
+    public LLValue generateStatepointDecl(final FunctionType functionType) {
+        LLValue statepointDecl = statepointDecls.get(functionType);
+        if (statepointDecl == null) {
+            StringBuilder b = new StringBuilder(64);
+            b.append("llvm.experimental.gc.statepoint.");
+            mapTypeSuffix(b, functionType.getPointer());
+            final String name = b.toString();
+            statepointDecl = statepointDeclsByName.get(name);
+            if (statepointDecl == null) {
+                final Function decl = module.declare(name);
+                decl.param(i64).immarg(); // statepoint ID
+                decl.param(i32).immarg(); // patch byte count
+                // pointer to the function
+                final Function.Parameter param = decl.param(map(functionType.getPointer()));
+                if (generator.getLlvmMajor() >= 15) {
+                    param.attribute(ParameterAttributes.elementtype(map(functionType)));
+                }
+                decl.param(i32).immarg(); // call arg count
+                decl.param(i32).immarg(); // flags
+                decl.variadic();
+                decl.returns(token);
+                statepointDecl = decl.asGlobal();
+                statepointDeclsByName.put(name, statepointDecl);
+            }
+            statepointDecls.put(functionType, statepointDecl);
+        }
+        return statepointDecl;
+    }
+
+    private void mapTypeSuffix(final StringBuilder b, final ValueType type) {
+        if (type instanceof BooleanType) {
+            b.append("i1");
+        } else if (type instanceof IntegerType it) {
+            b.append('i').append(it.getMinBits());
+        } else if (type instanceof PointerType pt) {
+            b.append("p0");
+            mapTypeSuffix(b, pt.getPointeeType());
+        } else if (type instanceof ReferenceType) {
+            b.append("p1i8");
+        } else if (type instanceof FloatType ft) {
+            b.append('f').append(ft.getMinBits());
+        } else if (type instanceof VoidType) {
+            b.append("isVoid");
+        } else if (type instanceof WordType wt) {
+            b.append('i').append(wt.getMinBits());
+        } else if (type instanceof CompoundType ct) {
+            b.append("s_");
+            final String compoundName = ct.getName();
+            String name;
+            if (ct.getTag() == CompoundType.Tag.NONE) {
+                String outputName = "type." + compoundName;
+                name = LLVM.needsQuotes(compoundName) ? LLVM.quoteString(outputName) : outputName;
+            } else {
+                String outputName = ct.getTag() + "." + compoundName;
+                name = LLVM.needsQuotes(compoundName) ? LLVM.quoteString(outputName) : outputName;
+            }
+            b.append(name);
+            b.append('s');
+        } else if (type instanceof VariadicType) {
+            // ignore
+        } else if (type instanceof FunctionType ft) {
+            b.append("f_");
+            mapTypeSuffix(b, ft.getReturnType());
+            for (ValueType parameterType : ft.getParameterTypes()) {
+                mapTypeSuffix(b, parameterType);
+            }
+            b.append('f');
+        } else {
+            throw new IllegalStateException("Unexpected type " + type);
+        }
+    }
+
+    public LLValue generateStatepointResultDecl(final ValueType returnType) {
+        LLValue resultDecl = resultDecls.get(returnType);
+        if (resultDecl == null) {
+            StringBuilder b = new StringBuilder(64);
+            b.append("llvm.experimental.gc.result.");
+            mapTypeSuffix(b, returnType);
+            final String name = b.toString();
+            resultDecl = resultDeclsByName.get(name);
+            if (resultDecl == null) {
+                final Function decl = module.declare(b.toString());
+                decl.param(token);
+                decl.returns(map(returnType));
+                decl.attribute(FunctionAttributes.nounwind).attribute(FunctionAttributes.readnone);
+                resultDecl = decl.asGlobal();
+                resultDeclsByName.put(name, resultDecl);
+            }
+            resultDecls.put(returnType, resultDecl);
+        }
+        return resultDecl;
+    }
+
+    public LLValue generateStatepointResultDeclType(final ValueType returnType) {
+        LLValue resultDeclType = resultDeclTypes.get(returnType);
+        if (resultDeclType == null) {
+            resultDeclType = Types.function(map(returnType), List.of(token), false);
+            resultDeclTypes.put(returnType, resultDeclType);
+        }
+        return resultDeclType;
     }
 }
