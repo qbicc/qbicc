@@ -36,6 +36,7 @@ import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -266,6 +267,10 @@ public class ReachabilityElementHandler {
             if (visitUnknown(param, (Node)node)) {
                 MethodElement methodElement = RuntimeMethodFinder.get(param.ctxt).getMethod("getClassFromTypeId");
                 param.analysis.processReachableExactInvocation(methodElement, param.currentElement);
+                if (node.getInput() instanceof TypeLiteral tl && tl.getValue() instanceof ObjectType ot) {
+                    // class object is reachable
+                    param.analysis.processReachableType(ot.getDefinition().load(), param.currentElement);
+                }
             }
             return null;
         }
