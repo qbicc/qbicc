@@ -2,10 +2,7 @@ package org.qbicc.plugin.linker;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 import org.qbicc.context.CompilationContext;
@@ -13,7 +10,6 @@ import org.qbicc.driver.Driver;
 import org.qbicc.machine.tool.CToolChain;
 import org.qbicc.machine.tool.LinkerInvoker;
 import org.qbicc.machine.tool.ToolMessageHandler;
-import org.qbicc.type.definition.LoadedTypeDefinition;
 
 /**
  *

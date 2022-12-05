@@ -1,6 +1,5 @@
 package org.qbicc.plugin.llvm;
 
-import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
@@ -14,25 +13,18 @@ import org.qbicc.object.ProgramModule;
  *
  */
 public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor<CompilationContext, LLValue> {
-    private final int llvmMajor;
-    private final int picLevel;
-    private final int pieLevel;
-    private final LLVMReferencePointerFactory refFactory;
-    private final boolean gcSupport;
+    private final LLVMConfiguration config;
 
-    public LLVMGenerator(int llvmMajor, final int picLevel, final int pieLevel, final boolean gcSupport, final LLVMReferencePointerFactory refFactory) {
-        this.llvmMajor = llvmMajor;
-        this.picLevel = picLevel;
-        this.pieLevel = pieLevel;
-        this.gcSupport = gcSupport;
-        this.refFactory = refFactory;
+    public LLVMGenerator(LLVMConfiguration config) {
+        this.config = config;
     }
 
     public void accept(final CompilationContext compilationContext) {
-        LLVMModuleGenerator generator = new LLVMModuleGenerator(compilationContext, llvmMajor, picLevel, pieLevel, gcSupport, refFactory);
+        LLVMModuleGenerator generator = new LLVMModuleGenerator(compilationContext, config);
         List<ProgramModule> allProgramModules = compilationContext.getAllProgramModules();
         Iterator<ProgramModule> iterator = allProgramModules.iterator();
         compilationContext.runParallelTask(ctxt -> {
+            final LLVMCompilerImpl compiler = new LLVMCompilerImpl(ctxt, config, generator);
             for (;;) {
                 ProgramModule programModule;
                 synchronized (iterator) {
@@ -41,14 +33,12 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                     }
                     programModule = iterator.next();
                 }
-                Path outputFile = generator.processProgramModule(programModule);
-                LLVMState llvmState = LLVMState.get(ctxt);
-                llvmState.addModulePath(programModule.getTypeDefinition().load(), outputFile);
+                compiler.compileModule(ctxt, programModule.getTypeDefinition().load(), generator);
             }
         });
     }
 
     public int getLlvmMajor() {
-        return llvmMajor;
+        return config.getMajorVersion();
     }
 }

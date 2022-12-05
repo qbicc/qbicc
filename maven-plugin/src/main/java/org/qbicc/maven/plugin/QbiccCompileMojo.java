@@ -29,6 +29,8 @@ import org.qbicc.machine.arch.Platform;
 import org.qbicc.main.ClassPathEntry;
 import org.qbicc.main.DefaultArtifactRequestor;
 import org.qbicc.main.Main;
+import org.qbicc.plugin.llvm.LLVMConfiguration;
+import org.qbicc.plugin.llvm.ReferenceStrategy;
 
 /**
  *
@@ -135,6 +137,13 @@ public class QbiccCompileMojo extends AbstractMojo {
         if (platform != null) {
             builder.setPlatform(Platform.parse(platform));
         }
+        builder.setLlvmConfigurationBuilder(LLVMConfiguration.builder()
+            .setCompileOutput(true)
+            .setPlatform(Platform.HOST_PLATFORM)
+            .setStatepointEnabled(true)
+            .setReferenceStrategy(ReferenceStrategy.POINTER_AS1)
+            .setPie(true)
+        );
         final Map<Diagnostic.Level, List<Diagnostic>> map = new EnumMap<>(Diagnostic.Level.class);
         builder.setDiagnosticsHandler(new Consumer<Iterable<Diagnostic>>() {
             @Override

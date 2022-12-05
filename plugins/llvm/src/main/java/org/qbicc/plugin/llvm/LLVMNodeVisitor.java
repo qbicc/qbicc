@@ -5,6 +5,8 @@ import static org.qbicc.machine.llvm.Types.*;
 import static org.qbicc.machine.llvm.Values.*;
 
 import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -221,7 +223,16 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
         } else if (retType instanceof BooleanType) {
             ret.attribute(ParameterAttributes.zeroext);
         }
-        map(entryBlock);
+        // list the blocks in order, more or less
+        List<BasicBlock> blockList = new ArrayList<>(64);
+        findBlocks(entryBlock, blockList, new BitSet());
+        blockList.sort(Comparator.comparingInt(BasicBlock::getIndex));
+        for (BasicBlock basicBlock : blockList) {
+            preMap(basicBlock);
+        }
+        for (BasicBlock basicBlock : blockList) {
+            postMap(basicBlock, preMap(basicBlock));
+        }
         for (Map.Entry<Invoke, Set<Phi>> entry : invokeResultsToMap.entrySet()) {
             final Invoke invoke = entry.getKey();
             final Set<Phi> phis = entry.getValue();
@@ -235,8 +246,21 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
                 phi.item(result, llBasicBlock);
             }
         }
-        LLVMModuleGenerator gen = moduleVisitor.getGenerator();
-        gen.registerStatePoints(List.copyOf(invocationNodes));
+    }
+
+    private void findBlocks(final BasicBlock block, final List<BasicBlock> blockList, final BitSet visited) {
+        final int index = block.getIndex();
+        if (visited.get(index)) {
+            return;
+        }
+        visited.set(index);
+        blockList.add(block);
+        final Terminator t = block.getTerminator();
+        final int cnt = t.getSuccessorCount();
+        for (int i = 0; i < cnt; i ++) {
+            final BasicBlock successor = t.getSuccessor(i);
+            findBlocks(successor, blockList, visited);
+        }
     }
 
     // actions
@@ -1052,7 +1076,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
         String statepointReason;
         final ExecutableElement origElement = functionObj.getOriginalElement();
         final boolean callerIsHidden = origElement != null && origElement.hasAllModifiersOf(ClassFile.I_ACC_HIDDEN);
-        if (callerIsHidden && functionObj.isNoSafePoints()) {
+        if (! moduleVisitor.config.isStatepointEnabled()) {
+            needsStatepoint = false;
+            statepointReason = "Statepoint is disabled";
+        } else if (callerIsHidden && functionObj.isNoSafePoints()) {
             // caller is hidden, caller is noSafePoints, so no stack walker will see this call and no safepoint is possible
             needsStatepoint = false;
             statepointReason = "Caller is hidden and noSafePoints";

@@ -1,41 +1,22 @@
 package org.qbicc.plugin.llvm;
 
+import java.util.function.Consumer;
+
 import org.qbicc.context.CompilationContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 
-import java.nio.file.Path;
-import java.util.List;
-import java.util.function.Consumer;
-
 public class LLVMDefaultModuleCompileStage implements Consumer<CompilationContext> {
-    private final int llvmMajor;
-    private final boolean isPie;
-    private final boolean compileOutput;
-    private final boolean gcSupport;
-    private final LLVMReferencePointerFactory refFactory;
-    private LLVMCompiler.Factory llvmCompilerFactory;
-    private List<String> optOptions;
-    private List<String> llcOptions;
+    private final LLVMConfiguration config;
 
-    public LLVMDefaultModuleCompileStage(int llvmMajor, boolean isPie, boolean compileOutput, boolean gcSupport, LLVMReferencePointerFactory refFactory, LLVMCompiler.Factory llvmCompilerFactory, List<String> optOptions, List<String> llcOptions) {
-        this.llvmMajor = llvmMajor;
-        this.isPie = isPie;
-        this.compileOutput = compileOutput;
-        this.gcSupport = gcSupport;
-        this.refFactory = refFactory;
-        this.llvmCompilerFactory = llvmCompilerFactory;
-        this.optOptions = optOptions;
-        this.llcOptions = llcOptions;
+    public LLVMDefaultModuleCompileStage(LLVMConfiguration config) {
+        this.config = config;
     }
 
     @Override
     public void accept(CompilationContext context) {
-        LLVMModuleGenerator generator = new LLVMModuleGenerator(context, llvmMajor, isPie ? 2 : 0, isPie ? 2 : 0, gcSupport, refFactory);
+        LLVMModuleGenerator generator = new LLVMModuleGenerator(context, config);
         DefinedTypeDefinition defaultTypeDefinition = context.getDefaultTypeDefinition();
-        Path modulePath = generator.processProgramModule(context.getOrAddProgramModule(defaultTypeDefinition));
-        if (compileOutput) {
-            LLVMCompiler compiler = llvmCompilerFactory.of(context, isPie, optOptions, llcOptions);
-            compiler.compileModule(context, defaultTypeDefinition.load(), modulePath);
-        }
+        final LLVMCompilerImpl compiler = new LLVMCompilerImpl(context, config, generator);
+        compiler.compileModule(context, defaultTypeDefinition.load(), new LLVMModuleGenerator(context, config));
     }
 }

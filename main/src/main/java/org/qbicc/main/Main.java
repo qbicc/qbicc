@@ -54,11 +54,12 @@ import org.qbicc.driver.Phase;
 import org.qbicc.driver.plugin.DriverPlugin;
 import org.qbicc.plugin.correctness.ConstraintMaterializingBasicBlockBuilder;
 import org.qbicc.plugin.initializationcontrol.RuntimeResourceManager;
+import org.qbicc.plugin.llvm.LLVMConfiguration;
+import org.qbicc.plugin.llvm.ReferenceStrategy;
 import org.qbicc.plugin.reachability.ReachabilityFactsSetup;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.impl.VmImpl;
-import org.qbicc.machine.arch.Cpu;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.tool.CToolChain;
@@ -92,17 +93,11 @@ import org.qbicc.plugin.instanceofcheckcast.SupersDisplayEmitter;
 import org.qbicc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
 import org.qbicc.plugin.intrinsics.core.CoreIntrinsics;
 import org.qbicc.plugin.layout.ObjectAccessLoweringBuilder;
-import org.qbicc.plugin.linker.EmscriptenLinkStage;
 import org.qbicc.plugin.linker.LinkStage;
 import org.qbicc.plugin.llvm.LLVMCompatibleBasicBlockBuilder;
-import org.qbicc.plugin.llvm.LLVMCompileStage;
-import org.qbicc.plugin.llvm.LLVMCompiler;
-import org.qbicc.plugin.llvm.LLVMCompilerImpl;
 import org.qbicc.plugin.llvm.LLVMDefaultModuleCompileStage;
-import org.qbicc.plugin.llvm.LLVMEmscriptenCompiler;
 import org.qbicc.plugin.llvm.LLVMGenerator;
 import org.qbicc.plugin.llvm.LLVMIntrinsics;
-import org.qbicc.plugin.llvm.LLVMReferencePointerFactory;
 import org.qbicc.plugin.llvm.LLVMStripStackMapStage;
 import org.qbicc.plugin.lowering.AbortingThrowLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.BooleanAccessCopier;
@@ -202,16 +197,13 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean optInlining;
     private final boolean optEscapeAnalysis;
     private final Platform platform;
-    private final boolean isWasm;
-    private final boolean gcSupport;
     private final boolean smallTypeIds;
     private final List<Path> librarySearchPaths;
     private final List<String> graalFeatures;
     private final List<Path> qbiccFeatures;
     private final ClassPathResolver classPathResolver;
     private final Backend backend;
-    private final List<String> optOptions;
-    private final List<String> llcOptions;
+    private final LLVMConfiguration.Builder llvmConfigurationBuilder;
 
     Main(Builder builder) {
         outputPath = builder.outputPath;
@@ -229,14 +221,10 @@ public class Main implements Callable<DiagnosticContext> {
         optGotos = builder.optGotos;
         optEscapeAnalysis = builder.optEscapeAnalysis;
         platform = builder.platform;
-        isWasm = platform.getCpu() == Cpu.WASM32;
-        gcSupport = !isWasm;
         smallTypeIds = builder.smallTypeIds;
         backend = builder.backend;
         ArrayList<ClassPathEntry> bootPaths = new ArrayList<>(builder.bootPathsPrepend.size() + 6 + builder.bootPathsAppend.size());
         bootPaths.addAll(builder.bootPathsPrepend);
-        optOptions = builder.optOptions;
-        llcOptions = builder.llcOptions;
         // add core things
         bootPaths.add(getCoreComponent("qbicc-runtime-api"));
         bootPaths.add(getCoreComponent("qbicc-runtime-linux"));
@@ -269,7 +257,7 @@ public class Main implements Callable<DiagnosticContext> {
             }
         }
         hostAppClassLoader = URLClassLoader.newInstance(urls.toArray(new URL[0]));
-
+        llvmConfigurationBuilder = builder.llvmConfigurationBuilder;
         classLibVersion = Runtime.Version.parse(builder.classLibVersion.split("\\.")[0]);
     }
 
@@ -371,7 +359,7 @@ public class Main implements Callable<DiagnosticContext> {
                             }
                             errors = initialContext.errors();
                             LlvmToolChain llvmToolChain = null;
-                            int llvmMajor = 0;
+                            LLVMConfiguration tempLlVmConfiguration = null;
                             if (errors == 0 && llvm) {
                                 Iterator<LlvmToolChain> llvmTools = LlvmToolChain.findAllLlvmToolChains(target, t -> true, Main.class.getClassLoader()).iterator();
                                 while (llvmTools.hasNext()) {
@@ -388,9 +376,10 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.setLlvmToolChain(llvmToolChain);
                                     final VersionIterator vi = VersionScheme.BASIC.iterate(llvmToolChain.getVersion());
                                     vi.next();
-                                    llvmMajor = vi.getNumberPartAsInt();
+                                    tempLlVmConfiguration = llvmConfigurationBuilder.setMajorVersion(vi.getNumberPartAsInt()).build();
                                 }
                             }
+                            LLVMConfiguration llvmConfiguration = tempLlVmConfiguration;
                             if (errors == 0) {
                                 assert mainClass != null; // else errors would be != 0
                                 // keep it simple to start with
@@ -585,7 +574,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addCopyFactory(Phase.LOWER, MemberPointerCopier::new);
 
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, SafePointPlacementBasicBlockBuilder::createIfNeeded);
-                                if (isWasm) {
+                                if (platform.isWasm()) {
                                     builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, AbortingThrowLoweringBasicBlockBuilder::new);
                                 } else {
                                     builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ExceptionOnThreadStrategy::loweringBuilder);
@@ -602,7 +591,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectAccessLoweringBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectMonitorBasicBlockBuilder::new);
                                 if (llvm) {
-                                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LLVMCompatibleBasicBlockBuilder::new);
+                                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, (ctxt, delegate) -> new LLVMCompatibleBasicBlockBuilder(ctxt, delegate, llvmConfiguration));
                                 }
                                 if (optMemoryTracking) {
                                     builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
@@ -616,39 +605,25 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.LOWER, NativeXtorLoweringHook::process);
                                 builder.addPostHook(Phase.LOWER, BuildtimeHeap::reportStats);
 
-                                LLVMReferencePointerFactory referencePointerFactory =
-                                    isWasm ? LLVMReferencePointerFactory.SIMPLE : LLVMReferencePointerFactory.COLLECTED;
-
-                                LLVMCompiler.Factory llvmCompilerFactory =
-                                    isWasm? LLVMEmscriptenCompiler::new : LLVMCompilerImpl::new;
-
                                 builder.addPreHook(Phase.GENERATE, ReachabilityFactsSetup::setupGenerate);
                                 builder.addPreHook(Phase.GENERATE, new StringInternTableEmitter());
                                 builder.addPreHook(Phase.GENERATE, new SupersDisplayEmitter());
                                 builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
 
                                 if (llvm) {
-                                    builder.addPreHook(Phase.GENERATE, new LLVMGenerator(llvmMajor, isPie ? 2 : 0, isPie ? 2 : 0, gcSupport, referencePointerFactory));
+                                    builder.addPreHook(Phase.GENERATE, new LLVMGenerator(llvmConfiguration));
                                 }
 
                                 builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
-                                if (compileOutput) {
-                                    if (llvm) {
-                                        builder.addPostHook(Phase.GENERATE, new LLVMCompileStage(isPie, llvmCompilerFactory, optOptions, llcOptions));
-                                    }
-                                }
                                 if (llvm) {
                                     builder.addPostHook(Phase.GENERATE, new MethodDataEmitter());
-                                    builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(llvmMajor, isPie, compileOutput, gcSupport, referencePointerFactory, llvmCompilerFactory, optOptions, llcOptions));
-                                    if (! isWasm) {
+                                    builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(llvmConfiguration));
+                                    if (llvmConfigurationBuilder.isStatepointEnabled()) {
                                         builder.addPostHook(Phase.GENERATE, new LLVMStripStackMapStage());
                                     }
                                 }
                                 if (compileOutput) {
-                                    Consumer<CompilationContext> linkStage =
-                                        isWasm ? new EmscriptenLinkStage(outputName, isPie, librarySearchPaths) : new LinkStage(outputName, isPie, librarySearchPaths);
-                                    builder.addPostHook(Phase.GENERATE, linkStage);
-
+                                    builder.addPostHook(Phase.GENERATE, new LinkStage(outputName, isPie, librarySearchPaths));
                                 }
                                 CompilationContext ctxt;
                                 try (Driver driver = builder.build()) {
@@ -776,6 +751,10 @@ public class Main implements Callable<DiagnosticContext> {
             System.err.println("Must either provide a <mainClass> or use --jar <executableJar>");
             return;
         }
+        Platform platform = optionsProcessor.platform;
+        if (platform == null) {
+            platform = Platform.HOST_PLATFORM;
+        }
         Builder mainBuilder = builder();
         mainBuilder.setClassLibVersion(optionsProcessor.rtVersion)
             .appendBootPaths(optionsProcessor.appendedBootPathEntries)
@@ -808,14 +787,18 @@ public class Main implements Callable<DiagnosticContext> {
             .setSmallTypeIds(optionsProcessor.smallTypeIds)
             .setBackend(optionsProcessor.backend)
             .setGraphGenConfig(optionsProcessor.graphGenConfig)
-            .setOptOptions(optionsProcessor.optOptions)
-            .setLlcOptions(optionsProcessor.llcOptions)
+            .setLlvmConfigurationBuilder(LLVMConfiguration.builder()
+                .setEmitAssembly(optionsProcessor.emitAssembly)
+                .setEmitIr(optionsProcessor.llvmArgs.emitIr)
+                .setCompileOutput(optionsProcessor.compileOutput)
+                .setPie(optionsProcessor.isPie)
+                .setPlatform(platform)
+                .setReferenceStrategy(platform.isWasm() ? ReferenceStrategy.POINTER : ReferenceStrategy.POINTER_AS1)
+                .addLlcOptions(optionsProcessor.llvmArgs.llcOptions)
+                .setStatepointEnabled(! platform.isWasm()))
+            .setPlatform(platform)
             .addLibrarySearchPaths(splitPathString(System.getenv("LIBRARY_PATH")))
             .addLibrarySearchPaths(optionsProcessor.libSearchPaths);
-        Platform platform = optionsProcessor.platform;
-        if (platform != null) {
-            mainBuilder.setPlatform(platform);
-        }
 
         Main main = mainBuilder.build();
         DiagnosticContext context = main.call();
@@ -903,7 +886,7 @@ public class Main implements Callable<DiagnosticContext> {
         private Path outputPath;
         @CommandLine.Option(names = { "--output-name", "-o" }, defaultValue = "a.out", description = "Specify the name of the output executable file or library")
         private String outputName;
-        @CommandLine.Option(names = "--no-compile-output", negatable = true, defaultValue = "true", description = "Enable/disable llvm compilation of output files")
+        @CommandLine.Option(names = "--no-compile-output", negatable = true, defaultValue = "true", description = "Enable/disable compilation of output files")
         boolean compileOutput;
         @CommandLine.Option(names = "--debug")
         private boolean debug;
@@ -919,6 +902,8 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean debugDevirt;
         @CommandLine.Option(names = "--debug-interpreter")
         private boolean debugInterpreter;
+        @CommandLine.Option(names = "--emit-asm", negatable = true, defaultValue = "false", description = "Enable emitting assembly for each class")
+        private boolean emitAssembly;
         @CommandLine.Option(names = "--gc", defaultValue = "none", description = "Type of GC to use. Valid values: ${COMPLETION-CANDIDATES}")
         private GCType gc;
         @CommandLine.Option(names = "--heap-stats")
@@ -950,6 +935,9 @@ public class Main implements Callable<DiagnosticContext> {
         @CommandLine.ArgGroup(exclusive = false, heading = "Options for controlling optimizations%n")
         private OptArgs optArgs = new OptArgs();
 
+        @CommandLine.ArgGroup(exclusive = false, heading = "Options for controlling the LLVM backend%n")
+        private LLVMArgs llvmArgs = new LLVMArgs();
+
         private GraphGenConfig graphGenConfig = new GraphGenConfig();
 
         private static class GraphGenArgs {
@@ -968,12 +956,6 @@ public class Main implements Callable<DiagnosticContext> {
             List<String> phases;
         }
 
-        @CommandLine.Option(names = "--llvm-opt-option", split = ",", description = "Pass options to the LLVM opt command")
-        private List<String> optOptions = new ArrayList<String>();
-
-        @CommandLine.Option(names = "--llvm-llc-option", split = ",", description = "Pass options to the LLVM llc command")
-        private List<String> llcOptions = new ArrayList<String>();
-
         static class OptArgs {
             @CommandLine.Option(names = "--opt-memory-tracking", negatable = true, defaultValue = "false", description = "Enable/disable redundant store/load tracking and elimination")
             boolean optMemoryTracking;
@@ -985,6 +967,14 @@ public class Main implements Callable<DiagnosticContext> {
             boolean optGotos;
             @CommandLine.Option(names = "--escape-analysis", negatable = true, defaultValue = "false", description = "Enable/disable escape analysis")
             boolean optEscapeAnalysis;
+        }
+
+        static class LLVMArgs {
+            @CommandLine.Option(names = "--emit-llvm-ir", negatable = true, defaultValue = "false", description = "Enable emitting LLVM IR for each class")
+            boolean emitIr;
+            @CommandLine.Option(names = "--llvm-llc-option", split = ",", description = "Pass options to the LLVM llc command")
+            private List<String> llcOptions = new ArrayList<String>();
+
         }
 
         public CmdResult process(String[] args) {
@@ -1082,8 +1072,7 @@ public class Main implements Callable<DiagnosticContext> {
         private List<String> graalFeatures = new ArrayList<>();
         private List<Path> qbiccFeatures = new ArrayList<>();
         private ClassPathResolver classPathResolver;
-        private List<String> optOptions = new ArrayList<>();
-        private List<String> llcOptions = new ArrayList<>();
+        private LLVMConfiguration.Builder llvmConfigurationBuilder;
 
         Builder() {}
 
@@ -1271,13 +1260,8 @@ public class Main implements Callable<DiagnosticContext> {
             return this;
         }
 
-        public Builder setOptOptions(List<String> cmd) {
-            optOptions.addAll(cmd);
-            return this;
-        }
-
-        public Builder setLlcOptions(List<String> cmd) {
-            llcOptions.addAll(cmd);
+        public Builder setLlvmConfigurationBuilder(final LLVMConfiguration.Builder builder) {
+            this.llvmConfigurationBuilder = Assert.checkNotNullParam("builder", builder);
             return this;
         }
 

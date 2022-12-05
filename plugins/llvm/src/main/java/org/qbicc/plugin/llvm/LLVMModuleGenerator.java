@@ -1,11 +1,15 @@
 package org.qbicc.plugin.llvm;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.context.Location;
 import org.qbicc.facts.Facts;
 import org.qbicc.facts.core.ExecutableReachabilityFacts;
-import org.qbicc.graph.BasicBlock;
-import org.qbicc.graph.InvocationNode;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.machine.llvm.FunctionAttributes;
@@ -37,43 +41,31 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VariadicType;
-import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MemberElement;
 import org.qbicc.type.definition.element.MethodElement;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 final class LLVMModuleGenerator {
     private final CompilationContext context;
-    private final int llvmMajor;
+    private final LLVMConfiguration config;
     private final int picLevel;
     private final int pieLevel;
-    private final boolean gcSupport;
-    private final LLVMReferencePointerFactory refFactory;
-    private final List<List<InvocationNode>> statePoints = new ArrayList<>();
 
-    LLVMModuleGenerator(final CompilationContext context, int llvmMajor, final int picLevel, final int pieLevel, final boolean gcSupport, final LLVMReferencePointerFactory refFactory) {
+    LLVMModuleGenerator(CompilationContext context, LLVMConfiguration config) {
         this.context = context;
-        this.llvmMajor = llvmMajor;
-        this.picLevel = picLevel;
-        this.pieLevel = pieLevel;
-        this.gcSupport = gcSupport;
-        this.refFactory = refFactory;
+        this.config = config;
+        if (config.isPie()) {
+            this.picLevel = 2;
+            this.pieLevel = 2;
+        } else {
+            this.picLevel = 0;
+            this.pieLevel = 0;
+        }
     }
 
-    public Path processProgramModule(final ProgramModule programModule) {
-        DefinedTypeDefinition def = programModule.getTypeDefinition();
-        Path outputFile = context.getOutputFile(def, "ll");
+    public void processProgramModule(final ProgramModule programModule, BufferedWriter writer) {
         final Module module = Module.newModule();
         TypeSystem ts = context.getTypeSystem();
         module.dataLayout()
@@ -89,7 +81,7 @@ final class LLVMModuleGenerator {
             .float32Align(ts.getFloat32Type().getAlign() * 8)
             .float64Align(ts.getFloat64Type().getAlign() * 8)
             ;
-        final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(this, module, context, refFactory);
+        final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(this, module, context, config);
         final LLVMModuleDebugInfo debugInfo = new LLVMModuleDebugInfo(programModule, module, context);
 
         if (picLevel != 0) {
@@ -154,7 +146,6 @@ final class LLVMModuleGenerator {
                         context.error("Function `%s` has no body", name);
                         continue;
                     }
-                    BasicBlock entryBlock = body.getEntryBlock();
                     FunctionDefinition functionDefinition = module.define(name).linkage(linkage);
                     LLValue topSubprogram;
 
@@ -173,7 +164,7 @@ final class LLVMModuleGenerator {
                     }
                     functionDefinition.attribute(FunctionAttributes.framePointer("non-leaf"));
                     functionDefinition.attribute(FunctionAttributes.uwtable);
-                    if (gcSupport) {
+                    if (config.isStatepointEnabled()) {
                         functionDefinition.gc("statepoint-example");
                     }
                     if (fn.isNoReturn()) {
@@ -217,27 +208,10 @@ final class LLVMModuleGenerator {
             }
         }
         try {
-            Path parent = outputFile.getParent();
-            if (! Files.exists(parent)) {
-                Files.createDirectories(parent);
-            }
-            try (BufferedWriter writer = Files.newBufferedWriter(outputFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
-                module.writeTo(writer);
-            }
+            module.writeTo(writer);
         } catch (IOException e) {
-            context.error("Failed to write \"%s\": %s", outputFile, e.getMessage());
-            try {
-                Files.deleteIfExists(outputFile);
-            } catch (IOException e2) {
-                context.warning("Failed to clean \"%s\": %s", outputFile, e.getMessage());
-            }
+            context.error(Location.builder().setClassInternalName(programModule.getTypeDefinition().getInternalName()).build(), "Failed to emit LLVM output: %s", e.toString());
         }
-        LLVMState.get(context).registerStatePoints(programModule, List.copyOf(statePoints));
-        return outputFile;
-    }
-
-    void registerStatePoints(List<InvocationNode> invocationNodes) {
-        statePoints.add(invocationNodes);
     }
 
     private void processXtors(final List<GlobalXtor> xtors, final String xtorName, Module module, LLVMModuleNodeVisitor moduleVisitor) {
@@ -274,7 +248,7 @@ final class LLVMModuleGenerator {
     }
 
     public int getLlvmMajor() {
-        return llvmMajor;
+        return config.getMajorVersion();
     }
 
     Linkage map(org.qbicc.object.Linkage linkage) {
