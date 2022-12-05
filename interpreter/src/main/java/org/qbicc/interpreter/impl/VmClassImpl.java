@@ -484,7 +484,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 int i = 0;
                 for (LoadedTypeDefinition def : typeDefinition.getInterfaces()) {
                     // load each interface
-                    array[i] = (VmClassImpl) def.getVmClass();
+                    array[i++] = (VmClassImpl) def.getVmClass();
                 }
                 newVal = List.of(array);
             }
@@ -590,6 +590,13 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         if (superClass != null) {
             superClass.initialize(thread);
         }
+        for (VmClass vmInterface : getInterfaces()) {
+            if (vmInterface.getTypeDefinition().hasDefaultMethods()) {
+                ((VmClassImpl)vmInterface).initialize(thread);
+            } else {
+                ((VmClassImpl)vmInterface).initializeInherited(thread);
+            }
+        }
         State state = this.state;
         VmThrowableImpl initException = this.initException; // always written before state
         if (state == State.UNINITIALIZED || state == State.INITIALIZING) {
@@ -634,6 +641,17 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 obj = clazz.newInstance("Failed to initialize " + getName() + " (no nested exception)");
             }
             throw new Thrown(obj);
+        }
+    }
+
+    private void initializeInherited(final VmThreadImpl thread) {
+        // used on interfaces only
+        for (VmClass vmInterface : getInterfaces()) {
+            if (vmInterface.getTypeDefinition().hasDefaultMethods()) {
+                ((VmClassImpl)vmInterface).initialize(thread);
+            } else {
+                ((VmClassImpl)vmInterface).initializeInherited(thread);
+            }
         }
     }
 

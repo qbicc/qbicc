@@ -49,7 +49,7 @@ import org.qbicc.driver.ClassPathItem;
 import org.qbicc.driver.Driver;
 import org.qbicc.driver.ElementBodyCopier;
 import org.qbicc.driver.ElementBodyCreator;
-import org.qbicc.driver.ElementInitializer;
+import org.qbicc.plugin.reachability.ElementInitializer;
 import org.qbicc.driver.ElementVisitorAdapter;
 import org.qbicc.driver.GraphGenConfig;
 import org.qbicc.driver.Phase;
@@ -464,10 +464,9 @@ public class Main implements Callable<DiagnosticContext> {
                                         }
                                     }
                                 });
-                                builder.addPreHook(Phase.ADD, new ElementReachableAdapter(
-                                    new ElementBodyCreator()
-                                    .andThen(new BuildTimeOnlyElementHandler())
-                                    .andThen(new ElementInitializer())));
+                                builder.addPreHook(Phase.ADD, ElementBodyCreator::register);
+                                builder.addPreHook(Phase.ADD, ElementInitializer::register);
+                                builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new BuildTimeOnlyElementHandler()));
                                 builder.addPreHook(Phase.ADD, new ElementReachableAdapter(ReachabilityInfo::processReachableElement));
                                 builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig))));
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
@@ -620,11 +619,11 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
                                 builder.addPostHook(Phase.LOWER, NativeXtorLoweringHook::process);
                                 builder.addPostHook(Phase.LOWER, BuildtimeHeap::reportStats);
+                                builder.addPostHook(Phase.LOWER, new DispatchTableEmitter());
 
                                 builder.addPreHook(Phase.GENERATE, ReachabilityFactsSetup::setupGenerate);
                                 builder.addPreHook(Phase.GENERATE, new StringInternTableEmitter());
                                 builder.addPreHook(Phase.GENERATE, new SupersDisplayEmitter());
-                                builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
 
                                 if (llvm) {
                                     builder.addPreHook(Phase.GENERATE, new LLVMGenerator(llvmConfiguration));

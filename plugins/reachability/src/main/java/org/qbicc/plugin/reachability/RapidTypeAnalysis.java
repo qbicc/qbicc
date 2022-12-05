@@ -91,13 +91,6 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
     }
 
     public synchronized void processReachableExactInvocation(final InvokableElement target, ExecutableElement currentElement) {
-        if (target instanceof StaticMethodElement me) {
-            Facts.get(ctxt).discover(me, ExecutableReachabilityFacts.IS_INVOKED);
-        } else if (target instanceof InstanceMethodElement me) {
-            Facts.get(ctxt).discover(me, InstanceMethodReachabilityFacts.IS_PROVISIONALLY_INVOKED);
-        } else if (target instanceof ConstructorElement ce) {
-            Facts.get(ctxt).discover(ce, ExecutableReachabilityFacts.IS_INVOKED);
-        }
         if (!ctxt.wasEnqueued(target)) {
             processReachableType(target.getEnclosingType().load(), currentElement);
 

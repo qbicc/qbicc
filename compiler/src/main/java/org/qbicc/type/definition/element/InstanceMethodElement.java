@@ -7,6 +7,7 @@ import java.util.function.Function;
 
 import org.qbicc.pointer.InstanceMethodPointer;
 import org.qbicc.type.InstanceMethodType;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.util.ResolutionUtil;
 
@@ -38,6 +39,17 @@ public final class InstanceMethodElement extends MethodElement {
             throw new IllegalArgumentException("Cannot make an instance element into a static element");
         }
         super.setModifierFlags(flags);
+    }
+
+    /**
+     * Find and return the method that this method overrides, if any.
+     * This is a simple check for debugging purposes only.
+     *
+     * @return the overridden method, or {@code null} if none
+     */
+    public InstanceMethodElement getOverridden() {
+        LoadedTypeDefinition td = getEnclosingType().load();
+        return (InstanceMethodElement) td.getSuperClass().resolveMethodElementVirtual(getName(), getDescriptor(), false);
     }
 
     /**

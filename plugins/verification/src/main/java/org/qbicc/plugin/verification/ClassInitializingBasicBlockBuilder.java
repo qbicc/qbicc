@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.facts.Facts;
+import org.qbicc.facts.core.ExecutableReachabilityFacts;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
@@ -15,10 +17,10 @@ import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
-import org.qbicc.graph.literal.ExecutableLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
+import org.qbicc.graph.literal.StaticMethodLiteral;
+import org.qbicc.plugin.reachability.InitializerReachabilityFacts;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
@@ -29,22 +31,24 @@ import org.qbicc.type.definition.element.InstanceFieldElement;
 public class ClassInitializingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private final CompilationContext ctxt;
+    private final Facts facts;
 
     public ClassInitializingBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = getContext();
+        facts = Facts.get(this.ctxt);
     }
 
     @Override
     public Value instanceFieldOf(Value instance, InstanceFieldElement field) {
-        initialize(field.getEnclosingType());
+        initializeSingle(field.getEnclosingType().load());
         return super.instanceFieldOf(instance, field);
     }
 
     @Override
     public Value load(Value pointer, ReadAccessMode accessMode) {
         if (pointer instanceof StaticFieldLiteral sfl) {
-            initializeStaticMember(sfl.getVariableElement().getEnclosingType());
+            initializeSingle(sfl.getVariableElement().getEnclosingType().load());
         }
         return super.load(pointer, accessMode);
     }
@@ -52,7 +56,7 @@ public class ClassInitializingBasicBlockBuilder extends DelegatingBasicBlockBuil
     @Override
     public Node store(Value pointer, Value value, WriteAccessMode accessMode) {
         if (pointer instanceof StaticFieldLiteral sfl) {
-            initializeStaticMember(sfl.getVariableElement().getEnclosingType());
+            initializeSingle(sfl.getVariableElement().getEnclosingType().load());
         }
         return super.store(pointer, value, accessMode);
     }
@@ -60,7 +64,7 @@ public class ClassInitializingBasicBlockBuilder extends DelegatingBasicBlockBuil
     @Override
     public Value readModifyWrite(Value pointer, ReadModifyWrite.Op op, Value update, ReadAccessMode readMode, WriteAccessMode writeMode) {
         if (pointer instanceof StaticFieldLiteral sfl) {
-            initializeStaticMember(sfl.getVariableElement().getEnclosingType());
+            initializeSingle(sfl.getVariableElement().getEnclosingType().load());
         }
         return super.readModifyWrite(pointer, op, update, readMode, writeMode);
     }
@@ -68,7 +72,7 @@ public class ClassInitializingBasicBlockBuilder extends DelegatingBasicBlockBuil
     @Override
     public Value cmpAndSwap(Value pointer, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         if (pointer instanceof StaticFieldLiteral sfl) {
-            initializeStaticMember(sfl.getVariableElement().getEnclosingType());
+            initializeSingle(sfl.getVariableElement().getEnclosingType().load());
         }
         return super.cmpAndSwap(pointer, expect, update, readMode, writeMode, strength);
     }
@@ -105,54 +109,24 @@ public class ClassInitializingBasicBlockBuilder extends DelegatingBasicBlockBuil
 
     @Override
     public Value new_(ClassObjectType type, Value typeId, Value size, Value align) {
-        initialize(type.getDefinition());
+        initializeSingle(type.getDefinition().load());
         return super.new_(type, typeId, size, align);
     }
 
     private Value initialize(final Value targetPtr) {
-        if (targetPtr instanceof ExecutableLiteral el) {
-            initialize(el.getExecutable().getEnclosingType());
+        if (targetPtr instanceof StaticMethodLiteral el) {
+            initializeSingle(el.getExecutable().getEnclosingType().load());
         }
         return targetPtr;
-    }
-
-    private void initializeStaticMember(DefinedTypeDefinition definition) {
-        if (definition.isInterface()) {
-            initializeSingle(definition.load());
-        } else {
-            initialize(definition);
-        }
-    }
-
-    private void initialize(DefinedTypeDefinition definition) {
-        LoadedTypeDefinition ltd = definition.load();
-        if (ltd.hasSuperClass()) {
-            LoadedTypeDefinition superClass = ltd.getSuperClass();
-            if (superClass != null) {
-                initialize(superClass);
-            }
-        }
-        maybeInitializeInterfaces(ltd);
-        initializeSingle(ltd);
     }
 
     private void initializeSingle(final LoadedTypeDefinition ltd) {
         InitializerElement initializer = ltd.getInitializer();
         if (initializer != null) {
-            ctxt.enqueue(initializer);
+            // ensure that constants are created
             initializer.tryCreateMethodBody();
-        }
-    }
-
-    private void maybeInitializeInterfaces(LoadedTypeDefinition ltd) {
-        int cnt = ltd.getInterfaceCount();
-        for (int i = 0; i < cnt; i ++) {
-            LoadedTypeDefinition interfaceLtd = ltd.getInterface(i);
-            if (interfaceLtd.declaresDefaultMethods()) {
-                initialize(interfaceLtd);
-            } else {
-                maybeInitializeInterfaces(interfaceLtd);
-            }
+            facts.discover(initializer, ExecutableReachabilityFacts.NEEDS_COMPILATION);
+            facts.discover(initializer, InitializerReachabilityFacts.NEEDS_INITIALIZATION);
         }
     }
 }

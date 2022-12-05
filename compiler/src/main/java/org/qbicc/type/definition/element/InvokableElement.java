@@ -8,6 +8,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
 
+import org.qbicc.facts.Facts;
+import org.qbicc.facts.core.ExecutableReachabilityFacts;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
@@ -150,6 +152,7 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
                 return false;
             }
         }
+        Facts.get(getEnclosingType().getContext().getCompilationContext()).discover(this, ExecutableReachabilityFacts.IS_COMPILED);
         return true;
     }
 
