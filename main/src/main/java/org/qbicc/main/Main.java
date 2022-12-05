@@ -153,8 +153,8 @@ import org.qbicc.plugin.patcher.Patcher;
 import org.qbicc.plugin.patcher.PatcherResolverBasicBlockBuilder;
 import org.qbicc.plugin.patcher.PatcherTypeResolver;
 import org.qbicc.plugin.reachability.ReachabilityAnnotationTypeBuilder;
-import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
 import org.qbicc.plugin.reachability.ReachabilityFactsSetup;
+import org.qbicc.plugin.reachability.ReachabilityElementHandler;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.plugin.reachability.ServiceLoaderAnalyzer;
@@ -497,6 +497,7 @@ public class Main implements Callable<DiagnosticContext> {
                     if (outputDot) {
                         builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig))));
                     }
+                    builder.addPreHook(Phase.ADD, ReachabilityElementHandler::register);
                     builder.addPreHook(Phase.ADD, new ElementReachableAdapter(CallSiteTable::computeMethodType));
                     builder.addPreHook(Phase.ADD, compilationContext -> {
                         Vm vm = compilationContext.getVm();
@@ -531,7 +532,6 @@ public class Main implements Callable<DiagnosticContext> {
                     builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, RuntimeChecksBasicBlockBuilder::new);
                     builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, LocalOptBasicBlockBuilder::new);
                     builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, DeferenceBasicBlockBuilder::new);
-                    builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                     builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
                     builder.addPostHook(Phase.ADD, ctxt -> {
                         Vm vm = ctxt.getVm();
@@ -570,6 +570,7 @@ public class Main implements Callable<DiagnosticContext> {
                     } else if (outputDot) {
                         builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ANALYZE, graphGenConfig))));
                     }
+                                builder.addPreHook(Phase.ANALYZE, ReachabilityElementHandler::register);
                     if (optGotos) {
                         builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
                     }
@@ -590,7 +591,6 @@ public class Main implements Callable<DiagnosticContext> {
                     if (optInlining) {
                         builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::createIfNeeded);
                     }
-                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                     builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
 
                     if (optEscapeAnalysis) {
