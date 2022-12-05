@@ -187,6 +187,11 @@ public class DispatchTables {
                 itableVector.add(m);
             }
         }
+        if (itableVector.isEmpty()) {
+            // no abstract methods of this reachable interface are actually dispatchable
+            tlog.debugf("No ITable for %s", cls.getDescriptor());
+            return;
+        }
 
         // Build the CompoundType for the ITable using the (arbitrary) order of selectors in itableVector
         MethodElement[] itable = itableVector.toArray(MethodElement.NO_METHODS);
