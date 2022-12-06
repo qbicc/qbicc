@@ -131,7 +131,7 @@ import org.qbicc.plugin.opt.FinalFieldLoadOptimizer;
 import org.qbicc.plugin.opt.GotoRemovingVisitor;
 import org.qbicc.plugin.opt.InliningBasicBlockBuilder;
 import org.qbicc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
-import org.qbicc.plugin.opt.SimpleOptBasicBlockBuilder;
+import org.qbicc.plugin.opt.LocalOptBasicBlockBuilder;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisDotGenerator;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisDotVisitor;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisInterMethodAnalysis;
@@ -480,7 +480,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     // builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
                                 }
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, RuntimeChecksBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, LocalOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, DeferenceBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
@@ -541,7 +541,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, ConstraintMaterializingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, LocalOptBasicBlockBuilder::new);
                                 if (optInlining) {
                                     builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::new);
                                 }
@@ -601,7 +601,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, SafePoints::createBasicBlockBuilder);
                                 // To avoid serializing Strings we won't need, MethodDataStringsSerializer should be the last "real" BBB
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, MethodDataStringsSerializer::new);
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.OPTIMIZE, LocalOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
                                 builder.addPostHook(Phase.LOWER, NativeXtorLoweringHook::process);

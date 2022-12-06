@@ -107,7 +107,7 @@ public final class TestSimpleOptBasicBlockBuilderBooleanLogic extends AbstractCo
     }
 
     private BasicBlockBuilder makeBlockBuilder() {
-        final BasicBlockBuilder bbb = new SimpleOptBasicBlockBuilder(BasicBlockBuilder.FactoryContext.EMPTY, BasicBlockBuilder.simpleBuilder(element));
+        final BasicBlockBuilder bbb = new LocalOptBasicBlockBuilder(BasicBlockBuilder.FactoryContext.EMPTY, BasicBlockBuilder.simpleBuilder(element));
         bbb.begin(new BlockLabel());
         return bbb;
     }
