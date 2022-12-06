@@ -3,6 +3,7 @@ package org.qbicc.plugin.correctness;
 import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -328,7 +329,7 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     @Override
     public BasicBlock invokeNoReturn(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        return super.invokeNoReturn(rhs(targetPtr), rhs(receiver), rhs(arguments), catchLabel, targetArguments);
+        return super.invokeNoReturn(rhs(targetPtr), rhs(receiver), rhs(arguments), catchLabel, rhs(targetArguments));
     }
 
     @Override
@@ -338,17 +339,17 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     @Override
     public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
-        return super.invoke(rhs(targetPtr), rhs(receiver), rhs(arguments), catchLabel, resumeLabel, targetArguments);
+        return super.invoke(rhs(targetPtr), rhs(receiver), rhs(arguments), catchLabel, resumeLabel, rhs(targetArguments));
     }
 
     @Override
     public BasicBlock goto_(BlockLabel resumeLabel, Map<Slot, Value> args) {
-        return super.goto_(resumeLabel, args);
+        return super.goto_(resumeLabel, rhs(args));
     }
 
     @Override
     public BasicBlock if_(Value condition, BlockLabel trueTarget, BlockLabel falseTarget, Map<Slot, Value> targetArguments) {
-        return super.if_(rhs(condition), trueTarget, falseTarget, targetArguments);
+        return super.if_(rhs(condition), trueTarget, falseTarget, rhs(targetArguments));
     }
 
     @Override
@@ -368,7 +369,7 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     @Override
     public BasicBlock switch_(Value value, int[] checkValues, BlockLabel[] targets, BlockLabel defaultTarget, Map<Slot, Value> targetArguments) {
-        return super.switch_(rhs(value), checkValues, targets, defaultTarget, targetArguments);
+        return super.switch_(rhs(value), checkValues, targets, defaultTarget, rhs(targetArguments));
     }
 
     @Override
@@ -563,7 +564,7 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     @Override
     public BasicBlock ret(Value address, Map<Slot, Value> targetArguments) {
-        return super.ret(rhs(address), targetArguments);
+        return super.ret(rhs(address), rhs(targetArguments));
     }
 
     @Override
@@ -592,6 +593,19 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
                     newVals.add(rhs(value));
                 }
                 return newVals;
+            }
+        }
+        return vals;
+    }
+
+    private Map<Slot, Value> rhs(final Map<Slot, Value> vals) {
+        for (Map.Entry<Slot, Value> entry : vals.entrySet()) {
+            if (entry.getValue() instanceof Dereference) {
+                Map<Slot, Value> newVals = new HashMap<>(vals);
+                for (Map.Entry<Slot, Value> innerEntry : newVals.entrySet()) {
+                    innerEntry.setValue(rhs(innerEntry.getValue()));
+                }
+                return Map.copyOf(newVals);
             }
         }
         return vals;
