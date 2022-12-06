@@ -53,6 +53,7 @@ import org.qbicc.driver.GraphGenConfig;
 import org.qbicc.driver.Phase;
 import org.qbicc.driver.plugin.DriverPlugin;
 import org.qbicc.plugin.correctness.ConstraintMaterializingBasicBlockBuilder;
+import org.qbicc.plugin.correctness.DeferenceBasicBlockBuilder;
 import org.qbicc.plugin.initializationcontrol.RuntimeResourceManager;
 import org.qbicc.plugin.llvm.LLVMConfiguration;
 import org.qbicc.plugin.llvm.ReferenceStrategy;
@@ -480,6 +481,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, RuntimeChecksBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, DeferenceBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
                                 builder.addPostHook(Phase.ADD, ctxt -> {
