@@ -345,12 +345,14 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 // unrolled
                 if (value instanceof Literal lit && lit.isZero()) {
                     for (long i = 0; i < ec; i ++) {
-                        IntegerLiteral idxLit = lf.literalOf(i);
+                        // temp: make sure that indexes compute equally; see https://github.com/qbicc/qbicc/issues/1103
+                        IntegerLiteral idxLit = lf.literalOf((int) i);
                         store(elementOf(pointer, idxLit), lf.zeroInitializerLiteralOfType(at.getElementType()));
                     }
                 } else {
                     for (long i = 0; i < ec; i ++) {
-                        IntegerLiteral idxLit = lf.literalOf(i);
+                        // temp: make sure that indexes compute equally; see https://github.com/qbicc/qbicc/issues/1103
+                        IntegerLiteral idxLit = lf.literalOf((int) i);
                         store(elementOf(pointer, idxLit), extractElement(value, idxLit));
                     }
                 }

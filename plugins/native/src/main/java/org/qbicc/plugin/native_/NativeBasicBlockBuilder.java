@@ -82,7 +82,10 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         DefinedTypeDefinition def = classContext.findDefinedType(desc.getPackageName() + "/" + desc.getClassName());
         if (def != null) {
             ValueType nativeType = NativeInfo.get(ctxt).getNativeType(def);
-            if (nativeType != null) {
+            if (nativeType instanceof VariadicType) {
+                // default behavior
+                return super.new_(desc);
+            } else if (nativeType != null) {
                 return getFirstBuilder().auto(getLiteralFactory().zeroInitializerLiteralOfType(nativeType));
             }
         }
