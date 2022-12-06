@@ -30,6 +30,7 @@ import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmReferenceArrayClass;
 import org.qbicc.interpreter.memory.ByteArrayMemory;
+import org.qbicc.machine.arch.Platform;
 import org.qbicc.object.Data;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
@@ -38,6 +39,8 @@ import org.qbicc.object.Linkage;
 import org.qbicc.object.ModuleSection;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ProgramObject;
+import org.qbicc.object.Section;
+import org.qbicc.object.Segment;
 import org.qbicc.plugin.constants.Constants;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
@@ -113,6 +116,10 @@ public class BuildtimeHeap {
      */
     private final ModuleSection objectSection;
     /**
+     * The section where references are stored, where they can be found easily by GC.
+     */
+    private final Section refSection;
+    /**
      * The global array of root java.lang.Class instances
      */
     private DataDeclaration rootClassesDecl;
@@ -132,9 +139,15 @@ public class BuildtimeHeap {
         this.layout = Layout.get(ctxt);
         this.coreClasses = CoreClasses.get(ctxt);
 
-        this.classSection = ctxt.getImplicitSection(ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$ClassSection").load());
-        this.stringSection = ctxt.getImplicitSection(ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$InternedStringSection").load());
-        this.objectSection = ctxt.getImplicitSection(ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$ObjectSection").load());
+        Platform p = ctxt.getPlatform();
+        refSection = ctxt.addSection(p.formatSectionName("data", "data", "refs"), 0, Segment.DATA, Section.Flag.DATA_ONLY);
+        Section classSection = ctxt.addSection(p.formatSectionName("data", "data", "classes"), 3, Segment.DATA, Section.Flag.DATA_ONLY);
+        // todo: class objects belong in their corresponding modules
+        this.classSection = ctxt.getOrAddProgramModule(ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$ClassSection").load()).inSection(classSection);
+        Section stringSection = ctxt.addSection(p.formatSectionName("data", "data", "strings"), 4, Segment.DATA, Section.Flag.DATA_ONLY);
+        this.stringSection = ctxt.getOrAddProgramModule(ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$InternedStringSection").load()).inSection(stringSection);
+        Section objectSection = ctxt.addSection(p.formatSectionName("data", "data", "objects"), 4, Segment.DATA, Section.Flag.DATA_ONLY);
+        this.objectSection = ctxt.getOrAddProgramModule(ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$ObjectSection").load()).inSection(objectSection);
     }
 
     public static BuildtimeHeap get(CompilationContext ctxt) {
@@ -275,8 +288,8 @@ public class BuildtimeHeap {
         builder.setSignature(TypeSignature.synthesize(classContext, fieldDesc));
         builder.setModifiers(field.getModifiers());
         builder.setEnclosingType(typeDef);
-        String sectionName = CompilationContext.IMPLICIT_SECTION_NAME;
-        builder.setSection(sectionName);
+        Section section = field.getType() instanceof ReferenceType ? refSection : ctxt.getImplicitSection();
+        builder.setSection(section);
         global = builder.build();
         GlobalVariableElement appearing = staticFields.putIfAbsent(field, global);
         if (appearing != null) {
@@ -288,7 +301,7 @@ public class BuildtimeHeap {
         }
         // we added it, so we must add the definition as well
         LiteralFactory lf = ctxt.getLiteralFactory();
-        ModuleSection section = ctxt.getOrAddProgramModule(typeDef).getOrAddSection(sectionName);
+        ModuleSection moduleSection = ctxt.getOrAddProgramModule(typeDef).inSection(section);
         Value initialValue;
         if (field.getRunTimeInitializer() != null) {
             initialValue = lf.zeroInitializerLiteralOfType(globalType);
@@ -327,9 +340,9 @@ public class BuildtimeHeap {
         if (initialValue instanceof ObjectLiteral ol) {
             BuildtimeHeap bth = BuildtimeHeap.get(ctxt);
             bth.serializeVmObject(ol.getValue(), false);
-            initialValue = bth.referToSerializedVmObject(ol.getValue(), ol.getType(), section.getProgramModule());
+            initialValue = bth.referToSerializedVmObject(ol.getValue(), ol.getType(), moduleSection.getProgramModule());
         }
-        final Data data = section.addData(field, globalName, initialValue);
+        final Data data = moduleSection.addData(field, globalName, initialValue);
         data.setLinkage(Linkage.EXTERNAL);
         data.setDsoLocal();
         return global;

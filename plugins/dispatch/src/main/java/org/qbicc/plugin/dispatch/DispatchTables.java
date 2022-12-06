@@ -212,6 +212,7 @@ public class DispatchTables {
         builder.setType(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getVoidType().getPointer().getPointer(), vtables.size()+20));  //TODO: communicate this +20 better
         builder.setEnclosingType(containingType);
         builder.setSignature(BaseTypeSignature.V);
+        builder.setSection(ctxt.getImplicitSection());
         vtablesGlobal = builder.build();
     }
 
@@ -228,6 +229,7 @@ public class DispatchTables {
         builder.setType(ts.getArrayType(ts.getArrayType(itableDictType, 0).getPointer(), vtables.size()+20));  //TODO: communicate this +20 better
         builder.setEnclosingType(containingType);
         builder.setSignature(BaseTypeSignature.V);
+        builder.setSection(ctxt.getImplicitSection());
         itablesGlobal = builder.build();
     }
 
@@ -238,6 +240,7 @@ public class DispatchTables {
         builder.setType(ts.getArrayType(initType.getPointer(), RuntimeInitManager.get(ctxt).maxAssignedId()+1));
         builder.setEnclosingType(containingType);
         builder.setSignature(BaseTypeSignature.V);
+        builder.setSection(ctxt.getImplicitSection());
         rtinitsGlobal = builder.build();
     }
 

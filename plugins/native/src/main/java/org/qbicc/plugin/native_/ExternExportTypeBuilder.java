@@ -158,7 +158,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                         ctxt.error(resolved, "Exported fields must be `static`");
                     }
                     // define it
-                    ModuleSection section = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+                    ModuleSection section = ctxt.getOrAddProgramModule(enclosing).inSection(ctxt.getImplicitSection());
                     ValueType fieldType = resolved.getType();
                     Data data = section.addData(resolved, name, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldType));
                     if (resolved.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {

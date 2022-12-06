@@ -407,6 +407,7 @@ public class SupersDisplayTables {
         builder.setType(typeIdsArrayType);
         builder.setEnclosingType(jlo);
         builder.setSignature(BaseTypeSignature.V);
+        builder.setSection(ctxt.getImplicitSection());
         typeIdArrayGlobal = builder.build();
         typeIdStructType = typeIdStruct;
     }
