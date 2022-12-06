@@ -814,6 +814,8 @@ final class MethodParser {
                         v1 = pop1();
                         if (v1 instanceof Dereference deref) {
                             gf.store(gf.elementOf(deref.getPointer(), v2), v3, SinglePlain);
+                        } else if (v1 instanceof Auto auto) {
+                            replaceAll(v1, gf.auto(gf.insertElement(auto.getInitializer(), v2, v3)));
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
@@ -831,6 +833,8 @@ final class MethodParser {
                         v1 = pop1();
                         if (v1 instanceof Dereference deref) {
                             gf.store(gf.elementOf(deref.getPointer(), v2), v3, SinglePlain);
+                        } else if (v1 instanceof Auto auto) {
+                            replaceAll(v1, gf.auto(gf.insertElement(auto.getInitializer(), v2, v3)));
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
@@ -848,6 +852,8 @@ final class MethodParser {
                         v1 = pop1();
                         if (v1 instanceof Dereference deref) {
                             gf.store(gf.elementOf(deref.getPointer(), v2), v3, SinglePlain);
+                        } else if (v1 instanceof Auto auto) {
+                            replaceAll(v1, gf.auto(gf.insertElement(auto.getInitializer(), v2, v3)));
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
@@ -865,6 +871,8 @@ final class MethodParser {
                         v1 = pop1();
                         if (v1 instanceof Dereference deref) {
                             gf.store(gf.elementOf(deref.getPointer(), v2), v3, SinglePlain);
+                        } else if (v1 instanceof Auto auto) {
+                            replaceAll(v1, gf.auto(gf.insertElement(auto.getInitializer(), v2, v3)));
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
@@ -883,6 +891,8 @@ final class MethodParser {
                         v1 = pop1();
                         if (v1 instanceof Dereference deref) {
                             gf.store(gf.elementOf(deref.getPointer(), v2), v3, SinglePlain);
+                        } else if (v1 instanceof Auto auto) {
+                            replaceAll(v1, gf.auto(gf.insertElement(auto.getInitializer(), v2, v3)));
                         } else if (v1.getType() instanceof ArrayType) {
                             replaceAll(v1, gf.insertElement(v1, v2, v3));
                         } else if (v1.getType() instanceof PointerType) {
