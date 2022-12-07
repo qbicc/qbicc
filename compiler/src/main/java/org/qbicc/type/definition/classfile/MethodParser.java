@@ -325,6 +325,10 @@ final class MethodParser {
         } else {
             LocalVariableElement lve = getLocalVariableElement(bci, index);
             if (lve != null) {
+                // make sure the value can be stored
+                if (lve.getType() instanceof WordType wt && ! wt.equals(value.getType())) {
+                    value = gf.bitCast(value, wt);
+                }
                 Map<LocalVariableElement, Value> sav = stackAllocatedValues;
                 if (sav != null) {
                     Value ptr = sav.get(lve);
@@ -367,8 +371,12 @@ final class MethodParser {
         } else {
             LocalVariableElement lve = getLocalVariableElement(bci, index);
             if (lve != null) {
-                Map<LocalVariableElement, Value> sav = stackAllocatedValues;
                 Value truncated = storeTruncate(value, lve.getTypeDescriptor());
+                // make sure the value can be stored
+                if (lve.getType() instanceof WordType wt && ! wt.equals(truncated.getType())) {
+                    truncated = gf.bitCast(truncated, wt);
+                }
+                Map<LocalVariableElement, Value> sav = stackAllocatedValues;
                 if (sav != null) {
                     Value ptr = sav.get(lve);
                     if (ptr != null) {
