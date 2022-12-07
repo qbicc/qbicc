@@ -630,6 +630,16 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return asDependency(new MonitorExit(callSite, element, line, bci, requireDependency(), Assert.checkNotNullParam("obj", obj)));
     }
 
+    @Override
+    public Value nullCheck(Value input) {
+        throw new IllegalStateException("nullCheck() not intercepted");
+    }
+
+    @Override
+    public Value divisorCheck(Value input) {
+        throw new IllegalStateException("divisorCheck() not intercepted");
+    }
+
     public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
         if (receiver.getType() instanceof VoidType && targetPtr.getPointeeType() instanceof InstanceMethodType) {
             getContext().error(getLocation(), "Call to instance method without receiver");

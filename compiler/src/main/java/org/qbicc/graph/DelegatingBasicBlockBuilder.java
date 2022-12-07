@@ -311,6 +311,14 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().monitorExit(obj);
     }
 
+    public Value nullCheck(Value input) {
+        return getDelegate().nullCheck(input);
+    }
+
+    public Value divisorCheck(Value input) {
+        return getDelegate().divisorCheck(input);
+    }
+
     public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
         return getDelegate().call(targetPtr, receiver, arguments);
     }

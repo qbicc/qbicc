@@ -526,6 +526,28 @@ public interface BasicBlockBuilder extends Locatable {
     // method invocation
 
     /**
+     * Null-check the input value.
+     *
+     * @apiNote This is a temporary measure until #1619 and #164 are resolved.
+     *  At that time, this method will become an alias for a {@code call}.
+     *
+     * @param input the input value (must not be {@code null})
+     * @return the {@code null}-checked value
+     */
+    Value nullCheck(Value input);
+
+    /**
+     * Zero-check the input value for division.
+     *
+     * @apiNote This is a temporary measure until #1619 and #164 are resolved.
+     *  At that time, this method will become an alias for a {@code call}.
+     *
+     * @param input the input value (must not be {@code null})
+     * @return the zero-checked value
+     */
+    Value divisorCheck(Value input);
+
+    /**
      * Call an invocation target with normal program-order dependency behavior.  The target either does not throw an exception or
      * the current block does not catch exceptions.
      * <p>
