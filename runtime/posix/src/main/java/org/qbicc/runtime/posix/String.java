@@ -14,6 +14,8 @@ public final class String {
     @name(value = "__xpg_strerror_r", when = Build.Target.IsGLibCLike.class)
     public static native c_int strerror_r(c_int errno, ptr<c_char> buf, size_t bufLen);
 
+    public static native size_t strnlen(const_char_ptr s, size_t maxlen);
+
     // GLIBC only
     @Deprecated
     public static native c_int __xpg_strerror_r(c_int errno, ptr<c_char> buf, size_t bufLen);
