@@ -48,12 +48,12 @@ import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 
 /**
- * A graph factory which performs simple optimizations opportunistically.
+ * A basic block builder which performs local optimizations opportunistically.
  */
-public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
+public class LocalOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public SimpleOptBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
+    public LocalOptBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = getContext();
     }
