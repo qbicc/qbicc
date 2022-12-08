@@ -11,4 +11,6 @@ public interface VmThrowable extends VmObject {
     VmThrowable getCause();
 
     StackTraceElement[] getStackTrace();
+
+    void prepareForSerialization();
 }

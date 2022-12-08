@@ -13,6 +13,7 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 
@@ -30,7 +31,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
         backTrace = original.backTrace;
     }
 
-    void initializeDepth() {
+    void captureBacktrace() {
         Frame currentFrame = ((VmThreadImpl) Vm.requireCurrentThread()).currentFrame;
         if (currentFrame == null) {
             // no stack :(
@@ -46,7 +47,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
     }
 
     void fillInStackTrace() {
-        // no operation
+        // no operation; done in captureBacktrace so the interpreter can create common exceptions without the overhead of interpreting their constructor chain
     }
 
     void initStackTraceElements(VmArrayImpl array) {
@@ -95,6 +96,23 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
     @Override
     public VmThrowableClassImpl getVmClass() {
         return (VmThrowableClassImpl) super.getVmClass();
+    }
+
+    public void prepareForSerialization() {
+        VmImpl vm = this.getVmClass().getVm();
+        LoadedTypeDefinition throwableClassDef = vm.throwableClass.getTypeDefinition();
+        Layout layout = Layout.get(throwableClassDef.getContext().getCompilationContext());
+        FieldElement stackTraceField = throwableClassDef.findField("stackTrace");
+        FieldElement unassignedStack = throwableClassDef.findField("UNASSIGNED_STACK");
+        int stOffset = layout.getInstanceLayoutInfo(throwableClassDef).getMember(stackTraceField).getOffset();
+        int usOffset = layout.getStaticLayoutInfo(throwableClassDef).getMember(unassignedStack).getOffset();
+        VmObject unassigned = vm.throwableClass.getStaticMemory().loadRef(usOffset, SinglePlain);
+        Memory memory = getMemory();
+        if (memory.loadRef(stOffset, SinglePlain) == unassigned) {
+            VmArrayImpl stackTrace = (VmArrayImpl) vm.newArrayOf(vm.stackTraceElementClass, backTrace.length);
+            initStackTraceElements(stackTrace);
+            memory.storeRef(stOffset, stackTrace, SinglePlain);
+        }
     }
 
     public String getMessage() {

@@ -21,7 +21,7 @@ class VmThrowableClassImpl extends VmClassImpl implements VmThrowableClass {
     @Override
     VmThrowableImpl newInstance() {
         VmThrowableImpl throwable = new VmThrowableImpl(this);
-        throwable.initializeDepth();
+        throwable.captureBacktrace();
         return throwable;
     }
 
@@ -30,7 +30,7 @@ class VmThrowableClassImpl extends VmClassImpl implements VmThrowableClass {
         VmThrowableImpl throwable = new VmThrowableImpl(this);
         VmImpl vm = getVm();
         vm.manuallyInitialize(throwable);
-        throwable.initializeDepth();
+        throwable.captureBacktrace();
         LoadedTypeDefinition typeDefinition = getTypeDefinition();
         ClassContext context = typeDefinition.getContext();
         ClassTypeDescriptor jls = ClassTypeDescriptor.synthesize(context, "java/lang/String");
@@ -47,7 +47,7 @@ class VmThrowableClassImpl extends VmClassImpl implements VmThrowableClass {
         VmThrowableImpl throwable = new VmThrowableImpl(this);
         VmImpl vm = getVm();
         vm.manuallyInitialize(throwable);
-        throwable.initializeDepth();
+        throwable.captureBacktrace();
         LoadedTypeDefinition typeDefinition = getTypeDefinition();
         ClassContext context = typeDefinition.getContext();
         ClassTypeDescriptor jlt = ClassTypeDescriptor.synthesize(context, "java/lang/Throwable");
@@ -64,7 +64,7 @@ class VmThrowableClassImpl extends VmClassImpl implements VmThrowableClass {
         VmThrowableImpl throwable = new VmThrowableImpl(this);
         VmImpl vm = getVm();
         vm.manuallyInitialize(throwable);
-        throwable.initializeDepth();
+        throwable.captureBacktrace();
         LoadedTypeDefinition typeDefinition = getTypeDefinition();
         ClassContext context = typeDefinition.getContext();
         ClassTypeDescriptor jls = ClassTypeDescriptor.synthesize(context, "java/lang/String");
