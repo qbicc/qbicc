@@ -15,6 +15,7 @@ import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmStaticFieldBaseObject;
 import org.qbicc.interpreter.VmString;
+import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.pointer.ConstructorPointer;
@@ -86,6 +87,10 @@ class BuildtimeHeapAnalyzer {
             if (cur instanceof VmStaticFieldBaseObject) {
                 // skip
                 continue;
+            }
+
+            if (cur instanceof VmThrowable t) {
+                t.prepareForSerialization();
             }
 
             PhysicalObjectType ot = cur.getObjectType();
