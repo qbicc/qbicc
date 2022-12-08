@@ -286,11 +286,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Value divide(final Value v1, final Value v2) {
-        return unique(new Div(callSite, element, line, bci, v1, v2));
+        return unique(new Div(callSite, element, line, bci, v1, v2, requireDependency()));
     }
 
     public Value remainder(final Value v1, final Value v2) {
-        return unique(new Mod(callSite, element, line, bci, v1, v2));
+        return unique(new Mod(callSite, element, line, bci, v1, v2, requireDependency()));
     }
 
     public Value min(final Value v1, final Value v2) {
