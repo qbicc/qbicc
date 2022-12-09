@@ -1668,7 +1668,6 @@ final class MethodParser {
                             // 1. allocate the array
                             int bootstrapArgCnt = getClassFile().getBootstrapMethodArgumentCount(bootstrapMethodIdx);
                             List<ParameterElement> targetParameters = targetMethod.getParameters();
-                            boolean vararg = targetParameters.size() == 4 && targetMethod.isVarargs() && !targetMethod.isSignaturePolymorphic();
                             TypeParameterContext tpc;
                             ExecutableElement rootElement = gf.getRootElement();
                             if (rootElement instanceof TypeParameterContext) {
@@ -1683,6 +1682,27 @@ final class MethodParser {
                                 int argIdx = getClassFile().getBootstrapMethodArgumentConstantIndex(bootstrapMethodIdx, i);
                                 if (argIdx != 0) {
                                     argsArray[i] = vm.box(ctxt, getClassFile().getConstantValue(argIdx, tpc));
+                                }
+                            }
+                            // 1.5 If the target method is a normal varargs method and the bootstrap args represent
+                            //     a mix of normal and trailing arguments, bundle the trailing arguments in an array
+                            //     See JVM Spec 5.4.3.6, task 2, step 2.
+                            if (bootstrapArgCnt > 0 && targetMethod.isVarargs() && !targetMethod.isSignaturePolymorphic()) {
+                                int normalStaticArgs = targetParameters.size() - 3 - 1;
+                                int trailingStaticArgs = bootstrapArgCnt - normalStaticArgs;
+                                if (trailingStaticArgs > 0 && trailingStaticArgs != bootstrapArgCnt) {
+                                    VmObject[] adjustedArgs = new VmObject[normalStaticArgs+1];
+                                    for (int i=0; i<normalStaticArgs; i++) {
+                                        adjustedArgs[i] = argsArray[i];
+                                    }
+                                    VmObject[] trailingArgs = new VmObject[trailingStaticArgs];
+                                    for (int i=normalStaticArgs; i<argsArray.length; i++) {
+                                        trailingArgs[i-normalStaticArgs] = argsArray[i];
+                                    }
+                                    TypeDescriptor elementDescriptor = ((ArrayTypeDescriptor) targetParameters.get(targetParameters.size()-1).getTypeDescriptor()).getElementTypeDescriptor();
+                                    ObjectType elemType = (ObjectType)ctxt.resolveTypeFromDescriptor(elementDescriptor, tpc, TypeSignature.synthesize(ctxt, elementDescriptor));
+                                    adjustedArgs[adjustedArgs.length-1] = vm.newArrayOf(elemType.getDefinition().load().getVmClass(), trailingArgs);
+                                    args = vm.newArrayOf(objectClass, adjustedArgs);
                                 }
                             }
                             VmReferenceArray appendixResult = vm.newArrayOf(objectClass, 1);
