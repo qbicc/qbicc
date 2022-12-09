@@ -81,6 +81,7 @@ final class MethodParser {
     final Value[] stack;
     final Value[] locals;
     final BlockLabel[] blockHandles;
+    final boolean[] created;
     final ByteBuffer buffer;
     private final BasicBlockBuilder gf;
     private final ClassContext ctxt;
@@ -109,6 +110,7 @@ final class MethodParser {
             blockHandles[i] = new BlockLabel();
         }
         this.blockHandles = blockHandles;
+        created = new boolean[blockHandles.length];
         // it's not an entry point
         jlo = ctxt.findDefinedType("java/lang/Object");
         List<ParameterElement> parameters;
@@ -464,7 +466,7 @@ final class MethodParser {
 
     BlockLabel getOrCreateBlockForIndex(int target) {
         BlockLabel block = getBlockForIndex(target);
-        if (! block.hasTarget()) {
+        if (setCreated(target)) {
             gf.begin(block, this, (mp, gf) -> {
                 mp.buffer.position(target);
                 gf.setBytecodeIndex(target);
@@ -488,9 +490,22 @@ final class MethodParser {
         return idx >= 0 ? blockHandles[idx] : null;
     }
 
-    void replaceAll(Value from, Value to) {
+    boolean setCreated(int target) {
+        int idx = info.getEntryPointIndex(target);
+        if (idx >= 0) {
+            if (created[idx]) {
+                return false;
+            } else {
+                created[idx] = true;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    Value replaceAll(Value from, Value to) {
         if (from == to) {
-            return;
+            return to;
         }
         for (int i = 0; i < sp; i ++) {
             if (stack[i] == from) {
@@ -502,6 +517,7 @@ final class MethodParser {
                 locals[i] = to;
             }
         }
+        return to;
     }
 
     public Map<Slot, Value> captureOutbound() {
@@ -735,6 +751,7 @@ final class MethodParser {
                         } else if (v1.getType() instanceof PointerType) {
                             v1 = gf.load(gf.offsetPointer(v1, v2), SingleUnshared);
                         } else {
+                            v1 = replaceAll(v1, gf.nullCheck(v1));
                             v1 = gf.load(gf.elementOf(gf.decodeReference(v1), v2));
                         }
                         push1(v1);
@@ -751,6 +768,7 @@ final class MethodParser {
                         } else if (v1.getType() instanceof PointerType) {
                             v1 = gf.load(gf.offsetPointer(v1, v2), SingleUnshared);
                         } else {
+                            v1 = replaceAll(v1, gf.nullCheck(v1));
                             v1 = gf.load(gf.elementOf(gf.decodeReference(v1), v2));
                         }
                         push2(v1);
@@ -770,6 +788,7 @@ final class MethodParser {
                         } else if (v1.getType() instanceof PointerType) {
                             v1 = promote(gf.load(gf.offsetPointer(v1, v2), SingleUnshared));
                         } else {
+                            v1 = replaceAll(v1, gf.nullCheck(v1));
                             v1 = promote(gf.load(gf.elementOf(gf.decodeReference(v1), v2)));
                         }
                         push1(v1);
@@ -829,10 +848,8 @@ final class MethodParser {
                         } else if (v1.getType() instanceof PointerType) {
                             gf.store(gf.offsetPointer(v1, v2), v3, SingleUnshared);
                         } else {
+                            v1 = replaceAll(v1, gf.nullCheck(v1));
                             gf.store(gf.elementOf(gf.decodeReference(v1), v2), v3);
-                            if (v1.getType() instanceof ReferenceType) {
-                                replaceAll(v1, gf.notNull(v1));
-                            }
                         }
                         break;
                     case OP_BASTORE:
@@ -848,10 +865,8 @@ final class MethodParser {
                         } else if (v1.getType() instanceof PointerType) {
                             gf.store(gf.offsetPointer(v1, v2), v3, SingleUnshared);
                         } else {
+                            v1 = replaceAll(v1, gf.nullCheck(v1));
                             gf.store(gf.elementOf(gf.decodeReference(v1), v2), v3);
-                            if (v1.getType() instanceof ReferenceType) {
-                                replaceAll(v1, gf.notNull(v1));
-                            }
                         }
                         break;
                     case OP_SASTORE:
@@ -867,10 +882,8 @@ final class MethodParser {
                         } else if (v1.getType() instanceof PointerType) {
                             gf.store(gf.offsetPointer(v1, v2), v3, SingleUnshared);
                         } else {
+                            v1 = replaceAll(v1, gf.nullCheck(v1));
                             gf.store(gf.elementOf(gf.decodeReference(v1), v2), v3);
-                            if (v1.getType() instanceof ReferenceType) {
-                                replaceAll(v1, gf.notNull(v1));
-                            }
                         }
                         break;
                     case OP_CASTORE:
@@ -886,10 +899,8 @@ final class MethodParser {
                         } else if (v1.getType() instanceof PointerType) {
                             gf.store(gf.offsetPointer(v1, v2), v3, SingleUnshared);
                         } else {
+                            v1 = replaceAll(v1, gf.nullCheck(v1));
                             gf.store(gf.elementOf(gf.decodeReference(v1), v2), v3);
-                            if (v1.getType() instanceof ReferenceType) {
-                                replaceAll(v1, gf.notNull(v1));
-                            }
                         }
                         break;
                     case OP_LASTORE:
@@ -906,10 +917,8 @@ final class MethodParser {
                         } else if (v1.getType() instanceof PointerType) {
                             gf.store(gf.offsetPointer(v1, v2), v3, SingleUnshared);
                         } else {
+                            v1 = replaceAll(v1, gf.nullCheck(v1));
                             gf.store(gf.elementOf(gf.decodeReference(v1), v2), v3);
-                            if (v1.getType() instanceof ReferenceType) {
-                                replaceAll(v1, gf.notNull(v1));
-                            }
                         }
                         break;
                     case OP_POP:
@@ -1059,25 +1068,25 @@ final class MethodParser {
                     case OP_FDIV:
                         v2 = pop1();
                         v1 = pop1();
-                        push1(gf.divide(v1, v2));
+                        push1(gf.divide(v1, replaceAll(v2, gf.divisorCheck(v2))));
                         break;
                     case OP_LDIV:
                     case OP_DDIV:
                         v2 = pop2();
                         v1 = pop2();
-                        push2(gf.divide(v1, v2));
+                        push2(gf.divide(v1, replaceAll(v2, gf.divisorCheck(v2))));
                         break;
                     case OP_IREM:
                     case OP_FREM:
                         v2 = pop1();
                         v1 = pop1();
-                        push1(gf.remainder(v1, v2));
+                        push1(gf.remainder(v1, replaceAll(v2, gf.divisorCheck(v2))));
                         break;
                     case OP_LREM:
                     case OP_DREM:
                         v2 = pop2();
                         v1 = pop2();
-                        push2(gf.remainder(v1, v2));
+                        push2(gf.remainder(v1, replaceAll(v2, gf.divisorCheck(v2))));
                         break;
                     case OP_INEG:
                     case OP_FNEG:
@@ -1512,12 +1521,10 @@ final class MethodParser {
                             final CompoundType.Member member = ct.getMember(name);
                             push(promote(gf.extractMember(v1, member)), desc.isClass2());
                         } else {
+                            v1 = replaceAll(v1, gf.nullCheck(v1));
                             Value handle = gf.instanceFieldOf(gf.decodeReference(v1), owner, name, desc);
                             Value value = promote(gf.load(handle, handle.getDetectedMode().getReadAccess()), desc);
                             push(value, desc.isClass2());
-                            if (v1.getType() instanceof ReferenceType) {
-                                replaceAll(v1, gf.notNull(v1));
-                            }
                         }
                         break;
                     }
@@ -1544,11 +1551,9 @@ final class MethodParser {
                             final CompoundType.Member member = ct.getMember(name);
                             replaceAll(v1, gf.insertMember(v1, member, storeTruncate(v2, desc)));
                         } else {
+                            v1 = replaceAll(v1, gf.nullCheck(v1));
                             Value handle = gf.instanceFieldOf(gf.decodeReference(v1), owner, name, desc);
                             gf.store(handle, storeTruncate(v2, desc), handle.getDetectedMode().getWriteAccess());
-                            if (v1.getType() instanceof ReferenceType) {
-                                replaceAll(v1, gf.notNull(v1));
-                            }
                         }
                         break;
                     }
@@ -1586,6 +1591,7 @@ final class MethodParser {
                         if (opcode != OP_INVOKESTATIC) {
                             // pop the receiver
                             v1 = pop1();
+                            v1 = replaceAll(v1, gf.nullCheck(v1));
                         } else {
                             // definite initialization
                             v1 = gf.emptyVoid();
@@ -1766,13 +1772,16 @@ final class MethodParser {
                     }
                     case OP_ARRAYLENGTH:
                         v1 = pop1();
+                        v1 = replaceAll(v1, gf.nullCheck(v1));
                         push1(gf.loadLength(gf.decodeReference(v1)));
                         if (v1.getType() instanceof ReferenceType) {
                             replaceAll(v1, gf.notNull(v1));
                         }
                         break;
                     case OP_ATHROW:
-                        gf.throw_(pop1());
+                        v1 = pop1();
+                        v1 = replaceAll(v1, gf.nullCheck(v1));
+                        gf.throw_(v1);
                         // terminate
                         return;
                     case OP_CHECKCAST: {
@@ -1791,6 +1800,7 @@ final class MethodParser {
                     }
                     case OP_MONITORENTER:
                         v1 = pop1();
+                        v1 = replaceAll(v1, gf.nullCheck(v1));
                         gf.monitorEnter(v1);
                         if (v1.getType() instanceof ReferenceType) {
                             replaceAll(v1, gf.notNull(v1));
@@ -1798,6 +1808,7 @@ final class MethodParser {
                         break;
                     case OP_MONITOREXIT:
                         v1 = pop1();
+                        v1 = replaceAll(v1, gf.nullCheck(v1));
                         gf.monitorExit(v1);
                         if (v1.getType() instanceof ReferenceType) {
                             replaceAll(v1, gf.notNull(v1));

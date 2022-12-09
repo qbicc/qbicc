@@ -151,18 +151,6 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public Node monitorEnter(Value obj) {
-        nullCheck(obj);
-        return super.monitorEnter(obj);
-    }
-
-    @Override
-    public Node monitorExit(Value obj) {
-        nullCheck(obj);
-        return super.monitorExit(obj);
-    }
-
-    @Override
     public Value newArray(final PrimitiveArrayObjectType arrayType, final Value size) {
         arraySizeCheck(size);
         return super.newArray(arrayType, size);
@@ -180,7 +168,6 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             ctxt.error(getLocation(), "Throw in no-throw element");
             return unreachable();
         }
-        nullCheck(value);
         return super.throw_(value);
     }
 
@@ -195,39 +182,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public Value divide(Value v1, Value v2) {
-        if (isNoThrow()) {
-            if (v2.isDefEq(getLiteralFactory().zeroInitializerLiteralOfType(v2.getType()))) {
-                ctxt.error(getLocation(), "Division by zero in no-throw element");
-                throw new BlockEarlyTermination(unreachable());
-            } else {
-                return super.divide(v1, v2);
-            }
-        }
-        ValueType v1Type = v1.getType();
-        ValueType v2Type = v2.getType();
-        if (v1Type instanceof IntegerType && v2Type instanceof IntegerType) {
-            LiteralFactory lf = ctxt.getLiteralFactory();
-            final IntegerLiteral zero = lf.literalOf((IntegerType) v2.getType(), 0);
-            final BlockLabel throwIt = new BlockLabel();
-            final BlockLabel goAhead = new BlockLabel();
-
-            if_(isEq(v2, zero), throwIt, goAhead, Map.of());
-            try {
-                begin(throwIt);
-                MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseArithmeticException");
-                callNoReturn(getLiteralFactory().literalOf(helper), List.of());
-            } catch (BlockEarlyTermination ignored) {
-                // continue
-            }
-            begin(goAhead);
-        }
-        return super.divide(v1, v2);
-    }
-
-    @Override
     public Value instanceFieldOf(Value instancePointer, InstanceFieldElement field) {
-        nullCheck(instancePointer);
         return super.instanceFieldOf(instancePointer, field);
     }
 
@@ -237,9 +192,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     private Value checkPointerValue(Value pointerValue, final Value storedValue) {
-        if (pointerValue instanceof DecodeReference dr) {
-            nullCheck(dr.getInput());
-        } else if (pointerValue instanceof ElementOf eo &&
+        if (pointerValue instanceof ElementOf eo &&
             eo.getArrayPointer() instanceof DecodeReference dr &&
             dr.getPointeeType() instanceof ArrayObjectType arrayType) {
             indexOutOfBoundsCheck(dr, eo.getIndex());
@@ -276,23 +229,45 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         return getCurrentElement().hasAllModifiersOf(ClassFile.I_ACC_NO_THROW);
     }
 
-    private void nullCheck(Value value) {
-        if (! (value.getType() instanceof ReferenceType) || ! value.isNullable() || isNoThrow()) {
-            return;
+    @Override
+    public Value nullCheck(Value value) {
+        if (! isNoThrow() && value.isNullable() && value.getType() instanceof ReferenceType rt) {
+            final BlockLabel throwIt = new BlockLabel();
+            final BlockLabel goAhead = new BlockLabel();
+            final LiteralFactory lf = ctxt.getLiteralFactory();
+            final BasicBlockBuilder fb = getFirstBuilder();
+            fb.begin(throwIt, bbb -> {
+                MethodElement helper = RuntimeMethodFinder.get(getContext()).getMethod("raiseNullPointerException");
+                bbb.callNoReturn(getLiteralFactory().literalOf(helper), List.of());
+            });
+            if_(isEq(value, lf.nullLiteralOfType(rt)), throwIt, goAhead, Map.of(Slot.result(), value));
+            begin(goAhead);
+            return notNull(addParam(goAhead, Slot.result(), rt, false));
         }
+        return value;
+    }
 
-        final BlockLabel throwIt = new BlockLabel();
-        final BlockLabel goAhead = new BlockLabel();
-        final LiteralFactory lf = ctxt.getLiteralFactory();
-        if_(isEq(value, lf.zeroInitializerLiteralOfType(value.getType())), throwIt, goAhead, Map.of());
-        try {
-            begin(throwIt);
-            MethodElement helper = RuntimeMethodFinder.get(ctxt).getMethod("raiseNullPointerException");
-            callNoReturn(getLiteralFactory().literalOf(helper), List.of());
-        } catch (BlockEarlyTermination ignored) {
-            //continue
+    @Override
+    public Value divisorCheck(Value input) {
+        if (input instanceof IntegerLiteral il && il.isNonZero()) {
+            return il;
         }
-        begin(goAhead);
+        if (! isNoThrow() && input.getType() instanceof IntegerType it) {
+            final LiteralFactory lf = getLiteralFactory();
+            final IntegerLiteral zero = lf.literalOf(it, 0);
+            final BlockLabel throwIt = new BlockLabel();
+            final BasicBlockBuilder fb = getFirstBuilder();
+            fb.begin(throwIt, bbb -> {
+                MethodElement helper = RuntimeMethodFinder.get(getContext()).getMethod("raiseArithmeticException");
+                bbb.callNoReturn(getLiteralFactory().literalOf(helper), List.of());
+            });
+            final BlockLabel goAhead = new BlockLabel();
+            if_(isEq(input, zero), throwIt, goAhead, Map.of(Slot.result(), input));
+            begin(goAhead);
+            // todo: constrain output
+            return addParam(goAhead, Slot.result(), it);
+        }
+        return input;
     }
 
     private void arraySizeCheck(Value size) {
