@@ -65,6 +65,12 @@ public class QbiccCompileMojo extends AbstractMojo {
     @Parameter(defaultValue = "true")
     private boolean optPhis;
 
+    @Parameter(defaultValue = "false", property = "qbicc.emit-asm")
+    private boolean emitAsm;
+
+    @Parameter(defaultValue = "false", property = "qbicc.emit-llvm-ir")
+    private boolean emitLlvmIr;
+
     @Parameter(defaultValue = "false", property = "skipNative")
     private boolean skip;
 
@@ -143,6 +149,8 @@ public class QbiccCompileMojo extends AbstractMojo {
             .setStatepointEnabled(true)
             .setReferenceStrategy(ReferenceStrategy.POINTER_AS1)
             .setPie(true)
+            .setEmitIr(emitLlvmIr)
+            .setEmitAssembly(emitAsm)
         );
         final Map<Diagnostic.Level, List<Diagnostic>> map = new EnumMap<>(Diagnostic.Level.class);
         builder.setDiagnosticsHandler(new Consumer<Iterable<Diagnostic>>() {
