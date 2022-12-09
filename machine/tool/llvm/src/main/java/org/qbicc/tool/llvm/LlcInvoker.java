@@ -21,4 +21,6 @@ public interface LlcInvoker extends LlvmInvoker {
     RelocationModel getRelocationModel();
 
     void setOptions(final List<String> cmd);
+
+    void setOpaquePointers(boolean opaquePointers);
 }
