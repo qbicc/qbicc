@@ -71,6 +71,7 @@ public final class CoreIntrinsics {
     public static final Logger log = Logger.getLogger("org.qbicc.plugin.intrinsics");
 
     public static void register(CompilationContext ctxt) {
+        BuildIntrinsics.register(ctxt);
         CNativeIntrinsics.register(ctxt);
         registerJavaLangClassIntrinsics(ctxt);
         registerJavaLangStringUTF16Intrinsics(ctxt);

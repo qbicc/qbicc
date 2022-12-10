@@ -17,14 +17,27 @@ public final class Build {
      *
      * @return {@code true} if the caller is calling from the build host, {@code false} otherwise
      */
-    public static native boolean isHost();
+    public static boolean isHost() {
+        return false;
+    }
 
     /**
      * Determine if the calling method is operating in the context of the build target.
      *
      * @return {@code true} if the caller is calling from the build target, {@code false} otherwise
      */
-    public static native boolean isTarget();
+    public static boolean isTarget() {
+        return false;
+    }
+
+    /**
+     * Determine if the calling method is operating in the context of a regular JVM program.
+     *
+     * @return {@code true} if the caller is calling from a regular JVM, {@code false} otherwise
+     */
+    public static boolean isJvm() {
+        return true;
+    }
 
     public static final class IsHost implements BooleanSupplier {
         public boolean getAsBoolean() {
@@ -128,78 +141,23 @@ public final class Build {
 
         // OS
 
-        @Fold
-        public static boolean isUnix() {
-            return defined(__unix__) || isMacOs();
-        }
-
-        @Fold
-        public static boolean isLinux() {
-            return defined(linux);
-        }
-
-        @Fold
-        public static boolean isWindows() {
-            return defined(_WIN32) || defined(WIN32);
-        }
-
-        @Fold
-        public static boolean isApple() {
-            return defined(__APPLE__) && __APPLE__.booleanValue();
-        }
-
-        @Fold
-        public static boolean isMacOs() {
-            return isApple() && defined(TARGET_OS_MAC) && TARGET_OS_MAC.booleanValue();
-        }
-
-        @Fold
-        public static boolean isIOS() {
-            return isApple() && defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE.booleanValue();
-        }
-
-        @Fold
-        public static boolean isAix() {
-            return defined(_AIX);
-        }
-
-        @Fold
-        public static boolean isPosix() {
-            return isUnix() && defined(_POSIX_VERSION);
-        }
+        public static native boolean isUnix();
+        public static native boolean isLinux();
+        public static native boolean isWindows();
+        public static native boolean isApple();
+        public static native boolean isMacOs();
+        public static native boolean isIOS();
+        public static native boolean isAix();
+        public static native boolean isPosix();
 
         // CPU
 
-        @Fold
-        public static boolean isAmd64() {
-            return defined(__GNUC__) && defined(__x86_64__) || defined(MSVC) && defined(_M_AMD64);
-        }
-
-        @Fold
-        public static boolean isI386() {
-            return defined(__GNUC__) && defined(__i386__) || defined(MSVC) && defined(_M_X86);
-        }
-
-        @Fold
-        public static boolean isArm() {
-            return defined(__GNUC__) && defined(__arm__) || defined(MSVC) && defined(_M_ARM);
-        }
-
-        @Fold
-        public static boolean isAarch64() {
-            return defined(__GNUC__) && defined(__aarch64__);
-        }
-
-        @Fold
-        public static boolean isWasm() {
-            return defined(__wasm__);
-        }
-
-        @Fold
-        public static boolean isWasi() {
-            return defined(__wasi__) || defined(__EMSCRIPTEN__);
-        }
-
+        public static native boolean isAmd64();
+        public static native boolean isI386();
+        public static native boolean isArm();
+        public static native boolean isAarch64();
+        public static native boolean isWasm();
+        public static native boolean isWasi();
 
         // Toolchain
 
@@ -237,15 +195,8 @@ public final class Build {
 
         // object environment
 
-        @Fold
-        public static boolean isElf() {
-            return defined(__ELF__);
-        }
-
-        @Fold
-        public static boolean isMachO() {
-            return defined(__MACH__);
-        }
+        public static native boolean isElf();
+        public static native boolean isMachO();
 
         // backend type
 
@@ -254,38 +205,13 @@ public final class Build {
             return false;
         }
 
-        private static final object __MACH__ = constant();
-        private static final object __ELF__ = constant();
-        private static final object __unix__ = constant();
-        @include(value = "<unistd.h>", when = IsUnix.class)
-        private static final c_long _POSIX_VERSION = constant();
-        @include(value = "<TargetConditionals.h>", when = IsApple.class)
-        private static final c_int TARGET_OS_IPHONE = constant();
-        @include(value = "<TargetConditionals.h>", when = IsApple.class)
-        private static final c_int TARGET_OS_MAC = constant();
-        private static final c_int __APPLE__ = constant();
-        private static final object _WIN32 = constant();
-        private static final object WIN32 = constant();
         private static final object __GNUC__ = constant();
-        private static final object __i386__ = constant();
-        private static final object MSVC = constant();
-        private static final object __x86_64__ = constant();
-        private static final object _M_AMD64 = constant();
-        private static final object _M_X86 = constant();
-        private static final object linux = constant();
-        private static final object __arm__ = constant();
-        private static final object __aarch64__ = constant();
-        private static final object __wasm__ = constant();
-        private static final object __wasi__ = constant();
-        private static final object __EMSCRIPTEN__ = constant();
-        private static final object _M_ARM = constant();
         @include("<features.h>")
         private static final c_int __GNU_LIBRARY__ = constant();
         @include("<features.h>")
         private static final object __UCLIBC__ = constant();
         @include("<features.h>")
         private static final object __MUSL__ = constant();
-        private static final object _AIX = constant();
 
         public static final class IsPosix implements BooleanSupplier {
             public boolean getAsBoolean() {
