@@ -35,9 +35,12 @@ public class SysSysctl {
     public static final c_int HW_NCPU = constant();
 
     public static final c_int KERN_ARGMAX = constant();
+    public static final c_int KERN_IPC = constant();
     public static final c_int KERN_PROC = constant();
     public static final c_int KERN_PROC_PID = constant();
     public static final c_int KERN_PROCARGS2 = constant();
+
+    public static final c_int KIPC_MAXSOCKBUF = constant();
 }
 
 

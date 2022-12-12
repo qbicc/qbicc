@@ -82,4 +82,7 @@ public final class NetinetIn {
     public static final c_int IP_MULTICAST_IF = constant();
     public static final c_int IP_MULTICAST_TTL = constant();
     public static final c_int IP_MULTICAST_LOOP = constant();
+
+    public static final c_int IPTOS_TOS_MASK = constant();
+    public static final c_int IPTOS_PREC_MASK = constant();
 }
