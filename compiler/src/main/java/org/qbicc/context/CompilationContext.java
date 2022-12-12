@@ -176,23 +176,4 @@ public interface CompilationContext extends DiagnosticContext {
      */
     BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> getCopier();
 
-    /**
-     * Get the section with the given name, if it exists.
-     *
-     * @param name the section name (must not be {@code null})
-     * @return the section, or {@code null} if the section does not exist
-     */
-    Section getSection(String name);
-
-    /**
-     * Add a section to the program.
-     *
-     * @param name the section name (must not be {@code null})
-     * @param index the section index, used for ordering purposes
-     * @param segment the segment into which the section should be loaded
-     * @param attributes the section attributes (must not be {@code null}, may be empty)
-     * @return the new section (not {@code null})
-     * @throws IllegalArgumentException if a section with the given name already exists with a different index or segment
-     */
-    Section addSection(String name, int index, Segment segment, Section.Attribute... attributes);
 }

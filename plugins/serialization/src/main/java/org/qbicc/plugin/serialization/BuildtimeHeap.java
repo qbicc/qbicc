@@ -140,13 +140,13 @@ public class BuildtimeHeap {
         this.coreClasses = CoreClasses.get(ctxt);
 
         Platform p = ctxt.getPlatform();
-        refSection = ctxt.addSection(p.formatSectionName("data", "data", "refs"), 0, Segment.DATA, Section.Flag.DATA_ONLY);
-        Section classSection = ctxt.addSection(p.formatSectionName("data", "data", "classes"), 3, Segment.DATA, Section.Flag.DATA_ONLY);
+        refSection = Section.defineSection(ctxt, 0, "refs", Segment.DATA, Section.Flag.DATA_ONLY);
+        Section classSection = Section.defineSection(ctxt, 3, "classes", Segment.DATA, Section.Flag.DATA_ONLY);
         // todo: class objects belong in their corresponding modules
         this.classSection = ctxt.getOrAddProgramModule(ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$ClassSection").load()).inSection(classSection);
-        Section stringSection = ctxt.addSection(p.formatSectionName("data", "data", "strings"), 4, Segment.DATA, Section.Flag.DATA_ONLY);
+        Section stringSection = Section.defineSection(ctxt, 4, "strings", Segment.DATA, Section.Flag.DATA_ONLY);
         this.stringSection = ctxt.getOrAddProgramModule(ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$InternedStringSection").load()).inSection(stringSection);
-        Section objectSection = ctxt.addSection(p.formatSectionName("data", "data", "objects"), 4, Segment.DATA, Section.Flag.DATA_ONLY);
+        Section objectSection = Section.defineSection(ctxt, 4, "objects", Segment.DATA, Section.Flag.DATA_ONLY);
         this.objectSection = ctxt.getOrAddProgramModule(ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$ObjectSection").load()).inSection(objectSection);
     }
 

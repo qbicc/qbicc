@@ -89,7 +89,7 @@ final class CompilationContextImpl implements CompilationContext {
     private final Vm vm;
     private final NativeMethodConfigurator nativeMethodConfigurator;
     private final Consumer<ClassContext> classContextListener;
-    private final Section implicitSection = addSection(IMPLICIT_SECTION_NAME, 0, Segment.DATA);
+    private final Section implicitSection = Section.defineSection(this, 0, IMPLICIT_SECTION_NAME, Segment.DATA);
     private final Scheduler scheduler;
 
     CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory,
@@ -435,20 +435,6 @@ final class CompilationContextImpl implements CompilationContext {
                 }
             }
         }
-    }
-
-    @Override
-    public Section getSection(String name) {
-        return sections.get(name);
-    }
-
-    @Override
-    public Section addSection(String name, int index, Segment segment, Section.Attribute... attributes) {
-        Section section = new Section(index, name, segment, attributes);
-        if (sections.putIfAbsent(name, section) != null) {
-            throw new IllegalArgumentException("Section " + name + " already defined");
-        }
-        return section;
     }
 
     public ModuleSection getImplicitSection(ExecutableElement element) {
