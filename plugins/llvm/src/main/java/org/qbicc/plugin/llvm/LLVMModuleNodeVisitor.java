@@ -25,7 +25,9 @@ import org.qbicc.graph.literal.GlobalVariableLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralVisitor;
+import org.qbicc.graph.literal.MemberOfLiteral;
 import org.qbicc.graph.literal.NullLiteral;
+import org.qbicc.graph.literal.OffsetFromLiteral;
 import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
@@ -316,8 +318,9 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Poin
     }
 
     public LLValue visit(final Void param, final ElementOfLiteral node) {
-        PointerType pointerType = (PointerType) node.getType();
-        return Values.gepConstant(map(pointerType.getPointeeType()), map(pointerType), map(node.getValue()), map(node.getIndex().getType()), map(node.getIndex()));
+        final Literal innermost = innermostGepValue(node);
+        final PointerType ptrType = innermost.getType(PointerType.class);
+        return Values.gepConstant(map(ptrType.getPointeeType()), map(ptrType), map(innermost), buildGepLiteralArgs(node, 0));
     }
 
     public LLValue visit(final Void param, final FloatLiteral node) {
@@ -340,8 +343,20 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Poin
         return Values.intConstant(node.longValue());
     }
 
+    public LLValue visit(final Void unused, final MemberOfLiteral node) {
+        final Literal innermost = innermostGepValue(node);
+        final PointerType ptrType = innermost.getType(PointerType.class);
+        return Values.gepConstant(map(ptrType.getPointeeType()), map(ptrType), map(innermost), buildGepLiteralArgs(node, 0));
+    }
+
     public LLValue visit(final Void param, final NullLiteral node) {
         return NULL;
+    }
+
+    public LLValue visit(final Void unused, final OffsetFromLiteral node) {
+        final Literal innermost = innermostGepValue(node);
+        final PointerType ptrType = innermost.getType(PointerType.class);
+        return Values.gepConstant(map(ptrType.getPointeeType()), map(ptrType), map(innermost), buildGepLiteralArgs(node, 0));
     }
 
     public LLValue visit(final Void param, final PointerLiteral node) {
@@ -388,6 +403,49 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Poin
     public LLValue visitAny(Void unused, Literal literal) {
         ctxt.error(Location.builder().setNode(literal).build(), "llvm: Unrecognized literal type %s", literal.getClass());
         return LLVM.FALSE;
+    }
+
+    private LLValue[] buildGepLiteralArgs(Literal lit, int index) {
+        if (lit instanceof ElementOfLiteral eol) {
+            LLValue[] array = buildGepLiteralArgs(eol.getArrayPointer(), index + 2);
+            final int length = array.length;
+            array[length - index - 2] = map(eol.getIndex().getType());
+            array[length - index - 1] = map(eol.getIndex());
+            return array;
+        } else if (lit instanceof MemberOfLiteral mol) {
+            LLValue[] array = buildGepLiteralArgs(mol.getStructurePointer(), index + 2);
+            final int length = array.length;
+            array[length - index - 2] = i32;
+            array[length - index - 1] = map(mol.getPointeeType(CompoundType.class), mol.getMember());
+            return array;
+        } else if (lit instanceof OffsetFromLiteral ofl) {
+            // offset-from always terminates a GEP
+            LLValue[] array = new LLValue[index + 2];
+            // array length == index + 2; length - index = 2
+            array[0] = map(ofl.getOffset().getType());
+            array[1] = map(ofl.getOffset());
+            return array;
+        } else {
+            // no other literal types can be nested GEPs, so terminate it here
+            LLValue[] array = new LLValue[index + 2];
+            // array length == index + 2; length - index = 2
+            array[0] = i32;
+            array[1] = ZERO;
+            return array;
+        }
+    }
+
+    private Literal innermostGepValue(Literal lit) {
+        // todo: type switch
+        if (lit instanceof ElementOfLiteral eol) {
+            return innermostGepValue(eol.getArrayPointer());
+        } else if (lit instanceof MemberOfLiteral mol) {
+            return innermostGepValue(mol.getStructurePointer());
+        } else if (lit instanceof OffsetFromLiteral ofl) {
+            return ofl.getBasePointer();
+        } else {
+            return lit;
+        }
     }
 
     @Override
@@ -438,10 +496,6 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Poin
     @Override
     public LLValue visit(PointerLiteral pointerLiteral, ProgramObjectPointer pointer) {
         return Values.global(pointer.getProgramObject().getName());
-    }
-
-    public LLVMModuleGenerator getGenerator() {
-        return generator;
     }
 
     public LLValue mapStatepointType(final FunctionType functionType) {

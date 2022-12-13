@@ -368,21 +368,21 @@ public class BuildtimeHeap {
     }
 
     public synchronized Literal referToSerializedVmObject(VmObject value, NullableType desiredType, ProgramModule from) {
+        LiteralFactory lf  = ctxt.getLiteralFactory();
         if (isRootClass(value)) {
-            LiteralFactory lf  = ctxt.getLiteralFactory();
-            DataDeclaration d = from.declareData(rootClassesDecl); // d not used?
+            DataDeclaration d = from.declareData(rootClassesDecl);
             int typeId = ((VmClass)value).getTypeDefinition().getTypeId();
-            Literal base = lf.bitcastLiteral(lf.literalOf(ProgramObjectPointer.of(rootClassesDecl)), ((ArrayType)rootClassesDecl.getValueType()).getElementType().getPointer());
-            Literal elem = lf.elementOfLiteral(base, lf.literalOf(typeId));
-            return ctxt.getLiteralFactory().valueConvertLiteral(elem, desiredType);
+            // todo: change to offset-from classes segment
+            Literal elem = lf.elementOfLiteral(lf.literalOf(d), lf.literalOf(typeId));
+            return lf.valueConvertLiteral(elem, desiredType);
         } else {
             DataDeclaration objDecl = vmObjects.get(value);
             if (objDecl == null) {
                 ctxt.warning("Requested VmObject not found in build time heap: " + value);
-                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(desiredType);
+                return lf.nullLiteralOfType(desiredType);
             }
             DataDeclaration decl = from.declareData(objDecl);
-            return ctxt.getLiteralFactory().valueConvertLiteral(ctxt.getLiteralFactory().literalOf(decl), desiredType);
+            return lf.valueConvertLiteral(lf.literalOf(decl), desiredType);
         }
     }
 

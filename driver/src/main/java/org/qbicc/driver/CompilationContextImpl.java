@@ -75,7 +75,6 @@ final class CompilationContextImpl implements CompilationContext {
     final ClassContext bootstrapClassContext;
     final Function<VmClassLoader, ClassContext> appClassContextFactory;
     private final ConcurrentMap<DefinedTypeDefinition, ProgramModule> programModules = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, Section> sections = new ConcurrentHashMap<>();
     private final ConcurrentMap<ExecutableElement, org.qbicc.object.Function> exactFunctions = new ConcurrentHashMap<>();
     private final ConcurrentMap<ExecutableElement, FunctionElement> establishedFunctions = new ConcurrentHashMap<>();
     private final Path outputDir;
@@ -89,7 +88,7 @@ final class CompilationContextImpl implements CompilationContext {
     private final Vm vm;
     private final NativeMethodConfigurator nativeMethodConfigurator;
     private final Consumer<ClassContext> classContextListener;
-    private final Section implicitSection = Section.defineSection(this, 0, IMPLICIT_SECTION_NAME, Segment.DATA);
+    private final Section implicitSection;
     private final Scheduler scheduler;
 
     CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory,
@@ -113,6 +112,7 @@ final class CompilationContextImpl implements CompilationContext {
         handleNewClassContext(bootstrapClassContext);
         // last!
         this.vm = vmFactory.apply(this);
+        implicitSection = Section.defineSection(this, 0, IMPLICIT_SECTION_NAME, Segment.DATA);
     }
 
     public <T> T getAttachment(final AttachmentKey<T> key) {

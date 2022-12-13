@@ -334,9 +334,9 @@ public interface Node {
             }
 
             public Value visit(Copier copier, ElementOfLiteral literal) {
-                Literal value = (Literal)copier.copyValue(literal.getValue());
+                Literal value = (Literal)copier.copyValue(literal.getArrayPointer());
                 Literal index = (Literal)copier.copyValue(literal.getIndex());
-                if (value == literal.getValue() && index == literal.getIndex()) {
+                if (value == literal.getArrayPointer() && index == literal.getIndex()) {
                     return literal;
                 } else {
                     return copier.getBlockBuilder().getLiteralFactory().elementOfLiteral(value, index);

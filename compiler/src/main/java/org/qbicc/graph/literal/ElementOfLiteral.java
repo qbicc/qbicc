@@ -1,14 +1,16 @@
 package org.qbicc.graph.literal;
 
 import org.qbicc.graph.Value;
-import org.qbicc.type.ValueType;
+import org.qbicc.type.ArrayType;
+import org.qbicc.type.PointerType;
+import org.qbicc.type.WordType;
 
 public class ElementOfLiteral extends Literal {
-    final Literal value;
+    final Literal arrayPointer;
     final Literal index;
 
-    ElementOfLiteral(Literal value, Literal index) {
-        this.value = value;
+    ElementOfLiteral(Literal arrayPointer, Literal index) {
+        this.arrayPointer = arrayPointer;
         this.index = index;
     }
 
@@ -20,7 +22,7 @@ public class ElementOfLiteral extends Literal {
     @Override
     public Value getValueDependency(int index) throws IndexOutOfBoundsException {
         return switch (index) {
-            case 0 -> value;
+            case 0 -> arrayPointer;
             case 1 -> this.index;
             default -> throw new IndexOutOfBoundsException(index);
         };
@@ -37,18 +39,18 @@ public class ElementOfLiteral extends Literal {
     }
 
     public boolean equals(ElementOfLiteral other) {
-        return other == this || other != null && value.equals(other.value) && index.equals(other.index);
+        return other == this || other != null && arrayPointer.equals(other.arrayPointer) && index.equals(other.index);
     }
 
     @Override
-    public int hashCode() { return value.hashCode() * 19 + index.hashCode(); }
+    public int hashCode() { return arrayPointer.hashCode() * 19 + index.hashCode(); }
 
     @Override
-    public ValueType getType() {
-        return value.getType();
+    public PointerType getType() {
+        return arrayPointer.getPointeeType(ArrayType.class).getElementType().getPointer();
     }
 
-    public Literal getValue() { return value; }
+    public Literal getArrayPointer() { return arrayPointer; }
 
     public <T, R> R accept(final LiteralVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
@@ -59,9 +61,18 @@ public class ElementOfLiteral extends Literal {
     }
 
     @Override
+    Literal bitCast(LiteralFactory lf, WordType toType) {
+        if (toType.equals(arrayPointer.getType()) && index.isZero()) {
+            // cast element zero to the array type = get the array pointer
+            return arrayPointer;
+        }
+        return super.bitCast(lf, toType);
+    }
+
+    @Override
     public StringBuilder toString(StringBuilder b) {
         b.append("element_of").append('(');
-        value.toString(b);
+        arrayPointer.toString(b);
         b.append(',');
         index.toString(b);
         b.append(')');
