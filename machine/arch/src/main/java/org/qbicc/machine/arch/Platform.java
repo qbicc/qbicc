@@ -61,11 +61,11 @@ public final class Platform {
      * Format a section name according to the rules of this platform.
      *
      * @param segmentName the simple segment name (must not be {@code null})
-     * @param simpleName the simple section name (must not be {@code null})
+     * @param simpleNameParts the simple section name parts (must not be {@code null})
      * @return the platform-specific section name (not {@code null})
      */
-    public String formatSectionName(String segmentName, String simpleName) {
-        return objectType.formatSectionName(segmentName, simpleName);
+    public String formatSectionName(String segmentName, String... simpleNameParts) {
+        return objectType.formatSectionName(segmentName, simpleNameParts);
     }
 
     public String formatStartOfSectionSymbolName(String segmentName, String simpleName) {

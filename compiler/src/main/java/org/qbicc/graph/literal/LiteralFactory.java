@@ -90,7 +90,11 @@ public interface LiteralFactory {
 
     Literal valueConvertLiteral(Literal value, WordType toType);
 
-    Literal elementOfLiteral(Literal value, Literal index);
+    ElementOfLiteral elementOfLiteral(Literal arrayPointer, Literal index);
+
+    MemberOfLiteral memberOfLiteral(Literal structurePointer, CompoundType.Member member);
+
+    OffsetFromLiteral offsetFromLiteral(Literal basePointer, Literal offset);
 
     PointerLiteral literalOf(Pointer value);
 
@@ -157,6 +161,9 @@ public interface LiteralFactory {
             private final ConcurrentMap<ValueType, ConstantLiteral> constantLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<VariableElement, VariableLiteral> varLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ExecutableElement, ExecutableLiteral> exeLiterals = new ConcurrentHashMap<>();
+            private final ConcurrentMap<Literal, ConcurrentMap<Literal, ElementOfLiteral>> elementLiterals = new ConcurrentHashMap<>();
+            private final ConcurrentMap<Literal, ConcurrentMap<CompoundType.Member, MemberOfLiteral>> memberLiterals = new ConcurrentHashMap<>();
+            private final ConcurrentMap<Literal, ConcurrentMap<Literal, OffsetFromLiteral>> offsetLiterals = new ConcurrentHashMap<>();
 
             public BlockLiteral literalOf(final BlockLabel blockLabel) {
                 return new BlockLiteral(typeSystem.getBlockType(), blockLabel);
@@ -302,15 +309,71 @@ public interface LiteralFactory {
             }
 
             @Override
-            public Literal elementOfLiteral(Literal value, Literal index) {
-                Assert.checkNotNullParam("value", value);
+            public ElementOfLiteral elementOfLiteral(Literal arrayPointer, Literal index) {
+                Assert.checkNotNullParam("arrayPointer", arrayPointer);
                 Assert.checkNotNullParam("index", index);
-                ValueType inputType = value.getType();
-                if (inputType instanceof PointerType || inputType instanceof ArrayType) {
-                    return value.elementOf(this, index);
-                } else {
-                    throw new IllegalArgumentException("Invalid input type: " + inputType);
+                ValueType pointeeType = arrayPointer.getPointeeType();
+                if (!(pointeeType instanceof ArrayType)) {
+                    throw new IllegalArgumentException("Array pointer is of wrong type " + pointeeType);
                 }
+                final ValueType indexType = index.getType();
+                if (! (indexType instanceof IntegerType)) {
+                    throw new IllegalArgumentException("Index is of wrong type " + indexType);
+                }
+                final ConcurrentMap<Literal, ElementOfLiteral> subMap = elementLiterals.computeIfAbsent(arrayPointer, LiteralFactory::newMap);
+                ElementOfLiteral lit = subMap.get(index);
+                if (lit == null) {
+                    lit = new ElementOfLiteral(arrayPointer, index);
+                    final ElementOfLiteral appearing = subMap.putIfAbsent(index, lit);
+                    if (appearing != null) {
+                        lit = appearing;
+                    }
+                }
+                return lit;
+            }
+
+            @Override
+            public MemberOfLiteral memberOfLiteral(Literal structurePointer, CompoundType.Member member) {
+                Assert.checkNotNullParam("structurePointer", structurePointer);
+                Assert.checkNotNullParam("member", member);
+                ValueType structureType = structurePointer.getPointeeType();
+                if (! (structureType instanceof CompoundType)) {
+                    throw new IllegalArgumentException("Structure pointer is of wrong type " + structureType);
+                }
+                final ConcurrentMap<CompoundType.Member, MemberOfLiteral> subMap = memberLiterals.computeIfAbsent(structurePointer, LiteralFactory::newMap);
+                MemberOfLiteral lit = subMap.get(member);
+                if (lit == null) {
+                    lit = new MemberOfLiteral(structurePointer, member);
+                    final MemberOfLiteral appearing = subMap.putIfAbsent(member, lit);
+                    if (appearing != null) {
+                        lit = appearing;
+                    }
+                }
+                return lit;
+            }
+
+            @Override
+            public OffsetFromLiteral offsetFromLiteral(Literal basePointer, Literal offset) {
+                Assert.checkNotNullParam("basePointer", basePointer);
+                Assert.checkNotNullParam("offset", offset);
+                final ValueType basePointerType = basePointer.getType();
+                if (! (basePointerType instanceof PointerType)) {
+                    throw new IllegalArgumentException("Base pointer is of wrong type " + basePointerType);
+                }
+                final ValueType offsetType = offset.getType();
+                if (! (offsetType instanceof IntegerType)) {
+                    throw new IllegalArgumentException("Offset is of wrong type " + offsetType);
+                }
+                final ConcurrentMap<Literal, OffsetFromLiteral> subMap = offsetLiterals.computeIfAbsent(basePointer, LiteralFactory::newMap);
+                OffsetFromLiteral lit = subMap.get(offset);
+                if (lit == null) {
+                    lit = new OffsetFromLiteral(basePointer, offset);
+                    final OffsetFromLiteral appearing = subMap.putIfAbsent(offset, lit);
+                    if (appearing != null) {
+                        lit = appearing;
+                    }
+                }
+                return lit;
             }
 
             @Override
@@ -370,5 +433,9 @@ public interface LiteralFactory {
                 return (FunctionLiteral) exeLiterals.computeIfAbsent(element, FunctionLiteral::new);
             }
         };
+    }
+
+    private static <K, V> ConcurrentMap<K, V> newMap(Object ignored) {
+        return new ConcurrentHashMap<>();
     }
 }

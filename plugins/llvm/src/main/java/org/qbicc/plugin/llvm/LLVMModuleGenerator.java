@@ -12,6 +12,7 @@ import org.qbicc.facts.Facts;
 import org.qbicc.facts.core.ExecutableReachabilityFacts;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.llvm.FunctionAttributes;
 import org.qbicc.machine.llvm.FunctionDefinition;
 import org.qbicc.machine.llvm.Global;
@@ -32,6 +33,7 @@ import org.qbicc.object.GlobalXtor;
 import org.qbicc.object.ModuleSection;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.SectionObject;
+import org.qbicc.object.Segment;
 import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
@@ -91,6 +93,7 @@ final class LLVMModuleGenerator {
         if (pieLevel != 0) {
             module.addFlag(ModuleFlagBehavior.Max, "PIE Level", Types.i32, Values.intConstant(pieLevel));
         }
+        final Platform platform = context.getPlatform();
 
         // declare debug function here
         org.qbicc.machine.llvm.Function decl = module.declare("llvm.dbg.value");
@@ -131,6 +134,7 @@ final class LLVMModuleGenerator {
         }
         for (ModuleSection section : programModule.sections()) {
             String sectionName = section.getName();
+            final Segment segment = section.getSection().getSegment();
             for (SectionObject item : section.contents()) {
                 String name = item.getName();
                 Linkage linkage = map(item.getLinkage());
@@ -173,7 +177,7 @@ final class LLVMModuleGenerator {
 
                     LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(context, module, debugInfo, topSubprogram, moduleVisitor, fn, functionDefinition);
                     if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
-                        functionDefinition.section(sectionName);
+                        functionDefinition.section(platform.formatSectionName(segment.toString(), segment.toString(), sectionName));
                     }
 
                     nodeVisitor.execute();
@@ -195,7 +199,7 @@ final class LLVMModuleGenerator {
                         obj.preemption(RuntimePreemption.LOCAL);
                     }
                     if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
-                        obj.section(sectionName);
+                        obj.section(platform.formatSectionName(segment.toString(), segment.toString(), sectionName));
                     }
                     MemberElement element = data.getOriginalElement();
                     if (element != null) {

@@ -19,6 +19,8 @@ import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.CompoundLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.MemberOfLiteral;
+import org.qbicc.graph.literal.OffsetFromLiteral;
 import org.qbicc.graph.literal.ValueConvertLiteral;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -334,12 +336,32 @@ public interface Node {
             }
 
             public Value visit(Copier copier, ElementOfLiteral literal) {
-                Literal value = (Literal)copier.copyValue(literal.getValue());
+                Literal arrayPointer = (Literal)copier.copyValue(literal.getArrayPointer());
                 Literal index = (Literal)copier.copyValue(literal.getIndex());
-                if (value == literal.getValue() && index == literal.getIndex()) {
+                if (arrayPointer == literal.getArrayPointer() && index == literal.getIndex()) {
                     return literal;
                 } else {
-                    return copier.getBlockBuilder().getLiteralFactory().elementOfLiteral(value, index);
+                    return copier.getBlockBuilder().getLiteralFactory().elementOfLiteral(arrayPointer, index);
+                }
+            }
+
+            public Value visit(Copier copier, OffsetFromLiteral literal) {
+                Literal basePointer = (Literal)copier.copyValue(literal.getBasePointer());
+                Literal offset = (Literal)copier.copyValue(literal.getOffset());
+                if (basePointer == literal.getBasePointer() && offset == literal.getOffset()) {
+                    return literal;
+                } else {
+                    return copier.getBlockBuilder().getLiteralFactory().offsetFromLiteral(basePointer, offset);
+                }
+            }
+
+            @Override
+            public Value visit(Copier copier, MemberOfLiteral literal) {
+                Literal structPointer = (Literal)copier.copyValue(literal.getStructurePointer());
+                if (structPointer == literal.getStructurePointer()) {
+                    return literal;
+                } else {
+                    return copier.getBlockBuilder().getLiteralFactory().memberOfLiteral(structPointer, literal.getMember());
                 }
             }
 

@@ -46,15 +46,6 @@ public final class ProgramModule {
         return typeDefinition;
     }
 
-    @Deprecated
-    public ModuleSection getOrAddSection(String name) {
-        Section section = typeDefinition.getContext().getCompilationContext().getSection(name);
-        if (section == null) {
-            throw new IllegalArgumentException("Section " + name + " is not known");
-        }
-        return inSection(section);
-    }
-
     public Collection<ModuleSection> sections() {
         ModuleSection[] array = this.sections.values().toArray(ModuleSection[]::new);
         Arrays.sort(array, Comparator.comparing(ProgramObject::getName));

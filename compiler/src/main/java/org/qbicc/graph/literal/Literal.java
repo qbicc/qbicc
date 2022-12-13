@@ -1,5 +1,11 @@
 package org.qbicc.graph.literal;
 
+import java.lang.invoke.ConstantBootstraps;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+
+import org.eclipse.collections.api.map.ImmutableMap;
+import org.eclipse.collections.impl.factory.Maps;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.Value;
@@ -11,6 +17,11 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * A literal is a value that was directly specified in a program.
  */
 public abstract class Literal implements Unschedulable, Value {
+    private static final VarHandle bitCastLiteralsHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "bitCastLiterals", VarHandle.class, Literal.class, ImmutableMap.class);
+
+    @SuppressWarnings({ "unused", "FieldMayBeFinal" })
+    private volatile ImmutableMap<WordType, BitCastLiteral> bitCastLiterals = Maps.immutable.of();
+
     Literal() {}
 
     public Node getCallSite() {
@@ -38,7 +49,7 @@ public abstract class Literal implements Unschedulable, Value {
     public abstract boolean isZero();
 
     public final boolean isNonZero() {
-        return ! isZero();
+        return !isZero();
     }
 
     @Override
@@ -69,15 +80,33 @@ public abstract class Literal implements Unschedulable, Value {
     public abstract int hashCode();
 
     Literal bitCast(LiteralFactory lf, final WordType toType) {
-        return new BitCastLiteral(this, toType);
+        ImmutableMap<WordType, BitCastLiteral> oldMap = bitCastLiterals;
+        BitCastLiteral lit = oldMap.get(toType);
+        if (lit != null) {
+            return lit;
+        }
+        ImmutableMap<WordType, BitCastLiteral> newMap;
+        lit = new BitCastLiteral(this, toType);
+        for (;;) {
+            newMap = oldMap.newWithKeyValue(toType, lit);
+            newMap = caxBitCastLiterals(oldMap, newMap);
+            if (oldMap == newMap) {
+                return lit;
+            }
+            oldMap = newMap;
+            if (oldMap.containsKey(toType)) {
+                return oldMap.get(toType);
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private ImmutableMap<WordType, BitCastLiteral> caxBitCastLiterals(ImmutableMap<WordType, BitCastLiteral> expected, ImmutableMap<WordType, BitCastLiteral> update) {
+        return(ImmutableMap<WordType, BitCastLiteral>) bitCastLiteralsHandle.compareAndExchange(this, expected, update);
     }
 
     Literal convert(final LiteralFactory lf, final WordType toType) {
         return new ValueConvertLiteral(this, toType);
-    }
-
-    Literal elementOf(LiteralFactory literalFactory, Literal index) {
-        return new ElementOfLiteral(this, index);
     }
 
     @Override

@@ -252,7 +252,7 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
             .mapToObj(i -> {
                 Function function = ctxt.getExactFunction(imapList[i].getFunction());
                 Literal functionCastLiteral = lf.bitcastLiteral(lf.literalOf(function), ts.getUnsignedInteger8Type().getPointer());
-                Literal instructionAddrLiteral = lf.valueConvertLiteral(lf.elementOfLiteral(functionCastLiteral, lf.literalOf(imapList[i].getOffset())), ts.getUnsignedInteger64Type());
+                Literal instructionAddrLiteral = lf.valueConvertLiteral(lf.offsetFromLiteral(functionCastLiteral, lf.literalOf(imapList[i].getOffset())), ts.getUnsignedInteger64Type());
                 programModule.declareFunction(null, function.getName(), function.getValueType());
                 return instructionAddrLiteral;
             }).toArray(Literal[]::new);

@@ -37,14 +37,14 @@ public final class ObjectType extends PlatformComponent {
      * Format a section name according to the rules of this object file format.
      *
      * @param segmentName the segment name (must not be {@code null})
-     * @param simpleName the simple name (must not be {@code null})
+     * @param simpleNameParts the simple name parts (must not be {@code null})
      * @return the object-specific section name (not {@code null})
      */
-    public String formatSectionName(final String segmentName, final String simpleName) {
+    public String formatSectionName(final String segmentName, final String... simpleNameParts) {
         if (this == MACH_O) {
-            return formatSegmentName(segmentName) + ",__" + simpleName;
+            return formatSegmentName(segmentName) + ",__" + String.join("_", simpleNameParts);
         } else {
-            return "." + simpleName;
+            return "." + String.join(".", simpleNameParts);
         }
     }
 

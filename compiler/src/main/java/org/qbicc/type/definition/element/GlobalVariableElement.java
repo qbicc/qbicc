@@ -6,7 +6,7 @@ import java.lang.invoke.VarHandle;
 import java.util.function.Function;
 
 import io.smallrye.common.constraint.Assert;
-import org.qbicc.context.CompilationContext;
+import org.qbicc.object.Section;
 import org.qbicc.pointer.GlobalPointer;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
@@ -18,18 +18,18 @@ public final class GlobalVariableElement extends VariableElement {
     private static final VarHandle pointerHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "pointer", VarHandle.class, GlobalVariableElement.class, GlobalPointer.class);
     @SuppressWarnings("unused") // pointerHandle
     private volatile GlobalPointer pointer;
-    private final String section;
+    private final Section section;
 
     GlobalVariableElement(final BuilderImpl builder) {
         super(builder);
-        section = builder.section;
+        section = Assert.checkNotNullParam("builder.section", builder.section);
     }
 
     public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
 
-    public String getSection() {
+    public Section getSection() {
         return section;
     }
 
@@ -66,7 +66,7 @@ public final class GlobalVariableElement extends VariableElement {
     }
 
     public interface Builder extends VariableElement.Builder {
-        void setSection(String section);
+        void setSection(Section section);
 
         GlobalVariableElement build();
 
@@ -75,7 +75,7 @@ public final class GlobalVariableElement extends VariableElement {
             Builder getDelegate();
 
             @Override
-            default void setSection(String section) {
+            default void setSection(Section section) {
                 getDelegate().setSection(section);
             }
 
@@ -87,14 +87,14 @@ public final class GlobalVariableElement extends VariableElement {
     }
 
     static final class BuilderImpl extends VariableElement.BuilderImpl implements Builder {
-        private String section = CompilationContext.IMPLICIT_SECTION_NAME;
+        private Section section;
 
         BuilderImpl(String name, TypeDescriptor typeDescriptor) {
             super(name, typeDescriptor, 0);
             setTypeParameterContext(TypeParameterContext.EMPTY);
         }
 
-        public void setSection(String section) {
+        public void setSection(Section section) {
             this.section = Assert.checkNotNullParam("section", section);
         }
 

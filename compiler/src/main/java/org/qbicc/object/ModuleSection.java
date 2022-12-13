@@ -164,6 +164,10 @@ public final class ModuleSection extends ProgramObject implements Comparable<Mod
         return section.compareTo(o.section);
     }
 
+    public Section getSection() {
+        return section;
+    }
+
     private static IllegalArgumentException dataOnlyException() {
         return new IllegalArgumentException("Cannot add function to data-only section");
     }

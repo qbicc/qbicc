@@ -72,6 +72,7 @@ public class MethodDataTypes {
         builder.setType(globalMethodDataType);
         builder.setEnclosingType(ctxt.getDefaultTypeDefinition().load());
         builder.setSignature(BaseTypeSignature.V);
+        builder.setSection(ctxt.getImplicitSection());
         globalMethodData = builder.build();
     }
 

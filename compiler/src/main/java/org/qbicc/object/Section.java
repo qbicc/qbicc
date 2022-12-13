@@ -1,5 +1,10 @@
 package org.qbicc.object;
 
+import java.util.NoSuchElementException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.type.TypeSystem;
 
@@ -7,6 +12,8 @@ import org.qbicc.type.TypeSystem;
  * A program section. Program modules define objects into sections.
  */
 public final class Section implements Comparable<Section> {
+    private static final AttachmentKey<ConcurrentMap<String, Section>> KEY = new AttachmentKey<>();
+
     private final int index;
     private final String name;
     private final Segment segment;
@@ -20,7 +27,7 @@ public final class Section implements Comparable<Section> {
      * @param segment the section segments (must not be {@code null})
      * @param attributes the section attributes, if any
      */
-    public Section(int index, String name, Segment segment, Attribute... attributes) {
+    private Section(int index, String name, Segment segment, Attribute... attributes) {
         this.index = index;
         this.name = name;
         this.segment = segment;
@@ -33,6 +40,49 @@ public final class Section implements Comparable<Section> {
         }
         this.dataOnly = dataOnly;
     }
+
+    public static Section requireSection(CompilationContext ctxt, String name) {
+        Section section = getMap(ctxt).get(name);
+        if (section == null) {
+            throw new NoSuchElementException("No section called " + name + " exists");
+        }
+        return section;
+    }
+
+    public static Section defineSection(CompilationContext ctxt, int index, String name, Segment segment, Attribute... attributes) {
+        final ConcurrentMap<String, Section> map = getMap(ctxt);
+        Section section = map.get(name);
+        if (section == null) {
+            section = new Section(index, name, segment, attributes);
+            final Section appearing = map.putIfAbsent(name, section);
+            if (appearing == null) {
+                return section;
+            }
+            section = appearing;
+        }
+        boolean dataOnly = false;
+        for (Attribute attribute : attributes) {
+            if (attribute == Flag.DATA_ONLY) {
+                dataOnly = true;
+            }
+        }
+        if (section.index == index && section.name.equals(name) && section.segment.equals(segment) && section.dataOnly == dataOnly) {
+            return section;
+        }
+        throw new IllegalArgumentException("A section named " + name + " is already defined");
+    }
+
+    private static ConcurrentMap<String, Section> getMap(CompilationContext ctxt) {
+        ConcurrentMap<String, Section> map = ctxt.getAttachment(KEY);
+        if (map == null) {
+            final ConcurrentMap<String, Section> appearing = ctxt.putAttachmentIfAbsent(KEY, map = new ConcurrentHashMap<>());
+            if (appearing != null) {
+                return appearing;
+            }
+        }
+        return map;
+    }
+
 
     @Override
     public int compareTo(Section o) {
