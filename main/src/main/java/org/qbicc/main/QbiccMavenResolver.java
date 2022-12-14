@@ -26,7 +26,6 @@ import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.Proxy;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.repository.RepositoryPolicy;
-import org.eclipse.aether.spi.locator.ServiceLocator;
 import org.eclipse.aether.util.artifact.DefaultArtifactTypeRegistry;
 import org.eclipse.aether.util.artifact.JavaScopes;
 import org.eclipse.aether.util.graph.manager.ClassicDependencyManager;
@@ -56,9 +55,11 @@ import org.qbicc.driver.ClassPathItem;
 final class QbiccMavenResolver {
     private static final String MAVEN_CENTRAL = "https://repo1.maven.org/maven2";
     private final RepositorySystem system;
+    private final QbiccBeanContainer locator;
 
-    QbiccMavenResolver(ServiceLocator locator) {
-        this.system = locator.getService(RepositorySystem.class);
+    QbiccMavenResolver(QbiccBeanContainer locator) {
+        this.locator = locator;
+        this.system = locator.get(RepositorySystem.class);
     }
 
     Settings createSettings(DiagnosticContext ctxt, File globalSettings, File userSettings) throws SettingsBuildingException {
@@ -103,7 +104,7 @@ final class QbiccMavenResolver {
 
         DefaultMirrorSelector mirrorSelector = new DefaultMirrorSelector();
         for (Mirror mirror : settings.getMirrors()) {
-            mirrorSelector.add(mirror.getId(), mirror.getUrl(), mirror.getLayout(), false, mirror.getMirrorOf(), mirror.getMirrorOfLayouts());
+            mirrorSelector.add(mirror.getId(), mirror.getUrl(), mirror.getLayout(), false, false, mirror.getMirrorOf(), mirror.getMirrorOfLayouts());
         }
         session.setMirrorSelector(mirrorSelector);
 

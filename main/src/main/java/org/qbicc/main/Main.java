@@ -649,7 +649,7 @@ public class Main implements Callable<DiagnosticContext> {
     }
 
     private void resolveClassPath(DiagnosticContext ctxt, Consumer<ClassPathItem> classPathItemConsumer, final List<ClassPathEntry> paths, Runtime.Version version) throws IOException {
-        QbiccMavenResolver resolver = new QbiccMavenResolver(new QbiccServiceLocator());
+        QbiccMavenResolver resolver = new QbiccMavenResolver(new QbiccBeanContainer());
         File globalSettings = resolver.getGlobalSettings();
         File userSettings = resolver.getUserSettings();
         Settings settings;
