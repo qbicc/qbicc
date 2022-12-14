@@ -11,7 +11,19 @@ import io.smallrye.common.constraint.Assert;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.object.ProgramObject;
+import org.qbicc.pointer.ConstructorPointer;
+import org.qbicc.pointer.ElementPointer;
+import org.qbicc.pointer.FunctionPointer;
+import org.qbicc.pointer.GlobalPointer;
+import org.qbicc.pointer.InitializerPointer;
+import org.qbicc.pointer.InstanceMethodPointer;
+import org.qbicc.pointer.IntegerAsPointer;
+import org.qbicc.pointer.MemberPointer;
+import org.qbicc.pointer.OffsetPointer;
 import org.qbicc.pointer.Pointer;
+import org.qbicc.pointer.ProgramObjectPointer;
+import org.qbicc.pointer.StaticFieldPointer;
+import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
@@ -66,9 +78,7 @@ public interface LiteralFactory {
 
     MethodHandleLiteral literalOfMethodHandle(MethodHandleConstant methodHandleConstant, ReferenceType type);
 
-    default PointerLiteral literalOf(ProgramObject programObject) {
-        return literalOf(programObject.getPointer());
-    }
+    ProgramObjectLiteral literalOf(ProgramObject programObject);
 
     UndefinedLiteral undefinedLiteralOfType(ValueType type);
 
@@ -96,7 +106,74 @@ public interface LiteralFactory {
 
     OffsetFromLiteral offsetFromLiteral(Literal basePointer, Literal offset);
 
-    PointerLiteral literalOf(Pointer value);
+    default Literal literalOf(Pointer value) {
+        return value.accept(new Pointer.Visitor<LiteralFactory, Literal>() {
+            @Override
+            public Literal visitAny(LiteralFactory literalFactory, Pointer pointer) {
+                throw new IllegalArgumentException("Invalid pointer");
+            }
+
+            @Override
+            public Literal visit(LiteralFactory literalFactory, ConstructorPointer pointer) {
+                return literalFactory.literalOf(pointer.getExecutableElement());
+            }
+
+            @Override
+            public Literal visit(LiteralFactory literalFactory, FunctionPointer pointer) {
+                return literalFactory.literalOf(pointer.getExecutableElement());
+            }
+
+            @Override
+            public Literal visit(LiteralFactory literalFactory, GlobalPointer pointer) {
+                return literalFactory.literalOf(pointer.getGlobalVariable());
+            }
+
+            @Override
+            public Literal visit(LiteralFactory literalFactory, InitializerPointer pointer) {
+                return literalFactory.literalOf(pointer.getExecutableElement());
+            }
+
+            @Override
+            public Literal visit(LiteralFactory literalFactory, InstanceMethodPointer pointer) {
+                return literalFactory.literalOf(pointer.getExecutableElement());
+            }
+
+            @Override
+            public Literal visit(LiteralFactory literalFactory, IntegerAsPointer pointer) {
+                return literalFactory.bitcastLiteral(literalFactory.literalOf(pointer.getType().getSameSizedUnsignedInteger(), pointer.getValue()), pointer.getType());
+            }
+
+            @Override
+            public Literal visit(LiteralFactory literalFactory, ProgramObjectPointer pointer) {
+                return literalFactory.literalOf(pointer.getProgramObject());
+            }
+
+            @Override
+            public Literal visit(LiteralFactory literalFactory, StaticFieldPointer pointer) {
+                return literalFactory.literalOf(pointer.getStaticField());
+            }
+
+            @Override
+            public Literal visit(LiteralFactory literalFactory, StaticMethodPointer pointer) {
+                return literalFactory.literalOf(pointer.getExecutableElement());
+            }
+
+            @Override
+            public Literal visit(LiteralFactory literalFactory, ElementPointer pointer) {
+                return literalFactory.elementOfLiteral(literalFactory.literalOf(pointer.getArrayPointer()), literalFactory.literalOf(pointer.getIndex()));
+            }
+
+            @Override
+            public Literal visit(LiteralFactory literalFactory, MemberPointer pointer) {
+                return literalFactory.memberOfLiteral(literalFactory.literalOf(pointer.getStructurePointer()), pointer.getMember());
+            }
+
+            @Override
+            public Literal visit(LiteralFactory literalFactory, OffsetPointer pointer) {
+                return literalFactory.offsetFromLiteral(literalFactory.literalOf(pointer.getBasePointer()), literalFactory.literalOf(pointer.getOffset()));
+            }
+        }, this);
+    }
 
     GlobalVariableLiteral literalOf(GlobalVariableElement variableElement);
 
@@ -154,6 +231,7 @@ public interface LiteralFactory {
             // todo: come up with a more efficient caching scheme
             private final ConcurrentMap<IntegerLiteral, IntegerLiteral> integerLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<FloatLiteral, FloatLiteral> floatLiterals = new ConcurrentHashMap<>();
+            private final ConcurrentMap<ProgramObject, ProgramObjectLiteral> programObjects = new ConcurrentHashMap<>();
             private final ConcurrentMap<ValueType, TypeLiteral> typeLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ValueType, ZeroInitializerLiteral> zeroLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<NullableType, NullLiteral> nullLiterals = new ConcurrentHashMap<>();
@@ -231,6 +309,10 @@ public interface LiteralFactory {
 
             public MethodHandleLiteral literalOfMethodHandle(MethodHandleConstant methodHandleConstant, ReferenceType type) {
                 return new MethodHandleLiteral(methodHandleConstant, type);
+            }
+
+            public ProgramObjectLiteral literalOf(ProgramObject programObject) {
+                return programObjects.computeIfAbsent(programObject, ProgramObjectLiteral::new);
             }
 
             public TypeLiteral literalOfType(final ValueType type) {
@@ -374,12 +456,6 @@ public interface LiteralFactory {
                     }
                 }
                 return lit;
-            }
-
-            @Override
-            public PointerLiteral literalOf(Pointer value) {
-                Assert.checkNotNullParam("value", value);
-                return new PointerLiteral(value);
             }
 
             @Override

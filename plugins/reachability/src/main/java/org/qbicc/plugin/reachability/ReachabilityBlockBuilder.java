@@ -28,31 +28,25 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.VirtualMethodLookup;
 import org.qbicc.graph.literal.ConstructorLiteral;
 import org.qbicc.graph.literal.FunctionLiteral;
+import org.qbicc.graph.literal.InitializerLiteral;
 import org.qbicc.graph.literal.InstanceMethodLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
-import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
-import org.qbicc.pointer.ConstructorPointer;
-import org.qbicc.pointer.InstanceMethodPointer;
-import org.qbicc.pointer.ReferenceAsPointer;
-import org.qbicc.pointer.RootPointer;
-import org.qbicc.pointer.StaticFieldPointer;
-import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
-import org.qbicc.type.definition.element.InstanceMethodElement;
+import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
-import org.qbicc.type.definition.element.StaticMethodElement;
 
 /**
  * A block builder stage which traverses the final set of reachable Nodes
@@ -89,7 +83,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         }
     }
 
-    static final class ReachabilityVisitor implements NodeVisitor<ReachabilityContext, Void, Void, Void>, RootPointer.Visitor<ReachabilityContext, Void> {
+    static final class ReachabilityVisitor implements NodeVisitor<ReachabilityContext, Void, Void, Void> {
         @Override
         public Void visitUnknown(ReachabilityContext param, Action node) {
             visitUnknown(param, (Node) node);
@@ -145,13 +139,6 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         }
 
         @Override
-        public Void visit(ReachabilityContext param, PointerLiteral value) {
-            RootPointer pointer = value.getPointer().getRootPointer();
-            pointer.accept(this, param);
-            return null;
-        }
-
-        @Override
         public Void visit(ReachabilityContext param, TypeLiteral value) {
             if (value.getValue() instanceof ClassObjectType cot) {
                 param.analysis.processReachableType(cot.getDefinition().load(), param.currentElement);
@@ -160,33 +147,6 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
             } else if (value.getValue() instanceof ReferenceArrayObjectType aot) {
                 param.analysis.processArrayElementType(aot.getLeafElementType());
             }
-            return null;
-        }
-
-        @Override
-        public Void visit(ReachabilityContext reachabilityContext, InstanceMethodPointer pointer) {
-            InstanceMethodElement target = pointer.getExecutableElement();
-            reachabilityContext.analysis.processReachableExactInvocation(target, reachabilityContext.currentElement);
-            return null;
-        }
-
-        @Override
-        public Void visit(ReachabilityContext param, ReferenceAsPointer pointer) {
-            param.analysis.processReachableObject(pointer.getReference(), param.currentElement);
-            return null;
-        }
-
-        @Override
-        public Void visit(ReachabilityContext param, StaticFieldPointer pointer) {
-            StaticFieldElement f = pointer.getStaticField();
-            param.analysis.processReachableStaticFieldAccess(f, param.currentElement);
-            return null;
-        }
-
-        @Override
-        public Void visit(ReachabilityContext param, StaticMethodPointer pointer) {
-            StaticMethodElement target = pointer.getExecutableElement();
-            param.analysis.processReachableExactInvocation(target, param.currentElement);
             return null;
         }
 
@@ -212,20 +172,10 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         }
 
         @Override
-        public Void visit(ReachabilityContext param, ConstructorPointer pointer) {
-            ConstructorElement target = pointer.getExecutableElement();
-            param.analysis.processReachableExactInvocation(target, param.currentElement);
-            // The lambda meta factory and other reflective machinery in the JDK use Unsafe.allocateInstance
-            // instead of a "real" New to instantiate a class.  To compensate, reachability analysis assumes
-            // that if a ConstructorElementHandle is invoked and the invocation isn't the super.<init> that starts
-            // all non-Object constructors, then the declaring type of the constructor _must_ have been instantiated somehow.
-            if (!target.getEnclosingType().load().isAbstract()) {
-                if (!(param.currentElement instanceof ConstructorElement) ||
-                    (param.currentElement instanceof ConstructorElement &&
-                        (param.currentElement.getEnclosingType().load().getSuperClass() == null ||
-                        !param.currentElement.getEnclosingType().load().getSuperClass().equals(target.getEnclosingType())))) {
-                    param.analysis.processInstantiatedClass(target.getEnclosingType().load(), false, param.currentElement);
-                }
+        public Void visit(ReachabilityContext param, InitializerLiteral literal) {
+            final InitializerElement init = literal.getExecutable();
+            if (init.hasAllModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
+                param.analysis.processReachableRuntimeInitializer(init, param.currentElement);
             }
             return null;
         }

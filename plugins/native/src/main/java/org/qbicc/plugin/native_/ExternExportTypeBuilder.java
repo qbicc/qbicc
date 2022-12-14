@@ -176,7 +176,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 nativeInfo.registerFieldInfo(
                     resolved.getEnclosingType().getDescriptor(),
                     resolved.getName(),
-                    new NativeDataInfo(resolved, fieldType, ctxt.getLiteralFactory().literalOf(decl.getPointer()))
+                    new NativeDataInfo(resolved, fieldType, ctxt.getLiteralFactory().literalOf(decl))
                 );
             }
 
@@ -185,7 +185,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 nativeInfo.registerFieldInfo(
                     resolved.getEnclosingType().getDescriptor(),
                     resolved.getName(),
-                    new NativeDataInfo(resolved, fieldType, ctxt.getLiteralFactory().literalOf(data.getPointer()))
+                    new NativeDataInfo(resolved, fieldType, ctxt.getLiteralFactory().literalOf(data))
                 );
             }
         }, index, name, descriptor);

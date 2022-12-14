@@ -118,7 +118,7 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
-import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.StringLiteral;
@@ -1635,8 +1635,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
-    public Object visit(VmThreadImpl param, PointerLiteral node) {
-        return node.getPointer();
+    public Object visit(VmThreadImpl vmThread, ProgramObjectLiteral literal) {
+        return literal.getProgramObject().getPointer();
     }
 
     @Override

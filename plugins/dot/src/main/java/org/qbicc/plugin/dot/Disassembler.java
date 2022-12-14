@@ -131,7 +131,7 @@ import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
-import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.StringLiteral;
@@ -977,8 +977,8 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, PointerLiteral node) {
-            literal(param, node,"pointer");
+        public Void visit(Disassembler param, ProgramObjectLiteral node) {
+            literal(param, node, "@");
             return delegate.visit(param, node);
         }
 

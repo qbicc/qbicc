@@ -95,7 +95,7 @@ import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.Literal;
-import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.schedule.Util;
 import org.qbicc.machine.llvm.AsmFlag;
 import org.qbicc.machine.llvm.FastMathFlag;
@@ -125,7 +125,6 @@ import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.methodinfo.CallSiteInfo;
 import org.qbicc.plugin.unwind.UnwindExceptionStrategy;
-import org.qbicc.pointer.ProgramObjectPointer;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
@@ -1097,8 +1096,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
             // state point is forbidden!
             needsStatepoint = false;
             statepointReason = "Statepoint forbidden (variadic)";
-        } else if (target instanceof PointerLiteral pl && pl.getPointer() instanceof ProgramObjectPointer pop && pop.getProgramObject() instanceof FunctionDeclaration fd && fd.getOriginalElement() == null) {
-            // todo: that ^^^^ is not optimal in any sense
+        } else if (target instanceof ProgramObjectLiteral pol && pol.getProgramObject() instanceof FunctionDeclaration fd && fd.getOriginalElement() == null) {
             needsStatepoint = false;
             statepointReason = "Statepoint forbidden (external function)";
         } else if (target instanceof AsmLiteral) {
@@ -1202,7 +1200,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
             MethodElement personalityFunction = UnwindExceptionStrategy.get(ctxt).getPersonalityMethod();
 
             Function personality = ctxt.getExactFunction(personalityFunction);
-            PointerLiteral literal = ctxt.getLiteralFactory().literalOf(personality.getPointer());
+            ProgramObjectLiteral literal = ctxt.getLiteralFactory().literalOf(personality);
             // clang generates the personality argument like this (by casting the function to i8* using bitcast):
             //      define dso_local void @_Z7catchitv() #0 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
             // We can also generate it this way using following construct:
