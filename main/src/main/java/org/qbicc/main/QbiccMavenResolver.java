@@ -52,14 +52,16 @@ import org.qbicc.driver.ClassPathItem;
 /**
  * This class is responsible for resolving the items on the class path.
  */
-final class QbiccMavenResolver {
+public final class QbiccMavenResolver {
     private static final String MAVEN_CENTRAL = "https://repo1.maven.org/maven2";
     private final RepositorySystem system;
-    private final QbiccBeanContainer locator;
 
-    QbiccMavenResolver(QbiccBeanContainer locator) {
-        this.locator = locator;
-        this.system = locator.get(RepositorySystem.class);
+    public QbiccMavenResolver(QbiccBeanContainer locator) {
+        this(locator.get(RepositorySystem.class));
+    }
+
+    public QbiccMavenResolver(RepositorySystem system) {
+        this.system = system;
     }
 
     Settings createSettings(DiagnosticContext ctxt, File globalSettings, File userSettings) throws SettingsBuildingException {
@@ -190,7 +192,7 @@ final class QbiccMavenResolver {
         return List.copyOf(authorizedRepos);
     }
 
-    List<ClassPathItem> requestArtifacts(RepositorySystemSession session, Settings settings, List<ClassPathEntry> classPathList,
+    public List<ClassPathItem> requestArtifacts(RepositorySystemSession session, Settings settings, List<ClassPathEntry> classPathList,
                                          DiagnosticContext ctxt, Runtime.Version version) throws IOException {
         return new DefaultArtifactRequestor().requestArtifactsFromRepositories(system, session, createRemoteRepositoryList(settings), classPathList, ctxt, version);
     }
