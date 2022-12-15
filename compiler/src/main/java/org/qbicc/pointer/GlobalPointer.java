@@ -1,5 +1,7 @@
 package org.qbicc.pointer;
 
+import org.qbicc.interpreter.Memory;
+import org.qbicc.interpreter.Vm;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 
 /**
@@ -22,8 +24,14 @@ public final class GlobalPointer extends RootPointer {
     }
 
     @Override
+    public Memory getRootMemoryIfExists() {
+        return Vm.requireCurrent().getGlobal(globalVariable);
+    }
+
+    @Override
     public long getRootByteOffset() {
-        return globalVariable.getOffset();
+        // always zero
+        return 0;
     }
 
     @Override

@@ -14,6 +14,7 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -378,4 +379,12 @@ public interface Vm {
      * @return the thread list
      */
     VmThread[] getStartedThreads();
+
+    /**
+     * Get the memory for a global variable element.
+     *
+     * @param variableElement the variable element (must not be {@code null})
+     * @return the memory (not {@code null})
+     */
+    Memory getGlobal(GlobalVariableElement variableElement);
 }
