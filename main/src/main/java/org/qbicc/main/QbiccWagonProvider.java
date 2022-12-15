@@ -2,6 +2,8 @@ package org.qbicc.main;
 
 import java.lang.reflect.Field;
 
+import javax.inject.Named;
+
 import org.apache.maven.wagon.Wagon;
 import org.apache.maven.wagon.providers.file.FileWagon;
 import org.apache.maven.wagon.providers.http.LightweightHttpWagon;
@@ -12,6 +14,7 @@ import org.eclipse.aether.transport.wagon.WagonProvider;
 /**
  *
  */
+@Named("qbicc")
 final class QbiccWagonProvider implements WagonProvider {
     QbiccWagonProvider() {
     }
