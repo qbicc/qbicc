@@ -20,6 +20,11 @@ public class QbiccResourcesRegistry implements ResourcesRegistry {
     }
 
     @Override
+    public void injectResource(Module module, String resourcePath, byte[] resourceContent) {
+        ctxt.warning("ignoring: injectResource %s %s", resourcePath);
+    }
+
+    @Override
     public void ignoreResources(ConfigurationCondition condition, String pattern) {
         ctxt.warning("ignoring: ignoreResources %s %s", condition.toString(), pattern);
     }

@@ -1,6 +1,7 @@
 package org.qbicc.plugin.nativeimage;
 
 import org.graalvm.nativeimage.hosted.Feature;
+import org.graalvm.nativeimage.hosted.FieldValueTransformer;
 import org.qbicc.context.CompilationContext;
 
 import java.lang.reflect.Executable;
@@ -43,6 +44,11 @@ public class QbiccBeforeAnalysisAccess implements Feature.BeforeAnalysisAccess {
 
     @Override
     public void registerClassInitializerReachabilityHandler(Consumer<Feature.DuringAnalysisAccess> callback, Class<?> clazz) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void registerFieldValueTransformer(Field f, FieldValueTransformer ft) {
         throw new UnsupportedOperationException();
     }
 
