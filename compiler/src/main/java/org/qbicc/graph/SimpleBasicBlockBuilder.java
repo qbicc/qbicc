@@ -80,7 +80,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         if (nullable && ! (type instanceof NullableType)) {
             throw new IllegalArgumentException("Parameter can only be nullable if its type is nullable");
         }
-        parameter = new BlockParameter(callSite, element, type, nullable, owner, slot);
+        parameter = new BlockParameter(callSite, element, line, bci, type, nullable, owner, slot);
         subMap.put(slot, parameter);
         return parameter;
     }
