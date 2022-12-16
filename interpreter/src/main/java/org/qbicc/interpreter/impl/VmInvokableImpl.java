@@ -61,10 +61,12 @@ final class VmInvokableImpl implements VmInvokable {
 
     private void findLocalVars(final Node node, final CompoundType.Builder builder, final Set<Node> visited, final Set<LocalVariableElement> found) {
         if (visited.add(node)) {
+            // use the pointee or value type for the variable, because the LV type might
+            // be array[0] but the pointee type will have the right dimension
             if (node instanceof DebugValueDeclaration dvd) {
-                registerLocalVariable(builder, found, dvd.getVariable());
+                registerLocalVariable(builder, found, dvd.getVariable(), dvd.getValue().getType());
             } else if (node instanceof DebugAddressDeclaration dad) {
-                registerLocalVariable(builder, found, dad.getVariable());
+                registerLocalVariable(builder, found, dad.getVariable(), dad.getAddress().getPointeeType());
             }
             // debug decls are actions, so we only have to browse the action chain
             if (node instanceof OrderedNode on) {
@@ -80,9 +82,8 @@ final class VmInvokableImpl implements VmInvokable {
         }
     }
 
-    private static void registerLocalVariable(final CompoundType.Builder builder, final Set<LocalVariableElement> found, final LocalVariableElement lve) {
+    private static void registerLocalVariable(final CompoundType.Builder builder, final Set<LocalVariableElement> found, final LocalVariableElement lve, ValueType lveType) {
         if (found.add(lve)) {
-            ValueType lveType = lve.getType();
             builder.addNextMember(lve.getName(), lveType);
             lve.setOffset(builder.getLastAddedMember().getOffset());
         }

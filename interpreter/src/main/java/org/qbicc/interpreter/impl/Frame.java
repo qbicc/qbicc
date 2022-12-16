@@ -899,6 +899,14 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             if (arrayPointer == null) {
                 return null;
             } else {
+                // todo: fix by removing types from pointers
+                while (arrayPointer.getType().getPointeeType() instanceof CompoundType ct) {
+                    final CompoundType.Member zeroMember = ct.getMember(0);
+                    if (zeroMember.getOffset() != 0) {
+                        throw new IllegalStateException();
+                    }
+                    arrayPointer = new MemberPointer(arrayPointer, zeroMember);
+                }
                 return new ElementPointer(arrayPointer, index);
             }
         }

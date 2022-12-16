@@ -62,7 +62,7 @@ public final class DebugAddressDeclaration extends AbstractNode implements Actio
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        variable.getType().toString(b);
+        address.getPointeeType().toString(b);
         b.append(' ');
         b.append(variable.getName());
         b.append(')');
