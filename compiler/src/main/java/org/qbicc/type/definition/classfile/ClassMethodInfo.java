@@ -282,7 +282,7 @@ final class ClassMethodInfo {
                                 // already have an entry for it
                                 throw new InvalidLocalVariableIndexException();
                             }
-                            array[lvt ? 3 : 4] = (short) typeIdx;
+                            array[base + (lvt ? 3 : 4)] = (short) typeIdx;
                         } else {
                             // insert
                             idx = -idx - 1;

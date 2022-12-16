@@ -16,8 +16,8 @@ public final class BlockParameter extends AbstractValue implements PinnedNode {
     private final BlockLabel blockLabel;
     private final Slot slot;
 
-    BlockParameter(Node callSite, ExecutableElement element, ValueType type, boolean nullable, BlockLabel blockLabel, Slot slot) {
-        super(callSite, element, 0, -1);
+    BlockParameter(Node callSite, ExecutableElement element, int line, int bci, ValueType type, boolean nullable, BlockLabel blockLabel, Slot slot) {
+        super(callSite, element, line, bci);
         this.type = type;
         this.nullable = nullable;
         this.blockLabel = blockLabel;
