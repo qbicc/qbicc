@@ -201,7 +201,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean smallTypeIds;
     private final List<Path> librarySearchPaths;
     private final List<String> graalFeatures;
-    private final List<Path> qbiccFeatures;
+    private final List<URL> qbiccFeatures;
     private final ClassPathResolver classPathResolver;
     private final Backend backend;
     private final LLVMConfiguration.Builder llvmConfigurationBuilder;
@@ -879,8 +879,15 @@ public class Main implements Callable<DiagnosticContext> {
         private final Set<String> graalFeatures = new HashSet<>();
 
         @CommandLine.Option(names="--qbicc-feature", description = "qbicc build configuration file")
-        void addQbiccFeature(List<Path> features) { qbiccFeatures.addAll(features); }
-        private final Set<Path> qbiccFeatures = new HashSet<>();
+        void addQbiccFeature(List<Path> features) {
+            for (Path p:features) {
+                try {
+                    qbiccFeatures.add(p.toAbsolutePath().toUri().toURL());
+                } catch (MalformedURLException e) {
+                }
+            }
+        }
+        private final Set<URL> qbiccFeatures = new HashSet<>();
 
         @CommandLine.Option(names = "--jar", description = "Compile an executable jar")
         private Path inputJar;
@@ -1074,7 +1081,7 @@ public class Main implements Callable<DiagnosticContext> {
         private Backend backend = Backend.llvm;
         private List<Path> librarySearchPaths = List.of();
         private List<String> graalFeatures = new ArrayList<>();
-        private List<Path> qbiccFeatures = new ArrayList<>();
+        private List<URL> qbiccFeatures = new ArrayList<>();
         private ClassPathResolver classPathResolver;
         private LLVMConfiguration.Builder llvmConfigurationBuilder;
 
@@ -1127,7 +1134,7 @@ public class Main implements Callable<DiagnosticContext> {
             return this;
         }
 
-        public Builder addQbiccFeatures(List<Path> configs) {
+        public Builder addQbiccFeatures(List<URL> configs) {
             qbiccFeatures.addAll(configs);
             return this;
         }

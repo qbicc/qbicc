@@ -11,11 +11,12 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.List;
 
 public class QbiccFeatureProcessor {
-    public static void process(CompilationContext ctxt, List<Path> features) {
+    public static void process(CompilationContext ctxt, List<URL> features) {
         if (features.isEmpty()) {
             return;
         }
@@ -27,17 +28,13 @@ public class QbiccFeatureProcessor {
         mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-
-        for (Path feature: features) {
+        for (URL feature: features) {
             QbiccFeature qf;
             try {
-                InputStream fs = new FileInputStream(feature.toFile());
+                InputStream fs = feature.openStream();
                 qf = mapper.readValue(fs, QbiccFeature.class);
-            } catch (FileNotFoundException e) {
-                ctxt.error("Failed to open qbicc-feature %s", feature);
-                continue;
             } catch (IOException e) {
-                ctxt.error(e, "Failed to parse qbicc-feature %s ",feature);
+                ctxt.error(e, "Failed to process qbicc-feature %s ", feature);
                 continue;
             }
 
