@@ -7,7 +7,6 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.ObjectLiteral;
-import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.memory.ByteArrayMemory;
@@ -45,15 +44,15 @@ public class InitialHeapLiteralSerializingVisitor implements NodeVisitor.Delegat
         Literal literal = bth.referToSerializedVmObject(node.getValue(), node.getType(), ctxt.getOrAddProgramModule(param.getBlockBuilder().getRootElement()));
         return literal;
     }
-
-    public Value visit(final Node.Copier param, final PointerLiteral node) {
-        if (node.getPointer() instanceof MemoryPointer mp && mp.getRootMemoryIfExists() instanceof ByteArrayMemory bam) {
-            BuildtimeHeap bth = BuildtimeHeap.get(ctxt);
-            bth.serializeNativeMemory(bam);
-            Literal literal = bth.referToSerializedNativeMemory(bam, node.getType(), ctxt.getOrAddProgramModule(param.getBlockBuilder().getRootElement()));
-            return literal;
-        } else {
-            return delegate.visit(param, node);
-        }
-    }
+//
+//    public Value visit(final Node.Copier param, final MemoryLiteral node) {
+//        if (node.getMemory() instanceof ByteArrayMemory bam) {
+//            BuildtimeHeap bth = BuildtimeHeap.get(ctxt);
+//            bth.serializeNativeMemory(bam);
+//            Literal literal = bth.referToSerializedNativeMemory(bam, node.getType(), ctxt.getOrAddProgramModule(param.getBlockBuilder().getRootElement()));
+//            return literal;
+//        } else {
+//            return delegate.visit(param, node);
+//        }
+//    }
 }

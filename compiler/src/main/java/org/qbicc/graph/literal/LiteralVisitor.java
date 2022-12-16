@@ -92,7 +92,7 @@ public interface LiteralVisitor<T, R> {
         return visitAny(t, literal);
     }
 
-    default R visit(T t, PointerLiteral literal) {
+    default R visit(T t, ProgramObjectLiteral literal) {
         return visitAny(t, literal);
     }
 
@@ -211,7 +211,7 @@ public interface LiteralVisitor<T, R> {
             return getDelegateLiteralVisitor().visit(t, literal);
         }
 
-        default R visit(T t, PointerLiteral literal) {
+        default R visit(T t, ProgramObjectLiteral literal) {
             return getDelegateLiteralVisitor().visit(t, literal);
         }
 

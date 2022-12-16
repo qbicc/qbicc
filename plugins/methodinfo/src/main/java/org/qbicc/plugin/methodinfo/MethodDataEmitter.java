@@ -6,7 +6,6 @@ import org.qbicc.driver.Driver;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.PointerLiteral;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.machine.llvm.stackmap.StackMap;
 import org.qbicc.machine.llvm.stackmap.StackMapVisitor;
@@ -265,10 +264,10 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
     }
 
     void emitGlobalMethodData(CompilationContext ctxt,
-                              PointerLiteral minfoTable,
-                              PointerLiteral scInfoTable,
-                              PointerLiteral scIndexTable,
-                              PointerLiteral instructionTable,
+                              Literal minfoTable,
+                              Literal scInfoTable,
+                              Literal scIndexTable,
+                              Literal instructionTable,
                               int instructionTableSize) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         TypeSystem ts = ctxt.getTypeSystem();
@@ -296,10 +295,10 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
     }
 
     public void emitMethodData(CompilationContext ctxt, MethodData methodData) {
-        PointerLiteral minfoTableSymbol = (PointerLiteral) emitMethodInfoTable(ctxt, methodData.getMethodInfoTable());
-        PointerLiteral scInfoTableSymbol = (PointerLiteral) emitSourceCodeInfoTable(ctxt, methodData.getSourceCodeInfoTable());
-        PointerLiteral scIndexTableSymbol = (PointerLiteral) emitSourceCodeIndexList(ctxt, methodData.getInstructionMapList());
-        PointerLiteral instructionTableSymbol = (PointerLiteral) emitInstructionList(ctxt, methodData.getInstructionMapList());
+        Literal minfoTableSymbol = emitMethodInfoTable(ctxt, methodData.getMethodInfoTable());
+        Literal scInfoTableSymbol = emitSourceCodeInfoTable(ctxt, methodData.getSourceCodeInfoTable());
+        Literal scIndexTableSymbol = emitSourceCodeIndexList(ctxt, methodData.getInstructionMapList());
+        Literal instructionTableSymbol = emitInstructionList(ctxt, methodData.getInstructionMapList());
         emitGlobalMethodData(ctxt, minfoTableSymbol, scInfoTableSymbol, scIndexTableSymbol, instructionTableSymbol, methodData.getInstructionMapList().length);
     }
 

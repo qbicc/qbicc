@@ -118,7 +118,7 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
-import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.StringLiteral;
@@ -1030,9 +1030,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isFloat64(inputType)) {
             return Boolean.valueOf(unboxDouble(left) != unboxDouble(right));
         } else if (isInt64(inputType)) {
-            // Allow "null check" idiom of comparing a MemoryPointer to 0
+            // Allow "null check" idiom of comparing a Pointer to 0
             Object leftRaw = require(left);
-            if (leftRaw instanceof MemoryPointer && unboxLong(right) == 0) {
+            if (leftRaw instanceof Pointer && unboxLong(right) == 0) {
                 return Boolean.valueOf(true);
             }
             return Boolean.valueOf(unboxLong(left) != unboxLong(right));
@@ -1635,8 +1635,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
-    public Object visit(VmThreadImpl param, PointerLiteral node) {
-        return node.getPointer();
+    public Object visit(VmThreadImpl vmThread, ProgramObjectLiteral literal) {
+        return literal.getProgramObject().getPointer();
     }
 
     @Override

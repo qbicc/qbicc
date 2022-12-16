@@ -30,7 +30,7 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
-import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
@@ -385,7 +385,7 @@ final class CNativeIntrinsics {
                 return section.addData(null, "utf8z_" + cnt.incrementAndGet(), bal);
             });
             final IntegerLiteral z = lf.literalOf(0);
-            final PointerLiteral global = lf.literalOf(ctxt.getOrAddProgramModule(builder.getCurrentElement().getEnclosingType()).declareData(data).getPointer());
+            final ProgramObjectLiteral global = lf.literalOf(ctxt.getOrAddProgramModule(builder.getCurrentElement().getEnclosingType()).declareData(data));
             // get the zeroth array element of the zeroth pointer element of the global
             return builder.elementOf(global, z);
         };

@@ -45,6 +45,7 @@ import org.qbicc.plugin.constants.Constants;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
+import org.qbicc.pointer.GlobalPointer;
 import org.qbicc.pointer.IntegerAsPointer;
 import org.qbicc.pointer.MemoryPointer;
 import org.qbicc.pointer.Pointer;
@@ -96,7 +97,7 @@ public class BuildtimeHeap {
     /**
      * For interning native memory
      */
-    private final IdentityHashMap<byte[], DataDeclaration> nativeMemory = new IdentityHashMap<>();
+    private final HashMap<GlobalVariableElement, DataDeclaration> nativeMemory = new HashMap<>();
     /**
      * The array of root classes which is intended to be the first object in the initial heap
      */
@@ -571,13 +572,13 @@ public class BuildtimeHeap {
                         GlobalVariableElement global = getGlobalForStaticField(sfe);
                         DataDeclaration decl = into.getProgramModule().declareData(sfe, global.getName(), global.getType());
                         memberMap.put(om, lf.valueConvertLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), it));
-                    } else if (asPointerVal instanceof MemoryPointer mp) {
-                        if (mp.getRootMemoryIfExists() instanceof ByteArrayMemory bam) {
+                    } else if (asPointerVal instanceof GlobalPointer gp) {
+                        if (gp.getRootMemoryIfExists() instanceof ByteArrayMemory bam) {
                             // Support serializing "native" memory allocated by Unsafe.allocateMemory0
-                            DataDeclaration memDecl = serializeNativeMemory(bam.getArray(), objectSection);
+                            DataDeclaration memDecl = serializeNativeMemory(gp.getGlobalVariable(), bam.getArray(), objectSection);
                             memberMap.put(om, lf.valueConvertLiteral(lf.literalOf(memDecl), it));
                         } else {
-                            ctxt.error(f.getLocation(), "An object contains a memory pointer: %s", mp);
+                            ctxt.error(f.getLocation(), "An object contains an unlowerable pointer: %s", gp);
                         }
                     } else {
                         memberMap.put(om, lf.bitcastLiteral(lf.literalOf(asPointerVal), it));
@@ -739,30 +740,16 @@ public class BuildtimeHeap {
         return arrayData.getDeclaration();
     }
 
-    public synchronized void serializeNativeMemory(ByteArrayMemory mem) {
-        serializeNativeMemory(mem.getArray(), objectSection);
-    }
-
-    public synchronized Literal referToSerializedNativeMemory(ByteArrayMemory mem, NullableType desiredType, ProgramModule from) {
-        DataDeclaration memDecl = nativeMemory.get(mem.getArray());
-        if (memDecl == null) {
-            ctxt.warning("Requested native memory not found in build time heap: " + mem);
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(desiredType);
-        }
-        DataDeclaration decl = from.declareData(memDecl);
-        return ctxt.getLiteralFactory().bitcastLiteral(ctxt.getLiteralFactory().literalOf(decl), desiredType);
-    }
-
-    private DataDeclaration serializeNativeMemory(byte[] bytes, ModuleSection into) {
-        DataDeclaration existing = nativeMemory.get(bytes);
+    private DataDeclaration serializeNativeMemory(GlobalVariableElement globalVariable, byte[] bytes, ModuleSection into) {
+        DataDeclaration existing = nativeMemory.get(globalVariable);
         if (existing != null) {
             return existing;
         }
         LiteralFactory lf = ctxt.getLiteralFactory();
         Literal memoryLiteral = lf.literalOf(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getSignedInteger8Type(), bytes.length), bytes);
-        Data memoryData = defineData(into, nextLiteralName(into), memoryLiteral);
+        Data memoryData = defineData(into, globalVariable.getName(), memoryLiteral);
         DataDeclaration decl = memoryData.getDeclaration();
-        nativeMemory.put(bytes, decl);
+        nativeMemory.put(globalVariable, decl);
         return decl;
     }
 }

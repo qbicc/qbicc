@@ -28,7 +28,7 @@ import org.qbicc.graph.literal.LiteralVisitor;
 import org.qbicc.graph.literal.MemberOfLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.OffsetFromLiteral;
-import org.qbicc.graph.literal.PointerLiteral;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.graph.literal.ValueConvertLiteral;
@@ -46,12 +46,6 @@ import org.qbicc.machine.llvm.Types;
 import org.qbicc.machine.llvm.Values;
 import org.qbicc.machine.llvm.impl.LLVM;
 import org.qbicc.plugin.coreclasses.CoreClasses;
-import org.qbicc.pointer.ElementPointer;
-import org.qbicc.pointer.IntegerAsPointer;
-import org.qbicc.pointer.MemberPointer;
-import org.qbicc.pointer.OffsetPointer;
-import org.qbicc.pointer.Pointer;
-import org.qbicc.pointer.ProgramObjectPointer;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BlockType;
@@ -71,7 +65,7 @@ import org.qbicc.type.VariadicType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 
-final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Pointer.Visitor<PointerLiteral, LLValue> {
+final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
     static final LLValue i8_ptr = ptrTo(i8);
     static final LLValue i8_ptr_as1 = ptrTo(i8, 1);
     static final LLValue ptr_as1 = ptr(1);
@@ -92,6 +86,7 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Poin
     final Map<ValueType, LLValue> resultDecls = new HashMap<>();
     final Map<String, LLValue> resultDeclsByName = new HashMap<>();
     final Map<ValueType, LLValue> resultDeclTypes = new HashMap<>();
+    final LLValue refType;
 
     LLVMModuleNodeVisitor(final LLVMModuleGenerator generator, final Module module, final CompilationContext ctxt, final LLVMConfiguration config) {
         this.generator = generator;
@@ -99,6 +94,13 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Poin
         this.ctxt = ctxt;
         this.config = config;
         this.opaquePointers = config.isOpaquePointers();
+        // References can be used as different types in the IL without manually casting them, so we need to
+        // represent all reference types as being the same LLVM type. We will cast to and from the actual type we
+        // use the reference as when needed.
+        this.refType = module.identifiedType("ref").type(switch (config.getReferenceStrategy()) {
+            case POINTER -> opaquePointers ? ptr : i8_ptr;
+            case POINTER_AS1 -> opaquePointers ? ptr_as1 : i8_ptr_as1;
+        }).asTypeRef();
     }
 
     LLValue map(Type type) {
@@ -144,13 +146,7 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Poin
             Type pointeeType = ((PointerType) type).getPointeeType();
             res = opaquePointers ? ptr : pointeeType instanceof VoidType ? i8_ptr : ptrTo(map(pointeeType));
         } else if (type instanceof ReferenceType || type instanceof UnresolvedType) {
-            // References can be used as different types in the IL without manually casting them, so we need to
-            // represent all reference types as being the same LLVM type. We will cast to and from the actual type we
-            // use the reference as when needed.
-            res = switch (config.getReferenceStrategy()) {
-                case POINTER -> opaquePointers ? ptr : i8_ptr;
-                case POINTER_AS1 -> opaquePointers ? ptr_as1 : i8_ptr_as1;
-            };
+            res = refType;
         } else if (type instanceof WordType) {
             // all other words are integers
             // LLVM doesn't really care about signedness
@@ -359,9 +355,9 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Poin
         return Values.gepConstant(map(ptrType.getPointeeType()), map(ptrType), map(innermost), buildGepLiteralArgs(node, 0));
     }
 
-    public LLValue visit(final Void param, final PointerLiteral node) {
-        // see below for pointer visitor implementations
-        return node.getPointer().accept(this, node);
+    public LLValue visit(final Void param, final ProgramObjectLiteral node) {
+        // todo: auto-declare goes here
+        return Values.global(node.getProgramObject().getName());
     }
 
     public LLValue visit(final Void param, final ZeroInitializerLiteral node) {
@@ -446,56 +442,6 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue>, Poin
         } else {
             return lit;
         }
-    }
-
-    @Override
-    public LLValue visitAny(PointerLiteral pointerLiteral, Pointer pointer) {
-        ctxt.error(Location.builder().setNode(pointerLiteral).build(), "llvm: Unrecognized pointer value %s", pointer.getClass());
-        return LLVM.FALSE;
-    }
-
-    @Override
-    public LLValue visit(PointerLiteral pointerLiteral, ElementPointer pointer) {
-        // todo: we can merge GEPs
-        return Values.gepConstant(
-            map(pointer.getPointeeType()),
-            map(pointer.getType()),
-            pointer.getArrayPointer().accept(this, pointerLiteral),
-            ZERO,
-            Values.intConstant(pointer.getIndex())
-        );
-    }
-
-    @Override
-    public LLValue visit(PointerLiteral pointerLiteral, MemberPointer pointer) {
-        // todo: we can merge GEPs
-        return Values.gepConstant(
-            map(pointer.getPointeeType()),
-            map(pointer.getType()),
-            pointer.getStructurePointer().accept(this, pointerLiteral),
-            ZERO,
-            map(pointer.getPointeeType(), pointer.getMember())
-        );
-    }
-
-    @Override
-    public LLValue visit(PointerLiteral pointerLiteral, OffsetPointer pointer) {
-        return Values.gepConstant(
-            map(pointer.getPointeeType()),
-            map(pointer.getType()),
-            pointer.getBasePointer().accept(this, pointerLiteral),
-            Values.intConstant(pointer.getOffset())
-        );
-    }
-
-    @Override
-    public LLValue visit(PointerLiteral pointerLiteral, IntegerAsPointer pointer) {
-        return Values.inttoptrConstant(Values.intConstant(pointer.getValue()), i64, map(pointer.getType()));
-    }
-
-    @Override
-    public LLValue visit(PointerLiteral pointerLiteral, ProgramObjectPointer pointer) {
-        return Values.global(pointer.getProgramObject().getName());
     }
 
     public LLValue mapStatepointType(final FunctionType functionType) {
