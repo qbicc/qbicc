@@ -146,6 +146,7 @@ import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.ReferenceAsPointer;
 import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -898,6 +899,14 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             if (arrayPointer == null) {
                 return null;
             } else {
+                // todo: fix by removing types from pointers
+                while (arrayPointer.getType().getPointeeType() instanceof CompoundType ct) {
+                    final CompoundType.Member zeroMember = ct.getMember(0);
+                    if (zeroMember.getOffset() != 0) {
+                        throw new IllegalStateException();
+                    }
+                    arrayPointer = new MemberPointer(arrayPointer, zeroMember);
+                }
                 return new ElementPointer(arrayPointer, index);
             }
         }
@@ -2370,6 +2379,12 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                     throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
                 }
                 source.typedCopyTo(0, memory, 0, ct);
+            } else if (type instanceof ArrayType at) {
+                Memory source = (Memory) require(value);
+                if (source == null) {
+                    throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
+                }
+                source.typedCopyTo(0, memory, 0, at);
             } else {
                 throw unsupportedType();
             }

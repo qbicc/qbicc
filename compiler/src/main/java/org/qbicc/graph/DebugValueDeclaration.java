@@ -62,7 +62,7 @@ public final class DebugValueDeclaration extends AbstractNode implements Action,
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        variable.getType().toString(b);
+        value.getType().toString(b);
         b.append(' ');
         b.append(variable.getName());
         b.append(')');
