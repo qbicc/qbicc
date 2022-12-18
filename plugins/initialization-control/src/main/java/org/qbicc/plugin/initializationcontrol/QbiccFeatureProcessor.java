@@ -30,8 +30,7 @@ public class QbiccFeatureProcessor {
 
         for (URL feature: features) {
             QbiccFeature qf;
-            try {
-                InputStream fs = feature.openStream();
+            try (InputStream fs = feature.openStream()){
                 qf = mapper.readValue(fs, QbiccFeature.class);
             } catch (IOException e) {
                 ctxt.error(e, "Failed to process qbicc-feature %s ", feature);
