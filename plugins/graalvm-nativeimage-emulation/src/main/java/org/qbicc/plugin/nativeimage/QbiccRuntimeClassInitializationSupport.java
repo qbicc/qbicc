@@ -43,14 +43,4 @@ public class QbiccRuntimeClassInitializationSupport implements RuntimeClassIniti
     public void initializeAtBuildTime(Class<?> aClass, String reason) {
         // No-op for qbicc; this is what we do by default
     }
-
-    @Override
-    public void reportClassInitialized(Class<?> aClass, StackTraceElement[] stackTrace) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void reportObjectInstantiated(Object o, StackTraceElement[] stackTrace) {
-        throw new UnsupportedOperationException();
-    }
 }
