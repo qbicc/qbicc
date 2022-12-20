@@ -1,6 +1,7 @@
 package org.qbicc.plugin.native_;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.plugin.coreclasses.HeaderBits;
 import org.qbicc.type.ValueType;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -30,6 +31,8 @@ public class NativeTypeResolver implements DescriptorTypeResolver.Delegating {
         if (packageName.equals(Native.NATIVE_PKG)) {
             if (rewrittenName.equals(Native.TYPE_ID)) {
                 return classCtxt.findDefinedType("java/lang/Object").load().getClassType().getReference().getTypeType();
+            } else if (rewrittenName.equals(Native.HEADER_TYPE)) {
+                return HeaderBits.get(ctxt).getHeaderType();
             } else if (rewrittenName.equals(Native.VOID)) {
                 return ctxt.getTypeSystem().getVoidType();
             } else if (rewrittenName.equals(Native.OBJECT)) {

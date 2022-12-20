@@ -753,6 +753,12 @@ public final class CNative {
     public static final class type_id extends word {
     }
 
+    /**
+     * The special type which corresponds to the header field of an object.
+     */
+    public static final class header_type extends word {
+    }
+
     // basic types
 
     @name("char")
