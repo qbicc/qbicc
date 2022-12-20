@@ -1,26 +1,61 @@
 package org.qbicc.plugin.initializationcontrol;
 
-final class QbiccFeature {
-    String[] initializeAtRuntime;
-    String[] runtimeResource;  // ClassLoader.findResource
-    String[] runtimeResources; // ClassLoader.findResources
-    Constructor[] reflectiveConstructors;
-    Field[] reflectiveFields;
-    Method[] reflectiveMethods;
+public final class QbiccFeature {
+    public String[] initializeAtRuntime;
+    public String[] runtimeResource;  // ClassLoader.findResource
+    public String[] runtimeResources; // ClassLoader.findResources
+    public ReflectiveClass[] reflectiveClasses;
+    public Constructor[] reflectiveConstructors;
+    public Field[] reflectiveFields;
+    public Method[] reflectiveMethods;
 
-    static final class Constructor {
-        String declaringClass;
-        String descriptor;
+    public static final class ReflectiveClass {
+        String name;
+        boolean fields;
+        boolean constructors;
+        boolean methods;
+
+        public ReflectiveClass() {}
+        public ReflectiveClass(String name, boolean fields, boolean constructors, boolean methods) {
+            this.name = name;
+            this.fields = fields;
+            this.constructors = constructors;
+            this.methods = methods;
+        }
     }
 
-    static final class Field {
+    public static final class Constructor {
         String declaringClass;
-        String name;
+        String[] arguments;
+
+        public Constructor() {}
+        public Constructor(String declaringClass, String[] arguments) {
+            this.declaringClass = declaringClass;
+            this.arguments = arguments;
+        }
     }
 
-    static final class Method {
+    public static final class Field {
         String declaringClass;
         String name;
-        String descriptor;
+
+        public Field() {}
+        public Field(String declaringClass, String name) {
+            this.declaringClass = declaringClass;
+            this.name = name;
+        }
+    }
+
+    public static final class Method {
+        String declaringClass;
+        String name;
+        String[] arguments;
+
+        public Method() {} // for YAML deserialization
+        public Method(String declaringClass, String name, String[] arguments) {
+            this.declaringClass = declaringClass;
+            this.name = name;
+            this.arguments = arguments;
+        }
     }
 }
