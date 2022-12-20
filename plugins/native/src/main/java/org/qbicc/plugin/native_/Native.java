@@ -43,6 +43,7 @@ final class Native {
     static final String WORD_INT_NAME = intName(word.class);
     static final String TYPE_ID_INT_NAME = intName(type_id.class);
     static final String TYPE_ID = className(type_id.class);
+    static final String HEADER_TYPE = className(header_type.class);
     static final String VOID = className(c_void.class);
     static final String PTR = className(ptr.class);
     static final String WORD = className(word.class);
