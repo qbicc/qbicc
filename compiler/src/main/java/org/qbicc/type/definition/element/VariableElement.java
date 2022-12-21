@@ -20,6 +20,7 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
     private final TypeAnnotationList visibleTypeAnnotations;
     private final TypeAnnotationList invisibleTypeAnnotations;
     private final TypeParameterContext typeParameterContext;
+    private final int minimumAlignment;
     private volatile ValueType type;
     private volatile long offset = -1;
 
@@ -31,6 +32,7 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         this.visibleTypeAnnotations = builder.visibleTypeAnnotations;
         this.invisibleTypeAnnotations = builder.invisibleTypeAnnotations;
         this.typeParameterContext = Assert.checkNotNullParam("builder.typeParameterContext", builder.typeParameterContext);
+        this.minimumAlignment = builder.minimumAlignment;
         ValueType type = builder.type;
         if (type != null) {
             this.type = type;
@@ -74,6 +76,10 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
             this.type = type;
         }
         return type;
+    }
+
+    public int getMinimumAlignment() {
+        return this.minimumAlignment;
     }
 
     public <T extends ValueType> T getType(Class<T> expected) {
@@ -125,6 +131,8 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
 
         void setType(final ValueType type);
 
+        void setMinimumAlignment(int minimumAlignment);
+
         VariableElement build();
 
         interface Delegating extends AnnotatedElement.Builder.Delegating, NamedElement.Builder.Delegating, Builder {
@@ -162,6 +170,11 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
             }
 
             @Override
+            default void setMinimumAlignment(int minimumAlignment) {
+                getDelegate().setMinimumAlignment(minimumAlignment);
+            }
+
+            @Override
             default VariableElement build() {
                 return getDelegate().build();
             }
@@ -176,6 +189,7 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         private TypeAnnotationList invisibleTypeAnnotations = TypeAnnotationList.empty();
         private TypeParameterContext typeParameterContext;
         private ValueType type;
+        private int minimumAlignment = 1;
 
         BuilderImpl(final String name, final TypeDescriptor typeDescriptor, int index) {
             super(index);
@@ -220,6 +234,11 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
 
         public void setType(final ValueType type) {
             this.type = type;
+        }
+
+        public void setMinimumAlignment(int minimumAlignment) {
+            Assert.checkMinimumParameter("minimumAlignment", 1, minimumAlignment);
+            this.minimumAlignment = minimumAlignment;
         }
 
         public abstract VariableElement build();

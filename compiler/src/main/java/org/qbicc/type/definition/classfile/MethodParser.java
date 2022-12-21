@@ -311,7 +311,7 @@ final class MethodParser {
                     varType = lve.getType();
                     init = lf.zeroInitializerLiteralOfType(varType);
                 }
-                Value allocated = gf.stackAllocate(varType, lf.literalOf(1), lf.literalOf(varType.getAlign()));
+                Value allocated = gf.stackAllocate(varType, lf.literalOf(1), lf.literalOf(Math.max(varType.getAlign(), lve.getMinimumAlignment())));
                 gf.store(allocated, init, SingleUnshared);
                 Map<LocalVariableElement, Value> sav = stackAllocatedValues;
                 if (sav == null) {
@@ -357,7 +357,7 @@ final class MethodParser {
                     varType = lve.getType();
                     init = lf.zeroInitializerLiteralOfType(varType);
                 }
-                Value allocated = gf.stackAllocate(varType, lf.literalOf(1), lf.literalOf(varType.getAlign()));
+                Value allocated = gf.stackAllocate(varType, lf.literalOf(1), lf.literalOf(Math.max(varType.getAlign(), lve.getMinimumAlignment())));
                 gf.store(allocated, storeTruncate(init, lve.getTypeDescriptor()), SingleUnshared);
                 Map<LocalVariableElement, Value> sav = stackAllocatedValues;
                 if (sav == null) {
