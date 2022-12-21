@@ -7,43 +7,69 @@ There are several important components to the qbicc system that play a part in t
 
 The program graph is made up of _classes_ which contain _members_.
 Any _member_ which is executable contains a _program graph_.
-Each _program graph_ comprises one or more _basic blocks_.
+Each _program graph_ comprises one or more _basic blocks_, which in turn contain a sequence of _nodes_ which define the program behavior.
 
-A _basic block_ is defined as a terminating operation, or _terminator_, each of which may have one or more dependencies on other nodes
-and which may have one or more _successor_ _basic blocks_;
-for example, an `if` node will have a _successor_ for its `true` condition and one for its `false` condition,
-whereas a `throw` node will have no _successors_.
-Since each _basic block_ has exactly one _terminator_, it can be said that the _successors_ of the _basic block_ are equal to the _successors_ of its _terminator_.
-Since each _basic block_ can thus have several _successors_, including itself, the _basic block_ graph may contain cycles.
+=== Basic block
+
+A _basic block_ is defined as a directed acyclic graph of _nodes_, with a single entry point at the start of the block and a single exit point at the end of the block.
+
+Additionally, the nodes within a basic block are organized into a sequence by the _scheduler_.
 
 Each executable program element (method, constructor, or class initializer) has an _entry block_ which is the _basic block_ that is entered when that element is executed.
 
-Other than _terminators_, there are two other important categories of nodes: _values_ and _actions_.
+==== Block parameters
+
+In qbicc, blocks accept _parameters_ which are named by a special kind of identifier called a _slot_. Parameters are represented by a special _value_ type. Arguments are passed in to basic blocks by _terminators_ which pass control from one block to another, or by entry into a function or method.
+
+== Nodes
+
+Every program operation is represented as an atom called a _node_. A node represents a discrete value or computation that must be performed by the program.
+
+Nodes may have a dependency on zero or more _value_ nodes which are consumed by the operation.
+
+A node may also be _ordered_ by implementing the `OrderedNode` interface. Such nodes always have exactly one additional dependency on a predecessor node. Ordered nodes usually (but do not always) form a linear linked list.
+
+All dependencies of a node are guaranteed by the scheduler to have been scheduled _before_ the node itself. Since this may be impossible for certain values which are used and defined in blocks which form a loop, values that flow along loop back-edges are usually passed in using block parameters.
+
+=== Node type: Value
+
 A _value_ node is a node for any operation which produces some result that can be consumed by another node;
-for example, the literal `123` and the expression `foo + bar` would be considered _values_.
-An _action_ node is a node which has a presence in the dependency graph of execution but neither yields a result nor terminates a block;
-for example, a method invocation to a `void` method or a field or array member write would be considered an _action_.
+for example, the expression `foo + bar` would be considered a value. A _value_ always has a _type_ that indicates how the value is to be interpreted.
 
-A special _value_ type called a _phi value_ is used to represent a value whose interpretation depends on the predecessor _basic block_,
-having one different input _value_ for each possible predecessor.
+==== Value sub-type: Literal
 
-All three node types (_terminators_, _values_, and _actions_) may have a dependency on a predecessor node,
-as well as zero or more dependencies on consumed _values_ for that node type.
-The graph formed by the _terminator_ and its dependencies is a directed acyclic graph (DAG).
+A _literal_ is a _value_ which represents an immutable piece of data. This can either be a simple value like the integer `123` or global variable `foo`, a composite value like an array of `[ 12, 34 ]`, or certain kinds of expressions comprising literals like `foo[123]`.
+
+==== Value subtype: Block parameters
+
+Block parameters are represented using a dedicated value node. The node identifies the parameter by _slot_ and represents the merging of possible argument values for that _slot_ from all incoming blocks. This replaces the concept of _phi_ nodes found in other SSA-based systems.
+
+=== Node type: Action
+
+An _action_ is a node which has a presence in the dependency graph of execution but neither yields a result nor terminates a block;
+for example, a store to memory or a safepoint poll would be considered an _action_.
+
+=== Node type: Terminator
+
+Every block ends with a terminating operation, or _terminator_, which may have one or more _successor_ _basic blocks_;
+for example, an `if` node will have one _successor_ for its `true` condition and one for its `false` condition,
+whereas a `throw` node will have no _successors_.
+Since each _basic block_ has exactly one _terminator_, it can be said that the _successors_ of the _basic block_ are equal to the _successors_ of its _terminator_.
+Since each _basic block_ can thus have several _successors_, including itself, the
+overall control flow graph formed by _basic blocks_ may contain cycles.
 
 === Schedule
 
-Some nodes are _pinned_ to a specific _basic block_, such as _phi_ nodes, and a _terminator_ is always associated with a specific _basic block_.
+Some nodes are _pinned_ to a specific _basic block_, such as _block parameter_ nodes, and a _terminator_ is always associated with a specific _basic block_.
 However, most other nodes are "floating", which is to say, not bound to any particular block.
 
-Before the program graph can be lowered to an executable binary file, each node is _scheduled_ to a specific _basic block_.
-In this way, the _generation_ phase has access to a linear sequence of instructions which it may process in order.
+After a subprogram graph is built, each reachable node in the final graph is _scheduled_ to a specific _basic block_.
+In this way, any compilation stage has access to a linear sequence of instructions which it may process in order.
 
 == Driver
 
-The qbicc compilation process flows through two _phases_: _add_ and _generate_.
+The qbicc compilation process flows through multiple _phases_.
 Each phase comprises multiple steps of processing.
-Broadly, the _add_ phase is when classes are loaded and initialized, and the _generate_ phase is when the loaded classes are traversed to emit the final image.
 
 The overall flow runs like this:
 
@@ -52,40 +78,30 @@ image::driver-flow.svg[Driver flow]
 
 The steps can be broken down as follows:
 
-* Add phase:
-** _Pre-add hooks_: these hooks run before any class loading is done, and are implemented as a `Consumer<CompilationContext>`
-** _Add_: each entry point is recursively processed, method bytecodes are translated into program graphs, and classes are initialized; also, single-pass optimizations may be performed, and integrity checks are done on the resultant graph
-** _Post-add hooks_: these hooks run after all reachable members have been processed but before _copy_ takes place
-* Generate phase:
-** _Copy_: all reachable members are copied into the final lowered and optimized graph; also, the second pass of two-pass optimizations may be performed, and integrity checks are done on the resultant graph
-** _Pre-generate hooks_: these hooks run after copying is complete, generally to set up generation
-** _Generation_: each executable member is passed to a series of visitors implementing `ElementVisitor`, which are expected to produce the back end lowered program code for linkage
-** _Post-generate hooks_: these hooks run after generation to perform completion steps, such as generating supplemental object files and executing the toolchain linker
+* ADD phase:
+** Possible program execution is traced from initial _entry points_
+** Classes are loaded and initialized as needed
+** Optimizations are applied based on configuration and locally-observable information
+** Reachable program elements recursively cause other elements to become reachable
+** Run time checks are inserted for array range checking, null reference checking, etc.
+** Static checks are performed to enforce graph invariants
+** This is the only phase in which new program elements may become reachable
+* ANALYZE phase:
+** Possible program execution is traced from the same initial _entry points_
+** Each program element graph is copied into a new graph, applying new optimizations based on locally-observable information as well as information gathered in the prior phase execution
+** This phase is the primary phase for major optimizations to take place
+** Static checks are performed to enforce graph invariants
+** The overall program graph is reduced as unreachable nodes and elements are pruned during copy
+* LOWER phase:
+** Possible program execution is traced from the same initial _entry points_
+** Each program element graph is copied into a new, _lowered_ graph which gives up some degree of optimizability in favor of more closely modeling the target system
+** Some last-minute peephole optimizations are still performed
+* GENERATE phase:
+** Each reachable executable member is passed to handlers which are expected to produce the back end lowered program code for linkage
+** Any generated target-language sources are compiled
+** All object files are linked into the final image
 
 If all steps complete without error, the compilation is successful; otherwise, compilation halts after the first step that produces an error.
 
 The `CompilationContext` interface provides a means for hooks and add steps to recursively enqueue additional reachable members for processing.
-In this way, every step of the process has the capability to add (during the add phase) or skip (during the add or generate phases) a member during processing.
-
-=== Add phase
-
-The _add_ phase is implemented by the `BasicBlockBuilder` interface.
-As bytecodes are parsed from each executable member, the builder is called for each operation to assemble the _basic block_ graph of the program.
-Multiple chained implementations of this interface are used to perform various optimizations, transformations, and checks;
-for example, a `BasicBlockBuilder` implementation may implement the `if` operation by examining the condition, determining whether it is constant, and if so, replacing the operation with a simple `goto`.
-Another implementation may examine the arguments of binary operations such as `add` to ensure that the argument types are compatible, and report an error if that is not the case.
-
-Implementations may delegate operations to the next step in the chain as needed.
-
-Once the phase is complete, each reachable executable member will have an associated directed graph of _basic blocks_.
-
-=== Generate phase
-
-The program is _lowered_ by copying the program graph of each reachable member, using the special `Copier` class.
-The copy process works by pairing a `NodeVisitor` with a `BasicBlockBuilder`.
-Each program graph is traversed by the visitor, resulting in a replacement _entry block_ for each program element.
-
-The resultant rewritten program graphs are then traversed in a backend-specific manner to produce object files and to ultimately link the final executable.
-
-The set of `BasicBlockBuilder` implementations which are used in the _generate_ phase will differ to an extent from what was used during the _add_ phase.
-For example, virtual method invocations may be lowered to function calls during this stage, using information gathered during the _add_ phase.
+In this way, every step of the process has the capability to add (during the ADD phase) or skip (during the ADD or subsequent phases) a member during processing.
