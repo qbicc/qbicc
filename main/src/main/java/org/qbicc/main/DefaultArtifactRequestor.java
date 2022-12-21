@@ -147,7 +147,7 @@ public final class DefaultArtifactRequestor {
             }
             File jarFile = resultArtifact.getFile();
             File sourceFile = null;
-            ArtifactRequest sourceRequest = new ArtifactRequest(new DefaultArtifact(resultArtifact.getGroupId(), resultArtifact.getArtifactId(), "source", "jar", resultArtifact.getVersion()), null, null);
+            ArtifactRequest sourceRequest = new ArtifactRequest(new DefaultArtifact(resultArtifact.getGroupId(), resultArtifact.getArtifactId(), "sources", "jar", resultArtifact.getVersion()), null, null);
             try {
                 ArtifactResult sourceResult = system.resolveArtifact(session, sourceRequest);
                 if (sourceResult != null && sourceResult.isResolved() && !sourceResult.isMissing()) {

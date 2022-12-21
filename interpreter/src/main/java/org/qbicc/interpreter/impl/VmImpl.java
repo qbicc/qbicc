@@ -1136,6 +1136,27 @@ public final class VmImpl implements Vm {
         return startedThreads.toArray(VmThread[]::new);
     }
 
+    public VmClassLoader getAppClassLoader() {
+        try {
+            LoadedTypeDefinition clDef = ctxt.getBootstrapClassContext().findDefinedType("jdk/internal/loader/ClassLoaders").load();
+            VmClass classLoadersClass = clDef.getVmClass();
+            return (VmClassLoader) classLoadersClass.getStaticMemory().loadRef(classLoadersClass.indexOfStatic(clDef.findField("APP_LOADER")), SinglePlain);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    @Override
+    public VmClassLoader getPlatformClassLoader() {
+        try {
+            LoadedTypeDefinition clDef = ctxt.getBootstrapClassContext().findDefinedType("jdk/internal/loader/ClassLoaders").load();
+            VmClass classLoadersClass = clDef.getVmClass();
+            return (VmClassLoader) classLoadersClass.getStaticMemory().loadRef(classLoadersClass.indexOfStatic(clDef.findField("PLATFORM_LOADER")), SinglePlain);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     @Override
     public VmClass getClassForDescriptor(VmClassLoader cl, TypeDescriptor descriptor) {
         if (cl == null) {
