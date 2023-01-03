@@ -148,7 +148,7 @@ public class FeaturePatcher {
             case "long" -> "J";
             case "double" -> "D";
             // TODO: friendlier processing of array types -- for now we just force the user to provide a descriptor if they want an array
-            default -> t.startsWith("[") ? t : "J"+t.replace('.','/')+";";
+            default -> t.startsWith("[") ? t : "L"+t.replace('.','/')+";";
         };
     }
 
