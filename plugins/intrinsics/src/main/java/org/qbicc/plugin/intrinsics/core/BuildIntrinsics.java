@@ -42,6 +42,14 @@ final class BuildIntrinsics {
         intrinsics.registerIntrinsic(buildDesc, "isJvm", emptyToBool, (builder, targetPtr, arguments) ->
             builder.getLiteralFactory().literalOf(false)
         );
+
+        // TODO: works around direct reference to org.graalvm.nativeimage.ImageInfo in quarkus 2.14
+        //       Once we upgrade quarkus-qbicc to a Quarkus version that includes
+        //       https://github.com/quarkusio/quarkus/pull/29993 we can get rid of this Hook.
+        ClassTypeDescriptor imageInfo = ClassTypeDescriptor.synthesize(classContext, "org/graalvm/nativeimage/ImageInfo");
+        intrinsics.registerIntrinsic(imageInfo, "inImageBuildtimeCode", emptyToBool, (builder, targetPtr, arguments) ->
+            builder.getLiteralFactory().literalOf(true)
+        );
     }
 
     private static void registerHostIntrinsics(final Intrinsics intrinsics, final CompilationContext ctxt) {
