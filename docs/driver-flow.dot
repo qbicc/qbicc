@@ -10,14 +10,6 @@ digraph {
     start [label="",shape=doublecircle]
     end [label="",shape=doublecircle]
 
-    start->preadd->add->postadd->copy->pregen->gen->postgen->end
-
-
-    preadd [label="Pre-add hooks"]
-    add [label="Add"]
-    postadd [label="Post-add hooks"]
-    copy [label="Copy"]
-    pregen [label="Pre-generate hooks"]
-    gen [label="Generation"]
-    postgen [label="Post-generate hooks"]
+    start->ADD->ANALYZE->LOWER->GENERATE->end
+    ANALYZE->ANALYZE [dir="back"]
 }
