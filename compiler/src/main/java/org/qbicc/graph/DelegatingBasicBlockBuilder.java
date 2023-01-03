@@ -143,6 +143,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().offsetPointer(basePointer, offset);
     }
 
+    public Value pointerDifference(final Value leftPointer, final Value rightPointer) {
+        return getDelegate().pointerDifference(leftPointer, rightPointer);
+    }
+
     public Value byteOffsetPointer(final Value base, final Value offset, final ValueType outputType) {
         return getDelegate().byteOffsetPointer(base, offset, outputType);
     }

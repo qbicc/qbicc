@@ -722,6 +722,10 @@ public interface Node {
                 return param.getBlockBuilder().or(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
+            public Value visit(final Copier copier, final PointerDifference node) {
+                return copier.getBlockBuilder().pointerDifference(copier.copyValue(node.getLeftInput()), copier.copyValue(node.getRightInput()));
+            }
+
             public Value visit(final Copier param, final PopCount node) {
                 return param.getBlockBuilder().populationCount(param.copyValue(node.getInput()));
             }

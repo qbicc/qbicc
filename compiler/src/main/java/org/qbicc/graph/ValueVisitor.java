@@ -239,6 +239,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, PointerDifference node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, PopCount node) {
         return visitUnknown(t, node);
     }
@@ -523,6 +527,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         }
 
         default R visit(T t, Or node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default R visit(T t, PointerDifference node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 
