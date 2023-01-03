@@ -291,6 +291,7 @@ public class BuildtimeHeap {
         builder.setEnclosingType(typeDef);
         Section section = field.getType() instanceof ReferenceType ? refSection : ctxt.getImplicitSection();
         builder.setSection(section);
+        builder.setMinimumAlignment(field.getMinimumAlignment());
         global = builder.build();
         GlobalVariableElement appearing = staticFields.putIfAbsent(field, global);
         if (appearing != null) {

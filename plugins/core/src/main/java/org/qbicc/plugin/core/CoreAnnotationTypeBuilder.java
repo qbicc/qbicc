@@ -1,9 +1,12 @@
 package org.qbicc.plugin.core;
 
+import java.util.List;
+
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.annotation.EnumConstantAnnotationValue;
+import org.qbicc.type.annotation.IntAnnotationValue;
 import org.qbicc.type.definition.ConstructorResolver;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
@@ -20,6 +23,7 @@ import org.qbicc.type.descriptor.TypeDescriptor;
  * A type builder which applies the core annotations.
  */
 public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Builder.Delegating {
+    private final ClassContext classCtxt;
     private final DefinedTypeDefinition.Builder delegate;
 
     private final ClassTypeDescriptor noSideEffects;
@@ -32,8 +36,10 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
     private final ClassTypeDescriptor inline;
     private final ClassTypeDescriptor fold;
     private final ClassTypeDescriptor buildTime;
+    private final ClassTypeDescriptor align;
 
     public CoreAnnotationTypeBuilder(final ClassContext classCtxt, DefinedTypeDefinition.Builder delegate) {
+        this.classCtxt = classCtxt;
         this.delegate = delegate;
 
         noSideEffects = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoSideEffects");
@@ -46,6 +52,7 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
         inline = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/Inline");
         fold = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/Fold");
         buildTime = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/BuildTimeOnly");
+        align = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/CNative$align");
     }
 
     @Override
@@ -102,7 +109,27 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
         Delegating.super.addField(new FieldResolver() {
             @Override
             public FieldElement resolveField(int index, DefinedTypeDefinition enclosing, FieldElement.Builder builder) {
-                FieldElement fieldElement = resolver.resolveField(index, enclosing, builder);
+                FieldElement fieldElement = resolver.resolveField(index, enclosing, new FieldElement.Builder.Delegating() {
+                    @Override
+                    public FieldElement.Builder getDelegate() {
+                        return builder;
+                    }
+
+                    @Override
+                    public void addInvisibleAnnotations(List<Annotation> annotations) {
+                        for (Annotation annotation : annotations) {
+                            if (annotation.getDescriptor().equals(align)) {
+                                ConditionEvaluation conditionEvaluation = ConditionEvaluation.get(classCtxt.getCompilationContext());
+                                if (annotation.getValue("value") instanceof IntAnnotationValue iav) {
+                                    if (conditionEvaluation.evaluateConditions(classCtxt, enclosing, annotation)) {
+                                        builder.setMinimumAlignment(iav.intValue());
+                                    }
+                                }
+                            }
+                        }
+                        getDelegate().addInvisibleAnnotations(annotations);
+                    }
+                });
                 for (Annotation annotation : fieldElement.getInvisibleAnnotations()) {
                     if (annotation.getDescriptor().equals(noReflect)) {
                         fieldElement.setModifierFlags(ClassFile.I_ACC_NO_REFLECT);

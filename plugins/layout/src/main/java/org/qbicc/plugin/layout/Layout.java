@@ -16,7 +16,9 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
+import org.qbicc.type.TypeUtil;
 import org.qbicc.type.ValueType;
+import org.qbicc.type.VariadicType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
@@ -177,7 +179,7 @@ public final class Layout {
         int minAlignment = ts.getPointerAlignment();
         for (int i = 0; i < cnt; i ++) {
             FieldElement field = loaded.getField(i);
-            if (! field.isStatic() || field.isThreadLocal()) {
+            if (! field.isStatic() || field.isThreadLocal() || field.getType() instanceof VariadicType) {
                 continue;
             }
             CompoundType.Member member = computeMember(allocated, field);
@@ -214,13 +216,18 @@ public final class Layout {
         TypeSystem ts = ctxt.getTypeSystem();
         ValueType fieldType = widenBoolean(field.getType());
         int size = (int) fieldType.getSize();
-        int align = fieldType.getAlign();
         int idx;
+        int align;
         if (size != 0) {
+            align = Math.max(field.getMinimumAlignment(), fieldType.getAlign());
             idx = find(allocated, align, size);
             allocated.set(idx, idx + size);
+        } else if (fieldType instanceof ArrayType at) {
+            // it has to be at the end
+            align = Math.max(field.getMinimumAlignment(), at.getElementType().getAlign());
+            idx = (int) TypeUtil.alignUp(allocated.length(), align);
         } else {
-            idx = find(allocated, align, ts.getMaxAlignment());
+            throw new IllegalStateException("Invalid zero-sized member");
         }
         return ts.getCompoundTypeMember(field.getName(), fieldType, idx, align);
     }

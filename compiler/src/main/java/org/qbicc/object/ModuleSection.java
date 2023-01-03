@@ -43,6 +43,10 @@ public final class ModuleSection extends ProgramObject implements Comparable<Mod
     }
 
     public Data addData(MemberElement originalElement, String name, Value value) {
+        return addData(originalElement, name, value, value.getType().getAlign());
+    }
+
+    public Data addData(MemberElement originalElement, String name, Value value, int align) {
         Data obj = new Data(originalElement,
             this, Assert.checkNotNullParam("name", name),
             Assert.checkNotNullParam("value", value).getType(),
@@ -51,10 +55,9 @@ public final class ModuleSection extends ProgramObject implements Comparable<Mod
         Map<String, ProgramObject> definedObjects = programModule.moduleObjects;
         synchronized (programModule) {
             ProgramObject existing = definedObjects.get(name);
-            long offset = TypeUtil.alignUp(this.offset, obj.getValueType().getAlign());
             if (existing == null) {
-                if (offset != -1) {
-                    // todo: max(obj align, type align)
+                if (this.offset != -1) {
+                    long offset = TypeUtil.alignUp(this.offset, Math.max(align, obj.getValueType().getAlign()));
                     obj.initOffset(offset);
                     this.offset = offset + obj.getSize();
                 }
