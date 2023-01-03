@@ -46,6 +46,6 @@ abstract class AbstractValue extends AbstractNode implements Value {
 
     @Override
     public StringBuilder toReferenceString(StringBuilder b) {
-        return toLValueString(b).append('<').append(getNodeName()).append('>');
+        return toLValueString(b);
     }
 }
