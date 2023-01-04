@@ -33,8 +33,9 @@ public interface LinkerInvoker extends MessagingToolInvoker {
     void addObjectFile(Path path);
 
     default void addObjectFiles(Iterable<Path> paths) {
+        Path wd = getWorkingDirectory();
         for (Path path : paths) {
-            addObjectFile(path);
+            addObjectFile(wd ==  null ? path : wd.relativize(path));
         }
     }
 

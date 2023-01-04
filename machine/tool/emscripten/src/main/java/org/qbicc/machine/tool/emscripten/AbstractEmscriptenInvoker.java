@@ -26,6 +26,7 @@ abstract class AbstractEmscriptenInvoker implements MessagingToolInvoker {
 
     private final EmscriptenToolChainImpl tool;
     private ToolMessageHandler messageHandler = ToolMessageHandler.DISCARDING;
+    private Path workingDirectory;
 
     AbstractEmscriptenInvoker(final EmscriptenToolChainImpl tool) {
         this.tool = tool;
@@ -46,6 +47,14 @@ abstract class AbstractEmscriptenInvoker implements MessagingToolInvoker {
     public Path getPath() {
         // only one executable for now
         return tool.getExecutablePath();
+    }
+
+    public Path getWorkingDirectory() {
+        return workingDirectory;
+    }
+
+    public void setWorkingDirectory(Path workingDirectory) {
+        this.workingDirectory = workingDirectory;
     }
 
     static final Pattern DIAG_PATTERN = Pattern.compile(
@@ -98,6 +107,9 @@ abstract class AbstractEmscriptenInvoker implements MessagingToolInvoker {
         addArguments(cmd);
         ProcessBuilder pb = new ProcessBuilder();
         pb.command(cmd);
+        if (getWorkingDirectory() != null) {
+            pb.directory(getWorkingDirectory().toFile());
+        }
         pb.environment().put("LC_ALL", "C");
         pb.environment().put("LANG", "C");
         LOGGER.info(String.join(" ", cmd));

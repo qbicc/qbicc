@@ -18,6 +18,7 @@ import org.qbicc.machine.tool.process.OutputDestination;
 abstract class AbstractLlvmInvoker implements LlvmInvoker {
     private static final String LEVEL_PATTERN = "(?i:error|warning|note)";
     protected final LlvmToolChainImpl tool;
+    private Path workingDirectory;
     private final Path execPath;
     private InputSource source = InputSource.empty();
     private ToolMessageHandler messageHandler = ToolMessageHandler.DISCARDING;
@@ -60,6 +61,14 @@ abstract class AbstractLlvmInvoker implements LlvmInvoker {
         return destination;
     }
 
+    public Path getWorkingDirectory() {
+        return workingDirectory;
+    }
+
+    public void setWorkingDirectory(Path workingDirectory) {
+        this.workingDirectory = workingDirectory;
+    }
+
     public OutputDestination invokerAsDestination() {
         StringBuilder b = new StringBuilder();
         OutputDestination errorHandler = OutputDestination.of(new LimitedAppendable(b, 1536), StandardCharsets.UTF_8);
@@ -68,6 +77,9 @@ abstract class AbstractLlvmInvoker implements LlvmInvoker {
         addArguments(cmd);
         ProcessBuilder pb = new ProcessBuilder();
         pb.command(cmd);
+        if (getWorkingDirectory() != null) {
+            pb.directory(getWorkingDirectory().toFile());
+        }
         pb.environment().put("LC_ALL", "C");
         pb.environment().put("LANG", "C");
         return OutputDestination.of(pb, errorHandler, destination, p -> {

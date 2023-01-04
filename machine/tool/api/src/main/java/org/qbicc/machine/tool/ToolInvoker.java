@@ -22,6 +22,16 @@ public interface ToolInvoker {
     Path getPath();
 
     /**
+     * Get the program's working directory (null means use the same directory as the parent process)
+     */
+    Path getWorkingDirectory();
+
+    /**
+     * Set the program's working directory
+     */
+    void setWorkingDirectory(Path path);
+
+    /**
      * Invoke the program.
      *
      * @throws IOException if program invocation failed for some reason
