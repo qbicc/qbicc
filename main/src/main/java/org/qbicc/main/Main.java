@@ -56,8 +56,13 @@ import org.qbicc.driver.ElementVisitorAdapter;
 import org.qbicc.driver.GraphGenConfig;
 import org.qbicc.driver.Phase;
 import org.qbicc.driver.plugin.DriverPlugin;
+import org.qbicc.interpreter.VmClass;
+import org.qbicc.interpreter.VmClassLoader;
+import org.qbicc.interpreter.VmThrowable;
+import org.qbicc.plugin.apploader.AppClassLoader;
 import org.qbicc.plugin.correctness.ConstraintMaterializingBasicBlockBuilder;
 import org.qbicc.plugin.correctness.DeferenceBasicBlockBuilder;
+import org.qbicc.plugin.initializationcontrol.QbiccFeature;
 import org.qbicc.plugin.initializationcontrol.RuntimeResourceManager;
 import org.qbicc.plugin.llvm.LLVMConfiguration;
 import org.qbicc.plugin.llvm.ReferenceStrategy;
@@ -177,6 +182,7 @@ import org.qbicc.plugin.vfs.VFS;
 import org.qbicc.plugin.vio.VIO;
 import org.qbicc.tool.llvm.LlvmToolChain;
 import org.qbicc.type.TypeSystem;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.classfile.BciRangeExceptionHandlerBasicBlockBuilder;
 import picocli.CommandLine;
 import picocli.CommandLine.ParameterException;
@@ -195,6 +201,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final Path sourceOutputPath;
     private final Consumer<Iterable<Diagnostic>> diagnosticsHandler;
     private final String mainClass;
+    private final List<String> buildTimeInitRootClasses;
     private final String gc;
     private final boolean isPie;
     private final GraphGenConfig graphGenConfig;
@@ -208,7 +215,8 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean smallTypeIds;
     private final List<Path> librarySearchPaths;
     private final List<String> graalFeatures;
-    private final List<URL> qbiccFeatures;
+    private final List<URL> qbiccYamlFeatures;
+    private final List<QbiccFeature> qbiccFeatures;
     private final ClassPathResolver classPathResolver;
     private final Backend backend;
     private final LLVMConfiguration.Builder llvmConfigurationBuilder;
@@ -220,6 +228,7 @@ public class Main implements Callable<DiagnosticContext> {
         diagnosticsHandler = builder.diagnosticsHandler;
         // todo: this becomes optional
         mainClass = Assert.checkNotEmptyParam("builder.mainClass", builder.mainClass);
+        buildTimeInitRootClasses = builder.buildTimeInitRootClasses;
         gc = builder.gc;
         isPie = builder.isPie;
         graphGenConfig = builder.graphGenConfig;
@@ -252,6 +261,7 @@ public class Main implements Callable<DiagnosticContext> {
         appPaths = List.copyOf(builder.appPaths);
         librarySearchPaths = builder.librarySearchPaths;
         graalFeatures = builder.graalFeatures;
+        qbiccYamlFeatures = builder.qbiccYamlFeatures;
         qbiccFeatures = builder.qbiccFeatures;
         classPathResolver = builder.classPathResolver == null ? this::resolveClassPath : builder.classPathResolver;
 
@@ -436,7 +446,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, UnwindExceptionStrategy::get);
                                 builder.addPreHook(Phase.ADD, GcCommon::registerIntrinsics);
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
-                                    QbiccFeatureProcessor.process(compilationContext, qbiccFeatures);
+                                    QbiccFeatureProcessor.process(compilationContext, qbiccYamlFeatures, qbiccFeatures);
                                 });
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
                                     Vm vm = compilationContext.getVm();
@@ -460,6 +470,21 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachable);
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
                                     GraalFeatureProcessor.process(compilationContext, graalFeatures, hostAppClassLoader);
+                                });
+                                builder.addPreHook(Phase.ADD, compilationContext -> {
+                                    if (!buildTimeInitRootClasses.isEmpty()) {
+                                        for (String toInit : buildTimeInitRootClasses) {
+                                            compilationContext.submitTask(toInit, className -> {
+                                                Vm vm = compilationContext.getVm();
+                                                VmThread loadingThread = vm.newThread("build time init", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority());
+                                                VmClassLoader appClassLoader = AppClassLoader.get(compilationContext).getAppClassLoader();
+                                                vm.doAttached(loadingThread, () -> {
+                                                    VmClass vmClass = appClassLoader.loadClass(className.replace('.', '/'));
+                                                    vm.initialize(vmClass);
+                                                });
+                                            });
+                                        }
+                                    }
                                 });
                                 builder.addPreHook(Phase.ADD, new ElementReachableAdapter(
                                     new ElementBodyCreator()
@@ -812,7 +837,7 @@ public class Main implements Callable<DiagnosticContext> {
             .addAppPaths(optionsProcessor.appPathEntries)
             .processJarArgument(optionsProcessor.inputJar)
             .addGraalFeatures(optionsProcessor.graalFeatures.stream().toList())
-            .addQbiccFeatures(optionsProcessor.qbiccFeatures.stream().toList())
+            .addQbiccYamlFeatures(optionsProcessor.qbiccFeatures.stream().toList())
             .setOutputPath(optionsProcessor.outputPath)
             .setOutputName(optionsProcessor.outputName)
             .setMainClass(optionsProcessor.mainClass)
@@ -1121,6 +1146,7 @@ public class Main implements Callable<DiagnosticContext> {
         private Consumer<Iterable<Diagnostic>> diagnosticsHandler = diagnostics -> {};
         private Platform platform = Platform.HOST_PLATFORM;
         private String mainClass;
+        private List<String> buildTimeInitRootClasses = new ArrayList<>();
         private String gc = "none";
         // TODO Detect whether the system uses PIEs by default and match that if possible
         private boolean isPie = false;
@@ -1135,7 +1161,8 @@ public class Main implements Callable<DiagnosticContext> {
         private Backend backend = Backend.llvm;
         private List<Path> librarySearchPaths = List.of();
         private List<String> graalFeatures = new ArrayList<>();
-        private List<URL> qbiccFeatures = new ArrayList<>();
+        private List<URL> qbiccYamlFeatures = new ArrayList<>();
+        private List<QbiccFeature> qbiccFeatures = new ArrayList<>();
         private ClassPathResolver classPathResolver;
         private LLVMConfiguration.Builder llvmConfigurationBuilder;
 
@@ -1188,8 +1215,18 @@ public class Main implements Callable<DiagnosticContext> {
             return this;
         }
 
-        public Builder addQbiccFeatures(List<URL> configs) {
-            qbiccFeatures.addAll(configs);
+        public Builder addQbiccYamlFeatures(List<URL> configs) {
+            qbiccYamlFeatures.addAll(configs);
+            return this;
+        }
+
+        public Builder addQbiccFeature(QbiccFeature feature) {
+            qbiccFeatures.add(feature);
+            return this;
+        }
+
+        public Builder addBuildTimeInitRootClass(String className) {
+            buildTimeInitRootClasses.add(className);
             return this;
         }
 
