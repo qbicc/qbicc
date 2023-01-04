@@ -138,6 +138,7 @@ import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.pointer.ConstructorPointer;
 import org.qbicc.pointer.ElementPointer;
 import org.qbicc.pointer.ExecutableElementPointer;
+import org.qbicc.pointer.GlobalPointer;
 import org.qbicc.pointer.InstanceFieldPointer;
 import org.qbicc.pointer.InstanceMethodPointer;
 import org.qbicc.pointer.IntegerAsPointer;
@@ -339,7 +340,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         if (isInt64(inputType)) {
             // TODO: Remove this when late-scheduling can be enabled.
             //       This hacks around early scheduling of a bitwise and in runtime-only code in the DirectByteBuffer constructor
-            if (require(left) instanceof MemoryPointer) {
+            if (require(left) instanceof GlobalPointer) {
                 return box(0L, node.getType());
             }
             return box(unboxLong(left) & unboxLong(right), node.getType());
@@ -1315,7 +1316,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             if (isInt64(inputType)) {
                 // TODO: Remove this when late-scheduling can be enabled.
                 //       This hacks around early scheduling of a mod in runtime-only code in the DirectByteBuffer constructor
-                if (require(node.getLeftInput()) instanceof MemoryPointer) {
+                if (require(node.getLeftInput()) instanceof GlobalPointer) {
                     return box(0L, node.getType());
                 }
                 // long math
@@ -1557,7 +1558,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         if (isInt64(inputType)) {
             // TODO: Remove this when late-scheduling can be enabled.
             //       This hacks around early scheduling of a pointer computation in runtime-only code in the DirectByteBuffer constructor
-            if (require(node.getLeftInput()) instanceof MemoryPointer) {
+            if (require(node.getLeftInput()) instanceof GlobalPointer) {
                 return require(node.getLeftInput());
             }
             // long math

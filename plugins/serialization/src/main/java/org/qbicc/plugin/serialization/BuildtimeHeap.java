@@ -23,6 +23,7 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.interpreter.Memory;
+import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
@@ -574,7 +575,8 @@ public class BuildtimeHeap {
                         DataDeclaration decl = into.getProgramModule().declareData(sfe, global.getName(), global.getType());
                         memberMap.put(om, lf.valueConvertLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), it));
                     } else if (asPointerVal instanceof GlobalPointer gp) {
-                        if (gp.getRootMemoryIfExists() instanceof ByteArrayMemory bam) {
+                        Memory m = ctxt.getVm().getGlobal(gp.getGlobalVariable());
+                        if (m instanceof ByteArrayMemory bam) {
                             // Support serializing "native" memory allocated by Unsafe.allocateMemory0
                             DataDeclaration memDecl = serializeNativeMemory(gp.getGlobalVariable(), bam.getArray(), objectSection);
                             memberMap.put(om, lf.valueConvertLiteral(lf.literalOf(memDecl), it));

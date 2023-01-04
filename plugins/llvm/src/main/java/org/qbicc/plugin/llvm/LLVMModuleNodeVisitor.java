@@ -495,7 +495,7 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
                 return;
             }
             mapTypeSuffix(b, pointeeType);
-        } else if (type instanceof ReferenceType) {
+        } else if (type instanceof ReferenceType || type instanceof UnresolvedType) {
             b.append(opaquePointers ? "p1" : "p1i8");
         } else if (type instanceof FloatType ft) {
             b.append('f').append(ft.getMinBits());
