@@ -987,4 +987,9 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     public boolean equals(final Object obj) {
         return obj instanceof DefinedTypeDefinitionImpl ? super.equals(obj) : obj.equals(this);
     }
+
+    @Override
+    public String toString() {
+        return internalName;
+    }
 }

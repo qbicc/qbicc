@@ -399,4 +399,9 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
         }
         return em;
     }
+
+    @Override
+    public String toString() {
+        return delegate.toString();
+    }
 }
