@@ -40,6 +40,7 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -243,6 +244,24 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         } else {
             LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(fieldElement.getEnclosingType());
             return ctxt.getLiteralFactory().literalOf(layoutInfo.getMember(fieldElement).getOffset());
+        }
+    }
+
+    @Override
+    public Value pointerDifference(Value leftPointer, Value rightPointer) {
+        // this is similar to how clang translates pointer differences
+        BasicBlockBuilder fb = getFirstBuilder();
+        SignedIntegerType intType = leftPointer.getType(PointerType.class).getSameSizedSignedInteger();
+        Value leftCast = fb.bitCast(leftPointer, intType);
+        Value rightCast = fb.bitCast(rightPointer, intType);
+        Value byteDiff = fb.sub(leftCast, rightCast);
+        ValueType pointeeType = leftPointer.getPointeeType();
+        long size = pointeeType.getSize();
+        if (size <= 1) {
+            // no scale needed (and, treat zero-sized pointers as byte pointers)
+            return byteDiff;
+        } else {
+            return fb.divide(byteDiff, getLiteralFactory().literalOf(intType, size));
         }
     }
 

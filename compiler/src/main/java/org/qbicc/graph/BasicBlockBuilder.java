@@ -455,6 +455,8 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value offsetPointer(Value basePointer, Value offset);
 
+    Value pointerDifference(Value leftPointer, Value rightPointer);
+
     Value byteOffsetPointer(Value base, Value offset, ValueType outputType);
 
     Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type);

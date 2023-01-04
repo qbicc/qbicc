@@ -531,6 +531,10 @@ final class CNativeIntrinsics {
         intrinsics.registerIntrinsic(ptrDesc, "minus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(ptrDiffTDesc)), minus);
         intrinsics.registerIntrinsic(ptrDesc, "minus", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(sizeTDesc)), minus);
 
+        InstanceIntrinsic ptrPtrMinus = (builder, instance, targetPtr, arguments) -> builder.pointerDifference(instance, arguments.get(0));
+
+        intrinsics.registerIntrinsic(ptrDesc, "minus", MethodDescriptor.synthesize(classContext, ptrDiffTDesc, List.of(ptrDesc)), ptrPtrMinus);
+
         Literal zeroVoid = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
 
         InstanceIntrinsic sel = (builder, instance, target, arguments) -> builder.deref(instance);

@@ -80,6 +80,7 @@ import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.Or;
+import org.qbicc.graph.PointerDifference;
 import org.qbicc.graph.PopCount;
 import org.qbicc.graph.Reachable;
 import org.qbicc.graph.ReadModifyWrite;
@@ -144,6 +145,7 @@ import org.qbicc.pointer.MemberPointer;
 import org.qbicc.pointer.MemoryPointer;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.ReferenceAsPointer;
+import org.qbicc.pointer.RootPointer;
 import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
@@ -1391,6 +1393,47 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Boolean.valueOf(unboxBool(left) | unboxBool(right));
         }
         throw badInputType();
+    }
+
+    @Override
+    public Object visit(VmThreadImpl vmThread, PointerDifference node) {
+        long pointeeSize = node.getLeftInput().getPointeeType().getSize();
+        Pointer leftPtr = unboxPointer(node.getLeftInput());
+        Pointer rightPtr = unboxPointer(node.getRightInput());
+        if (leftPtr instanceof IntegerAsPointer leftIap) {
+            if (rightPtr instanceof IntegerAsPointer rightIap) {
+                return Long.valueOf((leftIap.getValue() - rightIap.getValue()) / pointeeSize);
+            } else if (rightPtr == null) {
+                return Long.valueOf(leftIap.getValue());
+            } else {
+                // we cannot negate rightPtr
+                throw badInputType();
+            }
+        } else if (leftPtr == null) {
+            if (rightPtr instanceof IntegerAsPointer rightIap) {
+                return Long.valueOf((- rightIap.getValue()) / pointeeSize);
+            } else if (rightPtr == null) {
+                return Long.valueOf(0);
+            } else {
+                // we cannot negate rightPtr
+                throw badInputType();
+            }
+        } else {
+            // left isn't null and isn't an integer
+            if (rightPtr == null || rightPtr instanceof IntegerAsPointer) {
+                // cannot represent leftPtr as an integer
+                throw badInputType();
+            } else {
+                // ptr - ptr only works if the base pointers are the same
+                RootPointer leftRoot = leftPtr.getRootPointer();
+                RootPointer rightRoot = rightPtr.getRootPointer();
+                if (leftRoot.equals(rightRoot)) {
+                    return Long.valueOf(leftPtr.getRootByteOffset() - rightRoot.getRootByteOffset());
+                } else {
+                    throw badInputType();
+                }
+            }
+        }
     }
 
     @Override

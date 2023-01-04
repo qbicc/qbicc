@@ -463,6 +463,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return unique(new OffsetPointer(callSite, element, line, bci, basePointer, offset));
     }
 
+    public Value pointerDifference(final Value leftPointer, final Value rightPointer) {
+        return unique(new PointerDifference(callSite, element, line, bci, leftPointer, rightPointer));
+    }
+
     public Value byteOffsetPointer(Value base, Value offset, ValueType outputType) {
         return unique(new ByteOffsetPointer(callSite, element, line, bci, base, offset, outputType));
     }

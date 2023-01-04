@@ -19,6 +19,8 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.And;
+import org.qbicc.graph.PointerDifference;
+import org.qbicc.graph.ValueVisitor;
 import org.qbicc.graph.literal.AsmLiteral;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BinaryValue;
@@ -785,6 +787,12 @@ public final class Disassembler {
         @Override
         public Void visit(Disassembler param, Or node) {
             binary("%s | %s", param, node);
+            return delegate.visit(param, node);
+        }
+
+        @Override
+        public Void visit(Disassembler param, PointerDifference node) {
+            binary("%s - %s", param, node);
             return delegate.visit(param, node);
         }
 
