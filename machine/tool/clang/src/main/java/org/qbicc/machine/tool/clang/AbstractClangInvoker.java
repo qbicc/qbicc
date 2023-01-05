@@ -24,6 +24,7 @@ abstract class AbstractClangInvoker implements MessagingToolInvoker {
 
     private final ClangToolChainImpl tool;
     private ToolMessageHandler messageHandler = ToolMessageHandler.DISCARDING;
+    private Path workingDirectory;
 
     AbstractClangInvoker(final ClangToolChainImpl tool) {
         this.tool = tool;
@@ -44,6 +45,14 @@ abstract class AbstractClangInvoker implements MessagingToolInvoker {
     public Path getPath() {
         // only one executable for now
         return tool.getExecutablePath();
+    }
+
+    public Path getWorkingDirectory() {
+        return workingDirectory;
+    }
+
+    public void setWorkingDirectory(Path workingDirectory) {
+        this.workingDirectory = workingDirectory;
     }
 
     static final Pattern DIAG_PATTERN = Pattern.compile(
@@ -96,6 +105,9 @@ abstract class AbstractClangInvoker implements MessagingToolInvoker {
         addArguments(cmd);
         ProcessBuilder pb = new ProcessBuilder();
         pb.command(cmd);
+        if (getWorkingDirectory() != null) {
+            pb.directory(getWorkingDirectory().toFile());
+        }
         pb.environment().put("LC_ALL", "C");
         pb.environment().put("LANG", "C");
         getSource().transferTo(OutputDestination.of(pb, errorHandler, OutputDestination.discarding(), p -> {

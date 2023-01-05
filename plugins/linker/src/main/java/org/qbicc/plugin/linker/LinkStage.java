@@ -33,6 +33,7 @@ public class LinkStage implements Consumer<CompilationContext> {
         }
         LinkerInvoker linkerInvoker = cToolChain.newLinkerInvoker();
         Linker linker = Linker.get(context);
+        linkerInvoker.setWorkingDirectory(context.getOutputDirectory());
         linkerInvoker.addObjectFiles(linker.getObjectFilePathsInLinkOrder());
         linkerInvoker.addLibraries(linker.getLibraries());
         linkerInvoker.addLibraryPaths(librarySearchPaths);

@@ -21,6 +21,7 @@ public final class LlvmObjCopyInvokerImpl implements LlvmObjCopyInvoker {
     private Path objectFilePath;
     private ToolMessageHandler messageHandler = ToolMessageHandler.DISCARDING;
     private OutputDestination destination = OutputDestination.discarding();
+    private Path workingDirectory;
 
     LlvmObjCopyInvokerImpl(LlvmToolChain toolChain, Path execPath) {
         this.toolChain = toolChain;
@@ -37,6 +38,14 @@ public final class LlvmObjCopyInvokerImpl implements LlvmObjCopyInvoker {
 
     public Path getPath() {
         return execPath;
+    }
+
+    public Path getWorkingDirectory() {
+        return workingDirectory;
+    }
+
+    public void setWorkingDirectory(Path workingDirectory) {
+        this.workingDirectory = workingDirectory;
     }
 
     public void invoke() throws IOException {
@@ -60,6 +69,9 @@ public final class LlvmObjCopyInvokerImpl implements LlvmObjCopyInvoker {
         cmd.add(objectFilePath.toString());
         ProcessBuilder pb = new ProcessBuilder();
         pb.command(cmd);
+        if (getWorkingDirectory() != null) {
+            pb.directory(getWorkingDirectory().toFile());
+        }
         pb.environment().put("LC_ALL", "C");
         pb.environment().put("LANG", "C");
         return OutputDestination.of(pb, errorHandler, destination, p -> {

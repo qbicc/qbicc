@@ -15,6 +15,7 @@ final class EmscriptenLinkerInvokerImpl extends AbstractEmscriptenInvoker implem
     private final List<String> libraries = new ArrayList<>(4);
     private final List<Path> objectFiles = new ArrayList<>(4);
     private Path outputPath = TMP.resolve("qbicc-output-image");
+    private Path workingDirectory;
     private boolean isPie = false;
 
     EmscriptenLinkerInvokerImpl(final EmscriptenToolChainImpl tool) {
