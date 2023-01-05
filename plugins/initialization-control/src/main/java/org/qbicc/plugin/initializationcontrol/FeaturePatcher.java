@@ -115,7 +115,7 @@ public class FeaturePatcher {
         if (encodedMethods != null) {
             for (String candidate : encodedMethods) {
                 String[] split = candidate.split(":");
-                if (methodName.equals(split[0]) && matchesArguments(candidate, descriptor.getParameterTypes())) {
+                if (methodName.equals(split[0]) && matchesArguments(split.length == 1 ? "" : split[1], descriptor.getParameterTypes())) {
                     return true;
                 }
             }
@@ -153,12 +153,15 @@ public class FeaturePatcher {
     }
 
     private boolean matchesArguments(String encodedArgs, List<TypeDescriptor> paramTypes) {
+        if (paramTypes.isEmpty() && encodedArgs.equals("")) {
+            return true;
+        }
         String[] args = encodedArgs.split(",");
+        if (args.length == 1 && args[0].equals("*")) {
+            return true;
+        }
         if (args.length != paramTypes.size()) {
             return false;
-        }
-        if (args.length == 0 || (args.length == 1 && args[0].equals("*"))) {
-            return true;
         }
         for (int i=0; i<args.length; i++) {
             if (!args[i].equals(paramTypes.get(i).toString())) {
