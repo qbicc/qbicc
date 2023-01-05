@@ -399,7 +399,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             NestedClassElement enclosingClass = enclosingClassResolver == null ? null : enclosingClassResolver.resolveEnclosingNestedClass(enclosingClassResolverIndex, this, NestedClassElement.builder(0));
             NestedClassElement[] enclosedClasses = resolveEnclosedClasses(enclosedClassResolvers, enclosedClassResolverIndexes, 0, 0);
 
-            // Construct instanceMethods -- the ordered list of all instance methods inherited and directly implemented.
+            // Construct instanceMethods -- the ordered list of all non-private instance methods inherited and directly implemented.
             ArrayList<MethodElement> instanceMethods = new ArrayList<>();
             if (superType != null && !isInterface()) {
                 // (i) all instance methods of my superclass
@@ -417,7 +417,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                 }
             }
             outer: for (MethodElement dm: methods) {
-                if (!dm.isStatic()) {
+                if (!dm.isStatic() && !dm.isPrivate()) {
                     for (int i=0; i<instanceMethods.size(); i++) {
                         if (instanceMethods.get(i).getName().equals(dm.getName()) && instanceMethods.get(i).getDescriptor().equals(dm.getDescriptor())) {
                             // override inherited method
