@@ -9,7 +9,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -58,7 +57,6 @@ import org.qbicc.driver.Phase;
 import org.qbicc.driver.plugin.DriverPlugin;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
-import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.plugin.apploader.AppClassLoader;
 import org.qbicc.plugin.correctness.ConstraintMaterializingBasicBlockBuilder;
 import org.qbicc.plugin.correctness.DeferenceBasicBlockBuilder;
@@ -68,7 +66,6 @@ import org.qbicc.plugin.llvm.LLVMConfiguration;
 import org.qbicc.plugin.llvm.ReferenceStrategy;
 import org.qbicc.plugin.reachability.ReachabilityFactsSetup;
 import org.qbicc.interpreter.Vm;
-import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.impl.VmImpl;
 import org.qbicc.machine.arch.Platform;
@@ -192,7 +189,6 @@ import picocli.CommandLine.ParseResult;
 public class Main implements Callable<DiagnosticContext> {
     private final List<ClassPathEntry> bootPaths;
     private final List<ClassPathEntry> appPaths;
-    private final ClassLoader hostAppClassLoader;
     private final Runtime.Version classLibVersion;
     private final Path outputPath;
     private final String outputName;
@@ -260,18 +256,6 @@ public class Main implements Callable<DiagnosticContext> {
         qbiccYamlFeatures = builder.qbiccYamlFeatures;
         qbiccFeatures = builder.qbiccFeatures;
         classPathResolver = builder.classPathResolver == null ? this::resolveClassPath : builder.classPathResolver;
-
-        List<URL> urls = new ArrayList<>();
-        for (ClassPathEntry cpe : appPaths) {
-            if (cpe instanceof ClassPathEntry.FilePath fp) {
-                try {
-                    urls.add(fp.getPath().toUri().toURL());
-                } catch (MalformedURLException e) {
-                    // Ignore; if it matters will show up CNFE when the ClassLoader is used
-                }
-            }
-        }
-        hostAppClassLoader = URLClassLoader.newInstance(urls.toArray(new URL[0]));
         llvmConfigurationBuilder = builder.llvmConfigurationBuilder;
         classLibVersion = Runtime.Version.parse(builder.classLibVersion.split("\\.")[0]);
     }
