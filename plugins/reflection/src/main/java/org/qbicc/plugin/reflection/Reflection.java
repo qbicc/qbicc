@@ -370,7 +370,9 @@ public final class Reflection {
     }
 
     public void generateReflectiveData(LoadedTypeDefinition ltd) {
-        if (!ltd.getVisibleAnnotations().isEmpty() || (!ltd.isInterface() && hasInheritedAnnotations(ltd))) {
+        if (!ltd.getVisibleAnnotations().isEmpty()
+            || (!ltd.isInterface() && hasInheritedAnnotations(ltd))
+            || ReachabilityRoots.get(ctxt).isReflectiveClass(ltd)) {
             MethodElement annotationData = classClass.getTypeDefinition().requireSingleMethod("annotationData");
             vm.invokeExact(annotationData, ltd.getVmClass(), List.of());
         }

@@ -104,7 +104,6 @@ public class ReachabilityRoots {
             info.processRootReachableElement(e);
         }
         for (LoadedTypeDefinition ltd : roots.reflectiveClasses) {
-            ReachabilityInfo.LOGGER.debugf("Reflectively accessed type %s made reachable", ltd.toString());
             info.getAnalysis().processReachableType(ltd, null);
         }
         for (ExecutableElement e : roots.reflectiveMethods) {
@@ -135,6 +134,10 @@ public class ReachabilityRoots {
         for (ExecutableElement e : roots.dispatchTableMethods) {
             ctxt.enqueue(e);
         }
+    }
+
+    public boolean isReflectiveClass(LoadedTypeDefinition ltd) {
+        return reflectiveClasses.contains(ltd);
     }
 
     public Set<LoadedTypeDefinition> getReflectiveClasses() {

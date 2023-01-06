@@ -54,6 +54,10 @@ public class FeaturePatcher {
         }
     }
 
+    public boolean isReflectiveClass(String internalName) {
+        return reflectiveClasses.containsKey(internalName);
+    }
+
     public void addReflectiveConstructor(String className, String[] parameterTypes) {
         reflectiveConstructors.computeIfAbsent(className, k -> ConcurrentHashMap.newKeySet()).add(encodeArguments(parameterTypes));
     }
@@ -127,14 +131,14 @@ public class FeaturePatcher {
         if (args == null || args.length == 0) {
             return "";
         }
-        if (args.length == 1 && args.equals("*")) {
+        if (args.length == 1 && args[0].equals("*")) {
             return "*"; // wildcard -- matches all args
         }
-        String ans = toDescriptorString(args[0]);
+        StringBuilder ans = new StringBuilder(toDescriptorString(args[0]));
         for (int i = 1; i<args.length; i++) {
-            ans = ans + "," + toDescriptorString(args[i]);
+            ans.append(",").append(toDescriptorString(args[i]));
         }
-        return ans;
+        return ans.toString();
     }
 
     private String toDescriptorString(String t) {

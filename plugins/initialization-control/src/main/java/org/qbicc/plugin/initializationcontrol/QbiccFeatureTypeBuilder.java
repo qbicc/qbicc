@@ -20,6 +20,7 @@ public class QbiccFeatureTypeBuilder implements DefinedTypeDefinition.Builder.De
     private final DefinedTypeDefinition.Builder delegate;
     private final ClassContext classContext;
     private boolean runtimeInitialized;
+    private boolean reflectiveClass;
     private boolean reflectiveFields;
     private boolean reflectiveConstructors;
     private boolean reflectiveMethods;
@@ -41,6 +42,9 @@ public class QbiccFeatureTypeBuilder implements DefinedTypeDefinition.Builder.De
         FeaturePatcher fp = FeaturePatcher.get(classContext.getCompilationContext());
         if (fp.isRuntimeInitializedClass(internalName)) {
             runtimeInitialized = true;
+        }
+        if (fp.isReflectiveClass(internalName)) {
+            reflectiveClass = true;
         }
         if (fp.hasReflectiveConstructors(internalName)) {
             reflectiveConstructors = true;
@@ -127,6 +131,15 @@ public class QbiccFeatureTypeBuilder implements DefinedTypeDefinition.Builder.De
         } else {
             delegate.addField(resolver, index, name, descriptor);
         }
+    }
+
+    @Override
+    public DefinedTypeDefinition build() {
+        DefinedTypeDefinition result = delegate.build();
+        if (reflectiveClass) {
+            ReachabilityRoots.get(classContext.getCompilationContext()).registerReflectiveClass(result.load());
+        }
+        return result;
     }
 
     static class RuntimeInitFieldResolver implements FieldResolver {
