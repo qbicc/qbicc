@@ -133,7 +133,6 @@ import org.qbicc.plugin.native_.NativeXtorLoweringHook;
 import org.qbicc.plugin.native_.PointerBasicBlockBuilder;
 import org.qbicc.plugin.native_.PointerTypeResolver;
 import org.qbicc.plugin.native_.StructMemberAccessBasicBlockBuilder;
-import org.qbicc.plugin.nativeimage.GraalFeatureProcessor;
 import org.qbicc.plugin.initializationcontrol.QbiccFeatureTypeBuilder;
 import org.qbicc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
 import org.qbicc.plugin.opt.BlockParameterOptimizingVisitor;
@@ -182,7 +181,6 @@ import org.qbicc.plugin.vfs.VFS;
 import org.qbicc.plugin.vio.VIO;
 import org.qbicc.tool.llvm.LlvmToolChain;
 import org.qbicc.type.TypeSystem;
-import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.classfile.BciRangeExceptionHandlerBasicBlockBuilder;
 import picocli.CommandLine;
 import picocli.CommandLine.ParameterException;
@@ -214,7 +212,6 @@ public class Main implements Callable<DiagnosticContext> {
     private final Platform platform;
     private final boolean smallTypeIds;
     private final List<Path> librarySearchPaths;
-    private final List<String> graalFeatures;
     private final List<URL> qbiccYamlFeatures;
     private final List<QbiccFeature> qbiccFeatures;
     private final ClassPathResolver classPathResolver;
@@ -260,7 +257,6 @@ public class Main implements Callable<DiagnosticContext> {
         this.bootPaths = bootPaths;
         appPaths = List.copyOf(builder.appPaths);
         librarySearchPaths = builder.librarySearchPaths;
-        graalFeatures = builder.graalFeatures;
         qbiccYamlFeatures = builder.qbiccYamlFeatures;
         qbiccFeatures = builder.qbiccFeatures;
         classPathResolver = builder.classPathResolver == null ? this::resolveClassPath : builder.classPathResolver;
@@ -468,9 +464,6 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
                                 }
                                 builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachable);
-                                builder.addPreHook(Phase.ADD, compilationContext -> {
-                                    GraalFeatureProcessor.process(compilationContext, graalFeatures, hostAppClassLoader);
-                                });
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
                                     if (!buildTimeInitRootClasses.isEmpty()) {
                                         for (String toInit : buildTimeInitRootClasses) {
@@ -836,7 +829,6 @@ public class Main implements Callable<DiagnosticContext> {
             .prependBootPaths(optionsProcessor.prependedBootPathEntries)
             .addAppPaths(optionsProcessor.appPathEntries)
             .processJarArgument(optionsProcessor.inputJar)
-            .addGraalFeatures(optionsProcessor.graalFeatures.stream().toList())
             .addQbiccYamlFeatures(optionsProcessor.qbiccFeatures.stream().toList())
             .setOutputPath(optionsProcessor.outputPath)
             .setOutputName(optionsProcessor.outputName)
@@ -949,10 +941,6 @@ public class Main implements Callable<DiagnosticContext> {
             appPathEntries.addAll(filePath);
         }
         private final List<ClassPathEntry> appPathEntries = new ArrayList<>();
-
-        @CommandLine.Option(names ="--graal-feature", description = "GraalVM native-image Feature")
-        void addGraalFeature(List<String> features) { graalFeatures.addAll(features); }
-        private final Set<String> graalFeatures = new HashSet<>();
 
         @CommandLine.Option(names="--qbicc-feature", description = "qbicc build configuration file")
         void addQbiccFeature(List<Path> features) {
@@ -1160,7 +1148,6 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean smallTypeIds = false;
         private Backend backend = Backend.llvm;
         private List<Path> librarySearchPaths = List.of();
-        private List<String> graalFeatures = new ArrayList<>();
         private List<URL> qbiccYamlFeatures = new ArrayList<>();
         private List<QbiccFeature> qbiccFeatures = new ArrayList<>();
         private ClassPathResolver classPathResolver;
@@ -1207,11 +1194,6 @@ public class Main implements Callable<DiagnosticContext> {
         public Builder addAppPaths(List<ClassPathEntry> entry) {
             Assert.checkNotNullParam("entry", entry);
             appPaths.addAll(entry);
-            return this;
-        }
-
-        public Builder addGraalFeatures(List<String> features) {
-            graalFeatures.addAll(features);
             return this;
         }
 
