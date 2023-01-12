@@ -79,24 +79,22 @@ public final class ReflectionIntrinsics {
 
         InstanceIntrinsic invokeIntrinsic = (builder, instance, target, arguments) -> {
             LiteralFactory lf = ctxt.getLiteralFactory();
+            // perform a build-time check
+            InstanceMethodElement element = target.getExecutable();
+            MethodDescriptor callSiteDescriptor = element.getDescriptor();
+            BasicBlockBuilder fb = builder.getFirstBuilder();
+            Vm vm = Vm.requireCurrent();
+            ClassContext classContext = builder.getCurrentClassContext();
+            // the method type is constant, based on the call site
+            VmObject realType = vm.createMethodType(classContext, callSiteDescriptor);
+            Value realHandle;
+            LoadedTypeDefinition mhDef = element.getEnclosingType().load();
+            int asTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("asType"));
+            InstanceMethodElement asType = (InstanceMethodElement) mhDef.getMethod(asTypeIdx);
             if (instance instanceof ObjectLiteral instanceLit) {
-                // perform a build-time check
-                InstanceMethodElement element = target.getExecutable();
-                MethodDescriptor callSiteDescriptor = element.getDescriptor();
-                BasicBlockBuilder fb = builder.getFirstBuilder();
-                Vm vm = Vm.requireCurrent();
+                // the handle itself is a literal, so we can change its type immediately
                 try {
-                    ClassContext classContext = builder.getCurrentClassContext();
-                    VmObject realType = vm.createMethodType(classContext, callSiteDescriptor);
-                    Value realHandle;
-                    LoadedTypeDefinition mhDef = element.getEnclosingType().load();
-                    int asTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("asType"));
-                    MethodElement asType = mhDef.getMethod(asTypeIdx);
-                    // get the target statically
                     realHandle = lf.literalOf((VmObject) vm.invokeVirtual(asType, instanceLit.getValue(), List.of(realType)));
-                    // and transform to `invokeExact`
-                    Value invokeExactHandle = fb.resolveInstanceMethod(methodHandleDesc, "invokeExact", callSiteDescriptor);
-                    return fb.call(invokeExactHandle, realHandle, arguments);
                 } catch (Thrown t) {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invoke intrinsic: %s", t);
                     log.warnf(t, "Failed to expand MethodHandle.invoke intrinsic");
@@ -105,62 +103,33 @@ public final class ReflectionIntrinsics {
                     throw new BlockEarlyTermination(fb.throw_(ie));
                 }
             } else {
-                // do not expand intrinsic; let the method be called
-                return null;
+                // the handle is not a literal, so change its type at run time
+                realHandle = fb.call(fb.lookupVirtualMethod(instance, asType), instance, List.of(lf.literalOf(realType)));
             }
+            // and transform to `invokeExact`
+            Value invokeExactHandle = fb.resolveInstanceMethod(methodHandleDesc, "invokeExact", callSiteDescriptor);
+            return fb.call(invokeExactHandle, realHandle, arguments);
         };
         intrinsics.registerIntrinsic(methodHandleDesc, "invoke", invokeIntrinsic);
-
-        // (non-intrinsic version)
-        InstanceIntrinsic invokeMethodBody = (builder, instance, target, arguments) -> {
-            LiteralFactory lf = ctxt.getLiteralFactory();
-            InstanceMethodElement element = target.getExecutable();
-            MethodDescriptor callSiteDescriptor = element.getDescriptor();
-            BasicBlockBuilder fb = builder.getFirstBuilder();
-            Vm vm = Vm.requireCurrent();
-            try {
-                ClassContext classContext = builder.getCurrentClassContext();
-                VmObject realType = vm.createMethodType(classContext, callSiteDescriptor);
-                Value realHandle;
-                LoadedTypeDefinition mhDef = element.getEnclosingType().load();
-                int asTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("asType"));
-                InstanceMethodElement asType = (InstanceMethodElement) mhDef.getMethod(asTypeIdx);
-                // get the target dynamically
-                Value asTypeHandle = fb.lookupVirtualMethod(instance, asType);
-                realHandle = fb.call(asTypeHandle, instance, List.of(lf.literalOf(realType)));
-                // and transform to `invokeExact`
-                Value invokeExact = fb.resolveInstanceMethod(methodHandleDesc, "invokeExact", callSiteDescriptor);
-                throw new BlockEarlyTermination(fb.tailCall(invokeExact, realHandle, arguments));
-            } catch (Thrown t) {
-                ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invoke method: %s", t);
-                log.warnf(t, "Failed to expand MethodHandle.invoke method");
-                Value ie = fb.new_(internalErrorDesc);
-                fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
-                throw new BlockEarlyTermination(fb.throw_(ie));
-            }
-        };
-        patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "invoke", objArrayToObj, new InstanceIntrinsicMethodBodyFactory(invokeMethodBody), 0);
 
         // mh.invokeExact(...) → mh.checkType(type); mh.invokeBasic(...)
 
         InstanceIntrinsic invokeExactIntrinsic = (builder, instance, target, arguments) -> {
             LiteralFactory lf = ctxt.getLiteralFactory();
+            InstanceMethodElement element = target.getExecutable();
+            MethodDescriptor callSiteDescriptor = element.getDescriptor();
+            BasicBlockBuilder fb = builder.getFirstBuilder();
+            Vm vm = Vm.requireCurrent();
+            ClassContext classContext = builder.getCurrentClassContext();
+            // the method type is constant, based on the call site
+            VmObject realType = vm.createMethodType(classContext, callSiteDescriptor);
+            LoadedTypeDefinition mhDef = element.getEnclosingType().load();
+            int checkTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("checkType"));
+            InstanceMethodElement checkType = (InstanceMethodElement) mhDef.getMethod(checkTypeIdx);
             if (instance instanceof ObjectLiteral instanceLit) {
-                InstanceMethodElement element = target.getExecutable();
-                MethodDescriptor callSiteDescriptor = element.getDescriptor();
-                BasicBlockBuilder fb = builder.getFirstBuilder();
-                Vm vm = Vm.requireCurrent();
+                // the handle itself is a literal, so we can check its type immediately
                 try {
-                    ClassContext classContext = builder.getCurrentClassContext();
-                    VmObject realType = vm.createMethodType(classContext, callSiteDescriptor);
-                    LoadedTypeDefinition mhDef = element.getEnclosingType().load();
-                    int checkTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("checkType"));
-                    MethodElement checkType = mhDef.getMethod(checkTypeIdx);
-                    // check the type now
                     vm.invokeExact(checkType, instanceLit.getValue(), List.of(realType));
-                    // type is OK; now we can forward to invokeBasic(...) on this same instance
-                    Value invokeBasicHandle = fb.resolveInstanceMethod(methodHandleDesc, "invokeBasic", callSiteDescriptor);
-                    return fb.call(invokeBasicHandle, instance, arguments);
                 } catch (Thrown t) {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invokeExact intrinsic: %s", t);
                     log.warnf(t, "Failed to expand MethodHandle.invokeExact intrinsic");
@@ -169,38 +138,14 @@ public final class ReflectionIntrinsics {
                     throw new BlockEarlyTermination(fb.throw_(ie));
                 }
             } else {
-                // do not expand intrinsic; let the method be called
-                return null;
+                // the handle is not a literal, so check its type at run time
+                fb.call(fb.lookupVirtualMethod(instance, checkType), instance, List.of(lf.literalOf(realType)));
             }
+            // type is OK; now we can forward to invokeBasic(...) on this same instance
+            Value invokeBasicHandle = fb.resolveInstanceMethod(methodHandleDesc, "invokeBasic", callSiteDescriptor);
+            return fb.call(invokeBasicHandle, instance, arguments);
         };
         intrinsics.registerIntrinsic(methodHandleDesc, "invokeExact", invokeExactIntrinsic);
-
-        InstanceIntrinsic invokeExactMethodBody = (builder, instance, target, arguments) -> {
-            LiteralFactory lf = ctxt.getLiteralFactory();
-            InstanceMethodElement element = target.getExecutable();
-            MethodDescriptor callSiteDescriptor = element.getDescriptor();
-            BasicBlockBuilder fb = builder.getFirstBuilder();
-            Vm vm = Vm.requireCurrent();
-            try {
-                ClassContext classContext = builder.getCurrentClassContext();
-                VmObject realType = vm.createMethodType(classContext, callSiteDescriptor);
-                LoadedTypeDefinition mhDef = element.getEnclosingType().load();
-                int checkTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("checkType"));
-                InstanceMethodElement checkType = (InstanceMethodElement) mhDef.getMethod(checkTypeIdx);
-                // check the type dynamically at run time
-                fb.call(lf.literalOf(checkType), instance, List.of(lf.literalOf(realType)));
-                // and transform to `invokeBasic`
-                Value invokeBasicHandle = fb.resolveInstanceMethod(methodHandleDesc, "invokeBasic", callSiteDescriptor);
-                throw new BlockEarlyTermination(fb.tailCall(invokeBasicHandle, instance, arguments));
-            } catch (Thrown t) {
-                ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invokeExact method: %s", t);
-                log.warnf(t, "Failed to expand MethodHandle.invokeExact method");
-                Value ie = fb.new_(internalErrorDesc);
-                fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
-                throw new BlockEarlyTermination(fb.throw_(ie));
-            }
-        };
-        patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "invokeExact", objArrayToObj, new InstanceIntrinsicMethodBodyFactory(invokeExactMethodBody), 0);
 
         // mh.invokeBasic(...) → (*mh.form.vmentry)(...)
 
