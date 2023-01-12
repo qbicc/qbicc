@@ -38,4 +38,8 @@ public final class ThreadLocals {
     void registerThreadLocalField(StaticFieldElement staticField, InstanceFieldElement injectedField) {
         threadLocalFields.put(staticField, injectedField);
     }
+
+    public boolean isThreadLocalField(InstanceFieldElement instanceField) {
+        return threadLocalFields.contains(instanceField);
+    }
 }

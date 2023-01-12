@@ -23,7 +23,6 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.interpreter.Memory;
-import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmArray;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
@@ -46,6 +45,7 @@ import org.qbicc.plugin.constants.Constants;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
+import org.qbicc.plugin.threadlocal.ThreadLocals;
 import org.qbicc.pointer.GlobalPointer;
 import org.qbicc.pointer.IntegerAsPointer;
 import org.qbicc.pointer.MemoryPointer;
@@ -73,6 +73,7 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.definition.element.StaticMethodElement;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -539,7 +540,9 @@ public class BuildtimeHeap {
             CompoundType.Member im = memLayout.getMember(f);
             CompoundType.Member om = objLayout.getMember(f);
             if (im == null || om == null) {
-                ctxt.warning("Field " + f +" not serialized due to incomplete layout");
+                if (!ThreadLocals.get(ctxt).isThreadLocalField((InstanceFieldElement)f)) {
+                    ctxt.warning("Field " + f + " not serialized due to incomplete layout");
+                }
                 continue;
             }
             Literal replacement = f.getReplacementValue(ctxt);
