@@ -98,9 +98,7 @@ public final class ReflectionIntrinsics {
                 } catch (Thrown t) {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invoke intrinsic: %s", t);
                     log.warnf(t, "Failed to expand MethodHandle.invoke intrinsic");
-                    Value ie = fb.new_(internalErrorDesc);
-                    fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
-                    throw new BlockEarlyTermination(fb.throw_(ie));
+                    throw new BlockEarlyTermination(fb.throw_(lf.literalOf(t.getThrowable())));
                 }
             } else {
                 // the handle is not a literal, so change its type at run time
@@ -133,9 +131,7 @@ public final class ReflectionIntrinsics {
                 } catch (Thrown t) {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.invokeExact intrinsic: %s", t);
                     log.warnf(t, "Failed to expand MethodHandle.invokeExact intrinsic");
-                    Value ie = fb.new_(internalErrorDesc);
-                    fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
-                    throw new BlockEarlyTermination(fb.throw_(ie));
+                    throw new BlockEarlyTermination(fb.throw_(lf.literalOf(t.getThrowable())));
                 }
             } else {
                 // the handle is not a literal, so check its type at run time
@@ -233,9 +229,7 @@ public final class ReflectionIntrinsics {
                 } catch (Thrown t) {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.linkToStatic intrinsic: %s", t);
                     log.warnf(t, "Failed to expand MethodHandle.linkToStatic intrinsic");
-                    Value ie = fb.new_(internalErrorDesc);
-                    fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
-                    throw new BlockEarlyTermination(fb.throw_(ie));
+                    throw new BlockEarlyTermination(fb.throw_(lf.literalOf(t.getThrowable())));
                 }
             } else {
                 // do not expand intrinsic; let the method be called
@@ -280,9 +274,7 @@ public final class ReflectionIntrinsics {
                 } catch (Thrown t) {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.linkToInterface intrinsic: %s", t);
                     log.warnf(t, "Failed to expand MethodHandle.linkToInterface intrinsic");
-                    Value ie = fb.new_(internalErrorDesc);
-                    fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
-                    throw new BlockEarlyTermination(fb.throw_(ie));
+                    throw new BlockEarlyTermination(fb.throw_(lf.literalOf(t.getThrowable())));
                 }
             } else {
                 // do not expand intrinsic; let the method be called
@@ -325,9 +317,7 @@ public final class ReflectionIntrinsics {
                 } catch (Thrown t) {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.linkToSpecial intrinsic: %s", t);
                     log.warnf(t, "Failed to expand MethodHandle.linkToSpecial intrinsic");
-                    Value ie = fb.new_(internalErrorDesc);
-                    fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
-                    throw new BlockEarlyTermination(fb.throw_(ie));
+                    throw new BlockEarlyTermination(fb.throw_(lf.literalOf(t.getThrowable())));
                 }
             } else {
                 // do not expand intrinsic; let the method be called
@@ -370,9 +360,7 @@ public final class ReflectionIntrinsics {
                 } catch (Thrown t) {
                     ctxt.warning(fb.getLocation(), "Failed to expand MethodHandle.linkToVirtual intrinsic: %s", t);
                     log.warnf(t, "Failed to expand MethodHandle.linkToVirtual intrinsic");
-                    Value ie = fb.new_(internalErrorDesc);
-                    fb.call(fb.resolveConstructor(internalErrorDesc, throwableToVoid), ie, List.of(lf.literalOf(t.getThrowable())));
-                    throw new BlockEarlyTermination(fb.throw_(ie));
+                    throw new BlockEarlyTermination(fb.throw_(lf.literalOf(t.getThrowable())));
                 }
             } else {
                 // do not expand intrinsic; let the method be called
