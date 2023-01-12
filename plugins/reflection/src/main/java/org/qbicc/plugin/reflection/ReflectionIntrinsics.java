@@ -86,7 +86,14 @@ public final class ReflectionIntrinsics {
             Vm vm = Vm.requireCurrent();
             ClassContext classContext = builder.getCurrentClassContext();
             // the method type is constant, based on the call site
-            VmObject realType = vm.createMethodType(classContext, callSiteDescriptor);
+            VmObject realType;
+            try {
+                realType = vm.createMethodType(classContext, callSiteDescriptor);
+            } catch (Thrown t) {
+                ctxt.warning(fb.getLocation(), "Failed to create method type: %s", t);
+                log.warnf(t, "Failed to create method type");
+                throw new BlockEarlyTermination(fb.throw_(lf.literalOf(t.getThrowable())));
+            }
             Value realHandle;
             LoadedTypeDefinition mhDef = element.getEnclosingType().load();
             int asTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("asType"));
@@ -120,7 +127,14 @@ public final class ReflectionIntrinsics {
             Vm vm = Vm.requireCurrent();
             ClassContext classContext = builder.getCurrentClassContext();
             // the method type is constant, based on the call site
-            VmObject realType = vm.createMethodType(classContext, callSiteDescriptor);
+            VmObject realType;
+            try {
+                realType = vm.createMethodType(classContext, callSiteDescriptor);
+            } catch (Thrown t) {
+                ctxt.warning(fb.getLocation(), "Failed to create method type: %s", t);
+                log.warnf(t, "Failed to create method type");
+                throw new BlockEarlyTermination(fb.throw_(lf.literalOf(t.getThrowable())));
+            }
             LoadedTypeDefinition mhDef = element.getEnclosingType().load();
             int checkTypeIdx = mhDef.findMethodIndex(me -> me.nameEquals("checkType"));
             InstanceMethodElement checkType = (InstanceMethodElement) mhDef.getMethod(checkTypeIdx);
