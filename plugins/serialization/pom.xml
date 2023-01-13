@@ -40,6 +40,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-reachability</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-thread-local</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

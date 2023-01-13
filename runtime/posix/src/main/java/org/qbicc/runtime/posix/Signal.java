@@ -56,6 +56,12 @@ public final class Signal {
     public static final class sigval_t_ptr_const_ptr extends ptr<@c_const sigval_t_ptr> {}
     public static final class const_sigval_t_ptr_const_ptr extends ptr<@c_const const_sigval_t_ptr> {}
 
+    public static native c_int sigaddset(ptr<sigset_t> set, c_int signo);
+    public static native c_int sigdelset(ptr<sigset_t> set, c_int signo);
+    public static native c_int sigemptyset(ptr<sigset_t> set);
+    public static native c_int sigfillset(ptr<sigset_t> set);
+    public static native c_int sigismember(ptr<sigset_t> set, c_int signo);
+
     public static final class siginfo_t extends object {
         public c_int si_signo;
         public c_int si_code;
@@ -205,4 +211,18 @@ public final class Signal {
     public static final c_int SIGIO = constant();
     public static final c_int SIGPWR = constant();
     public static final c_int SIGWINCH = constant();
+
+    // Other constants that are expected to be defined
+    public static final c_int SA_NOCLDSTOP = constant();
+    public static final c_int SA_ONSTACK = constant();
+    public static final c_int SA_RESETHAND = constant();
+    public static final c_int SA_RESTART = constant();
+    public static final c_int SA_SIGINFO = constant();
+    public static final c_int SA_NOCLDWAIT = constant();
+    public static final c_int SA_NODEFER = constant();
+    public static final c_int SS_ONSTACK = constant();
+    public static final c_int SS_DISABLE = constant();
+    public static final c_int MINSIGSTKSZ = constant();
+    public static final c_int SIGSTKSZ = constant();
+
 }
