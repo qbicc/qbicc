@@ -1,7 +1,9 @@
 package org.qbicc.type.definition.element;
 
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.MethodType;
 import org.qbicc.type.annotation.AnnotationValue;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -27,17 +29,20 @@ public abstract class MethodElement extends InvokableElement implements NamedEle
 
     private final String name;
     private final AnnotationValue defaultValue;
+    private final ClassContext typeResolutionContext;
 
     MethodElement() {
         super();
         this.name = null;
         this.defaultValue = null;
+        typeResolutionContext = null;
     }
 
     MethodElement(BuilderImpl builder) {
         super(builder);
         this.name = builder.name;
         this.defaultValue = builder.defaultValue;
+        typeResolutionContext = builder.classContext;
     }
 
     @Override
@@ -47,6 +52,10 @@ public abstract class MethodElement extends InvokableElement implements NamedEle
 
     @Override
     abstract MethodType computeType();
+
+    ClassContext getTypeResolutionContext() {
+        return typeResolutionContext;
+    }
 
     public String toString() {
         TypeDescriptor desc = getEnclosingType().getDescriptor();
@@ -117,6 +126,15 @@ public abstract class MethodElement extends InvokableElement implements NamedEle
 
         void setDefaultValue(AnnotationValue annotationValue);
 
+        /**
+         * Set a specific class context to use when resolving the descriptor for this method.
+         * If not set, the context of the enclosing type will be used.
+         * Used for signature-polymorphic method resolution.
+         *
+         * @param classContext the class context (must not be {@code null})
+         */
+        void setTypeResolutionContext(ClassContext classContext);
+
         MethodElement build();
 
         interface Delegating extends InvokableElement.Builder.Delegating, NamedElement.Builder.Delegating, Builder {
@@ -129,6 +147,11 @@ public abstract class MethodElement extends InvokableElement implements NamedEle
             }
 
             @Override
+            default void setTypeResolutionContext(ClassContext classContext) {
+                getDelegate().setTypeResolutionContext(classContext);
+            }
+
+            @Override
             default MethodElement build() {
                 return getDelegate().build();
             }
@@ -137,11 +160,20 @@ public abstract class MethodElement extends InvokableElement implements NamedEle
 
     static final class BuilderImpl extends InvokableElement.BuilderImpl implements Builder {
         final String name;
+        ClassContext classContext;
         AnnotationValue defaultValue;
 
         BuilderImpl(String name, MethodDescriptor descriptor, int index) {
             super(descriptor, index);
             this.name = name;
+        }
+
+        @Override
+        public void setEnclosingType(DefinedTypeDefinition enclosingType) {
+            super.setEnclosingType(enclosingType);
+            if (classContext == null) {
+                classContext = enclosingType.getContext();
+            }
         }
 
         public String getName() {
@@ -150,6 +182,11 @@ public abstract class MethodElement extends InvokableElement implements NamedEle
 
         public void setDefaultValue(AnnotationValue annotationValue) {
             this.defaultValue = annotationValue;
+        }
+
+        @Override
+        public void setTypeResolutionContext(ClassContext classContext) {
+            this.classContext = classContext;
         }
 
         public MethodElement build() {
