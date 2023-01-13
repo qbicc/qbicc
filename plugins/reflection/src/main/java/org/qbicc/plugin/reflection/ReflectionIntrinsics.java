@@ -419,7 +419,7 @@ public final class ReflectionIntrinsics {
                     TypeDescriptor returnTypeDesc = descriptor.getReturnType();
                     if (Reflection.isErased(returnTypeDesc)) {
                         // no cast needed
-                        throw new BlockEarlyTermination(builder.tailCall(builder.lookupVirtualMethod(instance, enclosingType.getDescriptor(), methodElement.getName(), erased), arguments));
+                        throw new BlockEarlyTermination(builder.tailCall(builder.lookupVirtualMethod(instance, enclosingType.getDescriptor(), methodElement.getName(), erased), instance, arguments));
                     } else {
                         Value result = builder.call(builder.lookupVirtualMethod(instance, enclosingType.getDescriptor(), methodElement.getName(), erased), instance, arguments);
                         throw new BlockEarlyTermination(builder.return_(builder.checkcast(result, returnTypeDesc)));
