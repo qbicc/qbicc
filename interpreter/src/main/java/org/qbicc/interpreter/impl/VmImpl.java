@@ -92,6 +92,7 @@ public final class VmImpl implements Vm {
     final VmClassLoaderImpl bootstrapClassLoader;
     private final AtomicBoolean initialized = new AtomicBoolean();
     private final Consumer<VmObject> manualInitializers;
+    private List<String> propertyDefines;
 
     final MemoryImpl emptyMemory;
 
@@ -1212,6 +1213,15 @@ public final class VmImpl implements Vm {
 
     public static VmImpl create(CompilationContext ctxt, Consumer<VmObject> manualInitializer) {
         return new VmImpl(Assert.checkNotNullParam("ctxt", ctxt), manualInitializer);
+    }
+
+    public VmImpl setPropertyDefines(List<String> propDefines) {
+        this.propertyDefines = propDefines;
+        return this;
+    }
+
+    List<String> getPropertyDefines() {
+        return propertyDefines;
     }
 
     static VmImpl require() {

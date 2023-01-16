@@ -4,6 +4,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -120,11 +121,19 @@ final class HooksForSystemPropsRaw {
 
     @Hook
     static VmArray vmProperties(final VmThreadImpl thread) {
-        // TODO: assemble `-D` options from command line
-        return fromStringList(thread.vm, List.of(
+        List<String> props =  List.of(
             "java.home",    "/qbicc/java.home",
             "user.timezone", ZoneId.systemDefault().getId()
-        ));
+        );
+
+        // Now add in the properties from the qbicc command line
+        if (!thread.vm.getPropertyDefines().isEmpty()) {
+            ArrayList<String> combined = new ArrayList<>(props);
+            combined.addAll(thread.vm.getPropertyDefines());
+            props = combined;
+        }
+
+        return fromStringList(thread.vm, props);
     }
 
     private static VmReferenceArray fromStringList(VmImpl vm, List<String> list) {

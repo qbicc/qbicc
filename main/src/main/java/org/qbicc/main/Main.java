@@ -196,6 +196,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final Consumer<Iterable<Diagnostic>> diagnosticsHandler;
     private final String mainClass;
     private final List<String> buildTimeInitRootClasses;
+    private final List<String> propertyDefines; // format: name=value
     private final String gc;
     private final boolean isPie;
     private final GraphGenConfig graphGenConfig;
@@ -222,6 +223,7 @@ public class Main implements Callable<DiagnosticContext> {
         // todo: this becomes optional
         mainClass = Assert.checkNotEmptyParam("builder.mainClass", builder.mainClass);
         buildTimeInitRootClasses = builder.buildTimeInitRootClasses;
+        propertyDefines = builder.propertyDefines;
         gc = builder.gc;
         isPie = builder.isPie;
         graphGenConfig = builder.graphGenConfig;
@@ -346,7 +348,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 UnwindExceptionStrategy.init(cc);
                                 return VmImpl.create(cc,
                                     new BasicHeaderManualInitializer(cc)
-                                );
+                                ).setPropertyDefines(this.propertyDefines);
                             });
                             builder.setObjectFileProvider(objectFileProvider);
                             ServiceLoader<DriverPlugin> loader = ServiceLoader.load(DriverPlugin.class);
@@ -1119,6 +1121,7 @@ public class Main implements Callable<DiagnosticContext> {
         private Platform platform = Platform.HOST_PLATFORM;
         private String mainClass;
         private List<String> buildTimeInitRootClasses = new ArrayList<>();
+        private List<String> propertyDefines = new ArrayList<>(); // pairs of strings: property, value
         private String gc = "none";
         // TODO Detect whether the system uses PIEs by default and match that if possible
         private boolean isPie = false;
@@ -1193,6 +1196,12 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Builder addBuildTimeInitRootClass(String className) {
             buildTimeInitRootClasses.add(className);
+            return this;
+        }
+
+        public Builder addPropertyDefine(String property, String value) {
+            propertyDefines.add(property);
+            propertyDefines.add(value);
             return this;
         }
 
