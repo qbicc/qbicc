@@ -24,6 +24,7 @@ public final class Errno {
     public static final c_int ECHILD = constant();
     public static final c_int ECONNABORTED = constant();
     public static final c_int ECONNREFUSED = constant();
+    public static final c_int ECONNRESET = constant();
     public static final c_int EDEADLK = constant();
     public static final c_int EDESTADDRREQ = constant();
     public static final c_int EDOM = org.qbicc.runtime.stdc.Errno.EDOM;
