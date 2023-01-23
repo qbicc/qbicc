@@ -564,14 +564,14 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
 
-                                builder.addPostHook(Phase.ANALYZE, ReachabilityInfo::reportStats);
                                 if (optEscapeAnalysis) {
                                     builder.addPostHook(Phase.ANALYZE, new EscapeAnalysisInterMethodAnalysis());
                                     builder.addPostHook(Phase.ANALYZE, new EscapeAnalysisDotGenerator(graphGenConfig));
                                 }
-                                builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
-                                builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
 
+                                builder.addPreHook(Phase.LOWER, ReachabilityInfo::reportStats);
+                                builder.addPreHook(Phase.LOWER, new DispatchTableBuilder());
+                                builder.addPreHook(Phase.LOWER, new SupersDisplayBuilder());
                                 builder.addPreHook(Phase.LOWER, ReachabilityFactsSetup::setupLower);
                                 builder.addPreHook(Phase.LOWER, SafePoints::enqueueMethods);
                                 builder.addPreHook(Phase.LOWER, ReachabilityRoots::processRootsForLower);
