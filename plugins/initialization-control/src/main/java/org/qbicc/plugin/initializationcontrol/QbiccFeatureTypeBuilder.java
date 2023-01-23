@@ -137,7 +137,10 @@ public class QbiccFeatureTypeBuilder implements DefinedTypeDefinition.Builder.De
     public DefinedTypeDefinition build() {
         DefinedTypeDefinition result = delegate.build();
         if (reflectiveClass) {
-            ReachabilityRoots.get(classContext.getCompilationContext()).registerReflectiveClass(result.load());
+            ReachabilityRoots rr = ReachabilityRoots.get(classContext.getCompilationContext());
+            classContext.getCompilationContext().submitTask(result, dtd -> {
+                rr.registerReflectiveClass(dtd.load());
+            });
         }
         return result;
     }
