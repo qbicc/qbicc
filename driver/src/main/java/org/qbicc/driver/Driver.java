@@ -160,7 +160,28 @@ public class Driver implements Closeable {
         java.util.function.Function<CompilationContext, Vm> vmFactory = Assert.checkNotNullParam("builder.vmFactory", builder.vmFactory);
         NativeMethodConfigurator nativeMethodConfigurator = constructNativeMethodConfigurator(builder);
         Scheduler scheduler = new Scheduler(Scheduler.Mode.EARLY);
-        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, scheduler, this::defaultFinder, this::defaultResourceFinder, this::defaultResourcesFinder, this::appFinder, this::appResourceFinder, this::appResourcesFinder, vmFactory, outputDir, resolverFactories, typeBuilderFactories, nativeMethodConfigurator, classContextListener);
+        CompilationContextImpl.Builder ctxtBuilder = CompilationContextImpl.builder()
+            .setBaseDiagnosticContext(initialContext)
+            .setPlatform(builder.targetPlatform)
+            .setTypeSystem(typeSystem)
+            .setLiteralFactory(literalFactory)
+            .setScheduler(scheduler)
+            .setBootstrapFinder(this::defaultFinder)
+            .setBootstrapResourceFinder(this::defaultResourceFinder)
+            .setBootstrapResourcesFinder(this::defaultResourcesFinder)
+            .setAppFinder(this::appFinder)
+            .setAppResourceFinder(this::appResourceFinder)
+            .setAppResourcesFinder(this::appResourcesFinder)
+            .setPlatformFinder(this::platFinder)
+            .setPlatformResourceFinder(this::platResourceFinder)
+            .setPlatformResourcesFinder(this::platResourcesFinder)
+            .setVmFactory(vmFactory)
+            .setOutputDir(outputDir)
+            .setResolverFactories(resolverFactories)
+            .setTypeBuilderFactories(typeBuilderFactories)
+            .setNativeMethodConfigurator(nativeMethodConfigurator)
+            .setClassContextListener(classContextListener);
+        compilationContext = ctxtBuilder.build();
         // start with ADD
         compilationContext.setBlockFactory(addBuilderFactory);
 
@@ -277,6 +298,25 @@ public class Driver implements Closeable {
 
     private List<byte[]> appResourcesFinder(final ClassContext classContext, final String name) {
         return findResources(classContext, name, appClassPath);
+    }
+
+    private DefinedTypeDefinition platFinder(ClassContext classContext, String name) {
+        DefinedTypeDefinition found;
+        found = getCompilationContext().getBootstrapClassContext().findDefinedType(name);
+        if (found == null) {
+            // todo: search platform class loader
+        }
+        return found;
+    }
+
+    private byte[] platResourceFinder(ClassContext classContext, String name) {
+        // todo: search platform class loader
+        return null;
+    }
+
+    private List<byte[]> platResourcesFinder(final ClassContext classContext, final String name) {
+        // todo: search platform class loader
+        return List.of();
     }
 
     private DefinedTypeDefinition findClassDefinition(final ClassContext classContext, final String name, final List<ClassPathItem> classPath) {

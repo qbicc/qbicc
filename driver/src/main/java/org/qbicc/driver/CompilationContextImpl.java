@@ -73,6 +73,7 @@ final class CompilationContextImpl implements CompilationContext {
     final Queue<Object> queue = new ArrayDeque<>();
     final Set<ExecutableElement> entryPoints = ConcurrentHashMap.newKeySet();
     final ClassContext bootstrapClassContext;
+    final Function<VmClassLoader, ClassContext> platformClassContextFactory;
     final Function<VmClassLoader, ClassContext> appClassContextFactory;
     private final ConcurrentMap<DefinedTypeDefinition, ProgramModule> programModules = new ConcurrentHashMap<>();
     private final ConcurrentMap<ExecutableElement, org.qbicc.object.Function> exactFunctions = new ConcurrentHashMap<>();
@@ -91,27 +92,23 @@ final class CompilationContextImpl implements CompilationContext {
     private final Section implicitSection;
     private final Scheduler scheduler;
 
-    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory,
-                           Scheduler scheduler, BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder, BiFunction<ClassContext, String, byte[]> bootstrapResourceFinder, BiFunction<ClassContext, String, List<byte[]>> bootstrapResourcesFinder,
-                           BiFunction<ClassContext, String, DefinedTypeDefinition> appFinder, BiFunction<ClassContext, String, byte[]> appResourceFinder, BiFunction<ClassContext, String, List<byte[]>> appResourcesFinder,
-                           Function<CompilationContext, Vm> vmFactory, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories,
-                           List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories,
-                           NativeMethodConfigurator nativeMethodConfigurator, Consumer<ClassContext> classContextListener) {
-        this.baseDiagnosticContext = baseDiagnosticContext;
-        this.platform = platform;
-        this.typeSystem = typeSystem;
-        this.literalFactory = literalFactory;
-        this.scheduler = scheduler;
-        this.outputDir = outputDir;
-        this.resolverFactories = resolverFactories;
-        this.classContextListener = classContextListener;
-        bootstrapClassContext = new ClassContextImpl(this, null, bootstrapFinder, bootstrapResourceFinder, bootstrapResourcesFinder);
-        appClassContextFactory = cl -> new ClassContextImpl(this, cl, appFinder, appResourceFinder, appResourcesFinder);
-        this.typeBuilderFactories = typeBuilderFactories;
-        this.nativeMethodConfigurator = nativeMethodConfigurator;
+    CompilationContextImpl(final Builder builder) {
+        this.baseDiagnosticContext = builder.baseDiagnosticContext;
+        this.platform = builder.platform;
+        this.typeSystem = builder.typeSystem;
+        this.literalFactory = builder.literalFactory;
+        this.scheduler = builder.scheduler;
+        this.outputDir = builder.outputDir;
+        this.resolverFactories = builder.resolverFactories;
+        this.classContextListener = builder.classContextListener;
+        bootstrapClassContext = new ClassContextImpl(this, null, builder.bootstrapFinder, builder.bootstrapResourceFinder, builder.bootstrapResourcesFinder);
+        appClassContextFactory = cl -> new ClassContextImpl(this, cl, builder.appFinder, builder.appResourceFinder, builder.appResourcesFinder);
+        platformClassContextFactory = cl -> new ClassContextImpl(this, cl, builder.platformFinder, builder.platformResourceFinder, builder.platformResourcesFinder);
+        this.typeBuilderFactories = builder.typeBuilderFactories;
+        this.nativeMethodConfigurator = builder.nativeMethodConfigurator;
         handleNewClassContext(bootstrapClassContext);
         // last!
-        this.vm = vmFactory.apply(this);
+        this.vm = builder.vmFactory.apply(this);
         implicitSection = Section.defineSection(this, 0, IMPLICIT_SECTION_NAME, Segment.DATA);
     }
 
@@ -282,6 +279,10 @@ final class CompilationContextImpl implements CompilationContext {
 
     public ClassContext constructAppClassLoaderClassContext(VmClassLoader appClassLoaderObject) {
         return appClassContextFactory.apply(appClassLoaderObject);
+    }
+
+    public ClassContext constructPlatformClassContext(VmClassLoader platformClassLoaderObject) {
+        return platformClassContextFactory.apply(platformClassLoaderObject);
     }
 
     private ClassContext handleNewClassContext(ClassContext classContext) {
@@ -840,5 +841,138 @@ final class CompilationContextImpl implements CompilationContext {
 
     List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> getTypeBuilderFactories() {
         return typeBuilderFactories;
+    }
+
+    static Builder builder() {
+        return new Builder();
+    }
+
+    static final class Builder {
+        BaseDiagnosticContext baseDiagnosticContext;
+        Platform platform;
+        TypeSystem typeSystem;
+        LiteralFactory literalFactory;
+        Scheduler scheduler;
+        BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder;
+        BiFunction<ClassContext, String, byte[]> bootstrapResourceFinder;
+        BiFunction<ClassContext, String, List<byte[]>> bootstrapResourcesFinder;
+        BiFunction<ClassContext, String, DefinedTypeDefinition> appFinder;
+        BiFunction<ClassContext, String, byte[]> appResourceFinder;
+        BiFunction<ClassContext, String, List<byte[]>> appResourcesFinder;
+        BiFunction<ClassContext, String, DefinedTypeDefinition> platformFinder;
+        BiFunction<ClassContext, String, byte[]> platformResourceFinder;
+        BiFunction<ClassContext, String, List<byte[]>> platformResourcesFinder;
+        Function<CompilationContext, Vm> vmFactory;
+        Path outputDir;
+        List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories;
+        List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories;
+        NativeMethodConfigurator nativeMethodConfigurator;
+        Consumer<ClassContext> classContextListener;
+
+        private Builder() {}
+
+        Builder setBaseDiagnosticContext(BaseDiagnosticContext baseDiagnosticContext) {
+            this.baseDiagnosticContext = baseDiagnosticContext;
+            return this;
+        }
+
+        Builder setPlatform(Platform platform) {
+            this.platform = platform;
+            return this;
+        }
+
+        Builder setTypeSystem(TypeSystem typeSystem) {
+            this.typeSystem = typeSystem;
+            return this;
+        }
+
+        Builder setLiteralFactory(LiteralFactory literalFactory) {
+            this.literalFactory = literalFactory;
+            return this;
+        }
+
+        Builder setScheduler(Scheduler scheduler) {
+            this.scheduler = scheduler;
+            return this;
+        }
+
+        Builder setBootstrapFinder(BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder) {
+            this.bootstrapFinder = bootstrapFinder;
+            return this;
+        }
+
+        Builder setBootstrapResourceFinder(BiFunction<ClassContext, String, byte[]> bootstrapResourceFinder) {
+            this.bootstrapResourceFinder = bootstrapResourceFinder;
+            return this;
+        }
+
+        Builder setBootstrapResourcesFinder(BiFunction<ClassContext, String, List<byte[]>> bootstrapResourcesFinder) {
+            this.bootstrapResourcesFinder = bootstrapResourcesFinder;
+            return this;
+        }
+
+        Builder setAppFinder(BiFunction<ClassContext, String, DefinedTypeDefinition> appFinder) {
+            this.appFinder = appFinder;
+            return this;
+        }
+
+        Builder setAppResourceFinder(BiFunction<ClassContext, String, byte[]> appResourceFinder) {
+            this.appResourceFinder = appResourceFinder;
+            return this;
+        }
+
+        Builder setAppResourcesFinder(BiFunction<ClassContext, String, List<byte[]>> appResourcesFinder) {
+            this.appResourcesFinder = appResourcesFinder;
+            return this;
+        }
+
+        Builder setPlatformFinder(BiFunction<ClassContext, String, DefinedTypeDefinition> platformFinder) {
+            this.platformFinder = platformFinder;
+            return this;
+        }
+
+        Builder setPlatformResourceFinder(BiFunction<ClassContext, String, byte[]> platformResourceFinder) {
+            this.platformResourceFinder = platformResourceFinder;
+            return this;
+        }
+
+        Builder setPlatformResourcesFinder(BiFunction<ClassContext, String, List<byte[]>> platformResourcesFinder) {
+            this.platformResourcesFinder = platformResourcesFinder;
+            return this;
+        }
+
+        Builder setVmFactory(Function<CompilationContext, Vm> vmFactory) {
+            this.vmFactory = vmFactory;
+            return this;
+        }
+
+        Builder setOutputDir(Path outputDir) {
+            this.outputDir = outputDir;
+            return this;
+        }
+
+        Builder setResolverFactories(List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories) {
+            this.resolverFactories = resolverFactories;
+            return this;
+        }
+
+        Builder setTypeBuilderFactories(List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories) {
+            this.typeBuilderFactories = typeBuilderFactories;
+            return this;
+        }
+
+        Builder setNativeMethodConfigurator(NativeMethodConfigurator nativeMethodConfigurator) {
+            this.nativeMethodConfigurator = nativeMethodConfigurator;
+            return this;
+        }
+
+        Builder setClassContextListener(Consumer<ClassContext> classContextListener) {
+            this.classContextListener = classContextListener;
+            return this;
+        }
+
+        CompilationContextImpl build() {
+            return new CompilationContextImpl(this);
+        }
     }
 }

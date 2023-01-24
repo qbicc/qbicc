@@ -40,7 +40,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
     final ConcurrentHashMap<MethodDescriptor, VmObject> methodTypeCache = new ConcurrentHashMap<>();
     final ConcurrentHashMap<MethodHandleConstant, VmObject> methodHandleCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, AtomicInteger> hiddenClassSeqMap = new ConcurrentHashMap<>();
-    private final boolean appCL;
+    private final boolean specialCl;
     // protected by lock ↓
     private final HashMap<String, VmObjectImpl> modulesByPackage = new HashMap<>();
     private final HashMap<String, List<VmClassImpl>> classesWithoutModuleByPackage = new HashMap<>();
@@ -52,7 +52,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         // bootstrap CL
         super(clazz);
         classContext = vm.getCompilationContext().getBootstrapClassContext();
-        appCL = false;
+        specialCl = true;
         name = "boot";
     }
 
@@ -62,10 +62,17 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         // maybe app CL?
         if (clazz.getTypeDefinition().internalNameEquals("jdk/internal/loader/ClassLoaders$AppClassLoader")) {
             classContext = ctxt.constructAppClassLoaderClassContext(this);
-            appCL = true;
+            specialCl = true;
+        } else if (clazz.getTypeDefinition().internalNameEquals("jdk/internal/loader/ClassLoaders$PlatformClassLoader")) {
+            classContext = ctxt.constructPlatformClassContext(this);
+            specialCl = true;
+        } else if (clazz.getTypeDefinition().internalNameEquals("jdk/internal/loader/ClassLoaders$BootClassLoader")) {
+            classContext = ctxt.getBootstrapClassContext();
+            specialCl = true;
+            name = "boot";
         } else {
             classContext = ctxt.constructClassContext(this);
-            appCL = false;
+            specialCl = false;
         }
     }
 
@@ -296,7 +303,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         ClassTypeDescriptor stringDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         MethodDescriptor loadClassDesc = MethodDescriptor.synthesize(classContext, classDesc, List.of(stringDesc));
-        if (classContext == classContext.getCompilationContext().getBootstrapClassContext() || appCL) {
+        if (specialCl) {
             // skip JVM call
             DefinedTypeDefinition definedType = classContext.findDefinedType(intName.getContent());
             if (definedType == null) {
