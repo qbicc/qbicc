@@ -74,6 +74,10 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
+        public ClassContext constructPlatformClassContext(final VmClassLoader platformClassLoaderObject) {
+            return null;
+        }
+
         public <T> void submitTask(T item, Consumer<T> itemConsumer) {
         }
 

@@ -523,13 +523,58 @@ public final class VmImpl implements Vm {
     }
 
     public byte[] loadResource(final ClassContext classContext, final String name) throws Thrown {
-        // todo: implement by calling getAllBytes() on the class loader resource stream
-        return null;
+        VmThread currentThread = Vm.requireCurrentThread();
+        VmClassLoaderImpl classLoader = getClassLoaderForContext(classContext);
+        // our invokers
+        MethodElement getResourceAsStream = classLoaderClass.getTypeDefinition().requireSingleMethod("getResourceAsStream");
+        MethodElement readAllBytes = bootstrapClassLoader.loadClass("java/io/InputStream").getTypeDefinition().requireSingleMethod("readAllBytes");
+        MethodElement close = bootstrapClassLoader.loadClass("java/io/InputStream").getTypeDefinition().requireSingleMethod("close");
+        VmObject stream = (VmObject) getInstanceInvoker(getResourceAsStream).invokeAny(currentThread, classLoader, List.of(intern(name)));
+        if (stream == null) {
+            return null;
+        }
+        VmByteArrayImpl array;
+        try {
+            array = (VmByteArrayImpl) getInstanceInvoker(readAllBytes).invokeAny(currentThread, stream, List.of());
+        } catch (Throwable t) {
+            getInstanceInvoker(close).invokeAny(currentThread, stream, List.of());
+            throw t;
+        }
+        getInstanceInvoker(close).invokeAny(currentThread, stream, List.of());
+        return array.getArray();
     }
 
     public List<byte[]> loadResources(final ClassContext classContext, final String name) throws Thrown {
-        // todo: implement by calling getAllBytes() on the class loader resource streams
-        return List.of();
+        VmThread currentThread = Vm.requireCurrentThread();
+        VmClassLoaderImpl classLoader = getClassLoaderForContext(classContext);
+        // this is particularly ugly
+        MethodElement getResources = classLoaderClass.getTypeDefinition().requireSingleMethod("getResources");
+        VmClassImpl enumerationClass = bootstrapClassLoader.loadClass("java/util/Enumeration");
+        MethodElement hasMoreElements = enumerationClass.getTypeDefinition().requireSingleMethod("hasMoreElements");
+        MethodElement nextElement = enumerationClass.getTypeDefinition().requireSingleMethod("nextElement");
+        VmClassImpl urlClass = bootstrapClassLoader.loadClass("java/net/URL");
+        MethodElement openStream = urlClass.getTypeDefinition().requireSingleMethod("openStream");
+        MethodElement readAllBytes = bootstrapClassLoader.loadClass("java/io/InputStream").getTypeDefinition().requireSingleMethod("readAllBytes");
+        MethodElement close = bootstrapClassLoader.loadClass("java/io/InputStream").getTypeDefinition().requireSingleMethod("close");
+        VmObject enumeration = (VmObject) getInstanceInvoker(getResources).invokeAny(currentThread, classLoader, List.of(intern(name)));
+        ArrayList<byte[]> list = new ArrayList<>();
+        while (((Boolean) getInstanceInvoker(hasMoreElements).invokeAny(currentThread, enumeration, List.of())).booleanValue()) {
+            VmObject url = (VmObject) getInstanceInvoker(nextElement).invokeAny(currentThread, enumeration, List.of(intern(name)));
+            // open the stream
+            VmObject stream = (VmObject) getInstanceInvoker(openStream).invokeAny(currentThread, url, List.of());
+            if (stream != null) {
+                VmByteArrayImpl array;
+                try {
+                    array = (VmByteArrayImpl) getInstanceInvoker(readAllBytes).invokeAny(currentThread, stream, List.of());
+                } catch (Throwable t) {
+                    getInstanceInvoker(close).invokeAny(currentThread, stream, List.of());
+                    throw t;
+                }
+                getInstanceInvoker(close).invokeAny(currentThread, stream, List.of());
+                list.add(array.getArray());
+            }
+        }
+        return List.copyOf(list);
     }
 
     public VmObject allocateObject(final ClassObjectType type) {
