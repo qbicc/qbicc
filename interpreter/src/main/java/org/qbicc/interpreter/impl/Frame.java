@@ -51,6 +51,7 @@ import org.qbicc.graph.Fence;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
 import org.qbicc.graph.InitCheck;
+import org.qbicc.graph.InitializeClass;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.InstanceOf;
 import org.qbicc.graph.InterfaceMethodLookup;
@@ -2315,6 +2316,13 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else {
             VarHandle.fullFence();
         }
+        return null;
+    }
+
+    @Override
+    public Void visit(VmThreadImpl vmThread, InitializeClass node) {
+        VmClassImpl cls = (VmClassImpl)require(node.getInitializeClassValue());
+        cls.initialize(vmThread);
         return null;
     }
 

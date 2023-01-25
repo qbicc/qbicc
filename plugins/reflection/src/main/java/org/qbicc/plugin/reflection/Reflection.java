@@ -673,7 +673,7 @@ public final class Reflection {
         return getClassDeclaredFields((VmClass) vmObject, ((Boolean) objects.get(0)).booleanValue());
     }
 
-    private VmObject getField(FieldElement field) {
+    VmObject getField(FieldElement field) {
         VmObject vmObject = reflectionObjects.get(field);
         if (vmObject != null) {
             return vmObject;

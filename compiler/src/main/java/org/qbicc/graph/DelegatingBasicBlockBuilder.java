@@ -303,6 +303,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().initCheck(initializer, initThunk);
     }
 
+    public Node initializeClass(Value classToInit) {
+        return getDelegate().initializeClass(classToInit);
+    }
+
     public Node fence(final GlobalAccessMode fenceType) {
         return getDelegate().fence(fenceType);
     }

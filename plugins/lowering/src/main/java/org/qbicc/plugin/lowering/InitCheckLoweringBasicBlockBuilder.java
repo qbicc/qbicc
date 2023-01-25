@@ -49,4 +49,10 @@ public class InitCheckLoweringBasicBlockBuilder extends DelegatingBasicBlockBuil
 
         return nop();
     }
+
+    @Override
+    public Node initializeClass(Value classToInit) {
+        // This node is only needed in the ADD phase; eliminate now that we are in LOWER
+        return nop();
+    }
 }

@@ -519,6 +519,8 @@ public interface BasicBlockBuilder extends Locatable {
 
     Node initCheck(InitializerElement initializer, Value initThunk);
 
+    Node initializeClass(Value classToInit);
+
     Node fence(GlobalAccessMode fenceType);
 
     Node monitorEnter(Value obj);
