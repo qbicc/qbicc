@@ -1,15 +1,10 @@
 package org.qbicc.main;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOError;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,7 +15,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.Set;
@@ -697,7 +691,7 @@ public class Main implements Callable<DiagnosticContext> {
     }
 
     private ClassPathEntry getCoreComponent(final String artifactId) {
-        return ClassPathEntry.of(new DefaultArtifact("org.qbicc", artifactId, "jar", MainProperties.QBICC_VERSION));
+        return ClassPathEntry.of(new DefaultArtifact("org.qbicc", artifactId, "jar", Version.QBICC_VERSION));
     }
 
     private void resolveClassPath(DiagnosticContext ctxt, Consumer<ClassPathItem> classPathItemConsumer, final List<ClassPathEntry> paths, Runtime.Version version) throws IOException {
@@ -916,7 +910,7 @@ public class Main implements Callable<DiagnosticContext> {
         private final List<ClassPathEntry> appendedBootPathEntries = new ArrayList<>();
 
         @CommandLine.Option(names = "--rt-version")
-        private String rtVersion = MainProperties.CLASSLIB_DEFAULT_VERSION;
+        private String rtVersion = Version.CLASSLIB_DEFAULT_VERSION;
 
         @CommandLine.Option(names = "--app-path-artifact", converter = ClassPathEntry.MavenArtifact.Converter.class)
         void addAppPathArtifact(List<ClassPathEntry.MavenArtifact> artifact) {
@@ -1113,7 +1107,7 @@ public class Main implements Callable<DiagnosticContext> {
         private final List<ClassPathEntry> bootPathsPrepend = new ArrayList<>();
         private final List<ClassPathEntry> bootPathsAppend = new ArrayList<>();
         private final List<ClassPathEntry> appPaths = new ArrayList<>();
-        private String classLibVersion = MainProperties.CLASSLIB_DEFAULT_VERSION;
+        private String classLibVersion = Version.CLASSLIB_DEFAULT_VERSION;
         private Path outputPath;
         private String outputName = "a.out";
         private Path sourceOutputPath;
@@ -1353,35 +1347,10 @@ public class Main implements Callable<DiagnosticContext> {
         }
     }
 
-    static class MainProperties {
-        static final String CLASSLIB_DEFAULT_VERSION;
-
-        static final String QBICC_VERSION;
-
-        static {
-            Properties properties = new Properties();
-            InputStream inputStream = MainProperties.class.getClassLoader().getResourceAsStream("main.properties");
-            if (inputStream == null) {
-                throw new Error("Missing main.properties");
-            } else try (inputStream) {
-                try (InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
-                    try (BufferedReader br = new BufferedReader(reader)) {
-                        properties.load(br);
-                    }
-                }
-            } catch (IOException e) {
-                throw new IOError(e);
-            }
-            CLASSLIB_DEFAULT_VERSION = properties.getProperty("classlib.default-version");
-
-            QBICC_VERSION = properties.getProperty("qbicc.version");
-        }
-    }
-
     static class VersionProvider implements CommandLine.IVersionProvider {
         @Override
         public String[] getVersion() {
-            return new String[] { "Qbicc version " + MainProperties.QBICC_VERSION };
+            return new String[] { "Qbicc version " + Version.QBICC_VERSION };
         }
     }
 }
