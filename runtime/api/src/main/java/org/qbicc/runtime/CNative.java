@@ -595,7 +595,7 @@ public final class CNative {
      * <p>
      * Arrays of native objects are allocated on the stack when the standard Java array constructor is used.
      */
-    public abstract static class object extends InlineObject implements AutoCloseable {
+    public abstract static class object extends InlineObject {
         protected object() {
         }
 
@@ -636,13 +636,6 @@ public final class CNative {
          * @return the cast object
          */
         public native final <T extends object> T cast(Class<T> clazz);
-
-        /**
-         * Release the object. Not every object can be released, but objects
-         * with automatic storage duration may be considered released after
-         * this method is called, as a hint to the compiler.
-         */
-        public native final void close();
 
         public final boolean fitsIntoByte() {
             return sizeof(this).intValue() <= Byte.BYTES;
