@@ -174,9 +174,6 @@ public final class Reflection {
     final InstanceFieldElement methodHandleLambdaFormField;
     // LambdaForm
     final InstanceFieldElement lambdaFormMemberNameField;
-    // MethodHandleAccessorFactory
-    final MethodElement newMethodAccessorMethod;
-    final MethodElement newConstructorAccessorMethod;
 
     // box type fields
     private final FieldElement byteValueField;
@@ -314,11 +311,6 @@ public final class Reflection {
         rmnIndexField = rmnDef.findInstanceField("index");
         rmnClazzField = rmnDef.findInstanceField("clazz");
 
-        // MethodHandleAccessorFactory
-        LoadedTypeDefinition mhAccFactDef = classContext.findDefinedType("jdk/internal/reflect/MethodHandleAccessorFactory").load();
-        newMethodAccessorMethod = mhAccFactDef.requireSingleMethod("newMethodAccessor");
-        newConstructorAccessorMethod = mhAccFactDef.requireSingleMethod("newConstructorAccessor");
-
         // Exceptions & errors
         LoadedTypeDefinition leDef = classContext.findDefinedType("java/lang/LinkageError").load();
         linkageErrorClass = (VmThrowableClass) leDef.getVmClass();
@@ -403,9 +395,8 @@ public final class Reflection {
 
     // Create a DirectConstructorHandleAccessor and store it in the Constructor.
     private void generateConstructorAccessor(VmObject ctor) {
-        VmObject accessor = (VmObject)vm.invokeExact(newConstructorAccessorMethod, null, List.of(ctor));
-        MethodElement sca = constructorClass.getTypeDefinition().requireSingleMethod("setConstructorAccessor", 1);
-        vm.invokeExact(sca, ctor, List.of(accessor));
+        MethodElement aca = constructorClass.getTypeDefinition().requireSingleMethod("acquireConstructorAccessor", 0);
+        vm.invokeExact(aca, ctor, List.of());
         // Create the declaredAnnotation Map
         MethodElement da = constructorClass.getTypeDefinition().getSuperClass().requireSingleMethod("declaredAnnotations");
         vm.invokeExact(da, ctor, List.of());
@@ -423,11 +414,10 @@ public final class Reflection {
 
     }
 
-    // Create a DirectMethodHandleAccessor and store it in the Method.
+    // generate the method accessor and annotation data runtime reflection will need.
     private void generateMethodAccessor(VmObject method) {
-        VmObject accessor = (VmObject)vm.invokeExact(newMethodAccessorMethod, null, List.of(method, Boolean.FALSE));
-        MethodElement sma = methodClass.getTypeDefinition().requireSingleMethod("setMethodAccessor", 1);
-        vm.invokeExact(sma, method, List.of(accessor));
+        MethodElement ama = methodClass.getTypeDefinition().requireSingleMethod("acquireMethodAccessor", 0);
+        vm.invokeExact(ama, method, List.of());
         // Create the declaredAnnotation Map
         MethodElement da = methodClass.getTypeDefinition().getSuperClass().requireSingleMethod("declaredAnnotations");
         vm.invokeExact(da, method, List.of());
