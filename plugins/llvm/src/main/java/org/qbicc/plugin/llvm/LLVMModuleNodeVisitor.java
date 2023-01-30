@@ -278,12 +278,12 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
             return Values.ptrtointConstant(input, fromType, toType);
         } else if (inputType instanceof ReferenceType && outputType instanceof PointerType) {
             return switch (config.getReferenceStrategy()) {
-                case POINTER -> throw new IllegalStateException("Cast found with pointer ref strategy");
+                case POINTER -> input;
                 case POINTER_AS1 -> Values.addrspacecastConstant(input, fromType, toType);
             };
         } else if (inputType instanceof PointerType && outputType instanceof ReferenceType) {
             return switch (config.getReferenceStrategy()) {
-                case POINTER -> throw new IllegalStateException("Cast found with pointer ref strategy");
+                case POINTER -> input;
                 case POINTER_AS1 -> Values.addrspacecastConstant(input, fromType, toType);
             };
         }

@@ -35,7 +35,7 @@ public class LLVMCompilerImpl implements LLVMCompiler {
     public LLVMCompilerImpl(final CompilationContext ctxt, final LLVMConfiguration config, final LLVMModuleGenerator generator) {
         useCcForIr = config.isWasm();
         emitIr = config.isEmitIr();
-        emitAssembly = config.isEmitAssembly();
+        emitAssembly = config.isEmitAssembly() && ! useCcForIr;
         if (useCcForIr) {
             llcInvoker = null;
         } else {
@@ -106,11 +106,19 @@ public class LLVMCompilerImpl implements LLVMCompiler {
                 llcInvoker.setSource(generatorSource);
             }
         }
-        llcInvoker.setDestination(OutputDestination.of(emitAssembly ? asmFile : objectFile));
+        if (useCcForIr) {
+            ccInvoker.setOutputPath(objectFile);
+        } else {
+            llcInvoker.setDestination(OutputDestination.of(emitAssembly ? asmFile : objectFile));
+        }
         // invoke LLC
         int errCnt = ctxt.errors();
         try {
-            llcInvoker.invoke();
+            if (useCcForIr) {
+                ccInvoker.invoke();
+            } else {
+                llcInvoker.invoke();
+            }
         } catch (IOException e) {
             if (errCnt == ctxt.errors()) {
                 // whatever the problem was, it wasn't reported, so add the additional error here
@@ -118,7 +126,7 @@ public class LLVMCompilerImpl implements LLVMCompiler {
             }
             return;
         }
-        if (emitAssembly) {
+        if (emitAssembly && ! useCcForIr) {
             // now compile the assembly
             ccInvoker.setSource(InputSource.from(asmFile));
             ccInvoker.setOutputPath(objectFile);
