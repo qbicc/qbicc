@@ -59,17 +59,13 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
 
     @Override
     public Value decodeReference(Value refVal, PointerType pointerType) {
-        if (config.getReferenceStrategy() == ReferenceStrategy.POINTER) {
-            return refVal;
-        }
+        // this won't be scheduled by the LLVM backend when pointer strategy is in use
         return super.decodeReference(refVal, pointerType);
     }
 
     @Override
     public Value valueConvert(Value value, WordType toType) {
-        if (toType instanceof ReferenceType && value.getType() instanceof PointerType && config.getReferenceStrategy() == ReferenceStrategy.POINTER) {
-            return value;
-        }
+        // this won't be scheduled by the LLVM backend when pointer strategy is in use
         return super.valueConvert(value, toType);
     }
 

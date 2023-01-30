@@ -73,19 +73,22 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value decodeReference(Value reference, PointerType pointerType) {
-        // convert reference to pointer with lower type
-        Layout layout = Layout.get(ctxt);
-        ReferenceType referenceType = (ReferenceType) reference.getType();
-        ObjectType upperBound = referenceType.getUpperBound();
-        LayoutInfo info;
-        if (upperBound instanceof ReferenceArrayObjectType raot) {
-            info = layout.getArrayLayoutInfo(CoreClasses.get(ctxt).getArrayContentField(upperBound).getEnclosingType(), raot.getElementObjectType());
-        } else if (upperBound instanceof ArrayObjectType) {
-            info = layout.getInstanceLayoutInfo(CoreClasses.get(ctxt).getArrayContentField(upperBound).getEnclosingType());
+        if (reference.getType() instanceof ReferenceType referenceType) {
+            // convert reference to pointer with lower type
+            Layout layout = Layout.get(ctxt);
+            ObjectType upperBound = referenceType.getUpperBound();
+            LayoutInfo info;
+            if (upperBound instanceof ReferenceArrayObjectType raot) {
+                info = layout.getArrayLayoutInfo(CoreClasses.get(ctxt).getArrayContentField(upperBound).getEnclosingType(), raot.getElementObjectType());
+            } else if (upperBound instanceof ArrayObjectType) {
+                info = layout.getInstanceLayoutInfo(CoreClasses.get(ctxt).getArrayContentField(upperBound).getEnclosingType());
+            } else {
+                info = layout.getInstanceLayoutInfo(upperBound.getDefinition());
+            }
+            return super.decodeReference(reference, info.getCompoundType().getPointer());
         } else {
-            info = layout.getInstanceLayoutInfo(upperBound.getDefinition());
+            return super.decodeReference(reference, pointerType);
         }
-        return super.decodeReference(reference, info.getCompoundType().getPointer());
     }
 
     @Override
