@@ -11,7 +11,6 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.ExecutableLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
-import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.type.ObjectType;
@@ -130,14 +129,14 @@ public class ReflectionAnalyzingBasicBlockBuilder extends DelegatingBasicBlockBu
 
     private void registerForReflection(LoadedTypeDefinition cls, boolean fields, boolean constructors, boolean methods) {
         // System.out.println("Registered "+cls+ " as reflective");
-        ReachabilityRoots roots = ReachabilityRoots.get(ctxt);
+        ReflectiveElementRegistry registry = ReflectiveElementRegistry.get(ctxt);
         Reflection reflect = Reflection.get(ctxt);
-        roots.registerReflectiveClass(cls);
+        registry.registerReflectiveType(cls);
         if (fields) {
             // System.out.println("Registered the fields of "+cls+ " as reflective");
             int fc = cls.getFieldCount();
             for (int i = 0; i < fc; i++) {
-                roots.registerReflectiveField(cls.getField(i));
+                registry.registerReflectiveField(cls.getField(i));
                 reflect.makeAvailableForRuntimeReflection(cls.getField(i));
             }
         }
@@ -145,7 +144,7 @@ public class ReflectionAnalyzingBasicBlockBuilder extends DelegatingBasicBlockBu
             // System.out.println("Registered the constructors of "+cls+ " as reflective");
             int cc = cls.getConstructorCount();
             for (int i = 0; i < cc; i++) {
-                roots.registerReflectiveConstructor(cls.getConstructor(i));
+                registry.registerReflectiveConstructor(cls.getConstructor(i));
                 reflect.makeAvailableForRuntimeReflection(cls.getConstructor(i));
             }
         }
@@ -153,12 +152,12 @@ public class ReflectionAnalyzingBasicBlockBuilder extends DelegatingBasicBlockBu
             // System.out.println("Registered the methods of "+cls+ " as reflective");
             int mc = cls.getMethodCount();
             for (int i = 0; i < mc; i++) {
-                roots.registerReflectiveMethod(cls.getMethod(i));
+                registry.registerReflectiveMethod(cls.getMethod(i));
                 reflect.makeAvailableForRuntimeReflection(cls.getMethod(i));
             }
             for (MethodElement m: cls.getInstanceMethods()) {
                 if (!m.isAbstract() && !m.isNative()) {
-                    roots.registerReflectiveMethod(m);
+                    registry.registerReflectiveMethod(m);
                     reflect.makeAvailableForRuntimeReflection(m);
                 }
             }

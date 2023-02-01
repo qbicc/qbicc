@@ -364,7 +364,7 @@ public final class Reflection {
     public void generateReflectiveData(LoadedTypeDefinition ltd) {
         if (!ltd.getVisibleAnnotations().isEmpty()
             || (!ltd.isInterface() && hasInheritedAnnotations(ltd))
-            || ReachabilityRoots.get(ctxt).isReflectiveClass(ltd)) {
+            || ReflectiveElementRegistry.get(ctxt).isReflectiveType(ltd)) {
             MethodElement annotationData = classClass.getTypeDefinition().requireSingleMethod("annotationData");
             vm.invokeExact(annotationData, ltd.getVmClass(), List.of());
         }
@@ -434,20 +434,13 @@ public final class Reflection {
         getClassDeclaredFields(c, true);
         getClassDeclaredFields(c, false);
         VmObject field = getField(fe);
+        // Create the field accessors
         MethodElement afa = fieldClass.getTypeDefinition().requireSingleMethod("acquireFieldAccessor", 1);
         vm.invokeExact(afa, field, List.of(Boolean.TRUE));
         vm.invokeExact(afa, field, List.of(Boolean.FALSE));
-    }
-
-    /**
-     * Ensure field accessors are generated for all reflectively accessed fields.
-     * We can do this in an ADD postHook because it will not generate any newly reachable methods.
-     */
-    public void generateFieldAccessors() {
-        ReachabilityRoots roots = ReachabilityRoots.get(ctxt);
-        for (FieldElement f: roots.getReflectiveFields()) {
-            makeAvailableForRuntimeReflection(f);
-        }
+        // Create the declaredAnnotation Map
+        MethodElement da = fieldClass.getTypeDefinition().requireSingleMethod("declaredAnnotations");
+        vm.invokeExact(da, field, List.of());
     }
 
     /**
@@ -780,7 +773,10 @@ public final class Reflection {
         ));
         VmObject appearing = reflectionObjects.putIfAbsent(method, vmObject);
         if (appearing == null && !method.isNative()) {
-            ctxt.submitTask(vmObject, m -> this.generateMethodAccessor(m));
+            ctxt.submitTask(vmObject, m -> {
+                VmThread thr = vm.newThread("genMethAccessor", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority());
+                vm.doAttached(thr, () -> this.generateMethodAccessor(m));
+            });
         }
         return appearing != null ? appearing : vmObject;
     }
@@ -851,7 +847,10 @@ public final class Reflection {
         ));
         VmObject appearing = reflectionObjects.putIfAbsent(constructor, vmObject);
         if (appearing == null) {
-            ctxt.submitTask(vmObject, c -> this.generateConstructorAccessor(c));
+            ctxt.submitTask(vmObject, c ->  {
+                VmThread thr = vm.newThread("genCtorAccessor", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority());
+                vm.doAttached(thr, () -> this.generateConstructorAccessor(c));
+            });
         }
         return appearing != null ? appearing : vmObject;
     }

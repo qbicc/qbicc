@@ -1,7 +1,15 @@
-package org.qbicc.plugin.initializationcontrol;
+package org.qbicc.plugin.reflection;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmThread;
+import org.qbicc.plugin.reachability.ReachabilityRoots;
+import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
@@ -10,26 +18,38 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class FeaturePatcher {
-
-    private static final AttachmentKey<FeaturePatcher> KEY = new AttachmentKey<>();
+/**
+ * The central registry to track program elements that
+ * may be accessed reflectively at runtime.
+ */
+public class ReflectiveElementRegistry {
+    private static final AttachmentKey<ReflectiveElementRegistry> KEY = new AttachmentKey<>();
 
     private final CompilationContext ctxt;
-    private final Set<String> runtimeInitializedClasses = ConcurrentHashMap.newKeySet();
+
+    // These are the "early" mappings which can be added to in the earliest preHooks to ADD
+    // All entries should be made before qbicc begins loading classes.
     private final Map<String, ClassInfo> reflectiveClasses = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> reflectiveConstructors = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> reflectiveFields = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> reflectiveMethods = new ConcurrentHashMap<>();
 
-    private FeaturePatcher(CompilationContext ctxt) {
+    // These are the "late" mappings which are populated during the ADD phase
+    // as classes are loaded and reachable methods are compiled and analyzed
+    private final Set<MethodElement> reflectiveMethodElements = ConcurrentHashMap.newKeySet();
+    private final Set<ConstructorElement> reflectiveConstructorElements = ConcurrentHashMap.newKeySet();
+    private final Set<FieldElement> reflectiveFieldElements = ConcurrentHashMap.newKeySet();
+    private final Set<LoadedTypeDefinition> reflectiveLoadedTypes = ConcurrentHashMap.newKeySet();
+
+    private ReflectiveElementRegistry(CompilationContext ctxt) {
         this.ctxt = ctxt;
     }
 
-    public static FeaturePatcher get(CompilationContext ctxt) {
-        FeaturePatcher patcher = ctxt.getAttachment(KEY);
+    public static ReflectiveElementRegistry get(CompilationContext ctxt) {
+        ReflectiveElementRegistry patcher = ctxt.getAttachment(KEY);
         if (patcher == null) {
-            patcher = new FeaturePatcher(ctxt);
-            FeaturePatcher appearing = ctxt.putAttachmentIfAbsent(KEY, patcher);
+            patcher = new ReflectiveElementRegistry(ctxt);
+            ReflectiveElementRegistry appearing = ctxt.putAttachmentIfAbsent(KEY, patcher);
             if (appearing != null) {
                 patcher = appearing;
             }
@@ -37,13 +57,9 @@ public class FeaturePatcher {
         return patcher;
     }
 
-    public void addRuntimeInitializedClass(String internalName) {
-        runtimeInitializedClasses.add(internalName);
-    }
-
-    public boolean isRuntimeInitializedClass(String internalName) {
-        return runtimeInitializedClasses.contains(internalName);
-    }
+    /*
+     * Early phase mapping methods
+     */
 
     public void addReflectiveClass(String internalName, boolean fields, boolean methods, boolean constructors) {
         ClassInfo prior = reflectiveClasses.putIfAbsent(internalName, new ClassInfo(fields, methods, constructors));
@@ -54,7 +70,7 @@ public class FeaturePatcher {
         }
     }
 
-    public boolean isReflectiveClass(String internalName) {
+    boolean isReflectiveClass(String internalName) {
         return reflectiveClasses.containsKey(internalName);
     }
 
@@ -62,12 +78,12 @@ public class FeaturePatcher {
         reflectiveConstructors.computeIfAbsent(className, k -> ConcurrentHashMap.newKeySet()).add(encodeArguments(parameterTypes));
     }
 
-    public boolean hasReflectiveConstructors(String className) {
+    boolean hasReflectiveConstructors(String className) {
         ClassInfo ci = reflectiveClasses.get(className);
         return (ci != null && ci.constructors) || reflectiveConstructors.containsKey(className);
     }
 
-    public boolean isReflectiveConstructor(String className, MethodDescriptor descriptor) {
+    boolean isReflectiveConstructor(String className, MethodDescriptor descriptor) {
         ClassInfo ci = reflectiveClasses.get(className);
         if (ci != null && ci.constructors) {
             return true;
@@ -87,12 +103,12 @@ public class FeaturePatcher {
         reflectiveFields.computeIfAbsent(className, k -> ConcurrentHashMap.newKeySet()).add(fieldName);
     }
 
-    public boolean hasReflectiveFields(String className) {
+    boolean hasReflectiveFields(String className) {
         ClassInfo ci = reflectiveClasses.get(className);
         return (ci != null && ci.fields) || reflectiveFields.containsKey(className);
     }
 
-    public boolean isReflectiveField(String className, String fieldName) {
+    boolean isReflectiveField(String className, String fieldName) {
         ClassInfo ci = reflectiveClasses.get(className);
         if (ci != null && ci.fields) {
             return true;
@@ -105,12 +121,12 @@ public class FeaturePatcher {
         reflectiveMethods.computeIfAbsent(className, k -> ConcurrentHashMap.newKeySet()).add(methodName+":"+encodeArguments(parameterTypes));
     }
 
-    public boolean hasReflectiveMethods(String className) {
+    boolean hasReflectiveMethods(String className) {
         ClassInfo ci = reflectiveClasses.get(className);
         return (ci != null && ci.methods) || reflectiveMethods.containsKey(className);
     }
 
-    public boolean isReflectiveMethod(String className, String methodName, MethodDescriptor descriptor) {
+    boolean isReflectiveMethod(String className, String methodName, MethodDescriptor descriptor) {
         ClassInfo ci = reflectiveClasses.get(className);
         if (ci != null && ci.methods) {
             return true;
@@ -125,6 +141,65 @@ public class FeaturePatcher {
             }
         }
         return false;
+    }
+
+
+    /*
+     * Late phase mapping methods
+     */
+    public void registerReflectiveType(LoadedTypeDefinition ltd) {
+        reflectiveLoadedTypes.add(ltd);
+    }
+
+    public boolean isReflectiveType(LoadedTypeDefinition ltd) {
+        return reflectiveLoadedTypes.contains(ltd);
+    }
+
+    public boolean registerReflectiveMethod(MethodElement e) {
+        boolean added = reflectiveMethodElements.add(e);
+        if (added) {
+            ReachabilityRoots.get(ctxt).registerReflectiveEntrypoint(e);
+            ctxt.submitTask(e, methodElement -> {
+                Vm vm = ctxt.getVm();
+                VmThread thr = vm.newThread("genMethodAccessor", vm.getMainThreadGroup(), false,  Thread.currentThread().getPriority());
+                ctxt.getVm().doAttached(thr, () -> {
+                    Reflection.get(ctxt).makeAvailableForRuntimeReflection(methodElement);
+                });
+            });
+        }
+        return added;
+    }
+
+    public boolean registerReflectiveConstructor(ConstructorElement e) {
+        boolean added = reflectiveConstructorElements.add(e);
+        if (added) {
+            ReachabilityRoots.get(ctxt).registerReflectiveEntrypoint(e);
+            ctxt.submitTask(e, constructorElement -> {
+                Vm vm = ctxt.getVm();
+                VmThread thr = vm.newThread("genConstructorAccessor", vm.getMainThreadGroup(), false,  Thread.currentThread().getPriority());
+                ctxt.getVm().doAttached(thr, () -> {
+                    Reflection.get(ctxt).makeAvailableForRuntimeReflection(constructorElement);
+                });
+            });
+        }
+        return added;
+    }
+
+    public boolean registerReflectiveField(FieldElement f) {
+        boolean added = reflectiveFieldElements.add(f);
+        if (added) {
+            if (f.isStatic()) {
+                ReachabilityRoots.get(ctxt).registerHeapRoot((StaticFieldElement) f);
+            }
+            ctxt.submitTask(f, fieldElement -> {
+                Vm vm = ctxt.getVm();
+                VmThread thr = vm.newThread("genFieldAccessor", vm.getMainThreadGroup(), false,  Thread.currentThread().getPriority());
+                ctxt.getVm().doAttached(thr, () -> {
+                    Reflection.get(ctxt).makeAvailableForRuntimeReflection(fieldElement);
+                });
+            });
+        }
+        return added;
     }
 
     private String encodeArguments(String[] args) {
@@ -174,7 +249,6 @@ public class FeaturePatcher {
         }
         return true;
     }
-
 
     private static class ClassInfo {
         boolean fields;
