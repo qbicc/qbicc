@@ -124,7 +124,7 @@ import org.qbicc.plugin.native_.NativeXtorLoweringHook;
 import org.qbicc.plugin.native_.PointerBasicBlockBuilder;
 import org.qbicc.plugin.native_.PointerTypeResolver;
 import org.qbicc.plugin.native_.StructMemberAccessBasicBlockBuilder;
-import org.qbicc.plugin.initializationcontrol.QbiccFeatureTypeBuilder;
+import org.qbicc.plugin.initializationcontrol.InitAtRuntimeTypeBuilder;
 import org.qbicc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
 import org.qbicc.plugin.opt.BlockParameterOptimizingVisitor;
 import org.qbicc.plugin.opt.FinalFieldLoadOptimizer;
@@ -150,7 +150,7 @@ import org.qbicc.plugin.reachability.ServiceLoaderAnalyzer;
 import org.qbicc.plugin.reflection.Reflection;
 import org.qbicc.plugin.reflection.ReflectionFactsSetup;
 import org.qbicc.plugin.reflection.ReflectionIntrinsics;
-import org.qbicc.plugin.reflection.ReflectiveMethodAccessorGenerator;
+import org.qbicc.plugin.reflection.ReflectiveElementTypeBuilder;
 import org.qbicc.plugin.reflection.VarHandleResolvingBasicBlockBuilder;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.plugin.serialization.ClassObjectSerializer;
@@ -337,6 +337,7 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.setTypeSystem(typeSystem);
                             // add additional manual initializers by chaining `.andThen(...)`
                             builder.setVmFactory(cc -> {
+                                QbiccFeatureProcessor.process(cc, qbiccYamlFeatures, qbiccFeatures);
                                 CoreClasses.init(cc);
                                 ExceptionOnThreadStrategy.initialize(cc);
                                 UnwindExceptionStrategy.init(cc);
@@ -389,8 +390,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addTypeBuilderFactory(ThreadLocalTypeBuilder::new);
                                 builder.addTypeBuilderFactory(CoreAnnotationTypeBuilder::new);
                                 builder.addTypeBuilderFactory(ReachabilityAnnotationTypeBuilder::new);
+                                builder.addTypeBuilderFactory(ReflectiveElementTypeBuilder::new);
                                 builder.addTypeBuilderFactory(Patcher::getTypeBuilder);
-                                builder.addTypeBuilderFactory(QbiccFeatureTypeBuilder::new);
+                                builder.addTypeBuilderFactory(InitAtRuntimeTypeBuilder::new);
                                 builder.addTypeBuilderFactory(AccessorTypeBuilder::new);
 
                                 builder.setClassContextListener(Patcher::initialize);
@@ -421,9 +423,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, Reflection::get);
                                 builder.addPreHook(Phase.ADD, UnwindExceptionStrategy::get);
                                 builder.addPreHook(Phase.ADD, GcCommon::registerIntrinsics);
-                                builder.addPreHook(Phase.ADD, compilationContext -> {
-                                    QbiccFeatureProcessor.process(compilationContext, qbiccYamlFeatures, qbiccFeatures);
-                                });
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
                                     Vm vm = compilationContext.getVm();
                                     VmThread initThread = vm.newThread("initialization", vm.getMainThreadGroup(), false,  Thread.currentThread().getPriority());
@@ -464,7 +463,6 @@ public class Main implements Callable<DiagnosticContext> {
                                     .andThen(new BuildTimeOnlyElementHandler())
                                     .andThen(new ElementInitializer())));
                                 builder.addPreHook(Phase.ADD, new ElementReachableAdapter(ReachabilityInfo::processReachableElement));
-                                builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new ReflectiveMethodAccessorGenerator()));
                                 builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig))));
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
                                 if (nogc) {
@@ -494,12 +492,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, DeferenceBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
-                                builder.addPostHook(Phase.ADD, ctxt -> {
-                                    Vm vm = ctxt.getVm();
-                                    vm.doAttached(vm.newThread("FieldAccessor Generation", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> {
-                                        Reflection.get(ctxt).generateFieldAccessors();
-                                    });
-                                });
                                 builder.addPostHook(Phase.ADD, ctxt -> {
                                     Vm vm = ctxt.getVm();
                                     vm.doAttached(vm.newThread("ReflectionData Generation", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> {

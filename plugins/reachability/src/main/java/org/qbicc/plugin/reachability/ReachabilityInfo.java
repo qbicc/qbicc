@@ -268,11 +268,6 @@ public class ReachabilityInfo {
                 analysis.processReachableType(pc, null);
                 if (!pc.isInterface()) {
                     analysis.processInstantiatedClass(pc, true, null);
-                    int index = pc.findConstructorIndex(MethodDescriptor.VOID_METHOD_DESCRIPTOR);
-                    if (index != -1) {
-                        ConstructorElement ce = pc.getConstructor(index);
-                        ReachabilityRoots.get(ctxt).registerReflectiveConstructor(ce);
-                    }
                 }
             }
         }

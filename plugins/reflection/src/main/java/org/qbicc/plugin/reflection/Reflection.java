@@ -174,9 +174,6 @@ public final class Reflection {
     final InstanceFieldElement methodHandleLambdaFormField;
     // LambdaForm
     final InstanceFieldElement lambdaFormMemberNameField;
-    // MethodHandleAccessorFactory
-    final MethodElement newMethodAccessorMethod;
-    final MethodElement newConstructorAccessorMethod;
 
     // box type fields
     private final FieldElement byteValueField;
@@ -314,11 +311,6 @@ public final class Reflection {
         rmnIndexField = rmnDef.findInstanceField("index");
         rmnClazzField = rmnDef.findInstanceField("clazz");
 
-        // MethodHandleAccessorFactory
-        LoadedTypeDefinition mhAccFactDef = classContext.findDefinedType("jdk/internal/reflect/MethodHandleAccessorFactory").load();
-        newMethodAccessorMethod = mhAccFactDef.requireSingleMethod("newMethodAccessor");
-        newConstructorAccessorMethod = mhAccFactDef.requireSingleMethod("newConstructorAccessor");
-
         // Exceptions & errors
         LoadedTypeDefinition leDef = classContext.findDefinedType("java/lang/LinkageError").load();
         linkageErrorClass = (VmThrowableClass) leDef.getVmClass();
@@ -372,7 +364,7 @@ public final class Reflection {
     public void generateReflectiveData(LoadedTypeDefinition ltd) {
         if (!ltd.getVisibleAnnotations().isEmpty()
             || (!ltd.isInterface() && hasInheritedAnnotations(ltd))
-            || ReachabilityRoots.get(ctxt).isReflectiveClass(ltd)) {
+            || ReflectiveElementRegistry.get(ctxt).isReflectiveType(ltd)) {
             MethodElement annotationData = classClass.getTypeDefinition().requireSingleMethod("annotationData");
             vm.invokeExact(annotationData, ltd.getVmClass(), List.of());
         }
@@ -403,9 +395,8 @@ public final class Reflection {
 
     // Create a DirectConstructorHandleAccessor and store it in the Constructor.
     private void generateConstructorAccessor(VmObject ctor) {
-        VmObject accessor = (VmObject)vm.invokeExact(newConstructorAccessorMethod, null, List.of(ctor));
-        MethodElement sca = constructorClass.getTypeDefinition().requireSingleMethod("setConstructorAccessor", 1);
-        vm.invokeExact(sca, ctor, List.of(accessor));
+        MethodElement aca = constructorClass.getTypeDefinition().requireSingleMethod("acquireConstructorAccessor", 0);
+        vm.invokeExact(aca, ctor, List.of());
         // Create the declaredAnnotation Map
         MethodElement da = constructorClass.getTypeDefinition().getSuperClass().requireSingleMethod("declaredAnnotations");
         vm.invokeExact(da, ctor, List.of());
@@ -420,14 +411,12 @@ public final class Reflection {
         VmClass c = me.getEnclosingType().load().getVmClass();
         getClassDeclaredMethods(c, true);
         getClassDeclaredMethods(c, false);
-
     }
 
-    // Create a DirectMethodHandleAccessor and store it in the Method.
+    // generate the method accessor and annotation data runtime reflection will need.
     private void generateMethodAccessor(VmObject method) {
-        VmObject accessor = (VmObject)vm.invokeExact(newMethodAccessorMethod, null, List.of(method, Boolean.FALSE));
-        MethodElement sma = methodClass.getTypeDefinition().requireSingleMethod("setMethodAccessor", 1);
-        vm.invokeExact(sma, method, List.of(accessor));
+        MethodElement ama = methodClass.getTypeDefinition().requireSingleMethod("acquireMethodAccessor", 0);
+        vm.invokeExact(ama, method, List.of());
         // Create the declaredAnnotation Map
         MethodElement da = methodClass.getTypeDefinition().getSuperClass().requireSingleMethod("declaredAnnotations");
         vm.invokeExact(da, method, List.of());
@@ -444,20 +433,13 @@ public final class Reflection {
         getClassDeclaredFields(c, true);
         getClassDeclaredFields(c, false);
         VmObject field = getField(fe);
+        // Create the field accessors
         MethodElement afa = fieldClass.getTypeDefinition().requireSingleMethod("acquireFieldAccessor", 1);
         vm.invokeExact(afa, field, List.of(Boolean.TRUE));
         vm.invokeExact(afa, field, List.of(Boolean.FALSE));
-    }
-
-    /**
-     * Ensure field accessors are generated for all reflectively accessed fields.
-     * We can do this in an ADD postHook because it will not generate any newly reachable methods.
-     */
-    public void generateFieldAccessors() {
-        ReachabilityRoots roots = ReachabilityRoots.get(ctxt);
-        for (FieldElement f: roots.getReflectiveFields()) {
-            makeAvailableForRuntimeReflection(f);
-        }
+        // Create the declaredAnnotation Map
+        MethodElement da = fieldClass.getTypeDefinition().requireSingleMethod("declaredAnnotations");
+        vm.invokeExact(da, field, List.of());
     }
 
     /**
@@ -673,7 +655,7 @@ public final class Reflection {
         return getClassDeclaredFields((VmClass) vmObject, ((Boolean) objects.get(0)).booleanValue());
     }
 
-    private VmObject getField(FieldElement field) {
+    VmObject getField(FieldElement field) {
         VmObject vmObject = reflectionObjects.get(field);
         if (vmObject != null) {
             return vmObject;
@@ -861,7 +843,7 @@ public final class Reflection {
         ));
         VmObject appearing = reflectionObjects.putIfAbsent(constructor, vmObject);
         if (appearing == null) {
-            ctxt.submitTask(vmObject, c -> this.generateConstructorAccessor(c));
+            ctxt.submitTask(vmObject, c ->  this.generateConstructorAccessor(c));
         }
         return appearing != null ? appearing : vmObject;
     }

@@ -622,6 +622,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return asDependency(new InitCheck(callSite, element, line, bci, requireDependency(), initializer, initThunk));
     }
 
+    public Node initializeClass(final Value value) {
+        return asDependency(new InitializeClass(callSite, element, line, bci, requireDependency(), value));
+    }
+
     public Node fence(final GlobalAccessMode fenceType) {
         return asDependency(new Fence(callSite, element, line, bci, requireDependency(), fenceType));
     }

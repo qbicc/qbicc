@@ -404,6 +404,11 @@ public interface Node {
                 return param.getBlockBuilder().initCheck(node.getInitializerElement(), param.copyValue(node.getInitThunk()));
             }
 
+            public Node visit(Copier copier, InitializeClass node) {
+                copier.copyNode(node.getDependency());
+                return copier.getBlockBuilder().initializeClass(copier.copyValue(node.getInitializeClassValue()));
+            }
+
             public Node visit(Copier param, DebugAddressDeclaration node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().declareDebugAddress(node.getVariable(), param.copyValue(node.getAddress()));

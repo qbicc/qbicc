@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.plugin.reflection.ReflectiveElementRegistry;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,8 +18,9 @@ public class QbiccFeatureProcessor {
         if (yamlFeatures.isEmpty() && features.isEmpty()) {
             return;
         }
-        FeaturePatcher fp = FeaturePatcher.get(ctxt);
+        InitAtRuntimeRegistry fp = InitAtRuntimeRegistry.get(ctxt);
         RuntimeResourceManager rm = RuntimeResourceManager.get(ctxt);
+        ReflectiveElementRegistry re = ReflectiveElementRegistry.get(ctxt);
 
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.NONE);
@@ -28,18 +30,18 @@ public class QbiccFeatureProcessor {
         for (URL feature : yamlFeatures) {
             try (InputStream fs = feature.openStream()) {
                 QbiccFeature yf = mapper.readValue(fs, QbiccFeature.class);
-                processFeature(yf, fp, rm);
+                processFeature(yf, fp, rm, re);
             } catch (IOException e) {
                 ctxt.error(e, "Failed to read qbicc-feature %s ", feature);
             }
         }
 
         for (QbiccFeature f : features) {
-            processFeature(f, fp, rm);
+            processFeature(f, fp, rm, re);
         }
     }
 
-    private static void processFeature(QbiccFeature qf, FeaturePatcher fp, RuntimeResourceManager rm) {
+    private static void processFeature(QbiccFeature qf, InitAtRuntimeRegistry fp, RuntimeResourceManager rm, ReflectiveElementRegistry re) {
         if (qf.initializeAtRuntime != null) {
             for (String className : qf.initializeAtRuntime) {
                 String internalName = className.replace('.', '/');
@@ -58,22 +60,22 @@ public class QbiccFeatureProcessor {
         }
         if (qf.reflectiveClasses != null) {
             for (QbiccFeature.ReflectiveClass rc : qf.reflectiveClasses) {
-                fp.addReflectiveClass(rc.name.replace('.', '/'), rc.fields, rc.methods, rc.constructors);
+                re.addReflectiveClass(rc.name.replace('.', '/'), rc.fields, rc.methods, rc.constructors);
             }
         }
         if (qf.reflectiveConstructors != null) {
             for (QbiccFeature.Constructor c : qf.reflectiveConstructors) {
-                fp.addReflectiveConstructor(c.declaringClass.replace('.', '/'), c.arguments);
+                re.addReflectiveConstructor(c.declaringClass.replace('.', '/'), c.arguments);
             }
         }
         if (qf.reflectiveFields != null) {
             for (QbiccFeature.Field f : qf.reflectiveFields) {
-                fp.addReflectiveField(f.declaringClass.replace('.', '/'), f.name);
+                re.addReflectiveField(f.declaringClass.replace('.', '/'), f.name);
             }
         }
         if (qf.reflectiveMethods != null) {
             for (QbiccFeature.Method meth : qf.reflectiveMethods) {
-                fp.addReflectiveMethod(meth.declaringClass.replace('.', '/'), meth.name, meth.arguments);
+                re.addReflectiveMethod(meth.declaringClass.replace('.', '/'), meth.name, meth.arguments);
             }
         }
     }

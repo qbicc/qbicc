@@ -16,6 +16,10 @@ public interface ActionVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, InitializeClass node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, DebugAddressDeclaration node) {
         return visitUnknown(t, node);
     }
@@ -60,6 +64,10 @@ public interface ActionVisitor<T, R> {
         }
 
         default R visit(T t, InitCheck node) {
+            return getDelegateActionVisitor().visit(t, node);
+        }
+
+        default R visit(T t, InitializeClass node) {
             return getDelegateActionVisitor().visit(t, node);
         }
 

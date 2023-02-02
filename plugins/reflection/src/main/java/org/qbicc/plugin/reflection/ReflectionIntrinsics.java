@@ -14,11 +14,14 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.BlockParameter;
+import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.InstanceMethodLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.graph.literal.StringLiteral;
+import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
@@ -31,6 +34,7 @@ import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.InvokableType;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
@@ -41,6 +45,7 @@ import org.qbicc.type.definition.MethodBodyFactory;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.StaticMethodElement;
@@ -56,6 +61,8 @@ public final class ReflectionIntrinsics {
     private ReflectionIntrinsics() {}
 
     public static void register(CompilationContext ctxt) {
+        registerReflectionAnalysisIntrinsics(ctxt);
+
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         Patcher patcher = Patcher.get(ctxt);
         ClassContext bootstrapClassContext = ctxt.getBootstrapClassContext();
@@ -462,6 +469,93 @@ public final class ReflectionIntrinsics {
         patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndBitwiseXor", objArrayToObj, varHandleBodyFactory, 0);
         patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndBitwiseXorRelease", objArrayToObj, varHandleBodyFactory, 0);
         patcher.replaceMethodBody(bootstrapClassContext, varHandleInt, "getAndBitwiseXorAcquire", objArrayToObj, varHandleBodyFactory, 0);
+    }
+
+
+    /**
+     * This collection of intrinsics implements automatic registration/folding of reflective operations
+     * with constant arguments. Like GraalVM's "Automatic Detection"
+     * of reflection (https://www.graalvm.org/22.0/reference-manual/native-image/Reflection/),
+     * the goal is to support simple patterns for reflection without explicit user annotation.
+     */
+    public static void registerReflectionAnalysisIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+        ClassTypeDescriptor jloDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
+        ClassTypeDescriptor jlsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
+        ClassTypeDescriptor jlrCtorDesc =  ClassTypeDescriptor.synthesize(classContext, "java/lang/reflect/Constructor");
+        ClassTypeDescriptor jlrFieldDesc =  ClassTypeDescriptor.synthesize(classContext, "java/lang/reflect/Field");
+        ClassTypeDescriptor jlrMethodDesc =  ClassTypeDescriptor.synthesize(classContext, "java/lang/reflect/Method");
+        ArrayTypeDescriptor jlcADesc = ArrayTypeDescriptor.of(classContext, jlcDesc);
+
+        MethodDescriptor stringToClass = MethodDescriptor.synthesize(classContext, jlcDesc, List.of(jlsDesc));
+        MethodDescriptor stringToField = MethodDescriptor.synthesize(classContext, jlrFieldDesc, List.of(jlsDesc));
+        MethodDescriptor stringAndClassesToMethod = MethodDescriptor.synthesize(classContext, jlrMethodDesc, List.of(jlsDesc, jlcADesc));
+        MethodDescriptor classesToCtor = MethodDescriptor.synthesize(classContext, jlrCtorDesc, List.of(jlcADesc));
+
+        StaticIntrinsic forName = (builder, target, arguments) -> {
+            if (arguments.get(0) instanceof StringLiteral sl) {
+                String internalName = sl.getValue().replace('.', '/');
+                DefinedTypeDefinition dtd = builder.getCurrentClassContext().findDefinedType(internalName);
+                if (dtd != null) {
+                    Value cls = builder.getFirstBuilder().classOf(dtd.load().getObjectType());
+                    builder.getFirstBuilder().initializeClass(cls); // Class.forName causes class initialization; preserve those semantics for interpreter
+                    return cls;
+                }
+            }
+            return null; // Allow call to proceed; can't optimize at compile time.
+        };
+        intrinsics.registerIntrinsic(jlcDesc, "forName", stringToClass, forName);
+
+        InstanceIntrinsic findField = (builder, instance, target, arguments) -> {
+            if (instance instanceof ClassOf co && co.getInput() instanceof TypeLiteral tl && tl.getValue() instanceof ObjectType ot) {
+                LoadedTypeDefinition receivingClass = ot.getDefinition().load();
+                if (arguments.get(0) instanceof StringLiteral sl) {
+                    FieldElement fe = receivingClass.findField(sl.getValue());
+                    if (fe != null) {
+                        VmObject fObj = Reflection.get(builder.getContext()).getField(fe);
+                        return builder.getContext().getLiteralFactory().literalOf(fObj);
+                    }
+                }
+                // Not able to resolve; ensure receivingClass is ready for runtime reflection on its fields
+                ReflectiveElementRegistry.get(builder.getContext()).bulkRegisterElementsForReflection(receivingClass, true, false, false);
+            }
+            return null;
+        };
+        intrinsics.registerIntrinsic(jlcDesc, "getField", stringToField, findField);
+        intrinsics.registerIntrinsic(jlcDesc, "getDeclaredField", stringToField, findField);
+
+        InstanceIntrinsic findMethod = (builder, instance, target, arguments) -> {
+            if (instance instanceof ClassOf co && co.getInput() instanceof TypeLiteral tl && tl.getValue() instanceof ObjectType ot) {
+                LoadedTypeDefinition receivingClass = ot.getDefinition().load();
+
+                // TODO: To eliminate the reflection, we need arguments(0) to be a StringLiteral and
+                //       arguments(1) to be an ArrayLiteral all of whose elements are ClassLiterals
+
+                // Not able to resolve at compile time; conservatively register all methods of the class as potentially being invoked reflectively
+                ReflectiveElementRegistry.get(ctxt).bulkRegisterElementsForReflection(receivingClass, false, false, true);
+            }
+            return null;
+        };
+        intrinsics.registerIntrinsic(jlcDesc, "getMethod", stringAndClassesToMethod, findMethod);
+        intrinsics.registerIntrinsic(jlcDesc, "getDeclaredMethod", stringAndClassesToMethod, findMethod);
+
+
+        InstanceIntrinsic findConstructor = (builder, instance, target, arguments) -> {
+            if (instance instanceof ClassOf co && co.getInput() instanceof TypeLiteral tl && tl.getValue() instanceof ObjectType ot) {
+                LoadedTypeDefinition receivingClass = ot.getDefinition().load();
+
+                // TODO: To eliminate the reflection, we need arguments(0) to be an ArrayLiteral all of whose elements are ClassLiterals
+
+                // Not able to resolve at compile time; conservatively register all constructors of the class as potentially being invoked reflectively
+                ReflectiveElementRegistry.get(ctxt).bulkRegisterElementsForReflection(receivingClass, false, true, false);
+            }
+            return null;
+        };
+        intrinsics.registerIntrinsic(jlcDesc, "getConstructor", classesToCtor, findConstructor);
+        intrinsics.registerIntrinsic(jlcDesc, "getDeclaredConstructor", classesToCtor, findConstructor);
     }
 
     /**
