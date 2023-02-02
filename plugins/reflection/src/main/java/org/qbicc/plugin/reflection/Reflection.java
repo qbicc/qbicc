@@ -773,10 +773,7 @@ public final class Reflection {
         ));
         VmObject appearing = reflectionObjects.putIfAbsent(method, vmObject);
         if (appearing == null && !method.isNative()) {
-            ctxt.submitTask(vmObject, m -> {
-                VmThread thr = vm.newThread("genMethAccessor", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority());
-                vm.doAttached(thr, () -> this.generateMethodAccessor(m));
-            });
+            ctxt.submitTask(vmObject, m -> this.generateMethodAccessor(m));
         }
         return appearing != null ? appearing : vmObject;
     }
@@ -847,10 +844,7 @@ public final class Reflection {
         ));
         VmObject appearing = reflectionObjects.putIfAbsent(constructor, vmObject);
         if (appearing == null) {
-            ctxt.submitTask(vmObject, c ->  {
-                VmThread thr = vm.newThread("genCtorAccessor", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority());
-                vm.doAttached(thr, () -> this.generateConstructorAccessor(c));
-            });
+            ctxt.submitTask(vmObject, c ->  this.generateConstructorAccessor(c));
         }
         return appearing != null ? appearing : vmObject;
     }

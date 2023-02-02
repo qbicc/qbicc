@@ -159,13 +159,7 @@ public class ReflectiveElementRegistry {
         boolean added = reflectiveMethodElements.add(e);
         if (added) {
             ReachabilityRoots.get(ctxt).registerReflectiveEntrypoint(e);
-            ctxt.submitTask(e, methodElement -> {
-                Vm vm = ctxt.getVm();
-                VmThread thr = vm.newThread("genMethodAccessor", vm.getMainThreadGroup(), false,  Thread.currentThread().getPriority());
-                ctxt.getVm().doAttached(thr, () -> {
-                    Reflection.get(ctxt).makeAvailableForRuntimeReflection(methodElement);
-                });
-            });
+            ctxt.submitTask(e, methodElement -> Reflection.get(ctxt).makeAvailableForRuntimeReflection(methodElement));
         }
         return added;
     }
@@ -174,13 +168,7 @@ public class ReflectiveElementRegistry {
         boolean added = reflectiveConstructorElements.add(e);
         if (added) {
             ReachabilityRoots.get(ctxt).registerReflectiveEntrypoint(e);
-            ctxt.submitTask(e, constructorElement -> {
-                Vm vm = ctxt.getVm();
-                VmThread thr = vm.newThread("genConstructorAccessor", vm.getMainThreadGroup(), false,  Thread.currentThread().getPriority());
-                ctxt.getVm().doAttached(thr, () -> {
-                    Reflection.get(ctxt).makeAvailableForRuntimeReflection(constructorElement);
-                });
-            });
+            ctxt.submitTask(e, constructorElement -> Reflection.get(ctxt).makeAvailableForRuntimeReflection(constructorElement));
         }
         return added;
     }
@@ -191,13 +179,7 @@ public class ReflectiveElementRegistry {
             if (f.isStatic()) {
                 ReachabilityRoots.get(ctxt).registerHeapRoot((StaticFieldElement) f);
             }
-            ctxt.submitTask(f, fieldElement -> {
-                Vm vm = ctxt.getVm();
-                VmThread thr = vm.newThread("genFieldAccessor", vm.getMainThreadGroup(), false,  Thread.currentThread().getPriority());
-                ctxt.getVm().doAttached(thr, () -> {
-                    Reflection.get(ctxt).makeAvailableForRuntimeReflection(fieldElement);
-                });
-            });
+            ctxt.submitTask(f, fieldElement -> Reflection.get(ctxt).makeAvailableForRuntimeReflection(fieldElement));
         }
         return added;
     }

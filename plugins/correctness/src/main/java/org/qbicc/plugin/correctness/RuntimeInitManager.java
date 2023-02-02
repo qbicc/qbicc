@@ -51,13 +51,8 @@ public class RuntimeInitManager {
     }
 
     private VmObject allocateThunk(int id) {
-        VmThread thread = ctxt.getVm().newThread(Thread.currentThread().getName(), ctxt.getVm().getMainThreadGroup(), false, Thread.currentThread().getPriority());
         MethodElement allocateThunk = RuntimeMethodFinder.get(ctxt).getMethod("org/qbicc/runtime/main/RuntimeInitializerRunner", "allocateThunk");
-        final VmObject[] t = new VmObject[1];
-        ctxt.getVm().doAttached(thread, () -> {
-            t[0] = (VmObject)ctxt.getVm().invokeExact(allocateThunk, null, List.of(id));
-        });
-        return t[0];
+        return (VmObject)ctxt.getVm().invokeExact(allocateThunk, null, List.of(id));
     }
 
     public int maxAssignedId() {
