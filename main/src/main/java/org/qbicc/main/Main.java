@@ -146,7 +146,6 @@ import org.qbicc.plugin.reachability.ReachabilityAnnotationTypeBuilder;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
-import org.qbicc.plugin.reflection.ReflectionAnalyzingBasicBlockBuilder;
 import org.qbicc.plugin.reachability.ServiceLoaderAnalyzer;
 import org.qbicc.plugin.reflection.Reflection;
 import org.qbicc.plugin.reflection.ReflectionFactsSetup;
@@ -484,7 +483,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, CoreClassesBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ReflectionAnalyzingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, BciRangeExceptionHandlerBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
                                 if (optMemoryTracking) {

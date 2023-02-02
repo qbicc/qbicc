@@ -3,7 +3,6 @@ package org.qbicc.plugin.reflection;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.plugin.core.ConditionEvaluation;
-import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;

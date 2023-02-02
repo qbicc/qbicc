@@ -411,7 +411,6 @@ public final class Reflection {
         VmClass c = me.getEnclosingType().load().getVmClass();
         getClassDeclaredMethods(c, true);
         getClassDeclaredMethods(c, false);
-
     }
 
     // generate the method accessor and annotation data runtime reflection will need.

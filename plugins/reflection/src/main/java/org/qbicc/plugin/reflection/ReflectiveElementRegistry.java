@@ -184,6 +184,33 @@ public class ReflectiveElementRegistry {
         return added;
     }
 
+    public void bulkRegisterElementsForReflection(LoadedTypeDefinition cls, boolean fields, boolean constructors, boolean methods) {
+        registerReflectiveType(cls);
+        if (fields) {
+            int fc = cls.getFieldCount();
+            for (int i = 0; i < fc; i++) {
+                registerReflectiveField(cls.getField(i));
+            }
+        }
+        if (constructors) {
+            int cc = cls.getConstructorCount();
+            for (int i = 0; i < cc; i++) {
+                registerReflectiveConstructor(cls.getConstructor(i));
+            }
+        }
+        if (methods) {
+            int mc = cls.getMethodCount();
+            for (int i = 0; i < mc; i++) {
+                registerReflectiveMethod(cls.getMethod(i));
+            }
+            for (MethodElement m: cls.getInstanceMethods()) {
+                if (!m.isNative()) {
+                    registerReflectiveMethod(m);
+                }
+            }
+        }
+    }
+
     private String encodeArguments(String[] args) {
         if (args == null || args.length == 0) {
             return "";
