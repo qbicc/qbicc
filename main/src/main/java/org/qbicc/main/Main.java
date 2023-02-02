@@ -337,6 +337,7 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.setTypeSystem(typeSystem);
                             // add additional manual initializers by chaining `.andThen(...)`
                             builder.setVmFactory(cc -> {
+                                QbiccFeatureProcessor.process(cc, qbiccYamlFeatures, qbiccFeatures);
                                 CoreClasses.init(cc);
                                 ExceptionOnThreadStrategy.initialize(cc);
                                 UnwindExceptionStrategy.init(cc);
@@ -412,9 +413,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, ReachabilityFactsSetup::setupAdd);
                                 builder.addPreHook(Phase.ADD, ReflectionFactsSetup::setupAdd);
                                 builder.addPreHook(Phase.ADD, ctxt -> SafePoints.selectStrategy(ctxt, nogc ? SafePoints.Strategy.NONE : SafePoints.Strategy.GLOBAL_FLAG));
-                                builder.addPreHook(Phase.ADD, compilationContext -> {
-                                    QbiccFeatureProcessor.process(compilationContext, qbiccYamlFeatures, qbiccFeatures);
-                                });
                                 if (llvm) {
                                     builder.addPreHook(Phase.ADD, LLVMIntrinsics::register);
                                 }
