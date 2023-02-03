@@ -2,8 +2,6 @@ package org.qbicc.plugin.reflection;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.interpreter.Vm;
-import org.qbicc.interpreter.VmThread;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
@@ -27,15 +25,15 @@ public class ReflectiveElementRegistry {
 
     private final CompilationContext ctxt;
 
-    // These are the "early" mappings which can be added to in the earliest preHooks to ADD
-    // All entries should be made before qbicc begins loading classes.
+    // These are the "early" mappings which are constructed from qbcc features before any classes are loaded.
     private final Map<String, ClassInfo> reflectiveClasses = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> reflectiveConstructors = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> reflectiveFields = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> reflectiveMethods = new ConcurrentHashMap<>();
 
     // These are the "late" mappings which are populated during the ADD phase
-    // as classes are loaded and reachable methods are compiled and analyzed
+    // by consulting the early mappings as classes are loaded and by doing analysis of
+    // reachable methods as they are compiled and interpreted.
     private final Set<MethodElement> reflectiveMethodElements = ConcurrentHashMap.newKeySet();
     private final Set<ConstructorElement> reflectiveConstructorElements = ConcurrentHashMap.newKeySet();
     private final Set<FieldElement> reflectiveFieldElements = ConcurrentHashMap.newKeySet();
@@ -155,57 +153,46 @@ public class ReflectiveElementRegistry {
         return reflectiveLoadedTypes.contains(ltd);
     }
 
-    public boolean registerReflectiveMethod(MethodElement e) {
+    public void registerReflectiveMethod(MethodElement e) {
         boolean added = reflectiveMethodElements.add(e);
         if (added) {
             ReachabilityRoots.get(ctxt).registerReflectiveEntrypoint(e);
-            ctxt.submitTask(e, methodElement -> Reflection.get(ctxt).makeAvailableForRuntimeReflection(methodElement));
+            ctxt.submitTask(e, methodElement -> Reflection.get(ctxt).makeMethodsAvailableForRuntimeReflection(methodElement.getEnclosingType().load()));
         }
-        return added;
     }
 
-    public boolean registerReflectiveConstructor(ConstructorElement e) {
+    public void registerReflectiveConstructor(ConstructorElement e) {
         boolean added = reflectiveConstructorElements.add(e);
         if (added) {
             ReachabilityRoots.get(ctxt).registerReflectiveEntrypoint(e);
-            ctxt.submitTask(e, constructorElement -> Reflection.get(ctxt).makeAvailableForRuntimeReflection(constructorElement));
+            ctxt.submitTask(e, constructorElement -> Reflection.get(ctxt).makeConstructorsAvailableForRuntimeReflection(constructorElement.getEnclosingType().load()));
         }
-        return added;
     }
 
-    public boolean registerReflectiveField(FieldElement f) {
+    public void registerReflectiveField(FieldElement f) {
         boolean added = reflectiveFieldElements.add(f);
         if (added) {
             if (f.isStatic()) {
                 ReachabilityRoots.get(ctxt).registerHeapRoot((StaticFieldElement) f);
             }
-            ctxt.submitTask(f, fieldElement -> Reflection.get(ctxt).makeAvailableForRuntimeReflection(fieldElement));
+            ctxt.submitTask(f, fieldElement -> Reflection.get(ctxt).makeFieldsAvailableForRuntimeReflection(fieldElement.getEnclosingType().load()));
         }
-        return added;
     }
 
     public void bulkRegisterElementsForReflection(LoadedTypeDefinition cls, boolean fields, boolean constructors, boolean methods) {
         registerReflectiveType(cls);
+        Reflection reflect = Reflection.get(ctxt);
         if (fields) {
-            int fc = cls.getFieldCount();
-            for (int i = 0; i < fc; i++) {
-                registerReflectiveField(cls.getField(i));
-            }
+            reflect.makeFieldsAvailableForRuntimeReflection(cls);
         }
         if (constructors) {
-            int cc = cls.getConstructorCount();
-            for (int i = 0; i < cc; i++) {
-                registerReflectiveConstructor(cls.getConstructor(i));
-            }
+            reflect.makeConstructorsAvailableForRuntimeReflection(cls);
         }
         if (methods) {
-            int mc = cls.getMethodCount();
-            for (int i = 0; i < mc; i++) {
-                registerReflectiveMethod(cls.getMethod(i));
-            }
+            reflect.makeMethodsAvailableForRuntimeReflection(cls);
             for (MethodElement m: cls.getInstanceMethods()) {
-                if (!m.isNative()) {
-                    registerReflectiveMethod(m);
+                if (!m.getEnclosingType().equals(cls)) {
+                    reflect.makeMethodsAvailableForRuntimeReflection(m.getEnclosingType().load());
                 }
             }
         }
