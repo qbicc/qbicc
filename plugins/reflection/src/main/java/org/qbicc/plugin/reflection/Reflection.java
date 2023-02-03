@@ -361,11 +361,16 @@ public final class Reflection {
     }
 
     public void generateReflectiveData(LoadedTypeDefinition ltd) {
-        if (!ltd.getVisibleAnnotations().isEmpty()
-            || (!ltd.isInterface() && hasInheritedAnnotations(ltd))
-            || ReflectiveElementRegistry.get(ctxt).isReflectiveType(ltd)) {
+        boolean isReflectiveType = ReflectiveElementRegistry.get(ctxt).isReflectiveType(ltd);
+        if (isReflectiveType || ltd.isPrimitive()
+            || !ltd.getVisibleAnnotations().isEmpty()
+            || (!ltd.isInterface() && hasInheritedAnnotations(ltd))) {
             MethodElement annotationData = classClass.getTypeDefinition().requireSingleMethod("annotationData");
             vm.invokeExact(annotationData, ltd.getVmClass(), List.of());
+        }
+        if (isReflectiveType || ltd.isPrimitive()) {
+            MethodElement getGenericInfo = classClass.getTypeDefinition().requireSingleMethod("getGenericInfo");
+            vm.invokeExact(getGenericInfo, ltd.getVmClass(), List.of());
         }
         if (ltd.isEnum()) {
             MethodElement getEC = classClass.getTypeDefinition().requireSingleMethod("getEnumConstantsShared");
