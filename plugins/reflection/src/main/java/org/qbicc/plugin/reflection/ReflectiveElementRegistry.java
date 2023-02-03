@@ -141,12 +141,23 @@ public class ReflectiveElementRegistry {
         return false;
     }
 
-
     /*
      * Late phase mapping methods
      */
     public void registerReflectiveType(LoadedTypeDefinition ltd) {
-        reflectiveLoadedTypes.add(ltd);
+        boolean added = reflectiveLoadedTypes.add(ltd);
+        if (added) {
+            ClassInfo ci = reflectiveClasses.get(ltd.getInternalName());
+            if (ci != null) {
+                // Handle the degenerate case of a class not actually having any elements.
+                if (ci.methods && ltd.getMethodCount() == 0) {
+                    Reflection.get(ctxt).makeMethodsAvailableForRuntimeReflection(ltd);
+                }
+                if (ci.fields && ltd.getFieldCount() == 0) {
+                    Reflection.get(ctxt).makeFieldsAvailableForRuntimeReflection(ltd);
+                }
+            }
+        }
     }
 
     public boolean isReflectiveType(LoadedTypeDefinition ltd) {
