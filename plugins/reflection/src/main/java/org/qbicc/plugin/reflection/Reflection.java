@@ -35,7 +35,6 @@ import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.patcher.Patcher;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
-import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
@@ -362,11 +361,16 @@ public final class Reflection {
     }
 
     public void generateReflectiveData(LoadedTypeDefinition ltd) {
-        if (!ltd.getVisibleAnnotations().isEmpty()
-            || (!ltd.isInterface() && hasInheritedAnnotations(ltd))
-            || ReflectiveElementRegistry.get(ctxt).isReflectiveType(ltd)) {
+        boolean isReflectiveType = ReflectiveElementRegistry.get(ctxt).isReflectiveType(ltd);
+        if (isReflectiveType || ltd.isPrimitive()
+            || !ltd.getVisibleAnnotations().isEmpty()
+            || (!ltd.isInterface() && hasInheritedAnnotations(ltd))) {
             MethodElement annotationData = classClass.getTypeDefinition().requireSingleMethod("annotationData");
             vm.invokeExact(annotationData, ltd.getVmClass(), List.of());
+        }
+        if (isReflectiveType || ltd.isPrimitive()) {
+            MethodElement getGenericInfo = classClass.getTypeDefinition().requireSingleMethod("getGenericInfo");
+            vm.invokeExact(getGenericInfo, ltd.getVmClass(), List.of());
         }
         if (ltd.isEnum()) {
             MethodElement getEC = classClass.getTypeDefinition().requireSingleMethod("getEnumConstantsShared");
@@ -383,63 +387,30 @@ public final class Reflection {
     }
 
     /**
-     * This method must be called during the ADD phase by an attached thread
-     * after the Vm is fully booted
-     * @param ce The ConstructorElement to make available for runtime reflective invocation
+     * This method can only be called during the ADD phase by an attached thread
      */
-    public void makeAvailableForRuntimeReflection(ConstructorElement ce) {
-        VmClass c = ce.getEnclosingType().load().getVmClass();
+    public void makeConstructorsAvailableForRuntimeReflection(LoadedTypeDefinition ltd) {
+        VmClass c = ltd.getVmClass();
         getClassDeclaredConstructors(c, true);
         getClassDeclaredConstructors(c, false);
     }
 
-    // Create a DirectConstructorHandleAccessor and store it in the Constructor.
-    private void generateConstructorAccessor(VmObject ctor) {
-        MethodElement aca = constructorClass.getTypeDefinition().requireSingleMethod("acquireConstructorAccessor", 0);
-        vm.invokeExact(aca, ctor, List.of());
-        // Create the declaredAnnotation Map
-        MethodElement da = constructorClass.getTypeDefinition().getSuperClass().requireSingleMethod("declaredAnnotations");
-        vm.invokeExact(da, ctor, List.of());
-    }
-
     /**
-     * This method must be called during the ADD phase by an attached thread
-     * after the Vm is fully booted.
-     * @param me The MethodElement to make available for runtime reflective invocation
+     * This method can only be called during the ADD phase by an attached thread
      */
-    public void makeAvailableForRuntimeReflection(MethodElement me) {
-        VmClass c = me.getEnclosingType().load().getVmClass();
+    public void makeMethodsAvailableForRuntimeReflection(LoadedTypeDefinition ltd) {
+        VmClass c = ltd.getVmClass();
         getClassDeclaredMethods(c, true);
         getClassDeclaredMethods(c, false);
     }
 
-    // generate the method accessor and annotation data runtime reflection will need.
-    private void generateMethodAccessor(VmObject method) {
-        MethodElement ama = methodClass.getTypeDefinition().requireSingleMethod("acquireMethodAccessor", 0);
-        vm.invokeExact(ama, method, List.of());
-        // Create the declaredAnnotation Map
-        MethodElement da = methodClass.getTypeDefinition().getSuperClass().requireSingleMethod("declaredAnnotations");
-        vm.invokeExact(da, method, List.of());
-    }
-
     /**
-     * This method must be called during the ADD phase by an attached thread
-     * after the Vm is fully booted.
-     *
-     * @param fe The FieldElement to make available for runtime reflective invocation
+     * This method can only be called during the ADD phase by an attached thread
      */
-    public void makeAvailableForRuntimeReflection(FieldElement fe) {
-        VmClass c = fe.getEnclosingType().load().getVmClass();
+    public void makeFieldsAvailableForRuntimeReflection(LoadedTypeDefinition ltd) {
+        VmClass c = ltd.getVmClass();
         getClassDeclaredFields(c, true);
         getClassDeclaredFields(c, false);
-        VmObject field = getField(fe);
-        // Create the field accessors
-        MethodElement afa = fieldClass.getTypeDefinition().requireSingleMethod("acquireFieldAccessor", 1);
-        vm.invokeExact(afa, field, List.of(Boolean.TRUE));
-        vm.invokeExact(afa, field, List.of(Boolean.FALSE));
-        // Create the declaredAnnotation Map
-        MethodElement da = fieldClass.getTypeDefinition().requireSingleMethod("declaredAnnotations");
-        vm.invokeExact(da, field, List.of());
     }
 
     /**
@@ -688,6 +659,16 @@ public final class Reflection {
         }
 
         VmObject appearing = reflectionObjects.putIfAbsent(field, vmObject);
+        if (appearing == null) {
+            // vmObject is the canonical root Field instance; generate accessors and annotation data structures
+            final MethodElement afa = fieldClass.getTypeDefinition().requireSingleMethod("acquireFieldAccessor", 1);
+            final MethodElement da = fieldClass.getTypeDefinition().requireSingleMethod("declaredAnnotations");
+            ctxt.submitTask(vmObject, fieldObject -> {
+                vm.invokeExact(afa, fieldObject, List.of(Boolean.TRUE));
+                vm.invokeExact(afa, fieldObject, List.of(Boolean.FALSE));
+                vm.invokeExact(da, fieldObject, List.of());
+            });
+        }
         return appearing != null ? appearing : vmObject;
     }
 
@@ -771,8 +752,16 @@ public final class Reflection {
             dv
         ));
         VmObject appearing = reflectionObjects.putIfAbsent(method, vmObject);
-        if (appearing == null && !method.isNative()) {
-            ctxt.submitTask(vmObject, m -> this.generateMethodAccessor(m));
+        if (appearing == null) {
+            // vmObject is the canonical root Method object; generate accessor and annotation data structures
+            final MethodElement ama = methodClass.getTypeDefinition().requireSingleMethod("acquireMethodAccessor", 0);
+            final MethodElement da = methodClass.getTypeDefinition().getSuperClass().requireSingleMethod("declaredAnnotations");
+            ctxt.submitTask(vmObject, methodObject -> {
+                if (!method.isNative()) {
+                    vm.invokeExact(ama, methodObject, List.of());
+                }
+                vm.invokeExact(da, methodObject, List.of());
+            });
         }
         return appearing != null ? appearing : vmObject;
     }
@@ -843,7 +832,13 @@ public final class Reflection {
         ));
         VmObject appearing = reflectionObjects.putIfAbsent(constructor, vmObject);
         if (appearing == null) {
-            ctxt.submitTask(vmObject, c ->  this.generateConstructorAccessor(c));
+            // vmObject is the canonical root Constructor object; generate accessor and annotation data structures
+            final MethodElement aca = constructorClass.getTypeDefinition().requireSingleMethod("acquireConstructorAccessor", 0);
+            final MethodElement da = constructorClass.getTypeDefinition().getSuperClass().requireSingleMethod("declaredAnnotations");
+            ctxt.submitTask(vmObject, ctorObject -> {
+                vm.invokeExact(aca, ctorObject, List.of());
+                vm.invokeExact(da, ctorObject, List.of());
+            });
         }
         return appearing != null ? appearing : vmObject;
     }
