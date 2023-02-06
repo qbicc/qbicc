@@ -35,8 +35,8 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
 
     private final MethodDescriptor descriptor;
     private final MethodSignature signature;
-    private final TypeAnnotationList returnVisibleTypeAnnotations;
-    private final TypeAnnotationList returnInvisibleTypeAnnotations;
+    private final TypeAnnotationList visibleTypeAnnotations;
+    private final TypeAnnotationList invisibleTypeAnnotations;
     private final ParameterResolver[] parameterResolvers;
     private final int[] parameterResolverIndexes;
     private final String[] parameterNames;
@@ -61,8 +61,8 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         this.parameterResolverIndexes = NO_INTS;
         this.parameterNames = NO_STRINGS;
         this.parameterDescs = NO_DESCS;
-        this.returnVisibleTypeAnnotations = null;
-        this.returnInvisibleTypeAnnotations = null;
+        this.visibleTypeAnnotations = null;
+        this.invisibleTypeAnnotations = null;
         this.methodBodyFactory = null;
         this.methodBodyFactoryIndex = 0;
         this.minimumLineNumber = 1;
@@ -78,8 +78,8 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         this.parameterResolverIndexes = Arrays.copyOf(builder.parameterResolverIndexes, parameterCount);
         this.parameterNames = Arrays.copyOf(builder.parameterNames, parameterCount);
         this.parameterDescs = Arrays.copyOf(builder.parameterDescs, parameterCount);
-        this.returnVisibleTypeAnnotations = builder.returnVisibleTypeAnnotations;
-        this.returnInvisibleTypeAnnotations = builder.returnInvisibleTypeAnnotations;
+        this.visibleTypeAnnotations = builder.visibleTypeAnnotations;
+        this.invisibleTypeAnnotations = builder.invisibleTypeAnnotations;
         this.methodBodyFactory = builder.methodBodyFactory;
         this.methodBodyFactoryIndex = builder.methodBodyFactoryIndex;
         this.minimumLineNumber = builder.minimumLineNumber;
@@ -221,6 +221,14 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         return parameters;
     }
 
+    public TypeAnnotationList getVisibleTypeAnnotations() {
+        return this.visibleTypeAnnotations;
+    }
+
+    public TypeAnnotationList getInvisibleTypeAnnotations() {
+        return this.invisibleTypeAnnotations;
+    }
+
     public List<TypeAnnotationList> getParameterVisibleTypeAnnotations() {
         List<TypeAnnotationList> annotations = this.parameterVisibleTypeAnnotations;
         if (annotations == null) {
@@ -257,9 +265,9 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         @Deprecated
         void setParameters(final List<ParameterElement> parameters);
 
-        void setReturnVisibleTypeAnnotations(final TypeAnnotationList returnVisibleTypeAnnotations);
+        void setVisibleTypeAnnotations(final TypeAnnotationList returnVisibleTypeAnnotations);
 
-        void setReturnInvisibleTypeAnnotations(final TypeAnnotationList returnInvisibleTypeAnnotations);
+        void setInvisibleTypeAnnotations(final TypeAnnotationList returnInvisibleTypeAnnotations);
 
         void setMethodBodyFactory(final MethodBodyFactory factory, final int index);
 
@@ -294,13 +302,13 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
             }
 
             @Override
-            default void setReturnVisibleTypeAnnotations(final TypeAnnotationList annotations) {
-                getDelegate().setReturnVisibleTypeAnnotations(annotations);
+            default void setVisibleTypeAnnotations(final TypeAnnotationList annotations) {
+                getDelegate().setVisibleTypeAnnotations(annotations);
             }
 
             @Override
-            default void setReturnInvisibleTypeAnnotations(final TypeAnnotationList annotations) {
-                getDelegate().setReturnInvisibleTypeAnnotations(annotations);
+            default void setInvisibleTypeAnnotations(final TypeAnnotationList annotations) {
+                getDelegate().setInvisibleTypeAnnotations(annotations);
             }
 
             @Override
@@ -333,8 +341,8 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         TypeDescriptor[] parameterDescs = NO_DESCS;
         int parameterCount;
         MethodSignature signature = MethodSignature.VOID_METHOD_SIGNATURE;
-        TypeAnnotationList returnVisibleTypeAnnotations = TypeAnnotationList.empty();
-        TypeAnnotationList returnInvisibleTypeAnnotations = TypeAnnotationList.empty();
+        TypeAnnotationList visibleTypeAnnotations = TypeAnnotationList.empty();
+        TypeAnnotationList invisibleTypeAnnotations = TypeAnnotationList.empty();
         MethodBodyFactory methodBodyFactory;
         int methodBodyFactoryIndex;
         int minimumLineNumber = 1;
@@ -400,12 +408,12 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
             }
         }
 
-        public void setReturnVisibleTypeAnnotations(final TypeAnnotationList returnVisibleTypeAnnotations) {
-            this.returnVisibleTypeAnnotations = Assert.checkNotNullParam("returnVisibleTypeAnnotations", returnVisibleTypeAnnotations);
+        public void setVisibleTypeAnnotations(final TypeAnnotationList visibleTypeAnnotations) {
+            this.visibleTypeAnnotations = Assert.checkNotNullParam("visibleTypeAnnotations", visibleTypeAnnotations);
         }
 
-        public void setReturnInvisibleTypeAnnotations(final TypeAnnotationList returnInvisibleTypeAnnotations) {
-            this.returnInvisibleTypeAnnotations = Assert.checkNotNullParam("returnInvisibleTypeAnnotations", returnInvisibleTypeAnnotations);
+        public void setInvisibleTypeAnnotations(final TypeAnnotationList invisibleTypeAnnotations) {
+            this.invisibleTypeAnnotations = Assert.checkNotNullParam("invisibleTypeAnnotations", invisibleTypeAnnotations);
         }
 
         public void setMethodBodyFactory(final MethodBodyFactory factory, final int index) {

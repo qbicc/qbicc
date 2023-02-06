@@ -87,9 +87,9 @@ public final class FunctionElement extends InvokableElement implements NamedElem
 
         void addInvisibleAnnotations(List<Annotation> annotations);
 
-        void setReturnVisibleTypeAnnotations(TypeAnnotationList returnVisibleTypeAnnotations);
+        void setVisibleTypeAnnotations(TypeAnnotationList returnVisibleTypeAnnotations);
 
-        void setReturnInvisibleTypeAnnotations(TypeAnnotationList returnInvisibleTypeAnnotations);
+        void setInvisibleTypeAnnotations(TypeAnnotationList returnInvisibleTypeAnnotations);
 
         interface Delegating extends InvokableElement.Builder.Delegating, NamedElement.Builder.Delegating, Builder {
             @Override
@@ -116,13 +116,13 @@ public final class FunctionElement extends InvokableElement implements NamedElem
             }
 
             @Override
-            default void setReturnVisibleTypeAnnotations(final TypeAnnotationList annotations) {
-                getDelegate().setReturnVisibleTypeAnnotations(annotations);
+            default void setVisibleTypeAnnotations(final TypeAnnotationList annotations) {
+                getDelegate().setVisibleTypeAnnotations(annotations);
             }
 
             @Override
-            default void setReturnInvisibleTypeAnnotations(final TypeAnnotationList annotations) {
-                getDelegate().setReturnInvisibleTypeAnnotations(annotations);
+            default void setInvisibleTypeAnnotations(final TypeAnnotationList annotations) {
+                getDelegate().setInvisibleTypeAnnotations(annotations);
             }
         }
     }
@@ -161,12 +161,12 @@ public final class FunctionElement extends InvokableElement implements NamedElem
         }
 
         @Override
-        public void setReturnVisibleTypeAnnotations(TypeAnnotationList returnVisibleTypeAnnotations) {
+        public void setVisibleTypeAnnotations(TypeAnnotationList returnVisibleTypeAnnotations) {
             throw new UnsupportedOperationException("Functions do not support annotations");
         }
 
         @Override
-        public void setReturnInvisibleTypeAnnotations(TypeAnnotationList returnInvisibleTypeAnnotations) {
+        public void setInvisibleTypeAnnotations(TypeAnnotationList returnInvisibleTypeAnnotations) {
             throw new UnsupportedOperationException("Functions do not support annotations");
         }
 
