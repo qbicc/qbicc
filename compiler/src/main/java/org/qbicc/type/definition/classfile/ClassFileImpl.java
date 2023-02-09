@@ -34,6 +34,7 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.ByteBufferInputStream;
 import org.qbicc.type.definition.ClassFileUtil;
@@ -1150,10 +1151,14 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 builder.addInvisibleAnnotations(Annotation.parseList(this, ctxt, data));
             } else if (methodAttributeNameEquals(index, i, "RuntimeVisibleTypeAnnotations")) {
                 TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getMethodRawAttributeContent(index, i));
-                builder.setReturnVisibleTypeAnnotations(list);
+                builder.setVisibleTypeAnnotations(list);
             } else if (methodAttributeNameEquals(index, i, "RuntimeInvisibleTypeAnnotations")) {
                 TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getMethodRawAttributeContent(index, i));
-                builder.setReturnInvisibleTypeAnnotations(list);
+                builder.setInvisibleTypeAnnotations(list);
+            } else if (methodAttributeNameEquals(index, i, "AnnotationDefault")) {
+                ByteBuffer data = getMethodRawAttributeContent(index, i);
+                AnnotationValue dv = AnnotationValue.parse(this, ctxt, data);
+                ((MethodElement.Builder)builder).setDefaultValue(dv);
             }
         }
     }

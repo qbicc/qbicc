@@ -9,6 +9,7 @@ import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmPrimitiveClass;
+import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -105,6 +106,21 @@ final class HooksForClass {
             }
         }
         return null;
+    }
+
+    @Hook
+    VmReferenceArray getDeclaredClasses0(VmThread thread, VmClass clazz) {
+        VmImpl vm = (VmImpl) thread.getVM();
+        if (clazz instanceof VmPrimitiveClass || clazz instanceof VmArrayClass) {
+            return vm.newArrayOf(vm.classClass, 0);
+        }
+        LoadedTypeDefinition ltd = clazz.getTypeDefinition();
+        int ncc = ltd.getEnclosedNestedClassCount();
+        VmReferenceArray result = vm.newArrayOf(vm.classClass, ncc);
+        for (int i=0; i<ncc; i++) {
+            result.store(i, ltd.getEnclosedNestedClass(i).getCorrespondingType().load().getVmClass());
+        }
+        return result;
     }
 
     @Hook
