@@ -42,6 +42,7 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.AnnotationValue;
+import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.MethodBody;
@@ -55,6 +56,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.InstanceMethodElement;
+import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.definition.element.ParameterElement;
@@ -543,6 +545,27 @@ public final class Reflection {
         return bytes;
     }
 
+    VmArray getParameterAnnotations(InvokableElement element) {
+        if (element.getParameters() == null || element.getParameters().isEmpty()) {
+            return null;
+        }
+        List<TypeAnnotationList> paramAnnotations = element.getParameterVisibleTypeAnnotations();
+        boolean nonEmpty = false;
+        for (TypeAnnotationList tl : paramAnnotations) {
+            if (tl != TypeAnnotationList.empty()) {
+                nonEmpty = true;
+            }
+        }
+        if (!nonEmpty) {
+            return null;
+        }
+
+        // TODO: Actually implement deparsing of TypeAnnotationList!
+        ctxt.warning("Skipped generating parameter annotations for "+element);
+
+        return null;
+    }
+
     private VmObject makePoolObj(final Object ignored) {
         return vm.newInstance(cpClass, cpCtor, List.of());
     }
@@ -736,6 +759,7 @@ public final class Reflection {
             }
             dv = vm.newByteArray(os.toByteArray());
         }
+
         vmObject = vm.newInstance(methodClass, methodCtor, Arrays.asList(
             declaringClass,
             vm.intern(method.getName()),
@@ -747,8 +771,7 @@ public final class Reflection {
             Integer.valueOf(method.getIndex()),
             vm.intern(method.getSignature().toString()),
             getAnnotations(method),
-            // TODO: param annotations
-            null,
+            getParameterAnnotations(method),
             dv
         ));
         VmObject appearing = reflectionObjects.putIfAbsent(method, vmObject);
@@ -761,6 +784,9 @@ public final class Reflection {
                     vm.invokeExact(ama, methodObject, List.of());
                 }
                 vm.invokeExact(da, methodObject, List.of());
+                if (method.getVisibleTypeAnnotations() != TypeAnnotationList.empty()) {
+                    ctxt.warning("Did not generate typeAnnotations for "+method);
+                }
             });
         }
         return appearing != null ? appearing : vmObject;
@@ -827,8 +853,7 @@ public final class Reflection {
             Integer.valueOf(constructor.getIndex()),
             vm.intern(constructor.getSignature().toString()),
             getAnnotations(constructor),
-            // TODO: param annotations
-            null
+            getParameterAnnotations(constructor)
         ));
         VmObject appearing = reflectionObjects.putIfAbsent(constructor, vmObject);
         if (appearing == null) {
@@ -838,6 +863,10 @@ public final class Reflection {
             ctxt.submitTask(vmObject, ctorObject -> {
                 vm.invokeExact(aca, ctorObject, List.of());
                 vm.invokeExact(da, ctorObject, List.of());
+                constructor.getParameters();
+                if (constructor.getVisibleTypeAnnotations() != TypeAnnotationList.empty()) {
+                    ctxt.warning("Did not generate typeAnnotations for "+constructor);
+                }
             });
         }
         return appearing != null ? appearing : vmObject;
