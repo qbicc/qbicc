@@ -145,23 +145,36 @@ final class HooksForClass {
             loader = thread.vm.bootstrapClassLoader;
         }
         String name = nameObj.getContent();
-        int dims = 0;
-        while (name.startsWith("[[")) {
-            name = name.substring(1);
-            dims ++;
-        }
-        if (name.startsWith("[L")) {
-            if (! name.endsWith(";")) {
-                throw new Thrown(thread.vm.noClassDefFoundErrorClass.newInstance("Bad array descriptor"));
+        VmClassImpl clazz;
+        if (name.startsWith("[")) {
+            int dims = 0;
+            while (name.startsWith("[")) {
+                name = name.substring(1);
+                dims++;
             }
-            // load the array class
-            name = name.substring(2, name.length() - 1);
-            dims ++;
+            if (name.startsWith("L") && name.endsWith(";")) {
+                name = name.substring(1, name.length() - 1);
+                clazz = (VmClassImpl) loader.loadClass(name.replace('.', '/'));
+            } else {
+                clazz = switch (name) {
+                    case "B" -> thread.vm.byteClass;
+                    case "Z" -> thread.vm.booleanClass;
+                    case "C" -> thread.vm.charClass;
+                    case "S" -> thread.vm.shortClass;
+                    case "I" -> thread.vm.intClass;
+                    case "F" -> thread.vm.floatClass;
+                    case "J" -> thread.vm.longClass;
+                    case "D" -> thread.vm.doubleClass;
+                    default -> throw new Thrown(thread.vm.noClassDefFoundErrorClass.newInstance("Bad array descriptor"));
+                };
+            }
+            for (int i = 0; i < dims; i ++) {
+                clazz = clazz.getArrayClass();
+            }
+        } else {
+            clazz = (VmClassImpl) loader.loadClass(name.replace('.', '/'));
         }
-        VmClassImpl clazz = (VmClassImpl) loader.loadClass(name.replace('.', '/'));
-        for (int i = 0; i < dims; i ++) {
-            clazz = clazz.getArrayClass();
-        }
+
         if (initialize) {
             clazz.initialize(thread);
         }
