@@ -23,13 +23,17 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.jar.JarInputStream;
 
+import io.smallrye.beanbag.maven.MavenFactory;
 import io.smallrye.common.constraint.Assert;
 import io.smallrye.common.version.VersionIterator;
 import io.smallrye.common.version.VersionScheme;
 import org.apache.maven.settings.Settings;
 import org.apache.maven.settings.building.SettingsBuildingException;
+import org.apache.maven.settings.building.SettingsProblem;
+import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.DefaultArtifact;
+import org.eclipse.aether.repository.RemoteRepository;
 import org.jboss.logmanager.Level;
 import org.jboss.logmanager.LogManager;
 import org.jboss.logmanager.Logger;
@@ -37,6 +41,7 @@ import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Diagnostic;
 import org.qbicc.context.DiagnosticContext;
+import org.qbicc.context.Location;
 import org.qbicc.driver.BaseDiagnosticContext;
 import org.qbicc.driver.BuilderStage;
 import org.qbicc.driver.ClassPathElement;
@@ -687,17 +692,28 @@ public class Main implements Callable<DiagnosticContext> {
     }
 
     private void resolveClassPath(DiagnosticContext ctxt, Consumer<ClassPathItem> classPathItemConsumer, final List<ClassPathEntry> paths, Runtime.Version version) throws IOException {
-        QbiccMavenResolver resolver = new QbiccMavenResolver(new QbiccBeanContainer());
-        File globalSettings = resolver.getGlobalSettings();
-        File userSettings = resolver.getUserSettings();
+        MavenFactory mavenFactory = MavenFactory.create();
+        final RepositorySystem system = mavenFactory.getRepositorySystem();
+        File globalSettings = MavenFactory.getGlobalSettingsLocation();
+        File userSettings = MavenFactory.getUserSettingsLocation();
         Settings settings;
         try {
-            settings = resolver.createSettings(ctxt, globalSettings, userSettings);
+            settings = mavenFactory.createSettingsFromContainer(globalSettings, userSettings, problem -> {
+                Location loc = Location.builder().setSourceFilePath(problem.getSource()).setLineNumber(problem.getLineNumber()).build();
+                SettingsProblem.Severity severity = problem.getSeverity();
+                Diagnostic.Level level = switch (severity) {
+                    case FATAL, ERROR -> Diagnostic.Level.ERROR;
+                    case WARNING -> Diagnostic.Level.WARNING;
+                };
+                ctxt.msg(null, loc, level, "Maven settings problem: %s", problem.getMessage());
+            });
         } catch (SettingsBuildingException e) {
             throw new IOException(e);
         }
-        RepositorySystemSession session = resolver.createSession(settings);
-        List<ClassPathItem> result = resolver.requestArtifacts(session, settings, paths, ctxt, version);
+        final List<RemoteRepository> remoteRepositoryList = MavenFactory.createRemoteRepositoryList(settings);
+        RepositorySystemSession session = mavenFactory.createSession(settings);
+        final DefaultArtifactRequestor requestor = new DefaultArtifactRequestor();
+        final List<ClassPathItem> result = requestor.requestArtifactsFromRepositories(system, session, remoteRepositoryList, paths, ctxt, version);
         result.forEach(classPathItemConsumer);
     }
 
