@@ -25,9 +25,9 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
         if (exactTarget != null) {
             return getLiteralFactory().literalOf(exactTarget);
         }
-        MethodElement virtualTarget = virtualizeInvokeInterface(reference, method);
+        InstanceMethodElement virtualTarget = virtualizeInvokeInterface(reference, method);
         if (virtualTarget != null) {
-            return getLiteralFactory().literalOf(virtualTarget);
+            return getFirstBuilder().lookupVirtualMethod(reference, virtualTarget);
         }
         return super.lookupInterfaceMethod(reference, method);
     }
@@ -42,7 +42,7 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
      * Determine if an interface call be converted to a virtual call based on the static
      * type of the receiver.
      */
-    private MethodElement virtualizeInvokeInterface(final Value reference, final InstanceMethodElement target) {
+    private InstanceMethodElement virtualizeInvokeInterface(final Value reference, final InstanceMethodElement target) {
         ClassObjectType classType;
         ValueType type = reference.getType();
         if (type instanceof ReferenceType) {
@@ -62,7 +62,7 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
             return null;
         }
         LoadedTypeDefinition definition = classType.getDefinition().load();
-        MethodElement virtual = definition.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
+        InstanceMethodElement virtual = (InstanceMethodElement) definition.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
         if (virtual != null) {
             log.debugf("Deinterfacing call to %s::%s", target.getEnclosingType().getDescriptor(), target.getName());
             return virtual;
