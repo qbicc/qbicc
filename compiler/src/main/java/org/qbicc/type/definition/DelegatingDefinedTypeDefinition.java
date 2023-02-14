@@ -112,6 +112,10 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
         return getDelegate().getHiddenClassIndex();
     }
 
+    public byte[] getDigest() {
+        return getDelegate().getDigest();
+    }
+
     public int hashCode() {
         return getDelegate().hashCode();
     }

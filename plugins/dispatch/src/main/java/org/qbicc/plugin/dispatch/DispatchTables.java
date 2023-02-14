@@ -2,6 +2,7 @@ package org.qbicc.plugin.dispatch;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -159,9 +160,11 @@ public class DispatchTables {
         buildVTableType(cls, vtable);
     }
 
+    static final Base64.Encoder ENCODER = Base64.getUrlEncoder().withoutPadding();
+
     private void buildVTableType(LoadedTypeDefinition cls, MethodElement[] vtable) {
         String vtableName = "vtable-" + cls.getInternalName().replace('/', '.');
-        if (cls.isHidden()) vtableName += "~" + cls.getHiddenClassIndex();
+        if (cls.isHidden()) vtableName += "~" + ENCODER.encodeToString(cls.getDigest()) + '.' + cls.getHiddenClassIndex();
         TypeSystem ts = ctxt.getTypeSystem();
         CompoundType.Member[] functions = new CompoundType.Member[vtable.length];
         for (int i=0; i<vtable.length; i++) {
@@ -188,7 +191,7 @@ public class DispatchTables {
         // Build the CompoundType for the ITable using the (arbitrary) order of selectors in itableVector
         MethodElement[] itable = itableVector.toArray(MethodElement.NO_METHODS);
         String itableName = "itable-" + cls.getInternalName().replace('/', '.');
-        if (cls.isHidden()) itableName += "~" + cls.getHiddenClassIndex();
+        if (cls.isHidden()) itableName += "~" + ENCODER.encodeToString(cls.getDigest()) + '.' + cls.getHiddenClassIndex();
         TypeSystem ts = ctxt.getTypeSystem();
         CompoundType.Member[] functions = new CompoundType.Member[itable.length];
         for (int i=0; i<itable.length; i++) {
@@ -388,7 +391,7 @@ public class DispatchTables {
 
         String dictName = "qbicc_itable_dictionary_for_" + cls.getInternalName().replace('/', '.');
         if (cls.isHidden()) {
-            dictName += "~" + cls.getHiddenClassIndex();
+            dictName += "~" + ENCODER.encodeToString(cls.getDigest()) + '.' + cls.getHiddenClassIndex();
         }
         cSection.addData(null, dictName,
             lf.literalOf(ts.getArrayType(itableDictType, myITables.size() + 1), itableLiterals));
@@ -409,7 +412,7 @@ public class DispatchTables {
             Assert.assertTrue(itableLiterals[typeId].equals(zeroLiteral));
             String dictName = "qbicc_itable_dictionary_for_"+cls.getInternalName().replace('/', '.');
             if (cls.isHidden()) {
-                dictName += "~" + cls.getHiddenClassIndex();
+                dictName += "~" + ENCODER.encodeToString(cls.getDigest()) + '.' + cls.getHiddenClassIndex();
             }
             ArrayType type = ctxt.getTypeSystem().getArrayType(itableDictType, 0);
             DataDeclaration decl = section.getProgramModule().declareData(null, dictName, type);
