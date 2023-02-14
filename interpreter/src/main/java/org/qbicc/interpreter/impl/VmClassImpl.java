@@ -4,6 +4,7 @@ import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -341,10 +342,12 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         return (VmClassClassImpl) super.getVmClass();
     }
 
+    static final Base64.Encoder ENCODER = Base64.getUrlEncoder().withoutPadding();
+
     void postConstruct(VmImpl vm) {
         String name = typeDefinition.getInternalName().replace('/', '.');
         if (typeDefinition.isHidden()) {
-            name += "/" + typeDefinition.getHiddenClassIndex();
+            name += "/" + ENCODER.encodeToString(typeDefinition.getDigest()) + '.' + typeDefinition.getHiddenClassIndex();
         }
         postConstruct(name, vm);
     }

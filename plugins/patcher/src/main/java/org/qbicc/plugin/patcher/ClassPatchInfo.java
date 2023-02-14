@@ -7,13 +7,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.annotation.Annotation;
-import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.definition.MethodBodyFactory;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
 final class ClassPatchInfo {
+
+    private static final byte[] EMPTY_DIGEST = new byte[32];
 
     static final ClassPatchInfo EMPTY = new ClassPatchInfo(0);
 
@@ -35,6 +37,7 @@ final class ClassPatchInfo {
     private boolean deletedInitializer;
     private Map<String, Map<MethodDescriptor, MethodBodyPatchInfo>> methodBodyReplacedMethods;
     private List<Annotation> addedClassAnnotations;
+    private byte[] digest;
 
     ClassPatchInfo() {
         annotatedFields = Map.of();
@@ -52,6 +55,7 @@ final class ClassPatchInfo {
         deletedMethods = Map.of();
         methodBodyReplacedMethods = Map.of();
         addedClassAnnotations = List.of();
+        digest = EMPTY_DIGEST;
     }
 
     ClassPatchInfo(int ignored) {
@@ -66,6 +70,10 @@ final class ClassPatchInfo {
     void commit() {
         assert Thread.holdsLock(this);
         committed = true;
+    }
+
+    byte[] getDigest() {
+        return digest;
     }
 
     // remove
@@ -289,6 +297,12 @@ final class ClassPatchInfo {
         assert Thread.holdsLock(this);
         checkCommitted();
         addedClassAnnotations = listWith(addedClassAnnotations, annotation);
+    }
+
+    void setDigest(byte[] digest) {
+        Assert.checkNotNullParam("digest", digest);
+        checkCommitted();
+        this.digest = digest;
     }
 
     private void checkCommitted() {

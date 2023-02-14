@@ -3,6 +3,7 @@ package org.qbicc.type;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.util.Base64;
 
 import org.qbicc.type.definition.DefinedTypeDefinition;
 
@@ -101,12 +102,14 @@ public abstract class ObjectType extends ValueType {
         return super.equals(other);
     }
 
+    static final Base64.Encoder ENCODER = Base64.getUrlEncoder().withoutPadding();
+
     public StringBuilder toFriendlyString(final StringBuilder b) {
         // override in subclasses that do not have a definition
         DefinedTypeDefinition definition = getDefinition();
         b.append(definition.getInternalName().replace('/', '.'));
         if (definition.isHidden()) {
-            b.append('/').append(definition.getHiddenClassIndex());
+            b.append('/').append(ENCODER.encodeToString(definition.getDigest())).append('.').append(definition.getHiddenClassIndex());
         }
         return b;
     }

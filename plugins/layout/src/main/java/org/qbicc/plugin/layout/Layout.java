@@ -1,6 +1,7 @@
 package org.qbicc.plugin.layout;
 
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
@@ -88,6 +89,8 @@ public final class Layout {
         throw new IllegalArgumentException();
     }
 
+    static final Base64.Encoder ENCODER = Base64.getUrlEncoder().withoutPadding();
+
     public LayoutInfo getInstanceLayoutInfo(DefinedTypeDefinition type) {
         if (type.isInterface()) {
             throw new IllegalArgumentException("Interfaces have no instance layout");
@@ -153,7 +156,7 @@ public final class Layout {
         List<CompoundType.Member> membersList = List.of(membersArray);
         String name = type.getInternalName().replace('/', '.');
         if (type.isHidden()) {
-            name += '/' + type.getHiddenClassIndex();
+            name += '/' + ENCODER.encodeToString(type.getDigest()) + '.' + type.getHiddenClassIndex();
         }
         CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.CLASS, name, size, minAlignment, () -> membersList);
         layoutInfo = new LayoutInfo(allocated, compoundType, fieldToMember);

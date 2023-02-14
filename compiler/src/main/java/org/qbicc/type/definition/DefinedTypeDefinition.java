@@ -204,7 +204,13 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
 
     TypeAnnotationList getInvisibleTypeAnnotations();
 
+    // ==================
+    // Identification
+    // ==================
+
     int getHiddenClassIndex();
+
+    byte[] getDigest();
 
     interface Builder extends Locatable {
         void setContext(ClassContext context);
@@ -262,6 +268,8 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
         void addNestMember(String nestMember);
 
         void setHiddenClassIndex(int index);
+
+        void setDigest(byte[] digest);
 
         DefinedTypeDefinition build();
 
@@ -382,6 +390,10 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
 
             default void setHiddenClassIndex(int index) {
                 getDelegate().setHiddenClassIndex(index);
+            }
+
+            default void setDigest(byte[] digest) {
+                getDelegate().setDigest(digest);
             }
 
             default DefinedTypeDefinition build() {
