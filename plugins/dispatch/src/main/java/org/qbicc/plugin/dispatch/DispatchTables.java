@@ -386,7 +386,11 @@ public class DispatchTables {
         // zero-initialized sentinel to detect IncompatibleClassChangeErrors in dispatching search loop
         itableLiterals.add(lf.zeroInitializerLiteralOfType(itableDictType));
 
-        cSection.addData(null, "qbicc_itable_dictionary_for_" + cls.getInternalName().replace('/', '.'),
+        String dictName = "qbicc_itable_dictionary_for_" + cls.getInternalName().replace('/', '.');
+        if (cls.isHidden()) {
+            dictName += "~" + cls.getHiddenClassIndex();
+        }
+        cSection.addData(null, dictName,
             lf.literalOf(ts.getArrayType(itableDictType, myITables.size() + 1), itableLiterals));
         emittedClassITableDictCount += 1;
         emittedClassITableDictBytes += (myITables.size() + 1) * itableDictType.getSize();
@@ -404,6 +408,9 @@ public class DispatchTables {
             int typeId = cls.getTypeId();
             Assert.assertTrue(itableLiterals[typeId].equals(zeroLiteral));
             String dictName = "qbicc_itable_dictionary_for_"+cls.getInternalName().replace('/', '.');
+            if (cls.isHidden()) {
+                dictName += "~" + cls.getHiddenClassIndex();
+            }
             ArrayType type = ctxt.getTypeSystem().getArrayType(itableDictType, 0);
             DataDeclaration decl = section.getProgramModule().declareData(null, dictName, type);
             Literal symLit = lf.literalOf(decl);

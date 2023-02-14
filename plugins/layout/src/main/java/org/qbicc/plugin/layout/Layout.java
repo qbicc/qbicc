@@ -151,7 +151,11 @@ public final class Layout {
         CompoundType.Member[] membersArray = fieldToMember.values().toArray(CompoundType.Member[]::new);
         Arrays.sort(membersArray);
         List<CompoundType.Member> membersList = List.of(membersArray);
-        CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.CLASS, type.getInternalName().replace('/', '.'), size, minAlignment, () -> membersList);
+        String name = type.getInternalName().replace('/', '.');
+        if (type.isHidden()) {
+            name += '/' + type.getHiddenClassIndex();
+        }
+        CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.CLASS, name, size, minAlignment, () -> membersList);
         layoutInfo = new LayoutInfo(allocated, compoundType, fieldToMember);
         LayoutInfo appearing = instanceLayouts.putIfAbsent(validated, layoutInfo);
         return appearing != null ? appearing : layoutInfo;

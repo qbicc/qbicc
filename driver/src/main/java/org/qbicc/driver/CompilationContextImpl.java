@@ -495,16 +495,15 @@ final class CompilationContextImpl implements CompilationContext {
         // todo: cache :-(
         DefinedTypeDefinition enclosingType = element.getEnclosingType();
         String internalName = enclosingType.getInternalName();
+        if (enclosingType.isHidden()) {
+            internalName += '$' + enclosingType.getHiddenClassIndex();
+        }
         if (element instanceof FunctionElement fe) {
             return fe.getName();
         }
         StringBuilder b = new StringBuilder(internalName.length() << 1);
         b.append("_J"); // identify Java mangled name
         mangleTo(b, internalName);
-        if (enclosingType.isHidden()) {
-            b.append("$");
-            b.append(enclosingType.getHiddenClassIndex());
-        }
         b.append('_');
         boolean overloaded;
         if (element instanceof InitializerElement) {
@@ -523,12 +522,27 @@ final class CompilationContextImpl implements CompilationContext {
             b.append("__");
             MethodDescriptor elementDescriptor = element.getDescriptor();
             for (TypeDescriptor descriptor : elementDescriptor.getParameterTypes()) {
-                mangleTo(b, descriptor.toString());
+                if (descriptor.equals(enclosingType.getDescriptor())) {
+                    // include the hidden class identifier
+                    b.append('L');
+                    mangleTo(b, internalName);
+                    mangleTo(b, ";");
+                } else {
+                    mangleTo(b, descriptor.toString());
+                }
             }
             // unlike JNI, we must also add the return type (but only if one is possible)
             if (element instanceof MethodElement) {
                 b.append("_");
-                mangleTo(b, elementDescriptor.getReturnType().toString());
+                TypeDescriptor returnTypeDescriptor = elementDescriptor.getReturnType();
+                if (returnTypeDescriptor.equals(enclosingType.getDescriptor())) {
+                    // include the hidden class identifier
+                    b.append('L');
+                    mangleTo(b, internalName);
+                    mangleTo(b, ";");
+                } else {
+                    mangleTo(b, returnTypeDescriptor.toString());
+                }
             }
         }
         return b.toString();
