@@ -20,6 +20,7 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
+import org.qbicc.interpreter.Memory;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.ReferenceType;
@@ -47,6 +48,8 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
     private static final DefinedTypeDefinition[] NO_DEFINED_TYPES = new DefinedTypeDefinition[0];
     private static final LoadedTypeDefinition[] NO_LOADED_TYPES = new LoadedTypeDefinition[0];
+
+    private static final byte[] EMPTY_DIGEST = new byte[32];
 
     private final ClassContext context;
     private final String simpleName;
@@ -81,6 +84,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private final EnclosedClassResolver[] enclosedClassResolvers;
     private final int[] enclosedClassResolverIndexes;
     private final DefinedTypeDefinition superClass;
+    private final byte[] digest;
     final String enclosingMethodClassName;
     final String enclosingMethodName;
     final MethodDescriptor enclosingMethodDesc;
@@ -149,6 +153,8 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         List<String> nestMembers = builder.nestMembers;
         nestMemberClassNames = nestMembers == null ? NO_STRINGS : nestMembers.toArray(String[]::new);
         hiddenClassIndex = builder.hiddenClassIndex;
+        byte[] digest = builder.digest;
+        this.digest = digest == null ? EMPTY_DIGEST : digest.clone();
     }
 
     public ClassContext getContext() {
@@ -587,6 +593,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         return hiddenClassIndex;
     }
 
+    public byte[] getDigest() {
+        return digest.clone();
+    }
+
     public boolean hasSuperClass() {
         return superClassName != null;
     }
@@ -636,6 +646,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         String nestHost;
         List<String> nestMembers;
         int hiddenClassIndex = -1;
+        byte[] digest;
 
         public void setContext(final ClassContext context) {
             this.context = context;
@@ -875,6 +886,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
         public void setHiddenClassIndex(final int index) {
             this.hiddenClassIndex = index;
+        }
+
+        public void setDigest(byte[] digest) {
+            this.digest = digest;
         }
 
         public void setName(final String internalName) {

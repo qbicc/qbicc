@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -319,6 +320,8 @@ final class CompilationContextImpl implements CompilationContext {
         return basePath.resolveSibling(fileName);
     }
 
+    static final Base64.Encoder ENCODER = Base64.getUrlEncoder().withoutPadding();
+
     public Path getOutputDirectory(final DefinedTypeDefinition type) {
         Path base = outputDir;
         VmClassLoader classLoader = type.getContext().getClassLoader();
@@ -326,7 +329,7 @@ final class CompilationContextImpl implements CompilationContext {
         base = base.resolve(name);
         String internalName = type.getInternalName();
         if (type.isHidden()) {
-            internalName += "~" + type.getHiddenClassIndex();
+            internalName += "~" + ENCODER.encodeToString(type.getDigest()) + "." + type.getHiddenClassIndex();
         }
         int idx = internalName.indexOf('/');
         if (idx == -1) {
@@ -479,7 +482,7 @@ final class CompilationContextImpl implements CompilationContext {
                 case '<' -> b.append("_4");
                 case '>' -> b.append("_5");
                 default -> {
-                    if ('A' <= ch && ch <= 'Z' || 'a' <= ch && ch <= 'z' || '0' <= ch && ch <= '9' || ch == '$') {
+                    if ('A' <= ch && ch <= 'Z' || 'a' <= ch && ch <= 'z' || '0' <= ch && ch <= '9' || ch == '$' || ch == '.') {
                         b.append(ch);
                     } else {
                         appendHex(b.append("_0"), ch);
@@ -496,7 +499,7 @@ final class CompilationContextImpl implements CompilationContext {
         DefinedTypeDefinition enclosingType = element.getEnclosingType();
         String internalName = enclosingType.getInternalName();
         if (enclosingType.isHidden()) {
-            internalName += '$' + enclosingType.getHiddenClassIndex();
+            internalName += '$' + ENCODER.encodeToString(enclosingType.getDigest()) + '.' + enclosingType.getHiddenClassIndex();
         }
         if (element instanceof FunctionElement fe) {
             return fe.getName();

@@ -6,10 +6,15 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -35,11 +40,19 @@ import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.methodhandle.MethodHandleConstant;
 
 final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
+    private static final ThreadLocal<MessageDigest> SHA_256 = ThreadLocal.withInitial(() -> {
+        try {
+            return MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    });
+
     private final ClassContext classContext;
     private final Map<String, VmClassImpl> defined = new ConcurrentHashMap<>();
     final ConcurrentHashMap<MethodDescriptor, VmObject> methodTypeCache = new ConcurrentHashMap<>();
     final ConcurrentHashMap<MethodHandleConstant, VmObject> methodHandleCache = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, AtomicInteger> hiddenClassSeqMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Map<byte[], AtomicInteger>> hiddenClassSeqMap = new ConcurrentHashMap<>();
     private final boolean specialCl;
     // protected by lock ↓
     private final HashMap<String, VmObjectImpl> modulesByPackage = new HashMap<>();
@@ -145,19 +158,23 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         if (! hidden && defined.containsKey(internalName)) {
             throw duplicateClass(vm);
         }
-        ClassFile classFile = ClassFile.of(classContext, ByteBuffer.wrap(((VmByteArrayImpl)content).getArray()));
+        byte[] array = ((VmByteArrayImpl) content).getArray();
+        ClassFile classFile = ClassFile.of(classContext, ByteBuffer.wrap(array));
         // todo: proper verification...
         DefinedTypeDefinition.Builder builder = classContext.newTypeBuilder();
         classFile.accept(builder);
         if (hidden) {
-            builder.setHiddenClassIndex(getHiddenClassSeq(internalName));
+            byte[] digest = SHA_256.get().digest(array);
+            builder.setDigest(digest);
+            int seq = getHiddenClassSeq(internalName, digest);
+            builder.setHiddenClassIndex(seq);
             builder.addModifiers(ClassFile.I_ACC_HIDDEN | ClassFile.I_ACC_NO_RESOLVE);
         }
         DefinedTypeDefinition defined = builder.build();
         // TODO: ↓↓ temporary ↓↓
         Path outputFile = classContext.getCompilationContext().getOutputFile(defined, "class");
         try {
-            Files.write(outputFile, ((VmByteArrayImpl)content).getArray());
+            Files.write(outputFile, array);
         } catch (IOException ignored) {
         }
         // TODO: ↑↑ temporary ↑↑
@@ -320,11 +337,15 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         return (VmClassImpl) classLoaderClass.getOrCompile(clDef.resolveMethodElementVirtual("loadClass", loadClassDesc)).invoke(thread, this, List.of(intName));
     }
 
-    int getHiddenClassSeq(final String baseName) {
-        return hiddenClassSeqMap.computeIfAbsent(baseName, VmClassLoaderImpl::newSeq).getAndIncrement();
+    int getHiddenClassSeq(final String internalName, final byte[] digest) {
+        return hiddenClassSeqMap.computeIfAbsent(internalName, VmClassLoaderImpl::newTreeMap).computeIfAbsent(digest, VmClassLoaderImpl::newSeq).getAndIncrement();
     }
 
-    private static AtomicInteger newSeq(final String ignored) {
+    private static <V> Map<byte[], V> newTreeMap(final Object ignored) {
+        return Collections.synchronizedMap(new TreeMap<>(Arrays::compare));
+    }
+
+    private static AtomicInteger newSeq(final Object ignored) {
         return new AtomicInteger(1);
     }
 }
