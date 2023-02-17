@@ -78,6 +78,7 @@ public final class Unistd {
 
     public static final c_int _SC_ARG_MAX = constant();
     public static final c_int _SC_CHILD_MAX = constant();
+    public static final c_int _SC_CLK_TCK = constant();
     public static final c_int _SC_GETPW_R_SIZE_MAX = constant();
     public static final c_int _SC_HOST_NAME_MAX = constant();
     public static final c_int _SC_LOGIN_NAME_MAX = constant();
