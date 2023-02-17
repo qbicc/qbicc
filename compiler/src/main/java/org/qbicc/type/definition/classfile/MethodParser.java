@@ -325,6 +325,10 @@ final class MethodParser {
             locals[index] = null;
             locals[index + 1] = null;
         } else {
+            // dereference, if needed
+            if (value instanceof Dereference d) {
+                value = gf.load(d.getPointer(), SingleUnshared);
+            }
             LocalVariableElement lve = getLocalVariableElement(bci, index);
             if (lve != null) {
                 // make sure the value can be stored
@@ -371,6 +375,10 @@ final class MethodParser {
                 locals[index] = value;
             }
         } else {
+            // dereference, if needed
+            if (value instanceof Dereference d) {
+                value = gf.load(d.getPointer(), SingleUnshared);
+            }
             LocalVariableElement lve = getLocalVariableElement(bci, index);
             if (lve != null) {
                 Value truncated = storeTruncate(value, lve.getTypeDescriptor());
@@ -749,7 +757,7 @@ final class MethodParser {
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = gf.extractElement(v1, v2);
                         } else if (v1.getType() instanceof PointerType) {
-                            v1 = gf.load(gf.offsetPointer(v1, v2), SingleUnshared);
+                            v1 = gf.deref(gf.offsetPointer(v1, v2));
                         } else {
                             v1 = replaceAll(v1, gf.nullCheck(v1));
                             v1 = gf.load(gf.elementOf(gf.decodeReference(v1), v2));
@@ -766,7 +774,7 @@ final class MethodParser {
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = gf.extractElement(v1, v2);
                         } else if (v1.getType() instanceof PointerType) {
-                            v1 = gf.load(gf.offsetPointer(v1, v2), SingleUnshared);
+                            v1 = gf.deref(gf.offsetPointer(v1, v2));
                         } else {
                             v1 = replaceAll(v1, gf.nullCheck(v1));
                             v1 = gf.load(gf.elementOf(gf.decodeReference(v1), v2));
@@ -786,7 +794,7 @@ final class MethodParser {
                         } else if (v1.getType() instanceof ArrayType) {
                             v1 = promote(gf.extractElement(v1, v2));
                         } else if (v1.getType() instanceof PointerType) {
-                            v1 = promote(gf.load(gf.offsetPointer(v1, v2), SingleUnshared));
+                            v1 = gf.deref(gf.offsetPointer(v1, v2));
                         } else {
                             v1 = replaceAll(v1, gf.nullCheck(v1));
                             v1 = promote(gf.load(gf.elementOf(gf.decodeReference(v1), v2)));
@@ -1517,6 +1525,9 @@ final class MethodParser {
                                 ctxt.getCompilationContext().error(gf.getLocation(), "Invalid field dereference of '%s'", name);
                                 throw new BlockEarlyTermination(gf.unreachable());
                             }
+                        } else if (v1.getType() instanceof PointerType pt && pt.getPointeeType() instanceof CompoundType ct) {
+                            // always a dereference
+                            push1(gf.deref(gf.memberOf(v1, ct.getMember(name))));
                         } else if (v1.getType() instanceof CompoundType ct) {
                             final CompoundType.Member member = ct.getMember(name);
                             push(promote(gf.extractMember(v1, member)), desc.isClass2());
