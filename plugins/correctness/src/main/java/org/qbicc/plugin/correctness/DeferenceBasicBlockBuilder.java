@@ -588,7 +588,7 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
     private List<Value> rhs(final List<Value> vals) {
         for (Value val : vals) {
             if (val instanceof Dereference) {
-                List<Value> newVals = new ArrayList<>(vals);
+                List<Value> newVals = new ArrayList<>();
                 for (Value value : vals) {
                     newVals.add(rhs(value));
                 }
