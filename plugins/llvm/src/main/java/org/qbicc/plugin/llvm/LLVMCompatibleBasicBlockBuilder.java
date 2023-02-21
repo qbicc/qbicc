@@ -248,8 +248,8 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         // this is similar to how clang translates pointer differences
         BasicBlockBuilder fb = getFirstBuilder();
         SignedIntegerType intType = leftPointer.getType(PointerType.class).getSameSizedSignedInteger();
-        Value leftCast = fb.bitCast(leftPointer, intType);
-        Value rightCast = fb.bitCast(rightPointer, intType);
+        Value leftCast = fb.valueConvert(leftPointer, intType);
+        Value rightCast = fb.valueConvert(rightPointer, intType);
         Value byteDiff = fb.sub(leftCast, rightCast);
         ValueType pointeeType = leftPointer.getPointeeType();
         long size = pointeeType.getSize();
