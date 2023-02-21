@@ -25,4 +25,10 @@ public class String {
     public static native c_int strncmp(const_char_ptr src1, const_char_ptr src2, size_t len);
 
     public static native c_int strncpy(char_ptr dst, const_char_ptr src, size_t len);
+
+    public static native char_ptr strncat(@restrict char_ptr s1, @restrict char_ptr s2, size_t n);
+
+    public static native char_ptr strchr(const_char_ptr s, c_int c);
+
+    public static native char_ptr strrchr(const_char_ptr s, c_int c);
 }
