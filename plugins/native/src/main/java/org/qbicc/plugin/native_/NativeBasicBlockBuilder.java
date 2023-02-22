@@ -14,6 +14,7 @@ import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.Dereference;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.IntegerLiteral;
@@ -244,12 +245,18 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value lookupVirtualMethod(Value reference, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        return super.lookupVirtualMethod(reference, deNative(owner), name, deNative(descriptor));
+        if (reference instanceof Dereference d && d.getType() instanceof FunctionType) {
+            return d.getPointer();
+        } else {
+            return super.lookupVirtualMethod(reference, deNative(owner), name, deNative(descriptor));
+        }
     }
 
     @Override
     public Value lookupVirtualMethod(Value reference, InstanceMethodElement method) {
-        if (NativeInfo.get(ctxt).isNativeType(method.getEnclosingType())) {
+        if (reference instanceof Dereference d && d.getType() instanceof FunctionType) {
+            return d.getPointer();
+        } else if (NativeInfo.get(ctxt).isNativeType(method.getEnclosingType())) {
             return getLiteralFactory().literalOf(method);
         } else {
             return super.lookupVirtualMethod(reference, method);
@@ -258,12 +265,18 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value lookupInterfaceMethod(Value reference, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
-        return super.lookupInterfaceMethod(reference, deNative(owner), name, deNative(descriptor));
+        if (reference instanceof Dereference d && d.getType() instanceof FunctionType) {
+            return d.getPointer();
+        } else {
+            return super.lookupInterfaceMethod(reference, deNative(owner), name, deNative(descriptor));
+        }
     }
 
     @Override
     public Value lookupInterfaceMethod(Value reference, InstanceMethodElement method) {
-        if (NativeInfo.get(ctxt).isNativeType(method.getEnclosingType())) {
+        if (reference instanceof Dereference d && d.getType() instanceof FunctionType) {
+            return d.getPointer();
+        } else if (NativeInfo.get(ctxt).isNativeType(method.getEnclosingType())) {
             return getLiteralFactory().literalOf(method);
         } else {
             return super.lookupInterfaceMethod(reference, method);
