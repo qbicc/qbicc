@@ -256,17 +256,12 @@ final class MethodParser {
                         int normalStaticArgs = targetParameters.size() - 3 - 1;
                         int trailingStaticArgs = bootstrapArgCnt - normalStaticArgs;
                         if (trailingStaticArgs > 0 && trailingStaticArgs != bootstrapArgCnt) {
-                            VmObject[] adjustedArgs = new VmObject[normalStaticArgs+1];
-                            for (int i=0; i<normalStaticArgs; i++) {
-                                adjustedArgs[i] = argsArray[i];
-                            }
-                            VmObject[] trailingArgs = new VmObject[trailingStaticArgs];
-                            for (int i=normalStaticArgs; i<argsArray.length; i++) {
-                                trailingArgs[i-normalStaticArgs] = argsArray[i];
-                            }
                             TypeDescriptor elementDescriptor = ((ArrayTypeDescriptor) targetParameters.get(targetParameters.size()-1).getTypeDescriptor()).getElementTypeDescriptor();
                             ObjectType elemType = (ObjectType)ctxt.resolveTypeFromDescriptor(elementDescriptor, tpc, TypeSignature.synthesize(ctxt, elementDescriptor));
-                            adjustedArgs[adjustedArgs.length-1] = vm.newArrayOf(elemType.getDefinition().load().getVmClass(), trailingArgs);
+                            VmObject[] adjustedArgs = Arrays.copyOf(argsArray, normalStaticArgs + 1);
+                            VmObject[] trailingArgs = Arrays.copyOfRange(argsArray, normalStaticArgs, argsArray.length);
+                            assert normalStaticArgs == adjustedArgs.length - 1;
+                            adjustedArgs[normalStaticArgs] = vm.newArrayOf(elemType.getDefinition().load().getVmClass(), trailingArgs);
                             args = vm.newArrayOf(objectClass, adjustedArgs);
                         }
                     }
