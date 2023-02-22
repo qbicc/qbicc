@@ -17,6 +17,7 @@ import org.qbicc.context.Location;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
+import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
@@ -44,6 +45,7 @@ import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.methodhandle.MethodMethodHandleConstant;
 
 final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     private BlockLabel firstBlock;
@@ -440,6 +442,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value deref(Value pointer) {
         return unique(new Dereference(callSite, element, line, bci, pointer));
+    }
+
+    public Value invokeDynamic(MethodMethodHandleConstant bootstrapHandle, List<Literal> bootstrapArgs, String name, MethodDescriptor descriptor) {
+        getContext().error(getLocation(), "Unhandled `invokeDynamic`");
+        throw new BlockEarlyTermination(unreachable());
     }
 
     public Value currentThread() {
