@@ -752,6 +752,29 @@ public final class CNative {
     public static final class header_type extends word {
     }
 
+    /**
+     * The special type which corresponds to a bitwise representation of an object reference.
+     *
+     * @param <B> the upper bounds
+     */
+    public static final class reference<B> extends word {
+        /**
+         * Get a {@code reference} for the given object reference.
+         *
+         * @param ref the object reference or {@code null}
+         * @return the {@code reference} or {@code null}
+         * @param <B> the upper bounds
+         */
+        public static native <B> reference<B> of(B ref);
+
+        /**
+         * Get an object reference for a {@code reference}.
+         *
+         * @return the object reference
+         */
+        public native B toObject();
+    }
+
     // basic types
 
     @name("char")
