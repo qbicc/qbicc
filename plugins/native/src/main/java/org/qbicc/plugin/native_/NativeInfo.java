@@ -402,6 +402,10 @@ final class NativeInfo {
 
     private ValueType decodePointerType(final DefinedTypeDefinition definedType) {
         TypeSystem ts = ctxt.getTypeSystem();
+        if (definedType.internalNameEquals("org/qbicc/runtime/CNative$function_ptr")) {
+            // xxx - this type will be removed in the future
+            return ts.getFunctionType(ts.getVoidType(), List.of()).getPointer();
+        }
         Signature signature = definedType.getSignature();
         ClassTypeSignature superClassSignature = signature instanceof ClassSignature cs ? cs.getSuperClassSignature() : null;
         List<TypeArgument> typeArguments = superClassSignature == null ? List.of() : superClassSignature.getTypeArguments();
