@@ -45,6 +45,7 @@ import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.plugin.intrinsics.StaticIntrinsic;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
@@ -112,12 +113,20 @@ final class CNativeIntrinsics {
         MethodDescriptor objToReference = MethodDescriptor.synthesize(classContext, referenceDesc, List.of(objDesc));
         MethodDescriptor toObject = MethodDescriptor.synthesize(classContext, objDesc, List.of());
 
-        MethodDescriptor objToPtr = MethodDescriptor.synthesize(classContext, ptrDesc, List.of(objDesc));
+        MethodDescriptor objToFunction = MethodDescriptor.synthesize(classContext, functionDesc, List.of(objDesc));
 
         intrinsics.registerIntrinsic(referenceDesc, "of", objToReference, (builder, targetPtr, arguments) -> arguments.get(0));
         intrinsics.registerIntrinsic(referenceDesc, "toObject", toObject, (builder, instance, targetPtr, arguments) -> instance);
 
-        intrinsics.registerIntrinsic(functionDesc, "of", objToPtr, (builder, targetPtr, arguments) -> arguments.get(0));
+        intrinsics.registerIntrinsic(functionDesc, "of", objToFunction, (builder, targetPtr, arguments) -> {
+            Value value = arguments.get(0);
+            if (value instanceof Dereference d && d.getType() instanceof FunctionType) {
+                return value;
+            } else {
+                builder.getContext().error(builder.getLocation(), "Invalid argument to `function.of()`; expected a dereferenced function pointer but got %s", value);
+                throw new BlockEarlyTermination(builder.unreachable());
+            }
+        });
         intrinsics.registerIntrinsic(functionDesc, "toInvokable", toObject, (builder, instance, targetPtr, arguments) -> instance);
 
         StaticIntrinsic typeOf = (builder, target, arguments) ->
