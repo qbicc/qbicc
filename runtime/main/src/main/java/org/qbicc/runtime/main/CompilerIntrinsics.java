@@ -3,7 +3,6 @@ package org.qbicc.runtime.main;
 import org.qbicc.runtime.CNative.*;
 import org.qbicc.runtime.Hidden;
 import org.qbicc.runtime.NoSafePoint;
-import org.qbicc.runtime.posix.PThread;
 import org.qbicc.runtime.stdc.Stdint.*;
 
 /**
