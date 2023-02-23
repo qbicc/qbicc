@@ -5,7 +5,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -23,6 +22,7 @@ import org.qbicc.machine.probe.Qualifier;
 import org.qbicc.plugin.core.ConditionEvaluation;
 import org.qbicc.plugin.linker.Linker;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
@@ -37,6 +37,7 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
@@ -45,14 +46,11 @@ import org.qbicc.type.generic.AnyTypeArgument;
 import org.qbicc.type.generic.BoundTypeArgument;
 import org.qbicc.type.generic.ClassSignature;
 import org.qbicc.type.generic.ClassTypeSignature;
-import org.qbicc.type.generic.MethodSignature;
 import org.qbicc.type.generic.ReferenceTypeSignature;
 import org.qbicc.type.generic.Signature;
 import org.qbicc.type.generic.TopLevelClassTypeSignature;
 import org.qbicc.type.generic.TypeArgument;
-import org.qbicc.type.generic.TypeParameter;
 import org.qbicc.type.generic.TypeSignature;
-import org.qbicc.type.generic.TypeVariableSignature;
 import org.qbicc.type.generic.Variance;
 
 /**
@@ -74,7 +72,7 @@ final class NativeInfo {
     final Map<TypeDescriptor, Map<String, NativeDataInfo>> nativeFields = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, AtomicReference<ValueType>> nativeTypes = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, AtomicReference<ValueType>> internalNativeTypes = new ConcurrentHashMap<>();
-    final Map<DefinedTypeDefinition, FunctionalInterfaceData> functionalInterfaceMethods = new ConcurrentHashMap<>();
+    final Map<DefinedTypeDefinition, InstanceMethodElement> functionalInterfaceMethods = new ConcurrentHashMap<>();
     final Set<InitializerElement> initializers = ConcurrentHashMap.newKeySet();
     final Map<DefinedTypeDefinition, List<FunctionAndPriority>> globalCtors = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, List<FunctionAndPriority>> globalDtors = new ConcurrentHashMap<>();
@@ -402,6 +400,10 @@ final class NativeInfo {
 
     private ValueType decodePointerType(final DefinedTypeDefinition definedType) {
         TypeSystem ts = ctxt.getTypeSystem();
+        if (definedType.internalNameEquals("org/qbicc/runtime/CNative$function_ptr")) {
+            // xxx - this type will be removed in the future
+            return ts.getFunctionType(ts.getVoidType(), List.of()).getPointer();
+        }
         Signature signature = definedType.getSignature();
         ClassTypeSignature superClassSignature = signature instanceof ClassSignature cs ? cs.getSuperClassSignature() : null;
         List<TypeArgument> typeArguments = superClassSignature == null ? List.of() : superClassSignature.getTypeArguments();
@@ -452,86 +454,27 @@ final class NativeInfo {
         return nativeTypes.containsKey(enclosingType);
     }
 
-    static final class FunctionalInterfaceData {
-        MethodElement me;
-        ClassTypeSignature signature;
-
-        FunctionalInterfaceData(MethodElement me, ClassTypeSignature signature) {
-            this.me = me;
-            this.signature = signature;
+    public ValueType getTypeOfFunctionalInterface(final DefinedTypeDefinition definedType, final ClassTypeSignature sig) {
+        InstanceMethodElement method = getFunctionalInterfaceMethod(definedType);
+        if (method == null) {
+            ctxt.error("No functional interface method on \"%s\"", definedType);
+            return ctxt.getTypeSystem().getFunctionType(ctxt.getTypeSystem().getVoidType(), List.of());
         }
-
-        public ClassTypeSignature getClassTypeSignature() {
-            return signature;
-        }
-
-        public MethodElement getMethodElement() {
-            return me;
-        }
+        // the method type is the invocation type
+        return ctxt.getTypeSystem().getFunctionType(method.getType().getReturnType(), method.getType().getParameterTypes());
     }
 
-    public ValueType getTypeOfFunctionalInterface(final DefinedTypeDefinition definedType, final List<TypeArgument> arguments) {
-        FunctionalInterfaceData fiData = getFunctionalInterfaceMethod(definedType);
-        if (fiData == null) {
-            return ctxt.getTypeSystem().getFunctionType(ctxt.getTypeSystem().getVoidType());
-        }
-
-        HashMap<String, ValueType> genericTypeMap = new HashMap();
-        MethodElement method = fiData.getMethodElement();
-
-        /* Map generic types to the ValueTypes they represent */
-        List<TypeParameter> genericTypeParameters = definedType.getSignature() instanceof ClassSignature cs ? cs.getTypeParameters() : List.of();
-        for (int i = 0; i < arguments.size(); i++) {
-            String genericTypeId = genericTypeParameters.get(i).getIdentifier();
-            BoundTypeArgument argument = (BoundTypeArgument) arguments.get(i);
-            TopLevelClassTypeSignature argumentTypeSignature = (TopLevelClassTypeSignature)argument.getBound();
-            ValueType argumentValue = ctxt.getBootstrapClassContext().resolveTypeFromClassName(argumentTypeSignature.getPackageName(), argumentTypeSignature.getIdentifier());
-            genericTypeMap.put(genericTypeId, argumentValue);
-        }
-
-        /* compare class signature with method's class signature and make sure all generics have the correct assigned types.
-        * The MethodElement's types may have been overridden if its from a super interface. For example:
-        *   UnaryOperator extends Function<T, T>, but the class Function has generic names of Function<T, R>.
-        *   In this case R should be mapped to the same ValueType as T.
-        */
-        List<TypeArgument> classTypeParameters = fiData.getClassTypeSignature().getTypeArguments();
-        List<TypeParameter> methodsTypeParameters = method.getEnclosingType().getSignature() instanceof ClassSignature cs ? cs.getTypeParameters() : List.of();
-        for (int i = 0; i < classTypeParameters.size(); i++) {
-            TypeParameter methodParam = methodsTypeParameters.get(i);
-            ValueType existingArgument = genericTypeMap.get(methodParam.getIdentifier());
-            if (existingArgument == null) {
-                BoundTypeArgument overridingType = (BoundTypeArgument) classTypeParameters.get(i);
-                String identifier = ((TypeVariableSignature)overridingType.getBound()).getIdentifier();
-                ValueType mapsTo = genericTypeMap.get(identifier);
-                genericTypeMap.put(methodParam.getIdentifier(), mapsTo);
-            }
-        }
-
-        /* Create the function type. */
-        MethodSignature methodSignature = method.getSignature();
-        List<TypeSignature> parameterTypeSignatures = methodSignature.getParameterTypes();
-        ValueType returnType = genericTypeMap.get(((TypeVariableSignature)methodSignature.getReturnTypeSignature()).getIdentifier());
-        ValueType[] parameterTypes = new ValueType[parameterTypeSignatures.size()];
-        for (int i = 0; i < parameterTypeSignatures.size(); i++) {
-            TypeVariableSignature sig = (TypeVariableSignature)parameterTypeSignatures.get(i);
-            ValueType iou = genericTypeMap.get(sig.getIdentifier());
-            parameterTypes[i] = iou;
-        }
-        ValueType functionType = ctxt.getTypeSystem().getFunctionType(returnType, parameterTypes);
-        return functionType;
-    }
-
-    public FunctionalInterfaceData getFunctionalInterfaceMethod(final DefinedTypeDefinition definedType) {
-        FunctionalInterfaceData fiData = functionalInterfaceMethods.get(definedType);
+    public InstanceMethodElement getFunctionalInterfaceMethod(final DefinedTypeDefinition definedType) {
+        InstanceMethodElement fiData = functionalInterfaceMethods.get(definedType);
         if (fiData != null) {
             return fiData;
         }
         try {
-            fiData = computeFunctionalInterfaceMethod(definedType.load(), definedType.getSignature(), new HashSet<>(), null);
+            fiData = computeFunctionalInterfaceMethod(definedType.load(), new HashSet<>(), null);
         } catch (IllegalArgumentException ignored) {
         }
         if (fiData != null) {
-            FunctionalInterfaceData appearing = functionalInterfaceMethods.putIfAbsent(definedType, fiData);
+            InstanceMethodElement appearing = functionalInterfaceMethods.putIfAbsent(definedType, fiData);
             if (appearing != null) {
                 return appearing;
             }
@@ -541,22 +484,26 @@ final class NativeInfo {
         return fiData;
     }
 
-    private FunctionalInterfaceData computeFunctionalInterfaceMethod(final LoadedTypeDefinition type, final Signature signature, final HashSet<LoadedTypeDefinition> visited, FunctionalInterfaceData found) {
+    private InstanceMethodElement computeFunctionalInterfaceMethod(final LoadedTypeDefinition type, final HashSet<LoadedTypeDefinition> visited, InstanceMethodElement found) {
         if (visited.add(type)) {
             int methodCount = type.getMethodCount();
             for (int i = 0; i < methodCount; i ++) {
                 MethodElement method = type.getMethod(i);
-                if (method.isAbstract() && method.isPublic()) {
+                if (method.isAbstract() && method.isPublic() && method instanceof InstanceMethodElement ime) {
+                    InstanceMethodType methodType = ime.getType();
                     if (found == null) {
-                        found = new FunctionalInterfaceData(method, (ClassTypeSignature) signature);
+                        found = ime;
                     } else {
-                        throw new IllegalArgumentException();
+                        InstanceMethodType foundType = found.getType();
+                        if (! foundType.getReturnType().equals(methodType.getReturnType()) || ! foundType.getParameterTypes().equals(methodType.getParameterTypes())) {
+                            throw new IllegalArgumentException();
+                        }
                     }
                 }
             }
             int intCnt = type.getInterfaceCount();
             for (int i = 0; i < intCnt; i ++) {
-                found = computeFunctionalInterfaceMethod(type.getInterface(i), ((ClassSignature)signature).getInterfaceSignatures().get(i), visited, found);
+                found = computeFunctionalInterfaceMethod(type.getInterface(i), visited, found);
             }
         }
         return found;
