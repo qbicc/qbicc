@@ -20,6 +20,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.object.Function;
 import org.qbicc.type.ArrayType;
@@ -31,21 +32,35 @@ import org.qbicc.type.VariadicType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.methodhandle.MethodHandleKind;
+import org.qbicc.type.methodhandle.MethodMethodHandleConstant;
 
 /**
  *
  */
 public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
+    private final ClassTypeDescriptor lambdaMetafactoryDesc;
+    private final MethodDescriptor metafactoryDesc;
 
     public NativeBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = getContext();
+        ClassContext bcc = getContext().getBootstrapClassContext();
+        lambdaMetafactoryDesc = ClassTypeDescriptor.synthesize(bcc, "java/lang/invoke/LambdaMetafactory");
+        ClassTypeDescriptor methodHandleDesc = ClassTypeDescriptor.synthesize(bcc, "java/lang/invoke/MethodHandle");
+        ClassTypeDescriptor methodTypeDesc = ClassTypeDescriptor.synthesize(bcc, "java/lang/invoke/MethodType");
+        ClassTypeDescriptor stringDesc = ClassTypeDescriptor.synthesize(bcc, "java/lang/String");
+        ClassTypeDescriptor lookupDesc = ClassTypeDescriptor.synthesize(bcc, "java/lang/invoke/MethodHandles$Lookup");
+        ClassTypeDescriptor callSiteDesc = ClassTypeDescriptor.synthesize(bcc, "java/lang/invoke/CallSite");
+        metafactoryDesc = MethodDescriptor.synthesize(bcc, callSiteDesc, List.of(lookupDesc, stringDesc, methodTypeDesc, methodTypeDesc, methodHandleDesc, methodTypeDesc));
     }
 
     @Override
@@ -301,6 +316,38 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     @Override
     public Value instanceFieldOf(Value instancePointer, TypeDescriptor owner, String name, TypeDescriptor type) {
         return super.instanceFieldOf(instancePointer, deNative(owner), name, deNative(type));
+    }
+
+    @Override
+    public Value invokeDynamic(MethodMethodHandleConstant bootstrapHandle, List<Literal> bootstrapArgs, String name, MethodDescriptor descriptor, List<Value> arguments) {
+        // convert method handles of functions into function pointers
+        if (bootstrapHandle.getOwnerDescriptor().equals(lambdaMetafactoryDesc) && bootstrapHandle.getMethodName().equals("metafactory") && bootstrapHandle.getDescriptor().equals(metafactoryDesc)) {
+            // it's potentially a functional method handle; let's check it out
+            if (bootstrapArgs.get(bootstrapArgs.size() - 2) instanceof MethodHandleLiteral mhl) {
+                if (mhl.getMethodHandleConstant() instanceof MethodMethodHandleConstant mhc) {
+                    if (mhc.getKind() == MethodHandleKind.INVOKE_STATIC) {
+                        ClassTypeDescriptor owner = mhc.getOwnerDescriptor();
+                        // force type to be loaded
+                        String packageName = owner.getPackageName();
+                        String intName;
+                        if (packageName.isEmpty()) {
+                            intName = owner.getClassName();
+                        } else {
+                            intName = packageName + '/' + owner.getClassName();
+                        }
+                        getCurrentClassContext().findDefinedType(intName).load();
+                        String targetMethodName = mhc.getMethodName();
+                        NativeInfo nativeInfo = NativeInfo.get(ctxt);
+                        NativeFunctionInfo functionInfo = nativeInfo.getFunctionInfo(owner, targetMethodName, mhc.getDescriptor());
+                        if (functionInfo != null) {
+                            ExecutableElement currentElement = getCurrentElement();
+                            return deref(getLiteralFactory().literalOf(ctxt.getOrAddProgramModule(currentElement).declareFunction(currentElement, functionInfo.getName(), functionInfo.getType())));
+                        }
+                    }
+                }
+            }
+        }
+        return super.invokeDynamic(bootstrapHandle, bootstrapArgs, name, descriptor, arguments);
     }
 
     MethodDescriptor deNative(MethodDescriptor md) {
