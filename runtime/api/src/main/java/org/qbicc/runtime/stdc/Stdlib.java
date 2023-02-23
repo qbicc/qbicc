@@ -17,17 +17,9 @@ public final class Stdlib {
 
     public static native <P extends ptr<?>> P malloc(size_t size);
 
-    public static <T extends object, P extends ptr<T>> P malloc(Class<T> type) {
-        return malloc(sizeof(type));
-    }
-
     public static native <P extends ptr<?>> P calloc(size_t nMembers, size_t size);
 
-    public static <T extends object> T[] callocArray(Class<T> type, int count) {
-        return Stdlib.<ptr<T>>calloc(sizeof(type), word(count)).asArray();
-    }
-
-    public static native <P extends ptr<?>> P realloc(P ptr, size_t size);
+    public static native <P extends ptr<?>> P realloc(ptr<?> ptr, size_t size);
 
     /**
      * Free the memory referenced by the given pointer.

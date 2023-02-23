@@ -577,7 +577,7 @@ public final class CNative {
      * <p>
      * Native object types may be <em>complete</em> or <em>incomplete</em>. An object of a complete type may have its
      * size checked via {@link #sizeof(object)}, or be allocated on the stack or system heap using {@link #auto()},
-     * {@link #zero}, {@link Stdlib#malloc(Class)}, etc., and pointers to objects of complete type may be dereferenced.
+     * {@link #zero}, etc., and pointers to objects of complete type may be dereferenced.
      * An object of incomplete type may not do any of these things; however, it is still allowed to pass around pointers
      * to objects of incomplete type.
      * <p>
