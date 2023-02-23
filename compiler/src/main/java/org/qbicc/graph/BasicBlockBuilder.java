@@ -421,16 +421,18 @@ public interface BasicBlockBuilder extends Locatable {
     Value deref(Value pointer);
 
     /**
-     * Get a value whose type is a reference to the {@code MethodHandle} instance that would be returned
-     * by an {@code INVOKEDYNAMIC} instruction with the given parameters.
+     * Perform a dynamic invocation as if by an {@code INVOKEDYNAMIC} instruction with the given parameters.
+     * This will typically be translated to a virtual method call to {@code MethodHandle#invokeExact} for the
+     * method handle that is produced by the bootstrap procedure.
      *
      * @param bootstrapHandle the bootstrap method handle (must not be {@code null})
      * @param bootstrapArgs the bootstrap method arguments (must not be {@code null})
      * @param name the name of the dynamic invocation (must not be {@code null})
      * @param descriptor the descriptor of the dynamic invocation (must not be {@code null})
+     * @param arguments the arguments to pass to the dynamic invocation (must not be {@code null})
      * @return the method handle value (not {@code null})
      */
-    Value invokeDynamic(MethodMethodHandleConstant bootstrapHandle, List<Literal> bootstrapArgs, String name, MethodDescriptor descriptor);
+    Value invokeDynamic(MethodMethodHandleConstant bootstrapHandle, List<Literal> bootstrapArgs, String name, MethodDescriptor descriptor, List<Value> arguments);
 
     // memory handles
 
