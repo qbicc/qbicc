@@ -1735,10 +1735,8 @@ final class MethodParser {
                             // extract the method handle that we should call through
                             methodHandle = appendixResult.getArray()[0];
                         } catch (Thrown thrown) {
-                            ctxt.getCompilationContext().warning(gf.getLocation(), "Failed to invoke bootstrap method handle: %s", thrown);
-                            // todo: we should consider putting stack traces into the location of the diagnostics
                             interpLog.debug("Failed to create a bootstrap method handle", thrown);
-                            // instead, throw an run time error
+                            // Generate code to raise this as a run time error if/when the code is executed
                             ClassTypeDescriptor bmeDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/BootstrapMethodError");
                             ClassTypeDescriptor thrDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/Throwable");
                             Value error = gf.new_(bmeDesc);
