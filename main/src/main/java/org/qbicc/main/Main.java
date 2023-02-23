@@ -178,6 +178,7 @@ import org.qbicc.plugin.vio.VIO;
 import org.qbicc.tool.llvm.LlvmToolChain;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.definition.classfile.BciRangeExceptionHandlerBasicBlockBuilder;
+import org.qbicc.type.definition.classfile.IndyResolvingBasicBlockBuilder;
 import picocli.CommandLine;
 import picocli.CommandLine.ParameterException;
 import picocli.CommandLine.ParseResult;
@@ -487,6 +488,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, CoreClassesBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, BciRangeExceptionHandlerBasicBlockBuilder::createIfNeeded);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IndyResolvingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
                                 if (optMemoryTracking) {
                                     // TODO: breaks addr_of; should only be done in ANALYZE and then only if addr_of wasn't taken (alias)

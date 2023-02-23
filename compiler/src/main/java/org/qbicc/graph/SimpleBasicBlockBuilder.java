@@ -444,7 +444,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return unique(new Dereference(callSite, element, line, bci, pointer));
     }
 
-    public Value invokeDynamic(MethodMethodHandleConstant bootstrapHandle, List<Literal> bootstrapArgs, String name, MethodDescriptor descriptor) {
+    public Value invokeDynamic(MethodMethodHandleConstant bootstrapHandle, List<Literal> bootstrapArgs, String name, MethodDescriptor descriptor, List<Value> arguments) {
         getContext().error(getLocation(), "Unhandled `invokeDynamic`");
         throw new BlockEarlyTermination(unreachable());
     }

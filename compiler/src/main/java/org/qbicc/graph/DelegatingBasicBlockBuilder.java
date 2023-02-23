@@ -129,8 +129,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().deref(pointer);
     }
 
-    public Value invokeDynamic(final MethodMethodHandleConstant bootstrapHandle, final List<Literal> bootstrapArgs, final String name, final MethodDescriptor descriptor) {
-        return getDelegate().invokeDynamic(bootstrapHandle, bootstrapArgs, name, descriptor);
+    public Value invokeDynamic(final MethodMethodHandleConstant bootstrapHandle, final List<Literal> bootstrapArgs, final String name, final MethodDescriptor descriptor, List<Value> arguments) {
+        return getDelegate().invokeDynamic(bootstrapHandle, bootstrapArgs, name, descriptor, arguments);
     }
 
     public Value currentThread() {

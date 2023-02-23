@@ -19,7 +19,6 @@ import java.util.function.Consumer;
 import io.smallrye.common.constraint.Assert;
 import org.eclipse.collections.api.map.MutableMap;
 import org.eclipse.collections.impl.factory.Maps;
-import org.jboss.logging.Logger;
 import org.qbicc.context.ClassContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
@@ -33,14 +32,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.Auto;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
-import org.qbicc.interpreter.Thrown;
-import org.qbicc.interpreter.Vm;
-import org.qbicc.interpreter.VmClass;
-import org.qbicc.interpreter.VmObject;
-import org.qbicc.interpreter.VmReferenceArray;
-import org.qbicc.interpreter.VmThread;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
@@ -62,7 +54,6 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
-import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.ParameterElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
@@ -75,8 +66,6 @@ import org.qbicc.type.methodhandle.MethodHandleConstant;
 import org.qbicc.type.methodhandle.MethodMethodHandleConstant;
 
 final class MethodParser {
-    private static final Logger interpLog = Logger.getLogger("org.qbicc.interpreter");
-
     final ClassMethodInfo info;
     final Value[] stack;
     final Value[] locals;
@@ -213,87 +202,6 @@ final class MethodParser {
             public int setBytecodeIndex(int bci) {
                 setLineNumber(info.getLineNumber(bci));
                 return super.setBytecodeIndex(bci);
-            }
-
-            @Override
-            public Value invokeDynamic(MethodMethodHandleConstant bootstrapHandle, List<Literal> bootstrapArgs, String name, MethodDescriptor descriptor) {
-                // todo: this will move to reachability, in order to only bootstrap indys when they can be reached
-                VmThread thread = Vm.requireCurrentThread();
-                Vm vm = thread.getVM();
-                VmObject methodHandle;
-                try {
-                    // 5.4.3.6, invoking the bootstrap method handle
-                    // (0.) find the element
-                    MethodElement targetMethod;
-                    Value resolvedStaticMethod = gf.resolveStaticMethod(bootstrapHandle.getOwnerDescriptor(), bootstrapHandle.getMethodName(), bootstrapHandle.getDescriptor());
-                    if (resolvedStaticMethod instanceof StaticMethodLiteral sml) {
-                        targetMethod = sml.getExecutable();
-                    } else {
-                        throw new IllegalStateException();
-                    }
-                    // compile the method
-                    targetMethod.tryCreateMethodBody();
-                    // 1. allocate the array
-                    int bootstrapArgCnt = bootstrapArgs.size();
-                    List<ParameterElement> targetParameters = targetMethod.getParameters();
-                    TypeParameterContext tpc;
-                    ExecutableElement rootElement = gf.getRootElement();
-                    if (rootElement instanceof TypeParameterContext) {
-                        tpc = (TypeParameterContext) rootElement;
-                    } else {
-                        tpc = rootElement.getEnclosingType();
-                    }
-                    VmClass objectClass = ctxt.findDefinedType("java/lang/Object").load().getVmClass();
-                    VmReferenceArray args = vm.newArrayOf(objectClass, bootstrapArgCnt);
-                    VmObject[] argsArray = args.getArray();
-                    for (int i = 0; i < bootstrapArgCnt; i ++) {
-                        argsArray[i] = vm.box(ctxt, bootstrapArgs.get(i));
-                    }
-                    // 1.5 If the target method is a normal varargs method and the bootstrap args represent
-                    //     a mix of normal and trailing arguments, bundle the trailing arguments in an array
-                    //     See JVM Spec 5.4.3.6, task 2, step 2.
-                    if (bootstrapArgCnt > 0 && targetMethod.isVarargs() && !targetMethod.isSignaturePolymorphic()) {
-                        int normalStaticArgs = targetParameters.size() - 3 - 1;
-                        int trailingStaticArgs = bootstrapArgCnt - normalStaticArgs;
-                        if (trailingStaticArgs > 0 && trailingStaticArgs != bootstrapArgCnt) {
-                            TypeDescriptor elementDescriptor = ((ArrayTypeDescriptor) targetParameters.get(targetParameters.size()-1).getTypeDescriptor()).getElementTypeDescriptor();
-                            ObjectType elemType = (ObjectType)ctxt.resolveTypeFromDescriptor(elementDescriptor, tpc, TypeSignature.synthesize(ctxt, elementDescriptor));
-                            VmObject[] adjustedArgs = Arrays.copyOf(argsArray, normalStaticArgs + 1);
-                            VmObject[] trailingArgs = Arrays.copyOfRange(argsArray, normalStaticArgs, argsArray.length);
-                            assert normalStaticArgs == adjustedArgs.length - 1;
-                            adjustedArgs[normalStaticArgs] = vm.newArrayOf(elemType.getDefinition().load().getVmClass(), trailingArgs);
-                            args = vm.newArrayOf(objectClass, adjustedArgs);
-                        }
-                    }
-                    VmReferenceArray appendixResult = vm.newArrayOf(objectClass, 1);
-                    MethodElement linkCallSite = ctxt.findDefinedType("java/lang/invoke/MethodHandleNatives").load().requireSingleMethod("linkCallSite");
-                    // 2. call into the VM to link the call site
-                    vm.invokeExact(
-                        linkCallSite,
-                        null,
-                        List.of(
-                            gf.getCurrentElement().getEnclosingType().load().getVmClass(),
-                            Integer.valueOf(-1), // not used
-                            vm.createMethodHandle(ctxt, bootstrapHandle),
-                            vm.intern(name),
-                            vm.createMethodType(ctxt, descriptor),
-                            args,
-                            appendixResult // <- this is the actual output
-                        )
-                    );
-                    // extract the method handle that we should call through
-                    methodHandle = appendixResult.getArray()[0];
-                } catch (Thrown thrown) {
-                    interpLog.debug("Failed to create a bootstrap method handle", thrown);
-                    // Generate code to raise this as a run time error if/when the code is executed
-                    ClassTypeDescriptor bmeDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/BootstrapMethodError");
-                    ClassTypeDescriptor thrDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/Throwable");
-                    Value error = gf.new_(bmeDesc);
-                    gf.call(gf.resolveConstructor(bmeDesc, MethodDescriptor.synthesize(ctxt, BaseTypeDescriptor.V, List.of(thrDesc))), error, List.of(lf.literalOf(thrown.getThrowable())));
-                    throw new BlockEarlyTermination(gf.throw_(error));
-                }
-
-                return lf.literalOf(methodHandle);
             }
         };
         this.varsByTableEntry = varsByTableEntry;
@@ -1736,7 +1644,7 @@ final class MethodParser {
                             throw new BlockEarlyTermination(gf.unreachable());
                         }
                         String indyName = getClassFile().getNameAndTypeConstantName(indyNameAndTypeIdx);
-                        MethodDescriptor indyDescriptor = (MethodDescriptor) getClassFile().getNameAndTypeConstantDescriptor(indyNameAndTypeIdx);
+                        MethodDescriptor desc = (MethodDescriptor) getClassFile().getNameAndTypeConstantDescriptor(indyNameAndTypeIdx);
                         int bootstrapArgCnt = getClassFile().getBootstrapMethodArgumentCount(bootstrapMethodIdx);
                         ArrayList<Literal> bootstrapArgs = new ArrayList<>(bootstrapArgCnt);
                         TypeParameterContext tpc;
@@ -1755,26 +1663,14 @@ final class MethodParser {
                                 throw new BlockEarlyTermination(gf.unreachable());
                             }
                         }
-                        // Get the method handle instance from the call site
-                        ClassTypeDescriptor descOfMethodHandle = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/MethodHandle");
                         // Invoke on the method handle
-                        MethodDescriptor desc = (MethodDescriptor) getClassFile().getDescriptorConstant(getClassFile().getNameAndTypeConstantDescriptorIdx(indyNameAndTypeIdx));
-                        if (desc == null) {
-                            ctxt.getCompilationContext().error(gf.getLocation(), "Invoke dynamic has no target method descriptor");
-                            gf.unreachable();
-                            return;
-                        }
                         List<TypeDescriptor> parameterTypes = desc.getParameterTypes();
                         int cnt = parameterTypes.size();
                         Value[] args = new Value[cnt];
                         for (int i = cnt - 1; i >= 0; i--) {
                             args[i] = pop(parameterTypes.get(i).isClass2());
                         }
-                        Value result = gf.call(
-                            gf.resolveInstanceMethod(descOfMethodHandle, "invokeExact", desc),
-                            gf.invokeDynamic(bootstrapHandle, bootstrapArgs, indyName, indyDescriptor),
-                            List.of(args)
-                        );
+                        Value result = gf.invokeDynamic(bootstrapHandle, bootstrapArgs, indyName, desc, List.of(args));
                         TypeDescriptor returnType = desc.getReturnType();
                         if (! returnType.isVoid()) {
                             push(promote(result, returnType), returnType.isClass2());
