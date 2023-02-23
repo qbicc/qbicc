@@ -223,17 +223,6 @@ public final class CNative {
     public static native _Float64_ptr addr_of(double obj);
 
     /**
-     * Get a static method reference as a C function pointer. The function pointer will have normal prologue/epilogue.
-     * The given function object is constant-folded, thus it must not capture any run time state, otherwise compilation
-     * failure will result. A method handle to a static method is usually an appropriate value type.
-     *
-     * @param function the function instance (e.g. method handle)
-     * @param <F> the function interface type
-     * @return the function pointer
-     */
-    public static native <F> function_ptr<F> addr_of_function(F function);
-
-    /**
      * Get the pointer to a structure containing the given member.  The actual return type will be the type of
      * the structure base.
      *
@@ -1220,7 +1209,9 @@ public final class CNative {
          *
          * @return the invokable reference
          */
-        public native F getInvokable();
+        public native F asInvokable();
+
+        public static native <F> function<F> of(F invokable);
     }
 
     public static final class void_ptr_unaryoperator_function_ptr extends ptr<function<UnaryOperator<void_ptr>>> {}

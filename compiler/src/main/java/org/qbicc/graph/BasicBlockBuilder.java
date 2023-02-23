@@ -44,6 +44,7 @@ import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.methodhandle.MethodMethodHandleConstant;
 
 /**
  * A program graph builder, which builds each basic block in succession and wires them together.
@@ -418,6 +419,18 @@ public interface BasicBlockBuilder extends Locatable {
      * @see Dereference
      */
     Value deref(Value pointer);
+
+    /**
+     * Get a value whose type is a reference to the {@code MethodHandle} instance that would be returned
+     * by an {@code INVOKEDYNAMIC} instruction with the given parameters.
+     *
+     * @param bootstrapHandle the bootstrap method handle (must not be {@code null})
+     * @param bootstrapArgs the bootstrap method arguments (must not be {@code null})
+     * @param name the name of the dynamic invocation (must not be {@code null})
+     * @param descriptor the descriptor of the dynamic invocation (must not be {@code null})
+     * @return the method handle value (not {@code null})
+     */
+    Value invokeDynamic(MethodMethodHandleConstant bootstrapHandle, List<Literal> bootstrapArgs, String name, MethodDescriptor descriptor);
 
     // memory handles
 

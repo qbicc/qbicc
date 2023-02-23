@@ -6,6 +6,7 @@ import static org.qbicc.type.definition.classfile.ClassFile.*;
 import static org.qbicc.type.definition.classfile.ClassMethodInfo.align;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -70,7 +71,6 @@ import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
-import org.qbicc.type.methodhandle.ExecutableMethodHandleConstant;
 import org.qbicc.type.methodhandle.MethodHandleConstant;
 import org.qbicc.type.methodhandle.MethodMethodHandleConstant;
 
@@ -213,6 +213,87 @@ final class MethodParser {
             public int setBytecodeIndex(int bci) {
                 setLineNumber(info.getLineNumber(bci));
                 return super.setBytecodeIndex(bci);
+            }
+
+            @Override
+            public Value invokeDynamic(MethodMethodHandleConstant bootstrapHandle, List<Literal> bootstrapArgs, String name, MethodDescriptor descriptor) {
+                // todo: this will move to reachability, in order to only bootstrap indys when they can be reached
+                VmThread thread = Vm.requireCurrentThread();
+                Vm vm = thread.getVM();
+                VmObject methodHandle;
+                try {
+                    // 5.4.3.6, invoking the bootstrap method handle
+                    // (0.) find the element
+                    MethodElement targetMethod;
+                    Value resolvedStaticMethod = gf.resolveStaticMethod(bootstrapHandle.getOwnerDescriptor(), bootstrapHandle.getMethodName(), bootstrapHandle.getDescriptor());
+                    if (resolvedStaticMethod instanceof StaticMethodLiteral sml) {
+                        targetMethod = sml.getExecutable();
+                    } else {
+                        throw new IllegalStateException();
+                    }
+                    // compile the method
+                    targetMethod.tryCreateMethodBody();
+                    // 1. allocate the array
+                    int bootstrapArgCnt = bootstrapArgs.size();
+                    List<ParameterElement> targetParameters = targetMethod.getParameters();
+                    TypeParameterContext tpc;
+                    ExecutableElement rootElement = gf.getRootElement();
+                    if (rootElement instanceof TypeParameterContext) {
+                        tpc = (TypeParameterContext) rootElement;
+                    } else {
+                        tpc = rootElement.getEnclosingType();
+                    }
+                    VmClass objectClass = ctxt.findDefinedType("java/lang/Object").load().getVmClass();
+                    VmReferenceArray args = vm.newArrayOf(objectClass, bootstrapArgCnt);
+                    VmObject[] argsArray = args.getArray();
+                    for (int i = 0; i < bootstrapArgCnt; i ++) {
+                        argsArray[i] = vm.box(ctxt, bootstrapArgs.get(i));
+                    }
+                    // 1.5 If the target method is a normal varargs method and the bootstrap args represent
+                    //     a mix of normal and trailing arguments, bundle the trailing arguments in an array
+                    //     See JVM Spec 5.4.3.6, task 2, step 2.
+                    if (bootstrapArgCnt > 0 && targetMethod.isVarargs() && !targetMethod.isSignaturePolymorphic()) {
+                        int normalStaticArgs = targetParameters.size() - 3 - 1;
+                        int trailingStaticArgs = bootstrapArgCnt - normalStaticArgs;
+                        if (trailingStaticArgs > 0 && trailingStaticArgs != bootstrapArgCnt) {
+                            TypeDescriptor elementDescriptor = ((ArrayTypeDescriptor) targetParameters.get(targetParameters.size()-1).getTypeDescriptor()).getElementTypeDescriptor();
+                            ObjectType elemType = (ObjectType)ctxt.resolveTypeFromDescriptor(elementDescriptor, tpc, TypeSignature.synthesize(ctxt, elementDescriptor));
+                            VmObject[] adjustedArgs = Arrays.copyOf(argsArray, normalStaticArgs + 1);
+                            VmObject[] trailingArgs = Arrays.copyOfRange(argsArray, normalStaticArgs, argsArray.length);
+                            assert normalStaticArgs == adjustedArgs.length - 1;
+                            adjustedArgs[normalStaticArgs] = vm.newArrayOf(elemType.getDefinition().load().getVmClass(), trailingArgs);
+                            args = vm.newArrayOf(objectClass, adjustedArgs);
+                        }
+                    }
+                    VmReferenceArray appendixResult = vm.newArrayOf(objectClass, 1);
+                    MethodElement linkCallSite = ctxt.findDefinedType("java/lang/invoke/MethodHandleNatives").load().requireSingleMethod("linkCallSite");
+                    // 2. call into the VM to link the call site
+                    vm.invokeExact(
+                        linkCallSite,
+                        null,
+                        List.of(
+                            gf.getCurrentElement().getEnclosingType().load().getVmClass(),
+                            Integer.valueOf(-1), // not used
+                            vm.createMethodHandle(ctxt, bootstrapHandle),
+                            vm.intern(name),
+                            vm.createMethodType(ctxt, descriptor),
+                            args,
+                            appendixResult // <- this is the actual output
+                        )
+                    );
+                    // extract the method handle that we should call through
+                    methodHandle = appendixResult.getArray()[0];
+                } catch (Thrown thrown) {
+                    interpLog.debug("Failed to create a bootstrap method handle", thrown);
+                    // Generate code to raise this as a run time error if/when the code is executed
+                    ClassTypeDescriptor bmeDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/BootstrapMethodError");
+                    ClassTypeDescriptor thrDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/Throwable");
+                    Value error = gf.new_(bmeDesc);
+                    gf.call(gf.resolveConstructor(bmeDesc, MethodDescriptor.synthesize(ctxt, BaseTypeDescriptor.V, List.of(thrDesc))), error, List.of(lf.literalOf(thrown.getThrowable())));
+                    throw new BlockEarlyTermination(gf.throw_(error));
+                }
+
+                return lf.literalOf(methodHandle);
             }
         };
         this.varsByTableEntry = varsByTableEntry;
@@ -1648,101 +1729,31 @@ final class MethodParser {
                         MethodHandleConstant bootstrapHandleRaw = getClassFile().getMethodHandleConstant(getClassFile().getBootstrapMethodHandleRef(bootstrapMethodIdx));
                         if (bootstrapHandleRaw == null) {
                             ctxt.getCompilationContext().error(gf.getLocation(), "Missing bootstrap method handle");
-                            gf.unreachable();
-                            return;
+                            throw new BlockEarlyTermination(gf.unreachable());
                         }
-                        if (! (bootstrapHandleRaw instanceof ExecutableMethodHandleConstant bootstrapHandle)) {
+                        if (! (bootstrapHandleRaw instanceof MethodMethodHandleConstant bootstrapHandle)) {
                             ctxt.getCompilationContext().error(gf.getLocation(), "Wrong bootstrap method handle type");
-                            gf.unreachable();
-                            return;
+                            throw new BlockEarlyTermination(gf.unreachable());
                         }
-                        // now get the literal method handle, requires a live interpreter
-                        VmThread thread = Vm.requireCurrentThread();
-                        Vm vm = thread.getVM();
-                        VmObject methodHandle;
-                        try {
-                            // 5.4.3.6, invoking the bootstrap method handle
-                            // (0.) find the element
-                            MethodElement targetMethod;
-                            if (bootstrapHandle instanceof MethodMethodHandleConstant mh) {
-                                Value resolvedStaticMethod = gf.resolveStaticMethod(mh.getOwnerDescriptor(), mh.getMethodName(), mh.getDescriptor());
-                                if (resolvedStaticMethod instanceof StaticMethodLiteral sml) {
-                                    targetMethod = sml.getExecutable();
-                                } else {
-                                    throw new IllegalStateException();
-                                }
+                        String indyName = getClassFile().getNameAndTypeConstantName(indyNameAndTypeIdx);
+                        MethodDescriptor indyDescriptor = (MethodDescriptor) getClassFile().getNameAndTypeConstantDescriptor(indyNameAndTypeIdx);
+                        int bootstrapArgCnt = getClassFile().getBootstrapMethodArgumentCount(bootstrapMethodIdx);
+                        ArrayList<Literal> bootstrapArgs = new ArrayList<>(bootstrapArgCnt);
+                        TypeParameterContext tpc;
+                        ExecutableElement rootElement = gf.getRootElement();
+                        if (rootElement instanceof TypeParameterContext) {
+                            tpc = (TypeParameterContext) rootElement;
+                        } else {
+                            tpc = rootElement.getEnclosingType();
+                        }
+                        for (int i = 0; i < bootstrapArgCnt; i ++) {
+                            int argIdx = getClassFile().getBootstrapMethodArgumentConstantIndex(bootstrapMethodIdx, i);
+                            if (argIdx != 0) {
+                                bootstrapArgs.add(getClassFile().getConstantValue(argIdx, tpc));
                             } else {
-                                throw new IllegalStateException();
+                                ctxt.getCompilationContext().error(gf.getLocation(), "Non-loadable argument to bootstrap method");
+                                throw new BlockEarlyTermination(gf.unreachable());
                             }
-                            // compile the method
-                            targetMethod.tryCreateMethodBody();
-                            // 1. allocate the array
-                            int bootstrapArgCnt = getClassFile().getBootstrapMethodArgumentCount(bootstrapMethodIdx);
-                            List<ParameterElement> targetParameters = targetMethod.getParameters();
-                            TypeParameterContext tpc;
-                            ExecutableElement rootElement = gf.getRootElement();
-                            if (rootElement instanceof TypeParameterContext) {
-                                tpc = (TypeParameterContext) rootElement;
-                            } else {
-                                tpc = rootElement.getEnclosingType();
-                            }
-                            VmClass objectClass = ctxt.findDefinedType("java/lang/Object").load().getVmClass();
-                            VmReferenceArray args = vm.newArrayOf(objectClass, bootstrapArgCnt);
-                            VmObject[] argsArray = args.getArray();
-                            for (int i = 0; i < bootstrapArgCnt; i ++) {
-                                int argIdx = getClassFile().getBootstrapMethodArgumentConstantIndex(bootstrapMethodIdx, i);
-                                if (argIdx != 0) {
-                                    argsArray[i] = vm.box(ctxt, getClassFile().getConstantValue(argIdx, tpc));
-                                }
-                            }
-                            // 1.5 If the target method is a normal varargs method and the bootstrap args represent
-                            //     a mix of normal and trailing arguments, bundle the trailing arguments in an array
-                            //     See JVM Spec 5.4.3.6, task 2, step 2.
-                            if (bootstrapArgCnt > 0 && targetMethod.isVarargs() && !targetMethod.isSignaturePolymorphic()) {
-                                int normalStaticArgs = targetParameters.size() - 3 - 1;
-                                int trailingStaticArgs = bootstrapArgCnt - normalStaticArgs;
-                                if (trailingStaticArgs > 0 && trailingStaticArgs != bootstrapArgCnt) {
-                                    VmObject[] adjustedArgs = new VmObject[normalStaticArgs+1];
-                                    for (int i=0; i<normalStaticArgs; i++) {
-                                        adjustedArgs[i] = argsArray[i];
-                                    }
-                                    VmObject[] trailingArgs = new VmObject[trailingStaticArgs];
-                                    for (int i=normalStaticArgs; i<argsArray.length; i++) {
-                                        trailingArgs[i-normalStaticArgs] = argsArray[i];
-                                    }
-                                    TypeDescriptor elementDescriptor = ((ArrayTypeDescriptor) targetParameters.get(targetParameters.size()-1).getTypeDescriptor()).getElementTypeDescriptor();
-                                    ObjectType elemType = (ObjectType)ctxt.resolveTypeFromDescriptor(elementDescriptor, tpc, TypeSignature.synthesize(ctxt, elementDescriptor));
-                                    adjustedArgs[adjustedArgs.length-1] = vm.newArrayOf(elemType.getDefinition().load().getVmClass(), trailingArgs);
-                                    args = vm.newArrayOf(objectClass, adjustedArgs);
-                                }
-                            }
-                            VmReferenceArray appendixResult = vm.newArrayOf(objectClass, 1);
-                            MethodElement linkCallSite = ctxt.findDefinedType("java/lang/invoke/MethodHandleNatives").load().requireSingleMethod("linkCallSite");
-                            // 2. call into the VM to link the call site
-                            VmObject memberName = (VmObject) vm.invokeExact(
-                                linkCallSite,
-                                null,
-                                List.of(
-                                    gf.getCurrentElement().getEnclosingType().load().getVmClass(),
-                                    Integer.valueOf(indyIdx),
-                                    vm.createMethodHandle(ctxt, mh),
-                                    vm.intern(getClassFile().getNameAndTypeConstantName(indyNameAndTypeIdx)),
-                                    vm.createMethodType(ctxt, (MethodDescriptor) getClassFile().getNameAndTypeConstantDescriptor(indyNameAndTypeIdx)),
-                                    args,
-                                    appendixResult
-                                )
-                            );
-                            // extract the method handle that we should call through
-                            methodHandle = appendixResult.getArray()[0];
-                        } catch (Thrown thrown) {
-                            interpLog.debug("Failed to create a bootstrap method handle", thrown);
-                            // Generate code to raise this as a run time error if/when the code is executed
-                            ClassTypeDescriptor bmeDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/BootstrapMethodError");
-                            ClassTypeDescriptor thrDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/Throwable");
-                            Value error = gf.new_(bmeDesc);
-                            gf.call(gf.resolveConstructor(bmeDesc, MethodDescriptor.synthesize(ctxt, BaseTypeDescriptor.V, List.of(thrDesc))), error, List.of(lf.literalOf(thrown.getThrowable())));
-                            gf.throw_(error);
-                            return;
                         }
                         // Get the method handle instance from the call site
                         ClassTypeDescriptor descOfMethodHandle = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/MethodHandle");
@@ -1759,9 +1770,11 @@ final class MethodParser {
                         for (int i = cnt - 1; i >= 0; i--) {
                             args[i] = pop(parameterTypes.get(i).isClass2());
                         }
-                        // todo: promote the method handle directly to a ValueHandle?
-                        Value result = gf.call(gf.resolveInstanceMethod(descOfMethodHandle, "invokeExact",
-                            desc), lf.literalOf(methodHandle), List.of(args));
+                        Value result = gf.call(
+                            gf.resolveInstanceMethod(descOfMethodHandle, "invokeExact", desc),
+                            gf.invokeDynamic(bootstrapHandle, bootstrapArgs, indyName, indyDescriptor),
+                            List.of(args)
+                        );
                         TypeDescriptor returnType = desc.getReturnType();
                         if (! returnType.isVoid()) {
                             push(promote(result, returnType), returnType.isClass2());

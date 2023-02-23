@@ -84,6 +84,7 @@ final class CNativeIntrinsics {
         ArrayTypeDescriptor objArrayDesc = ArrayTypeDescriptor.of(classContext, objDesc);
         ClassTypeDescriptor nObjDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$object");
         ClassTypeDescriptor ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$ptr");
+        ClassTypeDescriptor functionDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$function");
         ClassTypeDescriptor constCharPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$const_char_ptr");
         ClassTypeDescriptor wordDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$word");
         ClassTypeDescriptor tgDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ThreadGroup");
@@ -111,8 +112,13 @@ final class CNativeIntrinsics {
         MethodDescriptor objToReference = MethodDescriptor.synthesize(classContext, referenceDesc, List.of(objDesc));
         MethodDescriptor toObject = MethodDescriptor.synthesize(classContext, objDesc, List.of());
 
+        MethodDescriptor objToPtr = MethodDescriptor.synthesize(classContext, ptrDesc, List.of(objDesc));
+
         intrinsics.registerIntrinsic(referenceDesc, "of", objToReference, (builder, targetPtr, arguments) -> arguments.get(0));
         intrinsics.registerIntrinsic(referenceDesc, "toObject", toObject, (builder, instance, targetPtr, arguments) -> instance);
+
+        intrinsics.registerIntrinsic(functionDesc, "of", objToPtr, (builder, targetPtr, arguments) -> arguments.get(0));
+        intrinsics.registerIntrinsic(functionDesc, "toInvokable", toObject, (builder, instance, targetPtr, arguments) -> instance);
 
         StaticIntrinsic typeOf = (builder, target, arguments) ->
             builder.loadTypeId(arguments.get(0));

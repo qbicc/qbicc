@@ -9,6 +9,7 @@ import org.qbicc.context.Location;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
+import org.qbicc.graph.literal.Literal;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -28,6 +29,7 @@ import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.methodhandle.MethodMethodHandleConstant;
 
 /**
  * A graph factory which delegates all operations to another graph factory.  Can be used as a base class for graph
@@ -125,6 +127,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value deref(Value pointer) {
         return getDelegate().deref(pointer);
+    }
+
+    public Value invokeDynamic(final MethodMethodHandleConstant bootstrapHandle, final List<Literal> bootstrapArgs, final String name, final MethodDescriptor descriptor) {
+        return getDelegate().invokeDynamic(bootstrapHandle, bootstrapArgs, name, descriptor);
     }
 
     public Value currentThread() {
