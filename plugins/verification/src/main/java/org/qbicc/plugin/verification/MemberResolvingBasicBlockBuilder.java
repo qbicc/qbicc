@@ -239,8 +239,10 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         } else if (valueType instanceof PointerType && castType instanceof ArrayType) {
             // narrowing a pointer to an array is actually an array view of a pointer
             return value;
+        } else {
+            ctxt.error(getLocation(), "Disallowed cast of value from %s to %s", valueType, castType);
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(castType);
         }
-        throw Assert.unreachableCode();
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {
