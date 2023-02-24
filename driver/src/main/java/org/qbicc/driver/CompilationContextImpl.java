@@ -107,10 +107,10 @@ final class CompilationContextImpl implements CompilationContext {
         platformClassContextFactory = cl -> new ClassContextImpl(this, cl, builder.platformFinder, builder.platformResourceFinder, builder.platformResourcesFinder);
         this.typeBuilderFactories = builder.typeBuilderFactories;
         this.nativeMethodConfigurator = builder.nativeMethodConfigurator;
+        implicitSection = Section.defineSection(this, 0, IMPLICIT_SECTION_NAME, Segment.DATA);
         handleNewClassContext(bootstrapClassContext);
         // last!
         this.vm = builder.vmFactory.apply(this);
-        implicitSection = Section.defineSection(this, 0, IMPLICIT_SECTION_NAME, Segment.DATA);
     }
 
     public <T> T getAttachment(final AttachmentKey<T> key) {
