@@ -49,77 +49,80 @@ public final class NativeLayout {
         if (layoutInfo != null) {
             return layoutInfo;
         }
-        int minAlignment = ctxt.getTypeSystem().getPointerAlignment(); // All fields have at least pointer alignment.
-        BitSet allocated = new BitSet();
-        int cnt = validated.getFieldCount();
-        Map<FieldElement, CompoundType.Member> fieldToMember = new HashMap<>(cnt);
-        int previousFieldOffset = 0;
-        ConditionEvaluation conditionEvaluation = ConditionEvaluation.get(ctxt);
-        eachField: for (int i = 0; i < cnt; i ++) {
-            FieldElement field = validated.getField(i);
-            if (field.isStatic()) {
-                // ignore static field
-                continue;
-            }
-            TypeSystem ts = ctxt.getTypeSystem();
-            ValueType fieldType = field.getType();
-            int size = (int) fieldType.getSize();
-            int align = fieldType.getAlign();
-            String fieldName = field.getName();
-            boolean nameOverridden = false;
-            for (Annotation annotation : field.getInvisibleAnnotations()) {
-                ClassTypeDescriptor annDesc = annotation.getDescriptor();
-                if (annDesc.getPackageName().equals(Native.NATIVE_PKG)) {
-                    if (annDesc.getClassName().equals(Native.ANN_NAME) && ! nameOverridden) {
-                        if (conditionEvaluation.evaluateConditions(validated.getContext(), type, annotation)) {
-                            fieldName = ((StringAnnotationValue) annotation.getValue("value")).getString();
-                            nameOverridden = true;
-                        }
-                    } else if (annDesc.getClassName().equals(Native.ANN_NAME_LIST) && ! nameOverridden) {
-                        if (annotation.getValue("value") instanceof ArrayAnnotationValue aav) {
-                            int annCnt = aav.getElementCount();
-                            for (int j = 0; j < annCnt; j ++) {
-                                if (aav.getValue(j) instanceof Annotation nested) {
-                                    ClassTypeDescriptor nestedDesc = nested.getDescriptor();
-                                    if (nestedDesc.getPackageName().equals(Native.NATIVE_PKG)) {
-                                        if (nestedDesc.getClassName().equals(Native.ANN_NAME)) {
-                                            if (conditionEvaluation.evaluateConditions(validated.getContext(), type, nested)) {
-                                                fieldName = ((StringAnnotationValue) nested.getValue("value")).getString();
-                                                nameOverridden = true;
-                                                // stop searching for names
-                                                break;
+        String internalName = type.getInternalName();
+        int lastSep = Math.max(internalName.lastIndexOf('/'), internalName.lastIndexOf('$'));
+        String simpleName = lastSep == -1 ? internalName : internalName.substring(lastSep + 1);
+        CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.NONE, simpleName, () -> {
+            int minAlignment = ctxt.getTypeSystem().getPointerAlignment(); // All fields have at least pointer alignment.
+            BitSet allocated = new BitSet();
+            int cnt = validated.getFieldCount();
+            Map<FieldElement, CompoundType.Member> fieldToMember = new HashMap<>(cnt);
+            int previousFieldOffset = 0;
+            ConditionEvaluation conditionEvaluation = ConditionEvaluation.get(ctxt);
+            eachField: for (int i = 0; i < cnt; i ++) {
+                FieldElement field = validated.getField(i);
+                if (field.isStatic()) {
+                    // ignore static field
+                    continue;
+                }
+                TypeSystem ts = ctxt.getTypeSystem();
+                ValueType fieldType = field.getType();
+                int size = (int) fieldType.getSize();
+                int align = fieldType.getAlign();
+                String fieldName = field.getName();
+                boolean nameOverridden = false;
+                for (Annotation annotation : field.getInvisibleAnnotations()) {
+                    ClassTypeDescriptor annDesc = annotation.getDescriptor();
+                    if (annDesc.getPackageName().equals(Native.NATIVE_PKG)) {
+                        if (annDesc.getClassName().equals(Native.ANN_NAME) && ! nameOverridden) {
+                            if (conditionEvaluation.evaluateConditions(validated.getContext(), type, annotation)) {
+                                fieldName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                                nameOverridden = true;
+                            }
+                        } else if (annDesc.getClassName().equals(Native.ANN_NAME_LIST) && ! nameOverridden) {
+                            if (annotation.getValue("value") instanceof ArrayAnnotationValue aav) {
+                                int annCnt = aav.getElementCount();
+                                for (int j = 0; j < annCnt; j ++) {
+                                    if (aav.getValue(j) instanceof Annotation nested) {
+                                        ClassTypeDescriptor nestedDesc = nested.getDescriptor();
+                                        if (nestedDesc.getPackageName().equals(Native.NATIVE_PKG)) {
+                                            if (nestedDesc.getClassName().equals(Native.ANN_NAME)) {
+                                                if (conditionEvaluation.evaluateConditions(validated.getContext(), type, nested)) {
+                                                    fieldName = ((StringAnnotationValue) nested.getValue("value")).getString();
+                                                    nameOverridden = true;
+                                                    // stop searching for names
+                                                    break;
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
-                    } else if (annDesc.getClassName().equals(Native.ANN_INCOMPLETE)) {
-                        if (conditionEvaluation.evaluateConditions(type.getContext(), field, annotation)) {
-                            continue eachField;
+                        } else if (annDesc.getClassName().equals(Native.ANN_INCOMPLETE)) {
+                            if (conditionEvaluation.evaluateConditions(type.getContext(), field, annotation)) {
+                                continue eachField;
+                            }
                         }
                     }
                 }
+                int idx;
+                if (size != 0) {
+                    idx = find(allocated, align, size, previousFieldOffset);
+                    allocated.set(idx, idx + size);
+                } else {
+                    idx = find(allocated, align, ts.getMaxAlignment(), previousFieldOffset);
+                }
+                CompoundType.Member member = ts.getCompoundTypeMember(fieldName, fieldType, idx, align);
+                if (member.getAlign() > minAlignment) {
+                    minAlignment = member.getAlign();
+                }
+                fieldToMember.put(field, member);
+                previousFieldOffset = member.getOffset();
             }
-            int idx;
-            if (size != 0) {
-                idx = find(allocated, align, size, previousFieldOffset);
-                allocated.set(idx, idx + size);
-            } else {
-                idx = find(allocated, align, ts.getMaxAlignment(), previousFieldOffset);
-            }
-            CompoundType.Member member = ts.getCompoundTypeMember(fieldName, fieldType, idx, align);
-            if (member.getAlign() > minAlignment) {
-                minAlignment = member.getAlign();
-            }
-            fieldToMember.put(field, member);
-            previousFieldOffset = member.getOffset();
-        }
-        int size = allocated.length();
-        CompoundType.Member[] membersArray = fieldToMember.values().toArray(CompoundType.Member[]::new);
-        Arrays.sort(membersArray);
-        List<CompoundType.Member> membersList = List.of(membersArray);
-        CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.NONE, type.getInternalName().replace('/', '.'), size, minAlignment, () -> membersList);
+            CompoundType.Member[] membersArray = fieldToMember.values().toArray(CompoundType.Member[]::new);
+            Arrays.sort(membersArray);
+            return List.of(membersArray);
+        });
         CompoundType appearing = layouts.putIfAbsent(validated, compoundType);
         return appearing != null ? appearing : compoundType;
     }
