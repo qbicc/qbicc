@@ -30,6 +30,7 @@ import org.qbicc.graph.Dereference;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.Auto;
+import org.qbicc.graph.literal.GlobalVariableLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
@@ -1482,7 +1483,15 @@ final class MethodParser {
                         String name = getNameOfFieldRef(fieldRef);
                         // todo: signature context
                         Value handle = gf.resolveStaticField(owner, name, desc);
-                        Value value = promote(gf.load(handle, handle.getDetectedMode().getReadAccess()), desc);
+                        Value value;
+                        if (handle instanceof GlobalVariableLiteral || handle.getPointeeType() instanceof CompoundType) {
+                            if (desc == BaseTypeDescriptor.B || desc == BaseTypeDescriptor.C || desc == BaseTypeDescriptor.S || desc == BaseTypeDescriptor.Z) {
+                                ctxt.getCompilationContext().warning(gf.getLocation(), "Type promotion to `int` causes an eager load");
+                            }
+                            value = promote(gf.deref(handle), desc);
+                        } else {
+                            value = promote(gf.load(handle, handle.getDetectedMode().getReadAccess()), desc);
+                        }
                         push(value, desc.isClass2());
                         break;
                     }
