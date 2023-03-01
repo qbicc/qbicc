@@ -39,26 +39,25 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public Value new_(final ClassObjectType type, final Value typeId, final Value size, final Value align) {
         NoGc noGc = NoGc.get(ctxt);
         LiteralFactory lf = ctxt.getLiteralFactory();
-        Value ptrVal = null;
+        Value refVal = null;
         if (typeId instanceof TypeLiteral tl && tl.getValue() instanceof ClassObjectType cot) {
             // We can only even attempt stack allocation if the typeId is a literal (ie, known precisely at compile time).
             if (cot.isSubtypeOf(noGc.getStackObjectType()) /*|| objectDoesNotEscape && objectIsSmallEnough */) {
                 CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(cot.getDefinition()).getCompoundType();
-                ptrVal = valueConvert(stackAllocate(compoundType, lf.literalOf(1), align), type.getReference());
+                refVal = valueConvert(stackAllocate(compoundType, lf.literalOf(1), align), type.getReference());
             }
         }
-        if (ptrVal == null) {
+        if (refVal == null) {
             MethodElement method = noGc.getAllocateMethod();
-            ptrVal = notNull(call(lf.literalOf(method), List.of(size, align)));
+            refVal = notNull(bitCast(call(lf.literalOf(method), List.of(size, align)), type.getReference()));
         }
 
         // zero initialize the allocated storage
         MethodElement method = noGc.getZeroMethod();
-        call(lf.literalOf(method), List.of(ptrVal, size));
+        call(lf.literalOf(method), List.of(refVal, size));
 
-        Value oop = valueConvert(ptrVal, type.getReference());
-        BasicHeaderInitializer.initializeObjectHeader(ctxt, this, decodeReference(oop), typeId);
-        return oop;
+        BasicHeaderInitializer.initializeObjectHeader(ctxt, this, decodeReference(refVal), typeId);
+        return refVal;
     }
 
     @Override
