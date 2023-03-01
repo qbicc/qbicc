@@ -14,7 +14,6 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.qbicc.context.ClassContext;
-import org.qbicc.context.Location;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEntry;
@@ -725,9 +724,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         builder.setName(internalName);
         builder.setContext(ctxt);
         int access = getAccess();
-        if (internalName.equals("java/lang/Thread") || internalName.equals("java/lang/Class") || internalName.equals("org/qbicc/runtime/StackObject")) {
-            access |= I_ACC_PINNED;
-        }
         String superClassName = getSuperClassName();
         builder.setSuperClassName(getSuperClassName());
         int cnt = getInterfaceNameCount();
@@ -755,14 +751,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 Annotation[] annotations = new Annotation[ac];
                 for (int j = 0; j < ac; j++) {
                     annotations[j] = Annotation.parse(this, ctxt, data);
-                    if (annotations[j].getDescriptor().packageAndClassNameEquals("org/qbicc/runtime", "Pinned")) {
-                        if ((access & ACC_INTERFACE) != 0) {
-                            ctxt.getCompilationContext().error(Location.builder().setClassInternalName(internalName).build(), "Interfaces cannot be pinned");
-                        } else if ((access & ACC_FINAL) == 0) {
-                            ctxt.getCompilationContext().error(Location.builder().setClassInternalName(internalName).build(), "@Pinned classes must be final");
-                        }
-                        access |= I_ACC_PINNED;
-                    }
                 }
                 foundRuntimeInvisibleAnnotations = true;
                 builder.setInvisibleAnnotations(List.of(annotations));

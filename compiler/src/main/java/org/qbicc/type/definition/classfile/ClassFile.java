@@ -83,10 +83,10 @@ public interface ClassFile extends FieldResolver,
      * </ul>
      */
     int I_ACC_NOT_REALLY_FINAL = 1 << 16;
-    /**
-     * For classes which must be pinned in memory (i.e. allocated in a non-moving generation or on the stack).
+    /*
+     * Bit 16 not used for classes.
      */
-    int I_ACC_PINNED = 1 << 16;
+    // reserved = 1 << 16;
     /**
      * For classes which represent value-based (aka primitive) types.
      */
