@@ -74,7 +74,7 @@ final class HooksForUnsafe {
         if (field == null || field.isStatic()) {
             throw new Thrown(vm.errorClass.newInstance("Invalid argument to objectFieldOffset0"));
         }
-        field.setModifierFlags(ClassFile.I_ACC_PINNED);
+        field.setModifierFlags(ClassFile.I_ACC_NOT_REALLY_FINAL);
         LayoutInfo layoutInfo = Layout.get(vm.getCompilationContext()).getInstanceLayoutInfo(clazzDef);
         CompoundType.Member member = layoutInfo.getMember(field);
         if (member == null) {
@@ -91,7 +91,7 @@ final class HooksForUnsafe {
         if (field == null || field.isStatic()) {
             throw new Thrown(vm.errorClass.newInstance("Invalid argument to objectFieldOffset1"));
         }
-        field.setModifierFlags(ClassFile.I_ACC_PINNED);
+        field.setModifierFlags(ClassFile.I_ACC_NOT_REALLY_FINAL);
         LayoutInfo layoutInfo = Layout.get(vm.getCompilationContext()).getInstanceLayoutInfo(clazzDef);
         CompoundType.Member member = layoutInfo.getMember(field);
         if (member == null) {
@@ -117,7 +117,7 @@ final class HooksForUnsafe {
         if (! (field instanceof StaticFieldElement sfe)) {
             throw new Thrown(vm.errorClass.newInstance("Invalid argument to objectFieldOffset0"));
         }
-        sfe.setModifierFlags(ClassFile.I_ACC_PINNED);
+        sfe.setModifierFlags(ClassFile.I_ACC_NOT_REALLY_FINAL);
         return StaticFieldPointer.of(sfe);
     }
 

@@ -671,7 +671,6 @@ public final class Reflection {
         ));
 
         // Store the native offset (see Field$_patch) used to implement the Unsafe.fieldOffset natives
-        field.setModifierFlags(ClassFile.I_ACC_PINNED);
         int memOffset = fieldClass.indexOf(fieldClass.getTypeDefinition().findField("offset"));
         if (field.isStatic()) {
             vmObject.getMemory().storePointer(memOffset, StaticFieldPointer.of((StaticFieldElement) field), SinglePlain);
