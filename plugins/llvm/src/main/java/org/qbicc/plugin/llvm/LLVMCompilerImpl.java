@@ -68,7 +68,7 @@ public class LLVMCompilerImpl implements LLVMCompiler {
         final ProgramModule programModule = ctxt.getOrAddProgramModule(typeDefinition);
         final InputSource generatorSource = InputSource.from(writer -> {
             try (final BufferedWriter bw = new BufferedWriter(writer)) {
-                moduleGenerator.processProgramModule(programModule, bw);
+                moduleGenerator.processProgramModule(programModule, bw, irFile);
             }
         }, StandardCharsets.UTF_8);
         if (! compileOutput) {
