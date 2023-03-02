@@ -13,8 +13,6 @@ import java.lang.annotation.Target;
 import java.nio.charset.StandardCharsets;
 import java.util.function.BooleanSupplier;
 
-import org.qbicc.runtime.stdc.Stdlib;
-
 /**
  * Types, constants, variables, and methods that pertain to the <em>target</em> native environment from the perspective
  * of the C language. In general, types which are <em>all lowercase</em> indicate association with the C language
@@ -464,6 +462,29 @@ public final class CNative {
      * @return the pointer (may be {@code null})
      */
     public static native <T, P extends ptr<T>> P refToPtr(T ref);
+
+    /**
+     * Dereference the given pointer.
+     * The returned value, if used in an expression, becomes a "lazy-load" of the given pointer with unshared semantics.
+     * The address may be taken of values returned by this method.
+     *
+     * @param ptr the pointer
+     * @return the dereferenced value
+     * @param <T> the value type
+     * @param <P> the pointer type
+     */
+    public static native <T, P extends ptr<T>> T deref(P ptr);
+
+    /**
+     * Dereference the given pointer as the given type.
+     * The returned value, if used in an expression, becomes a "lazy-load" of the given pointer with unshared semantics.
+     * The address may be taken of values returned by this method.
+     *
+     * @param ptr the pointer
+     * @return the dereferenced value
+     * @param <T> the value type
+     */
+    public static native <T> T deref(ptr<?> ptr, Class<T> typeClass);
 
     // intrinsic
     @NoSideEffects
@@ -1165,7 +1186,9 @@ public final class CNative {
          *
          * @return the selection view of the pointee
          */
-        public native T sel();
+        public T sel() {
+            return deref(this);
+        }
 
         /**
          * Select a subfield from this pointer, which must be passed back through {@link #addr_of} in order
@@ -1175,7 +1198,9 @@ public final class CNative {
          * @param pointeeType the pointee type class (must not be {@code null})
          * @return the selection view of the pointee
          */
-        public native <V> V sel(Class<V> pointeeType);
+        public <V> V sel(Class<V> pointeeType) {
+            return deref(this, pointeeType);
+        }
 
         /**
          * Determine if this pointer instance is a pointer to a pinned Java data structure.
