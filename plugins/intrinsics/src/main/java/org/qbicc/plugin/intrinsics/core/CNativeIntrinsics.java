@@ -180,6 +180,20 @@ final class CNativeIntrinsics {
             }
         };
 
+        StaticIntrinsic deref1 = (builder, target, arguments) -> builder.deref(arguments.get(0));
+        StaticIntrinsic deref2 = (builder, target, arguments) -> {
+            if (arguments.get(1) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+                PointerType pt = typeLiteral.getValue().getPointer();
+                return builder.deref(builder.bitCast(arguments.get(0), pt));
+            } else {
+                ctxt.error(builder.getLocation(), "Pointee argument must be a class literal");
+                return builder.emptyVoid();
+            }
+        };
+
+        intrinsics.registerIntrinsic(cNativeDesc, "deref", MethodDescriptor.synthesize(classContext, objDesc, List.of(ptrDesc)), deref1);
+        intrinsics.registerIntrinsic(cNativeDesc, "deref", MethodDescriptor.synthesize(classContext, objDesc, List.of(ptrDesc, classDesc)), deref2);
+
         intrinsics.registerIntrinsic(cNativeDesc, "refToPtr", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(objDesc)), refToPtr);
 
         StaticIntrinsic ptrToRef = (builder, target, arguments) -> {
