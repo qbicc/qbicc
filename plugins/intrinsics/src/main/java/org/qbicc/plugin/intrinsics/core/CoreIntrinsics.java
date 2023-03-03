@@ -25,7 +25,6 @@ import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
-import org.qbicc.machine.arch.Cpu;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ProgramObject;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -53,10 +52,8 @@ import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
-import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
-import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -78,11 +75,6 @@ public final class CoreIntrinsics {
         registerJavaLangSystemIntrinsics(ctxt);
         registerJavaLangStackTraceElementInstrinsics(ctxt);
         registerJavaLangThreadIntrinsics(ctxt);
-        if (ctxt.getPlatform().getCpu() == Cpu.WASM32) {
-            registerEmptyJavaLangThrowableIntrinsics(ctxt);
-        } else {
-            registerJavaLangThrowableIntrinsics(ctxt);
-        }
         registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
         registerJavaLangRefIntrinsics(ctxt);
@@ -232,80 +224,6 @@ public final class CoreIntrinsics {
             return builder.isEq(isThreadAlive, aliveState);
         };
         intrinsics.registerIntrinsic(jltDesc, "isAlive", booleanDesc, isAlive);
-    }
-
-    public static void registerJavaLangThrowableIntrinsics(CompilationContext ctxt) {
-        Intrinsics intrinsics = Intrinsics.get(ctxt);
-        ClassContext classContext = ctxt.getBootstrapClassContext();
-        RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
-
-        String jsfcClass = "org/qbicc/runtime/stackwalk/JavaStackFrameCache";
-        String jswClass = "org/qbicc/runtime/stackwalk/JavaStackWalker";
-
-        ClassTypeDescriptor jltDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Throwable");
-
-        MethodDescriptor intToVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.I));
-
-        MethodElement getFrameCountElement = methodFinder.getMethod(jswClass, "getFrameCount");
-        MethodElement walkStackElement = methodFinder.getMethod(jswClass, "walkStack");
-
-        InstanceMethodElement getSourceCodeIndexListElement = (InstanceMethodElement) methodFinder.getMethod(jsfcClass, "getSourceCodeIndexList");
-        ConstructorElement jsfcConstructor = methodFinder.getConstructor(jsfcClass, intToVoidDesc);
-
-        InstanceIntrinsic fillInStackTrace = (builder, instance, target, arguments) -> {
-            LiteralFactory lf = builder.getLiteralFactory();
-            Value frameCount = builder.getFirstBuilder().call(
-                lf.literalOf(getFrameCountElement),
-                List.of(instance));
-            ClassObjectType jsfcClassType = (ClassObjectType) ctxt.getBootstrapClassContext().findDefinedType(jsfcClass).load().getObjectType();
-            CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(jsfcClassType.getDefinition()).getCompoundType();
-            Value visitor = builder.getFirstBuilder().new_(jsfcClassType, lf.literalOfType(jsfcClassType), lf.literalOf(compoundType.getSize()), lf.literalOf(compoundType.getAlign()));
-            builder.call(
-                lf.literalOf(jsfcConstructor),
-                visitor,
-                List.of(frameCount));
-            builder.call(
-                lf.literalOf(walkStackElement),
-                List.of(instance, visitor));
-
-            // set Throwable#backtrace and Throwable#depth fields
-            DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Throwable");
-            LoadedTypeDefinition jltVal = jlt.load();
-            InstanceFieldElement backtraceField = jltVal.findInstanceField("backtrace");
-            InstanceFieldElement depthField = jltVal.findInstanceField("depth");
-            Value backtraceValue = builder.getFirstBuilder().call(
-                builder.lookupVirtualMethod(visitor, getSourceCodeIndexListElement),
-                visitor,
-                List.of());
-            builder.store(builder.instanceFieldOf(builder.decodeReference(instance), backtraceField), backtraceValue, SingleUnshared);
-            builder.store(builder.instanceFieldOf(builder.decodeReference(instance), depthField), frameCount, SingleUnshared);
-            return instance;
-        };
-
-        intrinsics.registerIntrinsic(Phase.ANALYZE, jltDesc, "fillInStackTrace", MethodDescriptor.synthesize(classContext, jltDesc, List.of(BaseTypeDescriptor.I)), fillInStackTrace);
-    }
-
-    public static void registerEmptyJavaLangThrowableIntrinsics(CompilationContext ctxt) {
-        Intrinsics intrinsics = Intrinsics.get(ctxt);
-        ClassContext classContext = ctxt.getBootstrapClassContext();
-        RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
-
-        String jsfcClass = "org/qbicc/runtime/stackwalk/JavaStackFrameCache";
-        String jswClass = "org/qbicc/runtime/stackwalk/JavaStackWalker";
-
-        ClassTypeDescriptor jltDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Throwable");
-
-        MethodDescriptor intToVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.I));
-
-        MethodElement getFrameCountElement = methodFinder.getMethod(jswClass, "getFrameCount");
-        MethodElement walkStackElement = methodFinder.getMethod(jswClass, "walkStack");
-
-        MethodElement getSourceCodeIndexListElement = methodFinder.getMethod(jsfcClass, "getSourceCodeIndexList");
-        ConstructorElement jsfcConstructor = methodFinder.getConstructor(jsfcClass, intToVoidDesc);
-
-        InstanceIntrinsic fillInStackTrace = (builder, instance, target, arguments) -> instance;
-
-        intrinsics.registerIntrinsic(Phase.ANALYZE, jltDesc, "fillInStackTrace", MethodDescriptor.synthesize(classContext, jltDesc, List.of(BaseTypeDescriptor.I)), fillInStackTrace);
     }
 
     public static void registerJavaLangStackTraceElementInstrinsics(CompilationContext ctxt) {
