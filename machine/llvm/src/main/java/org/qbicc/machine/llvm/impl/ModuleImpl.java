@@ -60,6 +60,10 @@ final class ModuleImpl implements Module {
         return add(header, new DataLayoutImpl());
     }
 
+    public void sourceFileName(final String path) {
+        add(header, new SourceFileImpl(path));
+    }
+
     public FunctionDefinition define(final String name) {
         Assert.checkNotNullParam("name", name);
         return add(functions, new FunctionDefinitionImpl(this, name));

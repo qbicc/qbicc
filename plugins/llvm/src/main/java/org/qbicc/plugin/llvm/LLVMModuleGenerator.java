@@ -2,6 +2,7 @@ package org.qbicc.plugin.llvm;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -67,7 +68,7 @@ final class LLVMModuleGenerator {
         }
     }
 
-    public void processProgramModule(final ProgramModule programModule, BufferedWriter writer) {
+    public void processProgramModule(final ProgramModule programModule, BufferedWriter writer, Path irFile) {
         final Module module = Module.newModule();
         TypeSystem ts = context.getTypeSystem();
         module.dataLayout()
@@ -83,6 +84,7 @@ final class LLVMModuleGenerator {
             .float32Align(ts.getFloat32Type().getAlign() * 8)
             .float64Align(ts.getFloat64Type().getAlign() * 8)
             ;
+        module.sourceFileName(irFile.toString());
         final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(this, module, context, config);
         final LLVMModuleDebugInfo debugInfo = new LLVMModuleDebugInfo(programModule, module, context);
 
