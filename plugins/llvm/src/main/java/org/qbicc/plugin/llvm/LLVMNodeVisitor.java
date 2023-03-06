@@ -10,8 +10,8 @@ import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -22,8 +22,6 @@ import org.qbicc.context.Location;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.And;
-import org.qbicc.graph.InvocationNode;
-import org.qbicc.graph.literal.AsmLiteral;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEntry;
@@ -50,6 +48,7 @@ import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
 import org.qbicc.graph.InsertElement;
 import org.qbicc.graph.InsertMember;
+import org.qbicc.graph.InvocationNode;
 import org.qbicc.graph.Invoke;
 import org.qbicc.graph.InvokeNoReturn;
 import org.qbicc.graph.IsEq;
@@ -68,7 +67,6 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NotNull;
 import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.Or;
-import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.Reachable;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Ret;
@@ -94,9 +92,9 @@ import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
+import org.qbicc.graph.literal.AsmLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
-import org.qbicc.graph.schedule.Util;
 import org.qbicc.machine.llvm.AsmFlag;
 import org.qbicc.machine.llvm.FastMathFlag;
 import org.qbicc.machine.llvm.FloatCondition;
@@ -169,7 +167,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
     final Map<LocalVariableElement, DILocalVariable> localVariables = new HashMap<>();
     final List<InvocationNode> invocationNodes = new ArrayList<>();
     final Map<Invoke, Set<Phi>> invokeResultsToMap = new HashMap<>();
-    private final Map<Set<Value>, Set<Value>> cache = new HashMap<>();
     private final boolean opaquePointers;
 
     private boolean personalityAdded;
@@ -1143,10 +1140,19 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
             setCallArguments(spCall, arguments);
             spCall.arg(i64, ZERO);
             spCall.arg(i64, ZERO);
-            if (liveValues.size() > 0) {
-                HasArguments opBundle = spCall.operandBundle("gc-live");
-                for (Value liveValue : liveValues) {
-                    opBundle.arg(map(liveValue.getType()), map(liveValue));
+            Iterator<Value> iterator = liveValues.iterator();
+            while (iterator.hasNext()) {
+                Value liveValue = iterator.next();
+                if (liveValue.getType() instanceof ReferenceType rt && liveValue != node) {
+                    HasArguments opBundle = spCall.operandBundle("gc-live");
+                    opBundle.arg(map(rt), map(liveValue));
+                    while (iterator.hasNext()) {
+                        liveValue = iterator.next();
+                        if (liveValue.getType() instanceof ReferenceType rtInner && liveValue != node) {
+                            opBundle.arg(map(rtInner), map(liveValue));
+                        }
+                    }
+                    break;
                 }
             }
             if (spResultCallMaker == null || functionType.getReturnType() instanceof VoidType) {
@@ -1370,73 +1376,27 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
         LLBasicBlock oldBuilderBlock = builder.moveToBlock(mapped);
         LLValue oldBuilderDebugLocation = builder.getDebugLocation();
         final List<Node> insnList = block.getInstructions();
-        boolean maySafePoint = ! this.functionObj.isNoSafePoints();
-        mapInstructions(block, maySafePoint ? new HashSet<>(block.getLiveOuts()) : null, insnList.listIterator(insnList.size()), maySafePoint);
+        Instruction instruction;
+        for (Node node : insnList) {
+            builder.setDebugLocation(dbg(node));
+            if (node instanceof Terminator t) {
+                instruction = t.accept(this, node.getLiveOuts());
+            } else if (node instanceof Value value) {
+                LLValue llValue = value.accept(this, node.getLiveOuts());
+                instruction = llValue == null ? null : llValue.getInstruction();
+            } else if (node instanceof Action action) {
+                instruction = action.accept(this, node.getLiveOuts());
+            } else {
+                throw new IllegalStateException();
+            }
+            if (instruction != null) {
+                addLineComment(node, instruction);
+            }
+        }
         builder.setDebugLocation(oldBuilderDebugLocation);
         builder.moveToBlock(oldBuilderBlock);
 
         return mapped;
-    }
-
-    /**
-     * Walk the instruction list backwards and then forwards, tracking live values for each node and then emitting them.
-     *
-     * @param block the block being mapped (must not be {@code null})
-     * @param liveSet the current instruction live-out set (must not be {@code null})
-     * @param iter the list iterator for the block, starting at the end (must not be {@code null})
-     * @param maySafePoint {@code true} if the block is in an element that may safepoint, or {@code false} otherwise
-     */
-    private void mapInstructions(BasicBlock block, HashSet<Value> liveSet, ListIterator<Node> iter, boolean maySafePoint) {
-        if (! iter.hasPrevious()) {
-            // all done
-            return;
-        }
-        // process current instruction
-        final Node node = iter.previous();
-        final Set<Value> live;
-        if (maySafePoint) {
-            if (node instanceof Value v && ! (v instanceof BlockParameter bp && bp.getPinnedBlock() == block)) {
-                // this is where it was defined, thus we can remove it from the live set.
-                // exception: block params are live all the way to the start of the block.
-                liveSet.remove(v);
-            } else if (node instanceof Invoke inv) {
-                // special case!
-                liveSet.remove(inv.getReturnValue());
-            }
-            if (node instanceof OrderedNode on && on.maySafePoint() && ! liveSet.isEmpty()) {
-                live = Util.getCachedSet(cache, liveSet);
-            } else {
-                live = Set.of();
-            }
-            final int cnt = node.getValueDependencyCount();
-            for (int i = 0; i < cnt; i ++) {
-                final Value val = node.getValueDependency(i);
-                if (val.getType() instanceof ReferenceType && ! (val instanceof Literal)) {
-                    liveSet.add(val);
-                }
-            }
-        } else {
-            // no need to track live values
-            live = Set.of();
-        }
-        // process and emit previous instruction (if any)
-        mapInstructions(block, liveSet, iter, maySafePoint);
-        // now emit current instruction
-        builder.setDebugLocation(dbg(node));
-        Instruction instruction;
-        if (node instanceof Terminator t) {
-            instruction = t.accept(this, live);
-        } else if (node instanceof Value value) {
-            LLValue llValue = value.accept(this, live);
-            instruction = llValue == null ? null : llValue.getInstruction();
-        } else if (node instanceof Action action) {
-            instruction = action.accept(this, live);
-        } else {
-            throw new IllegalStateException();
-        }
-        if (instruction != null) {
-            addLineComment(node, instruction);
-        }
     }
 
     private LLBasicBlock mapCatch(BasicBlock block) {
