@@ -1,5 +1,7 @@
 package org.qbicc.graph;
 
+import java.util.Set;
+
 import org.qbicc.type.definition.element.ExecutableElement;
 
 abstract class AbstractNode implements Node {
@@ -10,6 +12,8 @@ abstract class AbstractNode implements Node {
     private int hashCode;
     private int scheduleIndex = -1;
     private BasicBlock scheduledBlock;
+    private Set<Value> liveIns;
+    private Set<Value> liveOuts;
 
     AbstractNode(final Node callSite, final ExecutableElement element, final int line, final int bci) {
         this.callSite = callSite;
@@ -40,6 +44,22 @@ abstract class AbstractNode implements Node {
 
     public void setScheduleIndex(int index) {
         this.scheduleIndex = index;
+    }
+
+    public Set<Value> getLiveIns() {
+        return liveIns;
+    }
+
+    public void setLiveIns(Set<Value> liveIns) {
+        this.liveIns = liveIns;
+    }
+
+    public Set<Value> getLiveOuts() {
+        return liveOuts;
+    }
+
+    public void setLiveOuts(Set<Value> liveOuts) {
+        this.liveOuts = liveOuts;
     }
 
     public BasicBlock getScheduledBlock() {
