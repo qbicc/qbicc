@@ -50,6 +50,7 @@ public final class LLVM {
     public static final LLValue label = new SingleWord("label");
 
     public static final LLValue ZERO = new IntConstant(0);
+    public static final LLValue ONE = new IntConstant(1);
 
     public static final LLValue FALSE = new SingleWord("false");
     public static final LLValue TRUE = new SingleWord("true");
