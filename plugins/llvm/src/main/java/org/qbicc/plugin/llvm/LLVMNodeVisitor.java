@@ -1112,7 +1112,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
         } else if (target instanceof AsmLiteral) {
             needsStatepoint = false;
             statepointReason = "Statepoint forbidden (inline assembly)";
-        } else if (functionObj.isNoSafePoints() || target.isNoSafePoints()) {
+        } else if (functionObj.isNoSafePoints() || target.isNoSafePoints() || liveValues.isEmpty()) {
             // stack walkers can see us but GC is impossible; we do not need live values
             liveValues = Set.of();
             needsStatepoint = true;
@@ -1138,11 +1138,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
             if (moduleVisitor.generator.getLlvmMajor() >= 15) {
                 argument.attribute(ParameterAttributes.elementtype(map(functionType)));
             }
-            spCall.arg(i32, intConstant(functionType.getParameterCount()));
-            spCall.arg(i32, ZERO);
+            spCall.arg(i32, intConstant(arguments.size()));
+            spCall.arg(i32, ONE);
             setCallArguments(spCall, arguments);
-            spCall.arg(i32, ZERO);
-            spCall.arg(i32, ZERO);
+            spCall.arg(i64, ZERO);
+            spCall.arg(i64, ZERO);
             if (liveValues.size() > 0) {
                 HasArguments opBundle = spCall.operandBundle("gc-live");
                 for (Value liveValue : liveValues) {
