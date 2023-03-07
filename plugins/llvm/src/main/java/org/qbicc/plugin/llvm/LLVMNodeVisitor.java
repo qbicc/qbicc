@@ -2,6 +2,7 @@ package org.qbicc.plugin.llvm;
 
 import static org.qbicc.graph.atomic.AccessModes.*;
 import static org.qbicc.machine.llvm.Types.*;
+import static org.qbicc.machine.llvm.Types.token;
 import static org.qbicc.machine.llvm.Values.*;
 
 import java.util.ArrayList;
@@ -958,31 +959,74 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
 
     @Override
     public LLValue visit(Set<Value> liveValues, org.qbicc.graph.Call node) {
-        final Call call = setUpCall(liveValues, node, (type, function) -> builder.call(type, function).noTail(), builder::call);
-        return call.setLValue(map(node));
+        final StatepointReason sr = getStatepointReason(node.getTarget(), liveValues);
+        if (sr.isNeeded()) {
+            final Call spCall = makeStatepointCall(node, sr, (type, fn) -> builder.call(type, fn).noTail());
+            final int cnt = addLiveValuesToStatepoint(node, spCall);
+            if (node.isVoidCall()) {
+                return makeStatepointRelocs(spCall.setLValue(map(node)), cnt);
+            } else {
+                return makeStatepointResult(node, makeStatepointRelocs(spCall.asLocal(), cnt)).setLValue(map(node));
+            }
+        } else {
+            return makeNonStatepointCall(node, sr, builder::call).setLValue(map(node));
+        }
     }
 
     @Override
     public LLValue visit(Set<Value> liveValues, CallNoSideEffects node) {
-        final Call call = setUpCall(liveValues, node, (type, function) -> builder.call(type, function).noTail(), builder::call);
-        return call.setLValue(map(node));
+        final StatepointReason sr = getStatepointReason(node.getTarget(), liveValues);
+        if (sr.isNeeded()) {
+            final Call spCall = makeStatepointCall(node, sr, (type, fn) -> builder.call(type, fn).noTail());
+            final int cnt = addLiveValuesToStatepoint(node, spCall);
+            if (node.isVoidCall()) {
+                return makeStatepointRelocs(spCall.setLValue(map(node)), cnt);
+            } else {
+                return makeStatepointResult(node, makeStatepointRelocs(spCall.asLocal(), cnt)).setLValue(map(node));
+            }
+        } else {
+            return makeNonStatepointCall(node, sr, builder::call).setLValue(map(node));
+        }
     }
 
     @Override
     public Instruction visit(Set<Value> liveValues, CallNoReturn node) {
-        setUpCall(liveValues, node, (type, function) -> builder.call(type, function).attribute(FunctionAttributes.noreturn), null);
+        final StatepointReason sr = getStatepointReason(node.getTarget(), liveValues);
+        final BiFunction<LLValue, LLValue, Call> callMaker = (type, fn) -> builder.call(type, fn).attribute(FunctionAttributes.noreturn);
+        if (sr.isNeeded()) {
+            final Call spCall = makeStatepointCall(node, sr, callMaker);
+            final int cnt = addLiveValuesToStatepoint(node, spCall);
+            makeStatepointRelocs(spCall.asLocal(), cnt);
+        } else {
+            makeNonStatepointCall(node, sr, callMaker);
+        }
         return builder.unreachable();
     }
 
     @Override
     public Instruction visit(Set<Value> liveValues, TailCall node) {
-        final Call call = setUpCall(liveValues, node, (type, function) -> builder.call(type, function).tail(), builder::call);
+        final StatepointReason sr = getStatepointReason(node.getTarget(), liveValues);
+        final BiFunction<LLValue, LLValue, Call> callMaker = (type, fn) -> builder.call(type, fn).tail();
         ValueType returnType = node.getCalleeType().getReturnType();
-        if (returnType instanceof VoidType) {
-            return builder.ret();
+        final LLValue result;
+        if (sr.isNeeded()) {
+            final Call spCall = makeStatepointCall(node, sr, callMaker);
+            final int cnt = addLiveValuesToStatepoint(node, spCall);
+            if (returnType instanceof VoidType) {
+                makeStatepointRelocs(spCall.asLocal(), cnt);
+                return builder.ret();
+            } else {
+                result = makeStatepointResult(node, makeStatepointRelocs(spCall.asLocal(), cnt)).asLocal();
+            }
         } else {
-            return builder.ret(map(returnType), call.asLocal());
+            if (returnType instanceof VoidType) {
+                makeNonStatepointCall(node, sr, callMaker);
+                return builder.ret();
+            } else {
+                result = makeNonStatepointCall(node, sr, callMaker).asLocal();
+            }
         }
+        return builder.ret(map(returnType), result);
     }
 
     @Override
@@ -991,6 +1035,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
             // already done
             return null;
         }
+
         LLBasicBlock resume = checkMap(node.getResumeTarget());
         boolean postMapResume = resume == null;
         if (postMapResume) {
@@ -1002,35 +1047,36 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
             catch_ = preMap(node.getCatchBlock());
         }
         LLBasicBlock finalResume = resume;
-        final Call call = setUpCall(liveValues, node, (llType, llTarget) -> {
-            // statepoint
-            if (node.isVoidCall()) {
-                return builder.invoke(llType, llTarget, finalResume, mapCatch(node.getCatchBlock())).noTail();
-            } else {
-                return builder.invoke(llType, llTarget, mapSpResume(node.getTerminatedBlock()), mapCatch(node.getCatchBlock())).noTail();
-            }
-        }, (llType, llTarget) -> {
-            // no statepoint
-            final Call invoke = builder.invoke(llType, llTarget, finalResume, mapCatch(node.getCatchBlock())).noTail();
-            if (! node.isVoidCall()) {
-                invokeResults.put(node, invoke.setLValue(map(node.getReturnValue())));
-            }
-            return invoke;
-        }, (llType, llTarget) -> {
-            // statepoint result
+
+        final StatepointReason sr = getStatepointReason(node.getTarget(), liveValues);
+        final Call call;
+        if (sr.isNeeded()) {
             final LLBasicBlock spResume = mapSpResume(node.getTerminatedBlock());
+            call = makeStatepointCall(node, sr, (llType, llTarget) -> builder.invoke(llType, llTarget, spResume, mapCatch(node.getCatchBlock())).noTail());
+            final LLValue resultToken = call.asLocal();
+            final int cnt = addLiveValuesToStatepoint(node, call);
             final LLBasicBlock old = builder.moveToBlock(spResume);
             try {
-                final Call resultCall = builder.call(llType, llTarget);
+                makeStatepointRelocs(resultToken, cnt);
                 if (! node.isVoidCall()) {
+                    final Call resultCall = makeStatepointResult(node, resultToken);
                     invokeResults.put(node, resultCall.setLValue(map(node.getReturnValue())));
                 }
                 builder.br(finalResume);
-                return resultCall;
             } finally {
                 builder.moveToBlock(old);
             }
-        });
+        } else {
+            if (node.isVoidCall()) {
+                call = makeNonStatepointCall(node, sr, (llType, llTarget) -> builder.invoke(llType, llTarget, finalResume, mapCatch(node.getCatchBlock())).noTail());
+            } else {
+                call = makeNonStatepointCall(node, sr, (llType, llTarget) -> {
+                    final Call invoke = builder.invoke(llType, llTarget, finalResume, mapCatch(node.getCatchBlock())).noTail();
+                    invokeResults.put(node, invoke.setLValue(map(node.getReturnValue())));
+                    return invoke;
+                });
+            }
+        }
         if (postMapResume) {
             postMap(node.getResumeTarget(), resume);
         }
@@ -1038,6 +1084,44 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
             postMap(node.getCatchBlock(), catch_);
         }
         addPersonalityIfNeeded();
+        // all done
+        return call;
+    }
+
+    @Override
+    public Instruction visit(Set<Value> liveValues, InvokeNoReturn node) {
+        LLBasicBlock unreachableTarget = func.createBlock();
+        LLBasicBlock catch_ = checkMap(node.getCatchBlock());
+        boolean postMapCatch = catch_ == null;
+        if (postMapCatch) {
+            catch_ = preMap(node.getCatchBlock());
+        }
+        final StatepointReason sr = getStatepointReason(node.getTarget(), liveValues);
+        final Call call;
+        if (sr.isNeeded()) {
+            call = makeStatepointCall(node, sr, (llType, llTarget) -> builder.invoke(llType, llTarget, unreachableTarget, mapCatch(node.getCatchBlock())).noTail().attribute(FunctionAttributes.noreturn));
+            final LLValue token = call.asLocal();
+            final int cnt = addLiveValuesToStatepoint(node, call);
+            final LLBasicBlock old = builder.moveToBlock(unreachableTarget);
+            try {
+                makeStatepointRelocs(token, cnt);
+            } finally {
+                builder.moveToBlock(old);
+            }
+        } else {
+            call = makeNonStatepointCall(node, sr, (llType, llTarget) -> builder.invoke(llType, llTarget, unreachableTarget, mapCatch(node.getCatchBlock())).noTail().attribute(FunctionAttributes.noreturn));
+        }
+        if (postMapCatch) {
+            postMap(node.getCatchBlock(), catch_);
+        }
+        final LLBasicBlock old = builder.moveToBlock(unreachableTarget);
+        try {
+            builder.unreachable();
+        } finally {
+            builder.moveToBlock(old);
+        }
+        addPersonalityIfNeeded();
+        // all done
         return call;
     }
 
@@ -1052,126 +1136,156 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
         return mapped;
     }
 
-    @Override
-    public Instruction visit(Set<Value> liveValues, InvokeNoReturn node) {
-        LLBasicBlock unreachableTarget = func.createBlock();
-        LLVM.newBuilder(unreachableTarget).unreachable();
-        LLBasicBlock catch_ = checkMap(node.getCatchBlock());
-        boolean postMapCatch = catch_ == null;
-        if (postMapCatch) {
-            catch_ = preMap(node.getCatchBlock());
+    enum StatepointReason {
+        DISABLED(false, "Statepoint is disabled"),
+        HIDDEN_NO_SP_CALLER(false, "Caller is hidden and calling function is noSafePoints"),
+        HIDDEN_NO_SP_CALLEE(false, "Caller is hidden and callee function is noSafePoints"),
+        HIDDEN_NO_LIVE(false, "Caller is hidden and no live values"),
+        VARIADIC(false, "Statepoint forbidden (variadic)"),
+        EXTERN(false, "Statepoint forbidden (external function"),
+        ASM(false, "Statepoint forbidden (inline assembly"),
+        VISIBLE_STACK(true, "Visible to stack walk (no live GC values)"),
+        VISIBLE_STACK_LIVE(true, "Visible to stack walk, live GC values"),
+        ;
+
+        private final boolean needed;
+        private final String reason;
+
+        StatepointReason(boolean needed, String reason) {
+            this.needed = needed;
+            this.reason = reason;
         }
-        final Call call = setUpCall(liveValues, node, (llType, llTarget) -> builder.invoke(llType, llTarget, unreachableTarget, mapCatch(node.getCatchBlock())).noTail().attribute(FunctionAttributes.noreturn), null);
-        if (postMapCatch) {
-            postMap(node.getCatchBlock(), catch_);
+
+        public boolean isNeeded() {
+            return needed;
         }
-        addPersonalityIfNeeded();
-        return call;
+
+        public String getReason() {
+            return reason;
+        }
     }
 
-    private Call setUpCall(Set<Value> liveValues, InvocationNode node, BiFunction<LLValue, LLValue, Call> callMaker, BiFunction<LLValue, LLValue, Call> resultCallMaker) {
-        return setUpCall(liveValues, node, callMaker, callMaker, resultCallMaker);
+    private StatepointReason getStatepointReason(Value target, Set<Value> liveValues) {
+        final ExecutableElement origElement = functionObj.getOriginalElement();
+        final boolean noLive = liveValues.stream().noneMatch(v -> v.getType() instanceof ReferenceType && v != target);
+        final boolean callerIsHidden = origElement != null && origElement.hasAllModifiersOf(ClassFile.I_ACC_HIDDEN);
+        if (! moduleVisitor.config.isStatepointEnabled()) {
+            return StatepointReason.DISABLED;
+        } else if (callerIsHidden && functionObj.isNoSafePoints()) {
+            // caller is hidden, caller is noSafePoints, so no stack walker will see this call and no safepoint is possible
+            return StatepointReason.HIDDEN_NO_SP_CALLER;
+        } else if (callerIsHidden && target.isNoSafePoints()) {
+            // caller is hidden, callee is noSafePoints, so no stack walker will see this call and no safepoint is possible
+            return StatepointReason.HIDDEN_NO_SP_CALLEE;
+        } else if (callerIsHidden && noLive) {
+            // caller is hidden; GC can see this call but there are no live values to relocate
+            return StatepointReason.HIDDEN_NO_LIVE;
+        } else if (target.getPointeeType(InvokableType.class).isVariadic()) {
+            return StatepointReason.VARIADIC;
+        } else if (target instanceof ProgramObjectLiteral pol && pol.getProgramObject() instanceof FunctionDeclaration fd && fd.getOriginalElement() == null) {
+            return StatepointReason.EXTERN;
+        } else if (target instanceof AsmLiteral) {
+            return StatepointReason.ASM;
+        } else if (functionObj.isNoSafePoints() || target.isNoSafePoints() || noLive) {
+            // stack walkers can see us but GC is impossible; we do not need live values
+            return StatepointReason.VISIBLE_STACK;
+        } else {
+            // need statepoint with call info *and* live values
+            return StatepointReason.VISIBLE_STACK_LIVE;
+        }
     }
 
-    private Call setUpCall(Set<Value> liveValues, InvocationNode node, BiFunction<LLValue, LLValue, Call> spCallMaker, BiFunction<LLValue, LLValue, Call> noSpCallMaker, BiFunction<LLValue, LLValue, Call> spResultCallMaker) {
+    private Call makeStatepointCall(InvocationNode node, StatepointReason statepointReason, BiFunction<LLValue, LLValue, Call> spCallMaker) {
+        assert statepointReason.isNeeded();
         FunctionType functionType = (FunctionType) node.getCalleeType();
         List<Value> arguments = node.getArguments();
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
         Value target = node.getTarget();
         LLValue llTarget = map(target);
-        boolean needsStatepoint;
-        String statepointReason;
-        final ExecutableElement origElement = functionObj.getOriginalElement();
-        final boolean callerIsHidden = origElement != null && origElement.hasAllModifiersOf(ClassFile.I_ACC_HIDDEN);
-        if (! moduleVisitor.config.isStatepointEnabled()) {
-            needsStatepoint = false;
-            statepointReason = "Statepoint is disabled";
-        } else if (callerIsHidden && functionObj.isNoSafePoints()) {
-            // caller is hidden, caller is noSafePoints, so no stack walker will see this call and no safepoint is possible
-            needsStatepoint = false;
-            statepointReason = "Caller is hidden and noSafePoints";
-        } else if (callerIsHidden && target.isNoSafePoints()) {
-            // caller is hidden, callee is noSafePoints, so no stack walker will see this call and no safepoint is possible
-            needsStatepoint = false;
-            statepointReason = "Caller is hidden and callee is noSafePoints";
-        } else if (callerIsHidden && liveValues.isEmpty()) {
-            // caller is hidden; GC can see this call but there are no live values to relocate
-            needsStatepoint = false;
-            statepointReason = "Caller is hidden and no live values";
-        } else if (target.getPointeeType(InvokableType.class).isVariadic()) {
-            // state point is forbidden!
-            needsStatepoint = false;
-            statepointReason = "Statepoint forbidden (variadic)";
-        } else if (target instanceof ProgramObjectLiteral pol && pol.getProgramObject() instanceof FunctionDeclaration fd && fd.getOriginalElement() == null) {
-            needsStatepoint = false;
-            statepointReason = "Statepoint forbidden (external function)";
-        } else if (target instanceof AsmLiteral) {
-            needsStatepoint = false;
-            statepointReason = "Statepoint forbidden (inline assembly)";
-        } else if (functionObj.isNoSafePoints() || target.isNoSafePoints() || liveValues.isEmpty()) {
-            // stack walkers can see us but GC is impossible; we do not need live values
-            liveValues = Set.of();
-            needsStatepoint = true;
-            statepointReason = "Visible to stack walk (no live GC values)";
-        } else {
-            // need statepoint with call info *and* live values
-            needsStatepoint = true;
-            statepointReason = "Visible to stack walk with live GC values";
+        // wrap call with statepoint
+        LLValue statepointDecl = moduleVisitor.generateStatepointDecl(functionType);
+        LLValue statepointType = moduleVisitor.mapStatepointType(functionType);
+        Call spCall = spCallMaker.apply(statepointType, statepointDecl);
+        spCall.comment(statepointReason.getReason());
+        // record the statepoint so that we can correlate the stack map info back to nodes
+        int statepointId = LLVM.getNextStatepointId();
+        CallSiteInfo.get(ctxt).mapStatepointIdToNode(statepointId, node);
+        invocationNodes.add(node);
+        spCall.arg(i64, intConstant(statepointId));
+        spCall.arg(i32, ZERO);
+        final HasArguments.Argument argument = spCall.arg(map(functionType.getPointer()), llTarget);
+        if (moduleVisitor.generator.getLlvmMajor() >= 15) {
+            // LLVM 15 requires elementtype even without opaque pointers
+            argument.attribute(ParameterAttributes.elementtype(map(functionType)));
         }
-        if (needsStatepoint) {
-            // wrap call with statepoint
-            LLValue statepointDecl = moduleVisitor.generateStatepointDecl(functionType);
-            LLValue statepointType = moduleVisitor.mapStatepointType(functionType);
-            Call spCall = spCallMaker.apply(statepointType, statepointDecl);
-            spCall.comment(statepointReason);
-            // record the statepoint so that we can correlate the stack map info back to nodes
-            int statepointId = LLVM.getNextStatepointId();
-            CallSiteInfo.get(ctxt).mapStatepointIdToNode(statepointId, node);
-            invocationNodes.add(node);
-            spCall.arg(i64, intConstant(statepointId));
-            spCall.arg(i32, ZERO);
-            final HasArguments.Argument argument = spCall.arg(map(functionType.getPointer()), llTarget);
-            if (moduleVisitor.generator.getLlvmMajor() >= 15) {
-                argument.attribute(ParameterAttributes.elementtype(map(functionType)));
-            }
-            spCall.arg(i32, intConstant(arguments.size()));
-            spCall.arg(i32, ONE);
-            setCallArguments(spCall, arguments);
-            spCall.arg(i64, ZERO);
-            spCall.arg(i64, ZERO);
-            Iterator<Value> iterator = liveValues.iterator();
-            while (iterator.hasNext()) {
-                Value liveValue = iterator.next();
-                if (liveValue.getType() instanceof ReferenceType rt && liveValue != node) {
-                    HasArguments opBundle = spCall.operandBundle("gc-live");
-                    opBundle.arg(map(rt), map(liveValue));
-                    while (iterator.hasNext()) {
-                        liveValue = iterator.next();
-                        if (liveValue.getType() instanceof ReferenceType rtInner && liveValue != node) {
-                            opBundle.arg(map(rtInner), map(liveValue));
-                        }
+        spCall.arg(i32, intConstant(arguments.size()));
+        spCall.arg(i32, ONE);
+        setCallArguments(spCall, arguments);
+        spCall.arg(i64, ZERO);
+        spCall.arg(i64, ZERO);
+        return spCall;
+    }
+
+    private Call makeNonStatepointCall(InvocationNode node, StatepointReason statepointReason, BiFunction<LLValue, LLValue, Call> callMaker) {
+        Value target = node.getTarget();
+        LLValue llTarget = map(target);
+        FunctionType functionType = (FunctionType) node.getCalleeType();
+        // no live values, or a no-safepoints method
+        Call call = callMaker.apply(map(functionType), llTarget);
+        call.comment(statepointReason.getReason());
+        setCallArguments(call, node.getArguments());
+        setCallReturnValue(call, functionType);
+        return call;
+    }
+
+    private int addLiveValuesToStatepoint(Node callNode, Call spCall) {
+        final Set<Value> liveValues = callNode.getLiveOuts();
+        int live = 0;
+        Iterator<Value> iterator = liveValues.iterator();
+        while (iterator.hasNext()) {
+            Value liveValue = iterator.next();
+            if (liveValue.getType() instanceof ReferenceType rt && liveValue != callNode) {
+                HasArguments opBundle = spCall.operandBundle("gc-live");
+                opBundle.arg(map(rt), map(liveValue));
+                live ++;
+                while (iterator.hasNext()) {
+                    liveValue = iterator.next();
+                    if (liveValue.getType() instanceof ReferenceType rtInner && liveValue != callNode) {
+                        opBundle.arg(map(rtInner), map(liveValue));
+                        live ++;
                     }
-                    break;
                 }
+                break;
             }
-            if (spResultCallMaker == null || functionType.getReturnType() instanceof VoidType) {
-                return spCall;
-            }
-            final LLValue resultToken = spCall.asLocal();
-            LLValue resultDecl = moduleVisitor.generateStatepointResultDecl(functionType.getReturnType());
-            LLValue resultDeclType = moduleVisitor.generateStatepointResultDeclType(functionType.getReturnType());
-            Call resultCall = spResultCallMaker.apply(resultDeclType, resultDecl);
-            resultCall.arg(token, resultToken);
-            return resultCall;
-        } else {
-            // no live values, or a no-safepoints method
-            Call call = noSpCallMaker.apply(map(functionType), llTarget);
-            call.comment(statepointReason);
-            setCallArguments(call, arguments);
-            setCallReturnValue(call, functionType);
-            return call;
         }
+        return live;
+    }
+
+    private LLValue makeStatepointRelocs(LLValue resultToken, int cnt) {
+        if (cnt == 0) {
+            return resultToken;
+        }
+        LLValue relocateDecl = moduleVisitor.getRelocateDecl();
+        LLValue relocateDeclType = moduleVisitor.getRelocateDeclType();
+        for (int idx = 0; idx < cnt; idx++) {
+            final Call spRelocate = builder.call(relocateDeclType, relocateDecl);
+            spRelocate.arg(token, resultToken);
+            LLValue idxConst = intConstant(idx);
+            spRelocate.arg(i32, idxConst);
+            spRelocate.arg(i32, idxConst);
+            idx++;
+            spRelocate.asLocal();
+        }
+        return resultToken;
+    }
+
+    private Call makeStatepointResult(InvocationNode node, LLValue resultToken) {
+        LLValue resultDecl = moduleVisitor.generateStatepointResultDecl(node.getCalleeType().getReturnType());
+        LLValue resultDeclType = moduleVisitor.generateStatepointResultDeclType(node.getCalleeType().getReturnType());
+        Call resultCall = builder.call(resultDeclType, resultDecl);
+        resultCall.arg(token, resultToken);
+        return resultCall;
     }
 
     private void preMapArgumentList(final List<Value> arguments) {
