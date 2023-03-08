@@ -3,9 +3,7 @@ package org.qbicc.graph;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -20,13 +18,12 @@ import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.CompoundLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
+import org.qbicc.graph.literal.InstanceMethodLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.MemberOfLiteral;
 import org.qbicc.graph.literal.OffsetFromLiteral;
 import org.qbicc.graph.literal.ValueConvertLiteral;
-import org.qbicc.graph.schedule.Util;
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -61,14 +58,6 @@ public interface Node {
 
     void setScheduledBlock(BasicBlock block);
 
-    Set<Value> getLiveIns();
-
-    void setLiveIns(Set<Value> live);
-
-    Set<Value> getLiveOuts();
-
-    void setLiveOuts(Set<Value> live);
-
     default int getValueDependencyCount() {
         return 0;
     }
@@ -97,9 +86,6 @@ public interface Node {
         private final Queue<BasicBlock> blockQueue = new ArrayDeque<>();
         private final Terminus terminus = new Terminus();
         private final CompilationContext ctxt;
-        private final Map<Set<Value>, Set<Value>> cache = new HashMap<>();
-        private Set<Value> liveOut;
-        private Set<Value> liveIn;
 
         public Copier(BasicBlock entryBlock, BasicBlockBuilder builder, CompilationContext ctxt,
             BiFunction<CompilationContext, NodeVisitor<Copier, Value, Node, BasicBlock>, NodeVisitor<Copier, Value, Node, BasicBlock>> nodeVisitorFactory
@@ -161,63 +147,12 @@ public interface Node {
 
         public void copyScheduledNodes(BasicBlock block) {
             try {
-                final List<Node> instructions = block.getInstructions();
-                mapInstructions(block, instructions.listIterator(instructions.size()), new HashSet<>(block.getLiveOuts()), block.getLiveOuts());
+                for (Node node : block.getInstructions()) {
+                    copyNode(node);
+                }
             } catch (BlockEarlyTermination term) {
                 copiedTerminators.put(block.getTerminator(), term.getTerminatedBlock());
             }
-        }
-
-        private void mapInstructions(BasicBlock block, ListIterator<Node> iter, Set<Value> live, Set<Value> liveOuts) {
-            if (! iter.hasPrevious()) {
-                // all done
-                return;
-            }
-            // process current instruction
-            final Node node = iter.previous();
-            if (node instanceof BlockParameter bp && bp.getPinnedBlock() == block) {
-                // keep it alive to the start of the block.
-            } if (node instanceof Value v) {
-                // this is where it was defined, thus we can remove it from the live set.
-                live.remove(v);
-            } else if (node instanceof Invoke inv) {
-                // special case!
-                live.remove(inv.getReturnValue());
-            }
-            // add any values consumed by this node to the live set
-            final int cnt = node.getValueDependencyCount();
-            for (int i = 0; i < cnt; i ++) {
-                final Value val = node.getValueDependency(i);
-                if (val.getType() instanceof ReferenceType && ! (val instanceof Literal)) {
-                    live.add(val);
-                }
-            }
-            Set<Value> liveIn = Util.getCachedSet(cache, live);
-            // process and emit previous instruction (if any)
-            mapInstructions(block, iter, live, liveIn);
-            // now emit current instruction
-            this.liveIn = liveIn;
-            this.liveOut = liveOuts;
-            copyNode(node);
-        }
-
-        /**
-         * Get the set of values which were live in the program before this node was reached.
-         *
-         * @return the set of live values
-         */
-        public Set<Value> getLiveIn() {
-            return liveIn;
-        }
-
-        /**
-         * Get the set of values which will be live in the program after this node is processed.
-         * This set might or might not include the node currently being processed.
-         *
-         * @return the set of live values
-         */
-        public Set<Value> getLiveOut() {
-            return liveOut;
         }
 
         public Node copyNode(Node original) {

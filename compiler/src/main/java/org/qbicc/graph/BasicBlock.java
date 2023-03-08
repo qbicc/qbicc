@@ -20,6 +20,7 @@ public final class BasicBlock {
     private Set<BasicBlock> incoming = Set.of();
     private Set<Loop> loops = Set.of();
     private int index;
+    private Set<Value> liveOuts;
     private List<Node> instructions;
     private Map<Slot, BlockParameter> usedParameters;
 
@@ -168,7 +169,16 @@ public final class BasicBlock {
      * @return the (possibly empty) set of live values
      */
     public Set<Value> getLiveOuts() {
-        return terminator.getLiveOuts();
+        return liveOuts;
+    }
+
+    /**
+     * For use by the scheduler.
+     *
+     * @param liveOuts the live outs to add
+     */
+    public void setLiveOuts(Set<Value> liveOuts) {
+        this.liveOuts = liveOuts;
     }
 
     public StringBuilder toString(StringBuilder b) {

@@ -87,8 +87,6 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
     final Map<String, LLValue> resultDeclsByName = new HashMap<>();
     final Map<ValueType, LLValue> resultDeclTypes = new HashMap<>();
     final LLValue refType;
-    final LLValue relocateDeclType;
-    LLValue relocateDecl;
 
     LLVMModuleNodeVisitor(final LLVMModuleGenerator generator, final Module module, final CompilationContext ctxt, final LLVMConfiguration config) {
         this.generator = generator;
@@ -103,7 +101,6 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
             case POINTER -> opaquePointers ? ptr : i8_ptr;
             case POINTER_AS1 -> opaquePointers ? ptr_as1 : i8_ptr_as1;
         }).asTypeRef();
-        relocateDeclType = function(refType, List.of(token, i32, i32), false);
     }
 
     LLValue map(Type type) {
@@ -561,23 +558,5 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
             resultDeclTypes.put(returnType, resultDeclType);
         }
         return resultDeclType;
-    }
-
-    public LLValue getRelocateDecl() {
-        LLValue relocateDecl = this.relocateDecl;
-        if (relocateDecl == null) {
-            final Function decl = module.declare("llvm.experimental.gc.relocate");
-            decl.param(token);
-            decl.param(i32);
-            decl.param(i32);
-            decl.attribute(FunctionAttributes.nounwind);
-            decl.returns(refType);
-            relocateDecl = this.relocateDecl = decl.asGlobal();
-        }
-        return relocateDecl;
-    }
-
-    public LLValue getRelocateDeclType() {
-        return relocateDeclType;
     }
 }

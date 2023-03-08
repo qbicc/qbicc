@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -13,7 +12,6 @@ import io.smallrye.common.constraint.Assert;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.BlockParameter;
-import org.qbicc.graph.Invoke;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.PinnedNode;
@@ -327,40 +325,9 @@ public final class Scheduler {
             }
             // finally, go back and build the live-out sets
             computeLiveSetsByUse();
-            Set<Value> live = new HashSet<>();
             for (BlockInfo bi : allBlocks) {
                 BasicBlock block = bi.block;
-                live.clear();
-                live.addAll(bi.liveOut);
-                Set<Value> liveOut = Util.getCachedSet(valueSetCache, bi.liveOut);
-                // set the live-in and live-out sets of each node
-                final List<Node> instructions = block.getInstructions();
-                ListIterator<Node> li = instructions.listIterator(instructions.size());
-                while (li.hasPrevious()) {
-                    Node node = li.previous();
-                    node.setLiveOuts(liveOut);
-                    // remove this value if needed
-                    if (node instanceof BlockParameter bp && bp.getPinnedBlock() == block) {
-                        // keep it alive to the start of the block.
-                    } if (node instanceof Value v) {
-                        // this is where it was defined, thus we can remove it from the live set.
-                        live.remove(v);
-                    } else if (node instanceof Invoke inv) {
-                        // special case!
-                        live.remove(inv.getReturnValue());
-                    }
-                    // add any values consumed by this node to the live set
-                    final int cnt = node.getValueDependencyCount();
-                    for (int i = 0; i < cnt; i ++) {
-                        final Value val = node.getValueDependency(i);
-                        if (! (val instanceof Literal)) {
-                            live.add(val);
-                        }
-                    }
-                    // the live-out set of the previous node is the live-in set of this node
-                    liveOut = Util.getCachedSet(valueSetCache, live);
-                    node.setLiveIns(liveOut);
-                }
+                block.setLiveOuts(Util.getCachedSet(valueSetCache, bi.liveOut));
             }
         }
 
@@ -436,7 +403,7 @@ public final class Scheduler {
                     for (Slot slot : successor.getUsedParameterSlots()) {
                         if (! t.isImplicitOutboundArgument(slot, successor)) {
                             final Value out = t.getOutboundArgument(slot);
-                            if (! (out instanceof Literal)) {
+                            if (out.getType() instanceof ReferenceType  && ! (out instanceof Literal)) {
                                 if (bi.liveOut.add(out)) {
                                     upAndMark(b.getIndex(), out);
                                 }
@@ -448,7 +415,7 @@ public final class Scheduler {
                     cnt = node.getValueDependencyCount();
                     for (int i = 0; i < cnt; i ++) {
                         final Value dep = node.getValueDependency(i);
-                        if (! (dep instanceof Literal)) {
+                        if (dep.getType() instanceof ReferenceType  && ! (dep instanceof Literal)) {
                             if (! (dep instanceof BlockParameter) && used.add(dep)) {
                                 upAndMark(b.getIndex(), dep);
                             }
