@@ -1220,7 +1220,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
             argument.attribute(ParameterAttributes.elementtype(map(functionType)));
         }
         spCall.arg(i32, intConstant(arguments.size()));
-        spCall.arg(i32, ONE);
+//        spCall.arg(i32, ONE); // GC transitions not supported for aarch64, wasm, etc.
+        spCall.arg(i32, ZERO);
         setCallArguments(spCall, arguments);
         spCall.arg(i64, ZERO);
         spCall.arg(i64, ZERO);
@@ -1263,7 +1264,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
     }
 
     private LLValue makeStatepointRelocs(LLValue resultToken, int cnt) {
-        if (cnt == 0) {
+        if (true || cnt == 0) {
+            // statepoint relocations are disabled for the time being
             return resultToken;
         }
         LLValue relocateDecl = moduleVisitor.getRelocateDecl();
