@@ -1275,7 +1275,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
             LLValue idxConst = intConstant(idx);
             spRelocate.arg(i32, idxConst);
             spRelocate.arg(i32, idxConst);
-            idx++;
             spRelocate.asLocal();
         }
         return resultToken;
