@@ -33,6 +33,7 @@ import org.qbicc.graph.Auto;
 import org.qbicc.graph.literal.GlobalVariableLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
@@ -1485,7 +1486,7 @@ final class MethodParser {
                         // todo: signature context
                         Value handle = gf.resolveStaticField(owner, name, desc);
                         Value value;
-                        if (handle instanceof GlobalVariableLiteral || handle.getPointeeType() instanceof CompoundType) {
+                        if (handle instanceof GlobalVariableLiteral || handle instanceof ProgramObjectLiteral || handle.getPointeeType() instanceof CompoundType) {
                             if (desc == BaseTypeDescriptor.B || desc == BaseTypeDescriptor.C || desc == BaseTypeDescriptor.S || desc == BaseTypeDescriptor.Z) {
                                 ctxt.getCompilationContext().warning(gf.getLocation(), "Type promotion to `int` causes an eager load");
                             }
