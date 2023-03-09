@@ -46,7 +46,9 @@ import org.qbicc.type.NullableType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
+import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
+import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -83,6 +85,8 @@ public final class CoreIntrinsics {
         registerOrgQbiccRuntimeBuildIntrinsics(ctxt);
         registerOrgQbiccRuntimeMainIntrinsics(ctxt);
         registerJavaLangMathIntrinsics(ctxt);
+        registerJavaLangIntegerIntrinsics(ctxt);
+        registerJavaLangLongIntrinsics(ctxt);
         registerJavaUtilConcurrentAtomicLongIntrinsics(ctxt);
         registerOrgQbiccRuntimeMethodDataIntrinsics(ctxt);
         UnsafeIntrinsics.register(ctxt);
@@ -940,6 +944,126 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(strictDesc, "max", longLongLongDescriptor, max);
         intrinsics.registerIntrinsic(strictDesc, "max", floatFloatFloatDescriptor, max);
         intrinsics.registerIntrinsic(strictDesc, "max", doubleDoubleDoubleDescriptor, max);
+    }
+
+    private static void registerJavaLangIntegerIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor integerDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Integer");
+
+        MethodDescriptor intIntToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.I, BaseTypeDescriptor.I));
+        MethodDescriptor intToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.I));
+
+        StaticIntrinsic compare = (builder, targetPtr, arguments) -> builder.cmp(arguments.get(0), arguments.get(1));
+
+        intrinsics.registerIntrinsic(integerDesc, "compare", intIntToInt, compare);
+
+        StaticIntrinsic compareUnsigned = (builder, targetPtr, arguments) -> {
+            final TypeSystem ts = builder.getTypeSystem();
+            final Value a = arguments.get(0);
+            final Value b = arguments.get(1);
+            final UnsignedIntegerType u32 = ts.getUnsignedInteger32Type();
+            return builder.cmp(
+                builder.bitCast(a, u32),
+                builder.bitCast(b, u32)
+            );
+        };
+
+        intrinsics.registerIntrinsic(integerDesc, "compareUnsigned", intIntToInt, compareUnsigned);
+
+        StaticIntrinsic divideUnsigned = (builder, targetPtr, arguments) -> {
+            final TypeSystem ts = builder.getTypeSystem();
+            final Value a = arguments.get(0);
+            final Value b = arguments.get(1);
+            final UnsignedIntegerType u32 = ts.getUnsignedInteger32Type();
+            final SignedIntegerType s32 = ts.getSignedInteger32Type();
+            return builder.bitCast(builder.divide(
+                builder.bitCast(a, u32),
+                builder.divisorCheck(builder.bitCast(b, u32))
+            ), s32);
+        };
+
+        intrinsics.registerIntrinsic(integerDesc, "divideUnsigned", intIntToInt, divideUnsigned);
+
+        StaticIntrinsic remainderUnsigned = (builder, targetPtr, arguments) -> {
+            final TypeSystem ts = builder.getTypeSystem();
+            final Value a = arguments.get(0);
+            final Value b = arguments.get(1);
+            final UnsignedIntegerType u32 = ts.getUnsignedInteger32Type();
+            final SignedIntegerType s32 = ts.getSignedInteger32Type();
+            return builder.bitCast(builder.remainder(
+                builder.bitCast(a, u32),
+                builder.divisorCheck(builder.bitCast(b, u32))
+            ), s32);
+        };
+
+        intrinsics.registerIntrinsic(integerDesc, "remainderUnsigned", intIntToInt, remainderUnsigned);
+
+        StaticIntrinsic toUnsignedLong = (builder, targetPtr, arguments) -> {
+            final TypeSystem ts = builder.getTypeSystem();
+            final UnsignedIntegerType u32 = ts.getUnsignedInteger32Type();
+            final UnsignedIntegerType u64 = ts.getUnsignedInteger64Type();
+            final SignedIntegerType s64 = ts.getSignedInteger64Type();
+            return builder.bitCast(builder.extend(builder.bitCast(arguments.get(0), u32), u64), s64);
+        };
+
+        intrinsics.registerIntrinsic(integerDesc, "toUnsignedLong", intToLong, toUnsignedLong);
+    }
+
+    private static void registerJavaLangLongIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor longDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Long");
+
+        MethodDescriptor longLongToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.J, BaseTypeDescriptor.J));
+        MethodDescriptor longLongToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.J, BaseTypeDescriptor.J));
+
+        StaticIntrinsic compare = (builder, targetPtr, arguments) -> builder.cmp(arguments.get(0), arguments.get(1));
+
+        intrinsics.registerIntrinsic(longDesc, "compare", longLongToInt, compare);
+
+        StaticIntrinsic compareUnsigned = (builder, targetPtr, arguments) -> {
+            final TypeSystem ts = builder.getTypeSystem();
+            final Value a = arguments.get(0);
+            final Value b = arguments.get(1);
+            final UnsignedIntegerType u64 = ts.getUnsignedInteger64Type();
+            return builder.cmp(
+                builder.bitCast(a, u64),
+                builder.bitCast(b, u64)
+            );
+        };
+
+        intrinsics.registerIntrinsic(longDesc, "compareUnsigned", longLongToInt, compareUnsigned);
+
+        StaticIntrinsic divideUnsigned = (builder, targetPtr, arguments) -> {
+            final TypeSystem ts = builder.getTypeSystem();
+            final Value a = arguments.get(0);
+            final Value b = arguments.get(1);
+            final UnsignedIntegerType u64 = ts.getUnsignedInteger64Type();
+            final SignedIntegerType s64 = ts.getSignedInteger64Type();
+            return builder.bitCast(builder.divide(
+                builder.bitCast(a, u64),
+                builder.divisorCheck(builder.bitCast(b, u64))
+            ), s64);
+        };
+
+        intrinsics.registerIntrinsic(longDesc, "divideUnsigned", longLongToLong, divideUnsigned);
+
+        StaticIntrinsic remainderUnsigned = (builder, targetPtr, arguments) -> {
+            final TypeSystem ts = builder.getTypeSystem();
+            final Value a = arguments.get(0);
+            final Value b = arguments.get(1);
+            final UnsignedIntegerType u64 = ts.getUnsignedInteger64Type();
+            final SignedIntegerType s64 = ts.getSignedInteger64Type();
+            return builder.bitCast(builder.remainder(
+                builder.bitCast(a, u64),
+                builder.divisorCheck(builder.bitCast(b, u64))
+            ), s64);
+        };
+
+        intrinsics.registerIntrinsic(longDesc, "remainderUnsigned", longLongToLong, remainderUnsigned);
     }
 
     private static void registerJavaLangRefIntrinsics(CompilationContext ctxt) {
