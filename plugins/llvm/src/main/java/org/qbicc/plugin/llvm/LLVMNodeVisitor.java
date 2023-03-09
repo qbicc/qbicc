@@ -1220,7 +1220,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
             argument.attribute(ParameterAttributes.elementtype(map(functionType)));
         }
         spCall.arg(i32, intConstant(arguments.size()));
-        spCall.arg(i32, ONE);
+        // this is set to 0 instead of 1 because many platforms don't allow GC transitions, but we can still emit the info
+        spCall.arg(i32, ZERO);
         setCallArguments(spCall, arguments);
         spCall.arg(i64, ZERO);
         spCall.arg(i64, ZERO);
