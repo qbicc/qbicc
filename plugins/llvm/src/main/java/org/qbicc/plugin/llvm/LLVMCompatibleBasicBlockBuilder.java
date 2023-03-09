@@ -384,7 +384,8 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 } else {
                     store(elementOf(pointer, idx), extractElement(value, idx));
                 }
-                if_(isLt(idx, lf.literalOf(idxType, ec)), top, exit, Map.of(Slot.temp(0), add(idx, lf.literalOf(idxType, 1))));
+                final Value incIdx = add(idx, lf.literalOf(idxType, 1));
+                if_(isLt(incIdx, lf.literalOf(idxType, ec)), top, exit, Map.of(Slot.temp(0), incIdx));
                 begin(exit);
             }
             return nop();
