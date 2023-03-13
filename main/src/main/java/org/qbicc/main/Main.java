@@ -169,7 +169,6 @@ import org.qbicc.plugin.trycatch.ExceptionOnThreadStrategy;
 import org.qbicc.plugin.trycatch.SynchronizedMethodBasicBlockBuilder;
 import org.qbicc.plugin.unwind.UnwindExceptionStrategy;
 import org.qbicc.plugin.unwind.UnwindThrowBasicBlockBuilder;
-import org.qbicc.plugin.verification.ClassInitializingBasicBlockBuilder;
 import org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder;
 import org.qbicc.plugin.verification.LowerVerificationBasicBlockBuilder;
 import org.qbicc.plugin.verification.MemberResolvingBasicBlockBuilder;
@@ -482,7 +481,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, AccessorBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, StructMemberAccessBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, PointerBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassInitializingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, CoreClassesBasicBlockBuilder::new);
