@@ -47,6 +47,7 @@ import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
+import org.qbicc.type.UnionType;
 import org.qbicc.type.UnresolvedType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
@@ -1517,6 +1518,8 @@ final class MethodParser {
                             ValueType valueType = pointer.getPointeeType();
                             if (valueType instanceof CompoundType ct) {
                                 push1(gf.deref(gf.memberOf(pointer, ct.getMember(name))));
+                            } else if (valueType instanceof UnionType ut) {
+                                push1(gf.deref(gf.memberOfUnion(pointer,  ut.getMember(name))));
                             } else if (valueType instanceof PhysicalObjectType) {
                                 push1(gf.deref(gf.instanceFieldOf(pointer, owner, name, desc)));
                             } else {
@@ -1526,6 +1529,9 @@ final class MethodParser {
                         } else if (v1.getType() instanceof PointerType pt && pt.getPointeeType() instanceof CompoundType ct) {
                             // always a dereference
                             push1(gf.deref(gf.memberOf(v1, ct.getMember(name))));
+                        } else if (v1.getType() instanceof PointerType pt && pt.getPointeeType() instanceof UnionType ut) {
+                            // always a dereference
+                            push1(gf.deref(gf.memberOfUnion(v1, ut.getMember(name))));
                         } else if (v1.getType() instanceof CompoundType ct) {
                             final CompoundType.Member member = ct.getMember(name);
                             push(promote(gf.extractMember(v1, member)), desc.isClass2());
@@ -1550,6 +1556,8 @@ final class MethodParser {
                             ValueType valueType = pointer.getPointeeType();
                             if (valueType instanceof CompoundType ct) {
                                 gf.store(gf.memberOf(pointer, ct.getMember(name)), storeTruncate(v2, desc), SinglePlain);
+                            } else if (valueType instanceof UnionType ut) {
+                                gf.store(gf.memberOfUnion(pointer, ut.getMember(name)), storeTruncate(v2, desc), SinglePlain);
                             } else if (valueType instanceof PhysicalObjectType) {
                                 gf.store(gf.instanceFieldOf(pointer, owner, name, desc), storeTruncate(v2, desc), SinglePlain);
                             } else {

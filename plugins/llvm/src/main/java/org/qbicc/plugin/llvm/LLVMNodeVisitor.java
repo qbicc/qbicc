@@ -939,7 +939,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
         PointerType pointerType = unionType.getPointer();
         LLValue ptr = map(node.getUnionPointer());
         UnionType.Member member = node.getMember();
-        YieldingInstruction bc = builder.bitcast(map(pointerType), ptr, map(member.getType()));
+        YieldingInstruction bc = builder.bitcast(map(pointerType), ptr, map(member.getType().getPointer()));
         bc.comment("union member " + member.getName());
         return bc.setLValue(map(node));
     }
