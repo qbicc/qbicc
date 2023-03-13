@@ -59,6 +59,7 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.Type;
+import org.qbicc.type.UnionType;
 import org.qbicc.type.UnresolvedType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VariadicType;
@@ -213,6 +214,9 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
             } else {
                 res = struct;
             }
+        } else if (type instanceof UnionType ut) {
+            // Unions are not directly supported but pointers can be cast
+            res = array((int) ut.getSize(), i8);
         } else if (type instanceof BlockType) {
             res = label;
         } else {
