@@ -40,6 +40,8 @@ final class Native {
     static final String ANN_UNDEF_LIST = className(undef.List.class);
 
     static final String OBJECT_INT_NAME = intName(object.class);
+    static final String STRUCT_INT_NAME = intName(struct.class);
+    static final String UNION_INT_NAME = intName(union.class);
     static final String WORD_INT_NAME = intName(word.class);
     static final String TYPE_ID_INT_NAME = intName(type_id.class);
     static final String TYPE_ID = className(type_id.class);

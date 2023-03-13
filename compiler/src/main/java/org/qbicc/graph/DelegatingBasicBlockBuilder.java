@@ -17,6 +17,7 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
+import org.qbicc.type.UnionType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -139,6 +140,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value memberOf(final Value structPointer, final CompoundType.Member member) {
         return getDelegate().memberOf(structPointer, member);
+    }
+
+    public Value memberOfUnion(Value unionPointer, UnionType.Member member) {
+        return getDelegate().memberOfUnion(unionPointer, member);
     }
 
     public Value elementOf(final Value arrayPointer, final Value index) {

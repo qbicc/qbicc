@@ -66,6 +66,7 @@ import org.qbicc.graph.IsNe;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.Max;
 import org.qbicc.graph.MemberOf;
+import org.qbicc.graph.MemberOfUnion;
 import org.qbicc.graph.Min;
 import org.qbicc.graph.Mod;
 import org.qbicc.graph.MonitorEnter;
@@ -1257,6 +1258,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else {
             return new MemberPointer(structPointer, node.getMember());
         }
+    }
+
+    @Override
+    public Object visit(VmThreadImpl thread, MemberOfUnion node) {
+        return unboxPointer(node.getUnionPointer());
     }
 
     @Override

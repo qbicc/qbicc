@@ -38,7 +38,7 @@ public class EPoll {
     public static final uint32_t EPOLLWAKEUP = constant();
     public static final uint32_t EPOLLEXCLUSIVE = constant();
 
-    public static final class /* union */ epoll_data_t extends object {
+    public static final class epoll_data_t extends union {
         public void_ptr ptr;
         public c_int fd;
         public uint32_t u32;

@@ -20,6 +20,7 @@ import org.qbicc.graph.Dereference;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.MemberOf;
+import org.qbicc.graph.MemberOfUnion;
 import org.qbicc.graph.ReadModifyWrite;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
@@ -334,8 +335,14 @@ final class CNativeIntrinsics {
         StaticIntrinsic offsetof = (builder, target, arguments) -> {
             Value objExpr = arguments.get(0);
             long offset = 0;
-            if (objExpr instanceof Dereference deref && deref.getPointer() instanceof MemberOf memberOf) {
-                offset = memberOf.getMember().getOffset();
+            if (objExpr instanceof Dereference deref) {
+                if (deref.getPointer() instanceof MemberOf memberOf) {
+                    offset = memberOf.getMember().getOffset();
+                } else if (deref.getPointer() instanceof MemberOfUnion) {
+                    ctxt.warning(builder.getLocation(), "offset of union member is always zero");
+                } else {
+                    ctxt.error(builder.getLocation(), "unexpected argument expression for offsetof(obj.field)");
+                }
             } else {
                 ctxt.error(builder.getLocation(), "unexpected argument expression for offsetof(obj.field)");
             }

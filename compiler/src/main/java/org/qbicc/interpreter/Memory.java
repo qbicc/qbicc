@@ -10,6 +10,7 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeType;
+import org.qbicc.type.UnionType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 
@@ -716,6 +717,8 @@ public interface Memory {
     default void typedCopyTo(long srcOffs, Memory dest, long destOffs, ValueType type) {
         if (type instanceof CompoundType ct) {
             typedCopyTo(srcOffs, dest, destOffs, ct);
+        } else if (type instanceof UnionType ut) {
+            typedCopyTo(srcOffs, dest, destOffs, ut);
         } else if (type instanceof ArrayType at) {
             typedCopyTo(srcOffs, dest, destOffs, at);
         } else if (type instanceof ReferenceType) {
@@ -746,6 +749,13 @@ public interface Memory {
         for (CompoundType.Member member : type.getMembers()) {
             int offset = member.getOffset();
             typedCopyTo(srcOffs + offset, dest, destOffs + offset, member.getType());
+        }
+    }
+
+    default void typedCopyTo(long srcOffs, Memory dest, long destOffs, UnionType type) {
+        for (UnionType.Member member : type.getMembers()) {
+            // Unions are always zeroed at this stage, so this will just write zeros of the appropriate sizes/shapes
+            typedCopyTo(srcOffs, dest, destOffs, member.getType());
         }
     }
 

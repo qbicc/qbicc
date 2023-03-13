@@ -32,6 +32,7 @@ import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeType;
+import org.qbicc.type.UnionType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
@@ -460,6 +461,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value memberOf(final Value structPointer, final CompoundType.Member member) {
         return unique(new MemberOf(callSite, element, line, bci, structPointer, member));
+    }
+
+    public Value memberOfUnion(Value unionPointer, UnionType.Member member) {
+        return unique(new MemberOfUnion(callSite, element, line, bci, unionPointer, member));
     }
 
     public Value elementOf(final Value arrayPointer, final Value index) {

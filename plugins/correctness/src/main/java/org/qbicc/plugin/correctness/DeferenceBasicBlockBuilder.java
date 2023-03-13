@@ -30,6 +30,7 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
+import org.qbicc.type.UnionType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.FieldElement;
@@ -69,6 +70,11 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
     @Override
     public Value memberOf(Value structPointer, CompoundType.Member member) {
         return super.memberOf(rhs(structPointer), member);
+    }
+
+    @Override
+    public Value memberOfUnion(Value unionPointer, UnionType.Member member) {
+        return super.memberOfUnion(rhs(unionPointer), member);
     }
 
     @Override

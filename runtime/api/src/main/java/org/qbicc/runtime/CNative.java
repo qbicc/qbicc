@@ -750,6 +750,20 @@ public final class CNative {
     }
 
     /**
+     * An object which is a structure.
+     * Each field of the object will have distinct, non-overlapping location in memory.
+     */
+    public static abstract class struct extends object {
+    }
+
+    /**
+     * An object which is a union.
+     * Each field of the object will have the same location in memory.
+     */
+    public static abstract class union extends object {
+    }
+
+    /**
      * The special type which corresponds to a value whose type is a run time type ID.
      */
     public static final class type_id extends word {
