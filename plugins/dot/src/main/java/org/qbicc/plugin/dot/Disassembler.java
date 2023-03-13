@@ -19,6 +19,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.And;
+import org.qbicc.graph.MemberOfUnion;
 import org.qbicc.graph.PointerDifference;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.graph.literal.AsmLiteral;
@@ -1179,6 +1180,14 @@ public final class Disassembler {
         public Void visit(Disassembler param, MemberOf node) {
             final String id = param.nextId();
             final String description = "member-of " + show(node.getStructurePointer());
+            param.nodeInfo.put(node, new NodeInfo(id, description));
+            return delegate.visit(param, node);
+        }
+
+        @Override
+        public Void visit(Disassembler param, MemberOfUnion node) {
+            final String id = param.nextId();
+            final String description = "member-of-union " + show(node.getUnionPointer());
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }

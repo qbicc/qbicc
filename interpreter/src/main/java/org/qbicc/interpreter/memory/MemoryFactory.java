@@ -42,6 +42,7 @@ import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeType;
+import org.qbicc.type.UnionType;
 import org.qbicc.type.UnresolvedType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
@@ -65,6 +66,16 @@ public final class MemoryFactory {
      */
     public static Memory getEmpty() {
         return EMPTY;
+    }
+
+    /**
+     * Get a read-only zero memory of the given size.
+     *
+     * @param size the size
+     * @return a read-only zero memory (not {@code null})
+     */
+    public static ZeroMemory getZero(long size) {
+        return new ZeroMemory(size);
     }
 
     public static Memory replicate(Memory first, int nCopies) {
@@ -303,7 +314,7 @@ public final class MemoryFactory {
                 continue;
             }
             // complex fields
-            if (memberType instanceof ArrayType || memberType instanceof CompoundType) {
+            if (memberType instanceof ArrayType || memberType instanceof CompoundType || memberType instanceof UnionType) {
                 fieldAccess = Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL;
                 if (delegate == null) {
                     delegate = new HashMap<>();
@@ -580,6 +591,8 @@ public final class MemoryFactory {
         // vectored
         if (type instanceof CompoundType ct) {
             return getMemoryFactory(ctxt, ct, upgradeLongs).get();
+        } else if (type instanceof UnionType ut) {
+            return MemoryFactory.getZero(ut.getSize());
         } else if (type instanceof IntegerType it) {
             // todo: more compact impls
             return switch (it.getMinBits()) {

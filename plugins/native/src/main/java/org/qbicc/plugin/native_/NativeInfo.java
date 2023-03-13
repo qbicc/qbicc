@@ -24,6 +24,7 @@ import org.qbicc.plugin.linker.Linker;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.TypeSystem;
+import org.qbicc.type.UnionType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.ArrayAnnotationValue;
@@ -138,6 +139,7 @@ final class NativeInfo {
                         Qualifier q = Qualifier.NONE;
                         boolean incomplete = false;
                         int annotatedAlign = 0;
+                        boolean union = definedType.getSuperClassInternalName().equals(Native.UNION_INT_NAME);
                         processEnclosingType(classContext, pb, definedType);
                         ProbeUtils.ProbeProcessor pp = new ProbeUtils.ProbeProcessor(classContext, definedType);
                         for (Annotation annotation : definedType.getInvisibleAnnotations()) {
@@ -247,10 +249,10 @@ final class NativeInfo {
                             simpleName = idx == -1 ? fullName : fullName.substring(idx + 1);
                             idx = simpleName.lastIndexOf('$');
                             simpleName = idx == -1 ? simpleName : simpleName.substring(idx + 1);
-                            if (simpleName.startsWith("struct_")) {
+                            if (simpleName.startsWith("struct_") && !union) {
                                 q = Qualifier.STRUCT;
                                 simpleName = simpleName.substring(7);
-                            } else if (simpleName.startsWith("union_")) {
+                            } else if (simpleName.startsWith("union_") && union) {
                                 q = Qualifier.UNION;
                                 simpleName = simpleName.substring(6);
                             }
@@ -262,55 +264,56 @@ final class NativeInfo {
                         CProbe.Type.Builder tb = CProbe.Type.builder();
                         tb.setName(simpleName);
                         tb.setQualifier(q);
-                        eachField: for (int i = 0; i < fc; i ++) {
-                            // compound type
-                            FieldElement field = vt.getField(i);
-                            boolean nameOverridden = false;
-                            String fieldName = field.getName();
-                            if (! field.isStatic()) {
-                                for (Annotation annotation : field.getInvisibleAnnotations()) {
-                                    ClassTypeDescriptor annDesc = annotation.getDescriptor();
-                                    if (annDesc.getPackageName().equals(Native.NATIVE_PKG)) {
-                                        if (annDesc.getClassName().equals(Native.ANN_NAME) && ! nameOverridden) {
-                                            if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
-                                                fieldName = ((StringAnnotationValue) annotation.getValue("value")).getString();
-                                                nameOverridden = true;
-                                            }
-                                        } else if (annDesc.getClassName().equals(Native.ANN_NAME_LIST) && ! nameOverridden) {
-                                            if (annotation.getValue("value") instanceof ArrayAnnotationValue aav) {
-                                                int cnt = aav.getElementCount();
-                                                for (int j = 0; j < cnt; j ++) {
-                                                    if (aav.getValue(j) instanceof Annotation nested) {
-                                                        ClassTypeDescriptor nestedDesc = nested.getDescriptor();
-                                                        if (nestedDesc.getPackageName().equals(Native.NATIVE_PKG)) {
-                                                            if (nestedDesc.getClassName().equals(Native.ANN_NAME)) {
-                                                                if (conditionEvaluation.evaluateConditions(classContext, definedType, nested)) {
-                                                                    fieldName = ((StringAnnotationValue) nested.getValue("value")).getString();
-                                                                    nameOverridden = true;
-                                                                    // stop searching for names
-                                                                    break;
+                        if (! union) {
+                            eachField: for (int i = 0; i < fc; i ++) {
+                                // compound type
+                                FieldElement field = vt.getField(i);
+                                boolean nameOverridden = false;
+                                String fieldName = field.getName();
+                                if (! field.isStatic()) {
+                                    for (Annotation annotation : field.getInvisibleAnnotations()) {
+                                        ClassTypeDescriptor annDesc = annotation.getDescriptor();
+                                        if (annDesc.getPackageName().equals(Native.NATIVE_PKG)) {
+                                            if (annDesc.getClassName().equals(Native.ANN_NAME) && ! nameOverridden) {
+                                                if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
+                                                    fieldName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                                                    nameOverridden = true;
+                                                }
+                                            } else if (annDesc.getClassName().equals(Native.ANN_NAME_LIST) && ! nameOverridden) {
+                                                if (annotation.getValue("value") instanceof ArrayAnnotationValue aav) {
+                                                    int cnt = aav.getElementCount();
+                                                    for (int j = 0; j < cnt; j ++) {
+                                                        if (aav.getValue(j) instanceof Annotation nested) {
+                                                            ClassTypeDescriptor nestedDesc = nested.getDescriptor();
+                                                            if (nestedDesc.getPackageName().equals(Native.NATIVE_PKG)) {
+                                                                if (nestedDesc.getClassName().equals(Native.ANN_NAME)) {
+                                                                    if (conditionEvaluation.evaluateConditions(classContext, definedType, nested)) {
+                                                                        fieldName = ((StringAnnotationValue) nested.getValue("value")).getString();
+                                                                        nameOverridden = true;
+                                                                        // stop searching for names
+                                                                        break;
+                                                                    }
                                                                 }
                                                             }
                                                         }
                                                     }
                                                 }
-                                            }
-                                        } else if (annDesc.getClassName().equals(Native.ANN_INCOMPLETE)) {
-                                            if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
-                                                continue eachField;
+                                            } else if (annDesc.getClassName().equals(Native.ANN_INCOMPLETE)) {
+                                                if (conditionEvaluation.evaluateConditions(classContext, definedType, annotation)) {
+                                                    continue eachField;
+                                                }
                                             }
                                         }
                                     }
+                                    tb.addMember(fieldName);
                                 }
-                                tb.addMember(fieldName);
                             }
                         }
-                        if (q == Qualifier.UNION) {
-                            throw new UnsupportedOperationException("Unions are presently unsupported");
-                        }
-                        CompoundType.Tag tag = q == Qualifier.NONE ? CompoundType.Tag.NONE : CompoundType.Tag.STRUCT;
+                        UnionType.Tag utTag = q == Qualifier.NONE ? UnionType.Tag.NONE : UnionType.Tag.UNION;
+                        CompoundType.Tag ctTag = q == Qualifier.NONE ? CompoundType.Tag.NONE : CompoundType.Tag.STRUCT;
                         if (incomplete) {
-                            resolved = ts.getIncompleteCompoundType(tag, simpleName);
+                            // even if they wanted a union, they get a struct with no members
+                            resolved = ts.getIncompleteCompoundType(ctTag, simpleName);
                         } else {
                             CProbe.Type probeType = tb.build();
                             pb.probeType(probeType);
@@ -327,7 +330,7 @@ final class NativeInfo {
                                         } else if (size == 8) {
                                             resolved = ts.getFloat64Type();
                                         } else {
-                                            resolved = ts.getCompoundType(tag, simpleName, size, align, List::of);
+                                            resolved = ts.getCompoundType(ctTag, simpleName, size, align, List::of);
                                         }
                                     } else if (typeInfo.isSigned()) {
                                         if (size == 1) {
@@ -339,7 +342,7 @@ final class NativeInfo {
                                         } else if (size == 8) {
                                             resolved = ts.getSignedInteger64Type();
                                         } else {
-                                            resolved = ts.getCompoundType(tag, simpleName, size, align, List::of);
+                                            resolved = ts.getCompoundType(ctTag, simpleName, size, align, List::of);
                                         }
                                     } else if (typeInfo.isUnsigned()) {
                                         if (size == 1) {
@@ -351,10 +354,23 @@ final class NativeInfo {
                                         } else if (size == 8) {
                                             resolved = ts.getUnsignedInteger64Type();
                                         } else {
-                                            resolved = ts.getCompoundType(tag, simpleName, size, align, List::of);
+                                            resolved = ts.getCompoundType(ctTag, simpleName, size, align, List::of);
                                         }
+                                    } else if (union) {
+                                        resolved = ts.getUnionType(utTag, simpleName, () -> {
+                                            ArrayList<UnionType.Member> list = new ArrayList<>();
+                                            for (int i = 0; i < fc; i ++) {
+                                                FieldElement field = vt.getField(i);
+                                                if (! field.isStatic()) {
+                                                    ValueType type = field.getType();
+                                                    // union type
+                                                    list.add(ts.getUnionTypeMember(field.getName(), type));
+                                                }
+                                            }
+                                            return List.copyOf(list);
+                                        });
                                     } else {
-                                        resolved = ts.getCompoundType(tag, simpleName, size, align, () -> {
+                                        resolved = ts.getCompoundType(ctTag, simpleName, size, align, () -> {
                                             ArrayList<CompoundType.Member> list = new ArrayList<>();
                                             for (int i = 0; i < fc; i ++) {
                                                 FieldElement field = vt.getField(i);

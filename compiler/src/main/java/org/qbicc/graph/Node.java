@@ -731,6 +731,10 @@ public interface Node {
                 return param.getBlockBuilder().memberOf(param.copyValue(node.getStructurePointer()), node.getMember());
             }
 
+            public Value visit(final Copier copier, final MemberOfUnion node) {
+                return copier.getBlockBuilder().memberOfUnion(copier.copyValue(node.getUnionPointer()), node.getMember());
+            }
+
             public Value visit(final Copier param, final Max node) {
                 return param.getBlockBuilder().max(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }

@@ -60,6 +60,7 @@ import org.qbicc.graph.IsLt;
 import org.qbicc.graph.IsNe;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.MemberOf;
+import org.qbicc.graph.MemberOfUnion;
 import org.qbicc.graph.Mod;
 import org.qbicc.graph.Multiply;
 import org.qbicc.graph.Neg;
@@ -120,6 +121,7 @@ import org.qbicc.machine.llvm.op.IndirectBranch;
 import org.qbicc.machine.llvm.op.Instruction;
 import org.qbicc.machine.llvm.op.OrderingConstraint;
 import org.qbicc.machine.llvm.op.Phi;
+import org.qbicc.machine.llvm.op.YieldingInstruction;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.methodinfo.CallSiteInfo;
@@ -135,6 +137,7 @@ import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.Type;
+import org.qbicc.type.UnionType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
@@ -931,6 +934,16 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
         return gep.setLValue(map(node));
     }
 
+    public LLValue visit(final Set<Value> liveValues, final MemberOfUnion node) {
+        UnionType unionType = node.getUnionType();
+        PointerType pointerType = unionType.getPointer();
+        LLValue ptr = map(node.getUnionPointer());
+        UnionType.Member member = node.getMember();
+        YieldingInstruction bc = builder.bitcast(map(pointerType), ptr, map(member.getType()));
+        bc.comment("union member " + member.getName());
+        return bc.setLValue(map(node));
+    }
+
     public LLValue visit(final Set<Value> liveValues, final Truncate node) {
         Type javaInputType = node.getInput().getType();
         Type javaOutputType = node.getType();
@@ -1554,12 +1567,27 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
         } else if (value instanceof WordCastValue wcv && wcv.getType() instanceof IntegerType out && wcv.getInput().getType() instanceof IntegerType in && out.getMinBits() == in.getMinBits()) {
             // no node generated for signedness casts
             return map(wcv.getInput());
-        } else if (opaquePointers && value instanceof BitCast bc &&
-            (bc.getType() instanceof PointerType && bc.getInput().getType() instanceof PointerType ||
-             bc.getType() instanceof ReferenceType && bc.getInput().getType() instanceof ReferenceType)
-        ) {
-            // all pointers are the same
-            return map(bc.getInput());
+        } else if (opaquePointers) {
+            // opaque pointers mean some nodes do not map
+            if (value instanceof BitCast bc && (bc.getType() instanceof PointerType && bc.getInput().getType() instanceof PointerType ||
+                bc.getType() instanceof ReferenceType && bc.getInput().getType() instanceof ReferenceType)) {
+                // all pointers are the same
+                return map(bc.getInput());
+            } else if (value instanceof MemberOfUnion mou) {
+                // all pointers are the same
+                return map(mou.getUnionPointer());
+            } else if (moduleVisitor.config.getReferenceStrategy() == ReferenceStrategy.POINTER) {
+                // exclude nodes which convert between pointers and references
+                if (value instanceof DecodeReference dr) {
+                    return map(dr.getInput());
+                } else if (value instanceof Convert conv) {
+                    if (conv.getInput().getType() instanceof PointerType && conv.getType() instanceof ReferenceType) {
+                        return map(conv.getInput());
+                    } else if (conv.getInput().getType() instanceof ReferenceType && conv.getType() instanceof PointerType) {
+                        return map(conv.getInput());
+                    }
+                }
+            }
         } else if (moduleVisitor.config.getReferenceStrategy() == ReferenceStrategy.POINTER) {
             // exclude nodes which convert between pointers and references
             if (value instanceof DecodeReference dr) {

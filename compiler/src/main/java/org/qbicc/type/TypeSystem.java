@@ -362,6 +362,18 @@ public final class TypeSystem {
         return new ArrayType(this, memberType, elements);
     }
 
+    public UnionType.Member getUnionTypeMember(String name, ValueType type) {
+        Assert.checkNotNullParam("name", name);
+        Assert.checkNotNullParam("type", type);
+        return new UnionType.Member(name, type);
+    }
+
+    public UnionType getUnionType(final UnionType.Tag tag, String name, Supplier<List<UnionType.Member>> memberResolver) {
+        Assert.checkNotNullParam("tag", tag);
+        Assert.checkNotNullParam("memberResolver", memberResolver);
+        return new UnionType(this, tag, name, memberResolver);
+    }
+
     /**
      * Get the number of bits in a byte for this platform (guaranteed to be at least 8).
      *

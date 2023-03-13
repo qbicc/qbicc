@@ -25,6 +25,7 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
+import org.qbicc.type.UnionType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
@@ -97,6 +98,15 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
             return super.memberOf(structPointer, member);
         }
         ctxt.error(getLocation(), "`memberOf` handle must have structure type");
+        throw new BlockEarlyTermination(unreachable());
+    }
+
+    @Override
+    public Value memberOfUnion(Value unionPointer, UnionType.Member member) {
+        if (checkTargetType(unionPointer).getType(PointerType.class).getPointeeType() instanceof UnionType) {
+            return super.memberOfUnion(unionPointer, member);
+        }
+        ctxt.error(getLocation(), "`memberOfUnion` handle must have union type");
         throw new BlockEarlyTermination(unreachable());
     }
 

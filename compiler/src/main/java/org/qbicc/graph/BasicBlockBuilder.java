@@ -31,6 +31,7 @@ import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
+import org.qbicc.type.UnionType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -465,6 +466,8 @@ public interface BasicBlockBuilder extends Locatable {
     Value auto(Value initializer);
 
     Value memberOf(Value structPointer, CompoundType.Member member);
+
+    Value memberOfUnion(Value unionPointer, UnionType.Member member);
 
     Value elementOf(Value array, Value index);
 
