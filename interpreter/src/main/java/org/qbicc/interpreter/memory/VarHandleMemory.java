@@ -263,6 +263,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
             delegateMemory.store8(offset, value, mode);
+            return;
         }
         VarHandle handle = getHandle((int) offset);
         if (handle.varType() == boolean.class) {
@@ -298,6 +299,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
             delegateMemory.store16(offset, value, mode);
+            return;
         }
         VarHandle handle = getHandle((int) offset);
         if (handle.varType() == char.class) {
@@ -333,6 +335,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
             delegateMemory.store32(offset, value, mode);
+            return;
         }
         VarHandle handle = getHandle((int) offset);
         if (handle.varType() == float.class) {
@@ -368,6 +371,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
             delegateMemory.store64(offset, value, mode);
+            return;
         }
         VarHandle handle = getHandle((int) offset);
         if (handle.varType() == Pointer.class) {
@@ -407,6 +411,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
             delegateMemory.storeRef(offset, value, mode);
+            return;
         }
         VarHandle handle = getHandle((int) offset);
         if (handle.varType() == VmObject.class) {
@@ -432,6 +437,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
             delegateMemory.storeType(offset, value, mode);
+            return;
         }
         VarHandle handle = getHandle((int) offset);
         if (handle.varType() == ValueType.class) {
@@ -457,6 +463,7 @@ public abstract class VarHandleMemory extends AbstractMemory {
         Memory delegateMemory = getDelegateMemory((int) offset);
         if (delegateMemory != null) {
             delegateMemory.storePointer(offset, value, mode);
+            return;
         }
         VarHandle handle = getHandle((int) offset);
         if (handle.varType() == Pointer.class) {
