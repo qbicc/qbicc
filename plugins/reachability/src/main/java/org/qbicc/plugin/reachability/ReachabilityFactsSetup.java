@@ -22,11 +22,13 @@ public final class ReachabilityFactsSetup {
 
     public static void setupAdd(CompilationContext ctxt) {
         Facts facts = Facts.get(ctxt);
+        setupEarlyReachability(facts);
         setupReachability(facts);
     }
 
     public static void setupAnalyze(CompilationContext ctxt) {
         Facts facts = Facts.get(ctxt);
+        setupEarlyReachability(facts);
         setupReachability(facts);
         setupValidate(facts);
     }
@@ -43,16 +45,20 @@ public final class ReachabilityFactsSetup {
         setupValidate(facts);
     }
 
+    private static void setupEarlyReachability(final Facts facts) {
+        facts.registerAction(Condition.when(TypeReachabilityFacts.HAS_CLASS), (ltd, f) -> ReachabilityInfo.get(f.getCompilationContext()).getAnalysis().processReachableType(ltd, null));
+    }
+
     private static void setupReachability(final Facts facts) {
-        facts.registerInlineAction(Condition.when(TypeReachabilityFacts.IS_INSTANTIATED), ReachabilityFactsSetup::markEachMethodAsInstantiated);
+        facts.registerInlineAction(Condition.when(TypeReachabilityFacts.IS_INSTANTIATED), ReachabilityFactsSetup::markTypeAsOnHeap);
+        facts.registerInlineAction(Condition.when(TypeReachabilityFacts.IS_ON_HEAP), ReachabilityFactsSetup::markEachMethodAsInstantiated);
         facts.registerInlineAction(Condition.when(InstanceMethodReachabilityFacts.IS_PROVISIONALLY_INVOKED), ReachabilityFactsSetup::markEnclosingTypeAsProvisionallyInvoked);
         facts.registerInlineAction(Condition.when(InstanceMethodReachabilityFacts.IS_PROVISIONALLY_DISPATCH_INVOKED), ReachabilityFactsSetup::markEnclosingTypeAsProvisionallyDispatched);
         facts.registerInlineAction(Condition.whenAll(InstanceMethodReachabilityFacts.EXACT_RECEIVER_IS_ON_HEAP, InstanceMethodReachabilityFacts.IS_PROVISIONALLY_INVOKED), ReachabilityFactsSetup::markAsInvoked);
         facts.registerInlineAction(Condition.whenAll(InstanceMethodReachabilityFacts.DISPATCH_RECEIVER_IS_ON_HEAP, InstanceMethodReachabilityFacts.IS_PROVISIONALLY_DISPATCH_INVOKED), ReachabilityFactsSetup::markAsDispatchInvoked);
         facts.registerInlineAction(Condition.when(ObjectReachabilityFacts.IS_REACHABLE), ReachabilityFactsSetup::markObjectTypeDefAsOnHeap);
-        facts.registerAction(Condition.when(ExecutableReachabilityFacts.IS_INVOKED), ReachabilityFactsSetup::markEnclosingAsInstantiatedIfCtor);
+        facts.registerAction(Condition.when(ExecutableReachabilityFacts.IS_INVOKED), ReachabilityFactsSetup::handleEnclosing);
         // TODO: generate DISPATCH_RECEIVER_IS_ON_HEAP
-        facts.registerAction(Condition.when(TypeReachabilityFacts.HAS_CLASS), (ltd, f) -> ReachabilityInfo.get(f.getCompilationContext()).getAnalysis().processReachableType(ltd, null));
     }
 
     private static void setupValidate(final Facts facts) {
@@ -91,13 +97,17 @@ public final class ReachabilityFactsSetup {
         facts.discover(me, InstanceMethodReachabilityFacts.IS_DISPATCH_INVOKED);
     }
 
-    private static void markEnclosingAsInstantiatedIfCtor(final ExecutableElement e, final Facts facts) {
-        if (e instanceof ConstructorElement ce) {
-            LoadedTypeDefinition type = ce.getEnclosingType().load();
-            CompilationContext ctxt = type.getContext().getCompilationContext();
-            Facts facts1 = Facts.get(ctxt);
-            facts1.discover(type, TypeReachabilityFacts.IS_INSTANTIATED);
+    private static void handleEnclosing(final ExecutableElement e, final Facts facts) {
+        LoadedTypeDefinition type = e.getEnclosingType().load();
+        if (e instanceof ConstructorElement) {
+            facts.discover(type, TypeReachabilityFacts.IS_INSTANTIATED, TypeReachabilityFacts.HAS_CLASS);
+        } else {
+            facts.discover(type, TypeReachabilityFacts.HAS_CLASS);
         }
+    }
+
+    private static void markTypeAsOnHeap(LoadedTypeDefinition ltd, Facts facts) {
+        facts.discover(ltd, TypeReachabilityFacts.IS_ON_HEAP);
     }
 
     private static void markObjectTypeDefAsOnHeap(VmObject obj, Facts facts) {
