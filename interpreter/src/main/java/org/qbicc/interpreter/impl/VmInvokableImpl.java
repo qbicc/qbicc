@@ -117,6 +117,7 @@ final class VmInvokableImpl implements VmInvokable {
         Frame frame = new Frame(caller, element, new MemoryPointer(frameMemoryType.getPointer(), memory));
         thread.currentFrame = frame;
         // bind inputs
+        element.tryCreateMethodBody();
         MethodBody body = element.getMethodBody();
         if (! element.isStatic()) {
             BlockParameter bp = body.getEntryBlock().getBlockParameter(Slot.this_());

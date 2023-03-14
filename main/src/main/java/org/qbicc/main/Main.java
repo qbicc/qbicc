@@ -49,7 +49,7 @@ import org.qbicc.driver.ClassPathItem;
 import org.qbicc.driver.Driver;
 import org.qbicc.driver.ElementBodyCopier;
 import org.qbicc.driver.ElementBodyCreator;
-import org.qbicc.driver.ElementInitializer;
+import org.qbicc.plugin.reachability.ElementInitializer;
 import org.qbicc.driver.ElementVisitorAdapter;
 import org.qbicc.driver.GraphGenConfig;
 import org.qbicc.driver.Phase;
@@ -148,7 +148,7 @@ import org.qbicc.plugin.patcher.Patcher;
 import org.qbicc.plugin.patcher.PatcherResolverBasicBlockBuilder;
 import org.qbicc.plugin.patcher.PatcherTypeResolver;
 import org.qbicc.plugin.reachability.ReachabilityAnnotationTypeBuilder;
-import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
+import org.qbicc.plugin.reachability.ReachabilityElementHandler;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.plugin.reachability.ServiceLoaderAnalyzer;
@@ -169,7 +169,6 @@ import org.qbicc.plugin.trycatch.ExceptionOnThreadStrategy;
 import org.qbicc.plugin.trycatch.SynchronizedMethodBasicBlockBuilder;
 import org.qbicc.plugin.unwind.UnwindExceptionStrategy;
 import org.qbicc.plugin.unwind.UnwindThrowBasicBlockBuilder;
-import org.qbicc.plugin.verification.ClassInitializingBasicBlockBuilder;
 import org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder;
 import org.qbicc.plugin.verification.LowerVerificationBasicBlockBuilder;
 import org.qbicc.plugin.verification.MemberResolvingBasicBlockBuilder;
@@ -464,12 +463,12 @@ public class Main implements Callable<DiagnosticContext> {
                                         }
                                     }
                                 });
-                                builder.addPreHook(Phase.ADD, new ElementReachableAdapter(
-                                    new ElementBodyCreator()
-                                    .andThen(new BuildTimeOnlyElementHandler())
-                                    .andThen(new ElementInitializer())));
+                                builder.addPreHook(Phase.ADD, ElementBodyCreator::register);
+                                builder.addPreHook(Phase.ADD, ElementInitializer::register);
+                                builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new BuildTimeOnlyElementHandler()));
                                 builder.addPreHook(Phase.ADD, new ElementReachableAdapter(ReachabilityInfo::processReachableElement));
                                 builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig))));
+                                builder.addPreHook(Phase.ADD, ReachabilityElementHandler::register);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MultiNewArrayExpansionBasicBlockBuilder::new);
@@ -482,7 +481,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, AccessorBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, StructMemberAccessBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, PointerBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassInitializingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, CoreClassesBasicBlockBuilder::new);
@@ -497,7 +495,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, RuntimeChecksBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, LocalOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, DeferenceBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
                                 builder.addPostHook(Phase.ADD, ctxt -> {
                                     Vm vm = ctxt.getVm();
@@ -535,6 +532,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 } else {
                                     builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ANALYZE, graphGenConfig))));
                                 }
+                                builder.addPreHook(Phase.ANALYZE, ReachabilityElementHandler::register);
                                 if (optGotos) {
                                     builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
                                 }
@@ -554,7 +552,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (optInlining) {
                                     builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::new);
                                 }
-                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
 
                                 if (optEscapeAnalysis) {
@@ -620,11 +617,11 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
                                 builder.addPostHook(Phase.LOWER, NativeXtorLoweringHook::process);
                                 builder.addPostHook(Phase.LOWER, BuildtimeHeap::reportStats);
+                                builder.addPostHook(Phase.LOWER, new DispatchTableEmitter());
 
                                 builder.addPreHook(Phase.GENERATE, ReachabilityFactsSetup::setupGenerate);
                                 builder.addPreHook(Phase.GENERATE, new StringInternTableEmitter());
                                 builder.addPreHook(Phase.GENERATE, new SupersDisplayEmitter());
-                                builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
 
                                 if (llvm) {
                                     builder.addPreHook(Phase.GENERATE, new LLVMGenerator(llvmConfiguration));

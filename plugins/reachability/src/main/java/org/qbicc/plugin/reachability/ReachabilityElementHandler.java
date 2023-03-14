@@ -3,13 +3,12 @@ package org.qbicc.plugin.reachability;
 import java.util.HashSet;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.facts.Condition;
 import org.qbicc.facts.Facts;
+import org.qbicc.facts.core.ExecutableReachabilityFacts;
 import org.qbicc.graph.Action;
-import org.qbicc.graph.BasicBlock;
-import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.CmpAndSwap;
-import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.InitCheck;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.InterfaceMethodLookup;
@@ -37,6 +36,7 @@ import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -54,20 +54,12 @@ import org.qbicc.type.definition.element.StaticFieldElement;
  * As a result of the analysis, new ExecutableElements may become reachable and
  * this be enqueued for compilation.
  */
-public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
-    private final CompilationContext ctxt;
-
-    public ReachabilityBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
-        super(delegate);
-        this.ctxt = getContext();
-    }
-
-    @Override
-    public void finish() {
-        // finish first so that all blocks are populated
-        super.finish();
-        BasicBlock entryBlock = getFirstBlock();
-        entryBlock.getTerminator().accept(new ReachabilityVisitor(), new ReachabilityContext(ctxt, getDelegate().getCurrentElement()));
+public class ReachabilityElementHandler {
+    private ReachabilityElementHandler() {}
+    public static void register(CompilationContext ctxt) {
+        Facts.get(ctxt).registerAction(Condition.whenAll(ExecutableReachabilityFacts.IS_INVOKED, ExecutableReachabilityFacts.IS_COMPILED), ee ->
+            ee.getMethodBody().getEntryBlock().getTerminator().accept(new ReachabilityVisitor(), new ReachabilityContext(ctxt, ee))
+        );
     }
 
     static final class ReachabilityContext {
@@ -275,6 +267,10 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
             if (visitUnknown(param, (Node)node)) {
                 MethodElement methodElement = RuntimeMethodFinder.get(param.ctxt).getMethod("getClassFromTypeId");
                 param.analysis.processReachableExactInvocation(methodElement, param.currentElement);
+                if (node.getInput() instanceof TypeLiteral tl && tl.getValue() instanceof ObjectType ot) {
+                    // class object is reachable
+                    param.analysis.processReachableType(ot.getDefinition().load(), param.currentElement);
+                }
             }
             return null;
         }

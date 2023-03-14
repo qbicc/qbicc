@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.facts.Facts;
-import org.qbicc.facts.core.ExecutableReachabilityFacts;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
@@ -15,11 +14,9 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.InitializerElement;
-import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
-import org.qbicc.type.definition.element.StaticMethodElement;
 
 /**
  * An implementation of Rapid Type Analysis (RTA).
@@ -91,13 +88,6 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
     }
 
     public synchronized void processReachableExactInvocation(final InvokableElement target, ExecutableElement currentElement) {
-        if (target instanceof StaticMethodElement me) {
-            Facts.get(ctxt).discover(me, ExecutableReachabilityFacts.IS_INVOKED);
-        } else if (target instanceof InstanceMethodElement me) {
-            Facts.get(ctxt).discover(me, InstanceMethodReachabilityFacts.IS_PROVISIONALLY_INVOKED);
-        } else if (target instanceof ConstructorElement ce) {
-            Facts.get(ctxt).discover(ce, ExecutableReachabilityFacts.IS_INVOKED);
-        }
         if (!ctxt.wasEnqueued(target)) {
             processReachableType(target.getEnclosingType().load(), currentElement);
 
