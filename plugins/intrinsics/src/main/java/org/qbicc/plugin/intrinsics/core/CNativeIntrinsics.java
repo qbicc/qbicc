@@ -45,6 +45,7 @@ import org.qbicc.plugin.intrinsics.InstanceIntrinsic;
 import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.plugin.intrinsics.StaticIntrinsic;
 import org.qbicc.type.BooleanType;
+import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
@@ -112,11 +113,29 @@ final class CNativeIntrinsics {
         MethodDescriptor objArrayTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objArrayDesc));
 
         MethodDescriptor objToReference = MethodDescriptor.synthesize(classContext, referenceDesc, List.of(objDesc));
+        MethodDescriptor wordToReference = MethodDescriptor.synthesize(classContext, referenceDesc, List.of(wordDesc));
         MethodDescriptor toObject = MethodDescriptor.synthesize(classContext, objDesc, List.of());
 
         MethodDescriptor objToFunction = MethodDescriptor.synthesize(classContext, functionDesc, List.of(objDesc));
 
         intrinsics.registerIntrinsic(referenceDesc, "of", objToReference, (builder, targetPtr, arguments) -> arguments.get(0));
+        intrinsics.registerIntrinsic(referenceDesc, "fromWord", wordToReference, (builder, targetPtr, arguments) -> {
+            Value wordVal = arguments.get(0);
+            WordType wordType = wordVal.getType(WordType.class);
+            TypeSystem ts = builder.getTypeSystem();
+            ClassObjectType object = (ClassObjectType) builder.getContext().getBootstrapClassContext().resolveTypeFromClassName("java/lang", "Object");
+            int refBits = ts.getReferenceSize() * 8;
+
+            if (wordType instanceof IntegerType it) {
+                if (wordType.getMinBits() > refBits) {
+                    wordVal = builder.truncate(wordVal, it.asSized(refBits));
+                }
+            } else {
+                ctxt.error(builder.getLocation(), "Only integers can currently be converted to references");
+                return builder.getLiteralFactory().nullLiteralOfType(object.getReference());
+            }
+            return builder.bitCast(wordVal, object.getReference());
+        });
         intrinsics.registerIntrinsic(referenceDesc, "toObject", toObject, (builder, instance, targetPtr, arguments) -> instance);
 
         intrinsics.registerIntrinsic(functionDesc, "of", objToFunction, (builder, targetPtr, arguments) -> {
