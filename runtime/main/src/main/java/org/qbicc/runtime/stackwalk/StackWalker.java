@@ -122,20 +122,4 @@ public final class StackWalker extends StackObject {
     public int getIndex() {
         return index;
     }
-
-    public void walk(StackFrameVisitor visitor, int limit) {
-        for (int i = 0; i < limit && next(); i ++) {
-            visitor.visitFrame(getIndex(), getIp().longValue(), getSp().longValue());
-        }
-    }
-
-    public void walk(StackFrameVisitor visitor) {
-        while (next()) {
-            visitor.visitFrame(getIndex(), getIp().longValue(), getSp().longValue());
-        }
-    }
-
-    public static void walkStack(StackFrameVisitor visitor) {
-        new StackWalker().walk(visitor);
-    }
 }

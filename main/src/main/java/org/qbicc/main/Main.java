@@ -63,6 +63,8 @@ import org.qbicc.plugin.initializationcontrol.QbiccFeature;
 import org.qbicc.plugin.initializationcontrol.RuntimeResourceManager;
 import org.qbicc.plugin.llvm.LLVMConfiguration;
 import org.qbicc.plugin.llvm.ReferenceStrategy;
+import org.qbicc.plugin.llvm.LLVMStackMapCollector;
+import org.qbicc.plugin.methodinfo.CallSiteTable;
 import org.qbicc.plugin.reachability.ReachabilityFactsSetup;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmThread;
@@ -115,7 +117,6 @@ import org.qbicc.plugin.lowering.MemberPointerCopier;
 import org.qbicc.plugin.lowering.VMHelpersSetupHook;
 import org.qbicc.plugin.main_method.AddMainClassHook;
 import org.qbicc.plugin.main_method.MainMethod;
-import org.qbicc.plugin.methodinfo.MethodDataEmitter;
 import org.qbicc.plugin.native_.ConstTypeResolver;
 import org.qbicc.plugin.native_.ConstantDefiningBasicBlockBuilder;
 import org.qbicc.plugin.native_.ExternExportTypeBuilder;
@@ -470,6 +471,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     .andThen(new ElementInitializer())));
                                 builder.addPreHook(Phase.ADD, new ElementReachableAdapter(ReachabilityInfo::processReachableElement));
                                 builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig))));
+                                builder.addPreHook(Phase.ADD, new ElementReachableAdapter(CallSiteTable::computeMethodType));
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MultiNewArrayExpansionBasicBlockBuilder::new);
@@ -632,11 +634,18 @@ public class Main implements Callable<DiagnosticContext> {
 
                                 builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
                                 if (llvm) {
-                                    builder.addPostHook(Phase.GENERATE, new MethodDataEmitter());
-                                    builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(llvmConfiguration));
-                                    if (llvmConfigurationBuilder.isStatepointEnabled()) {
+                                    if (llvmConfiguration.isStatepointEnabled()) {
+                                        builder.addPostHook(Phase.GENERATE, LLVMStackMapCollector::execute);
                                         builder.addPostHook(Phase.GENERATE, new LLVMStripStackMapStage());
                                     }
+                                }
+                                if (! platform.isWasm()) {
+                                    // todo: have a flag for callSiteTable vs shadow stack
+                                    builder.addPostHook(Phase.GENERATE, CallSiteTable::writeCallSiteTable);
+                                }
+                                if (llvm) {
+                                    // todo: have a flag for callSiteTable vs shadow stack
+                                    builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(llvmConfiguration));
                                 }
                                 if (compileOutput) {
                                     builder.addPostHook(Phase.GENERATE, new LinkStage(outputName, isPie, librarySearchPaths));

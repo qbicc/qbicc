@@ -11,6 +11,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.facts.Facts;
 import org.qbicc.facts.core.ExecutableReachabilityFacts;
+import org.qbicc.graph.InvocationNode;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.machine.arch.Platform;
@@ -218,6 +219,8 @@ final class LLVMModuleGenerator {
                 }
             }
         }
+        final List<InvocationNode> statePointIds = moduleVisitor.getStatePointIds();
+        LLVMInfo.get(context).setStatePointIds(programModule.getTypeDefinition().load(), statePointIds);
         try {
             module.writeTo(writer);
         } catch (IOException e) {
@@ -234,7 +237,7 @@ final class LLVMModuleGenerator {
             UnsignedIntegerType u32 = ts.getUnsignedInteger32Type();
             CompoundType.Member priorityMember = ts.getUnalignedCompoundTypeMember("priority", u32, 0);
             xtorSize += u32.getSize();
-            PointerType voidFnPtrType = ts.getFunctionType(ts.getVoidType()).getPointer();
+            PointerType voidFnPtrType = ts.getFunctionType(ts.getVoidType(), List.of()).getPointer();
             CompoundType.Member fnMember = ts.getUnalignedCompoundTypeMember("fn", voidFnPtrType, xtorSize);
             xtorSize += voidFnPtrType.getSize();
             PointerType u8ptr = ts.getUnsignedInteger8Type().getPointer();
