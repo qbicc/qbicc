@@ -5,6 +5,7 @@ import java.util.List;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.plugin.coreclasses.HeaderBits;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -12,6 +13,7 @@ import org.qbicc.type.definition.DescriptorTypeResolver;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.BoundTypeArgument;
+import org.qbicc.type.generic.ClassTypeSignature;
 import org.qbicc.type.generic.NestedClassTypeSignature;
 import org.qbicc.type.generic.ReferenceTypeSignature;
 import org.qbicc.type.generic.TopLevelClassTypeSignature;
@@ -68,35 +70,43 @@ public class NativeTypeResolver implements DescriptorTypeResolver.Delegating {
 
     @Override
     public ValueType resolveTypeFromDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature) {
-        if (descriptor instanceof ClassTypeDescriptor ctd && ctd.packageAndClassNameEquals(Native.NATIVE_PKG, Native.REFERENCE_INT_NAME)) {
+        if (descriptor instanceof ClassTypeDescriptor ctd && ctd.packageAndClassNameEquals(Native.NATIVE_PKG, Native.REFERENCE)) {
             // try to access the generic type
-            if (signature instanceof NestedClassTypeSignature nc && nc.getIdentifier().equals(Native.REFERENCE)) {
+            if (signature instanceof NestedClassTypeSignature nc && nc.getIdentifier().equals("reference")) {
                 // check the outer class
                 if (nc.getEnclosing() instanceof TopLevelClassTypeSignature cts && cts.getPackageName().equals(Native.NATIVE_PKG) && cts.getIdentifier().equals(Native.C_NATIVE)) {
-                    // OK, now look into the type arguments
-                    List<TypeArgument> typeArguments = nc.getTypeArguments();
-                    if (typeArguments.size() == 1) {
-                        TypeArgument typeArgument = typeArguments.get(0);
-                        if (typeArgument instanceof BoundTypeArgument bta) {
-                            Variance variance = bta.getVariance();
-                            if (variance == Variance.COVARIANT || variance == Variance.INVARIANT) {
-                                // either is acceptable
-                                ReferenceTypeSignature bound = bta.getBound();
-                                TypeDescriptor boundDesc = bound.asDescriptor(classCtxt);
-                                ValueType nestedType = classCtxt.resolveTypeFromDescriptor(boundDesc, paramCtxt, bound);
-                                if (nestedType instanceof ReferenceType rt) {
-                                    return rt;
-                                } else {
-                                    ctxt.error("Cannot convert %s into a reference type", nestedType);
-                                }
-                            }
-                        }
+                    return getReferenceType(paramCtxt, nc);
+                }
+            } else if (signature instanceof TopLevelClassTypeSignature tl && tl.getPackageName().equals(Native.NATIVE_PKG) && tl.getIdentifier().equals(Native.REFERENCE)) {
+                return getReferenceType(paramCtxt, tl);
+            }
+            // in some way it wasn't parseable
+            return ((ObjectType) classCtxt.resolveTypeFromClassName("java/lang", "Object")).getReference();
+        }
+        return delegate.resolveTypeFromDescriptor(descriptor, paramCtxt, signature);
+    }
+
+    private ReferenceType getReferenceType(final TypeParameterContext paramCtxt, final ClassTypeSignature sig) {
+        // OK, now look into the type arguments
+        List<TypeArgument> typeArguments = sig.getTypeArguments();
+        if (typeArguments.size() == 1) {
+            TypeArgument typeArgument = typeArguments.get(0);
+            if (typeArgument instanceof BoundTypeArgument bta) {
+                Variance variance = bta.getVariance();
+                if (variance == Variance.COVARIANT || variance == Variance.INVARIANT) {
+                    // either is acceptable
+                    ReferenceTypeSignature bound = bta.getBound();
+                    TypeDescriptor boundDesc = bound.asDescriptor(classCtxt);
+                    ValueType nestedType = classCtxt.resolveTypeFromDescriptor(boundDesc, paramCtxt, bound);
+                    if (nestedType instanceof ObjectType ot) {
+                        return ot.getReference();
+                    } else {
+                        ctxt.error("Cannot convert %s into an object type", nestedType);
                     }
                 }
             }
-            // in some way it wasn't parseable
-            return classCtxt.resolveTypeFromClassName("java/lang", "Object");
         }
-        return delegate.resolveTypeFromDescriptor(descriptor, paramCtxt, signature);
+        // in some way it wasn't parseable
+        return ((ObjectType) classCtxt.resolveTypeFromClassName("java/lang", "Object")).getReference();
     }
 }

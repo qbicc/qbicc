@@ -89,6 +89,9 @@ public class QbiccCompileMojo extends AbstractMojo {
     @Parameter
     private String platform;
 
+    @Parameter
+    private List<String> llcOptions;
+
     @Component
     private RepositorySystem repoSystem;
 
@@ -155,6 +158,7 @@ public class QbiccCompileMojo extends AbstractMojo {
             .setEmitIr(emitLlvmIr)
             .setEmitAssembly(emitAsm)
             .setOpaquePointers(llvmOpaquePointers)
+            .addLlcOptions(llcOptions == null ? List.of() : llcOptions)
         );
         final Map<Diagnostic.Level, List<Diagnostic>> map = new EnumMap<>(Diagnostic.Level.class);
         builder.setDiagnosticsHandler(new Consumer<Iterable<Diagnostic>>() {

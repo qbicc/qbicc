@@ -3,7 +3,6 @@ package org.qbicc.machine.llvm.impl;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.qbicc.machine.llvm.Array;
 import org.qbicc.machine.llvm.AsmFlag;
@@ -21,8 +20,6 @@ import org.qbicc.machine.llvm.debuginfo.DIExpression;
 public final class LLVM {
 
     private LLVM() {}
-
-    private static AtomicInteger statepointId = new AtomicInteger(0);
 
     public static Module newModule() {
         return new ModuleImpl();
@@ -123,6 +120,10 @@ public final class LLVM {
         return new ArrayImpl(elementType);
     }
 
+    public static LLValue array(LLValue elementType, short[] values) {
+        return new ShortArrayImpl((AbstractValue) elementType, values);
+    }
+
     public static LLValue global(final String name) {
         return new NamedGlobalValueOf(name);
     }
@@ -174,10 +175,6 @@ public final class LLVM {
 
     public static LLValue argumentAttribute(final String attribute, final LLValue value) {
         return new ArgumentAttribute(attribute, value);
-    }
-
-    public static int getNextStatepointId() {
-        return statepointId.getAndIncrement();
     }
 
     public static LLValue gepConstant(LLValue type, LLValue ptrType, LLValue pointer, LLValue ... args) {

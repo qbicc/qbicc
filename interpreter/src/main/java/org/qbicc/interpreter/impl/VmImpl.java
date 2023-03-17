@@ -892,6 +892,47 @@ public final class VmImpl implements Vm {
     }
 
     @Override
+    public VmObject createMethodType(ExecutableElement element) {
+        final LoadedTypeDefinition enclosing = element.getEnclosingType().load();
+        final MethodDescriptor methodDescriptor = element.getDescriptor();
+        VmClassLoaderImpl cl = getClassLoaderForContext(enclosing.getContext());
+        VmObject mt = cl.methodTypeCache.get(methodDescriptor);
+        if (mt != null) {
+            return mt;
+        }
+        VmClassImpl methodTypeClass = bootstrapClassLoader.loadClass("java/lang/invoke/MethodType");
+        // construct it via factory method
+        LoadedTypeDefinition mtDef = methodTypeClass.getTypeDefinition();
+        int makeImplIdx = mtDef.findSingleMethodIndex(me -> me.nameEquals("makeImpl"));
+        if (makeImplIdx == -1) {
+            // bad JDK?
+            throw new IllegalStateException();
+        }
+        MethodElement method = mtDef.getMethod(makeImplIdx);
+        VmInvokable inv = methodTypeClass.getOrCompile(method);
+        TypeDescriptor returnType = methodDescriptor.getReturnType();
+        List<TypeDescriptor> parameterTypes = methodDescriptor.getParameterTypes();
+        int size = parameterTypes.size();
+        VmRefArrayImpl array = manuallyInitialize((VmRefArrayImpl) classClass.getArrayClass().newInstance(size));
+        VmObject[] arrayArray = array.getArray();
+        for (int i = 0; i < size; i ++) {
+            final TypeDescriptor descriptor = parameterTypes.get(i);
+            if (descriptor == enclosing.getDescriptor()) {
+                arrayArray[i] = enclosing.getVmClass();
+            } else {
+                arrayArray[i] = getClassForDescriptor(cl, descriptor);
+            }
+        }
+        VmClass returnClass = returnType == enclosing.getDescriptor() ? enclosing.getVmClass() : getClassForDescriptor(cl, returnType);
+        mt = inv.invoke(Vm.requireCurrentThread(), null, List.of(returnClass, array, Boolean.valueOf(true)));
+        VmObject appearing = cl.methodTypeCache.putIfAbsent(methodDescriptor, mt);
+        if (appearing != null) {
+            mt = appearing;
+        }
+        return mt;
+    }
+
+    @Override
     public VmObject createMethodHandle(ClassContext classContext, MethodHandleConstant constant) throws Thrown {
         Assert.checkNotNullParam("classContext", classContext);
         Assert.checkNotNullParam("constant", constant);

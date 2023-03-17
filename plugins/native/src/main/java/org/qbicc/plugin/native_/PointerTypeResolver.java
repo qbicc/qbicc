@@ -100,9 +100,6 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
                                     // todo: use context to resolve type variable bounds
                                     TypeDescriptor pointeeDesc = pointeeSig.asDescriptor(classCtxt);
                                     pointeeType = classCtxt.resolveTypeFromDescriptor(pointeeDesc, paramCtxt, pointeeSig);
-                                    if (pointeeType instanceof ObjectType) {
-                                        pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, paramCtxt, BaseTypeSignature.V);
-                                    }
                                 } else {
                                     ctxt.warning("Incorrect number of generic signature arguments (expected a %s but got \"%s\")", ptr.class, sig);
                                     pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, paramCtxt, BaseTypeSignature.V);
@@ -141,6 +138,9 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
             } else if (! (elemType instanceof ObjectType) && elemDesc instanceof ClassTypeDescriptor) {
                 // this means it's an array of native type (wrapped as ref type) and should be transformed to a "real" array type
                 return ctxt.getTypeSystem().getArrayType(elemType, detectArraySize(signature));
+            } else if (elemDesc instanceof ClassTypeDescriptor ctd && ctd.packageAndClassNameEquals(Native.NATIVE_PKG, Native.REFERENCE)) {
+                // it's a native array of Java references
+                return ctxt.getTypeSystem().getArrayType(((ObjectType) elemType).getReference(), detectArraySize(signature));
             }
             // else fall out
         }

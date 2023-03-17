@@ -16,16 +16,16 @@ public final class Unwind {
     private Unwind() {
     }
 
-    public static native _Unwind_Reason_Code _Unwind_RaiseException(struct__Unwind_Exception_ptr exception_object);
-    public static native void _Unwind_Resume(struct__Unwind_Exception_ptr exception_object);
-    public static native void _Unwind_DeleteException(struct__Unwind_Exception_ptr exception_object);
-    public static native unsigned_long _Unwind_GetGR(struct__Unwind_Context_ptr context, c_int index);
-    public static native void _Unwind_SetGR(struct__Unwind_Context_ptr context, c_int index, unsigned_long new_value);
-    public static native unsigned_long _Unwind_GetIP(struct__Unwind_Context_ptr context);
-    public static native void _Unwind_SetIP(struct__Unwind_Context_ptr context, unsigned_long new_value);
-    public static native unsigned_long _Unwind_GetRegionStart(struct__Unwind_Context_ptr context);
-    public static native unsigned_long _Unwind_GetLanguageSpecificData(struct__Unwind_Context_ptr context);
-    public static native _Unwind_Reason_Code _Unwind_ForcedUnwind(struct__Unwind_Exception_ptr exception_object, function_ptr<_Unwind_Stop_Fn> stop, void_ptr stop_parameter);
+    public static native _Unwind_Reason_Code _Unwind_RaiseException(ptr<struct__Unwind_Exception> exception_object);
+    public static native void _Unwind_Resume(ptr<struct__Unwind_Exception> exception_object);
+    public static native void _Unwind_DeleteException(ptr<struct__Unwind_Exception> exception_object);
+    public static native unsigned_long _Unwind_GetGR(ptr<struct__Unwind_Context> context, c_int index);
+    public static native void _Unwind_SetGR(ptr<struct__Unwind_Context> context, c_int index, unsigned_long new_value);
+    public static native unsigned_long _Unwind_GetIP(ptr<struct__Unwind_Context> context);
+    public static native void _Unwind_SetIP(ptr<struct__Unwind_Context> context, unsigned_long new_value);
+    public static native unsigned_long _Unwind_GetRegionStart(ptr<struct__Unwind_Context> context);
+    public static native unsigned_long _Unwind_GetLanguageSpecificData(ptr<struct__Unwind_Context> context);
+    public static native _Unwind_Reason_Code _Unwind_ForcedUnwind(ptr<struct__Unwind_Exception> exception_object, function_ptr<_Unwind_Stop_Fn> stop, void_ptr stop_parameter);
 
     public static final class _Unwind_Reason_Code extends word {}
 
@@ -78,7 +78,7 @@ public final class Unwind {
      * this structure as a member.  The runtime is responsible for allocating and freeing instances.
      */
     @align_as(max_align_t.class) // Force alignment; See https://github.com/qbicc/qbicc/pull/623 for discussion of problem with MacOS unwind.h
-    public static final class struct__Unwind_Exception extends object {
+    public static final class struct__Unwind_Exception extends struct {
         /**
          * "A language- and implementation-specific identifier of the kind of exception. It allows a personality routine
          * to distinguish between native and foreign exceptions, for example. By convention, the high 4 bytes indicate
@@ -97,38 +97,22 @@ public final class Unwind {
         public function_ptr<_Unwind_Exception_Cleanup_Fn> exception_cleanup;
     }
 
-    public static final class struct__Unwind_Exception_ptr extends ptr<struct__Unwind_Exception> {}
-    public static final class const_struct__Unwind_Exception_ptr extends ptr<@c_const struct__Unwind_Exception> {}
-    public static final class struct__Unwind_Exception_ptr_ptr extends ptr<struct__Unwind_Exception_ptr> {}
-    public static final class const_struct__Unwind_Exception_ptr_ptr extends ptr<const_struct__Unwind_Exception_ptr> {}
-    public static final class struct__Unwind_Exception_ptr_const_ptr extends ptr<@c_const struct__Unwind_Exception_ptr> {}
-    public static final class const_struct__Unwind_Exception_ptr_const_ptr extends ptr<@c_const const_struct__Unwind_Exception_ptr> {}
-
     @FunctionalInterface
     public interface _Unwind_Exception_Cleanup_Fn {
-        void cleanup(_Unwind_Reason_Code reason, struct__Unwind_Exception_ptr exc);
+        void cleanup(_Unwind_Reason_Code reason, ptr<struct__Unwind_Exception> exc);
     }
 
     @incomplete
-    public static final class struct__Unwind_Context extends object {}
-
-    public static final class struct__Unwind_Context_ptr extends ptr<struct__Unwind_Context> {}
-    public static final class const_struct__Unwind_Context_ptr extends ptr<@c_const struct__Unwind_Context> {}
-    public static final class struct__Unwind_Context_ptr_ptr extends ptr<struct__Unwind_Context_ptr> {}
-    public static final class const_struct__Unwind_Context_ptr_ptr extends ptr<const_struct__Unwind_Context_ptr> {}
-    public static final class struct__Unwind_Context_ptr_const_ptr extends ptr<@c_const struct__Unwind_Context_ptr> {}
-    public static final class const_struct__Unwind_Context_ptr_const_ptr extends ptr<@c_const const_struct__Unwind_Context_ptr> {}
-
-
+    public static final class struct__Unwind_Context extends struct {}
 
     @FunctionalInterface
     public interface _Unwind_Stop_Fn {
-        _Unwind_Reason_Code run(c_int version, _Unwind_Action actions, uint64_t exception_class, struct__Unwind_Context_ptr exception_object, struct__Unwind_Context_ptr context, void_ptr stop_parameter);
+        _Unwind_Reason_Code run(c_int version, _Unwind_Action actions, uint64_t exception_class, ptr<struct__Unwind_Context> exception_object, ptr<struct__Unwind_Context> context, void_ptr stop_parameter);
     }
 
     @export
     public static _Unwind_Reason_Code personality(c_int version, _Unwind_Action action, uint64_t exceptionClass,
-                                    struct__Unwind_Exception_ptr exceptionObject, struct__Unwind_Context_ptr context) {
+                                    ptr<struct__Unwind_Exception> exceptionObject, ptr<struct__Unwind_Context> context) {
         unsigned_long ip = _Unwind_GetIP(context);
         // ip points to instruction after the call, therefore subtract 1 to bring it in the call instruction range.
         ip = word(ip.longValue() - 1);
@@ -136,7 +120,7 @@ public final class Unwind {
         unsigned_long lsda = _Unwind_GetLanguageSpecificData(context);
 
         long offset = ip.longValue() - methodStart.longValue();
-        uint8_t_ptr lsdaPtr = lsda.cast(uint8_t_ptr.class);
+        ptr<uint8_t> lsdaPtr = lsda.cast();
         long lpOffset = getHandlerOffset(lsdaPtr, offset);
         if ((action.intValue() & _UA_SEARCH_PHASE.intValue()) != 0) {
             if (lpOffset == 0) {
@@ -151,9 +135,9 @@ public final class Unwind {
         }
     }
 
-    public static long getHandlerOffset(uint8_t_ptr lsda, long pcOffset) {
+    public static long getHandlerOffset(ptr<uint8_t> lsda, long pcOffset) {
         int offset = auto(0);
-        int32_t_ptr offsetPtr = addr_of(offset);
+        ptr<int32_t> offsetPtr = addr_of(offset);
         uint8_t header = lsda.plus(offset++).loadPlain();   // encoding of landingpad base which is generally DW_EH_PE_omit(0xff)
         uint8_t typeEncodingEncoding = lsda.plus(offset++).loadPlain();
         if (typeEncodingEncoding.byteValue() != (byte)0xff) {   // check for DW_EH_PE_omit(0xff)
@@ -175,13 +159,14 @@ public final class Unwind {
         return 0;
     }
 
-    public static long read(uint8_t_ptr lsda, int32_t_ptr offset, int callSiteEncoding) {
+    public static long read(ptr<uint8_t> lsda, ptr<int32_t> offset, int callSiteEncoding) {
         long result = 0;
         switch (callSiteEncoding) {
             case 0x1 -> result = readULEB(lsda, offset);
             case 0x3 -> {
                 int offsetVal = offset.loadPlain().intValue();
-                result = lsda.plus(offsetVal).cast(uint32_t_ptr.class).loadPlain().longValue();
+                ptr<uint32_t> adjustedLsda = lsda.plus(offsetVal).cast();
+                result = adjustedLsda.loadPlain().longValue();
                 offset.storePlain(word(offsetVal + 4));
             }
             default -> {
@@ -190,7 +175,7 @@ public final class Unwind {
         return result;
     }
 
-    public static long readULEB(uint8_t_ptr lsda, int32_t_ptr offset) {
+    public static long readULEB(ptr<uint8_t> lsda, ptr<int32_t> offset) {
         long result = 0;
         int shift = 0;
         byte singleByte = 0;

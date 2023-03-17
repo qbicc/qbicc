@@ -311,6 +311,14 @@ public interface Vm {
     VmObject createMethodType(ClassContext classContext, MethodDescriptor methodDescriptor);
 
     /**
+     * Create an instance of {@code java.lang.invoke.MethodType} corresponding to the given descriptor.
+     *
+     * @param element the element whose type is being created (must not be {@code null})
+     * @return the object instance (not {@code null})
+     */
+    VmObject createMethodType(ExecutableElement element);
+
+    /**
      * Create a method handle from the given constant.
      *
      * @param classContext the class context (must not be {@code null})

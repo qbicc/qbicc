@@ -9,26 +9,26 @@ import static org.qbicc.runtime.stdc.Stddef.*;
 @SuppressWarnings("SpellCheckingInspection")
 @include("<string.h>")
 public class String {
-    public static native size_t strlen(const_char_ptr s);
+    public static native size_t strlen(ptr<@c_const c_char> s);
 
-    public static native char_ptr strerror(c_int errNum);
+    public static native ptr<c_char> strerror(c_int errNum);
 
-    public static native void_ptr memcpy(void_ptr dest, const_void_ptr src, size_t n);
-    public static native void_ptr memmove(void_ptr dest, const_void_ptr src, size_t n);
+    public static native ptr<?> memcpy(ptr<?> dest, @restrict ptr<@c_const ?> src, size_t n);
+    public static native ptr<?> memmove(ptr<?> dest, ptr<@c_const ?> src, size_t n);
 
-    public static native void_ptr memset(void_ptr dest, c_int data, size_t len);
+    public static native ptr<?> memset(ptr<?> dest, c_int data, size_t len);
 
-    public static native c_int memcmp(const_void_ptr src1, const_void_ptr src2, size_t len);
+    public static native c_int memcmp(ptr<@c_const ?> src1, ptr<@c_const ?> src2, size_t len);
 
-    public static native c_int strcmp(const_char_ptr src1, const_char_ptr src2);
+    public static native c_int strcmp(ptr<@c_const c_char> src1, ptr<@c_const c_char> src2);
 
-    public static native c_int strncmp(const_char_ptr src1, const_char_ptr src2, size_t len);
+    public static native c_int strncmp(ptr<@c_const c_char> src1, ptr<@c_const c_char> src2, size_t len);
 
-    public static native c_int strncpy(char_ptr dst, const_char_ptr src, size_t len);
+    public static native c_int strncpy(ptr<c_char> dst, const_char_ptr src, size_t len);
 
-    public static native char_ptr strncat(@restrict char_ptr s1, @restrict char_ptr s2, size_t n);
+    public static native ptr<c_char> strncat(@restrict ptr<c_char> s1, @restrict ptr<c_char> s2, size_t n);
 
-    public static native char_ptr strchr(const_char_ptr s, c_int c);
+    public static native ptr<c_char> strchr(ptr<@c_const c_char> s, c_int c);
 
-    public static native char_ptr strrchr(const_char_ptr s, c_int c);
+    public static native ptr<c_char> strrchr(ptr<@c_const c_char> s, c_int c);
 }

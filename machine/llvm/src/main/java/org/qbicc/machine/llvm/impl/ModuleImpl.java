@@ -227,8 +227,8 @@ final class ModuleImpl implements Module {
     public void writeTo(final BufferedWriter output) throws IOException {
         writeItems(header, output, true);
         writeItems(types, output, false);
-        writeItems(globals, output, false);
         writeItems(functions, output, true);
+        writeItems(globals, output, false);
         writeItems(namedMeta, output, false);
         writeItems(meta, output, false);
     }

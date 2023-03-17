@@ -791,6 +791,15 @@ public final class CNative {
         public static native <B> reference<B> of(B ref);
 
         /**
+         * Get a {@code reference} from a word (e.g. register) value.
+         *
+         * @param val the word value
+         * @return the {@code reference} or {@code null}
+         * @param <B> the upper bounds
+         */
+        public static native <B> reference<B> fromWord(word val);
+
+        /**
          * Get an object reference for a {@code reference}.
          *
          * @return the object reference

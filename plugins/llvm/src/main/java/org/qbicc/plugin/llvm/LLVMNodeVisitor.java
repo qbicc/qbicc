@@ -782,6 +782,25 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
         if (inputType.equals(outputType)) {
             return null;
         }
+        if (javaInputType instanceof IntegerType it && javaOutputType instanceof ReferenceType rt) {
+            // casts from integer to ref type come from register loads
+            if (it.getSize() == rt.getSize()) {
+                return switch (moduleVisitor.config.getReferenceStrategy()) {
+                    case POINTER, POINTER_AS1 -> builder.inttoptr(inputType, llvmInput, outputType).setLValue(map(node));
+                };
+            } else {
+                throw new IllegalStateException("Size mismatch");
+            }
+        } else if (javaInputType instanceof ReferenceType rt && javaOutputType instanceof IntegerType it) {
+            // casts from ref type to integer come from register stores
+            if (it.getSize() == rt.getSize()) {
+                return switch (moduleVisitor.config.getReferenceStrategy()) {
+                    case POINTER, POINTER_AS1 -> builder.ptrtoint(inputType, llvmInput, outputType).setLValue(map(node));
+                };
+            } else {
+                throw new IllegalStateException("Size mismatch");
+            }
+        }
         return builder.bitcast(inputType, llvmInput, outputType).setLValue(map(node));
     }
 
@@ -1222,7 +1241,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
         Call spCall = spCallMaker.apply(statepointType, statepointDecl);
         spCall.comment(statepointReason.getReason());
         // record the statepoint so that we can correlate the stack map info back to nodes
-        int statepointId = LLVM.getNextStatepointId();
+        int statepointId = moduleVisitor.getNextStatePointId(node);
         CallSiteInfo.get(ctxt).mapStatepointIdToNode(statepointId, node);
         invocationNodes.add(node);
         spCall.arg(i64, intConstant(statepointId));

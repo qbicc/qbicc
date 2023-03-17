@@ -1,1 +1,3 @@
+org.qbicc.runtime.stackwalk.ClassAccess
+org.qbicc.runtime.stackwalk.ModuleDescriptorAccess
 org.qbicc.runtime.stackwalk.StackTraceElementAccess

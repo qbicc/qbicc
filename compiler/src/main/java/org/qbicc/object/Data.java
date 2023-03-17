@@ -11,6 +11,7 @@ public final class Data extends SectionObject {
     private final Value value;
     private volatile DataDeclaration declaration;
     private volatile boolean dsoLocal;
+    private volatile boolean constant;
     private volatile long offset;
 
     Data(final MemberElement originalElement, ModuleSection moduleSection, final String name, final ValueType valueType, final Value value) {
@@ -81,5 +82,13 @@ public final class Data extends SectionObject {
 
     public boolean isDsoLocal() {
         return dsoLocal;
+    }
+
+    public boolean isConstant() {
+        return constant;
+    }
+
+    public void setConstant(boolean constant) {
+        this.constant = constant;
     }
 }

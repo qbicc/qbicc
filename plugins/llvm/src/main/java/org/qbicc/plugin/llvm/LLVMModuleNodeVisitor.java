@@ -12,6 +12,7 @@ import java.util.Map;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
+import org.qbicc.graph.InvocationNode;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
@@ -29,6 +30,7 @@ import org.qbicc.graph.literal.MemberOfLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.OffsetFromLiteral;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
+import org.qbicc.graph.literal.ShortArrayLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.graph.literal.ValueConvertLiteral;
@@ -61,6 +63,7 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.Type;
 import org.qbicc.type.UnionType;
 import org.qbicc.type.UnresolvedType;
+import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VariadicType;
 import org.qbicc.type.VoidType;
@@ -87,6 +90,7 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
     final Map<ValueType, LLValue> resultDecls = new HashMap<>();
     final Map<String, LLValue> resultDeclsByName = new HashMap<>();
     final Map<ValueType, LLValue> resultDeclTypes = new HashMap<>();
+    final List<InvocationNode> statePointIds = new ArrayList<>();
     final LLValue refType;
     final LLValue relocateDeclType;
     LLValue relocateDecl;
@@ -359,12 +363,27 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
     public LLValue visit(final Void unused, final OffsetFromLiteral node) {
         final Literal innermost = innermostGepValue(node);
         final PointerType ptrType = innermost.getType(PointerType.class);
-        return Values.gepConstant(map(ptrType.getPointeeType()), map(ptrType), map(innermost), buildGepLiteralArgs(node, 0));
+        final LLValue mappedPointeeType;
+        final LLValue mappedPtrType;
+        if (ptrType.getPointeeType() instanceof InvokableType) {
+            // the offset must be in bytes; change the pointer type accordingly
+            final UnsignedIntegerType u8 = ptrType.getTypeSystem().getUnsignedInteger8Type();
+            mappedPointeeType = map(u8);
+            mappedPtrType = map(u8.getPointer());
+        } else {
+            mappedPointeeType = map(ptrType.getPointeeType());
+            mappedPtrType = map(ptrType);
+        }
+        return Values.gepConstant(mappedPointeeType, mappedPtrType, map(innermost), buildGepLiteralArgs(node, 0));
     }
 
     public LLValue visit(final Void param, final ProgramObjectLiteral node) {
         // todo: auto-declare goes here
         return Values.global(node.getProgramObject().getName());
+    }
+
+    public LLValue visit(Void unused, ShortArrayLiteral literal) {
+        return Values.array(map(literal.getType().getElementType()), literal.getValues());
     }
 
     public LLValue visit(final Void param, final ZeroInitializerLiteral node) {
@@ -583,5 +602,15 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
 
     public LLValue getRelocateDeclType() {
         return relocateDeclType;
+    }
+
+    public int getNextStatePointId(final InvocationNode callNode) {
+        final int id = statePointIds.size();
+        statePointIds.add(callNode);
+        return id;
+    }
+
+    public List<InvocationNode> getStatePointIds() {
+        return statePointIds;
     }
 }

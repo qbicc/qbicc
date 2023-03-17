@@ -98,6 +98,9 @@ final class LLVMModuleDebugInfo {
     }
 
     private String getFriendlyName(final ExecutableElement element) {
+        if (element instanceof FunctionElement fe) {
+            return fe.getName();
+        }
         StringBuilder b = new StringBuilder();
 
         b.append(element.getEnclosingType().getInternalName().replace('/', '.'));
@@ -109,8 +112,6 @@ final class LLVMModuleDebugInfo {
             b.append("<init>");
         } else if (element instanceof MethodElement) {
             b.append(((MethodElement) element).getName());
-        } else if (element instanceof FunctionElement) {
-            b.append(((FunctionElement) element).getName());
         } else {
             throw new UnsupportedOperationException("Unrecognized element " + element.toString());
         }

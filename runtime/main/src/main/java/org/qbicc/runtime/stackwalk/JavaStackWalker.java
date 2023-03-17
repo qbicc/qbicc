@@ -1,18 +1,24 @@
 package org.qbicc.runtime.stackwalk;
 
+import static org.qbicc.runtime.CNative.*;
+import static org.qbicc.runtime.stackwalk.CallSiteTable.*;
+
+import java.lang.invoke.MethodType;
+
 import org.qbicc.runtime.AutoQueued;
 import org.qbicc.runtime.Hidden;
 import org.qbicc.runtime.NoSafePoint;
 import org.qbicc.runtime.NoThrow;
 import org.qbicc.runtime.StackObject;
+import org.qbicc.runtime.main.CompilerIntrinsics;
 
 public final class JavaStackWalker extends StackObject {
     private static final int I_ACC_HIDDEN = 1 << 18;
 
     private final boolean skipHidden;
     private int index = -1;
-    private int sourceIndex = -1;
-    private int methodInfoIdx = -1;
+    private ptr<@c_const struct_call_site> call_site_ptr;
+    private ptr<@c_const struct_source> source_ptr;
 
     @NoSafePoint
     @NoThrow
@@ -25,8 +31,8 @@ public final class JavaStackWalker extends StackObject {
     public JavaStackWalker(JavaStackWalker original) {
         skipHidden = original.skipHidden;
         index = original.index;
-        sourceIndex = original.sourceIndex;
-        methodInfoIdx = original.methodInfoIdx;
+        call_site_ptr = original.call_site_ptr;
+        source_ptr = original.source_ptr;
     }
 
     @NoSafePoint
@@ -34,24 +40,23 @@ public final class JavaStackWalker extends StackObject {
     public boolean next(StackWalker stackWalker) {
         for (;;) {
             for (;;) {
-                if (sourceIndex != -1) {
-                    sourceIndex = MethodData.getInlinedAtIndex(sourceIndex);
+                if (source_ptr != null) {
+                    source_ptr = getInlinedAt(source_ptr);
                     break;
                 } else if (!stackWalker.next()) {
-                    methodInfoIdx = -1;
                     return false;
                 } else {
-                    // TODO: Mark "base" frames with a flag, to jump over natives; then, -1 is an error (corrupt stack)
-                    int ii = MethodData.findInstructionIndex(stackWalker.getIp().longValue());
-                    if (ii != -1) {
-                        sourceIndex = MethodData.getSourceCodeInfoIndex(ii);
+                    // TODO: Mark "base" frames with a flag, to jump over natives; then, null is an error (corrupt stack)
+                    call_site_ptr = findInsnTableEntry(stackWalker.getIp());
+                    if (call_site_ptr != null) {
+                        source_ptr = getCallSiteSourceInfo(call_site_ptr);
                         break;
                     }
                 }
             }
-            if (sourceIndex != -1) {
-                methodInfoIdx = MethodData.getMethodInfoIndex(sourceIndex);
-                if (skipHidden && MethodData.hasAllModifiersOf(methodInfoIdx, I_ACC_HIDDEN)) {
+            if (source_ptr != null) {
+                final ptr<@c_const struct_subprogram> method_ptr = getMethodInfo(source_ptr);
+                if (skipHidden && methodHasAllModifiersOf(method_ptr, I_ACC_HIDDEN)) {
                     // try again
                     continue;
                 }
@@ -102,69 +107,79 @@ public final class JavaStackWalker extends StackObject {
         return cnt;
     }
 
-    @Hidden
-    @AutoQueued
-    public static void walkStack(Throwable exceptionObject, JavaStackFrameVisitor visitor) {
-        StackWalker sw = new StackWalker();
-        JavaStackWalker javaStackWalker = new JavaStackWalker(true);
-        while (javaStackWalker.next(sw)) {
-            visitor.visitFrame(javaStackWalker.index, javaStackWalker.sourceIndex);
-        }
-    }
-
     @NoSafePoint
     @NoThrow
     public int getIndex() {
         return index;
     }
 
+    @NoSafePoint
+    @NoThrow
     public String getFrameSourceFileName() {
-        if (sourceIndex == -1) throw new IllegalStateException();
-        return MethodData.getFileName(methodInfoIdx);
+        return getMethodFileName(getMethodInfo(source_ptr));
     }
 
+    @NoSafePoint
+    @NoThrow
     public String getFrameMethodName() {
-        if (sourceIndex == -1) throw new IllegalStateException();
-        return MethodData.getMethodName(methodInfoIdx);
+        return getMethodName(getMethodInfo(source_ptr));
     }
 
+    @NoSafePoint
+    @NoThrow
+    public MethodType getFrameMethodType() {
+        return getMethodType(getMethodInfo(source_ptr));
+    }
+
+    @NoSafePoint
+    @NoThrow
     public String getFrameClassName() {
-        if (sourceIndex == -1) throw new IllegalStateException();
-        return MethodData.getClassName(methodInfoIdx);
+        final type_id enclosingType = getEnclosingType(getMethodInfo(source_ptr));
+        final ClassAccess clazz = (ClassAccess) (Object) CompilerIntrinsics.getClassFromTypeIdSimple(enclosingType);
+        return clazz.name;
     }
 
+    @NoSafePoint
+    @NoThrow
+    public ptr<struct_call_site> getCallSitePtr() {
+        return call_site_ptr;
+    }
+
+    @NoSafePoint
+    @NoThrow
+    public ptr<struct_source> getSourcePtr() {
+        return source_ptr;
+    }
+
+    @NoSafePoint
+    @NoThrow
     public Class<?> getFrameClass() {
-        if (sourceIndex == -1) throw new IllegalStateException();
-        return MethodData.getClass(methodInfoIdx);
+        return CompilerIntrinsics.getClassFromTypeIdSimple(getEnclosingType(getMethodInfo(source_ptr)));
     }
 
+    @NoSafePoint
+    @NoThrow
     public int getFrameLineNumber() {
-        if (sourceIndex == -1) throw new IllegalStateException();
-        return MethodData.getLineNumber(sourceIndex);
+        return deref(source_ptr).line.intValue();
     }
 
+    @NoSafePoint
+    @NoThrow
     public int getFrameBytecodeIndex() {
-        if (sourceIndex == -1) throw new IllegalStateException();
-        return MethodData.getBytecodeIndex(sourceIndex);
+        return deref(source_ptr).bci.intValue();
     }
 
     @NoSafePoint
     @NoThrow
     public int getSourceIndex() {
-        return sourceIndex;
-    }
-
-    @NoSafePoint
-    @NoThrow
-    public int getMethodInfoIdx() {
-        return methodInfoIdx;
+        return getCallSiteSourceIndex(call_site_ptr);
     }
 
     @NoSafePoint
     @NoThrow
     public void reset() {
-        methodInfoIdx = -1;
-        sourceIndex = -1;
+        call_site_ptr = zero();
+        source_ptr = zero();
         index = -1;
     }
 }

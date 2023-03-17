@@ -27,6 +27,11 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-serialization</artifactId>
         </dependency>
+        <!-- For constant values -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-runtime-main</artifactId>
+        </dependency>
     </dependencies>
 
 

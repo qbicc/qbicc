@@ -28,6 +28,7 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnionType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
+import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -76,7 +77,7 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
 
     @Override
     public Value byteOffsetPointer(Value base, Value offset, ValueType outputType) {
-        return super.byteOffsetPointer(checkTargetType(base), offset, outputType);
+        return super.byteOffsetPointer(checkTargetType(base, true), offset, outputType);
     }
 
     @Override
@@ -85,9 +86,16 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     private Value checkTargetType(Value target) {
-        if (! (target.getType() instanceof PointerType)) {
+        return checkTargetType(target, false);
+    }
+
+    private Value checkTargetType(Value target, boolean allowVoid) {
+        if (! (target.getType() instanceof PointerType pt)) {
             ctxt.error(getLocation(), "Target must be of pointer type");
             return getLiteralFactory().nullLiteralOfType(getTypeSystem().getVoidType().getPointer());
+        }
+        if (! allowVoid && pt.getPointeeType() instanceof VoidType) {
+            ctxt.error(getLocation(), "Target must not be pointer to void");
         }
         return target;
     }
@@ -141,7 +149,7 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
                 ctxt.error(getLocation(), "`offsetHandle` offset must be signed");
             }
         }
-        return super.offsetPointer(checkTargetType(basePointer), offset);
+        return super.offsetPointer(checkTargetType(basePointer, true), offset);
     }
 
     @Override
