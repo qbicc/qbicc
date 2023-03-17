@@ -19,6 +19,7 @@ import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.GlobalVariableLiteral;
+import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
@@ -952,6 +953,7 @@ public final class CoreIntrinsics {
 
         ClassTypeDescriptor integerDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Integer");
 
+        MethodDescriptor intToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.I));
         MethodDescriptor intIntToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.I, BaseTypeDescriptor.I));
         MethodDescriptor intToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.I));
 
@@ -1009,6 +1011,35 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(integerDesc, "toUnsignedLong", intToLong, toUnsignedLong);
+
+        StaticIntrinsic numberOfTrailingZeros = (builder, targetPtr, arguments) -> builder.countTrailingZeros(arguments.get(0));
+
+        intrinsics.registerIntrinsic(integerDesc, "numberOfTrailingZeros", intToInt, numberOfTrailingZeros);
+
+        StaticIntrinsic numberOfLeadingZeros = (builder, targetPtr, arguments) -> builder.countLeadingZeros(arguments.get(0));
+
+        intrinsics.registerIntrinsic(integerDesc, "numberOfLeadingZeros", intToInt, numberOfLeadingZeros);
+
+        StaticIntrinsic highestOneBit = (builder, targetPtr, arguments) -> {
+            // todo: builder.highestOneBit(arguments.get(0));
+            // for now: a0 & (MIN_VALUE >>> numberOfLeadingZeros(a0));
+            final LiteralFactory lf = builder.getLiteralFactory();
+            final TypeSystem ts = builder.getTypeSystem();
+            final UnsignedIntegerType u32 = ts.getUnsignedInteger32Type();
+            final SignedIntegerType s32 = ts.getSignedInteger32Type();
+            final IntegerLiteral bit = lf.literalOf(u32, Integer.MIN_VALUE);
+            return builder.and(arguments.get(0), builder.bitCast(builder.shr(bit, builder.bitCast(builder.countLeadingZeros(arguments.get(0)), u32)), s32));
+        };
+
+        intrinsics.registerIntrinsic(integerDesc, "highestOneBit", intToInt, highestOneBit);
+
+        StaticIntrinsic lowestOneBit = (builder, targetPtr, arguments) -> {
+            // todo: builder.lowestOneBit(arguments.get(0))
+            // for now: a0 & -a0
+            return builder.and(arguments.get(0), builder.negate(arguments.get(0)));
+        };
+
+        intrinsics.registerIntrinsic(integerDesc, "lowestOneBit", intToInt, lowestOneBit);
     }
 
     private static void registerJavaLangLongIntrinsics(CompilationContext ctxt) {
