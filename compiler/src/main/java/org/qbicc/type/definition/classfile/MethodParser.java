@@ -1463,11 +1463,23 @@ final class MethodParser {
                         // block complete
                         return;
                     }
-                    case OP_FRETURN:
-                    case OP_ARETURN:
+                    case OP_FRETURN: {
                         gf.return_(pop1());
                         // block complete
                         return;
+                    }
+                    case OP_ARETURN: {
+                        v1 = pop1();
+                        if (v1 instanceof Literal lit && lit.isZero()) {
+                            InvokableType fnType = gf.getCurrentElement().getType();
+                            ValueType returnType = fnType.getReturnType();
+                            gf.return_(lf.zeroInitializerLiteralOfType(returnType));
+                        } else {
+                            gf.return_(v1);
+                        }
+                        // block complete
+                        return;
+                    }
                     case OP_LRETURN:
                     case OP_DRETURN:
                         gf.return_(pop2());
