@@ -100,9 +100,6 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
                                     // todo: use context to resolve type variable bounds
                                     TypeDescriptor pointeeDesc = pointeeSig.asDescriptor(classCtxt);
                                     pointeeType = classCtxt.resolveTypeFromDescriptor(pointeeDesc, paramCtxt, pointeeSig);
-                                    if (pointeeType instanceof ObjectType) {
-                                        pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, paramCtxt, BaseTypeSignature.V);
-                                    }
                                 } else {
                                     ctxt.warning("Incorrect number of generic signature arguments (expected a %s but got \"%s\")", ptr.class, sig);
                                     pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, paramCtxt, BaseTypeSignature.V);
