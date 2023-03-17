@@ -155,6 +155,7 @@ import org.qbicc.plugin.reachability.ServiceLoaderAnalyzer;
 import org.qbicc.plugin.reflection.Reflection;
 import org.qbicc.plugin.reflection.ReflectionFactsSetup;
 import org.qbicc.plugin.reflection.ReflectionIntrinsics;
+import org.qbicc.plugin.reflection.ReflectiveElementRegistry;
 import org.qbicc.plugin.reflection.ReflectiveElementTypeBuilder;
 import org.qbicc.plugin.reflection.VarHandleResolvingBasicBlockBuilder;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
@@ -449,6 +450,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
                                 }
                                 builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachable);
+                                builder.addPreHook(Phase.ADD, ReflectiveElementRegistry::ensureReflectiveClassesLoaded);
                                 builder.addPreHook(Phase.ADD, compilationContext -> {
                                     if (!buildTimeInitRootClasses.isEmpty()) {
                                         for (String toInit : buildTimeInitRootClasses) {

@@ -1,8 +1,11 @@
 package org.qbicc.plugin.reflection;
 
 import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.plugin.apploader.AppClassLoader;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -139,6 +142,17 @@ public class ReflectiveElementRegistry {
             }
         }
         return false;
+    }
+
+    public static void ensureReflectiveClassesLoaded(CompilationContext ctxt) {
+        ClassContext cc = AppClassLoader.get(ctxt).getAppClassLoader().getClassContext();
+        ReflectiveElementRegistry re = ReflectiveElementRegistry.get(ctxt);
+        for (String cn: re.reflectiveClasses.keySet()) {
+            DefinedTypeDefinition dtd = cc.findDefinedType(cn);
+            if (dtd == null) {
+                ctxt.warning("Failed to load reflective class %s", cn);
+            }
+        }
     }
 
     /*
