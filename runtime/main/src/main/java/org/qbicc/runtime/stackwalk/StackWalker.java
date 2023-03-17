@@ -21,7 +21,7 @@ public final class StackWalker extends StackObject {
     @NoSafePoint
     @NoThrow
     public StackWalker() {
-        unw_context_t_ptr context_ptr = addr_of(refToPtr(this).sel().context);
+        ptr<unw_context_t> context_ptr = addr_of(deref(refToPtr(this)).context);
         if (Build.Target.isAarch64() && ! Build.Target.isMacOs()) {
             // Expand the inline assembly that `unw_getcontext` corresponds to.
             // The layout of `unw_context_t` for aarch64 has not changed since 2017 when support was first introduced.
@@ -48,14 +48,14 @@ public final class StackWalker extends StackObject {
         } else {
             unw_getcontext(context_ptr);
         }
-        unw_init_local(addr_of(refToPtr(this).sel().cursor), context_ptr);
+        unw_init_local(addr_of(deref(refToPtr(this)).cursor), context_ptr);
     }
 
     @NoSafePoint
     @NoThrow
     public StackWalker(StackWalker orig) {
-        memcpy(addr_of(refToPtr(this).sel().context).cast(), addr_of(refToPtr(orig).sel().context).cast(), sizeof(unw_context_t.class));
-        memcpy(addr_of(refToPtr(this).sel().cursor).cast(), addr_of(refToPtr(orig).sel().cursor).cast(), sizeof(unw_cursor_t.class));
+        memcpy(addr_of(deref(refToPtr(this)).context).cast(), addr_of(deref(refToPtr(orig)).context).cast(), sizeof(unw_context_t.class));
+        memcpy(addr_of(deref(refToPtr(this)).cursor).cast(), addr_of(deref(refToPtr(orig)).cursor).cast(), sizeof(unw_cursor_t.class));
         index = orig.index;
         ready = orig.ready;
     }
@@ -63,7 +63,7 @@ public final class StackWalker extends StackObject {
     @NoSafePoint
     @NoThrow
     public boolean next() {
-        if (unw_step(addr_of(refToPtr(this).sel().cursor)).isGt(zero())) {
+        if (unw_step(addr_of(deref(refToPtr(this)).cursor)).isGt(zero())) {
             index++;
             return ready = true;
         }
@@ -75,7 +75,7 @@ public final class StackWalker extends StackObject {
     public void_ptr getIp() {
         if (! ready) return zero();
         unw_word_t ip = auto();
-        unw_get_reg(addr_of(refToPtr(this).sel().cursor), UNW_REG_IP, addr_of(ip));
+        unw_get_reg(addr_of(deref(refToPtr(this)).cursor), UNW_REG_IP, addr_of(ip));
         if (Build.Target.isAarch64() && Build.Target.isMacOs()) {
             // This is the "right" thing to do, but we don't compile our code enabling pauth.
             // asm(unw_word_t.class, "xpaci $0", "=r,r", ASM_FLAG_SIDE_EFFECT, ip);
@@ -89,7 +89,7 @@ public final class StackWalker extends StackObject {
     public void_ptr getSp() {
         if (! ready) return zero();
         unw_word_t sp = auto();
-        unw_get_reg(addr_of(refToPtr(this).sel().cursor), UNW_REG_SP, addr_of(sp));
+        unw_get_reg(addr_of(deref(refToPtr(this)).cursor), UNW_REG_SP, addr_of(sp));
         return sp.cast();
     }
 
@@ -102,7 +102,7 @@ public final class StackWalker extends StackObject {
     @NoSafePoint
     @NoThrow
     public void setCursor(ptr<@c_const unw_cursor_t> ptr) {
-        memcpy(addr_of(refToPtr(this).sel().cursor).cast(), ptr.cast(), sizeof(unw_cursor_t.class));
+        memcpy(addr_of(deref(refToPtr(this)).cursor).cast(), ptr.cast(), sizeof(unw_cursor_t.class));
     }
 
     /**
@@ -114,7 +114,7 @@ public final class StackWalker extends StackObject {
     @NoSafePoint
     @NoThrow
     public void getCursor(ptr<unw_cursor_t> ptr) {
-        memcpy(ptr.cast(), addr_of(refToPtr(this).sel().cursor).cast(), sizeof(unw_cursor_t.class));
+        memcpy(ptr.cast(), addr_of(deref(refToPtr(this)).cursor).cast(), sizeof(unw_cursor_t.class));
     }
 
     @NoSafePoint

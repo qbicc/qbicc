@@ -125,7 +125,7 @@ public class Sched {
     private static ptr<__cpu_mask> getMaskPtr(size_t size, int cpu, cpu_set_t_ptr set) {
         int wordIdx = getWordIdx(cpu);
         if (wordIdx < size.intValue()) {
-            return addr_of(set.sel().__bits[wordIdx]);
+            return addr_of(deref(set).__bits[wordIdx]);
         } else {
             throw new IllegalArgumentException("Invalid CPU index");
         }
