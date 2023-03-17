@@ -185,7 +185,12 @@ final class LLVMModuleGenerator {
                     nodeVisitor.execute();
                 } else if (item instanceof Data data) {
                     Literal value = (Literal) data.getValue();
-                    Global obj = module.global(moduleVisitor.map(data.getValueType()));
+                    Global obj;
+                    if (data.isConstant()) {
+                        obj = module.constant(moduleVisitor.map(data.getValueType()));
+                    } else {
+                        obj = module.global(moduleVisitor.map(data.getValueType()));
+                    }
                     if (value != null) {
                         obj.value(moduleVisitor.map(value));
                     } else {
