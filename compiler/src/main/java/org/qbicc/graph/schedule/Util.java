@@ -29,7 +29,10 @@ public final class Util {
         Set<E> cached = setCache.get(set);
         if (cached == null) {
             cached = Util.copyOfTrusted(set);
-            setCache.put(cached, cached);
+            final Set<E> appearing = setCache.putIfAbsent(cached, cached);
+            if (appearing != null) {
+                cached = appearing;
+            }
         }
         return cached;
     }
