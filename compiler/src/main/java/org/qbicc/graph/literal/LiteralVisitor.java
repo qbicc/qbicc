@@ -96,6 +96,10 @@ public interface LiteralVisitor<T, R> {
         return visitAny(t, literal);
     }
 
+    default R visit(T t, ShortArrayLiteral literal) {
+        return visitAny(t, literal);
+    }
+
     default R visit(T t, StaticFieldLiteral literal) {
         return visitAny(t, literal);
     }
@@ -212,6 +216,10 @@ public interface LiteralVisitor<T, R> {
         }
 
         default R visit(T t, ProgramObjectLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, ShortArrayLiteral literal) {
             return getDelegateLiteralVisitor().visit(t, literal);
         }
 

@@ -123,6 +123,10 @@ public final class LLVM {
         return new ArrayImpl(elementType);
     }
 
+    public static LLValue array(LLValue elementType, short[] values) {
+        return new ShortArrayImpl((AbstractValue) elementType, values);
+    }
+
     public static LLValue global(final String name) {
         return new NamedGlobalValueOf(name);
     }

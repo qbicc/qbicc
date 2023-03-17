@@ -94,6 +94,8 @@ public interface LiteralFactory {
 
     Literal literalOf(ArrayType type, byte[] values);
 
+    Literal literalOf(ArrayType type, short[] values);
+
     Literal literalOf(CompoundType type, Map<CompoundType.Member, Literal> values);
 
     Literal bitcastLiteral(Literal value, WordType toType);
@@ -362,6 +364,20 @@ public interface LiteralFactory {
                 for (byte value : values) {
                     if (value != 0) {
                         return new ByteArrayLiteral(type, values);
+                    }
+                }
+                return zeroInitializerLiteralOfType(type);
+            }
+
+            public Literal literalOf(ArrayType type, short[] values) {
+                Assert.checkNotNullParam("type", type);
+                Assert.checkNotNullParam("values", values);
+                if (type.getElementCount() != values.length) {
+                    throw new IllegalArgumentException("Cannot construct array literal with different element count than the size of the list of values");
+                }
+                for (short value : values) {
+                    if (value != 0) {
+                        return new ShortArrayLiteral(type, values);
                     }
                 }
                 return zeroInitializerLiteralOfType(type);

@@ -77,6 +77,10 @@ public final class Values {
         return LLVM.byteArray(contents);
     }
 
+    public static LLValue array(LLValue elementType, short[] contents) {
+        return LLVM.array(elementType, contents);
+    }
+
     public static Struct struct() {
         return LLVM.struct();
     }
