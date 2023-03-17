@@ -127,6 +127,7 @@ public final class ModuleSection extends ProgramObject implements Comparable<Mod
             if (existing == null) {
                 objects.add(obj);
                 definedObjects.put(name, obj);
+                programModule.functions.add(obj);
             } else {
                 if (existing instanceof FunctionDeclaration decl) {
                     if (! decl.getSymbolType().equals(obj.getSymbolType())) {
@@ -135,6 +136,7 @@ public final class ModuleSection extends ProgramObject implements Comparable<Mod
                         obj.initDeclaration(decl);
                         objects.add(obj);
                         definedObjects.replace(name, existing, obj);
+                        programModule.functions.add(obj);
                     }
                 } else if (existing instanceof Function) {
                     twice(originalElement, name);

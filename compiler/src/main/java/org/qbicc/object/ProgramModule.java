@@ -29,6 +29,9 @@ public final class ProgramModule {
     // All module objects by name, in no particular order
     // protected by this
     final Map<String, ProgramObject> moduleObjects = new HashMap<>();
+    // All module functions in order (all sections)
+    // protected by this
+    final List<Function> functions = new ArrayList<>();
     // concurrent
     final Map<Section, ModuleSection> sections = new ConcurrentHashMap<>();
     // protected by ctors
@@ -372,5 +375,11 @@ public final class ProgramModule {
                 return decls.iterator();
             }
         };
+    }
+
+    public Function getFunction(final int fnIndex) {
+        synchronized (this) {
+            return functions.get(fnIndex);
+        }
     }
 }
