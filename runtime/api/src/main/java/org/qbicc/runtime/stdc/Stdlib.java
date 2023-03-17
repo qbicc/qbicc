@@ -36,21 +36,21 @@ public final class Stdlib {
     @NoReturn
     public static native void exit(c_int exitCode);
 
-    public static native c_int atexit(function_ptr<Runnable> function);
+    public static native c_int atexit(ptr<function<Runnable>> function);
 
     // environment - thread unsafe wrt other env-related operations
 
-    public static native char_ptr getenv(const_char_ptr name);
+    public static native ptr<c_char> getenv(ptr<@c_const c_char> name);
 
-    public static native c_int setenv(const_char_ptr name, const_char_ptr value, c_int overwrite);
+    public static native c_int setenv(ptr<@c_const c_char> name, ptr<@c_const c_char> value, c_int overwrite);
 
-    public static native c_int unsetenv(const_char_ptr name);
+    public static native c_int unsetenv(ptr<@c_const c_char> name);
 
     public static native c_int clearenv();
 
     public static final c_int EXIT_SUCCESS = constant();
     public static final c_int EXIT_FAILURE = constant();
 
-    public static native c_long strtol(const_char_ptr str, char_ptr_ptr entPtr, c_int base);
-    public static native long_long strtoll(const_char_ptr str, char_ptr_ptr entPtr, c_int base);
+    public static native c_long strtol(ptr<@c_const c_char> str, ptr<ptr<c_char>> entPtr, c_int base);
+    public static native long_long strtoll(ptr<@c_const c_char> str, ptr<ptr<c_char>> entPtr, c_int base);
 }
