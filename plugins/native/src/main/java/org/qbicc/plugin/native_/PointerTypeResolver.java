@@ -138,6 +138,9 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
             } else if (! (elemType instanceof ObjectType) && elemDesc instanceof ClassTypeDescriptor) {
                 // this means it's an array of native type (wrapped as ref type) and should be transformed to a "real" array type
                 return ctxt.getTypeSystem().getArrayType(elemType, detectArraySize(signature));
+            } else if (elemDesc instanceof ClassTypeDescriptor ctd && ctd.packageAndClassNameEquals(Native.NATIVE_PKG, Native.REFERENCE)) {
+                // it's a native array of Java references
+                return ctxt.getTypeSystem().getArrayType(((ObjectType) elemType).getReference(), detectArraySize(signature));
             }
             // else fall out
         }
