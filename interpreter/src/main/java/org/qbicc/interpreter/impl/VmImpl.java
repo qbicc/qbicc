@@ -61,8 +61,10 @@ import org.qbicc.pointer.Pointer;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.Primitive;
+import org.qbicc.type.UnresolvedType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
@@ -899,6 +901,17 @@ public final class VmImpl implements Vm {
         VmObject mt = cl.methodTypeCache.get(methodDescriptor);
         if (mt != null) {
             return mt;
+        }
+        // If the element's type contains an UnresolvedType, we can't create the MethodType object.
+        // Leave the MethodType as null and an error will be raised at runtime if/when it is used.
+        InvokableType it = element.getType();
+        if (it.getReturnType() instanceof UnresolvedType) {
+            return null;
+        }
+        for (ValueType paramType : it.getParameterTypes()) {
+            if (paramType instanceof UnresolvedType) {
+                return null;
+            }
         }
         VmClassImpl methodTypeClass = bootstrapClassLoader.loadClass("java/lang/invoke/MethodType");
         // construct it via factory method
