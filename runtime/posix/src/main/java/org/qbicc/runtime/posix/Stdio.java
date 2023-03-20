@@ -8,5 +8,5 @@ import static org.qbicc.runtime.stdc.Stdio.*;
 @include("<stdio.h>")
 @define(value = "_POSIX_C_SOURCE", as = "200809L")
 public class Stdio {
-    public static native ssize_t getline(ptr<ptr<c_char>> linep, ptr<size_t> linecap, FILE_ptr stream);
+    public static native ssize_t getline(ptr<ptr<c_char>> linep, ptr<size_t> linecap, ptr<FILE> stream);
 }
