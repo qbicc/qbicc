@@ -42,6 +42,7 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.MethodBodyFactory;
+import org.qbicc.type.definition.VerifyFailedException;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -485,6 +486,7 @@ public final class ReflectionIntrinsics {
         ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor jloDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor jlsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
+        ClassTypeDescriptor cnfeDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ClassNotFoundException");
         ClassTypeDescriptor jlrCtorDesc =  ClassTypeDescriptor.synthesize(classContext, "java/lang/reflect/Constructor");
         ClassTypeDescriptor jlrFieldDesc =  ClassTypeDescriptor.synthesize(classContext, "java/lang/reflect/Field");
         ClassTypeDescriptor jlrMethodDesc =  ClassTypeDescriptor.synthesize(classContext, "java/lang/reflect/Method");
@@ -500,8 +502,18 @@ public final class ReflectionIntrinsics {
                 String internalName = sl.getValue().replace('.', '/');
                 DefinedTypeDefinition dtd = builder.getCurrentClassContext().findDefinedType(internalName);
                 if (dtd != null) {
-                    Value cls = builder.getFirstBuilder().classOf(dtd.load().getObjectType());
-                    builder.getFirstBuilder().initializeClass(cls); // Class.forName causes class initialization; preserve those semantics for interpreter
+                    final LoadedTypeDefinition loaded;
+                    final BasicBlockBuilder fb = builder.getFirstBuilder();
+                    try {
+                        loaded = dtd.load();
+                    } catch (VerifyFailedException e) {
+                        // it will always fail
+                        final Value ex = fb.new_(cnfeDesc);
+                        fb.call(fb.resolveConstructor(cnfeDesc, MethodDescriptor.VOID_METHOD_DESCRIPTOR), ex, List.of());
+                        throw new BlockEarlyTermination(fb.throw_(ex));
+                    }
+                    Value cls = fb.classOf(loaded.getObjectType());
+                    fb.initializeClass(cls); // Class.forName causes class initialization; preserve those semantics for interpreter
                     return cls;
                 }
             }
