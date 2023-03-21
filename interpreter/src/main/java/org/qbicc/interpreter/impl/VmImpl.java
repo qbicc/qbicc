@@ -202,7 +202,7 @@ public final class VmImpl implements Vm {
         LayoutInfo stringLayout = layout.getInstanceLayoutInfo(stringDef);
         stringCoderOffset = stringLayout.getMember(coderField).getOffset();
         stringValueOffset = stringLayout.getMember(valueField).getOffset();
-        toStringMethod = objectClass.getTypeDefinition().resolveMethodElementExact("toString", MethodDescriptor.synthesize(bcc, stringDef.getDescriptor(), List.of()));
+        toStringMethod = objectClass.getTypeDefinition().resolveMethodElementExact(bcc, "toString", MethodDescriptor.synthesize(bcc, stringDef.getDescriptor(), List.of()));
         threadClass = new VmThreadClassImpl(this, bcc.findDefinedType("java/lang/Thread").load());
         throwableClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/Throwable").load());
 
@@ -946,7 +946,7 @@ public final class VmImpl implements Vm {
     }
 
     @Override
-    public VmObject createMethodHandle(ClassContext classContext, MethodHandleConstant constant) throws Thrown {
+    public VmObject createMethodHandle(ClassContext classContext, VmClass caller, MethodHandleConstant constant) throws Thrown {
         Assert.checkNotNullParam("classContext", classContext);
         Assert.checkNotNullParam("constant", constant);
         // for this operation we have to call the factory method for a direct method handle, which means a VM thread must be active.
@@ -1012,7 +1012,7 @@ public final class VmImpl implements Vm {
         // (List.of() forbids null values)
         mn = (VmObject) invokeExact(mhnDef.requireSingleMethod("resolve"), mn, Arrays.asList(
             mn,
-            null, // caller unused in our impl (todo: add caller arg to VM.createMethodHandle)
+            caller,
             Integer.valueOf(-1), // trusted
             Boolean.FALSE // no speculative resolve
         ));
@@ -1080,9 +1080,11 @@ public final class VmImpl implements Vm {
                 MethodElement longValueOf = valueOfMethod(bootstrapClassLoader.loadClass("java/lang/Long"), type.asSigned());
                 return (VmObject) invokeExact(longValueOf, null, List.of(Long.valueOf(integerLiteral.longValue())));
             }
-        } else if (literal instanceof MethodHandleLiteral) {
-            MethodHandleLiteral mhLiteral = (MethodHandleLiteral) literal;
-            return createMethodHandle(classContext, mhLiteral.getMethodHandleConstant());
+        } else if (literal instanceof MethodHandleLiteral mhLiteral) {
+            VmThreadImpl thread = (VmThreadImpl) Vm.requireCurrentThread();
+            final Frame currentFrame = thread.currentFrame;
+            final VmClass caller = currentFrame == null ? null : currentFrame.element.getEnclosingType().load().getVmClass();
+            return createMethodHandle(classContext, caller, mhLiteral.getMethodHandleConstant());
         } else if (literal instanceof NullLiteral) {
             return null;
         } else if (literal instanceof ObjectLiteral) {
@@ -1091,49 +1093,6 @@ public final class VmImpl implements Vm {
             return intern(((StringLiteral) literal).getValue());
         } else if (literal instanceof TypeLiteral tl && tl.getValue() instanceof ClassObjectType cot) {
             return cot.getDefinition().load().getVmClass();
-        } else {
-            throw new UnsupportedOperationException("Boxing literal of type " + literal.getClass());
-        }
-    }
-
-    @Override
-    public Object boxThin(ClassContext classContext, Literal literal) {
-        Assert.checkNotNullParam("literal", literal);
-        if (literal instanceof BooleanLiteral bl) {
-            return Boolean.valueOf(bl.booleanValue());
-        } else if (literal instanceof ByteArrayLiteral) {
-            byte[] values = ((ByteArrayLiteral) literal).getValues();
-            return newByteArray(values.clone());
-        } else if (literal instanceof FloatLiteral fl) {
-            FloatType type = fl.getType();
-            if (type.getMinBits() == 32) {
-                return Float.valueOf(fl.floatValue());
-            } else {
-                return Double.valueOf(fl.doubleValue());
-            }
-        } else if (literal instanceof IntegerLiteral il) {
-            // lots of possibilities here
-            IntegerType type = il.getType();
-            if (type instanceof UnsignedIntegerType && type.getMinBits() == 16) {
-                return Character.valueOf(il.charValue());
-            } else if (type.getMinBits() == 8) {
-                return Byte.valueOf(il.byteValue());
-            } else if (type.getMinBits() == 16) {
-                return Short.valueOf(il.shortValue());
-            } else if (type.getMinBits() == 32) {
-                return Integer.valueOf(il.intValue());
-            } else {
-                assert type.getMinBits() == 64;
-                return Long.valueOf(il.longValue());
-            }
-        } else if (literal instanceof MethodHandleLiteral mhLiteral) {
-            return createMethodHandle(classContext, mhLiteral.getMethodHandleConstant());
-        } else if (literal instanceof NullLiteral) {
-            return null;
-        } else if (literal instanceof ObjectLiteral ol) {
-            return ol.getValue();
-        } else if (literal instanceof StringLiteral sl) {
-            return intern(sl.getValue());
         } else {
             throw new UnsupportedOperationException("Boxing literal of type " + literal.getClass());
         }
@@ -1336,7 +1295,7 @@ public final class VmImpl implements Vm {
     private VmInvokable getVirtualInvoker(MethodElement element, VmObject instance) {
         VmClassImpl instanceClass = (VmClassImpl) instance.getVmClass();
         LoadedTypeDefinition instanceDef = instanceClass.getTypeDefinition();
-        MethodElement target = instanceDef.resolveMethodElementVirtual(element.getName(), element.getDescriptor(), true);
+        MethodElement target = instanceDef.resolveMethodElementVirtual(instanceDef.getContext(), element.getName(), element.getDescriptor(), true);
         if (target == null) {
             throw new Thrown(noSuchMethodErrorClass.newInstance(element.getName()));
         }

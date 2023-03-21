@@ -2252,7 +2252,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
         PhysicalObjectType ot = refVal.getObjectType();
         LoadedTypeDefinition baseDef = ot.getDefinition().load();
-        InstanceMethodElement result = (InstanceMethodElement) baseDef.resolveMethodElementVirtual(methodElement.getName(), methodElement.getDescriptor());
+        InstanceMethodElement result = (InstanceMethodElement) baseDef.resolveMethodElementVirtual(baseDef.getContext(), methodElement.getName(), methodElement.getDescriptor());
         if (result == null) {
             throw new Thrown(thread.vm.noSuchMethodErrorClass.newInstance());
         }
@@ -2268,7 +2268,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         }
         PhysicalObjectType ot = refVal.getObjectType();
         LoadedTypeDefinition baseDef = ot.getDefinition().load();
-        InstanceMethodElement result = (InstanceMethodElement) baseDef.resolveMethodElementVirtual(methodElement.getName(), methodElement.getDescriptor());
+        InstanceMethodElement result = (InstanceMethodElement) baseDef.resolveMethodElementVirtual(baseDef.getContext(), methodElement.getName(), methodElement.getDescriptor());
         if (result == null) {
             throw new Thrown(thread.vm.noSuchMethodErrorClass.newInstance());
         }

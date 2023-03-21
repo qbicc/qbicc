@@ -20,7 +20,6 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
-import org.qbicc.interpreter.Memory;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.ReferenceType;
@@ -91,6 +90,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     final String nestHostClassName;
     final String[] nestMemberClassNames;
     final int hiddenClassIndex;
+    private final LeafTypeId typeId;
 
     private volatile DefinedTypeDefinition loaded;
 
@@ -155,6 +155,8 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         hiddenClassIndex = builder.hiddenClassIndex;
         byte[] digest = builder.digest;
         this.digest = digest == null ? EMPTY_DIGEST : digest.clone();
+        // last
+        this.typeId = new LeafTypeId(this);
     }
 
     public ClassContext getContext() {
@@ -342,7 +344,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                             BasicBlock entryBlock = bbb.begin(entryLabel, ib -> {
                                                 ClassContext bc = ib.getContext().getBootstrapClassContext();
                                                 LoadedTypeDefinition vmHelpers = bc.findDefinedType("org/qbicc/runtime/main/VMHelpers").load();
-                                                MethodElement icce = vmHelpers.resolveMethodElementExact("raiseIncompatibleClassChangeError", MethodDescriptor.synthesize(bc, BaseTypeDescriptor.V, List.of()));
+                                                MethodElement icce = vmHelpers.resolveMethodElementExact(context, "raiseIncompatibleClassChangeError", MethodDescriptor.synthesize(bc, BaseTypeDescriptor.V, List.of()));
                                                 ib.callNoReturn(ib.getLiteralFactory().literalOf(icce), List.of());
                                             });
                                             // that's all
@@ -595,6 +597,11 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
     public byte[] getDigest() {
         return digest.clone();
+    }
+
+    @Override
+    public LeafTypeId typeId() {
+        return typeId;
     }
 
     public boolean hasSuperClass() {

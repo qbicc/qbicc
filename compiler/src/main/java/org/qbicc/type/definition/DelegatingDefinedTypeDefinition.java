@@ -116,6 +116,10 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
         return getDelegate().getDigest();
     }
 
+    public LeafTypeId typeId() {
+        return getDelegate().typeId();
+    }
+
     public int hashCode() {
         return getDelegate().hashCode();
     }

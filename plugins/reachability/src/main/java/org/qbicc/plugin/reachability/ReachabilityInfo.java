@@ -11,7 +11,6 @@ import org.jboss.logging.Logger;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.facts.Facts;
-import org.qbicc.facts.core.ExecutableReachabilityFacts;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
@@ -19,7 +18,6 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
-import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.definition.element.StaticMethodElement;
 
 /**
@@ -331,7 +329,7 @@ public class ReachabilityInfo {
             for (MethodElement im : type.getInstanceMethods()) {
                 if (!isDispatchableMethod(im)) {
                     if (type.hasSuperClass()) {
-                        MethodElement overiddenMethod = type.getSuperClass().resolveMethodElementVirtual(im.getName(), im.getDescriptor());
+                        MethodElement overiddenMethod = type.getSuperClass().resolveMethodElementVirtual(type.getContext(), im.getName(), im.getDescriptor());
                         if (overiddenMethod != null && isDispatchableMethod(overiddenMethod)) {
                             ReachabilityInfo.LOGGER.debugf("\tnewly reachable class: dispatchable method %s from %s", im, type.getSuperClass());
                             analysis.processReachableDispatchedInvocation(im, null);
@@ -382,7 +380,7 @@ public class ReachabilityInfo {
                     if (c.isInterface()) {
                         cand = c.resolveMethodElementInterface(meth.getName(), meth.getDescriptor());
                     } else {
-                        cand = c.resolveMethodElementVirtual(meth.getName(), meth.getDescriptor());
+                        cand = c.resolveMethodElementVirtual(definingClass.getContext(), meth.getName(), meth.getDescriptor());
                     }
                     if (cand != null && !isDispatchableMethod(cand)) {
                         ReachabilityInfo.LOGGER.debugf("\tnewly dispatchable method due to down propagation: %s", cand);
@@ -393,7 +391,7 @@ public class ReachabilityInfo {
                 // Traverse the instantiated subclasses of target's defining class and
                 // ensure that all overriding implementations of this method are marked dispatchable.
                 visitReachableSubclassesPreOrder(definingClass, (sc) -> {
-                    MethodElement cand = sc.resolveMethodElementVirtual(meth.getName(), meth.getDescriptor());
+                    MethodElement cand = sc.resolveMethodElementVirtual(definingClass.getContext(), meth.getName(), meth.getDescriptor());
                     if (cand != null && !isDispatchableMethod(cand)) {
                         ReachabilityInfo.LOGGER.debugf("\tnewly dispatchable method due to down propagation: %s", cand);
                         analysis.processReachableDispatchedInvocation(cand, null);
@@ -404,7 +402,7 @@ public class ReachabilityInfo {
                 // mechanism does not have the strong identical-prefix requirements for superinterfaces that vtables do for superclasses.
                 LoadedTypeDefinition ancestor = definingClass.getSuperClass();
                 while (ancestor != null) {
-                    MethodElement cand = ancestor.resolveMethodElementVirtual(meth.getName(), meth.getDescriptor());
+                    MethodElement cand = ancestor.resolveMethodElementVirtual(definingClass.getContext(), meth.getName(), meth.getDescriptor());
                     if (cand != null && !isDispatchableMethod(cand)) {
                         ReachabilityInfo.LOGGER.debugf("\tnewly dispatchable method due to up propagation: %s", cand);
                         analysis.processReachableDispatchedInvocation(cand, null);

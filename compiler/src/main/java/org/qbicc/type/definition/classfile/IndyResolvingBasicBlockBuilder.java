@@ -98,13 +98,14 @@ public class IndyResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             VmReferenceArray appendixResult = vm.newArrayOf(objectClass, 1);
             MethodElement linkCallSite = ctxt.findDefinedType("java/lang/invoke/MethodHandleNatives").load().requireSingleMethod("linkCallSite");
             // 2. call into the VM to link the call site
+            final VmClass caller = getCurrentElement().getEnclosingType().load().getVmClass();
             vm.invokeExact(
                 linkCallSite,
                 null,
                 List.of(
                     gf.getCurrentElement().getEnclosingType().load().getVmClass(),
                     Integer.valueOf(-1), // not used
-                    vm.createMethodHandle(ctxt, bootstrapHandle),
+                    vm.createMethodHandle(ctxt, caller, bootstrapHandle),
                     vm.intern(name),
                     vm.createMethodType(ctxt, descriptor),
                     args,

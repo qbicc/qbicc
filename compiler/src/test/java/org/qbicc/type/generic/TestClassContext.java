@@ -39,11 +39,13 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.MethodTypeId;
 import org.qbicc.type.definition.NativeMethodConfigurator;
 import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.MemberElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
@@ -351,6 +353,10 @@ public class TestClassContext implements ClassContext {
 
     public String deduplicate(final String original) {
         return original.intern();
+    }
+
+    public MethodTypeId resolveMethodType(MethodDescriptor descriptor) {
+        return null;
     }
 
     public TypeSystem getTypeSystem() {

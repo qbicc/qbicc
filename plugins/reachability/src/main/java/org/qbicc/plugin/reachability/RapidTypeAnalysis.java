@@ -172,7 +172,7 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
 
         for (MethodElement dm : deferredDispatchableMethods ) {
             if (type.isSubtypeOf(dm.getEnclosingType().load())) {
-                MethodElement cand = type.resolveMethodElementVirtual(dm.getName(), dm.getDescriptor());
+                MethodElement cand = type.resolveMethodElementVirtual(type.getContext(), dm.getName(), dm.getDescriptor());
                 if (cand != null && cand.equals(dm)) {
                     ReachabilityInfo.LOGGER.debugf("\tDeferred dispatchable method %s is now invokable)", dm);
                     toRemove.add(dm);
@@ -217,7 +217,7 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         boolean[] ans = { false };
         info.visitReachableSubclassesPreOrder(definingType, sc -> {
             if (instantiatedClasses.contains(sc)) {
-                MethodElement cand = sc.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
+                MethodElement cand = sc.resolveMethodElementVirtual(definingType.getContext(), target.getName(), target.getDescriptor());
                 if (cand != null && cand.equals(target)) {
                     ans[0] = true;
                 }

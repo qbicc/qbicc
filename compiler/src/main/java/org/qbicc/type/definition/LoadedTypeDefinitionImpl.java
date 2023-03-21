@@ -14,6 +14,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.context.ClassContext;
 import org.qbicc.graph.Value;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
@@ -54,14 +55,13 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
     private final NestedClassElement[] enclosedClasses;
     private final DefinedTypeDefinition nestHost;
     private final DefinedTypeDefinition[] nestMembers;
-    private int typeId = -1;
     private int maximumSubtypeId = -1;
     private final boolean hasDefaultMethods;
     private final boolean declaresDefaultMethods;
     private volatile VmClass vmClass;
     private LoadedTypeDefinition enclosingMethodClass;
     private MethodElement enclosingMethod;
-    private volatile Map<MethodElement, Map<MethodDescriptor, MethodElement>> sigPolyMethods = null;
+    private volatile Map<MethodElement, Map<MethodTypeId, MethodElement>> sigPolyMethods = null;
 
     LoadedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final LoadedTypeDefinition superType, final LoadedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final MethodElement[] instanceMethods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses, DefinedTypeDefinition nestHost, DefinedTypeDefinition[] nestMembers) {
         this.delegate = delegate;
@@ -223,10 +223,16 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
     }
 
     @Override
-    public MethodElement expandSigPolyMethod(MethodElement original, MethodDescriptor descriptor) {
+    public MethodElement expandSigPolyMethod(ClassContext resolvingContext, MethodElement original, MethodDescriptor descriptor) {
         if (original.isSignaturePolymorphic()) {
+            MethodTypeId methodType = resolvingContext.resolveMethodType(descriptor);
+            if (methodType == null) {
+                // no sigpoly is really possible
+                return null;
+            }
             // find or realize a copy of the signature-polymorphic method
-            return getSigPolyMethods().computeIfAbsent(original, LoadedTypeDefinitionImpl::newMap).computeIfAbsent(descriptor, desc -> {
+            return getSigPolyMethods().computeIfAbsent(original, LoadedTypeDefinitionImpl::newMap).computeIfAbsent(methodType, mt -> {
+                final MethodDescriptor desc = mt.getDescriptor();
                 MethodElement.Builder builder = MethodElement.builder(original.getName(), desc, original.getIndex());
                 builder.setSignature(MethodSignature.synthesize(getContext(), desc));
                 builder.setEnclosingType(original.getEnclosingType());
@@ -260,8 +266,8 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
         return new ConcurrentHashMap<>();
     }
 
-    private Map<MethodElement, Map<MethodDescriptor, MethodElement>> getSigPolyMethods() {
-        Map<MethodElement, Map<MethodDescriptor, MethodElement>> sigPolyMethods = this.sigPolyMethods;
+    private Map<MethodElement, Map<MethodTypeId, MethodElement>> getSigPolyMethods() {
+        Map<MethodElement, Map<MethodTypeId, MethodElement>> sigPolyMethods = this.sigPolyMethods;
         if (sigPolyMethods == null) {
             synchronized (this) {
                 sigPolyMethods = this.sigPolyMethods;
@@ -275,9 +281,9 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
 
     @Override
     public <T> void forEachSigPolyInstanceMethod(T arg, BiConsumer<T, ? super InstanceMethodElement> consumer) {
-        Map<MethodElement, Map<MethodDescriptor, MethodElement>> sigPolyMethods = this.sigPolyMethods;
+        Map<MethodElement, Map<MethodTypeId, MethodElement>> sigPolyMethods = this.sigPolyMethods;
         if (sigPolyMethods != null) {
-            for (Map<MethodDescriptor, MethodElement> subMap : sigPolyMethods.values()) {
+            for (Map<MethodTypeId, MethodElement> subMap : sigPolyMethods.values()) {
                 for (MethodElement element : subMap.values()) {
                     if (element instanceof InstanceMethodElement ime) {
                         consumer.accept(arg, ime);
@@ -289,9 +295,9 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
 
     @Override
     public <T> void forEachSigPolyMethod(T arg, BiConsumer<T, ? super MethodElement> consumer) {
-        Map<MethodElement, Map<MethodDescriptor, MethodElement>> sigPolyMethods = this.sigPolyMethods;
+        Map<MethodElement, Map<MethodTypeId, MethodElement>> sigPolyMethods = this.sigPolyMethods;
         if (sigPolyMethods != null) {
-            for (Map<MethodDescriptor, MethodElement> subMap : sigPolyMethods.values()) {
+            for (Map<MethodTypeId, MethodElement> subMap : sigPolyMethods.values()) {
                 for (MethodElement element : subMap.values()) {
                     consumer.accept(arg, element);
                 }
@@ -314,7 +320,7 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
     // next stage
 
     public int getTypeId() {
-        return typeId;
+        return typeId().getTypeIdValue();
     }
 
     public int getMaximumSubtypeId() {
@@ -322,13 +328,11 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
     }
 
     public boolean isTypeIdValid() {
-        return typeId != -1;
+        return typeId().hasTypeIdValue();
     }
 
     public void assignTypeId(int myTypeId) {
-        // typeId shouldn't hae already been assigned
-        Assert.assertTrue(typeId == -1);
-        typeId = myTypeId;
+        typeId().setTypeIdValue(myTypeId);
     }
 
     public void assignMaximumSubtypeId(int subTypeId) {

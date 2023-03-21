@@ -62,7 +62,7 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
             return null;
         }
         LoadedTypeDefinition definition = classType.getDefinition().load();
-        InstanceMethodElement virtual = (InstanceMethodElement) definition.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
+        InstanceMethodElement virtual = (InstanceMethodElement) definition.resolveMethodElementVirtual(getCurrentClassContext(), target.getName(), target.getDescriptor());
         if (virtual != null) {
             log.debugf("Deinterfacing call to %s::%s", target.getEnclosingType().getDescriptor(), target.getName());
             return virtual;
