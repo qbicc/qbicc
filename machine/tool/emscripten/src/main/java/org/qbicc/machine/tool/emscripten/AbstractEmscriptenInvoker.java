@@ -112,7 +112,7 @@ abstract class AbstractEmscriptenInvoker implements MessagingToolInvoker {
         }
         pb.environment().put("LC_ALL", "C");
         pb.environment().put("LANG", "C");
-        LOGGER.info(String.join(" ", cmd));
+        LOGGER.debug(String.join(" ", cmd));
         getSource().transferTo(OutputDestination.of(pb, errorHandler, OutputDestination.discarding(), p -> {
             int ev = p.exitValue();
             if (ev != 0) {
