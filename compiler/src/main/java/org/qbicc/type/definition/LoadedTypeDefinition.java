@@ -4,6 +4,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import org.qbicc.context.ClassContext;
 import org.qbicc.graph.Value;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.type.ClassObjectType;
@@ -213,12 +214,14 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
     /**
      * Expand a possibly signature-polymorphic method into its realized form. If the method is not
      * signature-polymorphic, the original method is returned.
+     * If the method is not resolvable, {@code null} is returned.
      *
+     * @param resolvingContext the class context which is resolving the method (must not be {@code null})
      * @param original the original method (must not be {@code null})
      * @param callSiteDescriptor the call site descriptor (must not be {@code null})
-     * @return the realized method
+     * @return the realized method, or {@code null} if it is not resolvable
      */
-    MethodElement expandSigPolyMethod(MethodElement original, MethodDescriptor callSiteDescriptor);
+    MethodElement expandSigPolyMethod(ClassContext resolvingContext, MethodElement original, MethodDescriptor callSiteDescriptor);
 
     /**
      * Get the method index of the exactly matching method on this class.  If the method is not directly present on this class,
@@ -301,16 +304,16 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         return requireSingleMethod(me -> me.nameEquals(name) && me.getParameters().size() == argCnt);
     }
 
-    default MethodElement resolveMethodElementExact(String name, MethodDescriptor descriptor) {
+    default MethodElement resolveMethodElementExact(ClassContext resolvingContext, String name, MethodDescriptor descriptor) {
         int idx = findMethodIndex(name, descriptor);
-        return idx == -1 ? null : expandSigPolyMethod(getMethod(idx), descriptor);
+        return idx == -1 ? null : expandSigPolyMethod(resolvingContext, getMethod(idx), descriptor);
     }
 
-    default MethodElement resolveMethodElementVirtual(String name, MethodDescriptor descriptor) {
-        return resolveMethodElementVirtual(name, descriptor, true);
+    default MethodElement resolveMethodElementVirtual(ClassContext resolvingContext, String name, MethodDescriptor descriptor) {
+        return resolveMethodElementVirtual(resolvingContext, name, descriptor, true);
     }
 
-    default MethodElement resolveMethodElementVirtual(String name, MethodDescriptor descriptor, boolean includePrivate) {
+    default MethodElement resolveMethodElementVirtual(ClassContext resolvingContext, String name, MethodDescriptor descriptor, boolean includePrivate) {
         // JVMS 5.4.4.3
 
         // 1. If C is an interface, method resolution throws an IncompatibleClassChangeError.
@@ -334,7 +337,7 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
 
         int result = findMethodIndex(name, descriptor, includePrivate);
         if (result != -1) {
-            return expandSigPolyMethod(getMethod(result), descriptor);
+            return expandSigPolyMethod(resolvingContext, getMethod(result), descriptor);
         }
 
         // 2.c Otherwise, if C has a superclass, step 2 of method resolution is recursively
@@ -344,7 +347,7 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
 
         LoadedTypeDefinition superClass = getSuperClass();
         if ( superClass != null ) {
-            MethodElement superCandidate = superClass.resolveMethodElementVirtual(name, descriptor, false);
+            MethodElement superCandidate = superClass.resolveMethodElementVirtual(resolvingContext, name, descriptor, false);
             if ( superCandidate != null ) {
                 return superCandidate;
             }

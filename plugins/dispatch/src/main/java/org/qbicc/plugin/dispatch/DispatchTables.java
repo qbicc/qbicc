@@ -342,7 +342,7 @@ public class DispatchTables {
 
             HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
             for (int i = 0; i < itable.length; i++) {
-                MethodElement methImpl = cls.resolveMethodElementVirtual(itable[i].getName(), itable[i].getDescriptor());
+                MethodElement methImpl = cls.resolveMethodElementVirtual(cls.getContext(), itable[i].getName(), itable[i].getDescriptor());
                 FunctionType implType = ctxt.getFunctionTypeForElement(methImpl);
                 if (methImpl == null) {
                     MethodElement icceStub = methodFinder.getMethod("raiseIncompatibleClassChangeError");

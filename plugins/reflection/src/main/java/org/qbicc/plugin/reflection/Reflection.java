@@ -122,6 +122,7 @@ public final class Reflection {
     private final VmClass constructorClass;
     private final VmClass rmnClass;
     private final VmClass memberNameClass;
+    private final VmThrowableClass nullPointerExceptionClass;
     private final VmThrowableClass linkageErrorClass;
     private final VmThrowableClass invocationTargetExceptionClass;
     private final VmClass byteClass;
@@ -317,6 +318,8 @@ public final class Reflection {
         linkageErrorClass = (VmThrowableClass) leDef.getVmClass();
         LoadedTypeDefinition iteDef = classContext.findDefinedType("java/lang/reflect/InvocationTargetException").load();
         invocationTargetExceptionClass = (VmThrowableClass) iteDef.getVmClass();
+        LoadedTypeDefinition npeDef = classContext.findDefinedType("java/lang/NullPointerException").load();
+        nullPointerExceptionClass = (VmThrowableClass) npeDef.getVmClass();
 
         // MethodType
         LoadedTypeDefinition mtDef = classContext.findDefinedType("java/lang/invoke/MethodType").load();
@@ -1078,13 +1081,19 @@ public final class Reflection {
         VmClass caller = (VmClass) args.get(1);
         boolean speculativeResolve = args.get(3) instanceof Boolean bv ? bv.booleanValue() : (((Number) args.get(3)).intValue() & 1) != 0;
         VmClass clazz = (VmClass) memberName.getMemory().loadRef(memberName.indexOf(memberNameClazzField), SinglePlain);
+        if (clazz == null) {
+            throw new Thrown(nullPointerExceptionClass.newInstance("`clazz` is null"));
+        }
         VmString name = (VmString) memberName.getMemory().loadRef(memberName.indexOf(memberNameNameField), SinglePlain);
+        if (name == null) {
+            throw new Thrown(nullPointerExceptionClass.newInstance("`name` is null"));
+        }
         VmObject type = memberName.getMemory().loadRef(memberName.indexOf(memberNameTypeField), SinglePlain);
+        if (type == null) {
+            throw new Thrown(nullPointerExceptionClass.newInstance("`type` is null"));
+        }
         int flags = memberName.getMemory().load32(memberName.indexOf(memberNameFlagsField), SinglePlain);
         int kind = (flags >> KIND_SHIFT) & KIND_MASK;
-        if (clazz == null || name == null || type == null) {
-            throw new Thrown(linkageErrorClass.newInstance("Null name or class"));
-        }
         LoadedTypeDefinition typeDefinition = clazz.getTypeDefinition();
         ClassContext classContext = typeDefinition.getContext();
         // determine what kind of thing we're resolving
@@ -1152,20 +1161,21 @@ public final class Reflection {
             } else if (((flags & IS_METHOD) != 0)){
                 // resolve
                 MethodElement resolved;
+                final ClassContext resolvingContext = caller == null ? ctxt.getBootstrapClassContext() : caller.getTypeDefinition().getContext();
                 // todo: consider visibility, caller
                 if (kind == KIND_INVOKE_STATIC) {
                     // use virtual algorithm to find static
-                    resolved = typeDefinition.isInterface() ? typeDefinition.resolveMethodElementInterface(name.getContent(), desc) : typeDefinition.resolveMethodElementVirtual(name.getContent(), desc);
+                    resolved = typeDefinition.isInterface() ? typeDefinition.resolveMethodElementInterface(name.getContent(), desc) : typeDefinition.resolveMethodElementVirtual(resolvingContext, name.getContent(), desc);
                     // todo: ICCE check...
                 } else if (kind == KIND_INVOKE_INTERFACE) {
                     // interface also uses virtual resolution - against the target class
-                    resolved = typeDefinition.isInterface() ? typeDefinition.resolveMethodElementInterface(name.getContent(), desc) : typeDefinition.resolveMethodElementVirtual(name.getContent(), desc);
+                    resolved = typeDefinition.isInterface() ? typeDefinition.resolveMethodElementInterface(name.getContent(), desc) : typeDefinition.resolveMethodElementVirtual(resolvingContext, name.getContent(), desc);
                     // todo: ICCE check...
                 } else if (kind == KIND_INVOKE_SPECIAL) {
-                    resolved = typeDefinition.resolveMethodElementExact(name.getContent(), desc);
+                    resolved = typeDefinition.resolveMethodElementExact(resolvingContext, name.getContent(), desc);
                     // todo: ICCE check...
                 } else if (kind == KIND_INVOKE_VIRTUAL) {
-                    resolved = typeDefinition.resolveMethodElementVirtual(name.getContent(), desc);
+                    resolved = typeDefinition.resolveMethodElementVirtual(resolvingContext, name.getContent(), desc);
                     // todo: ICCE check...
                 } else {
                     throw new Thrown(linkageErrorClass.newInstance("Unknown handle kind"));

@@ -40,13 +40,13 @@ public final class Linker {
 
     public List<Map.Entry<LoadedTypeDefinition, Path>> getObjectFilePathsWithTypeInLinkOrder() {
         final ArrayList<Map.Entry<LoadedTypeDefinition, Path>> list = new ArrayList<>(objectPathsByType.entrySet());
-        list.sort(Comparator.comparingInt(a -> a.getKey().getTypeId()));
+        list.sort(Comparator.comparingInt(entry -> entry.getKey().typeId().getTypeIdValueElse(Integer.MAX_VALUE)));
         return list;
     }
 
     public List<Path> getObjectFilePathsInLinkOrder() {
         List<LoadedTypeDefinition> types = new ArrayList<>(objectPathsByType.keySet());
-        types.sort(Comparator.comparingInt(LoadedTypeDefinition::getTypeId));
+        types.sort(Comparator.comparingInt(def -> def.typeId().getTypeIdValueElse(Integer.MAX_VALUE)));
         List<Path> sortedPaths = new ArrayList<>(types.size());
         for (LoadedTypeDefinition type : types) {
             sortedPaths.add(objectPathsByType.get(type));

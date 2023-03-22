@@ -293,7 +293,7 @@ public final class VFS {
         ClassContext classContext = ctxt.getBootstrapClassContext();
         ClassTypeDescriptor stringDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         MethodDescriptor toStringDesc = MethodDescriptor.synthesize(classContext, stringDesc, List.of());
-        MethodElement toStringMethod = pathObj.getVmClass().getTypeDefinition().resolveMethodElementVirtual("toString", toStringDesc);
+        MethodElement toStringMethod = pathObj.getVmClass().getTypeDefinition().resolveMethodElementVirtual(classContext, "toString", toStringDesc);
         VmString str = (VmString) vm.invokeExact(toStringMethod, pathObj, List.of());
         return str.getContent();
     }

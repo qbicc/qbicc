@@ -83,7 +83,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 element = definedType.load().resolveMethodElementInterface(name, descriptor);
             } else {
                 // use 5.4.3.3 rules
-                element = definedType.load().resolveMethodElementVirtual(name, descriptor);
+                element = definedType.load().resolveMethodElementVirtual(getClassContext(), name, descriptor);
             }
             if (element == null) {
                 throw new BlockEarlyTermination(nsme(name));
@@ -101,7 +101,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         DefinedTypeDefinition definedType = resolveDescriptor(owner);
         if (definedType != null) {
             // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
-            MethodElement element = definedType.load().resolveMethodElementVirtual(name, descriptor);
+            MethodElement element = definedType.load().resolveMethodElementVirtual(getClassContext(), name, descriptor);
             if (element == null) {
                 throw new BlockEarlyTermination(nsme(name));
             } else {
@@ -141,7 +141,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 element = definedType.load().resolveMethodElementInterface(name, descriptor);
             } else {
                 // use 5.4.3.3 rules
-                element = definedType.load().resolveMethodElementVirtual(name, descriptor);
+                element = definedType.load().resolveMethodElementVirtual(getClassContext(), name, descriptor);
             }
             if (element == null) {
                 throw new BlockEarlyTermination(nsme(name));

@@ -1,6 +1,7 @@
 package org.qbicc.driver;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -18,7 +19,10 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefineFailedException;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
+import org.qbicc.type.definition.MethodTypeId;
+import org.qbicc.type.definition.TypeId;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
@@ -106,6 +110,32 @@ final class ClassContextImpl implements ClassContext {
 
     public String deduplicate(final String original) {
         return compilationContext.deduplicate(original);
+    }
+
+    @Override
+    public MethodTypeId resolveMethodType(MethodDescriptor descriptor) {
+        TypeId returnTypeId = resolveDescriptor(descriptor.getReturnType());
+        if (returnTypeId == null) {
+            return null;
+        }
+        final List<TypeDescriptor> mdParamTypes = descriptor.getParameterTypes();
+        final List<TypeId> paramTypeIds;
+        if (mdParamTypes.isEmpty()) {
+            paramTypeIds = List.of();
+        } else {
+            final int size = mdParamTypes.size();
+            TypeId[] paramTypesArray = new TypeId[size];
+            for (int i = 0; i < size; i++) {
+                TypeDescriptor ptd = mdParamTypes.get(i);
+                TypeId pt = resolveDescriptor(ptd);
+                if (pt == null) {
+                    return null;
+                }
+                paramTypesArray[i] = pt;
+            }
+            paramTypeIds = Arrays.asList(paramTypesArray);
+        }
+        return compilationContext.getMethodType(returnTypeId, paramTypeIds, descriptor);
     }
 
     public TypeSystem getTypeSystem() {

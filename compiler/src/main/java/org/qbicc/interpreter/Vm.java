@@ -322,11 +322,12 @@ public interface Vm {
      * Create a method handle from the given constant.
      *
      * @param classContext the class context (must not be {@code null})
+     * @param caller the calling class (must not be {@code null})
      * @param constant the method handle constant (must not be {@code null})
      * @return the method handle instance (not {@code null})
      * @throws Thrown when the method handle creation throws an exception
      */
-    VmObject createMethodHandle(ClassContext classContext, MethodHandleConstant constant) throws Thrown;
+    VmObject createMethodHandle(ClassContext classContext, VmClass caller, MethodHandleConstant constant) throws Thrown;
 
     /**
      * Create an {@code Object} box for the given literal, returning it as a {@code VmObject}.
@@ -336,15 +337,6 @@ public interface Vm {
      * @return the box object
      */
     VmObject box(ClassContext classContext, Literal literal);
-
-    /**
-     * Create a "thin" box for the given literal as an {@code Object}.
-     *
-     * @param classContext the class context (must not be {@code null})
-     * @param literal the literal value (must not be {@code null})
-     * @return the box object
-     */
-    Object boxThin(ClassContext classContext, Literal literal);
 
     /**
      * Create a new reference array with the given element type.

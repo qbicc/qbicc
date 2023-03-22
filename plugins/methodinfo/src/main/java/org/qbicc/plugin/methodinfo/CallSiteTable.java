@@ -328,10 +328,17 @@ public final class CallSiteTable {
                 throw new IllegalArgumentException("Unknown element type");
             }
             final String sourceFileName = executableElement.getSourceFileName();
+            VmObject methodType;
+            try {
+                methodType = vm.createMethodType(executableElement.getEnclosingType().getContext(), executableElement.getDescriptor());
+            } catch (IllegalStateException e) {
+                ctxt.warning(executableElement.getLocation(), "No method type was created for element");
+                methodType = null;
+            }
             entry = new SubprogramEntry(
                 sourceFileName == null ? null : vm.intern(sourceFileName),
                 vm.intern(name),
-                vm.createMethodType(executableElement.getEnclosingType().getContext(), executableElement.getDescriptor()),
+                methodType,
                 executableElement
             );
             final SubprogramEntry appearing = subprogramEntries.putIfAbsent(executableElement, entry);

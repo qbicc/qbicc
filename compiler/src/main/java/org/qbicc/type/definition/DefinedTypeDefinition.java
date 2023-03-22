@@ -212,6 +212,8 @@ public interface DefinedTypeDefinition extends TypeParameterContext,
 
     byte[] getDigest();
 
+    LeafTypeId typeId();
+
     interface Builder extends Locatable {
         void setContext(ClassContext context);
 

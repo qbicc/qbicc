@@ -48,7 +48,10 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
+import org.qbicc.type.definition.MethodTypeId;
 import org.qbicc.type.definition.NativeMethodConfigurator;
+import org.qbicc.type.definition.LeafTypeId;
+import org.qbicc.type.definition.TypeId;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.Element;
@@ -79,6 +82,7 @@ final class CompilationContextImpl implements CompilationContext {
     private final ConcurrentMap<DefinedTypeDefinition, ProgramModule> programModules = new ConcurrentHashMap<>();
     private final ConcurrentMap<ExecutableElement, org.qbicc.object.Function> exactFunctions = new ConcurrentHashMap<>();
     private final ConcurrentMap<ExecutableElement, FunctionElement> establishedFunctions = new ConcurrentHashMap<>();
+    private final ConcurrentMap<TypeId, ConcurrentMap<List<TypeId>, MethodTypeId>> methodTypes = new ConcurrentHashMap<>();
     private final Path outputDir;
     final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories;
     private volatile DefinedTypeDefinition defaultTypeDefinition;
@@ -862,6 +866,26 @@ final class CompilationContextImpl implements CompilationContext {
 
     static Builder builder() {
         return new Builder();
+    }
+
+    MethodTypeId getMethodType(final TypeId returnTypeId, final List<TypeId> paramTypeIds, MethodDescriptor descriptor) {
+        ConcurrentMap<List<TypeId>, MethodTypeId> subMap = methodTypes.get(returnTypeId);
+        if (subMap == null) {
+            subMap = new ConcurrentHashMap<>();
+            final ConcurrentMap<List<TypeId>, MethodTypeId> appearing = methodTypes.putIfAbsent(returnTypeId, subMap);
+            if (appearing != null) {
+                subMap = appearing;
+            }
+        }
+        MethodTypeId methodType = subMap.get(paramTypeIds);
+        if (methodType == null) {
+            methodType = new MethodTypeId(List.copyOf(paramTypeIds), returnTypeId, descriptor);
+            final MethodTypeId appearing = subMap.putIfAbsent(paramTypeIds, methodType);
+            if (appearing != null) {
+                methodType = appearing;
+            }
+        }
+        return methodType;
     }
 
     static final class Builder {
