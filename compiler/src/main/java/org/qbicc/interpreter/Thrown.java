@@ -21,17 +21,13 @@ public final class Thrown extends RuntimeException {
 
     @Override
     public String getMessage() {
-        return throwable.getMessage();
+        final String message = throwable.getMessage();
+        String className = throwable.getVmClass().getName();
+        return message == null ? className : className + ": " + message;
     }
 
     @Override
     public String toString() {
-        String message = getMessage();
-        String className = throwable.getVmClass().getName();
-        if (message != null) {
-            return "(interpreter) " + className + ": " + message;
-        } else {
-            return "(interpreter) " + className;
-        }
+        return "(interpreter) " + getMessage();
     }
 }
