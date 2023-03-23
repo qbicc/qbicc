@@ -703,6 +703,11 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     @Override
+    public void runWrappedTask(Consumer<CompilationContext> task) {
+        taskRunner.accept(task, this);
+    }
+
+    @Override
     public void runParallelTask(Consumer<CompilationContext> task) throws IllegalStateException {
         Assert.checkNotNullParam("task", task);
         boolean intr = false;

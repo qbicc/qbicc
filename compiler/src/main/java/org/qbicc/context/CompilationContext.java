@@ -160,6 +160,13 @@ public interface CompilationContext extends DiagnosticContext {
     void setTaskRunner(BiConsumer<Consumer<CompilationContext>, CompilationContext> taskRunner) throws IllegalStateException;
 
     /**
+     * Run a task with the currently set task runner.
+     *
+     * @param task the task to run (must not be {@code null})
+     */
+    void runWrappedTask(Consumer<CompilationContext> task);
+
+    /**
      * Run a task on every compiler thread.  When the task has returned on all threads, this method will return.  This
      * method must not be called from a compiler thread or an exception will be thrown.
      *

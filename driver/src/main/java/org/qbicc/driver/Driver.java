@@ -61,25 +61,21 @@ public class Driver implements Closeable {
     final BaseDiagnosticContext initialContext;
     final CompilationContextImpl compilationContext;
     // at this point, the phase is initialized to ADD
-    final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> addTaskWrapperFactories;
     final List<Consumer<CompilationContext>> preAddHooks;
     final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories;
     final BiFunction<BasicBlockBuilder.FactoryContext, ExecutableElement, BasicBlockBuilder> addBuilderFactory;
     final List<Consumer<CompilationContext>> postAddHooks;
     // at this point, the phase is switched to ANALYZE
-    final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> analyzeTaskWrapperFactories;
     final List<Consumer<CompilationContext>> preAnalyzeHooks;
     final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> addToAnalyzeCopiers;
     final BiFunction<BasicBlockBuilder.FactoryContext, ExecutableElement, BasicBlockBuilder> analyzeBuilderFactory;
     final List<Consumer<CompilationContext>> postAnalyzeHooks;
     // at this point, the phase is switched to LOWER
-    final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> lowerTaskWrapperFactories;
     final List<Consumer<CompilationContext>> preLowerHooks;
     final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> analyzeToLowerCopiers;
     final BiFunction<BasicBlockBuilder.FactoryContext, ExecutableElement, BasicBlockBuilder> lowerBuilderFactory;
     final List<Consumer<CompilationContext>> postLowerHooks;
     // at this point, the phase is switched to GENERATE
-    final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> generateTaskWrapperFactories;
     final List<Consumer<CompilationContext>> preGenerateHooks;
     final List<Consumer<CompilationContext>> postGenerateHooks;
     final Map<String, BootModule> bootModules;
@@ -127,28 +123,24 @@ public class Driver implements Closeable {
         this.appClassPath = List.copyOf(builder.appClassPath);
 
         // ADD phase
-        addTaskWrapperFactories = List.copyOf(builder.taskWrapperFactories.getOrDefault(Phase.ADD, List.of()));
         preAddHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.ADD, List.of()));
         // (no copiers)
         addBuilderFactory = constructFactory(builder, Phase.ADD);
         postAddHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.ADD, List.of()));
 
         // ANALYZE phase
-        analyzeTaskWrapperFactories = List.copyOf(builder.taskWrapperFactories.getOrDefault(Phase.ANALYZE, List.of()));
         preAnalyzeHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.ANALYZE, List.of()));
         addToAnalyzeCopiers = constructCopiers(builder, Phase.ANALYZE);
         analyzeBuilderFactory = constructFactory(builder, Phase.ANALYZE);
         postAnalyzeHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.ANALYZE, List.of()));
 
         // LOWER phase
-        lowerTaskWrapperFactories = List.copyOf(builder.taskWrapperFactories.getOrDefault(Phase.LOWER, List.of()));
         preLowerHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.LOWER, List.of()));
         analyzeToLowerCopiers = constructCopiers(builder, Phase.LOWER);
         lowerBuilderFactory = constructFactory(builder, Phase.LOWER);
         postLowerHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.LOWER, List.of()));
 
         // GENERATE phase
-        generateTaskWrapperFactories = List.copyOf(builder.taskWrapperFactories.getOrDefault(Phase.GENERATE, List.of()));
         preGenerateHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.GENERATE, List.of()));
         // (no builder factory)
         postGenerateHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.GENERATE, List.of()));
@@ -440,20 +432,13 @@ public class Driver implements Closeable {
     boolean execute0() {
         CompilationContextImpl compilationContext = this.compilationContext;
 
-        BiConsumer<Consumer<CompilationContext>, CompilationContext> wrapper = Consumer::accept;
-
-        for (UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>> factory : addTaskWrapperFactories) {
-            wrapper = factory.apply(wrapper);
-        }
-        compilationContext.setTaskRunner(wrapper);
-
         // ADD phase
 
         Phase.ADD.setCurrent(compilationContext);
 
         for (Consumer<CompilationContext> hook : preAddHooks) {
             try {
-                wrapper.accept(hook, compilationContext);
+                compilationContext.runWrappedTask(hook);
             } catch (Exception e) {
                 log.error("An exception was thrown in a pre-add hook", e);
                 compilationContext.error(e, "Pre-add hook failed: %s", e);
@@ -512,12 +497,7 @@ public class Driver implements Closeable {
         compilationContext.setBlockFactory(analyzeBuilderFactory);
         compilationContext.setCopier(addToAnalyzeCopiers);
 
-        wrapper = Consumer::accept;
-
-        for (UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>> factory : analyzeTaskWrapperFactories) {
-            wrapper = factory.apply(wrapper);
-        }
-        compilationContext.setTaskRunner(wrapper);
+        compilationContext.setTaskRunner(Consumer::accept);
 
         for (Consumer<? super CompilationContext> hook : preAnalyzeHooks) {
             try {
@@ -564,13 +544,6 @@ public class Driver implements Closeable {
 
         Phase.LOWER.setCurrent(compilationContext);
 
-        wrapper = Consumer::accept;
-
-        for (UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>> factory : lowerTaskWrapperFactories) {
-            wrapper = factory.apply(wrapper);
-        }
-
-        compilationContext.setTaskRunner(wrapper);
         compilationContext.setBlockFactory(lowerBuilderFactory);
         compilationContext.setCopier(analyzeToLowerCopiers);
 
@@ -618,13 +591,6 @@ public class Driver implements Closeable {
         // GENERATE phase
 
         Phase.GENERATE.setCurrent(compilationContext);
-
-        wrapper = Consumer::accept;
-
-        for (UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>> factory : generateTaskWrapperFactories) {
-            wrapper = factory.apply(wrapper);
-        }
-        compilationContext.setTaskRunner(wrapper);
 
         compilationContext.setCopier(null);
 

@@ -190,6 +190,10 @@ public class TestClassContext implements ClassContext {
         public void setTaskRunner(final BiConsumer<Consumer<CompilationContext>, CompilationContext> taskRunner) throws IllegalStateException {
         }
 
+        public void runWrappedTask(final Consumer<CompilationContext> task) {
+            task.accept(this);
+        }
+
         public void runParallelTask(Consumer<CompilationContext> task) throws IllegalStateException {
         }
 
