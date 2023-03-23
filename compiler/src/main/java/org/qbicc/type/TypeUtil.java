@@ -33,4 +33,46 @@ public final class TypeUtil {
             throw new IllegalArgumentException("Invalid alignment");
         }
     }
+
+    /**
+     * Return the next power-of-two which is greater than or equal to the given value.
+     * The unsigned value must be greater than zero and no greater than {@code 1 << 31}.
+     *
+     * @param val the value
+     * @return the next power of two
+     */
+    public static int nextPowerOfTwoUnsigned(int val) {
+        if (val == 0) {
+            throw new IllegalArgumentException("Value must be greater than zero");
+        }
+        final int hob = Integer.highestOneBit(val);
+        if (val == hob) {
+            return val;
+        }
+        if (hob == Integer.MIN_VALUE) {
+            throw new IllegalArgumentException("Next power of two is out of range");
+        }
+        return hob << 1;
+    }
+
+    /**
+     * Return the next power-of-two which is greater than or equal to the given value.
+     * The unsigned value must be greater than zero and no greater than {@code 1 << 63}.
+     *
+     * @param val the value
+     * @return the next power of two
+     */
+    public static long nextPowerOfTwoUnsigned(long val) {
+        if (val == 0) {
+            throw new IllegalArgumentException("Value must be greater than zero");
+        }
+        final long hob = Long.highestOneBit(val);
+        if (val == hob) {
+            return val;
+        }
+        if (hob == Long.MIN_VALUE) {
+            throw new IllegalArgumentException("Next power of two is out of range");
+        }
+        return hob << 1;
+    }
 }
