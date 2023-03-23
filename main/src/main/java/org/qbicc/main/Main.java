@@ -414,10 +414,11 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addResolverFactory(InternalNativeTypeResolver::new);
                                 builder.addResolverFactory(NativeTypeResolver::new);
 
-                                builder.addTaskWrapperFactory(Phase.ADD, next -> (wrapper, ctxt) -> {
+                                // from this point on, all pre-ADD hook tasks are run within a VM thread
+                                builder.addPreHook(Phase.ADD, c -> c.setTaskRunner((wrapper, ctxt) -> {
                                     Vm vm = ctxt.getVm();
                                     vm.doAttached(vm.newThread(Thread.currentThread().getName(), vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> wrapper.accept(ctxt));
-                                });
+                                }));
                                 builder.addPreHook(Phase.ADD, ReachabilityFactsSetup::setupAdd);
                                 builder.addPreHook(Phase.ADD, ReflectionFactsSetup::setupAdd);
                                 builder.addPreHook(Phase.ADD, ctxt -> SafePoints.selectStrategy(ctxt, nogc ? SafePoints.Strategy.NONE : SafePoints.Strategy.GLOBAL_FLAG));
