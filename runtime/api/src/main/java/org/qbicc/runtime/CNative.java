@@ -486,6 +486,18 @@ public final class CNative {
      */
     public static native <T> T deref(ptr<?> ptr, Class<T> typeClass);
 
+    /**
+     * Cast the given object.
+     * Used to cast between apparently-unrelated types without a {@code javac} warning.
+     * If a cast is impossible, a qbicc warning will still generally be produced.
+     *
+     * @param obj the object to cast
+     * @return the cast object
+     * @param <T> the target type
+     */
+    @SuppressWarnings("unchecked")
+    public native static <T> T cast(Object obj);
+
     // intrinsic
     @NoSideEffects
     private static native int floatToInt1(float fv);
