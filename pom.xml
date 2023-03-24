@@ -124,12 +124,6 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qbicc-runtime-bsd</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-runtime-gc-heap</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -142,12 +136,6 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qbicc-runtime-linux</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-runtime-llvm</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -155,12 +143,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-runtime-main</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qbicc-runtime-posix</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

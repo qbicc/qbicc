@@ -20,10 +20,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-runtime-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-runtime-posix</artifactId>
-        </dependency>
     </dependencies>
 
 </project>

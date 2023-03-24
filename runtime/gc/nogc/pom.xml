@@ -22,10 +22,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-runtime-posix</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-runtime-gc-heap</artifactId>
         </dependency>
     </dependencies>
