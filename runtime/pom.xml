@@ -28,9 +28,6 @@
         <module>main</module>
 
         <!-- Native interface modules -->
-        <module>bsd</module>
-        <module>linux</module>
-        <module>posix</module>
         <module>unwind</module>
         <module>zlib</module>
 

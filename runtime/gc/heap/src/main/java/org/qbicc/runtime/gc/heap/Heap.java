@@ -1,10 +1,9 @@
 package org.qbicc.runtime.gc.heap;
 
 import static org.qbicc.runtime.CNative.*;
-import static org.qbicc.runtime.posix.String.*;
-import static org.qbicc.runtime.posix.SysMman.*;
-import static org.qbicc.runtime.posix.SysMman.mprotect;
-import static org.qbicc.runtime.posix.Unistd.*;
+import static org.qbicc.runtime.gc.heap.SysHeaders.String.*;
+import static org.qbicc.runtime.gc.heap.SysHeaders.SysMman.*;
+import static org.qbicc.runtime.gc.heap.SysHeaders.Unistd.*;
 import static org.qbicc.runtime.stdc.Errno.*;
 import static org.qbicc.runtime.stdc.Stdint.*;
 import static org.qbicc.runtime.stdc.Stdio.*;
@@ -14,7 +13,6 @@ import static org.qbicc.runtime.stdc.String.*;
 import java.lang.invoke.VarHandle;
 
 import org.qbicc.runtime.Build;
-import org.qbicc.runtime.Inline;
 
 /**
  * Heap management utilities.

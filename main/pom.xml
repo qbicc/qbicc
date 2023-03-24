@@ -426,12 +426,6 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-runtime-linux</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-runtime-llvm</artifactId>
             <scope>test</scope>
         </dependency>
@@ -439,12 +433,6 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-runtime-main</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-runtime-posix</artifactId>
             <scope>test</scope>
         </dependency>
 
