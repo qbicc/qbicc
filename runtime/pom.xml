@@ -29,7 +29,6 @@
 
         <!-- Native interface modules -->
         <module>unwind</module>
-        <module>zlib</module>
 
         <!-- Plugin implementation modules -->
         <module>gc</module>

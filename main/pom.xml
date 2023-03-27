@@ -444,12 +444,6 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-runtime-zlib</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-runtime-gc-nogc</artifactId>
             <scope>test</scope>
         </dependency>
