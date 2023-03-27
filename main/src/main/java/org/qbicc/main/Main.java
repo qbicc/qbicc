@@ -245,7 +245,6 @@ public class Main implements Callable<DiagnosticContext> {
         bootPaths.add(getCoreComponent("qbicc-runtime-llvm"));
         bootPaths.add(getCoreComponent("qbicc-runtime-main"));
         bootPaths.add(getCoreComponent("qbicc-runtime-unwind"));
-        bootPaths.add(getCoreComponent("qbicc-runtime-zlib"));
         boolean nogc = gc.equals("none");
         if (nogc) {
             bootPaths.add(getCoreComponent("qbicc-runtime-gc-nogc"));
