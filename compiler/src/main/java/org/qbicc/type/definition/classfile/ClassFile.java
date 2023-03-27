@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import org.qbicc.context.ClassContext;
+import org.qbicc.runtime.ExtModifier;
 import org.qbicc.type.definition.ClassFileUtil;
 import org.qbicc.type.definition.ConstructorResolver;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -41,28 +42,28 @@ public interface ClassFile extends FieldResolver,
     int CONSTANT_Module = 19;
     int CONSTANT_Package = 20;
 
-    int ACC_PUBLIC = 1 << 0;
-    int ACC_PRIVATE = 1 << 1;
-    int ACC_PROTECTED = 1 << 2;
-    int ACC_STATIC = 1 << 3;
-    int ACC_FINAL = 1 << 4;
-    int ACC_OPEN = 1 << 4; // same as ACC_FINAL
-    int ACC_SYNCHRONIZED = 1 << 5;
-    int ACC_SUPER = 1 << 5; // same as ACC_SYNCHRONIZED
-    int ACC_BRIDGE = 1 << 6;
-    int ACC_VOLATILE = 1 << 6; // same as ACC_BRIDGE
-    int ACC_STATIC_PHASE = 1 << 6; // same as ACC_BRIDGE
-    int ACC_VARARGS = 1 << 7;
-    int ACC_TRANSIENT = 1 << 7; // same as ACC_VARARGS
-    int ACC_NATIVE = 1 << 8;
-    int ACC_INTERFACE = 1 << 9;
-    int ACC_ABSTRACT = 1 << 10;
-    int ACC_STRICT = 1 << 11;
-    int ACC_SYNTHETIC = 1 << 12;
-    int ACC_ANNOTATION = 1 << 13;
-    int ACC_ENUM = 1 << 14;
-    int ACC_MODULE = 1 << 15;
-    int ACC_MANDATED = 1 << 15; // same as ACC_MODULE
+    int ACC_PUBLIC = ExtModifier.ACC_PUBLIC;
+    int ACC_PRIVATE = ExtModifier.ACC_PRIVATE;
+    int ACC_PROTECTED = ExtModifier.ACC_PROTECTED;
+    int ACC_STATIC = ExtModifier.ACC_STATIC;
+    int ACC_FINAL = ExtModifier.ACC_FINAL;
+    int ACC_OPEN = ExtModifier.ACC_OPEN; // same as ACC_FINAL
+    int ACC_SYNCHRONIZED = ExtModifier.ACC_SYNCHRONIZED;
+    int ACC_SUPER = ExtModifier.ACC_SUPER; // same as ACC_SYNCHRONIZED
+    int ACC_BRIDGE = ExtModifier.ACC_BRIDGE;
+    int ACC_VOLATILE = ExtModifier.ACC_VOLATILE; // same as ACC_BRIDGE
+    int ACC_STATIC_PHASE = ExtModifier.ACC_STATIC_PHASE; // same as ACC_BRIDGE
+    int ACC_VARARGS = ExtModifier.ACC_VARARGS;
+    int ACC_TRANSIENT = ExtModifier.ACC_TRANSIENT; // same as ACC_VARARGS
+    int ACC_NATIVE = ExtModifier.ACC_NATIVE;
+    int ACC_INTERFACE = ExtModifier.ACC_INTERFACE;
+    int ACC_ABSTRACT = ExtModifier.ACC_ABSTRACT;
+    int ACC_STRICT = ExtModifier.ACC_STRICT;
+    int ACC_SYNTHETIC = ExtModifier.ACC_SYNTHETIC;
+    int ACC_ANNOTATION = ExtModifier.ACC_ANNOTATION;
+    int ACC_ENUM = ExtModifier.ACC_ENUM;
+    int ACC_MODULE = ExtModifier.ACC_MODULE;
+    int ACC_MANDATED = ExtModifier.ACC_MANDATED; // same as ACC_MODULE
 
     /**
      * Quoting from OpenJDK:
@@ -74,7 +75,7 @@ public interface ClassFile extends FieldResolver,
      *  (iv) has any return type, Object signifying a polymorphic return type; and
      *   (v) is native.
      */
-    int I_ACC_SIGNATURE_POLYMORPHIC = 1 << 16;
+    int I_ACC_SIGNATURE_POLYMORPHIC = ExtModifier.I_ACC_SIGNATURE_POLYMORPHIC;
     /**
      * For fields which are declared as {@code final} but are actually mutable, including:
      * <ul>
@@ -82,7 +83,7 @@ public interface ClassFile extends FieldResolver,
      *     <li>fields that are reflected upon or mutated via {@code Unsafe}</li>
      * </ul>
      */
-    int I_ACC_NOT_REALLY_FINAL = 1 << 16;
+    int I_ACC_NOT_REALLY_FINAL = ExtModifier.I_ACC_NOT_REALLY_FINAL;
     /*
      * Bit 16 not used for classes.
      */
@@ -90,65 +91,65 @@ public interface ClassFile extends FieldResolver,
     /**
      * For classes which represent value-based (aka primitive) types.
      */
-    int I_ACC_PRIMITIVE = 1 << 17;
+    int I_ACC_PRIMITIVE = ExtModifier.I_ACC_PRIMITIVE;
     /**
      * For methods which cannot be interrupted with a safepoint.
      * Such methods should only call other methods that are not interruptible.
      * Methods which are uninterruptible must be {@code final} or {@code static}.
      */
-    int I_ACC_NO_SAFEPOINTS = 1 << 17;
+    int I_ACC_NO_SAFEPOINTS = ExtModifier.I_ACC_NO_SAFEPOINTS;
     /**
      * On methods, hide from stack traces.  On classes, defined as a JEP 371 "hidden class".
      */
-    int I_ACC_HIDDEN = 1 << 18;
+    int I_ACC_HIDDEN = ExtModifier.I_ACC_HIDDEN;
     /**
      * For static fields that are thread-local.
      */
-    int I_ACC_THREAD_LOCAL = 1 << 19;
-    int I_ACC_ALWAYS_INLINE = 1 << 20;
-    int I_ACC_NEVER_INLINE = 1 << 21;
+    int I_ACC_THREAD_LOCAL = ExtModifier.I_ACC_THREAD_LOCAL;
+    int I_ACC_ALWAYS_INLINE = ExtModifier.I_ACC_ALWAYS_INLINE;
+    int I_ACC_NEVER_INLINE = ExtModifier.I_ACC_NEVER_INLINE;
     /**
      * For methods which have no side-effects.
      */
-    int I_ACC_NO_SIDE_EFFECTS = 1 << 22;
+    int I_ACC_NO_SIDE_EFFECTS = ExtModifier.I_ACC_NO_SIDE_EFFECTS;
     /**
      * For members and types which should not appear to reflection.
      */
-    int I_ACC_NO_REFLECT = 1 << 23;
+    int I_ACC_NO_REFLECT = ExtModifier.I_ACC_NO_REFLECT;
     /**
      * For members which should never be symbolically resolvable and classes that should not be registered to the class loader.
      */
-    int I_ACC_NO_RESOLVE = 1 << 24;
+    int I_ACC_NO_RESOLVE = ExtModifier.I_ACC_NO_RESOLVE;
     /**
      * For executable members which never return normally.
      */
-    int I_ACC_NO_RETURN = 1 << 25;
+    int I_ACC_NO_RETURN = ExtModifier.I_ACC_NO_RETURN;
     /**
      * For executable members which never throw - not even {@link StackOverflowError} or {@link OutOfMemoryError}.
      */
-    int I_ACC_NO_THROW = 1 << 26;
+    int I_ACC_NO_THROW = ExtModifier.I_ACC_NO_THROW;
     /**
      * For executable members which should be evaluated during compilation.
      */
-    int I_ACC_FOLD = 1 << 27;
+    int I_ACC_FOLD = ExtModifier.I_ACC_FOLD;
     /**
      * For members which are visible at run time.  Members with this annotation are not accessible during build.
      * Fields which are available at both build time and run time do <em>not</em> have this modifier, even if they
      * are associated with an initializer that does have this modifier.
      */
-    int I_ACC_RUN_TIME = 1 << 28;
+    int I_ACC_RUN_TIME = ExtModifier.I_ACC_RUN_TIME;
     /**
      * For methods which have the JDK {@code @CallerSensitive} annotation.
      */
-    int I_ACC_CALLER_SENSITIVE = 1 << 29;
+    int I_ACC_CALLER_SENSITIVE = ExtModifier.I_ACC_CALLER_SENSITIVE;
     /**
      * For methods which are only invokable at build time.  Members with this annotation are not invokable during runtime.
      */
-    int I_ACC_BUILD_TIME_ONLY = 1 << 30;
+    int I_ACC_BUILD_TIME_ONLY = ExtModifier.I_ACC_BUILD_TIME_ONLY;
     /**
      * For classes. Indicates that the GC bitmap is a pointer to the full bitmap, rather than a {@code long} value.
      */
-    int I_ACC_EXTENDED_BITMAP = 1 << 31;
+    int I_ACC_EXTENDED_BITMAP = ExtModifier.I_ACC_EXTENDED_BITMAP;
 
     int OP_NOP = 0x00;
     int OP_ACONST_NULL = 0x01;

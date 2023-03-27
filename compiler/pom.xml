@@ -83,5 +83,9 @@
             <groupId>org.jboss.logging</groupId>
             <artifactId>jboss-logging</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.qbicc</groupId>
+            <artifactId>qbicc-runtime-api</artifactId>
+        </dependency>
     </dependencies>
 </project>
