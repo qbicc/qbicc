@@ -366,6 +366,8 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             FieldElement instanceTypeIdField = coreClasses.getClassTypeIdField();
             if (this instanceof  VmPrimitiveClassImpl pci) {
                 memory.storeType(indexOf(instanceTypeIdField), pci.getPrimitive().getType(), SinglePlain);
+                memory.store32(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceSizeField()).getOffset(), pci.getPrimitive().getType().getSize(), SinglePlain);
+                memory.store8(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceAlignField()).getOffset(), pci.getPrimitive().getType().getAlign(), SinglePlain);
             } else if (this instanceof VmReferenceArrayClass vmArray) {
                 memory.storeType(indexOf(instanceTypeIdField), vmArray.getInstanceObjectType().getLeafElementType(), SinglePlain);
                 memory.store8(indexOf(coreClasses.getClassDimensionField()), vmArray.getInstanceObjectType().getDimensionCount(), SinglePlain);
