@@ -457,6 +457,10 @@ final class CNativeIntrinsics {
         StaticIntrinsic alloca = (builder, target, arguments) -> builder.stackAllocate(ctxt.getTypeSystem().getUnsignedInteger8Type(), arguments.get(0), ctxt.getLiteralFactory().literalOf(1));
 
         intrinsics.registerIntrinsic(cNativeDesc, "alloca", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(sizeTDesc)), alloca);
+
+        StaticIntrinsic cast = ((builder, targetPtr, arguments) -> arguments.get(0));
+
+        intrinsics.registerIntrinsic(cNativeDesc, "cast", MethodDescriptor.synthesize(classContext, objDesc, List.of(objDesc)), cast);
     }
 
     private static void registerNObjectIntrinsics(final CompilationContext ctxt) {
