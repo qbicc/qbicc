@@ -20,5 +20,9 @@
             <groupId>org.qbicc</groupId>
             <artifactId>qbicc-runtime-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.qbicc</groupId>
+            <artifactId>qbicc-runtime-llvm</artifactId>
+        </dependency>
     </dependencies>
 </project>
