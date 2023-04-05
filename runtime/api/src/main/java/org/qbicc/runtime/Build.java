@@ -239,6 +239,12 @@ public final class Build {
 
         //
 
+        public static final class IsAarch64 implements BooleanSupplier {
+            public boolean getAsBoolean() {
+                return isAarch64();
+            }
+        }
+
         public static final class IsAmd64 implements BooleanSupplier {
             public boolean getAsBoolean() {
                 return isAmd64();
