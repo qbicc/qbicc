@@ -53,6 +53,14 @@ public final class StackWalker extends StackObject {
 
     @NoSafePoint
     @NoThrow
+    public StackWalker(ptr<unw_context_t> context_ptr) {
+        memcpy(addr_of(deref(refToPtr(this)).context).cast(), context_ptr.cast(), sizeof(unw_context_t.class));
+        unw_init_local(addr_of(deref(refToPtr(this)).cursor), context_ptr);
+    }
+
+    @SuppressWarnings("CopyConstructorMissesField")
+    @NoSafePoint
+    @NoThrow
     public StackWalker(StackWalker orig) {
         memcpy(addr_of(deref(refToPtr(this)).context).cast(), addr_of(deref(refToPtr(orig)).context).cast(), sizeof(unw_context_t.class));
         memcpy(addr_of(deref(refToPtr(this)).cursor).cast(), addr_of(deref(refToPtr(orig)).cursor).cast(), sizeof(unw_cursor_t.class));
