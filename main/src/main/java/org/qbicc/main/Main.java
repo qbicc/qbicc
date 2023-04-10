@@ -341,6 +341,8 @@ public class Main implements Callable<DiagnosticContext> {
                         builder.setTypeSystem(typeSystem);
                         // add additional manual initializers by chaining `.andThen(...)`
                         builder.setVmFactory(cc -> {
+                            GcCommon.reserveMarkBit(cc);
+                            GcCommon.reserveMovedBit(cc);
                             QbiccFeatureProcessor.process(cc, qbiccYamlFeatures, qbiccFeatures);
                             CoreClasses.init(cc);
                             ExceptionOnThreadStrategy.initialize(cc);
@@ -422,11 +424,9 @@ public class Main implements Callable<DiagnosticContext> {
                             });
                             builder.addPreHook(Phase.ADD, ReachabilityFactsSetup::setupAdd);
                             builder.addPreHook(Phase.ADD, ReflectionFactsSetup::setupAdd);
-                            builder.addPreHook(Phase.ADD, ctxt -> SafePoints.selectStrategy(ctxt, nogc ? SafePoints.Strategy.NONE : SafePoints.Strategy.GLOBAL_FLAG));
                             if (llvm) {
                                 builder.addPreHook(Phase.ADD, LLVMIntrinsics::register);
                             }
-                            builder.addPreHook(Phase.ADD, SafePoints::enqueueMethods);
                             builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
                             builder.addPreHook(Phase.ADD, CoreClasses::get);
                             builder.addPreHook(Phase.ADD, ReflectionIntrinsics::register);
@@ -519,7 +519,6 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addPostHook(Phase.ADD, ReachabilityInfo::clear);
 
                             builder.addPreHook(Phase.ANALYZE, ReachabilityFactsSetup::setupAnalyze);
-                            builder.addPreHook(Phase.ANALYZE, SafePoints::enqueueMethods);
                             builder.addPreHook(Phase.ANALYZE, new VMHelpersSetupHook());
                             builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::forceCoreClassesReachable);
                             builder.addPreHook(Phase.ANALYZE, ReachabilityRoots::processRootsForAnalyze);
@@ -564,7 +563,6 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addPreHook(Phase.LOWER, new DispatchTableBuilder());
                             builder.addPreHook(Phase.LOWER, new SupersDisplayBuilder());
                             builder.addPreHook(Phase.LOWER, ReachabilityFactsSetup::setupLower);
-                            builder.addPreHook(Phase.LOWER, SafePoints::enqueueMethods);
                             builder.addPreHook(Phase.LOWER, ReachabilityRoots::processRootsForLower);
                             builder.addPreHook(Phase.LOWER, new ClassObjectSerializer());
                             if (optEscapeAnalysis) {
