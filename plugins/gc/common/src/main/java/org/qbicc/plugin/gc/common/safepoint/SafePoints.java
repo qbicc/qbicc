@@ -1,29 +1,21 @@
 package org.qbicc.plugin.gc.common.safepoint;
 
-import org.qbicc.context.AttachmentKey;
-import org.qbicc.context.CompilationContext;
+import java.util.List;
+
+import org.qbicc.context.ClassContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.element.MethodElement;
 
 /**
  *
  */
 public final class SafePoints {
-    private static final AttachmentKey<AbstractSafePointStrategy> IMPL_KEY = new AttachmentKey<>();
+    private static final String THREAD_INT_NAME = "java/lang/Thread";
 
     private SafePoints() {}
-
-    public static void selectStrategy(CompilationContext ctxt, Strategy strategy) {
-        final AbstractSafePointStrategy existing = ctxt.putAttachmentIfAbsent(IMPL_KEY, strategy.create(ctxt));
-        if (existing != null) {
-            throw new IllegalStateException("Already installed");
-        }
-    }
-
-    public static void enqueueMethods(CompilationContext ctxt) {
-        ctxt.getAttachment(IMPL_KEY).registerReachableMethods(ctxt);
-    }
 
     /**
      * Create the basic block builder for the selected strategy.
@@ -33,31 +25,15 @@ public final class SafePoints {
      * @return the basic block builder (not {@code null})
      */
     public static BasicBlockBuilder createBasicBlockBuilder(BasicBlockBuilder.FactoryContext fc, BasicBlockBuilder delegate) {
-        final AbstractSafePointStrategy strategy = delegate.getContext().getAttachment(IMPL_KEY);
+        final ClassContext bcc = delegate.getContext().getBootstrapClassContext();
+        final DefinedTypeDefinition dt = bcc.findDefinedType(THREAD_INT_NAME);
         return new DelegatingBasicBlockBuilder(delegate) {
+
             @Override
             public Node safePoint() {
-                strategy.safePoint(getFirstBuilder());
-                return nop();
+                final MethodElement pollSafePoint = dt.load().requireSingleMethod("pollSafePoint");
+                return getFirstBuilder().call(getLiteralFactory().literalOf(pollSafePoint), List.of());
             }
         };
-    }
-
-    public enum Strategy {
-        NONE {
-            @Override
-            AbstractSafePointStrategy create(CompilationContext ctxt) {
-                return new NoSafePointStrategy(ctxt);
-            }
-        },
-        GLOBAL_FLAG {
-            @Override
-            AbstractSafePointStrategy create(CompilationContext ctxt) {
-                return new GlobalFlagSafePointStrategy(ctxt);
-            }
-        },
-        ;
-
-        abstract AbstractSafePointStrategy create(CompilationContext ctxt);
     }
 }
