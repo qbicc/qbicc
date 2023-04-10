@@ -2,6 +2,8 @@ package org.qbicc.runtime.stdc;
 
 import static org.qbicc.runtime.CNative.*;
 
+import org.qbicc.runtime.NoSafePoint;
+import org.qbicc.runtime.NoThrow;
 import org.qbicc.runtime.patcher.AccessWith;
 import org.qbicc.runtime.patcher.Accessor;
 import org.qbicc.runtime.Build;
@@ -36,10 +38,14 @@ final class GLibCErrnoAccessor implements Accessor<Integer> {
     @extern
     private static native int_ptr __errno_location();
 
+    @NoSafePoint
+    @NoThrow
     public int getAsInt() {
         return __errno_location().loadUnshared().intValue();
     }
 
+    @NoSafePoint
+    @NoThrow
     public void set(int value) {
         __errno_location().storeUnshared(word(value));
     }
@@ -49,10 +55,14 @@ final class MacOsErrnoAccessor implements Accessor<Integer> {
     @extern
     private static native int_ptr __error();
 
+    @NoSafePoint
+    @NoThrow
     public int getAsInt() {
         return __error().loadUnshared().intValue();
     }
 
+    @NoSafePoint
+    @NoThrow
     public void set(int value) {
         __error().storeUnshared(word(value));
     }
@@ -62,10 +72,14 @@ final class AixErrnoAccessor implements Accessor<Integer> {
     @extern
     private static native int_ptr _Errno();
 
+    @NoSafePoint
+    @NoThrow
     public int getAsInt() {
         return _Errno().loadUnshared().intValue();
     }
 
+    @NoSafePoint
+    @NoThrow
     public void set(int value) {
         _Errno().storeUnshared(word(value));
     }
