@@ -2,6 +2,7 @@ package org.qbicc.runtime.stackwalk;
 
 import static org.qbicc.runtime.CNative.*;
 import static org.qbicc.runtime.stdc.Stdint.*;
+import static org.qbicc.runtime.stdc.Stdlib.*;
 import static org.qbicc.runtime.unwind.LibUnwind.*;
 
 import java.lang.invoke.MethodType;
@@ -409,7 +410,7 @@ public final class CallSiteTable {
         int state = deref(iter).prev_state.intValue();
         ptr<reference<?>> address = deref(iter).address.cast();
         switch (Integer.numberOfLeadingZeros(state) - 16) {
-            default -> throw new IllegalStateException();
+            default -> abort();
             case LVI_IN_MEMORY -> address.plus(Integer.numberOfTrailingZeros(Integer.lowestOneBit(state))).storeUnshared(val);
             case LVI_IN_REGISTER -> {
                 // bits 8 and 9 contain the bank of 8 registers, so multiply that by 8 for the register base
