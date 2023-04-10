@@ -283,6 +283,7 @@ public final class CallSiteTable {
     @internal
     public static final class lvi_iterator extends object {
         uint16_t state;
+        uint16_t prev_state;
         uintptr_t address;
         ptr<@c_const uint16_t> next_entry;
     }
@@ -295,10 +296,12 @@ public final class CallSiteTable {
      */
     @NoSafePoint
     @NoThrow
-    public static void initIterator(ptr<lvi_iterator> iter, ptr<@c_const struct_call_site> instr_ptr) {
+    @export
+    public static void lvi_iterator_init(ptr<lvi_iterator> iter, ptr<@c_const struct_call_site> instr_ptr) {
         deref(iter).address = zero();
         final int lvi_idx = deref(instr_ptr).lvi_idx.intValue();
         final ptr<uint16_t> first_entry = addr_of(lvi_tbl[lvi_idx]);
+        deref(iter).prev_state = zero();
         deref(iter).state = deref(first_entry);
         deref(iter).next_entry = first_entry.plus(1);
     }
@@ -312,76 +315,108 @@ public final class CallSiteTable {
      */
     @NoSafePoint
     @NoThrow
-    public static reference<?> nextReference(ptr<lvi_iterator> iter, ptr<unw_cursor_t> cursor_ptr) {
+    @export
+    public static reference<?> lvi_iterator_next(ptr<lvi_iterator> iter, ptr<unw_cursor_t> cursor_ptr) {
         final unw_word_t regVal = auto();
-        int item = deref(iter).state.intValue();
+        int state = deref(iter).state.intValue();
+        ptr<reference<?>> address = deref(iter).address.cast();
         for (;;) {
-            switch (Integer.numberOfLeadingZeros(item) - 16) {
+            switch (Integer.numberOfLeadingZeros(state) - 16) {
                 case LVI_BASE_OFFSET -> {
-                    int regNum = item >>> 10 & 0x1f;
+                    int regNum = state >>> 10 & 0x1f;
                     unw_get_reg(cursor_ptr, word(regNum), addr_of(regVal));
                     ptr<reference<?>> refPtr = regVal.cast();
-                    int offset = item & 0x1ff;
-                    deref(iter).address = refPtr.plus(offset).cast();
+                    int offset = state & 0x1ff;
+                    address = refPtr.plus(offset).cast();
                 }
                 case LVI_IN_MEMORY -> {
-                    ptr<reference<?>> refPtr = deref(iter).address.cast();
-                    while (item != 0b01_00_0000_0000_0000) {
+                    while (state != 0b01_00_0000_0000_0000) {
                         // the lowest bit locates the reference
-                        final int lob = Integer.lowestOneBit(item);
-                        item &= ~lob;
+                        final int lob = Integer.lowestOneBit(state);
+                        state &= ~lob;
                         final int offset = Integer.numberOfTrailingZeros(lob);
-                        final reference<?> ref = refPtr.plus(offset).loadUnshared();
+                        final reference<?> ref = address.plus(offset).loadUnshared();
                         if (ref != null) {
+                            // save previous state
+                            deref(iter).prev_state = word(state | lob);
                             // save state for next iteration
-                            deref(iter).state = word(item);
+                            deref(iter).state = word(state);
+                            deref(iter).address = address.cast();
                             return ref;
                         }
                         // null reference; continue on to the next one
                     }
                     // else move on to next word, 14 slots later
-                    deref(iter).address = refPtr.plus(14).cast();
+                    address = address.plus(14).cast();
                 }
                 case LVI_ADD_OFFSET -> {
                     // add an offset to the current address
-                    int offset = item << 3 >> 3; // sign-extend
+                    int offset = (short)(state << 3) >> 3; // sign-extend
                     if (offset == 0) offset = LVI_AO_MAX_VALUE; // zero offset is nonsensical; reuse the bit pattern
-                    ptr<reference<?>> refPtr = deref(iter).address.cast();
-                    deref(iter).address = refPtr.plus(offset).cast();
+                    address = address.plus(offset).cast();
                 }
                 case LVI_IN_REGISTER -> {
                     // bits 8 and 9 contain the bank of 8 registers, so multiply that by 8 for the register base
-                    int regBase = item >> 5 & 0b11000; // (item >> 8 & 0b11) << 3
-                    while ((item & 0b1111_1111) != 0) {
-                        final int lob = Integer.lowestOneBit(item);
-                        item &= ~lob;
-                        final int idx = Integer.numberOfTrailingZeros(item);
+                    int regBase = state >> 5 & 0b11000; // (item >> 8 & 0b11) << 3
+                    while ((state & 0b1111_1111) != 0) {
+                        final int lob = Integer.lowestOneBit(state);
+                        state ^= lob;
+                        final int idx = Integer.numberOfTrailingZeros(lob);
                         unw_get_reg(cursor_ptr, word(regBase + idx), addr_of(regVal));
                         final reference<?> ref = reference.fromWord(regVal);
                         if (ref != null) {
+                            // save previous state
+                            deref(iter).prev_state = word(state | lob);
                             // save state for next iteration
-                            deref(iter).state = word(item);
+                            deref(iter).state = word(state);
+                            deref(iter).address = address.cast();
                             return ref;
                         }
                     }
                     // else move on to next word (address is unaffected since the refs are in registers)
                 }
                 case LVI_CURRENT_ADDRESS -> {
-                    try {
-                        // the current address value should be translated into a reference (stack allocated object)
-                        return reference.of(ptrToRef(deref(iter).address.cast()));
-                    } finally {
-                        // move forward to next item
-                        deref(iter).next_entry = deref(iter).next_entry.plus(1);
-                    }
+                    // the current address value should be translated into a reference (stack allocated object)
+                    deref(iter).state = deref(deref(iter).next_entry);
+                    deref(iter).address = address.cast();
+                    // move forward to next item
+                    deref(iter).next_entry = deref(iter).next_entry.plus(1);
+                    return reference.of(ptrToRef(address.cast()));
                 }
                 case LVI_END_OF_LIST -> {
+                    deref(iter).state = zero();
                     // done!
                     return null;
                 }
             }
-            item = deref(iter).next_entry.loadUnshared().intValue();
+            state = deref(iter).next_entry.loadUnshared().intValue();
             deref(iter).next_entry = deref(iter).next_entry.plus(1);
+        }
+    }
+
+    /**
+     * Modify the reference value last returned from the iterator.
+     *
+     * @param iter the iterator pointer, which typically should be stack-allocated (must not be {@code null})
+     * @param cursor_ptr the {@code unwind} stack cursor pointer which is used to read registers (must not be {@code null})
+     * @param val the new reference value to write
+     * @throws IllegalStateException if the state of the iterator is not valid
+     */
+    @NoSafePoint
+    @NoThrow
+    @export
+    public static void lvi_iterator_set(ptr<lvi_iterator> iter, ptr<unw_cursor_t> cursor_ptr, reference<?> val) {
+        int state = deref(iter).prev_state.intValue();
+        ptr<reference<?>> address = deref(iter).address.cast();
+        switch (Integer.numberOfLeadingZeros(state) - 16) {
+            default -> throw new IllegalStateException();
+            case LVI_IN_MEMORY -> address.plus(Integer.numberOfTrailingZeros(Integer.lowestOneBit(state))).storeUnshared(val);
+            case LVI_IN_REGISTER -> {
+                // bits 8 and 9 contain the bank of 8 registers, so multiply that by 8 for the register base
+                int regBase = state >> 5 & 0b11000; // (item >> 8 & 0b11) << 3
+                final int idx = Integer.numberOfTrailingZeros(Integer.lowestOneBit(state));
+                unw_set_reg(cursor_ptr, word(regBase + idx), val.cast());
+            }
         }
     }
 }
