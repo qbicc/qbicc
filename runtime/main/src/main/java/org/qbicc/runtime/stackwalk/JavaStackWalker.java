@@ -135,7 +135,7 @@ public final class JavaStackWalker extends StackObject {
     @NoThrow
     public String getFrameClassName() {
         final type_id enclosingType = getEnclosingType(getMethodInfo(source_ptr));
-        final ClassAccess clazz = (ClassAccess) (Object) CompilerIntrinsics.getClassFromTypeIdSimple(enclosingType);
+        final ClassAccess clazz = cast(CompilerIntrinsics.getClassFromTypeIdSimple(enclosingType));
         return clazz.name;
     }
 
