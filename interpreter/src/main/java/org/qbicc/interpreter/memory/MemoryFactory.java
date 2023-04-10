@@ -504,7 +504,14 @@ public final class MemoryFactory {
                 mv.visitLabel(outOfRange);
 
                 // also insert the init code for the field to the ctor
-                Supplier<Memory> factory = () -> MemoryFactory.allocate(ctxt, member.getType(), 1, upgradeLongs);
+                Supplier<Memory> factory = () -> {
+                    if (member.getOffset() > 0) {
+                        // the delegate memory is offset, so use a zero-memory to pad it out
+                        return MemoryFactory.compose(MemoryFactory.getZero(member.getOffset()), MemoryFactory.allocate(ctxt, member.getType(), 1, upgradeLongs));
+                    } else {
+                        return MemoryFactory.allocate(ctxt, member.getType(), 1, upgradeLongs);
+                    }
+                };
                 attachment.add(factory);
                 ctor.visitVarInsn(Opcodes.ALOAD, 0); // this
                 ctor.visitLdcInsn(new ConstantDynamic(ConstantDescs.DEFAULT_NAME, SUPPLIER_DESC, CLASS_DATA_AT_HANDLE, Integer.valueOf(fi))); // this factory

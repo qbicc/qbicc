@@ -5,8 +5,6 @@ import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.pointer.Pointer;
-import org.qbicc.type.ArrayType;
-import org.qbicc.type.CompoundType;
 import org.qbicc.type.ValueType;
 
 /**
