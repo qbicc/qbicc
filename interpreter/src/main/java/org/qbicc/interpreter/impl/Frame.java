@@ -2436,13 +2436,13 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 if (source == null) {
                     throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
                 }
-                source.typedCopyTo(0, memory, 0, ct);
+                source.typedCopyTo(0, memory, offset, ct);
             } else if (type instanceof ArrayType at) {
                 Memory source = (Memory) require(value);
                 if (source == null) {
                     throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
                 }
-                source.typedCopyTo(0, memory, 0, at);
+                source.typedCopyTo(0, memory, offset, at);
             } else {
                 throw unsupportedType();
             }
