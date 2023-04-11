@@ -69,6 +69,10 @@ public final class CurrentThread extends AbstractValue {
         return ! (getElement() instanceof FunctionElement);
     }
 
+    public boolean isPointeeNullable() {
+        return getElement() instanceof FunctionElement;
+    }
+
     @Override
     public AccessMode getDetectedMode() {
         return SingleUnshared;

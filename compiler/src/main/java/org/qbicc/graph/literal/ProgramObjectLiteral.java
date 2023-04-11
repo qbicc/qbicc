@@ -1,5 +1,8 @@
 package org.qbicc.graph.literal;
 
+import org.qbicc.object.Data;
+import org.qbicc.object.Function;
+import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramObject;
 import org.qbicc.type.PointerType;
 
@@ -44,6 +47,18 @@ public final class ProgramObjectLiteral extends Literal {
     @Override
     public boolean isZero() {
         return false;
+    }
+
+    @Override
+    public boolean isPointeeConstant() {
+        return programObject instanceof Data d && d.isConstant()
+            || programObject instanceof Function
+            || programObject instanceof FunctionDeclaration /* fd && ! fd.isWeak() */;
+    }
+
+    @Override
+    public boolean isPointeeNullable() {
+        return ! (programObject instanceof Data d && d.isConstant() && d.getValue().isNullable());
     }
 
     @Override
