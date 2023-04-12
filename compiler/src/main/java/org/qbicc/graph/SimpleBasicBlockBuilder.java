@@ -373,7 +373,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Value populationCount(final Value v) {
-        throw Assert.unsupported();
+        return unique(new PopCount(callSite, element, line, bci, v, getTypeSystem().getSignedInteger32Type()));
     }
 
     public Value loadLength(final Value arrayPointer) {
