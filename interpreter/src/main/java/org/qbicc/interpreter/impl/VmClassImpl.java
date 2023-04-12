@@ -5,6 +5,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,6 +44,7 @@ import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
+import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
@@ -516,21 +518,25 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     public Literal getValueForStaticField(FieldElement field) {
         int offset = staticLayoutInfo.getMember(field).getOffset();
-        ValueType fieldType = field.getType();
+        ValueType valueType = field.getType();
+        return getLiteral(offset, valueType, staticMemory);
+    }
+
+    private Literal getLiteral(final int offset, final ValueType valueType, final Memory memory) {
         LiteralFactory lf = vm.getCompilationContext().getLiteralFactory();
-        if (fieldType instanceof BooleanType) {
-            int val = staticMemory.load8(offset, SinglePlain);
+        if (valueType instanceof BooleanType) {
+            int val = memory.load8(offset, SinglePlain);
             return lf.literalOf(val != 0);
-        } else if (fieldType instanceof SignedIntegerType sit) {
+        } else if (valueType instanceof SignedIntegerType sit) {
             return switch (sit.getMinBits()) {
-                case 8 -> lf.literalOf((byte) staticMemory.load8(offset, SinglePlain));
-                case 16 -> lf.literalOf((short) staticMemory.load16(offset, SinglePlain));
-                case 32 -> lf.literalOf(staticMemory.load32(offset, SinglePlain));
+                case 8 -> lf.literalOf((byte) memory.load8(offset, SinglePlain));
+                case 16 -> lf.literalOf((short) memory.load16(offset, SinglePlain));
+                case 32 -> lf.literalOf(memory.load32(offset, SinglePlain));
                 case 64 -> {
                     try {
-                        yield lf.literalOf(staticMemory.load64(offset, SinglePlain));
+                        yield lf.literalOf(memory.load64(offset, SinglePlain));
                     } catch (InvalidMemoryAccessException e) {
-                        Pointer value = staticMemory.loadPointer(offset, SinglePlain);
+                        Pointer value = memory.loadPointer(offset, SinglePlain);
                         if (value == null) {
                             yield lf.zeroInitializerLiteralOfType(sit);
                         } else {
@@ -540,34 +546,69 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 }
                 default -> throw Assert.impossibleSwitchCase(sit.getMinBits());
             };
-        } else if (fieldType instanceof UnsignedIntegerType uit) {
+        } else if (valueType instanceof UnsignedIntegerType uit) {
             return switch (uit.getMinBits()) {
-                case 8 -> lf.literalOf(uit, staticMemory.load8(offset, SinglePlain));
-                case 16 -> lf.literalOf((char) staticMemory.load16(offset, SinglePlain));
-                case 32 -> lf.literalOf(uit, staticMemory.load32(offset, SinglePlain));
-                case 64 -> lf.literalOf(uit, staticMemory.load64(offset, SinglePlain));
+                case 8 -> lf.literalOf(uit, memory.load8(offset, SinglePlain));
+                case 16 -> lf.literalOf((char) memory.load16(offset, SinglePlain));
+                case 32 -> lf.literalOf(uit, memory.load32(offset, SinglePlain));
+                case 64 -> lf.literalOf(uit, memory.load64(offset, SinglePlain));
                 default -> throw Assert.impossibleSwitchCase(uit.getMinBits());
             };
-        } else if (fieldType instanceof FloatType ft) {
+        } else if (valueType instanceof FloatType ft) {
             return switch (ft.getMinBits()) {
-                case 32 -> lf.literalOf(staticMemory.loadFloat(offset, SinglePlain));
-                case 64 -> lf.literalOf(staticMemory.loadDouble(offset, SinglePlain));
+                case 32 -> lf.literalOf(memory.loadFloat(offset, SinglePlain));
+                case 64 -> lf.literalOf(memory.loadDouble(offset, SinglePlain));
                 default -> throw Assert.impossibleSwitchCase(ft.getMinBits());
             };
-        } else if (fieldType instanceof ReferenceType rt) {
-            VmObject value = staticMemory.loadRef(offset, SinglePlain);
+        } else if (valueType instanceof ReferenceType rt) {
+            VmObject value = memory.loadRef(offset, SinglePlain);
             if (value == null) {
                 return lf.nullLiteralOfType(rt);
             } else {
                 return lf.literalOf(value);
             }
-        } else if (fieldType instanceof PointerType pt) {
-            Pointer value = staticMemory.loadPointer(offset, SinglePlain);
+        } else if (valueType instanceof PointerType pt) {
+            Pointer value = memory.loadPointer(offset, SinglePlain);
             if (value == null) {
                 return lf.nullLiteralOfType(pt);
             } else {
                 return lf.literalOf(value);
             }
+        } else if (valueType instanceof ArrayType at) {
+            final long elementCount = at.getElementCount();
+            if (elementCount > Integer.MAX_VALUE) {
+                throw new IllegalArgumentException("Array too large");
+            }
+            final ValueType elementType = at.getElementType();
+            if (elementType instanceof IntegerType it) {
+                if (it.getMinBits() == 8) {
+                    // make a byte array
+                    final byte[] array = new byte[(int) elementCount];
+                    for (int i = 0; i < array.length; i++) {
+                        array[i] = (byte) memory.load8(offset + i, SinglePlain);
+                    }
+                    return lf.literalOf(at, array);
+                } else if (it.getMinBits() == 16) {
+                    // make a short array
+                    final short[] array = new short[(int) elementCount];
+                    for (int i = 0; i < array.length; i++) {
+                        array[i] = (short) memory.load16(offset + ((long) i << 1), SinglePlain);
+                    }
+                    return lf.literalOf(at, array);
+                }
+            }
+            final long elementSize = at.getElementSize();
+            Literal[] literals = new Literal[(int) elementCount];
+            for (int i = 0; i < elementCount; i++) {
+                literals[i] = getLiteral(offset + (i * (int) elementSize), elementType, memory);
+            }
+            return lf.literalOf(at, List.of(literals));
+        } else if (valueType instanceof CompoundType ct) {
+            Map<CompoundType.Member, Literal> map = new HashMap<>(ct.getMemberCount());
+            for (CompoundType.Member member : ct.getMembers()) {
+                map.put(member, getLiteral(offset + member.getOffset(), member.getType(), memory));
+            }
+            return lf.literalOf(ct, map);
         } else {
             throw new IllegalStateException("Unsupported type");
         }
