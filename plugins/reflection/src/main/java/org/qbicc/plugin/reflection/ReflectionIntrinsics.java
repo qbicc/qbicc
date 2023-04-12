@@ -1,7 +1,7 @@
 package org.qbicc.plugin.reflection;
 
 
-import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
+import static org.qbicc.graph.atomic.AccessModes.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,12 +71,14 @@ public final class ReflectionIntrinsics {
         String methodHandleInt = "java/lang/invoke/MethodHandle";
         String varHandleInt = "java/lang/invoke/VarHandle";
         ClassTypeDescriptor methodHandleDesc = ClassTypeDescriptor.synthesize(bootstrapClassContext, methodHandleInt);
+        ClassTypeDescriptor varHandleDesc = ClassTypeDescriptor.synthesize(bootstrapClassContext, varHandleInt);
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(bootstrapClassContext, "java/lang/Object");
         ClassTypeDescriptor internalErrorDesc = ClassTypeDescriptor.synthesize(bootstrapClassContext, "java/lang/InternalError");
         ClassTypeDescriptor throwableDesc = ClassTypeDescriptor.synthesize(bootstrapClassContext, "java/lang/Throwable");
 
         ArrayTypeDescriptor objArrayDesc = ArrayTypeDescriptor.of(bootstrapClassContext, objDesc);
 
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(bootstrapClassContext, BaseTypeDescriptor.V, List.of());
         MethodDescriptor objArrayToObj = MethodDescriptor.synthesize(bootstrapClassContext, objDesc, List.of(objArrayDesc));
         MethodDescriptor objArrayToVoid = MethodDescriptor.synthesize(bootstrapClassContext, BaseTypeDescriptor.V, List.of(objArrayDesc));
         MethodDescriptor objArrayToBool = MethodDescriptor.synthesize(bootstrapClassContext, BaseTypeDescriptor.Z, List.of(objArrayDesc));
@@ -405,6 +407,31 @@ public final class ReflectionIntrinsics {
         patcher.replaceMethodBody(bootstrapClassContext, methodHandleInt, "linkToVirtual", objArrayToObj, new StaticIntrinsicMethodBodyFactory(linkToVirtualMethodBody), 0);
 
         // VarHandle
+
+        intrinsics.registerIntrinsic(varHandleDesc, "fullFence", emptyToVoid, (builder, targetPtr, arguments) -> {
+            builder.fence(GlobalSeqCst);
+            return builder.emptyVoid();
+        });
+
+        intrinsics.registerIntrinsic(varHandleDesc, "acquireFence", emptyToVoid, (builder, targetPtr, arguments) -> {
+            builder.fence(GlobalAcquire);
+            return builder.emptyVoid();
+        });
+
+        intrinsics.registerIntrinsic(varHandleDesc, "releaseFence", emptyToVoid, (builder, targetPtr, arguments) -> {
+            builder.fence(GlobalRelease);
+            return builder.emptyVoid();
+        });
+
+        intrinsics.registerIntrinsic(varHandleDesc, "loadLoadFence", emptyToVoid, (builder, targetPtr, arguments) -> {
+            builder.fence(GlobalLoadLoad);
+            return builder.emptyVoid();
+        });
+
+        intrinsics.registerIntrinsic(varHandleDesc, "storeStoreFence", emptyToVoid, (builder, targetPtr, arguments) -> {
+            builder.fence(GlobalStoreStore);
+            return builder.emptyVoid();
+        });
 
         LoadedTypeDefinition wmteDef = bootstrapClassContext.findDefinedType("java/lang/invoke/WrongMethodTypeException").load();
         ConstructorElement wmteCtor = wmteDef.requireSingleConstructor(ce -> ce.getParameters().isEmpty());
