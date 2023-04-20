@@ -31,6 +31,7 @@ import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.OffsetFromLiteral;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.ShortArrayLiteral;
+import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.graph.literal.ValueConvertLiteral;
@@ -348,6 +349,10 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
 
     public LLValue visit(final Void param, final IntegerLiteral node) {
         return Values.intConstant(node.longValue());
+    }
+
+    public LLValue visit(final Void unused, final StaticFieldLiteral literal) {
+        return Values.global(literal.getVariableElement().getLoweredName());
     }
 
     public LLValue visit(final Void unused, final MemberOfLiteral node) {
