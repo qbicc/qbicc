@@ -449,7 +449,7 @@ public final class CoreClasses {
      *
      * @return the object header field
      */
-    public FieldElement getObjectHeaderField() {
+    public InstanceFieldElement getObjectHeaderField() {
         return objectHeaderField;
     }
 
