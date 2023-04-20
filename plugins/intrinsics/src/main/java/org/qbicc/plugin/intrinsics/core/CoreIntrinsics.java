@@ -850,6 +850,10 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(integerDesc, "lowestOneBit", intToInt, lowestOneBit);
+
+        StaticIntrinsic bitCount = ((builder, targetPtr, arguments) -> builder.populationCount(arguments.get(0)));
+
+        intrinsics.registerIntrinsic(integerDesc, "bitCount", intToInt, bitCount);
     }
 
     private static void registerJavaLangLongIntrinsics(CompilationContext ctxt) {
