@@ -98,6 +98,7 @@ public final class Heap {
      * @param offset the offset
      * @return the pointer (not {@code null})
      */
+    @export
     public static void_ptr pointerToOffset(long offset) {
         return heap.plus(offset);
     }
@@ -108,6 +109,7 @@ public final class Heap {
      *
      * @return the amount of unallocated space, in bytes
      */
+    @export
     public static long getHeapUnallocated() {
         return limit - addr_of(allocated).loadSingleAcquire().longValue();
     }
@@ -115,6 +117,7 @@ public final class Heap {
     /**
      * Get the max size of the heap in bytes (for Runtime.maxMemory())
      */
+    @export
     public static long getMaxHeapSize() {
         return limit;
     }
@@ -124,6 +127,7 @@ public final class Heap {
      *
      * @return the page size
      */
+    @export
     public static long getPageSize() {
         return pageSize;
     }
@@ -133,6 +137,7 @@ public final class Heap {
      *
      * @return the heap offset
      */
+    @export
     public static long getCurrentHeapOffset() {
         return Heap.allocated;
     }
@@ -148,6 +153,7 @@ public final class Heap {
      * @throws IllegalArgumentException if the size is not a valid allocation size
      * @throws OutOfMemoryError if some heap could not be committed
      */
+    @export
     public static long allocateRegion(long expectedOffset, long size) throws IllegalArgumentException, OutOfMemoryError {
         if (Build.isHost()) {
             throw new IllegalStateException();
@@ -177,6 +183,7 @@ public final class Heap {
         return oldOffset;
     }
 
+    @export
     public static void commitUpTo(long index) throws IllegalArgumentException, OutOfMemoryError {
         if (Build.isHost()) {
             throw new IllegalStateException();
@@ -215,6 +222,7 @@ public final class Heap {
      * @param printErrors {@code true} to print errors to {@code stderr}, {@code false} to skip printing
      * @return {@code true} if the heap is usable, {@code false} otherwise
      */
+    @export
     public static boolean checkInit(boolean printErrors) {
         if (! initOk) {
             if (printErrors) {
@@ -243,6 +251,7 @@ public final class Heap {
         }
     }
 
+    @export
     public static boolean isHeapArgument(ptr<@c_const c_char> argPtr) {
         return strncmp(argPtr.cast(), utf8z("-Xmx"), word(4)).isZero()
             || strncmp(argPtr.cast(), utf8z("-Xms"), word(4)).isZero()

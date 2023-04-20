@@ -6,6 +6,7 @@ import static org.qbicc.runtime.stdc.String.*;
 
 import org.qbicc.runtime.AutoQueued;
 import org.qbicc.runtime.Hidden;
+import org.qbicc.runtime.NoSafePoint;
 import org.qbicc.runtime.gc.heap.Heap;
 
 /**
@@ -19,6 +20,7 @@ public final class NoGcHelpers {
 
     @Hidden
     @AutoQueued
+    @NoSafePoint
     public static Object allocate(long size, int align) {
         // todo: per-object alignment - should we allow it? perhaps not (ignore for now)
         int64_t_ptr posPtr = addr_of(pos);
@@ -55,11 +57,13 @@ public final class NoGcHelpers {
 
     @Hidden
     @AutoQueued
-    public static void clear(Object ptr, long size) { memset((void_ptr)(ptr<?>)refToPtr(ptr), word(0), word(size)); }
+    @NoSafePoint
+    public static void clear(Object ptr, long size) { memset(refToPtr(ptr), word(0), word(size)); }
 
     @Hidden
     @AutoQueued
+    @NoSafePoint
     public static void copy(Object to, Object from, long size) {
-        memcpy((void_ptr)(ptr<?>)refToPtr(to), (const_void_ptr)(ptr<?>)refToPtr(from), word(size));
+        memcpy(refToPtr(to), refToPtr(from), word(size));
     }
 }
