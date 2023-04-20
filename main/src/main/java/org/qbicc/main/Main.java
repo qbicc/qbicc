@@ -975,6 +975,8 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean debugDevirt;
         @CommandLine.Option(names = "--debug-interpreter")
         private boolean debugInterpreter;
+        @CommandLine.Option(names = "--debug-initialization")
+        private boolean debugInit;
         @CommandLine.Option(names = "--emit-asm", negatable = true, defaultValue = "false", description = "Enable emitting assembly for each class")
         private boolean emitAssembly;
         @CommandLine.Option(names = "--gc", defaultValue = "none", description = "Type of GC to use. Valid values: ${COMPLETION-CANDIDATES}")
@@ -1084,6 +1086,9 @@ public class Main implements Callable<DiagnosticContext> {
             }
             if (debugInterpreter) {
                 Logger.getLogger("org.qbicc.interpreter").setLevel(Level.DEBUG);
+            }
+            if (debugInit) {
+                Logger.getLogger("org.qbicc.interpreter.initialization").setLevel(Level.DEBUG);
             }
             if (heapStats) {
                 Logger.getLogger("org.qbicc.plugin.serialization.stats").setLevel(Level.DEBUG);

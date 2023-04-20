@@ -64,7 +64,7 @@ import org.qbicc.type.descriptor.TypeDescriptor;
 import static org.qbicc.graph.atomic.AccessModes.*;
 
 class VmClassImpl extends VmObjectImpl implements VmClass {
-    private static final Logger log = Logger.getLogger("org.qbicc.interpreter");
+    private static final Logger log = Logger.getLogger("org.qbicc.interpreter.initialization");
 
     private static final VarHandle interfacesHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "interfaces", VarHandle.class, VmClassImpl.class, List.class);
 
@@ -640,6 +640,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 state = this.state;
                 initException = this.initException; // always written before state
                 if (state == State.UNINITIALIZED) {
+                    log.debugf("Initializing %s", getName());
                     this.state = State.INITIALIZING;
                     try {
                         InitializerElement initializer = typeDefinition.getInitializer();
@@ -653,13 +654,15 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                         } else {
                             state = this.state = State.INITIALIZED;
                         }
+                        log.debugf("Initialization completed for %s", getName());
                     } catch (Thrown t) {
                         initException = this.initException = (VmThrowableImpl) t.getThrowable();
                         state = this.state = State.INITIALIZATION_FAILED;
-                        log.debug("Failed to initialize a class", t);
+                        log.debugf(t, "Failed to initialize %s", getName());
                     } catch (Throwable t) {
                         vm.getCompilationContext().error(t, "Crash in interpreter while initializing %s: %s", this, t);
                         state = this.state = State.INITIALIZATION_FAILED;
+                        log.debugf(t, "Failed to initialize %s", getName());
                     }
                 }
             }
