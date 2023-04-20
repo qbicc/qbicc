@@ -170,8 +170,8 @@ final class CallImpl extends AbstractYieldingInstruction implements Call {
         ArgImpl(final HasArguments hasArguments, final ArgImpl prev, final AbstractValue type, final AbstractValue value) {
             this.hasArguments = hasArguments;
             this.prev = prev;
-            this.type = type;
-            this.value = value;
+            this.type = Assert.checkNotNullParam("type", type);
+            this.value = Assert.checkNotNullParam("value", value);
         }
 
         public ArgImpl attribute(final LLValue attribute) {
