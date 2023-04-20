@@ -15,6 +15,7 @@ import org.qbicc.tests.snippets.MethodHandle;
 import org.qbicc.tests.snippets.Reflection;
 import org.qbicc.tests.snippets.ResourceLoading;
 import org.qbicc.tests.snippets.RuntimeChecks;
+import org.qbicc.tests.snippets.SelectorTest;
 import org.qbicc.tests.snippets.ServiceLoading;
 import org.qbicc.tests.snippets.Synchronized;
 import org.qbicc.tests.snippets.TryCatch;
@@ -48,6 +49,7 @@ public final class TestRunner {
             case "snippet-Reflection" -> Reflection.main(testArgs);
             case "snippet-ResourceLoading" -> ResourceLoading.main(testArgs);
             case "snippet-RuntimeChecks" -> RuntimeChecks.main(testArgs);
+            case "snippet-SelectorTest" -> SelectorTest.main(testArgs);
             case "snippet-ServiceLoading" -> ServiceLoading.main(testArgs);
             case "snippet-TryCatch" -> TryCatch.main(testArgs);
             case "snippet-ClassLiteralTests" -> ClassLiteralTests.main(testArgs);
