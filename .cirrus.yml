@@ -1,0 +1,38 @@
+env:
+  CIRRUS_SHELL: bash
+  MVN_SETTINGS: |
+    <settings>
+      <mirrors>
+        <mirror>
+          <id>google-maven-central</id>
+          <name>GCS Maven Central mirror</name>
+          <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+          <mirrorOf>central</mirrorOf>
+        </mirror>
+      </mirrors>
+    </settings>
+build_task:
+  alias: 'build'
+  auto_cancellation: true
+  compute_engine_instance:
+    image_project: rocky-linux-cloud
+    image: family/rocky-linux-9-arm64
+    platform: linux
+    architecture: arm64
+    cpu: 4
+    memory: 6G
+    disk: 100
+  setup_script: |
+    dnf -y install epel-release
+    dnf -y install llvm git glibc-devel gcc libgcc maven java-17-openjdk-devel libunwind-devel
+  settings_file:
+    path: /root/.m2/settings.xml
+    variable_name: MVN_SETTINGS
+  get_script: |
+    git clone https://github.com/qbicc/qbicc.git
+  build_script: |
+    cd qbicc
+    alternatives --set java java-17-openjdk.aarch64
+    alternatives --set javac java-17-openjdk.aarch64
+    mvn --batch-mode wrapper:wrapper -Dmaven=3.6.3
+    JAVA_HOME=/usr/lib/jvm/jre-17 ./mvnw --batch-mode install -Dqbicc.llvm.opaque-pointers=true
