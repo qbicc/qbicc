@@ -23,16 +23,6 @@ public class CompilerIntrinsics {
     public static native void copyInstanceFields(Class<?> clazz, Object src, Object dst);
 
     /**
-     * This intrinsic gets a C-style function pointer to the specified static method.
-     * The method should be annotated with @export and must be the only method of that
-     * name defined in the given class (not overloaded).
-     *
-     * @param clazz the fully qualified class name
-     * @param method the name of the method
-     */
-    public static native void_ptr_unaryoperator_function_ptr nativeFunctionPointer(String clazz, String method);
-
-    /**
      * Get the dimensionality for the represented type from a java.lang.Class instance.
      * Classes, interfaces, and primitive arrays have dimensionality 0.
      */
