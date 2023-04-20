@@ -2,6 +2,7 @@ package org.qbicc.runtime.stackwalk;
 
 import static org.qbicc.runtime.CNative.*;
 
+import static org.qbicc.runtime.stackwalk.CallSiteTable.*;
 import static org.qbicc.runtime.stdc.String.*;
 import static org.qbicc.runtime.unwind.LibUnwind.*;
 
@@ -102,5 +103,14 @@ public final class StackWalker extends StackObject {
     @NoThrow
     public int getIndex() {
         return index;
+    }
+
+    /**
+     * Get a pointer to the call site represented by this iterator step.
+     *
+     * @return the call site pointer, or {@code null} if the call site is not known
+     */
+    public ptr<struct_call_site> getCallSite() {
+        return findInsnTableEntry(getIp());
     }
 }
