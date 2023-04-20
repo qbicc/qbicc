@@ -17,7 +17,6 @@ import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.plugin.core.ConditionEvaluation;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.MethodType;
-import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
@@ -306,21 +305,6 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 builder.setModifiers(origMethod.getModifiers());
                 builder.setEnclosingType(origMethod.getEnclosingType());
                 builder.setSignature(origMethod.getSignature());
-                TypeSystem ts = ctxt.getTypeSystem();
-                MethodType origType = origMethod.getType();
-                FunctionType fnType;
-                int parameterCount = origType.getParameterCount();
-                if (origMethod.isVarargs() && parameterCount > 0 && origType.getParameterType(parameterCount - 1) instanceof ReferenceArrayObjectType) {
-                    ValueType[] newParamTypes = new ValueType[parameterCount];
-                    for (int i = 0; i < parameterCount - 1; i ++) {
-                        newParamTypes[i] = origType.getParameterType(i);
-                    }
-                    newParamTypes[parameterCount - 1] = ts.getVariadicType();
-                    fnType = ts.getFunctionType(origType.getReturnType(), List.of(newParamTypes));
-                } else {
-                    fnType = ts.getFunctionType(origType.getReturnType(), origType.getParameterTypes());
-                }
-                builder.setType(fnType);
                 builder.setSourceFileName(origMethod.getSourceFileName());
                 builder.setParameters(origMethod.getParameters());
                 builder.setMinimumLineNumber(origMethod.getMinimumLineNumber());
