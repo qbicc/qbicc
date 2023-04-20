@@ -216,10 +216,10 @@ public final class CoreIntrinsics {
         StaticIntrinsic currentThread = (builder, target, arguments) -> builder.load(builder.currentThread(), SingleUnshared);
         intrinsics.registerIntrinsic(jltDesc, "currentThread", returnJlt, currentThread);
 
-        //static native void bind(ptr<thread_native> threadPtr, Runnable r);
-        StaticIntrinsic bindAndCallRun0 = (builder, targetPtr, arguments) ->
-            builder.call(builder.threadBound(arguments.get(0), builder.resolveStaticMethod(jltDesc, "run0", emptyToVoid)), List.of(arguments.get(1)));
-        intrinsics.registerIntrinsic(jltDesc, "bindAndCallRun0", bindAndCallRun0);
+        //static native void bind(ptr<thread_native> threadPtr);
+        StaticIntrinsic bind = (builder, targetPtr, arguments) ->
+            builder.call(builder.threadBound(arguments.get(0), builder.resolveStaticMethod(jltDesc, "run0", emptyToVoid)), List.of());
+        intrinsics.registerIntrinsic(jltDesc, "bind", bind);
     }
 
     public static void registerJavaLangStackTraceElementIntrinsics(CompilationContext ctxt) {

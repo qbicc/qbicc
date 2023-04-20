@@ -59,6 +59,9 @@ final class VmThreadImpl extends VmObjectImpl implements VmThread {
     }
 
     void setBoundThread(Thread boundThread) {
+        if (this.boundThread != null && this.boundThread != boundThread) {
+            throw new IllegalStateException("Cannot rebind thread");
+        }
         this.boundThread = boundThread;
     }
 
