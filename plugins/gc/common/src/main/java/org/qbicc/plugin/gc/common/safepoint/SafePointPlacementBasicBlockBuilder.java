@@ -5,6 +5,8 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
 import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FunctionElement;
 
 /**
  * Block builder which places safepoint polls.
@@ -15,8 +17,10 @@ public final class SafePointPlacementBasicBlockBuilder extends DelegatingBasicBl
     }
 
     public static BasicBlockBuilder createIfNeeded(FactoryContext ctxt, BasicBlockBuilder delegate) {
-        final boolean noSafePoints = delegate.getCurrentElement().hasAllModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS);
-        return noSafePoints ? delegate : new SafePointPlacementBasicBlockBuilder(delegate);
+        final ExecutableElement currentElement = delegate.getCurrentElement();
+        final boolean noSafePoints = currentElement.hasAllModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS);
+        // functions should not automatically poll for safepoints, because there might not be a thread
+        return currentElement instanceof FunctionElement || noSafePoints ? delegate : new SafePointPlacementBasicBlockBuilder(delegate);
     }
 
     @Override
