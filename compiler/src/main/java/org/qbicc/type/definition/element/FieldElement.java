@@ -142,6 +142,8 @@ public abstract class FieldElement extends VariableElement implements MemberElem
 
         Literal initialValue;
         InitializerElement runTimeInitializer;
+        String loweredName;
+
         private Function<FieldElement, ValueType> typeResolver;
 
         public void setInitialValue(final Literal initialValue) {
@@ -159,6 +161,14 @@ public abstract class FieldElement extends VariableElement implements MemberElem
         public FieldElement build() {
             if ((modifiers & ClassFile.ACC_STATIC) != 0) {
                 setTypeParameterContext(TypeParameterContext.EMPTY);
+                if (loweredName == null) {
+                    StringBuilder b = new StringBuilder(64);
+                    // todo: consider class loader
+                    b.append(enclosingType.getInternalName().replace('/', '.'));
+                    b.append('.');
+                    b.append(getName());
+                    loweredName = b.toString();
+                }
                 return new StaticFieldElement(this);
             } else {
                 setTypeParameterContext(enclosingType);

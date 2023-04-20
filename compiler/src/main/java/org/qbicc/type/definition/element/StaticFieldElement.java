@@ -16,6 +16,7 @@ public final class StaticFieldElement extends FieldElement {
     private static final VarHandle pointerHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "pointer", VarHandle.class, StaticFieldElement.class, StaticFieldPointer.class);
     private final Literal initialValue;
     private final InitializerElement runTimeInitializer;
+    private final String loweredName;
     @SuppressWarnings("unused") // pointerHandle
     private volatile StaticFieldPointer pointer;
 
@@ -23,6 +24,7 @@ public final class StaticFieldElement extends FieldElement {
         super(builder);
         initialValue = builder.initialValue;
         runTimeInitializer = builder.runTimeInitializer;
+        loweredName = builder.loweredName;
     }
 
     @Override
@@ -44,6 +46,16 @@ public final class StaticFieldElement extends FieldElement {
 
     public InitializerElement getRunTimeInitializer() {
         return runTimeInitializer;
+    }
+
+    /**
+     * Get the lowered name of this field.
+     * The lowered name is the name of the global variable symbol to use for this element.
+     *
+     * @return the lowered name (not {@code null})
+     */
+    public String getLoweredName() {
+        return loweredName;
     }
 
     /**

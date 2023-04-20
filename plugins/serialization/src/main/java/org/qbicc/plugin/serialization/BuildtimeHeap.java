@@ -278,13 +278,8 @@ public class BuildtimeHeap {
         DefinedTypeDefinition typeDef = field.getEnclosingType();
         ClassContext classContext = typeDef.getContext();
         CompilationContext ctxt = classContext.getCompilationContext();
-        StringBuilder b = new StringBuilder(64);
-        // todo: consider class loader
-        b.append(typeDef.getInternalName().replace('/', '.'));
-        b.append('.');
-        b.append(field.getName());
         TypeDescriptor fieldDesc = field.getTypeDescriptor();
-        String globalName = b.toString();
+        String globalName = field.getLoweredName();
         final GlobalVariableElement.Builder builder = GlobalVariableElement.builder(globalName, fieldDesc);
         ValueType globalType = widenBoolean(field.getType());
         builder.setType(globalType);
