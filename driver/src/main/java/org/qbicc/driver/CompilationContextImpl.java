@@ -109,6 +109,7 @@ final class CompilationContextImpl implements CompilationContext {
         bootstrapClassContext = new ClassContextImpl(this, null, builder.bootstrapFinder, builder.bootstrapResourceFinder, builder.bootstrapResourcesFinder);
         appClassContextFactory = cl -> new ClassContextImpl(this, cl, builder.appFinder, builder.appResourceFinder, builder.appResourcesFinder);
         platformClassContextFactory = cl -> new ClassContextImpl(this, cl, builder.platformFinder, builder.platformResourceFinder, builder.platformResourcesFinder);
+        this.blockFactory = builder.initialBlockFactory;
         this.typeBuilderFactories = builder.typeBuilderFactories;
         this.nativeMethodConfigurator = builder.nativeMethodConfigurator;
         implicitSection = Section.defineSection(this, 0, IMPLICIT_SECTION_NAME, Segment.DATA);
@@ -908,6 +909,7 @@ final class CompilationContextImpl implements CompilationContext {
         BiFunction<ClassContext, String, DefinedTypeDefinition> platformFinder;
         BiFunction<ClassContext, String, byte[]> platformResourceFinder;
         BiFunction<ClassContext, String, List<byte[]>> platformResourcesFinder;
+        BiFunction<BasicBlockBuilder.FactoryContext, ExecutableElement, BasicBlockBuilder> initialBlockFactory;
         Function<CompilationContext, Vm> vmFactory;
         Path outputDir;
         List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories;
@@ -984,6 +986,11 @@ final class CompilationContextImpl implements CompilationContext {
 
         Builder setPlatformResourcesFinder(BiFunction<ClassContext, String, List<byte[]>> platformResourcesFinder) {
             this.platformResourcesFinder = platformResourcesFinder;
+            return this;
+        }
+
+        Builder setInitialBlockFactory(BiFunction<BasicBlockBuilder.FactoryContext, ExecutableElement, BasicBlockBuilder> blockFactory) {
+            this.initialBlockFactory = blockFactory;
             return this;
         }
 
