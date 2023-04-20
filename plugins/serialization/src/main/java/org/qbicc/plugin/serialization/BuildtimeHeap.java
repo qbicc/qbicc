@@ -346,6 +346,10 @@ public class BuildtimeHeap {
             bth.serializeVmObject(ol.getValue(), false);
             initialValue = bth.referToSerializedVmObject(ol.getValue(), ol.getType(), moduleSection.getProgramModule());
         }
+        if (initialValue.getType() instanceof ReferenceType irt && field.getType() instanceof ReferenceType frt && !irt.equals(frt)) {
+            // we need a widening conversion
+            initialValue = lf.bitcastLiteral((Literal) initialValue, frt);
+        }
         final Data data = moduleSection.addData(field, globalName, initialValue);
         data.setLinkage(Linkage.EXTERNAL);
         data.setDsoLocal();
