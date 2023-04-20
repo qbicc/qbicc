@@ -48,14 +48,6 @@ final class VmThreadImpl extends VmObjectImpl implements VmThread {
         memory.storeRef(offset, threadGroup, SinglePlain);
     }
 
-    void setPriority(final int priority) {
-        int offset = indexOf(clazz.getTypeDefinition().findField("priority"));
-        if (priority < Thread.MIN_PRIORITY || priority > Thread.MAX_PRIORITY) {
-            throw new IllegalArgumentException("Invalid thread priority: "+priority);
-        }
-        memory.store32(offset, priority, SinglePlain);
-    }
-
     VmClassLoader getContextClassLoader() {
         int offset = indexOf(clazz.getTypeDefinition().findField("contextClassLoader"));
         return (VmClassLoader) memory.loadRef(offset, SinglePlain);

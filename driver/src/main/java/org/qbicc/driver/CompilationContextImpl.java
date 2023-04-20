@@ -40,6 +40,7 @@ import org.qbicc.object.ProgramModule;
 import org.qbicc.object.Section;
 import org.qbicc.object.Segment;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.InvokableType;
@@ -573,18 +574,18 @@ final class CompilationContextImpl implements CompilationContext {
 
     @Override
     public FunctionType getFunctionTypeForInvokableType(final InvokableType origType) {
-        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").load().getClassType();
         int pcnt = origType.getParameterCount();
         if (origType instanceof FunctionType ft) {
             // already a function
             return ft;
         } else {
+            CompoundType threadNativeType = (CompoundType) getBootstrapClassContext().resolveTypeFromClassName("java/lang", "Thread$thread_native");
             // some kind of method
             assert origType instanceof MethodType;
             MethodType mt = (MethodType) origType;
             ArrayList<ValueType> argTypes;
             argTypes = new ArrayList<>(pcnt + 2);
-            argTypes.add(threadType.getReference());
+            argTypes.add(threadNativeType.getPointer());
             if (origType instanceof InstanceMethodType imt) {
                 // instance methods also get the receiver
                 argTypes.add(imt.getReceiverType());
@@ -600,9 +601,9 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     public FunctionType getFunctionTypeForInitializer() {
-        // look up the thread ID literal - todo: lazy cache?
-        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").load().getClassType();
-        return typeSystem.getFunctionType(typeSystem.getVoidType(), List.of(threadType.getReference()));
+        // look up the thread arg type - todo: lazy cache?
+        CompoundType threadNativeType = (CompoundType) getBootstrapClassContext().resolveTypeFromClassName("java/lang", "Thread$thread_native");
+        return typeSystem.getFunctionType(typeSystem.getVoidType(), List.of(threadNativeType.getPointer()));
     }
 
     public Iterable<ExecutableElement> getEntryPoints() {

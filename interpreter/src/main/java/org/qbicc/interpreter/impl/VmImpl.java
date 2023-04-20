@@ -515,7 +515,6 @@ public final class VmImpl implements Vm {
         if (threadGroup != null) {
             vmThread.setThreadGroup(threadGroup);
         }
-        vmThread.setPriority(priority);
         return vmThread;
     }
 

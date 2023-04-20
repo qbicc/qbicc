@@ -14,6 +14,7 @@ import org.qbicc.driver.Phase;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
@@ -206,26 +207,19 @@ public final class CoreIntrinsics {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
-        final int threadAlive = 0x0001;
-
         ClassTypeDescriptor jltDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
 
         MethodDescriptor returnJlt = MethodDescriptor.synthesize(classContext, jltDesc, List.of());
-        MethodDescriptor booleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
 
         /* public static native Thread currentThread(); */
         StaticIntrinsic currentThread = (builder, target, arguments) -> builder.load(builder.currentThread(), SingleUnshared);
         intrinsics.registerIntrinsic(jltDesc, "currentThread", returnJlt, currentThread);
 
-        /* public final native boolean isAlive(); */
-        InstanceIntrinsic isAlive = (builder, instance, target, arguments) -> {
-            Value threadStatusHandle = builder.instanceFieldOf(builder.decodeReference(instance), jltDesc, "threadStatus", BaseTypeDescriptor.I);
-            Value threadStatus = builder.load(threadStatusHandle, SingleUnshared);
-            Value aliveState = ctxt.getLiteralFactory().literalOf(threadAlive);
-            Value isThreadAlive = builder.and(threadStatus, aliveState);
-            return builder.isEq(isThreadAlive, aliveState);
-        };
-        intrinsics.registerIntrinsic(jltDesc, "isAlive", booleanDesc, isAlive);
+        //static native void bind(ptr<thread_native> threadPtr, Runnable r);
+        StaticIntrinsic bindAndCallRun0 = (builder, targetPtr, arguments) ->
+            builder.call(builder.threadBound(arguments.get(0), builder.resolveStaticMethod(jltDesc, "run0", emptyToVoid)), List.of(arguments.get(1)));
+        intrinsics.registerIntrinsic(jltDesc, "bindAndCallRun0", bindAndCallRun0);
     }
 
     public static void registerJavaLangStackTraceElementIntrinsics(CompilationContext ctxt) {
@@ -653,7 +647,8 @@ public final class CoreIntrinsics {
             ProgramModule programModule = ctxt.getOrAddProgramModule(builder.getCurrentElement().getEnclosingType());
             programModule.declareData(null, rtinitTable.getName(), rtinitTable.getType());
             Value initFunc = builder.load(builder.elementOf(builder.getLiteralFactory().literalOf(rtinitTable), index));
-            return builder.call(initFunc, List.of(builder.load(builder.currentThread(), SingleUnshared)));
+            final BlockParameter thrPtr = builder.getParam(builder.getEntryLabel(), Slot.thread());
+            return builder.call(initFunc, List.of(thrPtr));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "callRuntimeInitializer", intVoidDesc, callRuntimeInitializer);
 
