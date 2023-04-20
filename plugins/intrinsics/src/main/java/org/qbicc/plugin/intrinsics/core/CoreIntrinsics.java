@@ -74,7 +74,7 @@ public final class CoreIntrinsics {
         registerJavaLangClassIntrinsics(ctxt);
         registerJavaLangStringUTF16Intrinsics(ctxt);
         registerJavaLangSystemIntrinsics(ctxt);
-        registerJavaLangStackTraceElementInstrinsics(ctxt);
+        registerJavaLangStackTraceElementIntrinsics(ctxt);
         registerJavaLangThreadIntrinsics(ctxt);
         registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
@@ -228,7 +228,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(jltDesc, "isAlive", booleanDesc, isAlive);
     }
 
-    public static void registerJavaLangStackTraceElementInstrinsics(CompilationContext ctxt) {
+    public static void registerJavaLangStackTraceElementIntrinsics(CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
         RuntimeMethodFinder methodFinder = RuntimeMethodFinder.get(ctxt);
