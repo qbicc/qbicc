@@ -518,6 +518,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         throw new IllegalStateException("resolveConstructor of unresolved type");
     }
 
+    @Override
+    public Value threadBound(Value threadPtr, Value target) {
+        return unique(new ThreadBound(callSite, element, line, bci, threadPtr, target));
+    }
+
     public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         throw new IllegalStateException("Static field of unresolved type");
     }
