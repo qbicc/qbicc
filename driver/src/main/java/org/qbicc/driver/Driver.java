@@ -167,6 +167,7 @@ public class Driver implements Closeable {
             .setPlatformFinder(this::platFinder)
             .setPlatformResourceFinder(this::platResourceFinder)
             .setPlatformResourcesFinder(this::platResourcesFinder)
+            .setInitialBlockFactory(addBuilderFactory)
             .setVmFactory(vmFactory)
             .setOutputDir(outputDir)
             .setResolverFactories(resolverFactories)
@@ -174,8 +175,6 @@ public class Driver implements Closeable {
             .setNativeMethodConfigurator(nativeMethodConfigurator)
             .setClassContextListener(classContextListener);
         compilationContext = ctxtBuilder.build();
-        // start with ADD
-        compilationContext.setBlockFactory(addBuilderFactory);
 
         threadsPerCpu = builder.threadsPerCpu;
         stackSize = builder.stackSize;
