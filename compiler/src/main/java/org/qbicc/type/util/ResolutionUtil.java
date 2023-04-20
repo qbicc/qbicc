@@ -1,5 +1,6 @@
 package org.qbicc.type.util;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -10,6 +11,7 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.MethodSignature;
@@ -50,16 +52,30 @@ public final class ResolutionUtil {
         return classContext.getTypeSystem().getStaticMethodType(resolvedReturnType, resolvedParameterTypes);
     }
 
-    public static FunctionType resolveFunctionType(DefinedTypeDefinition enclosingType, TypeParameterContext tpc, MethodDescriptor descriptor, MethodSignature signature) {
+    public static FunctionType resolveFunctionType(DefinedTypeDefinition enclosingType, TypeParameterContext tpc, MethodDescriptor descriptor, MethodSignature signature, boolean isVarArg) {
         ClassContext classContext = enclosingType.getContext();
         TypeDescriptor returnType = descriptor.getReturnType();
         List<TypeDescriptor> parameterTypes = descriptor.getParameterTypes();
         TypeSignature returnTypeSignature = signature.getReturnTypeSignature();
         List<TypeSignature> paramSignatures = signature.getParameterTypes();
+        if (isVarArg && parameterTypes.size() > 0 && parameterTypes.get(parameterTypes.size() - 1) instanceof ArrayTypeDescriptor) {
+            // remove the vararg item
+            if (paramSignatures.size() == parameterTypes.size()) {
+                paramSignatures = paramSignatures.subList(0, paramSignatures.size() - 1);
+            }
+            parameterTypes = parameterTypes.subList(0, parameterTypes.size() - 1);
+        } else {
+            isVarArg = false;
+        }
         paramSignatures = computeSignatures(classContext, parameterTypes, paramSignatures);
         TypeParameterContext nestedCtxt = TypeParameterContext.create(tpc, signature);
         ValueType resolvedReturnType = resolveSingleType(enclosingType, returnType, returnTypeSignature, nestedCtxt);
         List<ValueType> resolvedParameterTypes = resolveMultipleTypes(enclosingType, parameterTypes, paramSignatures, nestedCtxt);
+        if (isVarArg) {
+            final ArrayList<ValueType> list = new ArrayList<>(resolvedParameterTypes);
+            list.add(classContext.getTypeSystem().getVariadicType());
+            resolvedParameterTypes = list;
+        }
         return classContext.getTypeSystem().getFunctionType(resolvedReturnType, resolvedParameterTypes);
     }
 

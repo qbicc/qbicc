@@ -25,7 +25,6 @@ public final class FunctionElement extends InvokableElement implements NamedElem
 
     FunctionElement(final BuilderImpl builder) {
         super(builder);
-        Assert.checkNotNullParam("builder.type", builder.type);
         name = Assert.checkNotNullParam("builder.name", builder.name);
     }
 
@@ -41,7 +40,7 @@ public final class FunctionElement extends InvokableElement implements NamedElem
 
     @Override
     FunctionType computeType() {
-        return ResolutionUtil.resolveFunctionType(getEnclosingType(), this, getDescriptor(), getSignature());
+        return ResolutionUtil.resolveFunctionType(getEnclosingType(), this, getDescriptor(), getSignature(), isVarargs());
     }
 
     /**
