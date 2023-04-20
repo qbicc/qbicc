@@ -411,10 +411,15 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addResolverFactory(NativeTypeResolver::new);
 
                             // from this point on, all pre-ADD hook tasks are run within a VM thread
-                            builder.addPreHook(Phase.ADD, c -> c.setTaskRunner((wrapper, ctxt) -> {
-                                Vm vm = ctxt.getVm();
-                                vm.doAttached(vm.newThread(Thread.currentThread().getName(), vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> wrapper.accept(ctxt));
-                            }));
+                            builder.addPreHook(Phase.ADD, c -> {
+                                final Vm vm = c.getVm();
+                                ThreadLocal<VmThread> threadHolder = ThreadLocal.withInitial(() ->
+                                    vm.newThread(Thread.currentThread().getName(), vm.getMainThreadGroup(), false, Thread.currentThread().getPriority())
+                                );
+                                c.setTaskRunner((wrapper, ctxt) ->
+                                    vm.doAttached(threadHolder.get(), () -> wrapper.accept(ctxt))
+                                );
+                            });
                             builder.addPreHook(Phase.ADD, ReachabilityFactsSetup::setupAdd);
                             builder.addPreHook(Phase.ADD, ReflectionFactsSetup::setupAdd);
                             builder.addPreHook(Phase.ADD, ctxt -> SafePoints.selectStrategy(ctxt, nogc ? SafePoints.Strategy.NONE : SafePoints.Strategy.GLOBAL_FLAG));
@@ -428,21 +433,13 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addPreHook(Phase.ADD, Reflection::get);
                             builder.addPreHook(Phase.ADD, UnwindExceptionStrategy::get);
                             builder.addPreHook(Phase.ADD, GcCommon::registerIntrinsics);
-                            builder.addPreHook(Phase.ADD, compilationContext -> {
-                                Vm vm = compilationContext.getVm();
-                                VmThread initThread = vm.newThread("initialization", vm.getMainThreadGroup(), false,  Thread.currentThread().getPriority());
-                                vm.doAttached(initThread, vm::initialize);
-                            });
+                            builder.addPreHook(Phase.ADD, compilationContext -> compilationContext.getVm().initialize());
                             builder.addPreHook(Phase.ADD, VIO::get);
                             builder.addPreHook(Phase.ADD, VFS::initialize);
                             builder.addPreHook(Phase.ADD, Main::mountInitialFileSystem);
                             builder.addPreHook(Phase.ADD, new VMHelpersSetupHook());
                             builder.addPreHook(Phase.ADD, new InitAppClassLoaderHook());
-                            builder.addPreHook(Phase.ADD, compilationContext -> {
-                                Vm vm = compilationContext.getVm();
-                                VmThread initThread = vm.newThread("initialization 2", vm.getMainThreadGroup(), false,  Thread.currentThread().getPriority());
-                                vm.doAttached(initThread, vm::initialize2);
-                            });
+                            builder.addPreHook(Phase.ADD, compilationContext -> compilationContext.getVm().initialize2());
                             builder.addPreHook(Phase.ADD, new AddMainClassHook());
                             if (nogc) {
                                 builder.addPreHook(Phase.ADD, new NoGcSetupHook());
