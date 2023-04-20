@@ -461,6 +461,15 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value resolveConstructor(TypeDescriptor owner, MethodDescriptor descriptor);
 
+    /**
+     * A pointer to a method-typed invocation target that is called with the given thread binding.
+     *
+     * @param threadPtr the thread to bind to (must not be {@code null})
+     * @param target the invocation target (must not be {@code null})
+     * @return a pointer representing the bound invocation target
+     */
+    Value threadBound(Value threadPtr, Value target);
+
     // memory
 
     Value auto(Value initializer);

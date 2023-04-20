@@ -21,6 +21,7 @@ import org.qbicc.graph.Add;
 import org.qbicc.graph.And;
 import org.qbicc.graph.MemberOfUnion;
 import org.qbicc.graph.PointerDifference;
+import org.qbicc.graph.ThreadBound;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.graph.literal.AsmLiteral;
 import org.qbicc.graph.BasicBlock;
@@ -826,6 +827,18 @@ public final class Disassembler {
         public Void visit(Disassembler param, Sub node) {
             binary("%s - %s", param, node);
             return delegate.visit(param, node);
+        }
+
+        public Void visit(final Disassembler dis, final ThreadBound node) {
+            final String id = dis.nextId();
+            final String description = String.format(
+                "bind %s %s"
+                , showDescription(node.getThreadPointer())
+                , showDescription(node.getTarget())
+            );
+            dis.addLine(id + " = " + description, node);
+            dis.nodeInfo.put(node, new NodeInfo(id, description));
+            return delegate.visit(dis, node);
         }
 
         @Override

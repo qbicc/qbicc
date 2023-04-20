@@ -842,6 +842,10 @@ public interface Node {
                 return param.getBlockBuilder().sub(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
+            public Value visit(Copier copier, ThreadBound node) {
+                return copier.getBlockBuilder().threadBound(copier.copyValue(node.getThreadPointer()), copier.copyValue(node.getTarget()));
+            }
+
             public Value visit(final Copier param, final Truncate node) {
                 return param.getBlockBuilder().truncate(param.copyValue(node.getInput()), node.getType());
             }

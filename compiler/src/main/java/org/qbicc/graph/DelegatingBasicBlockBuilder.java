@@ -190,6 +190,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().resolveConstructor(owner, descriptor);
     }
 
+    public Value threadBound(Value threadPtr, Value target) {
+        return getDelegate().threadBound(threadPtr, target);
+    }
+
     public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         return getDelegate().resolveStaticField(owner, name, type);
     }
