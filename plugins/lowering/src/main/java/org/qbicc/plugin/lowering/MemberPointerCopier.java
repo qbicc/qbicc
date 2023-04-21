@@ -1,15 +1,29 @@
 package org.qbicc.plugin.lowering;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
+import org.qbicc.graph.literal.ArrayLiteral;
+import org.qbicc.graph.literal.BitCastLiteral;
+import org.qbicc.graph.literal.CompoundLiteral;
+import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.GlobalVariableLiteral;
+import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.MemberOfLiteral;
+import org.qbicc.graph.literal.OffsetFromLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
+import org.qbicc.graph.literal.ValueConvertLiteral;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
@@ -32,7 +46,38 @@ public final class MemberPointerCopier implements NodeVisitor.Delegating<Node.Co
     }
 
     @Override
-    public Value visit(Node.Copier copier, GlobalVariableLiteral literal) {
+    public Value visit(Node.Copier copier, BitCastLiteral literal) {
+        return ctxt.getLiteralFactory().bitcastLiteral((Literal) copier.copyValue(literal.getValue()), literal.getType());
+    }
+
+    @Override
+    public Value visit(Node.Copier copier, ElementOfLiteral literal) {
+        return ctxt.getLiteralFactory().elementOfLiteral(
+            (Literal) copier.copyValue(literal.getArrayPointer()),
+            (Literal) copier.copyValue(literal.getIndex())
+        );
+    }
+
+    @Override
+    public Value visit(Node.Copier copier, MemberOfLiteral literal) {
+        return ctxt.getLiteralFactory().memberOfLiteral((Literal) copier.copyValue(literal.getStructurePointer()), literal.getMember());
+    }
+
+    @Override
+    public Value visit(Node.Copier copier, OffsetFromLiteral literal) {
+        return ctxt.getLiteralFactory().offsetFromLiteral(
+            (Literal) copier.copyValue(literal.getBasePointer()),
+            (Literal) copier.copyValue(literal.getOffset())
+        );
+    }
+
+    @Override
+    public Value visit(Node.Copier copier, ValueConvertLiteral literal) {
+        return ctxt.getLiteralFactory().valueConvertLiteral((Literal) copier.copyValue(literal.getValue()), literal.getType());
+    }
+
+    @Override
+    public Literal visit(Node.Copier copier, GlobalVariableLiteral literal) {
         GlobalVariableElement global = literal.getVariableElement();
         ProgramModule programModule = ctxt.getOrAddProgramModule(copier.getBlockBuilder().getCurrentElement().getEnclosingType());
         DataDeclaration decl = programModule.declareData(null, global.getName(), global.getType());
@@ -40,16 +85,33 @@ public final class MemberPointerCopier implements NodeVisitor.Delegating<Node.Co
     }
 
     @Override
-    public Value visit(Node.Copier copier, StaticFieldLiteral node) {
+    public Literal visit(Node.Copier copier, StaticFieldLiteral node) {
         StaticFieldElement field = node.getVariableElement();
         GlobalVariableElement global = BuildtimeHeap.get(ctxt).getGlobalForStaticField(field);
-        DefinedTypeDefinition fieldHolder = field.getEnclosingType();
-        DefinedTypeDefinition ourHolder = copier.getBlockBuilder().getRootElement().getEnclosingType();
-        if (! fieldHolder.equals(ourHolder)) {
-            // we have to declare it in our translation unit
-            ProgramModule programModule = ctxt.getOrAddProgramModule(ourHolder);
-            programModule.declareData(field, global.getName(), global.getType());
+        ProgramModule programModule = ctxt.getOrAddProgramModule(copier.getBlockBuilder().getRootElement().getEnclosingType());
+        final DataDeclaration decl = programModule.declareData(field, global.getName(), global.getType());
+        return ctxt.getLiteralFactory().literalOf(decl);
+    }
+
+    @Override
+    public Value visit(Node.Copier copier, ArrayLiteral literal) {
+        // an array literal may be composed of literals that must be transformed
+        final List<Literal> values = literal.getValues();
+        ArrayList<Literal> newList = new ArrayList<>(values.size());
+        for (Literal value : values) {
+            newList.add((Literal) copier.copyValue(value));
         }
-        return ctxt.getLiteralFactory().literalOf(global);
+        return ctxt.getLiteralFactory().literalOf(literal.getType(), newList);
+    }
+
+    @Override
+    public Value visit(Node.Copier copier, CompoundLiteral literal) {
+        // a compound literal may be composed of literals that must be transformed
+        final Map<CompoundType.Member, Literal> originalValues = literal.getValues();
+        final HashMap<CompoundType.Member, Literal> newMap = new HashMap<>(originalValues.size());
+        for (Map.Entry<CompoundType.Member, Literal> entry : originalValues.entrySet()) {
+            newMap.put(entry.getKey(), (Literal) copier.copyValue(entry.getValue()));
+        }
+        return ctxt.getLiteralFactory().literalOf(literal.getType(), newMap);
     }
 }
