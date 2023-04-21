@@ -1276,7 +1276,6 @@ public final class CNative {
     @Deprecated public interface void_ptr_to_void_ptr {
         void_ptr run(void_ptr arg);
     }
-    @Deprecated public static final class void_ptr_unaryoperator_function_ptr extends ptr<function<void_ptr_to_void_ptr>> {}
     public static final class function_ptr<F> extends ptr<function<F>> {}
 
     // floating point
