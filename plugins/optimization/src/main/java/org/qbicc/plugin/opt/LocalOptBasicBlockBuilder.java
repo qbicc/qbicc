@@ -11,11 +11,13 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.Cmp;
+import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.Comp;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Extend;
+import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.Neg;
 import org.qbicc.graph.NewArray;
@@ -242,6 +244,22 @@ public class LocalOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
         if (v2 instanceof Cmp cmp && isEqualToLiteral(v1, 0)) {
             return isEq(cmp.getLeftInput(), cmp.getRightInput());
+        }
+
+        // specific optimization for CAS operations:
+        //   replace `witness == expected` pattern with extracted success bit
+        if (v1 instanceof ExtractMember em
+            && em.getCompoundValue() instanceof CmpAndSwap cas
+            && em.getMember() == cas.getResultValueType()
+            && v2.equals(cas.getExpectedValue())
+        ) {
+            return extractMember(cas, cas.getResultFlagType());
+        } else if (v2 instanceof ExtractMember em
+            && em.getCompoundValue() instanceof CmpAndSwap cas
+            && em.getMember() == cas.getResultValueType()
+            && v1.equals(cas.getExpectedValue())
+        ) {
+            return extractMember(cas, cas.getResultFlagType());
         }
 
         return super.isEq(v1, v2);
