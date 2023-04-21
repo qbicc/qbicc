@@ -85,6 +85,11 @@ public class Load extends AbstractValue implements OrderedNode {
         return visitor.visit(param, this);
     }
 
+    @Override
+    public boolean isNullable() {
+        return pointer.isPointeeNullable();
+    }
+
     public boolean isConstant() {
         return pointer.isPointeeConstant();
     }

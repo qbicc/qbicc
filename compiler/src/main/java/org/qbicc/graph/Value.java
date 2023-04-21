@@ -230,6 +230,15 @@ public interface Value extends Node {
     }
 
     /**
+     * Determine whether this value points to a value which is nullable.
+     *
+     * @return {@code true} if the pointee may be nullable, or {@code false} if the pointee is definitely not {@code null}
+     */
+    default boolean isPointeeNullable() {
+        return true;
+    }
+
+    /**
      * Determine whether this value points to a function or method that should be constant-folded.
      *
      * @return {@code true} to constant-fold the call result, or {@code false} otherwise
