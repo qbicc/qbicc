@@ -429,8 +429,8 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             if (readRequiresFence) {
                 fence(readMode.getGlobalAccess());
             }
-            if (writeRequiresFence) {
-                // the write side requires a global fence, but only in the success case
+            if (writeRequiresFence && ! (readRequiresFence && readMode.includes(writeMode))) {
+                // the write side requires a global fence, but only in the success case, and only if the read fence is insufficient
                 Value successFlag = fb.extractMember(result, resultType.getMember(1));
                 BlockLabel success = new BlockLabel();
                 BlockLabel resume = new BlockLabel();
