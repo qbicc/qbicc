@@ -1,0 +1,74 @@
+name: qbicc nightly Quarkus integration testing
+on:
+    schedule:
+        - cron '51 3 * * *'
+    jobs:
+        integration-test:
+            runs-on: ubuntu-latest
+
+            steps:
+            -   name: Install LLVM
+                uses: KyleMayes/install-llvm-action@v1.8.0
+                with:
+                    version: 16
+                    director6: ${{ runner.temp }}/llvm-install
+
+            -   name: Install `libgcc` (Linux only)
+                run: |
+                    sudo apt-get install -y libgcc-11-dev
+
+            -   name: Install libunwind (Linux only)
+                run: |
+                    sudo apt-get install -y libunwind-dev
+
+            -   name: Install OpenJDK
+                uses: actions/setup-java@v3
+                with:
+                    java-version: '17'
+                    distribution: 'temurin'
+
+            -   name: Clone qbicc
+                uses: actions/checkout@v3.5.2
+                with:
+                    path: qbicc
+
+            -   name: Install qbicc (Linux)
+                env:
+                    LIBRARY_PATH: /usr/lib/gcc/x86_64-linux-gnu/11:/usr/lib/x86_64-linux-gnu
+                    CC: clang
+                run: |
+                    ulimit -c 819200 # 400mb
+                    ./ci/prepare_for_core_linux.sh
+                    mvn --batch-mode install -DskipTests
+                working-directory: ./qbicc
+
+            -   name: Clone quarkus-qbicc
+                uses: actions/checkout@v3.5.2
+                with:
+                    repository: qbicc/quarkus-qbicc
+                    path: quarkus-qbicc
+
+            -   name: Build and test quarkus-qbicc
+                env:
+                    LIBRARY_PATH: /usr/lib/gcc/x86_64-linux-gnu/11:/usr/lib/x86_64-linux-gnu
+                    CC: clang
+                run: |
+                    ulimit -c 819200 # 400mb
+                    ./ci/prepare_for_core_linux.sh
+                    mvn --batch-mode install -D`grep qbicc.version ../qbicc/main/target/classes/main.properties`
+                working-directory: ./quarkus-qbicc
+
+            -   name: Prepare failure archive (if maven failed)
+                if: failure()
+                shell: bash
+                run: find . -type d -name '*-reports' -o -name "*-logs" | tar -czf test-reports.tgz -T -
+
+            -   name: Upload failure Archive (if maven failed)
+                uses: actions/upload-artifact@v2
+                if: failure()
+                with:
+                    name: test-reports
+                    path: |
+                        'test-reports.tgz'
+                        ./quarkus-qbicc/core/*
+                        ./quarkus-qbicc/integration-tests/target/native/*-runner
