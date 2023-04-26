@@ -24,7 +24,7 @@ build_task:
     disk: 100
   setup_script: |
     dnf -y install epel-release
-    dnf -y install llvm git glibc-devel gcc libgcc maven java-17-openjdk-devel libunwind-devel
+    dnf -y install llvm git glibc-devel gcc libgcc maven java-17-openjdk-devel libunwind-devel zlib-devel
   settings_file:
     path: /root/.m2/settings.xml
     variable_name: MVN_SETTINGS
