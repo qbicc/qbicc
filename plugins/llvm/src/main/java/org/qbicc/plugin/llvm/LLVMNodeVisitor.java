@@ -954,6 +954,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
     }
 
     public LLValue visit(final Set<Value> liveValues, final MemberOfUnion node) {
+        if (opaquePointers) {
+            return null;
+        }
         UnionType unionType = node.getUnionType();
         PointerType pointerType = unionType.getPointer();
         LLValue ptr = map(node.getUnionPointer());
