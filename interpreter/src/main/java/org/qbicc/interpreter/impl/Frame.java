@@ -1306,7 +1306,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             long leftLong = unboxLong(left);
             long rightLong = unboxLong(right);
             int cmp = Long.compareUnsigned(leftLong, rightLong);
-            return box(cmp < 0 ? rightLong : leftLong, type);
+            return box(cmp < 0 ? leftLong : rightLong, type);
         } else if (isFloat32(type)) {
             return box(Math.min(unboxFloat(left), unboxFloat(right)), type);
         } else if (isFloat64(type)) {
