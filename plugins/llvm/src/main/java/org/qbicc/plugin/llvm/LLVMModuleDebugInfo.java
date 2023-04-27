@@ -38,6 +38,7 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.Type;
 import org.qbicc.type.TypeType;
+import org.qbicc.type.UnionType;
 import org.qbicc.type.UnresolvedType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
@@ -238,6 +239,26 @@ final class LLVMModuleDebugInfo {
         return result;
     }
 
+    private LLValue createUnionType(final UnionType type) {
+        final DICompositeType diType = module.diCompositeType(DITag.UnionType, type.getSize() * 8, type.getAlign() * 8).name(type.toFriendlyString());
+        LLValue result = registerType(type, diType);
+
+        final MetadataTuple elements = module.metadataTuple();
+        diType.elements(elements.asRef());
+
+        for (UnionType.Member member : type.getMembers()) {
+            final ValueType mt = member.getType();
+            elements.elem(null,
+                module.diDerivedType(DITag.Member, mt.getSize() * 8, mt.getAlign() * 8)
+                    .name(member.getName())
+                    .baseType(getType(mt))
+                    .asRef()
+            );
+        }
+
+        return result;
+    }
+
     private LLValue createFunctionType(final FunctionType type) {
         MetadataTuple types = module.metadataTuple();
         LLValue result = registerType(
@@ -360,6 +381,8 @@ final class LLVMModuleDebugInfo {
             return createClassObjectType((ClassObjectType) type);
         } else if (type instanceof CompoundType) {
             return createCompoundType((CompoundType) type);
+        } else if (type instanceof UnionType ut) {
+            return createUnionType(ut);
         } else if (type instanceof FloatType) {
             return createBasicType((FloatType) type, DIEncoding.Float);
         } else if (type instanceof FunctionType) {
