@@ -105,6 +105,10 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
 
     @Override
     public ClassContext getClassContext() {
+        if (classContext == null) {
+            // special case: recursive initialization
+            return getVmClass().getVm().getCompilationContext().getClassContextForLoader(this);
+        }
         return classContext;
     }
 

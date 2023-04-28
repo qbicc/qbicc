@@ -271,6 +271,11 @@ final class CompilationContextImpl implements CompilationContext {
         return bootstrapClassContext;
     }
 
+    @Override
+    public ClassContext getClassContextForLoader(VmClassLoader classLoaderObject) {
+        return classLoaderObject == null ? bootstrapClassContext : classLoaderContexts.get(classLoaderObject);
+    }
+
     public String deduplicate(final ByteBuffer buffer, final int offset, final int length) {
         return baseDiagnosticContext.deduplicate(buffer, offset, length);
     }
@@ -280,7 +285,17 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     public ClassContext constructClassContext(final VmClassLoader classLoaderObject) {
-        return classLoaderContexts.computeIfAbsent(classLoaderObject, classLoader -> handleNewClassContext(new ClassContextImpl(this, classLoader, vm::loadClass, vm::loadResource, vm::loadResources)));
+        ClassContext classContext = classLoaderContexts.get(classLoaderObject);
+        if (classContext == null) {
+            classContext = new ClassContextImpl(this, classLoaderObject, vm::loadClass, vm::loadResource, vm::loadResources);
+            final ClassContext appearing = classLoaderContexts.putIfAbsent(classLoaderObject, classContext);
+            if (appearing != null) {
+                classContext = appearing;
+            } else {
+                handleNewClassContext(classContext);
+            }
+        }
+        return classContext;
     }
 
     public ClassContext constructAppClassLoaderClassContext(VmClassLoader appClassLoaderObject) {

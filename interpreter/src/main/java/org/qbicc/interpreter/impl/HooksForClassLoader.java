@@ -76,18 +76,4 @@ final class HooksForClassLoader {
     static VmClass findLoadedClass0(VmThread thread, VmClassLoaderImpl classLoader, VmString name) {
         return classLoader.findLoadedClass(name.getContent());
     }
-
-    @Hook
-    VmObject getResourceAsStream(VmThreadImpl thread, VmClassLoaderImpl classLoader, VmString name) throws Thrown {
-        if (name == null) {
-            throw new Thrown(thread.getVM().nullPointerException.newInstance("name"));
-        }
-        byte[] resource = classLoader.getClassContext().getResource(name.getContent());
-        if (resource != null) {
-            VmByteArrayImpl vmResource = thread.getVM().newByteArray(resource);
-            return thread.getVM().newInstance(byteArrayInputStreamClass, byteArrayInputStreamConstructor, List.of(vmResource));
-        } else {
-            return null;
-        }
-    }
 }

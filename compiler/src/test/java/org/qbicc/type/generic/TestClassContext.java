@@ -87,6 +87,10 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
+        public ClassContext getClassContextForLoader(final VmClassLoader classLoaderObject) {
+            return TestClassContext.this;
+        }
+
         public ClassContext constructClassContext(final VmClassLoader classLoaderObject) {
             return null;
         }

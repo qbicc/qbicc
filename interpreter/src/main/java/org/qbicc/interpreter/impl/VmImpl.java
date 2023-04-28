@@ -558,18 +558,18 @@ public final class VmImpl implements Vm {
         MethodElement openStream = urlClass.getTypeDefinition().requireSingleMethod("openStream");
         MethodElement readAllBytes = bootstrapClassLoader.loadClass("java/io/InputStream").getTypeDefinition().requireSingleMethod("readAllBytes");
         MethodElement close = bootstrapClassLoader.loadClass("java/io/InputStream").getTypeDefinition().requireSingleMethod("close");
-        VmObject enumeration = (VmObject) getInstanceInvoker(getResources).invokeAny(currentThread, classLoader, List.of(intern(name)));
+        VmObject enumeration = (VmObject) getVirtualInvoker(getResources, classLoader).invokeAny(currentThread, classLoader, List.of(intern(name)));
         ArrayList<byte[]> list = new ArrayList<>();
-        while (((Boolean) getInstanceInvoker(hasMoreElements).invokeAny(currentThread, enumeration, List.of())).booleanValue()) {
-            VmObject url = (VmObject) getInstanceInvoker(nextElement).invokeAny(currentThread, enumeration, List.of(intern(name)));
+        while (((Boolean) getVirtualInvoker(hasMoreElements, enumeration).invokeAny(currentThread, enumeration, List.of())).booleanValue()) {
+            VmObject url = (VmObject) getVirtualInvoker(nextElement, enumeration).invokeAny(currentThread, enumeration, List.of());
             // open the stream
-            VmObject stream = (VmObject) getInstanceInvoker(openStream).invokeAny(currentThread, url, List.of());
+            VmObject stream = (VmObject) getVirtualInvoker(openStream, url).invokeAny(currentThread, url, List.of());
             if (stream != null) {
                 VmByteArrayImpl array;
                 try {
-                    array = (VmByteArrayImpl) getInstanceInvoker(readAllBytes).invokeAny(currentThread, stream, List.of());
+                    array = (VmByteArrayImpl) getVirtualInvoker(readAllBytes, stream).invokeAny(currentThread, stream, List.of());
                 } catch (Throwable t) {
-                    getInstanceInvoker(close).invokeAny(currentThread, stream, List.of());
+                    getVirtualInvoker(close, stream).invokeAny(currentThread, stream, List.of());
                     throw t;
                 }
                 getInstanceInvoker(close).invokeAny(currentThread, stream, List.of());
