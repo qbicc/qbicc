@@ -47,9 +47,7 @@ public interface CompilationContext extends DiagnosticContext {
 
     ClassContext getBootstrapClassContext();
 
-    default ClassContext getClassContextForLoader(VmClassLoader classLoaderObject) {
-        return classLoaderObject == null ? getBootstrapClassContext() : classLoaderObject.getClassContext();
-    }
+    ClassContext getClassContextForLoader(VmClassLoader classLoaderObject);
 
     ClassContext constructClassContext(VmClassLoader classLoaderObject);
 
