@@ -126,10 +126,11 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
     @Override
     public VmClassImpl loadClass(String name) throws Thrown {
         Assert.checkNotNullParam("name", name);
-        VmClassImpl clazz = defined.get(name);
+        final String intName = name.replace('.', '/');
+        VmClassImpl clazz = defined.get(intName);
         if (clazz == null) {
             clazz = loadNewClass((VmThreadImpl) Vm.requireCurrentThread(), VmImpl.require().intern(name));
-            VmClassImpl appearing = defined.putIfAbsent(name, clazz);
+            VmClassImpl appearing = defined.putIfAbsent(intName, clazz);
             if (appearing != null) {
                 clazz = appearing;
             }
@@ -149,7 +150,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
     }
 
     VmClassImpl findLoadedClass(String name) {
-        return defined.get(name);
+        return defined.get(name.replace('.', '/'));
     }
 
     public VmClassImpl defineClass(VmString name, VmArray content, VmObject protectionDomain) throws Thrown {
@@ -317,7 +318,7 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         return new Thrown(throwable);
     }
 
-    VmClassImpl loadNewClass(VmThreadImpl thread, VmString intName) {
+    VmClassImpl loadNewClass(VmThreadImpl thread, VmString name) {
         VmClassImpl classLoaderClass = getVmClass();
         LoadedTypeDefinition clDef = classLoaderClass.getTypeDefinition();
         ClassContext classContext = this.classContext;
@@ -326,19 +327,19 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         MethodDescriptor loadClassDesc = MethodDescriptor.synthesize(classContext, classDesc, List.of(stringDesc));
         if (specialCl) {
             // skip JVM call
-            DefinedTypeDefinition definedType = classContext.findDefinedType(intName.getContent());
+            DefinedTypeDefinition definedType = classContext.findDefinedType(name.getContent().replace('.', '/'));
             if (definedType == null) {
-                VmThrowable throwable = thread.getVM().classNotFoundExceptionClass.newInstance("Class not found: " + intName.getContent());
+                VmThrowable throwable = thread.getVM().classNotFoundExceptionClass.newInstance("Class not found: " + name.getContent());
                 throw new Thrown(throwable);
             }
             try {
                 return (VmClassImpl) definedType.load().getVmClass();
             } catch (Exception e) {
-                VmThrowable throwable = thread.getVM().noClassDefFoundErrorClass.newInstance("Class load failed: " + intName.getContent());
+                VmThrowable throwable = thread.getVM().noClassDefFoundErrorClass.newInstance("Class load failed: " + name.getContent());
                 throw new Thrown(throwable);
             }
         }
-        return (VmClassImpl) classLoaderClass.getOrCompile(clDef.resolveMethodElementVirtual(classContext.getCompilationContext().getBootstrapClassContext(), "loadClass", loadClassDesc)).invoke(thread, this, List.of(intName));
+        return (VmClassImpl) classLoaderClass.getOrCompile(clDef.resolveMethodElementVirtual(classContext.getCompilationContext().getBootstrapClassContext(), "loadClass", loadClassDesc)).invoke(thread, this, List.of(name));
     }
 
     int getHiddenClassSeq(final String internalName, final byte[] digest) {
