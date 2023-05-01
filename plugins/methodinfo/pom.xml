@@ -5,7 +5,7 @@
     <parent>
         <artifactId>qbicc-plugin-parent</artifactId>
         <groupId>org.qbicc</groupId>
-        <version>0.71.0-SNAPSHOT</version>
+        <version>0.72.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
