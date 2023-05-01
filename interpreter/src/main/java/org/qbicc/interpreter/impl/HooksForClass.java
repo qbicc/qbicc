@@ -153,8 +153,7 @@ final class HooksForClass {
                 dims++;
             }
             if (name.startsWith("L") && name.endsWith(";")) {
-                name = name.substring(1, name.length() - 1);
-                clazz = (VmClassImpl) loader.loadClass(name.replace('.', '/'));
+                clazz = (VmClassImpl) loader.loadClass(name.substring(1, name.length() - 1));
             } else {
                 clazz = switch (name) {
                     case "B" -> thread.vm.byteClass;
@@ -172,7 +171,7 @@ final class HooksForClass {
                 clazz = clazz.getArrayClass();
             }
         } else {
-            clazz = (VmClassImpl) loader.loadClass(name.replace('.', '/'));
+            clazz = (VmClassImpl) loader.loadClass(name);
         }
 
         if (initialize) {
