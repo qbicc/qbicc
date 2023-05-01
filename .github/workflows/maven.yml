@@ -17,22 +17,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        llvm-version: ["13", "14", "15"]
-        # llvm13 needs 20.04; upgrade to 22.04 when we drop 13.
-        os: [ubuntu-20.04, ubuntu-latest, macos-latest]
+        llvm-version: ["14", "15"]
+        os: [ubuntu-latest, macos-latest]
         opaque-pointers: ["false", "true"]
         exclude:
-          # see https://github.com/llvm/llvm-project/issues/57218
-          - os: ubuntu-latest
-            llvm-version: 13
-          - os: ubuntu-20.04
-            llvm-version: 14
-          - os: ubuntu-20.04
-            llvm-version: 15
-          - llvm-version: "12"
-            opaque-pointers: "true"
-          - llvm-version: "13"
-            opaque-pointers: "true"
           - llvm-version: "14"
             opaque-pointers: "true"
     runs-on: ${{ matrix.os }}
@@ -45,12 +33,12 @@ jobs:
           directory: ${{ runner.temp }}/llvm-install
 
       - name: Install `libgcc` (Linux only)
-        if: matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get install -y libgcc-11-dev
 
       - name: Install libunwind (Linux only)
-        if: matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get install -y libunwind-dev
 
@@ -66,7 +54,7 @@ jobs:
           path: qbicc-${{ matrix.os }}-llvm${{ matrix.llvm-version }}
 
       - name: Install qbicc (Linux)
-        if: matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest'
         env:
             LIBRARY_PATH: /usr/lib/gcc/x86_64-linux-gnu/11:/usr/lib/x86_64-linux-gnu
             CC: clang
