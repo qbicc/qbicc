@@ -2,11 +2,11 @@ name: qbicc nightly Quarkus integration testing
 on:
     schedule:
         - cron: '51 3 * * *'
-    jobs:
-        integration-test:
-            runs-on: ubuntu-latest
+jobs:
+    integration-test:
+        runs-on: ubuntu-latest
 
-            steps:
+        steps:
             -   name: Install LLVM
                 uses: KyleMayes/install-llvm-action@v1.8.0
                 with:
