@@ -234,7 +234,7 @@ public class Main implements Callable<DiagnosticContext> {
         optInlining = builder.optInlining;
         optPhis = builder.optPhis;
         optGotos = builder.optGotos;
-        optEscapeAnalysis = builder.optEscapeAnalysis;
+        optEscapeAnalysis = false && builder.optEscapeAnalysis;
         platform = builder.platform;
         smallTypeIds = builder.smallTypeIds;
         backend = builder.backend;
