@@ -19,10 +19,6 @@ jobs:
       matrix:
         llvm-version: ["14", "15"]
         os: [ubuntu-latest, macos-latest]
-        opaque-pointers: ["false", "true"]
-        exclude:
-          - llvm-version: "14"
-            opaque-pointers: "true"
     runs-on: ${{ matrix.os }}
     continue-on-error: true
     steps:
@@ -61,7 +57,17 @@ jobs:
         run: |
           ulimit -c 819200 # 400mb
           ./ci/prepare_for_core_linux.sh
-          mvn --batch-mode install -Dqbicc.test.clean-target=true -Dqbicc.llvm.opaque-pointers=${{ matrix.opaque-pointers }}
+          mvn --batch-mode install -Dqbicc.llvm.opaque-pointers=false
+        working-directory: ./qbicc-${{ matrix.os }}-llvm${{ matrix.llvm-version }}
+
+      - name: Test with opaque pointers (Linux)
+        if: matrix.os == 'ubuntu-latest' && matrix.llvm-version != '14'
+        env:
+            LIBRARY_PATH: /usr/lib/gcc/x86_64-linux-gnu/11:/usr/lib/x86_64-linux-gnu
+            CC: clang
+        run: |
+          ulimit -c 819200 # 400mb
+          mvn --batch-mode install -rf :qbicc-integration-tests -Dqbicc.llvm.opaque-pointers=true
         working-directory: ./qbicc-${{ matrix.os }}-llvm${{ matrix.llvm-version }}
 
       - name: Install qbicc (Mac OS)
@@ -72,7 +78,17 @@ jobs:
         run: |
           ulimit -c 819200 # 400mb
           ./ci/prepare_for_core_macos.sh
-          mvn --batch-mode install -Dqbicc.test.clean-target=true -Dqbicc.llvm.opaque-pointers=${{ matrix.opaque-pointers }}
+          mvn --batch-mode install -Dqbicc.llvm.opaque-pointers=false
+        working-directory: ./qbicc-${{ matrix.os }}-llvm${{ matrix.llvm-version }}
+
+      - name: Test with opaque pointers (Mac OS)
+        if: matrix.os == 'macos-latest' && matrix.llvm-version != '14'
+        env:
+            LIBRARY_PATH: $(brew --prefix gcc)/lib/gcc/11
+            CC: gcc
+        run: |
+          ulimit -c 819200 # 400mb
+          mvn --batch-mode install -rf :qbicc-integration-tests -Dqbicc.llvm.opaque-pointers=true
         working-directory: ./qbicc-${{ matrix.os }}-llvm${{ matrix.llvm-version }}
 
       - name: Prepare failure archive (if maven failed)
