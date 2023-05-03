@@ -1,10 +1,11 @@
 name: qbicc Continuous Integration
 on:
-  push:
-    paths-ignore:
-      - '**.md'
-      - '**.adoc'
-    branches: [ main ]
+  schedule:
+    - cron: '17 1 * * *'
+      paths-ignore:
+        - '**.md'
+        - '**.adoc'
+      branches: [ main ]
   pull_request:
     paths-ignore:
       - '**.md'
