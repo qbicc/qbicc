@@ -10,7 +10,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.NullLiteral;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -19,18 +19,18 @@ import org.qbicc.type.definition.element.ExecutableElement;
  *
  */
 public final class CmpAndSwap extends AbstractValue implements OrderedNode {
-    private static final AttachmentKey<Map<ValueType, CompoundType>> RESULT_TYPE_MAP_KEY = new AttachmentKey<>();
+    private static final AttachmentKey<Map<ValueType, StructType>> RESULT_TYPE_MAP_KEY = new AttachmentKey<>();
 
     private final Node dependency;
     private final Value pointer;
     private final Value expectedValue;
     private final Value updateValue;
-    private final CompoundType resultType;
+    private final StructType resultType;
     private final ReadAccessMode readAccessMode;
     private final WriteAccessMode writeAccessMode;
     private final Strength strength;
 
-    CmpAndSwap(final Node callSite, final ExecutableElement element, final int line, final int bci, final CompoundType resultType, final Node dependency, final Value pointer, final Value expectedValue, final Value updateValue, final ReadAccessMode readAccessMode, final WriteAccessMode writeAccessMode, Strength strength) {
+    CmpAndSwap(final Node callSite, final ExecutableElement element, final int line, final int bci, final StructType resultType, final Node dependency, final Value pointer, final Value expectedValue, final Value updateValue, final ReadAccessMode readAccessMode, final WriteAccessMode writeAccessMode, Strength strength) {
         super(callSite, element, line, bci);
         this.resultType = Assert.checkNotNullParam("resultType", resultType);
         this.dependency = Assert.checkNotNullParam("dependency", dependency);
@@ -66,7 +66,7 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
         return "CmpAndSwap";
     }
 
-    public CompoundType getType() {
+    public StructType getType() {
         return resultType;
     }
 
@@ -148,38 +148,38 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
         return false;
     }
 
-    public static CompoundType getResultType(CompilationContext ctxt, ValueType valueType) {
-        Map<ValueType, CompoundType> map = ctxt.getAttachment(RESULT_TYPE_MAP_KEY);
+    public static StructType getResultType(CompilationContext ctxt, ValueType valueType) {
+        Map<ValueType, StructType> map = ctxt.getAttachment(RESULT_TYPE_MAP_KEY);
         if (map == null) {
             map = new ConcurrentHashMap<>();
-            Map<ValueType, CompoundType> appearing = ctxt.putAttachmentIfAbsent(RESULT_TYPE_MAP_KEY, map);
+            Map<ValueType, StructType> appearing = ctxt.putAttachmentIfAbsent(RESULT_TYPE_MAP_KEY, map);
             if (appearing != null) {
                 map = appearing;
             }
         }
-        CompoundType compoundType = map.get(valueType);
-        if (compoundType == null) {
+        StructType structType = map.get(valueType);
+        if (structType == null) {
             TypeSystem ts = ctxt.getTypeSystem();
-            compoundType = CompoundType.builder(ts)
-                .setTag(CompoundType.Tag.NONE)
+            structType = StructType.builder(ts)
+                .setTag(StructType.Tag.NONE)
                 .setName(null)
                 .addNextMember(valueType)
                 .addNextMember(ts.getBooleanType())
                 .setOverallAlignment(1)
                 .build();
-            CompoundType appearing = map.putIfAbsent(valueType, compoundType);
+            StructType appearing = map.putIfAbsent(valueType, structType);
             if (appearing != null) {
-                compoundType = appearing;
+                structType = appearing;
             }
         }
-        return compoundType;
+        return structType;
     }
 
     /**
      * Original value found in the CAS target
      * @return value found in CAS target
      */
-    public CompoundType.Member getResultValueType() {
+    public StructType.Member getResultValueType() {
         return this.resultType.getMember(0);
     }
 
@@ -187,7 +187,7 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
      * Result flag where true indicates success, if the operation is marked as strong (default).
      * @return result flag
      */
-    public CompoundType.Member getResultFlagType() {
+    public StructType.Member getResultFlagType() {
         return this.resultType.getMember(1);
     }
 

@@ -2,7 +2,7 @@ package org.qbicc.graph.literal;
 
 import org.qbicc.graph.Value;
 import org.qbicc.type.ArrayType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.ValueType;
 
 /**
@@ -43,8 +43,8 @@ public final class ZeroInitializerLiteral extends Literal {
         return null;
     }
 
-    public Value extractMember(LiteralFactory lf, CompoundType.Member member) {
-        if (type instanceof CompoundType) {
+    public Value extractMember(LiteralFactory lf, StructType.Member member) {
+        if (type instanceof StructType) {
             return lf.zeroInitializerLiteralOfType(member.getType());
         }
         return null;

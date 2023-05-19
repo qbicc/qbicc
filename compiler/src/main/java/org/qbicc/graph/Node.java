@@ -25,7 +25,7 @@ import org.qbicc.graph.literal.MemberOfLiteral;
 import org.qbicc.graph.literal.OffsetFromLiteral;
 import org.qbicc.graph.literal.ValueConvertLiteral;
 import org.qbicc.graph.schedule.Util;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -393,9 +393,9 @@ public interface Node {
             }
 
             public Value visit(Copier copier, CompoundLiteral literal) {
-                Map<CompoundType.Member, Literal> old = literal.getValues();
-                Map<CompoundType.Member, Literal> copied = new HashMap<>();
-                for (Map.Entry<CompoundType.Member, Literal> e : old.entrySet()) {
+                Map<StructType.Member, Literal> old = literal.getValues();
+                Map<StructType.Member, Literal> copied = new HashMap<>();
+                for (Map.Entry<StructType.Member, Literal> e : old.entrySet()) {
                     copied.put(e.getKey(), (Literal)copier.copyValue(e.getValue()));
                 }
                 return copier.getBlockBuilder().getLiteralFactory().literalOf(literal.getType(), copied);
@@ -673,7 +673,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final ExtractMember node) {
-                return param.getBlockBuilder().extractMember(param.copyValue(node.getCompoundValue()), node.getMember());
+                return param.getBlockBuilder().extractMember(param.copyValue(node.getStructValue()), node.getMember());
             }
 
             public Value visit(final Copier param, final InsertElement node) {
@@ -681,7 +681,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final InsertMember node) {
-                return param.getBlockBuilder().insertMember(param.copyValue(node.getCompoundValue()), node.getMember(), param.copyValue(node.getInsertedValue()));
+                return param.getBlockBuilder().insertMember(param.copyValue(node.getStructValue()), node.getMember(), param.copyValue(node.getInsertedValue()));
             }
 
             public Value visit(final Copier param, final InstanceOf node) {

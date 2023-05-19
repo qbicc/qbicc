@@ -3,7 +3,7 @@ package org.qbicc.plugin.unwind;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.MethodElement;
@@ -11,15 +11,15 @@ import org.qbicc.type.definition.element.MethodElement;
 public class UnwindExceptionStrategy {
     private static final AttachmentKey<UnwindExceptionStrategy> KEY = new AttachmentKey<>();
 
-    private final CompoundType.Member unwindExceptionMember;
+    private final StructType.Member unwindExceptionMember;
     private final MethodElement raiseExceptionMethod;
     private final MethodElement personalityMethod;
 
     private UnwindExceptionStrategy(final CompilationContext ctxt) {
         /* Locate the field "unwindException" of type Unwind$_Unwind_Exception in thread_native */
         ClassContext classContext = ctxt.getBootstrapClassContext();
-        CompoundType ct = (CompoundType) classContext.resolveTypeFromClassName("java/lang", "Thread$thread_native");
-        unwindExceptionMember = ct.getMember("unwindException");
+        StructType st = (StructType) classContext.resolveTypeFromClassName("java/lang", "Thread$thread_native");
+        unwindExceptionMember = st.getMember("unwindException");
 
         /* Get the symbol to Unwind#_Unwind_RaiseException */
         String unwindClass = "org/qbicc/runtime/unwind/Unwind";
@@ -52,7 +52,7 @@ public class UnwindExceptionStrategy {
     public static void init(CompilationContext ctxt) {
     }
 
-    public CompoundType.Member getUnwindExceptionMember() {
+    public StructType.Member getUnwindExceptionMember() {
         return this.unwindExceptionMember;
     }
 

@@ -6,7 +6,7 @@ import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.type.ArrayType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeType;
@@ -715,8 +715,8 @@ public interface Memory {
     // typed copy
 
     default void typedCopyTo(long srcOffs, Memory dest, long destOffs, ValueType type) {
-        if (type instanceof CompoundType ct) {
-            typedCopyTo(srcOffs, dest, destOffs, ct);
+        if (type instanceof StructType st) {
+            typedCopyTo(srcOffs, dest, destOffs, st);
         } else if (type instanceof UnionType ut) {
             typedCopyTo(srcOffs, dest, destOffs, ut);
         } else if (type instanceof ArrayType at) {
@@ -745,8 +745,8 @@ public interface Memory {
         }
     }
 
-    default void typedCopyTo(long srcOffs, Memory dest, long destOffs, CompoundType type) {
-        for (CompoundType.Member member : type.getMembers()) {
+    default void typedCopyTo(long srcOffs, Memory dest, long destOffs, StructType type) {
+        for (StructType.Member member : type.getMembers()) {
             int offset = member.getOffset();
             typedCopyTo(srcOffs + offset, dest, destOffs + offset, member.getType());
         }

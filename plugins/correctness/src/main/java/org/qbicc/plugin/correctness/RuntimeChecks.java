@@ -12,7 +12,7 @@ import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.plugin.layout.Layout;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.NullableType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 
@@ -90,8 +90,8 @@ public final class RuntimeChecks {
         LiteralFactory lf = ctxt.getLiteralFactory();
         ClassContext bcc = ctxt.getBootstrapClassContext();
         LoadedTypeDefinition npeType = bcc.findDefinedType(className).load();
-        CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(npeType).getCompoundType();
-        Value ex = bbb.new_(npeType.getClassType(), lf.literalOfType(npeType.getClassType()), lf.literalOf(compoundType.getSize()), lf.literalOf(compoundType.getAlign()));
+        StructType structType = Layout.get(ctxt).getInstanceLayoutInfo(npeType).getStructType();
+        Value ex = bbb.new_(npeType.getClassType(), lf.literalOfType(npeType.getClassType()), lf.literalOf(structType.getSize()), lf.literalOf(structType.getAlign()));
         Value ctor = lf.literalOf(npeType.requireSingleConstructor(ce -> ce.getParameters().size() == 0));
         bbb.call(ctor, ex, ctorArgs);
         return ex;

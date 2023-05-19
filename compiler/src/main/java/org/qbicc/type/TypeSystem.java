@@ -230,13 +230,13 @@ public final class TypeSystem {
         return referenceArrayDefinition;
     }
 
-    public CompoundType.Member getProbedCompoundTypeMember(String name, ValueType type, int offset) {
+    public StructType.Member getProbedStructTypeMember(String name, ValueType type, int offset) {
         Assert.checkNotNullParam("name", name);
         Assert.checkMinimumParameter("offset", 0, offset);
-        return new CompoundType.Member(name, type, offset, 1);
+        return new StructType.Member(name, type, offset, 1);
     }
 
-    public CompoundType.Member getCompoundTypeMember(String name, ValueType type, int offset, int align) {
+    public StructType.Member getStructTypeMember(String name, ValueType type, int offset, int align) {
         Assert.checkNotNullParam("name", name);
         TypeUtil.checkAlignmentParameter("align", align);
         align = Math.max(type.getAlign(), align);
@@ -244,7 +244,7 @@ public final class TypeSystem {
         if ((offset & (align - 1)) != 0) {
             throw new IllegalArgumentException("Invalid offset (not sufficiently aligned)");
         }
-        return new CompoundType.Member(name, type, offset, align);
+        return new StructType.Member(name, type, offset, align);
     }
 
     /**
@@ -256,10 +256,10 @@ public final class TypeSystem {
      * @param offset the member offset (must be at least 0)
      * @return the member (not {@code null})
      */
-    public CompoundType.Member getUnalignedCompoundTypeMember(String name, ValueType type, int offset) {
+    public StructType.Member getUnalignedStructTypeMember(String name, ValueType type, int offset) {
         Assert.checkNotNullParam("name", name);
         Assert.checkMinimumParameter("offset", 0, offset);
-        return new CompoundType.Member(name, type, offset, type.getAlign());
+        return new StructType.Member(name, type, offset, type.getAlign());
     }
 
     public FunctionType getFunctionType(final ValueType returnType, final List<ValueType> parameterTypes) {
@@ -338,22 +338,22 @@ public final class TypeSystem {
         return type;
     }
 
-    public CompoundType getCompoundType(final CompoundType.Tag tag, String name, long size, int align, Supplier<List<CompoundType.Member>> memberResolver) {
+    public StructType getStructType(final StructType.Tag tag, String name, long size, int align, Supplier<List<StructType.Member>> memberResolver) {
         Assert.checkNotNullParam("tag", tag);
         Assert.checkMinimumParameter("size", 0, size);
         TypeUtil.checkAlignmentParameter("align", align);
-        return new CompoundType(this, tag, name, memberResolver, size, align);
+        return new StructType(this, tag, name, memberResolver, size, align);
     }
 
-    public CompoundType getCompoundType(final CompoundType.Tag tag, String name, Supplier<List<CompoundType.Member>> memberResolver) {
+    public StructType getStructType(final StructType.Tag tag, String name, Supplier<List<StructType.Member>> memberResolver) {
         Assert.checkNotNullParam("tag", tag);
-        return new CompoundType(this, tag, name, memberResolver);
+        return new StructType(this, tag, name, memberResolver);
     }
 
-    public CompoundType getIncompleteCompoundType(final CompoundType.Tag tag, final String name) {
+    public StructType getIncompleteStructType(final StructType.Tag tag, final String name) {
         Assert.checkNotNullParam("tag", tag);
         Assert.checkNotNullParam("name", name);
-        return new CompoundType(this, tag, name);
+        return new StructType(this, tag, name);
     }
 
     public ArrayType getArrayType(ValueType memberType, long elements) {

@@ -42,7 +42,7 @@ import org.qbicc.pointer.Pointer;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
@@ -126,7 +126,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         CompilationContext ctxt = classContext.getCompilationContext();
         layoutInfo = typeDefinition.isInterface() ? null : Layout.get(ctxt).getInstanceLayoutInfo(typeDefinition);
         staticLayoutInfo = Layout.get(ctxt).getStaticLayoutInfo(typeDefinition);
-        staticMemory = staticLayoutInfo == null ? MemoryFactory.getEmpty() : vmImpl.allocate(staticLayoutInfo.getCompoundType(), 1);
+        staticMemory = staticLayoutInfo == null ? MemoryFactory.getEmpty() : vmImpl.allocate(staticLayoutInfo.getStructType(), 1);
         initializeConstantStaticFields();
     }
 
@@ -154,7 +154,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         CompilationContext ctxt = classContext.getCompilationContext();
         layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(typeDefinition);
         staticLayoutInfo = Layout.get(ctxt).getStaticLayoutInfo(typeDefinition);
-        staticMemory = staticLayoutInfo == null ? MemoryFactory.getEmpty() : vm.allocate(staticLayoutInfo.getCompoundType(), 1);
+        staticMemory = staticLayoutInfo == null ? MemoryFactory.getEmpty() : vm.allocate(staticLayoutInfo.getStructType(), 1);
         superClass = new VmClassImpl(vm, (VmClassClassImpl) this, classContext.findDefinedType("java/lang/Object").load());
         initializeConstantStaticFields();
     }
@@ -168,16 +168,16 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             // no layout; primitive type or other special case
             return new IntegerAsPointer(bitMapType, 0);
         }
-        CompoundType ct = layoutInfo.getCompoundType();
+        StructType st = layoutInfo.getStructType();
         try {
-            return new IntegerAsPointer(bitMapType, computeSmallBitMap(ts, ct, 0L, 0));
+            return new IntegerAsPointer(bitMapType, computeSmallBitMap(ts, st, 0L, 0));
         } catch (BigBitMapException e) {
             // do the more complex job for big bitmaps
             int refSize = ts.getReferenceSize();
-            long size = ct.getSize();
+            long size = st.getSize();
             int ec = (int) ((size + refSize - 1) / refSize);
             int[] bitMap = new int[ec];
-            computeBigBitMap(ts, ct, bitMap, 0);
+            computeBigBitMap(ts, st, bitMap, 0);
             // define the data
             LiteralFactory lf = ctxt.getLiteralFactory();
             List<Literal> values = new ArrayList<>(bitMap.length);
@@ -231,21 +231,21 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         }
     }
 
-    long computeSmallBitMap(TypeSystem ts, CompoundType ct, long bitMap, int base) {
-        for (CompoundType.Member member : ct.getMembers()) {
+    long computeSmallBitMap(TypeSystem ts, StructType st, long bitMap, int base) {
+        for (StructType.Member member : st.getMembers()) {
             bitMap |= computeSmallBitMap(ts, member.getType(), bitMap, base + member.getOffset());
         }
         return bitMap;
     }
 
-    void computeBigBitMap(TypeSystem ts, CompoundType ct, int[] bitMap, int base) {
-        for (CompoundType.Member member : ct.getMembers()) {
+    void computeBigBitMap(TypeSystem ts, StructType st, int[] bitMap, int base) {
+        for (StructType.Member member : st.getMembers()) {
             computeBigBitMap(ts, member.getType(), bitMap, base + member.getOffset());
         }
     }
 
     long computeSmallBitMap(TypeSystem ts, ValueType itemType, long bitMap, int offset) {
-        if (itemType instanceof CompoundType nct) {
+        if (itemType instanceof StructType nct) {
             bitMap |= computeSmallBitMap(ts, nct, bitMap, offset);
         } else if (itemType instanceof ArrayType at) {
             bitMap |= computeSmallBitMap(ts, at, bitMap, offset);
@@ -262,7 +262,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     }
 
     void computeBigBitMap(TypeSystem ts, ValueType itemType, int[] bitMap, int offset) {
-        if (itemType instanceof CompoundType nct) {
+        if (itemType instanceof StructType nct) {
             computeBigBitMap(ts, nct, bitMap, offset);
         } else if (itemType instanceof ArrayType at) {
             computeBigBitMap(ts, at, bitMap, offset);
@@ -287,7 +287,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                     // Nothing to do;  memory starts zeroed.
                     continue;
                 }
-                CompoundType.Member member = staticLayoutInfo.getMember(field);
+                StructType.Member member = staticLayoutInfo.getMember(field);
                 if (initValue instanceof IntegerLiteral val) {
                     if (field.getType().getSize() == 1) {
                         staticMemory.store8(member.getOffset(), val.byteValue(), SinglePlain);
@@ -378,8 +378,8 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             }
 
             if (layoutInfo != null) {
-                memory.store32(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceSizeField()).getOffset(), layoutInfo.getCompoundType().getSize(), SinglePlain);
-                memory.store8(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceAlignField()).getOffset(), layoutInfo.getCompoundType().getAlign(), SinglePlain);
+                memory.store32(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceSizeField()).getOffset(), layoutInfo.getStructType().getSize(), SinglePlain);
+                memory.store8(getVmClass().getLayoutInfo().getMember(coreClasses.getClassInstanceAlignField()).getOffset(), layoutInfo.getStructType().getAlign(), SinglePlain);
             }
             memory.store32(getVmClass().getLayoutInfo().getMember(jlcDef.findField("modifiers")).getOffset(), typeDefinition.getModifiers(), SinglePlain);
             setPointerField(jlcDef, "referenceBitMap", computeBitMap());
@@ -603,12 +603,12 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                 literals[i] = getLiteral(offset + (i * (int) elementSize), elementType, memory);
             }
             return lf.literalOf(at, List.of(literals));
-        } else if (valueType instanceof CompoundType ct) {
-            Map<CompoundType.Member, Literal> map = new HashMap<>(ct.getMemberCount());
-            for (CompoundType.Member member : ct.getMembers()) {
+        } else if (valueType instanceof StructType st) {
+            Map<StructType.Member, Literal> map = new HashMap<>(st.getMemberCount());
+            for (StructType.Member member : st.getMembers()) {
                 map.put(member, getLiteral(offset + member.getOffset(), member.getType(), memory));
             }
-            return lf.literalOf(ct, map);
+            return lf.literalOf(st, map);
         } else {
             throw new IllegalStateException("Unsupported type");
         }
@@ -620,7 +620,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         CompilationContext ctxt = loaded.getContext().getCompilationContext();
         LayoutInfo layoutInfo = Layout.get(ctxt).getStaticLayoutInfo(loaded);
         if (layoutInfo != null) {
-            CompoundType.Member member = layoutInfo.getMember(field);
+            StructType.Member member = layoutInfo.getMember(field);
             if (member != null) {
                 return member.getOffset();
             }

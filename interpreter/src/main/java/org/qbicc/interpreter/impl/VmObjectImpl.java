@@ -24,7 +24,7 @@ import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.pointer.IntegerAsPointer;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
@@ -66,7 +66,7 @@ class VmObjectImpl implements VmObject, Referenceable {
      */
     VmObjectImpl(final VmClassImpl clazz) {
         this.clazz = clazz;
-        memory = clazz.getVmClass().getVm().allocate(clazz.getLayoutInfo().getCompoundType(), 1);
+        memory = clazz.getVmClass().getVm().allocate(clazz.getLayoutInfo().getStructType(), 1);
     }
 
     /**
@@ -76,7 +76,7 @@ class VmObjectImpl implements VmObject, Referenceable {
      */
     VmObjectImpl(final VmArrayClassImpl clazz, final Memory arrayMemory) {
         this.clazz = clazz;
-        memory = MemoryFactory.compose(clazz.getVm().allocate(clazz.getLayoutInfo().getCompoundType(), 1), arrayMemory);
+        memory = MemoryFactory.compose(clazz.getVm().allocate(clazz.getLayoutInfo().getStructType(), 1), arrayMemory);
     }
 
     /**
@@ -84,7 +84,7 @@ class VmObjectImpl implements VmObject, Referenceable {
      */
     VmObjectImpl(VmImpl vm, @SuppressWarnings("unused") Class<?> unused, LayoutInfo instanceLayoutInfo) {
         this.clazz = (VmClassImpl) this;
-        memory = vm.allocate(instanceLayoutInfo.getCompoundType(), 1);
+        memory = vm.allocate(instanceLayoutInfo.getStructType(), 1);
     }
 
     /**
@@ -127,7 +127,7 @@ class VmObjectImpl implements VmObject, Referenceable {
         LoadedTypeDefinition loaded = field.getEnclosingType().load();
         CompilationContext ctxt = loaded.getContext().getCompilationContext();
         LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(loaded);
-        CompoundType.Member member = layoutInfo.getMember(field);
+        StructType.Member member = layoutInfo.getMember(field);
         if (member == null) {
             throw new IllegalArgumentException("Field " + field + " is not present on " + this);
         }

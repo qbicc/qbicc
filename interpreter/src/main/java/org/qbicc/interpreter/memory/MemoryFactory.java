@@ -35,7 +35,7 @@ import org.qbicc.interpreter.VmObject;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.PointerType;
@@ -263,22 +263,22 @@ public final class MemoryFactory {
     private static final ConstantDynamic BYTE_CLASS_CONSTANT = new ConstantDynamic("B", CLASS_DESC, PRIMITIVE_CLASS_HANDLE);
     private static final ConstantDynamic BOOLEAN_CLASS_CONSTANT = new ConstantDynamic("Z", CLASS_DESC, PRIMITIVE_CLASS_HANDLE);
 
-    private static final AttachmentKey<Map<CompoundType, GenMemoryInfo>> MF_CACHE_KEY = new AttachmentKey<>();
+    private static final AttachmentKey<Map<StructType, GenMemoryInfo>> MF_CACHE_KEY = new AttachmentKey<>();
     private static final String[] MEM_INTERFACES = { "org/qbicc/interpreter/Memory", "java/lang/Cloneable" };
 
-    public static Supplier<Memory> getMemoryFactory(CompilationContext ctxt, CompoundType ct, boolean upgradeLongs) {
-        Map<CompoundType, GenMemoryInfo> map = ctxt.computeAttachmentIfAbsent(MF_CACHE_KEY, ConcurrentHashMap::new);
+    public static Supplier<Memory> getMemoryFactory(CompilationContext ctxt, StructType st, boolean upgradeLongs) {
+        Map<StructType, GenMemoryInfo> map = ctxt.computeAttachmentIfAbsent(MF_CACHE_KEY, ConcurrentHashMap::new);
         // avoid constructing the lambda instance if possible
-        GenMemoryInfo genMemoryInfo = map.get(ct);
+        GenMemoryInfo genMemoryInfo = map.get(st);
         if (genMemoryInfo != null) {
             return genMemoryInfo.producer;
         }
-        return map.computeIfAbsent(ct, ct1 -> makeFactory(ct1, ctxt, upgradeLongs)).producer;
+        return map.computeIfAbsent(st, ct1 -> makeFactory(ct1, ctxt, upgradeLongs)).producer;
     }
 
     private static final ConstantDynamic CTXT = new ConstantDynamic(ConstantDescs.DEFAULT_NAME, CTXT_DESC, CLASS_DATA_AT_HANDLE, Integer.valueOf(0));
 
-    private static GenMemoryInfo makeFactory(final CompoundType ct, CompilationContext ctxt, boolean upgradeLongs) {
+    private static GenMemoryInfo makeFactory(final StructType st, CompilationContext ctxt, boolean upgradeLongs) {
         // produce class per compound type
         MethodHandles.Lookup lookup = MethodHandles.lookup();
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
@@ -288,7 +288,7 @@ public final class MemoryFactory {
         // emit size method
         MethodVisitor smv = cw.visitMethod(Opcodes.ACC_PUBLIC, "getSize", "()J", null, null);
         smv.visitCode();
-        smv.visitLdcInsn(Long.valueOf(ct.getSize()));
+        smv.visitLdcInsn(Long.valueOf(st.getSize()));
         smv.visitInsn(Opcodes.LRETURN);
         smv.visitMaxs(0, 0);
         smv.visitEnd();
@@ -299,11 +299,11 @@ public final class MemoryFactory {
 
         // mapping of member to delegate Memory instance for each complex field
 
-        Map<CompoundType.Member, String> delegate = null;
+        Map<StructType.Member, String> delegate = null;
 
         Map<String, String> simpleFields = null;
 
-        for (CompoundType.Member member : ct.getMembers()) {
+        for (StructType.Member member : st.getMembers()) {
             int offset = member.getOffset();
             String name = member.getName();
             String fieldName = name + '@' + offset;
@@ -314,7 +314,7 @@ public final class MemoryFactory {
                 continue;
             }
             // complex fields
-            if (memberType instanceof ArrayType || memberType instanceof CompoundType || memberType instanceof UnionType) {
+            if (memberType instanceof ArrayType || memberType instanceof StructType || memberType instanceof UnionType) {
                 fieldAccess = Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL;
                 if (delegate == null) {
                     delegate = new HashMap<>();
@@ -487,8 +487,8 @@ public final class MemoryFactory {
             mv.visitCode();
             // now it's just there, on the stack
 
-            for (Map.Entry<CompoundType.Member, String> entry : delegate.entrySet()) {
-                CompoundType.Member member = entry.getKey();
+            for (Map.Entry<StructType.Member, String> entry : delegate.entrySet()) {
+                StructType.Member member = entry.getKey();
                 String fieldName = entry.getValue();
                 Label outOfRange = new Label();
                 // index < min || (min + size) <= index
@@ -596,8 +596,8 @@ public final class MemoryFactory {
         }
         int intCount = Math.toIntExact(count);
         // vectored
-        if (type instanceof CompoundType ct) {
-            return getMemoryFactory(ctxt, ct, upgradeLongs).get();
+        if (type instanceof StructType st) {
+            return getMemoryFactory(ctxt, st, upgradeLongs).get();
         } else if (type instanceof UnionType ut) {
             return MemoryFactory.getZero(ut.getSize());
         } else if (type instanceof IntegerType it) {

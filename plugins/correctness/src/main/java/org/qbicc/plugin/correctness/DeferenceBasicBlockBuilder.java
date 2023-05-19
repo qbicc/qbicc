@@ -25,7 +25,7 @@ import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
@@ -68,7 +68,7 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public Value memberOf(Value structPointer, CompoundType.Member member) {
+    public Value memberOf(Value structPointer, StructType.Member member) {
         return super.memberOf(rhs(structPointer), member);
     }
 
@@ -173,7 +173,7 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public Value extractMember(Value compound, CompoundType.Member member) {
+    public Value extractMember(Value compound, StructType.Member member) {
         return super.extractMember(rhs(compound), member);
     }
 
@@ -193,7 +193,7 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public Value insertMember(Value compound, CompoundType.Member member, Value value) {
+    public Value insertMember(Value compound, StructType.Member member, Value value) {
         return super.insertMember(rhs(compound), member, rhs(value));
     }
 

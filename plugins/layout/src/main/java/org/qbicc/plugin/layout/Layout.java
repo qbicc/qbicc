@@ -13,7 +13,7 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
@@ -65,21 +65,21 @@ public final class Layout {
         }
         // start with the prototype
         LayoutInfo protoInfo = getInstanceLayoutInfo(arrayClass);
-        CompoundType protoCompound = protoInfo.getCompoundType();
+        StructType protoCompound = protoInfo.getStructType();
         int memberCount = protoCompound.getMemberCount();
         if (memberCount < 1) {
             throw new IllegalArgumentException();
         }
-        CompoundType.Member lastMember = protoCompound.getMember(memberCount - 1);
+        StructType.Member lastMember = protoCompound.getMember(memberCount - 1);
         if (lastMember.getType() instanceof ArrayType at) {
             if (at.getElementCount() == 0 && at.getElementType() instanceof ReferenceType) {
                 // replace
-                CompoundType.Member[] newMembers = protoCompound.getMembers().toArray(CompoundType.Member[]::new);
+                StructType.Member[] newMembers = protoCompound.getMembers().toArray(StructType.Member[]::new);
                 TypeSystem ts = ctxt.getTypeSystem();
-                CompoundType.Member newLastMember = ts.getCompoundTypeMember(lastMember.getName(), ts.getArrayType(elementType.getReference(), 0), lastMember.getOffset(), lastMember.getAlign());
+                StructType.Member newLastMember = ts.getStructTypeMember(lastMember.getName(), ts.getArrayType(elementType.getReference(), 0), lastMember.getOffset(), lastMember.getAlign());
                 newMembers[memberCount - 1] = newLastMember;
-                CompoundType newType = ts.getCompoundType(CompoundType.Tag.CLASS, elementType.getReferenceArrayObject().toFriendlyString(), protoCompound.getSize(), protoCompound.getAlign(), () -> List.of(newMembers));
-                Map<FieldElement, CompoundType.Member> newMapping = new HashMap<>(protoInfo.getFieldsMap());
+                StructType newType = ts.getStructType(StructType.Tag.CLASS, elementType.getReferenceArrayObject().toFriendlyString(), protoCompound.getSize(), protoCompound.getAlign(), () -> List.of(newMembers));
+                Map<FieldElement, StructType.Member> newMapping = new HashMap<>(protoInfo.getFieldsMap());
                 newMapping.replaceAll((fe, m) -> m == lastMember ? newLastMember : m);
                 layoutInfo = new LayoutInfo(protoInfo.getAllocatedBits(), newType, newMapping);
                 LayoutInfo appearing = arrayLayouts.putIfAbsent(elementType, layoutInfo);
@@ -106,7 +106,7 @@ public final class Layout {
         int minAlignment;
         if (superClass != null) {
             superLayout = getInstanceLayoutInfo(superClass);
-            minAlignment = superLayout.getCompoundType().getAlign();
+            minAlignment = superLayout.getStructType().getAlign();
         } else {
             superLayout = null;
             minAlignment = ctxt.getTypeSystem().getPointerAlignment(); // All objects have at least pointer alignment.
@@ -116,7 +116,7 @@ public final class Layout {
             allocated.or(superLayout.getAllocatedBits());
         }
         int cnt = validated.getFieldCount();
-        Map<FieldElement, CompoundType.Member> fieldToMember = superLayout == null ? new HashMap<>(cnt) : new HashMap<>(superLayout.getFieldsMap());
+        Map<FieldElement, StructType.Member> fieldToMember = superLayout == null ? new HashMap<>(cnt) : new HashMap<>(superLayout.getFieldsMap());
         FieldElement trailingArray = null;
         for (int i = 0; i < cnt; i ++) {
             // todo: skip unused fields?
@@ -131,7 +131,7 @@ public final class Layout {
                 Assert.assertTrue(trailingArray == null); // At most one trailing array per type!
                 trailingArray = field; // defer until all other fields are allocated
             } else {
-                CompoundType.Member member = computeMember(allocated, field);
+                StructType.Member member = computeMember(allocated, field);
                 if (member.getAlign() > minAlignment) {
                     minAlignment = member.getAlign();
                 }
@@ -141,7 +141,7 @@ public final class Layout {
         }
         int size;
         if (trailingArray != null) {
-            CompoundType.Member member = computeMember(allocated, trailingArray);
+            StructType.Member member = computeMember(allocated, trailingArray);
             if (member.getAlign() > minAlignment) {
                 minAlignment = member.getAlign();
             }
@@ -151,15 +151,15 @@ public final class Layout {
         } else {
             size = allocated.length();
         }
-        CompoundType.Member[] membersArray = fieldToMember.values().toArray(CompoundType.Member[]::new);
+        StructType.Member[] membersArray = fieldToMember.values().toArray(StructType.Member[]::new);
         Arrays.sort(membersArray);
-        List<CompoundType.Member> membersList = List.of(membersArray);
+        List<StructType.Member> membersList = List.of(membersArray);
         String name = type.getInternalName().replace('/', '.');
         if (type.isHidden()) {
             name += '/' + ENCODER.encodeToString(type.getDigest()) + '.' + type.getHiddenClassIndex();
         }
-        CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.CLASS, name, size, minAlignment, () -> membersList);
-        layoutInfo = new LayoutInfo(allocated, compoundType, fieldToMember);
+        StructType structType = ctxt.getTypeSystem().getStructType(StructType.Tag.CLASS, name, size, minAlignment, () -> membersList);
+        layoutInfo = new LayoutInfo(allocated, structType, fieldToMember);
         LayoutInfo appearing = instanceLayouts.putIfAbsent(validated, layoutInfo);
         return appearing != null ? appearing : layoutInfo;
     }
@@ -181,7 +181,7 @@ public final class Layout {
             return null;
         }
         BitSet allocated = new BitSet();
-        Map<FieldElement, CompoundType.Member> fieldToMember = new HashMap<>(cnt);
+        Map<FieldElement, StructType.Member> fieldToMember = new HashMap<>(cnt);
         TypeSystem ts = ctxt.getTypeSystem();
         int minAlignment = ts.getPointerAlignment();
         for (int i = 0; i < cnt; i ++) {
@@ -189,7 +189,7 @@ public final class Layout {
             if (! field.isStatic() || field.isThreadLocal() || field.getType() instanceof VariadicType) {
                 continue;
             }
-            CompoundType.Member member = computeMember(allocated, field);
+            StructType.Member member = computeMember(allocated, field);
             if (member.getAlign() > minAlignment) {
                 minAlignment = member.getAlign();
             }
@@ -197,11 +197,11 @@ public final class Layout {
             field.setOffset(member.getOffset());
         }
         int size = allocated.length();
-        CompoundType.Member[] membersArray = fieldToMember.values().toArray(CompoundType.Member[]::new);
+        StructType.Member[] membersArray = fieldToMember.values().toArray(StructType.Member[]::new);
         Arrays.sort(membersArray);
-        List<CompoundType.Member> membersList = List.of(membersArray);
-        CompoundType compoundType = ts.getCompoundType(CompoundType.Tag.STRUCT, "statics." + type.getInternalName().replace('/', '.'), size, minAlignment, () -> membersList);
-        layoutInfo = new LayoutInfo(allocated, compoundType, fieldToMember);
+        List<StructType.Member> membersList = List.of(membersArray);
+        StructType structType = ts.getStructType(StructType.Tag.STRUCT, "statics." + type.getInternalName().replace('/', '.'), size, minAlignment, () -> membersList);
+        layoutInfo = new LayoutInfo(allocated, structType, fieldToMember);
         LayoutInfo appearing = staticLayouts.putIfAbsent(loaded, layoutInfo);
         return appearing != null ? appearing : layoutInfo;
     }
@@ -219,7 +219,7 @@ public final class Layout {
         }
     }
 
-    private CompoundType.Member computeMember(final BitSet allocated, final FieldElement field) {
+    private StructType.Member computeMember(final BitSet allocated, final FieldElement field) {
         TypeSystem ts = ctxt.getTypeSystem();
         ValueType fieldType = widenBoolean(field.getType());
         int size = (int) fieldType.getSize();
@@ -236,7 +236,7 @@ public final class Layout {
         } else {
             throw new IllegalStateException("Invalid zero-sized member");
         }
-        return ts.getCompoundTypeMember(field.getName(), fieldType, idx, align);
+        return ts.getStructTypeMember(field.getName(), fieldType, idx, align);
     }
 
     /**

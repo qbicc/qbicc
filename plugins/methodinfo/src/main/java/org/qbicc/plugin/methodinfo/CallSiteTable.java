@@ -39,7 +39,7 @@ import org.qbicc.plugin.methodinfo.valueinfo.RegisterRelativeValueInfo;
 import org.qbicc.plugin.methodinfo.valueinfo.RegisterValueInfo;
 import org.qbicc.plugin.methodinfo.valueinfo.ValueInfo;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
@@ -140,7 +140,7 @@ public final class CallSiteTable {
         List<SubprogramEntry> seList = new ArrayList<>(subprogramEntries.values());
         List<Literal> seLiterals = new ArrayList<>(seList.size());
         seList.sort(Comparator.comparingInt(SubprogramEntry::typeId).thenComparingInt(SubprogramEntry::methodIdx));
-        CompoundType steType = (CompoundType) ctxt.getBootstrapClassContext().resolveTypeFromClassName("org/qbicc/runtime/stackwalk", "CallSiteTable$struct_subprogram");
+        StructType steType = (StructType) ctxt.getBootstrapClassContext().resolveTypeFromClassName("org/qbicc/runtime/stackwalk", "CallSiteTable$struct_subprogram");
         MutableObjectIntMap<SubprogramEntry> subprogramIndexes = ObjectIntMaps.mutable.empty();
         for (SubprogramEntry entry : seList) {
             subprogramIndexes.put(entry, subprogramIndexes.size());
@@ -156,7 +156,7 @@ public final class CallSiteTable {
         // ----
         // compute the source table
         // ----
-        CompoundType sceType = (CompoundType) ctxt.getBootstrapClassContext().resolveTypeFromClassName("org/qbicc/runtime/stackwalk", "CallSiteTable$struct_source");
+        StructType sceType = (StructType) ctxt.getBootstrapClassContext().resolveTypeFromClassName("org/qbicc/runtime/stackwalk", "CallSiteTable$struct_source");
         List<Literal> sceLiterals = new ArrayList<>(sourceCodeEntries.size());
         MutableObjectIntMap<SourceCodeEntry> sourceCodeIndexes = ObjectIntMaps.mutable.empty();
         for (SourceCodeEntry entry : sourceCodeEntries.values()) {
@@ -166,7 +166,7 @@ public final class CallSiteTable {
         // ----
         // compute the call site table
         // ----
-        CompoundType csType = (CompoundType) ctxt.getBootstrapClassContext().resolveTypeFromClassName("org/qbicc/runtime/stackwalk", "CallSiteTable$struct_call_site");
+        StructType csType = (StructType) ctxt.getBootstrapClassContext().resolveTypeFromClassName("org/qbicc/runtime/stackwalk", "CallSiteTable$struct_call_site");
         final ArrayList<Map.Entry<LoadedTypeDefinition, List<CallSiteEntry>>> callSiteListList = new ArrayList<>(entries.entrySet());
         // estimate size
         List<Literal> csLiterals = new ArrayList<>(callSiteListList.size() * 16);
@@ -235,7 +235,7 @@ public final class CallSiteTable {
         return val;
     }
 
-    private int getSceIndex(CompoundType sceType, SourceCodeEntry entry, List<Literal> output, MutableObjectIntMap<SourceCodeEntry> scMap, ObjectIntMap<SubprogramEntry> seMap) {
+    private int getSceIndex(StructType sceType, SourceCodeEntry entry, List<Literal> output, MutableObjectIntMap<SourceCodeEntry> scMap, ObjectIntMap<SubprogramEntry> seMap) {
         if (entry == null) {
             return -1;
         }
@@ -405,11 +405,11 @@ public final class CallSiteTable {
         return interned != null ? interned : newInfo;
     }
 
-    public Literal emitCallSiteEntry(CompoundType callSiteType, CallSiteEntry entry, ToIntFunction<SourceCodeEntry> sceLookup, ToIntFunction<LiveValueInfo> lviLookup) {
-        final List<CompoundType.Member> members = callSiteType.getMembers();
-        final CompoundType.Member ipMember = members.get(0);
-        final CompoundType.Member srcIndexMember = members.get(1);
-        final CompoundType.Member lviIndexMember = members.get(2);
+    public Literal emitCallSiteEntry(StructType callSiteType, CallSiteEntry entry, ToIntFunction<SourceCodeEntry> sceLookup, ToIntFunction<LiveValueInfo> lviLookup) {
+        final List<StructType.Member> members = callSiteType.getMembers();
+        final StructType.Member ipMember = members.get(0);
+        final StructType.Member srcIndexMember = members.get(1);
+        final StructType.Member lviIndexMember = members.get(2);
         assert ipMember.getName().equals("ip") && ipMember.getType() instanceof PointerType;
         assert srcIndexMember.getName().equals("source_idx") && srcIndexMember.getType() instanceof UnsignedIntegerType;
         assert lviIndexMember.getName().equals("lvi_idx") && lviIndexMember.getType() instanceof UnsignedIntegerType;
@@ -430,14 +430,14 @@ public final class CallSiteTable {
         ));
     }
 
-    public Literal emitSubprogramEntry(CompoundType subprogramType, SubprogramEntry entry, ToIntFunction<VmString> fileNameLookup, ToIntFunction<VmString> methodNameLookup, ToIntFunction<VmObject> methodTypeLookup) {
+    public Literal emitSubprogramEntry(StructType subprogramType, SubprogramEntry entry, ToIntFunction<VmString> fileNameLookup, ToIntFunction<VmString> methodNameLookup, ToIntFunction<VmObject> methodTypeLookup) {
         // strongly dependent on layout, but this allows the structure to be defined in userspace
-        final List<CompoundType.Member> members = subprogramType.getMembers();
-        final CompoundType.Member fileNameMember = members.get(0);
-        final CompoundType.Member methodNameMember = members.get(1);
-        final CompoundType.Member methodTypeMember = members.get(2);
-        final CompoundType.Member typeIdMember = members.get(3);
-        final CompoundType.Member modifiersMember = members.get(4);
+        final List<StructType.Member> members = subprogramType.getMembers();
+        final StructType.Member fileNameMember = members.get(0);
+        final StructType.Member methodNameMember = members.get(1);
+        final StructType.Member methodTypeMember = members.get(2);
+        final StructType.Member typeIdMember = members.get(3);
+        final StructType.Member modifiersMember = members.get(4);
         assert fileNameMember.getName().equals("file_name_idx") && fileNameMember.getType() instanceof UnsignedIntegerType;
         assert methodNameMember.getName().equals("method_name_idx") && methodNameMember.getType() instanceof UnsignedIntegerType;
         assert methodTypeMember.getName().equals("method_type_idx") && methodTypeMember.getType() instanceof UnsignedIntegerType;
@@ -456,12 +456,12 @@ public final class CallSiteTable {
         ));
     }
 
-    public Literal emitSourceCodeEntry(CompoundType sourceCodeType, SourceCodeEntry entry, ToIntFunction<SubprogramEntry> seLookup, ToIntFunction<SourceCodeEntry> sceLookup) {
-        final List<CompoundType.Member> members = sourceCodeType.getMembers();
-        final CompoundType.Member subprogramIdxMember = members.get(0);
-        final CompoundType.Member lineMember = members.get(1);
-        final CompoundType.Member bciMember = members.get(2);
-        final CompoundType.Member inlinedAtSourceIdxMember = members.get(3);
+    public Literal emitSourceCodeEntry(StructType sourceCodeType, SourceCodeEntry entry, ToIntFunction<SubprogramEntry> seLookup, ToIntFunction<SourceCodeEntry> sceLookup) {
+        final List<StructType.Member> members = sourceCodeType.getMembers();
+        final StructType.Member subprogramIdxMember = members.get(0);
+        final StructType.Member lineMember = members.get(1);
+        final StructType.Member bciMember = members.get(2);
+        final StructType.Member inlinedAtSourceIdxMember = members.get(3);
         assert subprogramIdxMember.getName().equals("subprogram_idx") && subprogramIdxMember.getType() instanceof UnsignedIntegerType;
         assert lineMember.getName().equals("line") && lineMember.getType() instanceof UnsignedIntegerType;
         assert bciMember.getName().equals("bci") && bciMember.getType() instanceof UnsignedIntegerType;

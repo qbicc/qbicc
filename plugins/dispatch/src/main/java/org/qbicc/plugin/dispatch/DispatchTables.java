@@ -28,7 +28,7 @@ import org.qbicc.plugin.correctness.RuntimeInitManager;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.type.ArrayType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.WordType;
@@ -55,7 +55,7 @@ public class DispatchTables {
     private GlobalVariableElement vtablesGlobal;
     private GlobalVariableElement itablesGlobal;
     private GlobalVariableElement rtinitsGlobal;
-    private CompoundType itableDictType;
+    private StructType itableDictType;
 
     // Used to accumulate statistics
     private int emittedVTableCount;
@@ -166,11 +166,11 @@ public class DispatchTables {
         String vtableName = "vtable-" + cls.getInternalName().replace('/', '.');
         if (cls.isHidden()) vtableName += "~" + ENCODER.encodeToString(cls.getDigest()) + '.' + cls.getHiddenClassIndex();
         TypeSystem ts = ctxt.getTypeSystem();
-        CompoundType.Member[] functions = new CompoundType.Member[vtable.length];
+        StructType.Member[] functions = new StructType.Member[vtable.length];
         for (int i=0; i<vtable.length; i++) {
-            functions[i] = ts.getCompoundTypeMember("m"+i+"."+vtable[i].getName(), vtable[i].getType().getPointer(), i*ts.getPointerSize(), ts.getPointerAlignment());
+            functions[i] = ts.getStructTypeMember("m"+i+"."+vtable[i].getName(), vtable[i].getType().getPointer(), i*ts.getPointerSize(), ts.getPointerAlignment());
         }
-        CompoundType vtableType = ts.getCompoundType(CompoundType.Tag.STRUCT, vtableName, vtable.length * ts.getPointerSize(),
+        StructType vtableType = ts.getStructType(StructType.Tag.STRUCT, vtableName, vtable.length * ts.getPointerSize(),
             ts.getPointerAlignment(), () -> List.of(functions));
 
         vtables.put(cls, new VTableInfo(vtable, vtableType, vtableName));
@@ -188,16 +188,16 @@ public class DispatchTables {
             }
         }
 
-        // Build the CompoundType for the ITable using the (arbitrary) order of selectors in itableVector
+        // Build the StructType for the ITable using the (arbitrary) order of selectors in itableVector
         MethodElement[] itable = itableVector.toArray(MethodElement.NO_METHODS);
         String itableName = "itable-" + cls.getInternalName().replace('/', '.');
         if (cls.isHidden()) itableName += "~" + ENCODER.encodeToString(cls.getDigest()) + '.' + cls.getHiddenClassIndex();
         TypeSystem ts = ctxt.getTypeSystem();
-        CompoundType.Member[] functions = new CompoundType.Member[itable.length];
+        StructType.Member[] functions = new StructType.Member[itable.length];
         for (int i=0; i<itable.length; i++) {
-            functions[i] = ts.getCompoundTypeMember("m"+i+"."+itable[i].getName(), itable[i].getType().getPointer(), i*ts.getPointerSize(), ts.getPointerAlignment());
+            functions[i] = ts.getStructTypeMember("m"+i+"."+itable[i].getName(), itable[i].getType().getPointer(), i*ts.getPointerSize(), ts.getPointerAlignment());
         }
-        CompoundType itableType = ts.getCompoundType(CompoundType.Tag.STRUCT, itableName, itable.length * ts.getPointerSize(),
+        StructType itableType = ts.getStructType(StructType.Tag.STRUCT, itableName, itable.length * ts.getPointerSize(),
             ts.getPointerAlignment(), () -> List.of(functions));
 
         itables.put(cls, new ITableInfo(itable, itableType, cls));
@@ -220,9 +220,9 @@ public class DispatchTables {
 
     void buildITablesGlobal(DefinedTypeDefinition containingType) {
         TypeSystem ts = ctxt.getTypeSystem();
-        CompoundType.Member itableMember = ts.getCompoundTypeMember("itable", ts.getVoidType().getPointer(), 0,  ts.getPointerAlignment());
-        CompoundType.Member typeIdMember = ts.getCompoundTypeMember("typeId", ts.getTypeIdLiteralType(), ts.getPointerSize(),  ts.getTypeIdAlignment());
-        itableDictType = ts.getCompoundType(CompoundType.Tag.STRUCT, "qbicc_itable_dict_entry", ts.getPointerSize() + ts.getTypeIdSize(),
+        StructType.Member itableMember = ts.getStructTypeMember("itable", ts.getVoidType().getPointer(), 0,  ts.getPointerAlignment());
+        StructType.Member typeIdMember = ts.getStructTypeMember("typeId", ts.getTypeIdLiteralType(), ts.getPointerSize(),  ts.getTypeIdAlignment());
+        itableDictType = ts.getStructType(StructType.Tag.STRUCT, "qbicc_itable_dict_entry", ts.getPointerSize() + ts.getTypeIdSize(),
             ts.getPointerAlignment(), () -> List.of(itableMember, typeIdMember));
 
         GlobalVariableElement.Builder builder = GlobalVariableElement.builder("qbicc_itable_dicts_array", BaseTypeDescriptor.V);
@@ -256,7 +256,7 @@ public class DispatchTables {
         MethodElement[] vtable = info.getVtable();
         ModuleSection section = ctxt.getImplicitSection(cls);
         ProgramModule programModule = section.getProgramModule();
-        HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
+        HashMap<StructType.Member, Literal> valueMap = new HashMap<>();
         for (int i = 0; i < vtable.length; i++) {
             FunctionType funType = ctxt.getFunctionTypeForElement(vtable[i]);
             if (vtable[i].isAbstract() || (vtable[i].hasAllModifiersOf(ClassFile.ACC_NATIVE) && ctxt.getExactFunctionIfExists(vtable[i]) == null)) {
@@ -340,7 +340,7 @@ public class DispatchTables {
             MethodElement[] itable = itableInfo.getItable();
             LoadedTypeDefinition currentInterface = itableInfo.getInterface();
 
-            HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
+            HashMap<StructType.Member, Literal> valueMap = new HashMap<>();
             for (int i = 0; i < itable.length; i++) {
                 MethodElement methImpl = cls.resolveMethodElementVirtual(cls.getContext(), itable[i].getName(), itable[i].getDescriptor());
                 FunctionType implType = ctxt.getFunctionTypeForElement(methImpl);
@@ -457,7 +457,7 @@ public class DispatchTables {
         return rtinitsGlobal;
     }
 
-    public CompoundType getItableDictType() {
+    public StructType getItableDictType() {
         return itableDictType;
     }
 
@@ -493,10 +493,10 @@ public class DispatchTables {
 
     public static final class VTableInfo {
         private final MethodElement[] vtable;
-        private final CompoundType type;
+        private final StructType type;
         private final String name;
 
-        VTableInfo(MethodElement[] vtable, CompoundType type, String name) {
+        VTableInfo(MethodElement[] vtable, StructType type, String name) {
             this.vtable = vtable;
             this.type = type;
             this.name = name;
@@ -504,15 +504,15 @@ public class DispatchTables {
 
         public MethodElement[] getVtable() { return vtable; }
         public String getName() { return name; }
-        public CompoundType getType() { return  type; }
+        public StructType getType() { return  type; }
     }
 
     public static final class ITableInfo {
         private final LoadedTypeDefinition myInterface;
         private final MethodElement[] itable;
-        private final CompoundType type;
+        private final StructType type;
 
-        ITableInfo(MethodElement[] itable, CompoundType type, LoadedTypeDefinition myInterface) {
+        ITableInfo(MethodElement[] itable, StructType type, LoadedTypeDefinition myInterface) {
             this.myInterface = myInterface;
             this.itable = itable;
             this.type = type;
@@ -520,6 +520,6 @@ public class DispatchTables {
 
         public LoadedTypeDefinition getInterface() { return myInterface; }
         public MethodElement[] getItable() { return itable; }
-        public CompoundType getType() { return type; }
+        public StructType getType() { return type; }
     }
 }

@@ -4,7 +4,7 @@ import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.NullableType;
@@ -110,7 +110,7 @@ public interface Value extends Node {
      * @param member the member (must not be {@code null})
      * @return the extracted value, or {@code null} if the value is not known
      */
-    default Value extractMember(LiteralFactory lf, CompoundType.Member member) {
+    default Value extractMember(LiteralFactory lf, StructType.Member member) {
         return null;
     }
 

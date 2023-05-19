@@ -12,7 +12,7 @@ import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
@@ -138,7 +138,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().currentThread();
     }
 
-    public Value memberOf(final Value structPointer, final CompoundType.Member member) {
+    public Value memberOf(final Value structPointer, final StructType.Member member) {
         return getDelegate().memberOf(structPointer, member);
     }
 
@@ -230,7 +230,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().extractElement(array, index);
     }
 
-    public Value extractMember(final Value compound, final CompoundType.Member member) {
+    public Value extractMember(final Value compound, final StructType.Member member) {
         return getDelegate().extractMember(compound, member);
     }
 
@@ -246,7 +246,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().insertElement(array, index, value);
     }
 
-    public Value insertMember(Value compound, CompoundType.Member member, Value value) {
+    public Value insertMember(Value compound, StructType.Member member, Value value) {
         return getDelegate().insertMember(compound, member, value);
     }
 

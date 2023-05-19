@@ -23,7 +23,7 @@ import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
@@ -223,7 +223,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             } else {
                 return super.bitCast(sizedValue, toType);
             }
-        } else if (castType instanceof CompoundType) {
+        } else if (castType instanceof StructType) {
             // A checkcast in the bytecodes but it's really casting to a structure or compound type;
             // we can't just bitcast it really, in fact it's an error unless the actual value is zero
             if (value instanceof Literal && ((Literal) value).isZero()) {
@@ -279,9 +279,9 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         }
         if (type instanceof ClassObjectType cot) {
             Layout layout = Layout.get(ctxt);
-            CompoundType compoundType = layout.getInstanceLayoutInfo(cot.getDefinition()).getCompoundType();
+            StructType structType = layout.getInstanceLayoutInfo(cot.getDefinition()).getStructType();
             LiteralFactory lf = ctxt.getLiteralFactory();
-             return super.new_(cot, lf.literalOfType(cot), lf.literalOf(compoundType.getSize()), lf.literalOf(compoundType.getAlign()));
+             return super.new_(cot, lf.literalOfType(cot), lf.literalOf(structType.getSize()), lf.literalOf(structType.getAlign()));
         }
         return super.new_(desc);
     }

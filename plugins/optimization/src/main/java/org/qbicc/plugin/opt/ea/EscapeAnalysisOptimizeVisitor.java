@@ -19,7 +19,7 @@ import org.qbicc.plugin.coreclasses.BasicHeaderInitializer;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.MethodElement;
@@ -95,11 +95,11 @@ public final class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegati
         // Copied and adjusted from NoGcBasicBlockBuilder
         Layout layout = Layout.get(ctxt);
         LayoutInfo info = layout.getInstanceLayoutInfo(type.getDefinition());
-        CompoundType compoundType = info.getCompoundType();
+        StructType structType = info.getStructType();
         LiteralFactory lf = ctxt.getLiteralFactory();
-        IntegerLiteral align = lf.literalOf(compoundType.getAlign());
+        IntegerLiteral align = lf.literalOf(structType.getAlign());
 
-        Value ptrVal = bbb.stackAllocate(compoundType, lf.literalOf(1), align);
+        Value ptrVal = bbb.stackAllocate(structType, lf.literalOf(1), align);
         Value oop = bbb.valueConvert(ptrVal, type.getReference());
         // zero initialize the object's instance fields
         initializeObjectFieldsToZero(info, lf, oop, bbb);
@@ -110,6 +110,6 @@ public final class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegati
     }
 
     private void initializeObjectFieldsToZero(final LayoutInfo info, final LiteralFactory lf, final Value oop, final BasicBlockBuilder bbb) {
-        bbb.call(lf.literalOf(zeroMethod), List.of(oop, lf.literalOf(info.getCompoundType().getSize())));
+        bbb.call(lf.literalOf(zeroMethod), List.of(oop, lf.literalOf(info.getStructType().getSize())));
     }
 }

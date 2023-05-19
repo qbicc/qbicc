@@ -1,6 +1,6 @@
 package org.qbicc.plugin.layout;
 
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.definition.element.FieldElement;
 
 import java.util.BitSet;
@@ -9,12 +9,12 @@ import java.util.Map;
 
 public final class LayoutInfo {
     private final BitSet allocated;
-    private final CompoundType compoundType;
-    private final Map<FieldElement, CompoundType.Member> fieldToMember;
+    private final StructType structType;
+    private final Map<FieldElement, StructType.Member> fieldToMember;
 
-    LayoutInfo(final BitSet allocated, final CompoundType compoundType, final Map<FieldElement, CompoundType.Member> fieldToMember) {
+    LayoutInfo(final BitSet allocated, final StructType structType, final Map<FieldElement, StructType.Member> fieldToMember) {
         this.allocated = allocated;
-        this.compoundType = compoundType;
+        this.structType = structType;
         this.fieldToMember = fieldToMember;
     }
 
@@ -22,13 +22,13 @@ public final class LayoutInfo {
         return (BitSet) allocated.clone();
     }
 
-    public CompoundType getCompoundType() {
-        return compoundType;
+    public StructType getStructType() {
+        return structType;
     }
 
-    public Map<FieldElement, CompoundType.Member> getFieldsMap() { return Collections.unmodifiableMap(fieldToMember); }
+    public Map<FieldElement, StructType.Member> getFieldsMap() { return Collections.unmodifiableMap(fieldToMember); }
 
-    public CompoundType.Member getMember(FieldElement element) {
+    public StructType.Member getMember(FieldElement element) {
         return fieldToMember.get(element);
     }
 }

@@ -22,7 +22,6 @@ import org.qbicc.graph.And;
 import org.qbicc.graph.MemberOfUnion;
 import org.qbicc.graph.PointerDifference;
 import org.qbicc.graph.ThreadBound;
-import org.qbicc.graph.ValueVisitor;
 import org.qbicc.graph.literal.AsmLiteral;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BinaryValue;
@@ -500,7 +499,7 @@ public final class Disassembler {
             final String description = String.format(
                 "extract-member %s %s"
                 , node.getMember().getName()
-                , show(node.getCompoundValue())
+                , show(node.getStructValue())
             );
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
@@ -544,7 +543,7 @@ public final class Disassembler {
             final String description = String.format(
                 "insert-member %s %s"
                 , show(node.getInsertedValue())
-                , show(node.getCompoundValue())
+                , show(node.getStructValue())
             );
             param.addLine(id + " = " + description, node);
             param.nodeInfo.put(node, new NodeInfo(id, description));

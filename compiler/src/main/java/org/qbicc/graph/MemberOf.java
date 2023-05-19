@@ -3,7 +3,7 @@ package org.qbicc.graph;
 import java.util.Objects;
 
 import org.qbicc.graph.atomic.AccessMode;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -13,17 +13,17 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public final class MemberOf extends AbstractValue {
     private final Value structurePointer;
     private final PointerType pointerType;
-    private final CompoundType.Member member;
+    private final StructType.Member member;
 
-    MemberOf(Node callSite, ExecutableElement element, int line, int bci, Value structurePointer, CompoundType.Member member) {
+    MemberOf(Node callSite, ExecutableElement element, int line, int bci, Value structurePointer, StructType.Member member) {
         super(callSite, element, line, bci);
         this.structurePointer = structurePointer;
         this.member = member;
         pointerType = member.getType().getPointer().withQualifiersFrom(structurePointer.getType(PointerType.class));
     }
 
-    public CompoundType getStructType() {
-        return getStructurePointer().getType(PointerType.class).getPointeeType(CompoundType.class);
+    public StructType getStructType() {
+        return getStructurePointer().getType(PointerType.class).getPointeeType(StructType.class);
     }
 
     @Override
@@ -46,7 +46,7 @@ public final class MemberOf extends AbstractValue {
         return structurePointer.getDetectedMode();
     }
 
-    public CompoundType.Member getMember() {
+    public StructType.Member getMember() {
         return member;
     }
 

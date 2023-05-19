@@ -40,7 +40,7 @@ import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.pointer.ProgramObjectPointer;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NullableType;
 import org.qbicc.type.Primitive;
@@ -624,8 +624,8 @@ public final class CoreIntrinsics {
 
         StaticIntrinsic createClass = (builder, target, arguments) -> {
             ClassObjectType jlcType = (ClassObjectType) ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load().getObjectType();
-            CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(jlcType.getDefinition()).getCompoundType();
-            Value instance = builder.new_(jlcType, lf.literalOfType(jlcType), lf.literalOf(compoundType.getSize()), lf.literalOf(compoundType.getAlign()));
+            StructType structType = Layout.get(ctxt).getInstanceLayoutInfo(jlcType.getDefinition()).getStructType();
+            Value instance = builder.new_(jlcType, lf.literalOfType(jlcType), lf.literalOf(structType.getSize()), lf.literalOf(structType.getAlign()));
             Value handle = builder.instanceFieldOf(builder.decodeReference(instance), jlcName);
             builder.store(handle, arguments.get(0), handle.getDetectedMode().getWriteAccess());
             handle = builder.instanceFieldOf(builder.decodeReference(instance), CoreClasses.get(ctxt).getClassTypeIdField());

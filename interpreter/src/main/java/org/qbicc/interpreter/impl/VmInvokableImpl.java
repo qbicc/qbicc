@@ -26,7 +26,7 @@ import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.pointer.MemoryPointer;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.MethodBody;
@@ -49,7 +49,7 @@ final class VmInvokableImpl implements VmInvokable {
     VmInvokableImpl(ExecutableElement element) {
         this.element = element;
         TypeSystem ts = element.getEnclosingType().getContext().getTypeSystem();
-        final CompoundType.Builder builder = CompoundType.builder(ts);
+        final StructType.Builder builder = StructType.builder(ts);
         // find local variables
         findLocalVars(element.getMethodBody().getEntryBlock().getTerminator(), builder, new HashSet<>(), new HashSet<>());
         if (builder.getMemberCountSoFar() == 0) {
@@ -59,7 +59,7 @@ final class VmInvokableImpl implements VmInvokable {
         }
     }
 
-    private void findLocalVars(final Node node, final CompoundType.Builder builder, final Set<Node> visited, final Set<LocalVariableElement> found) {
+    private void findLocalVars(final Node node, final StructType.Builder builder, final Set<Node> visited, final Set<LocalVariableElement> found) {
         if (visited.add(node)) {
             // use the pointee or value type for the variable, because the LV type might
             // be array[0] but the pointee type will have the right dimension
@@ -82,7 +82,7 @@ final class VmInvokableImpl implements VmInvokable {
         }
     }
 
-    private static void registerLocalVariable(final CompoundType.Builder builder, final Set<LocalVariableElement> found, final LocalVariableElement lve, ValueType lveType) {
+    private static void registerLocalVariable(final StructType.Builder builder, final Set<LocalVariableElement> found, final LocalVariableElement lve, ValueType lveType) {
         if (found.add(lve)) {
             builder.addNextMember(lve.getName(), lveType);
             lve.setOffset(builder.getLastAddedMember().getOffset());

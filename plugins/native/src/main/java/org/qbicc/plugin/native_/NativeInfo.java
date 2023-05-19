@@ -21,7 +21,7 @@ import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.probe.Qualifier;
 import org.qbicc.plugin.core.ConditionEvaluation;
 import org.qbicc.plugin.linker.Linker;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnionType;
@@ -310,10 +310,10 @@ final class NativeInfo {
                             }
                         }
                         UnionType.Tag utTag = q == Qualifier.NONE ? UnionType.Tag.NONE : UnionType.Tag.UNION;
-                        CompoundType.Tag ctTag = q == Qualifier.NONE ? CompoundType.Tag.NONE : CompoundType.Tag.STRUCT;
+                        StructType.Tag ctTag = q == Qualifier.NONE ? StructType.Tag.NONE : StructType.Tag.STRUCT;
                         if (incomplete) {
                             // even if they wanted a union, they get a struct with no members
-                            resolved = ts.getIncompleteCompoundType(ctTag, simpleName);
+                            resolved = ts.getIncompleteStructType(ctTag, simpleName);
                         } else {
                             CProbe.Type probeType = tb.build();
                             pb.probeType(probeType);
@@ -330,7 +330,7 @@ final class NativeInfo {
                                         } else if (size == 8) {
                                             resolved = ts.getFloat64Type();
                                         } else {
-                                            resolved = ts.getCompoundType(ctTag, simpleName, size, align, List::of);
+                                            resolved = ts.getStructType(ctTag, simpleName, size, align, List::of);
                                         }
                                     } else if (typeInfo.isSigned()) {
                                         if (size == 1) {
@@ -342,7 +342,7 @@ final class NativeInfo {
                                         } else if (size == 8) {
                                             resolved = ts.getSignedInteger64Type();
                                         } else {
-                                            resolved = ts.getCompoundType(ctTag, simpleName, size, align, List::of);
+                                            resolved = ts.getStructType(ctTag, simpleName, size, align, List::of);
                                         }
                                     } else if (typeInfo.isUnsigned()) {
                                         if (size == 1) {
@@ -354,7 +354,7 @@ final class NativeInfo {
                                         } else if (size == 8) {
                                             resolved = ts.getUnsignedInteger64Type();
                                         } else {
-                                            resolved = ts.getCompoundType(ctTag, simpleName, size, align, List::of);
+                                            resolved = ts.getStructType(ctTag, simpleName, size, align, List::of);
                                         }
                                     } else if (union) {
                                         resolved = ts.getUnionType(utTag, simpleName, () -> {
@@ -370,8 +370,8 @@ final class NativeInfo {
                                             return List.copyOf(list);
                                         });
                                     } else {
-                                        resolved = ts.getCompoundType(ctTag, simpleName, size, align, () -> {
-                                            ArrayList<CompoundType.Member> list = new ArrayList<>();
+                                        resolved = ts.getStructType(ctTag, simpleName, size, align, () -> {
+                                            ArrayList<StructType.Member> list = new ArrayList<>();
                                             for (int i = 0; i < fc; i ++) {
                                                 FieldElement field = vt.getField(i);
                                                 if (! field.isStatic()) {
@@ -379,7 +379,7 @@ final class NativeInfo {
                                                     // compound type
                                                     String name = field.getName();
                                                     CProbe.Type.Info member = result.getTypeInfoOfMember(probeType, name);
-                                                    list.add(ts.getProbedCompoundTypeMember(name, type, (int) member.getOffset()));
+                                                    list.add(ts.getProbedStructTypeMember(name, type, (int) member.getOffset()));
                                                 }
                                             }
                                             list.sort(Comparator.naturalOrder());

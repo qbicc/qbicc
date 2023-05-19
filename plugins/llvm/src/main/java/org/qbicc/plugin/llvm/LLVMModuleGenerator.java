@@ -38,7 +38,7 @@ import org.qbicc.object.SectionObject;
 import org.qbicc.object.Segment;
 import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.type.ArrayType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.TypeSystem;
@@ -235,15 +235,15 @@ final class LLVMModuleGenerator {
             int xtorSize = 0;
             // this special type has a fixed size and layout
             UnsignedIntegerType u32 = ts.getUnsignedInteger32Type();
-            CompoundType.Member priorityMember = ts.getUnalignedCompoundTypeMember("priority", u32, 0);
+            StructType.Member priorityMember = ts.getUnalignedStructTypeMember("priority", u32, 0);
             xtorSize += u32.getSize();
             PointerType voidFnPtrType = ts.getFunctionType(ts.getVoidType(), List.of()).getPointer();
-            CompoundType.Member fnMember = ts.getUnalignedCompoundTypeMember("fn", voidFnPtrType, xtorSize);
+            StructType.Member fnMember = ts.getUnalignedStructTypeMember("fn", voidFnPtrType, xtorSize);
             xtorSize += voidFnPtrType.getSize();
             PointerType u8ptr = ts.getUnsignedInteger8Type().getPointer();
-            CompoundType.Member dataMember = ts.getUnalignedCompoundTypeMember("data", u8ptr, xtorSize);
+            StructType.Member dataMember = ts.getUnalignedStructTypeMember("data", u8ptr, xtorSize);
             xtorSize += u8ptr.getSize();
-            CompoundType xtorType = ts.getCompoundType(CompoundType.Tag.NONE, "xtor_t", xtorSize, 1, () -> List.of(
+            StructType xtorType = ts.getStructType(StructType.Tag.NONE, "xtor_t", xtorSize, 1, () -> List.of(
                 priorityMember, fnMember, dataMember
             ));
             // special global

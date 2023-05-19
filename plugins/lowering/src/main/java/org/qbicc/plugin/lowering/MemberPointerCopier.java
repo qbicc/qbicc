@@ -23,8 +23,7 @@ import org.qbicc.graph.literal.ValueConvertLiteral;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
-import org.qbicc.type.CompoundType;
-import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.StructType;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
 
@@ -107,9 +106,9 @@ public final class MemberPointerCopier implements NodeVisitor.Delegating<Node.Co
     @Override
     public Value visit(Node.Copier copier, CompoundLiteral literal) {
         // a compound literal may be composed of literals that must be transformed
-        final Map<CompoundType.Member, Literal> originalValues = literal.getValues();
-        final HashMap<CompoundType.Member, Literal> newMap = new HashMap<>(originalValues.size());
-        for (Map.Entry<CompoundType.Member, Literal> entry : originalValues.entrySet()) {
+        final Map<StructType.Member, Literal> originalValues = literal.getValues();
+        final HashMap<StructType.Member, Literal> newMap = new HashMap<>(originalValues.size());
+        for (Map.Entry<StructType.Member, Literal> entry : originalValues.entrySet()) {
             newMap.put(entry.getKey(), (Literal) copier.copyValue(entry.getValue()));
         }
         return ctxt.getLiteralFactory().literalOf(literal.getType(), newMap);

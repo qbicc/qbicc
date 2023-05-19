@@ -7,24 +7,24 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.qbicc.graph.Value;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 
 /**
  *
  */
 public final class CompoundLiteral extends Literal {
 
-    private final CompoundType type;
-    private final Map<CompoundType.Member, Literal> values;
+    private final StructType type;
+    private final Map<StructType.Member, Literal> values;
     private final List<Literal> valuesAsList;
     private final int hashCode;
 
-    CompoundLiteral(final CompoundType type, final Map<CompoundType.Member, Literal> values) {
+    CompoundLiteral(final StructType type, final Map<StructType.Member, Literal> values) {
         this.type = type;
         this.values = values;
         hashCode = Objects.hash(type, values);
         valuesAsList = new ArrayList<>(values.size());
-        for (CompoundType.Member member : type.getMembers()) {
+        for (StructType.Member member : type.getMembers()) {
             Literal literal = values.get(member);
             if (literal != null) {
                 valuesAsList.add(literal);
@@ -42,11 +42,11 @@ public final class CompoundLiteral extends Literal {
         return valuesAsList.get(index);
     }
 
-    public CompoundType getType() {
+    public StructType getType() {
         return type;
     }
 
-    public Map<CompoundType.Member, Literal> getValues() {
+    public Map<StructType.Member, Literal> getValues() {
         return values;
     }
 
@@ -54,7 +54,7 @@ public final class CompoundLiteral extends Literal {
         return visitor.visit(param, this);
     }
 
-    public Value extractMember(LiteralFactory lf, CompoundType.Member member) {
+    public Value extractMember(LiteralFactory lf, StructType.Member member) {
         return values.get(member);
     }
 
@@ -76,9 +76,9 @@ public final class CompoundLiteral extends Literal {
 
     public StringBuilder toString(StringBuilder builder) {
         builder.append('{');
-        Iterator<Map.Entry<CompoundType.Member, Literal>> iterator = values.entrySet().iterator();
+        Iterator<Map.Entry<StructType.Member, Literal>> iterator = values.entrySet().iterator();
         if (iterator.hasNext()) {
-            Map.Entry<CompoundType.Member, Literal> entry = iterator.next();
+            Map.Entry<StructType.Member, Literal> entry = iterator.next();
             builder.append(entry.getKey().getName());
             builder.append('=');
             builder.append(entry.getValue());

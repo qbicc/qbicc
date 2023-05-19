@@ -14,7 +14,7 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
@@ -43,8 +43,8 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (typeId instanceof TypeLiteral tl && tl.getValue() instanceof ClassObjectType cot) {
             // We can only even attempt stack allocation if the typeId is a literal (ie, known precisely at compile time).
             if (cot.isSubtypeOf(noGc.getStackObjectType()) /*|| objectDoesNotEscape && objectIsSmallEnough */) {
-                CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(cot.getDefinition()).getCompoundType();
-                refVal = valueConvert(stackAllocate(compoundType, lf.literalOf(1), align), type.getReference());
+                StructType structType = Layout.get(ctxt).getInstanceLayoutInfo(cot.getDefinition()).getStructType();
+                refVal = valueConvert(stackAllocate(structType, lf.literalOf(1), align), type.getReference());
             }
         }
         if (refVal == null) {
@@ -63,8 +63,8 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     @Override
     public Value newArray(final PrimitiveArrayObjectType arrayType, Value size) {
         LoadedTypeDefinition ltd = coreClasses.getArrayContentField(arrayType).getEnclosingType().load();
-        CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(ltd).getCompoundType();
-        Value ptrVal = allocateArray(compoundType, size, arrayType.getElementType().getSize());
+        StructType structType = Layout.get(ctxt).getInstanceLayoutInfo(ltd).getStructType();
+        Value ptrVal = allocateArray(structType, size, arrayType.getElementType().getSize());
         Value oop = valueConvert(ptrVal, arrayType.getReference());
         BasicHeaderInitializer.initializeArrayHeader(ctxt, this, decodeReference(oop), ctxt.getLiteralFactory().literalOfType(ltd.getClassType()), size);
         return oop;
@@ -74,18 +74,18 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public Value newReferenceArray(final ReferenceArrayObjectType arrayType, Value elemTypeId, Value dimensions, Value size) {
         Layout layout = Layout.get(ctxt);
         LayoutInfo info = layout.getInstanceLayoutInfo(coreClasses.getRefArrayContentField().getEnclosingType());
-        CompoundType compoundType = info.getCompoundType();
-        Value ptrVal = allocateArray(compoundType, size, ctxt.getTypeSystem().getReferenceSize());
+        StructType structType = info.getStructType();
+        Value ptrVal = allocateArray(structType, size, ctxt.getTypeSystem().getReferenceSize());
         Value oop = valueConvert(ptrVal, arrayType.getReference());
         BasicHeaderInitializer.initializeRefArrayHeader(ctxt, this, decodeReference(oop), elemTypeId, dimensions, size);
         return oop;
     }
 
-    private Value allocateArray(CompoundType compoundType, Value size, long elementSize) {
+    private Value allocateArray(StructType structType, Value size, long elementSize) {
         NoGc noGc = NoGc.get(ctxt);
         LiteralFactory lf = ctxt.getLiteralFactory();
-        IntegerLiteral align = lf.literalOf(compoundType.getAlign());
-        IntegerLiteral baseSize = lf.literalOf(compoundType.getSize());
+        IntegerLiteral align = lf.literalOf(structType.getAlign());
+        IntegerLiteral baseSize = lf.literalOf(structType.getSize());
         IntegerType sizeType = (IntegerType) size.getType();
         if (sizeType.getMinBits() < 64) {
             size = extend(size, ctxt.getTypeSystem().getSignedInteger64Type());
